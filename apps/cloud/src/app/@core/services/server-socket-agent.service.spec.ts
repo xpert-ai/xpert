@@ -5,11 +5,11 @@ import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { I18nService } from '../../@shared/i18n'
 import { ISemanticModel } from '../types'
-import { PAC_SERVER_DEFAULT_OPTIONS } from '../providers'
+import { XP_SERVER_DEFAULT_OPTIONS } from '../providers'
 import { ToastrService } from './toastr.service'
 import { AgentService } from './agent.service'
 import { DataSourceAgentOptions } from './data-source-agent.types'
-import { PAC_SERVER_AGENT_DEFAULT_OPTIONS } from './server-agent.service'
+import { XP_SERVER_AGENT_DEFAULT_OPTIONS } from './server-agent.service'
 import { ServerSocketAgent } from './server-socket-agent.service'
 
 describe('ServerSocketAgent', () => {
@@ -67,13 +67,13 @@ describe('ServerSocketAgent', () => {
           }
         },
         {
-          provide: PAC_SERVER_AGENT_DEFAULT_OPTIONS,
+          provide: XP_SERVER_AGENT_DEFAULT_OPTIONS,
           useValue: {
             modelBaseUrl: '/api/semantic-model'
           }
         },
         {
-          provide: PAC_SERVER_DEFAULT_OPTIONS,
+          provide: XP_SERVER_DEFAULT_OPTIONS,
           useValue: {
             modelEnv: 'internal'
           }

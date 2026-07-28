@@ -9,7 +9,7 @@ import {
   type ZardTableSortDirection
 } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmConfirmDeleteService, NgmCountdownConfirmationComponent } from '@xpert-ai/headless-ui'
+import { XpCommonModule, XpConfirmDeleteService, XpCountdownConfirmationComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import {
@@ -46,7 +46,7 @@ import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
  */
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebase-documents',
+  selector: 'xp-settings-knowledgebase-documents',
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
@@ -56,7 +56,7 @@ import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
     SharedUiModule,
     ZardPaginatorComponent,
     ZardProgressCircleComponent,
-    NgmCommonModule
+    XpCommonModule
   ],
   animations: [
     trigger('detailExpand', [
@@ -71,7 +71,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
   readonly #store = inject(Store)
   readonly #dialog = inject(ZardDialogService)
-  readonly #confirmDelete = inject(NgmConfirmDeleteService)
+  readonly #confirmDelete = inject(XpConfirmDeleteService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -288,7 +288,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
 
   restartParsing(id: string) {
     this.#dialog
-      .open(NgmCountdownConfirmationComponent, {
+      .open(XpCountdownConfirmationComponent, {
         data: {
           recordType: 'Restart parsing job?'
         }
@@ -307,7 +307,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
 
   stopParsing(id: string) {
     this.#dialog
-      .open(NgmCountdownConfirmationComponent, {
+      .open(XpCountdownConfirmationComponent, {
         data: {
           recordType: 'Stop the parsing job?'
         }

@@ -5,9 +5,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
@@ -44,8 +44,8 @@ import { MCPImportJsonComponent, MCPMarketplaceComponent, XpertMCPManageComponen
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    DynamicGridDirective,
-    NgmCommonModule,
+    XpDynamicGridDirective,
+    XpCommonModule,
     CardCreateComponent,
     ToolsetCardComponent,
     MCPMarketplaceComponent
@@ -70,7 +70,7 @@ export class XpertWorkspaceMCPToolsComponent {
   readonly toolsetService = inject(XpertToolsetService)
   readonly templateService = inject(XpertTemplateService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly queryCategory = injectQueryParams('category')
   readonly confirmUnique = injectConfirmUnique()
 

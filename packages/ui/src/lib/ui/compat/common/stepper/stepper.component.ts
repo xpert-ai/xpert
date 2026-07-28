@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective, NgmI18nPipe } from '../../core'
+import { XpDensityDirective, XpI18nPipe } from '../../core'
 import { TI18N } from '../../core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -13,19 +13,19 @@ export type TStep = {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, CdkListboxModule, NgmI18nPipe],
-  selector: 'ngm-stepper',
+  imports: [FormsModule, TranslateModule, CdkListboxModule, XpI18nPipe],
+  selector: 'xp-stepper',
   templateUrl: 'stepper.component.html',
   styleUrls: ['stepper.component.scss'],
   hostDirectives: [
     NgxControlValueAccessor,
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ]
 })
-export class NgmStepperComponent {
+export class XpStepperComponent {
   protected cva = inject<NgxControlValueAccessor<number>>(NgxControlValueAccessor)
 
   // Inputs

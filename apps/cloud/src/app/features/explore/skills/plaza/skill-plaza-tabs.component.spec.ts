@@ -23,9 +23,9 @@ describe('SkillPlazaTabsComponent', () => {
     fixture.detectChanges()
 
     const text = fixture.nativeElement.textContent
-    expect(text).toContain('PAC.Explore.OfficialFeatured')
-    expect(text).toContain('PAC.Explore.EnterpriseArea')
-    expect(text).toContain('PAC.Explore.MyFavorites')
+    expect(text).toContain('XP.Explore.OfficialFeatured')
+    expect(text).toContain('XP.Explore.EnterpriseArea')
+    expect(text).toContain('XP.Explore.MyFavorites')
     expect(text).toContain('12')
 
     const buttons = fixture.nativeElement.querySelectorAll('button')

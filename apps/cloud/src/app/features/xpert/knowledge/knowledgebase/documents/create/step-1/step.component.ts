@@ -5,8 +5,8 @@ import { Component, computed, effect, inject, model, signal, viewChild } from '@
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SafePipe } from '@xpert-ai/headless-ui'
-import { NgmCheckboxComponent } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
+import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent, ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -48,11 +48,11 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     SafePipe,
     JSONSchemaFormComponent,
     ParameterComponent,
-    NgmCheckboxComponent,
+    XpCheckboxComponent,
     KnowledgeFileSystemComponent,
     KnowledgeLocalFileComponent,
     KnowledgeFilePreviewComponent

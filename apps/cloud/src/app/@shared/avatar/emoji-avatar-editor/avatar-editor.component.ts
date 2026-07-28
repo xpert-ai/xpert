@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, model, signal } fro
 
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
-import { AppearanceDirective } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
@@ -24,7 +24,7 @@ import {
   templateUrl: './avatar-editor.component.html',
   styleUrl: './avatar-editor.component.scss',
   host: {
-    class: 'ngm-dialog-container'
+    class: 'xp-dialog-container'
   },
   imports: [
     CommonModule,
@@ -33,7 +33,7 @@ import {
     ZardButtonComponent,
     ZardDialogModule,
     TranslateModule,
-    AppearanceDirective,
+    XpAppearanceDirective,
     PickerComponent,
     EmojiComponent
   ]

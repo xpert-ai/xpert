@@ -4,7 +4,7 @@ import { TSelectOption, TVariableAssigner, TWorkflowVarGroup, TXpertParameter } 
 import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { NgmSelectComponent } from '../../common'
+import { XpSelectComponent } from '../../common'
 import { CopilotPromptEditorComponent } from '../../copilot/prompt-editor/editor.component'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -16,7 +16,7 @@ import { TXpertVariablesOptions } from '@cloud/app/@core'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    NgmSelectComponent,
+    XpSelectComponent,
     StateVariableSelectComponent,
     CopilotPromptEditorComponent
   ],

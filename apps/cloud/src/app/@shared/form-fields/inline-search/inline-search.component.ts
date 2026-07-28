@@ -1,4 +1,3 @@
-
 import { Component, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -6,12 +5,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged } from 'rxjs'
 
 /**
- * @deprecated use `<ngm-search />`
+ * @deprecated use `<xp-search />`
  */
 @Component({
   standalone: true,
   imports: [ReactiveFormsModule, ZardInputDirective, TranslateModule],
-  selector: 'pac-inline-search',
+  selector: 'xp-inline-search',
   templateUrl: 'inline-search.component.html',
   styleUrls: ['inline-search.component.scss'],
   providers: [

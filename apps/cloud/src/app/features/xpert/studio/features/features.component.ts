@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, output, signal } from '@angular/co
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { IfAnimations } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../domain'
@@ -42,7 +42,7 @@ type ViewType =
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmDensityDirective,
+    XpDensityDirective,
     XpertStudioFeaturesSummaryComponent,
     XpertStudioFeaturesMemoryComponent,
     XpertStudioFeaturesTitleComponent,

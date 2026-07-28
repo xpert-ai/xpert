@@ -1,11 +1,11 @@
 import { NgModule } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmTableComponent } from '@xpert-ai/headless-ui'
+import { XpCommonModule, XpTableComponent } from '@xpert-ai/headless-ui'
 import { OcapCoreModule } from '@xpert-ai/headless-ui'
 import { DemoComponent } from './demo/demo.component'
 import { SettingsComponent } from './settings/settings.component'
 import { TenantRoutingModule } from './tenant-routing.module'
-import { PACTenantComponent } from './tenant.component'
+import { XpTenantComponent } from './tenant.component'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
 import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
@@ -18,11 +18,11 @@ import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
     TenantRoutingModule,
     SMTPComponent,
     OcapCoreModule,
-    NgmCommonModule,
-    NgmTableComponent
+    XpCommonModule,
+    XpTableComponent
   ],
   exports: [],
-  declarations: [PACTenantComponent, SettingsComponent, DemoComponent],
+  declarations: [XpTenantComponent, SettingsComponent, DemoComponent],
   providers: []
 })
 export class TenantModule {}

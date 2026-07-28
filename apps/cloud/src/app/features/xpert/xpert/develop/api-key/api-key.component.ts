@@ -4,7 +4,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MaskPipe } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ApiKeyBindingType,
@@ -32,7 +32,7 @@ const EMPTY_API_KEYS: ApiKeyListItem[] = []
     ReactiveFormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     MaskPipe,
     DateFormatPipe,
     DateRelativePipe
@@ -106,8 +106,8 @@ export class XpertDevelopApiKeyComponent {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          title: this.#translate.instant('PAC.Xpert.DeleteApiKey', { Default: 'Delete this api key?' }),
-          information: this.#translate.instant('PAC.Xpert.ActionUndone', { Default: 'This action cannot be undone.' })
+          title: this.#translate.instant('XP.Xpert.DeleteApiKey', { Default: 'Delete this api key?' }),
+          information: this.#translate.instant('XP.Xpert.ActionUndone', { Default: 'This action cannot be undone.' })
         }
       })
       .closed.pipe(
@@ -133,7 +133,7 @@ export class XpertDevelopApiKeyComponent {
 
   copy(key: ApiKeyListItem) {
     this.#clipboard.copy(key.token)
-    this.#toastr.info({ code: 'PAC.KEY_WORDS.Copied', default: 'Copied' })
+    this.#toastr.info({ code: 'XP.KEY_WORDS.Copied', default: 'Copied' })
     key.copied = true
   }
 

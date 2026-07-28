@@ -17,7 +17,7 @@
   $warn: map.get($color-config, 'warn');
   $foreground: map.get($color-config, 'foreground');
 
-  .ngm-appearance-acrylic {
+  .xp-appearance-acrylic {
     position: relative;
 
     &::before {
@@ -45,8 +45,8 @@
   .cdk-menu-item,
   [z-menu-item],
   [role='option'],
-  .ngm-tree-select__option {
-    &.ngm-appearance-dashed {
+  .xp-tree-select__option {
+    &.xp-appearance-dashed {
       border: 1px dashed themeCompat.m2-get-color-from-palette($foreground, divider);
     }
   }
@@ -56,15 +56,15 @@
   .cdk-menu-item,
   [z-menu-item],
   [role='option'],
-  .ngm-tree-select__option {
-    &.ngm-appearance-dashed:hover,
-    &.ngm-appearance-dashed:focus {
+  .xp-tree-select__option {
+    &.xp-appearance-dashed:hover,
+    &.xp-appearance-dashed:focus {
       border-color: #738187;
     }
   }
 
-  z-divider.ngm-appearance-dashed,
-  [data-slot='divider'].ngm-appearance-dashed {
+  z-divider.xp-appearance-dashed,
+  [data-slot='divider'].xp-appearance-dashed {
     border-top-style: dashed;
   }
 
@@ -73,8 +73,8 @@
   .cdk-menu-item,
   [z-menu-item],
   [role='option'],
-  .ngm-tree-select__option {
-    &.ngm-appearance-danger:hover {
+  .xp-tree-select__option {
+    &.xp-appearance-danger:hover {
       color: themeCompat.m2-get-color-from-palette($warn);
     }
   }
@@ -83,14 +83,14 @@
   @include _legacy-toggle-group-color('accent');
   @include _legacy-toggle-group-color('warn');
 
-  .ngm-appearance-opacity {
+  .xp-appearance-opacity {
     opacity: 0.5;
   }
 }
 
 @mixin density($config-or-theme) {
-  .ngm-density__compact .z-toggle-group,
-  .ngm-density__compact.z-toggle-group {
+  .xp-density__compact .z-toggle-group,
+  .xp-density__compact.z-toggle-group {
     --border-radius: 10px;
     --box-shadow-radius: 5px;
     line-height: normal;
@@ -102,8 +102,8 @@
     }
   }
 
-  .ngm-density__cosy .z-toggle-group,
-  .ngm-density__cosy.z-toggle-group {
+  .xp-density__cosy .z-toggle-group,
+  .xp-density__cosy.z-toggle-group {
     --border-radius: 1rem;
     --box-shadow-radius: 6px;
     line-height: normal;

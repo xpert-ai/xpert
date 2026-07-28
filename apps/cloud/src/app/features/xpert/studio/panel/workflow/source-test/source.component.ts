@@ -15,7 +15,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { KnowledgeLocalFileComponent } from '@cloud/app/@shared/knowledge'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpCheckboxComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel, myRxResource, omitBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -48,11 +48,11 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     XpertParametersFormComponent,
     KnowledgeLocalFileComponent,
     ContentLoaderModule,
-    NgmCheckboxComponent
+    XpCheckboxComponent
   ]
 })
 export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent {
@@ -206,7 +206,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
         next: (task) => {
           // console.log(task)
           this.successMessage.set(
-            this.i18nService.instant('PAC.Pipeline.SourceTestSuccessMessage', {
+            this.i18nService.instant('XP.Pipeline.SourceTestSuccessMessage', {
               Default: `Added to background task, please check the message detailed log in chat history.`
             })
           )

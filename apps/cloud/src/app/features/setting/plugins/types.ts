@@ -43,10 +43,10 @@ export const XPERT_PLUGIN_REGISTRY_SOURCE_NAME = 'Xpert Plugin Registry'
 
 export function getPluginMarketplaceSourceI18nKey(sourceId?: string | null, sourceName?: string | null) {
   if (sourceId === PLATFORM_REGISTRY_SOURCE_ID || sourceName === PLATFORM_REGISTRY_SOURCE_NAME) {
-    return 'PAC.Plugin.SourcePlatformRegistry'
+    return 'XP.Plugin.SourcePlatformRegistry'
   }
   if (sourceName === XPERT_PLUGIN_REGISTRY_SOURCE_NAME) {
-    return 'PAC.Plugin.SourceXpertPluginRegistry'
+    return 'XP.Plugin.SourceXpertPluginRegistry'
   }
   return null
 }

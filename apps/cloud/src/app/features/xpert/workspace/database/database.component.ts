@@ -16,7 +16,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import {
   ZardButtonComponent,
   ZardCheckboxComponent,
@@ -24,8 +24,8 @@ import {
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { attrModel, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { attrModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map, shareReplay, Subject, takeUntil } from 'rxjs'
 import {
@@ -59,9 +59,9 @@ import {
     ZardCheckboxComponent,
     ZardInputDirective,
     ...ZardSelectImports,
-    NgmSpinComponent,
-    NgmSelectComponent,
-    NgmI18nPipe
+    XpSpinComponent,
+    XpSelectComponent,
+    XpI18nPipe
   ],
   selector: 'xp-workspace-database',
   templateUrl: './database.component.html',
@@ -78,7 +78,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
 
   readonly #translate = inject(TranslateService)
   readonly #cdr = inject(ChangeDetectorRef)
-  readonly colI18n = injectTranslate('PAC.Xpert.MemoryCols')
+  readonly colI18n = injectTranslate('XP.Xpert.MemoryCols')
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly xpertTableAPI = injectXpertTableAPI()
@@ -788,8 +788,8 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
    * Update all translated texts
    */
   private updateTranslations() {
-    this.statusPlaceholder.set(this.#translate.instant('PAC.Workspace.AllStatus', { Default: 'All Status' }))
-    this.databasePlaceholder.set(this.#translate.instant('PAC.Workspace.AllDatabases', { Default: 'All Databases' }))
+    this.statusPlaceholder.set(this.#translate.instant('XP.Workspace.AllStatus', { Default: 'All Status' }))
+    this.databasePlaceholder.set(this.#translate.instant('XP.Workspace.AllDatabases', { Default: 'All Databases' }))
 
     // Note: Do not modify types and statusOptions arrays to avoid breaking CdkListbox internal state
     // These arrays' labels are already multi-language objects {en_US: '...', zh_Hans: '...'}
@@ -873,9 +873,9 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         if (!col.enumValues || col.enumValues.length === 0) {
           this.#loading.set(false)
           this.#toastr.danger(
-            this.#translate.instant('PAC.Workspace.EnumValuesRequired', {
+            this.#translate.instant('XP.Workspace.EnumValuesRequired', {
               Default: 'Enum Values is required for ENUM type',
-              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', { Default: 'Field' })
+              fieldName: col.name || this.#translate.instant('XP.Workspace.FieldName', { Default: 'Field' })
             })
           )
           return
@@ -885,9 +885,9 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         if (!col.setValues || col.setValues.length === 0) {
           this.#loading.set(false)
           this.#toastr.danger(
-            this.#translate.instant('PAC.Workspace.SetValuesRequired', {
+            this.#translate.instant('XP.Workspace.SetValuesRequired', {
               Default: 'Set Values is required for SET type',
-              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', { Default: 'Field' })
+              fieldName: col.name || this.#translate.instant('XP.Workspace.FieldName', { Default: 'Field' })
             })
           )
           return
@@ -914,8 +914,8 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       next: () => {
         this.#loading.set(false)
         const message = isUpdate
-          ? this.#translate.instant('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully' })
-          : this.#translate.instant('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully' })
+          ? this.#translate.instant('XP.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully' })
+          : this.#translate.instant('XP.Messages.CreatedSuccessfully', { Default: 'Created Successfully' })
         this.#toastr.success(message)
         // Set closing flag to prevent side effects
         this.#isClosing.set(true)
@@ -946,7 +946,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       next: () => {
         this.#loading.set(false)
         this.#toastr.success(
-          this.#translate.instant('PAC.Xpert.MemoryMessages.TableActivationStarted', {
+          this.#translate.instant('XP.Xpert.MemoryMessages.TableActivationStarted', {
             Default: 'Table activation started'
           })
         )
@@ -964,10 +964,10 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
    */
   deleteTable(table: IXpertTable) {
     // Open confirm delete dialog
-    const infoText = this.#translate.instant('PAC.Workspace.DeleteTableInfo', {
+    const infoText = this.#translate.instant('XP.Workspace.DeleteTableInfo', {
       Default: 'This operation will delete the physical table in the database and cannot be recovered!',
       name: table.name,
-      description: table.description || this.#translate.instant('PAC.KEY_WORDS.None', { Default: 'None' }),
+      description: table.description || this.#translate.instant('XP.KEY_WORDS.None', { Default: 'None' }),
       status: table.status
     })
 
@@ -975,7 +975,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: table.name,
-          information: `${infoText}\n\n${this.#translate.instant('PAC.Workspace.TableName', { Default: 'Table Name' })}: ${table.name}\n${this.#translate.instant('PAC.KEY_WORDS.Description', { Default: 'Description' })}: ${table.description || this.#translate.instant('PAC.KEY_WORDS.None', { Default: 'None' })}\n${this.#translate.instant('PAC.KEY_WORDS.Status', { Default: 'Status' })}: ${table.status}`
+          information: `${infoText}\n\n${this.#translate.instant('XP.Workspace.TableName', { Default: 'Table Name' })}: ${table.name}\n${this.#translate.instant('XP.KEY_WORDS.Description', { Default: 'Description' })}: ${table.description || this.#translate.instant('XP.KEY_WORDS.None', { Default: 'None' })}\n${this.#translate.instant('XP.KEY_WORDS.Status', { Default: 'Status' })}: ${table.status}`
         }
       })
       .closed.subscribe({
@@ -990,7 +990,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
             next: () => {
               this.#loading.set(false)
               this.#toastr.success(
-                this.#translate.instant('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted Successfully' })
+                this.#translate.instant('XP.Messages.DeletedSuccessfully', { Default: 'Deleted Successfully' })
               )
               this.#tablesResource.reload()
             },
@@ -1008,10 +1008,10 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
    */
   getConstraintLabelText(constraint: 'pk' | 'required' | 'unique' | 'autoIncrement'): string {
     const translationKeys = {
-      pk: 'PAC.Workspace.PrimaryKeyShort',
-      required: 'PAC.Workspace.RequiredShort',
-      unique: 'PAC.Workspace.UniqueShort',
-      autoIncrement: 'PAC.Workspace.AutoIncrementShort'
+      pk: 'XP.Workspace.PrimaryKeyShort',
+      required: 'XP.Workspace.RequiredShort',
+      unique: 'XP.Workspace.UniqueShort',
+      autoIncrement: 'XP.Workspace.AutoIncrementShort'
     }
 
     const defaults = {

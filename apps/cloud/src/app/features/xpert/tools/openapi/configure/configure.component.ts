@@ -39,7 +39,7 @@ import { combineLatestWith, distinctUntilChanged, filter, map, of, switchMap } f
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Samples } from '../types'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog } from '@angular/cdk/dialog'
@@ -57,7 +57,7 @@ import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
     EntriesPipe,
     EmojiAvatarComponent,
     TagSelectComponent,
-    NgmSpinComponent,
+    XpSpinComponent,
 
     XpertToolAuthorizationInputComponent,
     XpertToolNameInputComponent

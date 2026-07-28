@@ -8,7 +8,7 @@ export const IMG_ROOT = 'assets/images/destinations'
 @Injectable({
   providedIn: 'root'
 })
-export class PACNotificationDestinationsService {
+export class XpNotificationDestinationsService {
   // types$ = this.select((state) => {
   //   if (isNil(state.types)) {
   //     this.getTypes()

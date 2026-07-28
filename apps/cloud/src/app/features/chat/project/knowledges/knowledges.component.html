@@ -9,11 +9,11 @@
     </div>
     <div class="flex flex-col gap-1 items-center text-center">
       <h3 class="font-semibold text-lg">
-        {{ 'PAC.XProject.NoKnowledgebasesYet' | translate: { Default: 'No knowledgebases yet' } }}
+        {{ 'XP.XProject.NoKnowledgebasesYet' | translate: { Default: 'No knowledgebases yet' } }}
       </h3>
       <span class="text-text-secondary max-w-md">
         {{
-          'PAC.XProject.AddKnowledgebasesForProject'
+          'XP.XProject.AddKnowledgebasesForProject'
             | translate: { Default: 'Select to bind a workspace to add knowledgebases to the project general agent' }
         }}
       </span>
@@ -25,7 +25,7 @@
   <div
     @listEnterAnimation
     class="relative content-start gap-4 pt-2 pb-4 px-1 my-4 grow shrink-0"
-    ngmDynamicGrid
+    xpDynamicGrid
     colWidth="280"
     box="content-box"
   >
@@ -35,7 +35,7 @@
           action
           type="button"
           class="btn rounded-xl justify-center w-8 h-8 danger opacity-0 group-hover/card:opacity-100"
-          [zTooltip]="'PAC.XProject.RemoveKnowledgebase' | translate: { Default: 'Remove knowledgebase' }"
+          [zTooltip]="'XP.XProject.RemoveKnowledgebase' | translate: { Default: 'Remove knowledgebase' }"
           zPosition="right"
           (click)="removeKB(toolset)"
         >
@@ -47,7 +47,7 @@
 
   <div class="flex items-center py-4 px-1 text-lg font-semibold text-text-tertiary uppercase">
     <div class="mr-3">
-      {{ 'PAC.XProject.AvailableKnowledgebases' | translate: { Default: 'Available Knowledgebases' } }}
+      {{ 'XP.XProject.AvailableKnowledgebases' | translate: { Default: 'Available Knowledgebases' } }}
     </div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div>
@@ -57,7 +57,7 @@
   } @else {
     <div
       class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
-      ngmDynamicGrid
+      xpDynamicGrid
       colWidth="280"
       box="content-box"
     >
@@ -71,7 +71,7 @@
               action
               type="button"
               class="btn rounded-xl justify-center w-8 h-8 text-text-success"
-              [zTooltip]="'PAC.XProject.AddedKnowledgebase' | translate: { Default: 'Added knowledgebases' }"
+              [zTooltip]="'XP.XProject.AddedKnowledgebase' | translate: { Default: 'Added knowledgebases' }"
               zPosition="right"
             >
               <i class="ri-checkbox-circle-line"></i>
@@ -81,7 +81,7 @@
               action
               type="button"
               class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
-              [zTooltip]="'PAC.XProject.AddKnowledgebase' | translate: { Default: 'Add knowledgebase' }"
+              [zTooltip]="'XP.XProject.AddKnowledgebase' | translate: { Default: 'Add knowledgebase' }"
               zPosition="right"
               (click)="$event.stopPropagation(); addKnowledgebase(item.knowledgebase)"
             >

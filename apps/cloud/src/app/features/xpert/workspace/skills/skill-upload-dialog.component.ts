@@ -3,7 +3,7 @@ import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   injectSkillPackageAPI,
@@ -17,12 +17,12 @@ import { firstValueFrom } from 'rxjs'
 @Component({
   standalone: true,
   selector: 'xp-skill-upload-dialog',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, NgmSpinComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, XpSpinComponent],
   template: `
     <div class="w-[420px] overflow-hidden rounded-2xl bg-components-card-bg text-text-primary shadow-2xl">
       <div class="flex items-center justify-between border-b border-divider-regular px-4 py-3">
         <div class="text-lg font-semibold">
-          {{ 'PAC.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
+          {{ 'XP.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
         </div>
         <button type="button" class="text-text-tertiary transition-colors hover:text-text-primary" (click)="close()">
           <i class="ri-close-line text-xl"></i>
@@ -33,7 +33,7 @@ import { firstValueFrom } from 'rxjs'
         <div class="rounded-lg border-2 border-dashed border-divider-regular bg-background-default-subtle p-4">
           <p class="mb-2 text-sm text-text-secondary">
             {{
-              'PAC.Skill.UploadSkillsHint'
+              'XP.Skill.UploadSkillsHint'
                 | translate: { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' }
             }}
           </p>
@@ -46,7 +46,7 @@ import { firstValueFrom } from 'rxjs'
             <div class="flex items-center gap-2">
               <i class="ri-upload-2-line"></i>
               <span class="text-sm text-text-primary">
-                {{ 'PAC.Skill.ChooseFile' | translate: { Default: 'Choose file' } }}
+                {{ 'XP.Skill.ChooseFile' | translate: { Default: 'Choose file' } }}
               </span>
             </div>
             <span class="text-xs text-text-tertiary">{{ files().length }}</span>
@@ -83,7 +83,7 @@ import { firstValueFrom } from 'rxjs'
 
         <div class="flex items-center justify-end gap-2">
           <button type="button" class="btn btn-secondary btn-medium" [disabled]="loading()" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button
             type="button"
@@ -93,10 +93,10 @@ import { firstValueFrom } from 'rxjs'
             (click)="upload()"
           >
             @if (loading()) {
-              <ngm-spin size="small" class="mr-1" /> {{ 'PAC.ACTIONS.Uploading' | translate: { Default: 'Uploading' } }}
+              <xp-spin size="small" class="mr-1" /> {{ 'XP.ACTIONS.Uploading' | translate: { Default: 'Uploading' } }}
             } @else {
               <i class="ri-cloud-upload-line mr-1"></i>
-              {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+              {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
             }
           </button>
         </div>
@@ -184,7 +184,7 @@ export class XpertSkillUploadDialogComponent implements AfterViewInit {
       }
 
       this.#toastr.success(
-        this.#translate.instant('PAC.Skill.SkillUploadSuccess', { Default: 'Skills uploaded successfully' })
+        this.#translate.instant('XP.Skill.SkillUploadSuccess', { Default: 'Skills uploaded successfully' })
       )
       this.#dialogRef.close(items)
     } catch (err) {

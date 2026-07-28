@@ -2,11 +2,11 @@
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
       <div class="text-base font-semibold text-text-primary">
-        {{ 'PAC.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
+        {{ 'XP.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
       </div>
       <div class="text-sm text-text-tertiary">
         {{
-          'PAC.Organization.MembersHint'
+          'XP.Organization.MembersHint'
             | translate
               : {
                   Default:
@@ -17,47 +17,47 @@
     </div>
 
     @if (canEdit) {
-      <div ngmButtonGroup>
+      <div xpButtonGroup>
         <button z-button zType="default" displayDensity="cosy" (click)="openMemberSelect()">
           <z-icon zType="add"></z-icon>
-          {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+          {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
         </button>
       </div>
     }
   </div>
 
-  <ngm-table
+  <xp-table
     class="overflow-hidden rounded-lg border border-divider-deep"
     paging
     [data]="memberships()"
     [columns]="[
       {
         name: 'user',
-        caption: 'PAC.KEY_WORDS.User' | translate: { Default: 'User' },
+        caption: 'XP.KEY_WORDS.User' | translate: { Default: 'User' },
         cellTemplate: userTempl
       },
       {
         name: 'user.email',
-        caption: 'PAC.KEY_WORDS.Email' | translate: { Default: 'Email' }
+        caption: 'XP.KEY_WORDS.Email' | translate: { Default: 'Email' }
       },
       {
         name: 'user.role.name',
-        caption: 'PAC.KEY_WORDS.Role' | translate: { Default: 'Role' },
+        caption: 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' },
         cellTemplate: roleTempl
       },
       {
         name: 'isDefault',
-        caption: 'PAC.KEY_WORDS.Default' | translate: { Default: 'Default' },
+        caption: 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' },
         cellTemplate: defaultTempl
       },
       {
         name: 'isActive',
-        caption: 'PAC.KEY_WORDS.Active' | translate: { Default: 'Active' },
+        caption: 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' },
         cellTemplate: activeTempl
       },
       {
         name: 'action',
-        caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
+        caption: 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
         cellTemplate: actionTempl,
         stickyEnd: true
       }
@@ -67,7 +67,7 @@
   @if (!memberships().length) {
     <div class="rounded-lg border border-dashed border-divider-deep px-4 py-8 text-center text-sm text-text-tertiary">
       {{
-        'PAC.Organization.NoMembers'
+        'XP.Organization.NoMembers'
           | translate
             : {
                 Default:
@@ -79,12 +79,12 @@
 </div>
 
 <ng-template #userTempl let-user="user">
-  <pac-user-profile-inline [user]="user"></pac-user-profile-inline>
+  <xp-user-profile-inline [user]="user"></xp-user-profile-inline>
 </ng-template>
 
 <ng-template #roleTempl let-id="id">
   @if (membershipById(id); as membership) {
-    {{ membership.user?.role?.name || ('PAC.USERS_PAGE.NoRole' | translate: { Default: 'No Role' }) }}
+    {{ membership.user?.role?.name || ('XP.USERS_PAGE.NoRole' | translate: { Default: 'No Role' }) }}
   }
 </ng-template>
 
@@ -120,7 +120,7 @@
       zType="ghost"
       zSize="icon"
       zShape="circle"
-      ngmAppearance="danger"
+      xpAppearance="danger"
       displayDensity="cosy"
       class="text-text-quaternary"
       (click)="removeMember(membership)"

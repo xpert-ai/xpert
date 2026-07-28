@@ -1,9 +1,9 @@
 @reference "../../../../../../../tailwind-workspace-reference.css";
 :host:not(.collapsed) {
-  .pac-router-link {
+  .xp-router-link {
     @apply hover:bg-hover-bg;
   }
-  .pac-router-link.active {
+  .xp-router-link.active {
     @apply bg-components-list-option-active-bg;
 
     &.has-submenu {
@@ -12,7 +12,7 @@
   }
 }
 
-.pac-router-link {
+.xp-router-link {
   @apply transition-all duration-200 ease-in-out cursor-pointer;
 
   &.active {
@@ -22,12 +22,12 @@
   }
 }
 
-.pac-sub-menu {
-  li.pac-router-link {
+.xp-sub-menu {
+  li.xp-router-link {
     @apply h-0 px-4 py-0 opacity-0 invisible transition-all duration-200 ease-in-out;
   }
   &.expanded {
-    li.pac-router-link {
+    li.xp-router-link {
       @apply h-10 px-4 py-2 opacity-100 visible;
     }
   }

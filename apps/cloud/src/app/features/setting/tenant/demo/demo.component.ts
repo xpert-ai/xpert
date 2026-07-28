@@ -6,7 +6,7 @@ import { effectAction } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: false,
-  selector: 'pac-tenant-demo',
+  selector: 'xp-tenant-demo',
   templateUrl: 'demo.component.html',
   styles: [':host {display: block; padding-top: 1rem;}']
 })
@@ -24,13 +24,13 @@ export class DemoComponent extends TranslationBaseComponent {
       concatMap(() => {
         return this.tenantService.generateDemo(this.store.user.tenantId).pipe(
           catchError((err) => {
-            this._toastrService.error('PAC.NOTES.TENANT.DEMO_GENERATE_ERROR')
+            this._toastrService.error('XP.NOTES.TENANT.DEMO_GENERATE_ERROR')
             return EMPTY
           })
         )
       }),
       tap(() => {
-        this._toastrService.success('PAC.NOTES.TENANT.DEMO_GENERATED')
+        this._toastrService.success('XP.NOTES.TENANT.DEMO_GENERATED')
       })
     )
   })

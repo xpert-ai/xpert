@@ -2,7 +2,7 @@
   @for (item of menus(); track $index) {
     <li class="flex flex-col items-center">
       <div
-        class="pac-router-link w-full shrink-0 h-10 flex items-center rounded-lg cursor-pointer py-1 px-2"
+        class="xp-router-link w-full shrink-0 h-10 flex items-center rounded-lg cursor-pointer py-1 px-2"
         [class.justify-center]="isCollapsed"
         [class.justify-start]="!isCollapsed"
         [class.has-submenu]="item.children?.length"
@@ -108,14 +108,14 @@
 
       @if (!isCollapsed && item.children) {
         <ul
-          class="pac-sub-menu w-full flex flex-col ml-3 mt-1"
+          class="xp-sub-menu w-full flex flex-col ml-3 mt-1"
           [class.expanded]="isExpanded(item)"
           [class.gap-1]="isExpanded(item)"
         >
           @for (child of item.children; track $index) {
             @if (!child.hidden) {
               <li
-                class="pac-router-link flex items-center py-2 px-4 rounded-lg cursor-pointer"
+                class="xp-router-link flex items-center py-2 px-4 rounded-lg cursor-pointer"
                 [routerLink]="child.link"
                 routerLinkActive
                 [routerLinkActiveOptions]="{ exact: true }"

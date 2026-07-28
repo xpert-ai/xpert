@@ -9,7 +9,7 @@ const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'system']
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-root',
+  selector: 'xp-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   providers: []
@@ -23,7 +23,7 @@ export class AppComponent {
     private document: Document,
     private renderer: Renderer2,
     private platform: Platform,
-    private title: Title,
+    private title: Title
   ) {
     effect(() => {
       const isMobile = this.isMobile$()
@@ -39,7 +39,7 @@ export class AppComponent {
 
       const body = this.document.getElementsByTagName('body')[0]
       const bodyThemeClasses = Array.from(body.classList).filter(
-        (item: string) => item.startsWith('ngm-theme-') || LEGACY_THEME_CLASSES.includes(item)
+        (item: string) => item.startsWith('xp-theme-') || LEGACY_THEME_CLASSES.includes(item)
       )
 
       if (bodyThemeClasses.length) {

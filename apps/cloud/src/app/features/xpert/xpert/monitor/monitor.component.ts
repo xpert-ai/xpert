@@ -6,8 +6,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmTooltipDirective } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpTooltipDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../@core'
@@ -25,8 +25,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
-    NgmTooltipDirective,
+    XpSpinComponent,
+    XpTooltipDirective,
     InDevelopmentComponent,
     XpertAppComponent,
     XpertAPIComponent,
@@ -54,6 +54,6 @@ export class XpertMonitorComponent {
 
   copy(content: string) {
     this.#clipboard.copy(content)
-    this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+    this.#toastr.info({ code: 'XP.Xpert.Copied', default: 'Copied' })
   }
 }

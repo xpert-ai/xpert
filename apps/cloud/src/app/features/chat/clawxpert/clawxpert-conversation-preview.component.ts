@@ -75,85 +75,85 @@ type DeviceViewportPointer = {
 const DEVICE_VIEWPORT_PRESETS: readonly DeviceViewportPreset[] = [
   {
     id: RESPONSIVE_DEVICE_PRESET_ID,
-    labelKey: 'PAC.Chat.ClawXpert.Responsive',
+    labelKey: 'XP.Chat.ClawXpert.Responsive',
     defaultLabel: 'Responsive',
     width: DEFAULT_DEVICE_VIEWPORT_WIDTH,
     height: DEFAULT_DEVICE_VIEWPORT_HEIGHT
   },
-  { id: '4k', labelKey: 'PAC.Chat.ClawXpert.DevicePreset4K', defaultLabel: '4K', width: 3840, height: 2160 },
+  { id: '4k', labelKey: 'XP.Chat.ClawXpert.DevicePreset4K', defaultLabel: '4K', width: 3840, height: 2160 },
   {
     id: 'laptop-l',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetLaptopL',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetLaptopL',
     defaultLabel: 'Laptop L',
     width: 1440,
     height: 900
   },
   {
     id: 'laptop',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetLaptop',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetLaptop',
     defaultLabel: 'Laptop',
     width: 1280,
     height: 800
   },
   {
     id: 'surface-pro-7',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetSurfacePro7',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetSurfacePro7',
     defaultLabel: 'Surface Pro 7',
     width: 912,
     height: 1368
   },
   {
     id: 'ipad-air',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPadAir',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPadAir',
     defaultLabel: 'iPad Air',
     width: 820,
     height: 1180
   },
   {
     id: 'ipad-mini',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPadMini',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPadMini',
     defaultLabel: 'iPad Mini',
     width: 768,
     height: 1024
   },
   {
     id: 'surface-duo',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetSurfaceDuo',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetSurfaceDuo',
     defaultLabel: 'Surface Duo',
     width: 540,
     height: 720
   },
   {
     id: 'iphone-15-pro-max',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPhone15ProMax',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPhone15ProMax',
     defaultLabel: 'iPhone 15 Pro Max',
     width: 430,
     height: 932
   },
   {
     id: 'pixel-8',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetPixel8',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetPixel8',
     defaultLabel: 'Pixel 8',
     width: 412,
     height: 915
   },
   {
     id: 'iphone-15-pro',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPhone15Pro',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPhone15Pro',
     defaultLabel: 'iPhone 15 Pro',
     width: 393,
     height: 852
   },
   {
     id: 'samsung-galaxy-s24-ultra',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetSamsungGalaxyS24Ultra',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetSamsungGalaxyS24Ultra',
     defaultLabel: 'Samsung Galaxy S24 Ultra',
     width: 384,
     height: 824
   },
   {
     id: 'iphone-se',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPhoneSE',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPhoneSE',
     defaultLabel: 'iPhone SE',
     width: 375,
     height: 667
@@ -449,7 +449,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-conversation-preview',
+  selector: 'xp-clawxpert-conversation-preview',
   imports: [CommonModule, FormsModule, TranslateModule, ZardButtonComponent, ZardInputDirective, ...ZardMenuImports],
   template: `
     <div
@@ -493,7 +493,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
                 class="h-8 w-full rounded-xl border-divider-regular bg-components-card-bg pl-3 pr-8 text-center text-sm text-text-primary"
                 [ngModel]="addressValue()"
                 (ngModelChange)="addressValue.set($event)"
-                [placeholder]="'PAC.Chat.ClawXpert.EnterUrl' | translate: { Default: 'Enter URL' }"
+                [placeholder]="'XP.Chat.ClawXpert.EnterUrl' | translate: { Default: 'Enter URL' }"
               />
               <button
                 type="submit"
@@ -565,7 +565,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               name="deviceViewportWidth"
               data-device-width
               class="h-8 w-20 rounded-xl border-divider-regular bg-components-card-bg text-center text-sm text-text-primary"
-              [attr.aria-label]="'PAC.Chat.ClawXpert.DeviceWidth' | translate: { Default: 'Device width' }"
+              [attr.aria-label]="'XP.Chat.ClawXpert.DeviceWidth' | translate: { Default: 'Device width' }"
               [value]="deviceViewportWidthText()"
               (input)="setDeviceViewportWidthFromEvent($event)"
             />
@@ -577,7 +577,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               name="deviceViewportHeight"
               data-device-height
               class="h-8 w-20 rounded-xl border-divider-regular bg-components-card-bg text-center text-sm text-text-primary"
-              [attr.aria-label]="'PAC.Chat.ClawXpert.DeviceHeight' | translate: { Default: 'Device height' }"
+              [attr.aria-label]="'XP.Chat.ClawXpert.DeviceHeight' | translate: { Default: 'Device height' }"
               [value]="deviceViewportHeightText()"
               (input)="setDeviceViewportHeightFromEvent($event)"
             />
@@ -585,7 +585,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               type="button"
               data-device-rotate
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-              [title]="'PAC.Chat.ClawXpert.RotateDevice' | translate: { Default: 'Rotate device' }"
+              [title]="'XP.Chat.ClawXpert.RotateDevice' | translate: { Default: 'Rotate device' }"
               (click)="rotateDeviceViewport()"
             >
               <i class="ri-anticlockwise-2-line text-lg"></i>
@@ -594,7 +594,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               type="button"
               data-device-toolbar-close
               class="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-              [title]="'PAC.Chat.ClawXpert.CloseDeviceToolbar' | translate: { Default: 'Close device toolbar' }"
+              [title]="'XP.Chat.ClawXpert.CloseDeviceToolbar' | translate: { Default: 'Close device toolbar' }"
               (click)="closeDeviceToolbar()"
             >
               <i class="ri-close-line text-xl"></i>
@@ -698,11 +698,11 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <i class="ri-layout-4-line text-3xl text-text-tertiary"></i>
             <div class="mt-4 text-base font-medium text-text-primary">
-              {{ 'PAC.Chat.ClawXpert.BrowserEmptyTitle' | translate: { Default: 'No URL open' } }}
+              {{ 'XP.Chat.ClawXpert.BrowserEmptyTitle' | translate: { Default: 'No URL open' } }}
             </div>
             <div class="mt-2 max-w-md text-sm text-text-secondary">
               {{
-                'PAC.Chat.ClawXpert.BrowserEmptyDesc'
+                'XP.Chat.ClawXpert.BrowserEmptyDesc'
                   | translate
                     : {
                         Default: 'Enter a URL in the address bar or open a preview event to browse it here.'
@@ -717,19 +717,19 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
     <ng-template #browserMenu>
       <div z-menu-content class="w-64">
         <button type="button" z-menu-item (click)="forceReload()">
-          {{ 'PAC.Chat.ClawXpert.ForceReload' | translate: { Default: 'Force reload' } }}
+          {{ 'XP.Chat.ClawXpert.ForceReload' | translate: { Default: 'Force reload' } }}
         </button>
         <button type="button" z-menu-item (click)="toggleDeviceToolbar()">
           @if (deviceToolbar()) {
-            {{ 'PAC.Chat.ClawXpert.HideDeviceToolbar' | translate: { Default: 'Hide device toolbar' } }}
+            {{ 'XP.Chat.ClawXpert.HideDeviceToolbar' | translate: { Default: 'Hide device toolbar' } }}
           } @else {
-            {{ 'PAC.Chat.ClawXpert.ShowDeviceToolbar' | translate: { Default: 'Show device toolbar' } }}
+            {{ 'XP.Chat.ClawXpert.ShowDeviceToolbar' | translate: { Default: 'Show device toolbar' } }}
           }
         </button>
         <div
           class="flex items-center justify-between border-y border-divider-regular px-3 py-2 text-sm text-text-secondary"
         >
-          <span>{{ 'PAC.Chat.ClawXpert.Zoom' | translate: { Default: 'Zoom' } }}</span>
+          <span>{{ 'XP.Chat.ClawXpert.Zoom' | translate: { Default: 'Zoom' } }}</span>
           <div class="flex items-center rounded-lg border border-divider-regular">
             <button type="button" class="h-8 w-8" (click)="zoomOut()">-</button>
             <span class="min-w-14 text-center">{{ zoomLevel() }}%</span>
@@ -737,10 +737,10 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
           </div>
         </div>
         <button type="button" z-menu-item (click)="clearCookies()">
-          {{ 'PAC.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
+          {{ 'XP.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
         </button>
         <button type="button" z-menu-item (click)="clearCache()">
-          {{ 'PAC.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
+          {{ 'XP.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
         </button>
       </div>
     </ng-template>
@@ -816,7 +816,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     )
   })
   readonly selectedDevicePresetLabelKey = computed(
-    () => this.selectedDevicePreset()?.labelKey ?? 'PAC.Chat.ClawXpert.Responsive'
+    () => this.selectedDevicePreset()?.labelKey ?? 'XP.Chat.ClawXpert.Responsive'
   )
   readonly selectedDevicePresetDefaultLabel = computed(() => this.selectedDevicePreset()?.defaultLabel ?? 'Responsive')
   readonly activeOverlay = computed(() => this.selectedOverlay() ?? this.hoveredOverlay())
@@ -908,7 +908,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
     const normalizedUrl = normalizeAddressUrl(address)
     if (!normalizedUrl) {
-      this.#toastr.warning('PAC.Chat.ClawXpert.InvalidUrl', {
+      this.#toastr.warning('XP.Chat.ClawXpert.InvalidUrl', {
         Default: 'Enter a valid URL.'
       })
       return

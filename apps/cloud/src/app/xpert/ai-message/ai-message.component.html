@@ -17,13 +17,13 @@
           } @else {
             <i class="ri-arrow-right-s-line"></i>
           }
-          <div class="mr-3 font-semibold">{{ 'PAC.Xpert.Executions' | translate: { Default: 'Executions' } }}</div>
+          <div class="mr-3 font-semibold">{{ 'XP.Xpert.Executions' | translate: { Default: 'Executions' } }}</div>
         </div>
       </div>
 
       @if (expandExecutions()) {
         @if (loadingExecutions()) {
-          <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+          <xp-spin class="absolute left-0 top-0 w-full h-full" />
         }
         @for (execution of executions$ | async; track execution.id) {
           <chat-message-execution
@@ -82,7 +82,7 @@
   @if (!renderTree().hasAgentRuns && contentStr()) {
     <markdown
       clipboard
-      class="ngm-copilot-markdown flex-1"
+      class="xp-copilot-markdown flex-1"
       [clipboardButtonTemplate]="buttonTemplate"
       [disableSanitizer]="true"
       lineNumbers
@@ -280,7 +280,7 @@
 
       <a class="absolute top-1 right-2 w-8 h-8 cursor-pointer flex justify-center items-center rounded-lg
         hover:bg-hover-bg opacity-70 group-hover:opacity-100 bg-black/5 backdrop-blur-3xl"
-        [zTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
+        [zTooltip]="'XP.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
         zPosition="top"
         (click)="openCanvas()">
         <svg class="shrink-0 w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -301,7 +301,7 @@
       <!-- Retry button for this message -->
       <div
         class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable bg-components-card-bg text-text-secondary hover:bg-hover-bg cursor-pointer hover:text-text-primary"
-        [zTooltip]="'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
+        [zTooltip]="'XP.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
         zPosition="top"
         [class.opacity-40]="!canRetry()"
         (click)="onRetryMessage()"
@@ -310,7 +310,7 @@
       </div>
       <div
         class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable bg-components-card-bg text-text-secondary hover:bg-hover-bg cursor-pointer hover:text-text-primary"
-        [zTooltip]="'PAC.Xpert.Logs' | translate: { Default: 'Logs' }"
+        [zTooltip]="'XP.Xpert.Logs' | translate: { Default: 'Logs' }"
         zPosition="top"
         (click)="openLogs()"
       >
@@ -320,8 +320,8 @@
         class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable bg-components-card-bg text-text-secondary hover:bg-hover-bg cursor-pointer hover:text-text-primary"
         [zTooltip]="
           copy.copied()
-            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+            ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
         "
         zPosition="top"
       >
@@ -334,7 +334,7 @@
         @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
           <div
             class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-            [zTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
+            [zTooltip]="'XP.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
             zPosition="top"
             (click)="cancelFeedback(message(), feedback.id)"
           >
@@ -343,7 +343,7 @@
         } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
           <div
             class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
-            [zTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
+            [zTooltip]="'XP.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
             zPosition="top"
             (click)="cancelFeedback(message(), feedback.id)"
           >
@@ -356,7 +356,7 @@
         >
           <div
             class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-            [zTooltip]="'PAC.KEY_WORDS.Like' | translate: { Default: 'Like' }"
+            [zTooltip]="'XP.KEY_WORDS.Like' | translate: { Default: 'Like' }"
             zPosition="top"
             (click)="feedback(message(), eFeedbackRatingEnum.LIKE)"
           >
@@ -364,7 +364,7 @@
           </div>
           <div
             class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-            [zTooltip]="'PAC.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
+            [zTooltip]="'XP.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
             zPosition="top"
             (click)="feedback(message(), eFeedbackRatingEnum.DISLIKE)"
           >
@@ -380,7 +380,7 @@
         [ngClass]="{
           '!flex': synthesizeLoading() || isPlaying()
         }"
-        [zTooltip]="'PAC.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
+        [zTooltip]="'XP.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
         zPosition="top"
         (click)="readAloud(message())"
       >
@@ -419,21 +419,21 @@
 </ng-template>
 
 <ng-template #docs let-data="data">
-  <div class="ngm-cdk-menu max-h-96 max-w-lg text-sm overflow-x-hidden overflow-y-auto" cdkMenu>
+  <div class="xp-cdk-menu max-h-96 max-w-lg text-sm overflow-x-hidden overflow-y-auto" cdkMenu>
     @for (item of data; track $index) {
       <p class="px-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10">
-        <markdown class="ngm-copilot-markdown" lineNumbers [start]="5" [data]="item.doc.pageContent" />
+        <markdown class="xp-copilot-markdown" lineNumbers [start]="5" [data]="item.doc.pageContent" />
       </p>
     }
   </div>
 </ng-template>
 
 <ng-template #stepsMenu let-messages="messages">
-  <div class="ngm-cdk-menu max-h-96 max-w-lg overflow-x-hidden overflow-y-auto" cdkMenu>
+  <div class="xp-cdk-menu max-h-96 max-w-lg overflow-x-hidden overflow-y-auto" cdkMenu>
     <div class="flex flex-col text-sm">
       @for (item of messages; track $index) {
         <p class="px-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10">
-          <markdown class="ngm-copilot-markdown" lineNumbers [start]="5" [data]="item.content" />
+          <markdown class="xp-copilot-markdown" lineNumbers [start]="5" [data]="item.content" />
         </p>
       }
     </div>

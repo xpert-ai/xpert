@@ -14,7 +14,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -41,7 +41,7 @@ type FileViewerPreviewSelection = {
 
 @Component({
   standalone: true,
-  selector: 'pac-file-viewer',
+  selector: 'xp-file-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.css'],
   imports: [
@@ -49,7 +49,7 @@ type FileViewerPreviewSelection = {
     FormsModule,
     TranslateModule,
     MarkdownModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     ZardButtonComponent,
     ZardSegmentedComponent,
     ZardSegmentedItemComponent,

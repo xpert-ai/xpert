@@ -9,7 +9,7 @@ import {
   signal
 } from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
-import { NgmResizableDirective } from '@xpert-ai/headless-ui'
+import { XpResizableDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -17,13 +17,13 @@ import { injectEditorTheme } from '../../../@core'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, MonacoEditorModule, NgmResizableDirective],
-  selector: 'pac-code-editor',
+  imports: [FormsModule, TranslateModule, MonacoEditorModule, XpResizableDirective],
+  selector: 'xp-code-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class.pac-code-editor--readonly]': 'isReadonly()'
+    '[class.xp-code-editor--readonly]': 'isReadonly()'
   }
 })
 export class CodeEditorComponent implements ControlValueAccessor {

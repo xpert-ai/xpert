@@ -17,8 +17,8 @@ import {
 } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmHighlightDirective } from '@xpert-ai/headless-ui'
-import { effectAction, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpCommonModule, XpHighlightDirective } from '@xpert-ai/headless-ui'
+import { effectAction, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { IXpert, PaginationParams } from '@xpert-ai/cloud/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -54,10 +54,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     WaIntersectionObserver,
-    NgmCommonModule,
+    XpCommonModule,
     DateRelativePipe,
-    NgmHighlightDirective,
-    NgmI18nPipe
+    XpHighlightDirective,
+    XpI18nPipe
   ],
   selector: 'xpert-chat-conversations',
   templateUrl: './conversations.component.html',

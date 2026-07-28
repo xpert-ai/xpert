@@ -42,7 +42,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     XpertCardComponent
   ],
-  selector: 'pac-chat-xperts',
+  selector: 'xp-chat-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

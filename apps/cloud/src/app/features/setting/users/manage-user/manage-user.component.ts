@@ -9,7 +9,7 @@ import {
   RolesEnum,
   UserType
 } from '@xpert-ai/contracts'
-import { NgmConfirmDeleteService } from '@xpert-ai/headless-ui'
+import { XpConfirmDeleteService } from '@xpert-ai/headless-ui'
 import {
   DateRelativePipe,
   getErrorMessage,
@@ -23,7 +23,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { includes } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
-import { PACUsersComponent } from '../users.component'
+import { XpUsersComponent } from '../users.component'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -49,12 +49,12 @@ const DEFAULT_USER_TYPES = [UserType.USER]
 const USER_TYPE_OPTIONS: Array<{ value: UserType; labelKey: string; defaultLabel: string }> = [
   {
     value: UserType.USER,
-    labelKey: 'PAC.Users.UserTypes.Regular',
+    labelKey: 'XP.Users.UserTypes.Regular',
     defaultLabel: 'Regular user'
   },
   {
     value: UserType.COMMUNICATION,
-    labelKey: 'PAC.Users.UserTypes.Technical',
+    labelKey: 'XP.Users.UserTypes.Technical',
     defaultLabel: 'Technical user'
   }
 ]
@@ -62,24 +62,24 @@ const USER_TYPE_OPTIONS: Array<{ value: UserType; labelKey: string; defaultLabel
 const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; defaultLabel: string }> = [
   {
     value: 'all',
-    labelKey: 'PAC.KEY_WORDS.All',
+    labelKey: 'XP.KEY_WORDS.All',
     defaultLabel: 'All'
   },
   {
     value: 'active',
-    labelKey: 'PAC.KEY_WORDS.Active',
+    labelKey: 'XP.KEY_WORDS.Active',
     defaultLabel: 'Active'
   },
   {
     value: 'disabled',
-    labelKey: 'PAC.KEY_WORDS.Disabled',
+    labelKey: 'XP.KEY_WORDS.Disabled',
     defaultLabel: 'Disabled'
   }
 ]
 
 @Component({
   standalone: true,
-  selector: 'pac-manage-user',
+  selector: 'xp-manage-user',
   templateUrl: './manage-user.component.html',
   styleUrls: ['./manage-user.component.scss'],
   imports: [
@@ -97,13 +97,13 @@ const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; de
   ]
 })
 export class ManageUserComponent extends TranslationBaseComponent {
-  private usersComponent = inject(PACUsersComponent)
+  private usersComponent = inject(XpUsersComponent)
   private readonly store = inject(Store)
   private userService = inject(UsersService)
   private readonly roleService = inject(RoleService)
   private readonly organizationsService = inject(OrganizationsService)
   private readonly userOrganizationsService = inject(UsersOrganizationsService)
-  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
+  private readonly _confirmDelete = inject(XpConfirmDeleteService)
   private toastrService = inject(ToastrService)
 
   readonly defaultRoleBadgeClass = 'text-text-primary'
@@ -118,7 +118,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
   readonly userTypeQuickFilters: Array<{ value: UserType | null; labelKey: string; defaultLabel: string }> = [
     {
       value: null,
-      labelKey: 'PAC.KEY_WORDS.All',
+      labelKey: 'XP.KEY_WORDS.All',
       defaultLabel: 'All'
     },
     ...USER_TYPE_OPTIONS
@@ -281,7 +281,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
     if (confirm) {
       try {
         await firstValueFrom(this.userService.delete(user.id))
-        this.toastrService.success('PAC.NOTES.USERS.UserDelete', {
+        this.toastrService.success('XP.NOTES.USERS.UserDelete', {
           name: userLabel(user)
         })
         this.refresh$.next()

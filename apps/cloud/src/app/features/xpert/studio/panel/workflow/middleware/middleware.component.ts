@@ -6,7 +6,7 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { XpertToolTestComponent } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { isEqual, uniq } from 'lodash-es'
@@ -30,7 +30,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
+    XpI18nPipe,
     IconComponent,
     JSONSchemaFormComponent,
     XpertToolTestComponent,

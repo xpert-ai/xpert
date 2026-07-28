@@ -1,23 +1,23 @@
-<div class="flex items-center px-12 text-lg font-semibold text-text-tertiary uppercase
-  sticky top-0 pb-3 pt-5 bg-background-body z-30">
-  <div class="mr-3">{{ 'PAC.Xpert.MCPToolset' | translate: { Default: 'MCP Toolset' } }}</div>
+<div
+  class="flex items-center px-12 text-lg font-semibold text-text-tertiary uppercase sticky top-0 pb-3 pt-5 bg-background-body z-30"
+>
+  <div class="mr-3">{{ 'XP.Xpert.MCPToolset' | translate: { Default: 'MCP Toolset' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
-<div class="xpert-card-container"
-  ngmDynamicGrid colWidth="280"
-  box="content-box">
-
-  <ngm-card-create
+<div class="xpert-card-container" xpDynamicGrid colWidth="280" box="content-box">
+  <xp-card-create
     class="workspace-create-card"
-    [title]="'PAC.Xpert.CreateToolset' | translate: {Default: 'Create Toolset'}"
-    [helpTitle]="'PAC.Xpert.LearnCreateMCPTool' | translate: {Default: 'Learn more about Xpert MCP toolset'}"
+    [title]="'XP.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' }"
+    [helpTitle]="'XP.Xpert.LearnCreateMCPTool' | translate: { Default: 'Learn more about Xpert MCP toolset' }"
     helpUrl="/docs/ai/tool/mcp/"
     (create)="createTool()"
   >
-    <div class="mb-1 flex items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600">
+    <div
+      class="mb-1 flex items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+    >
       <i class="ri-add-line mr-2 shrink-0 text-base"></i>
-      {{ 'PAC.Xpert.CreateMCPTool' | translate: {Default: 'Create MCP Toolset'} }}
+      {{ 'XP.Xpert.CreateMCPTool' | translate: { Default: 'Create MCP Toolset' } }}
     </div>
     <button
       type="button"
@@ -25,12 +25,13 @@
       (click)="importFromJson($event)"
     >
       <i class="ri-file-code-line mr-2 shrink-0 text-base"></i>
-      {{ 'PAC.MCP.CreateFromJson' | translate: { Default: 'Create from JSON' } }}
+      {{ 'XP.MCP.CreateFromJson' | translate: { Default: 'Create from JSON' } }}
     </button>
-  </ngm-card-create>
+  </xp-card-create>
 
   @for (toolset of toolsets(); track toolset.id) {
-    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
+    <xpert-toolset-card
+      class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
       [highlight]="searchText()"
       [toolset]="toolset"
       (click)="openToolset(toolset)"
@@ -38,6 +39,10 @@
   }
 </div>
 
-<mcp-marketplace class="px-12" [workspace]="workspace()" [inline]="inline()"
+<mcp-marketplace
+  class="px-12"
+  [workspace]="workspace()"
+  [inline]="inline()"
   [searchText]="searchText()"
-  (refresh)="refresh()"/>
+  (refresh)="refresh()"
+/>

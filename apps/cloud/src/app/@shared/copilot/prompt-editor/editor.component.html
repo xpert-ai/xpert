@@ -2,7 +2,7 @@
   <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-background-default-subtle rounded-t-xl">
     <div class="flex items-center space-x-1">
       @if (role() === 'system') {
-        <div class="h2 text-sm">{{ 'PAC.Copilot.Prompt' | translate: { Default: 'Prompt' } }}</div>
+        <div class="h2 text-sm">{{ 'XP.Copilot.Prompt' | translate: { Default: 'Prompt' } }}</div>
       } @else if (role() === 'ai') {
         <div
           class="flex items-center h-6 pl-1 pr-0.5 rounded-md font-semibold text-text-secondary cursor-pointer hover:bg-hover-bg"
@@ -31,7 +31,9 @@
     </div>
 
     <div class="flex items-center">
-      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-components-input-bg-normal text-xs text-text-tertiary">{{ promptLength() }}</div>
+      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-components-input-bg-normal text-xs text-text-tertiary">
+        {{ promptLength() }}
+      </div>
 
       @if (enableAi()) {
         <div
@@ -58,7 +60,7 @@
             ></path>
           </svg>
           <span class="font-semibold text-indigo-500 group-hover:text-indigo-600">
-            {{ 'PAC.Copilot.Generate' | translate: { Default: 'Generate' } }}
+            {{ 'XP.Copilot.Generate' | translate: { Default: 'Generate' } }}
           </span>
         </div>
       }

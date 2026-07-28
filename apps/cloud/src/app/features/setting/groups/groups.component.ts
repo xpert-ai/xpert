@@ -4,7 +4,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectOrganization } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { combineLatest, firstValueFrom } from 'rxjs'
@@ -26,13 +26,13 @@ import { UserAvatarComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,
-  selector: 'pac-user-groups-settings',
+  selector: 'xp-user-groups-settings',
   imports: [
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     ZardButtonComponent,
     ZardInputDirective,
     UserAvatarComponent
@@ -354,7 +354,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     const invalidMemberIds = this.selectedMemberIds().filter((id) => !this.isActiveOrganizationUser(id))
     if (invalidMemberIds.length) {
       this.#toastr.error(
-        'PAC.UserGroup.RemoveInactiveMembersHint',
+        'XP.UserGroup.RemoveInactiveMembersHint',
         undefined,
         'Remove inactive members from this group before saving.'
       )
@@ -372,7 +372,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
           await firstValueFrom(this.#userGroupService.updateMembers(group.id, this.selectedMemberIds(), organizationId))
           await this.syncXpertAuthorizations(group.id)
           this.saving.set(false)
-          this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+          this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
           if (this.organization()?.id) {
             this.loadData()
           }
@@ -398,7 +398,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     this.confirmDelete(
       {
         value: group.name,
-        information: this.getTranslation('PAC.UserGroup.DeleteConfirmDetail', {
+        information: this.getTranslation('XP.UserGroup.DeleteConfirmDetail', {
           Default:
             this.groupMemberCount(group) > 0
               ? 'This group still contains members. Deleting it will also remove any XPERT access bound through this group.'
@@ -409,7 +409,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     ).subscribe({
       next: () => {
         this.deleting.set(false)
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         this.startCreate()
         if (this.organization()?.id) {
           this.loadData()

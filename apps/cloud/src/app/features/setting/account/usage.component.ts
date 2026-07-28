@@ -7,7 +7,7 @@ import { ZardBadgeComponent, ZardCardImports, ZardIconComponent, ZardProgressBar
 
 @Component({
   standalone: true,
-  selector: 'pac-account-usage',
+  selector: 'xp-account-usage',
   imports: [
     CommonModule,
     TranslateModule,
@@ -19,7 +19,7 @@ import { ZardBadgeComponent, ZardCardImports, ZardIconComponent, ZardProgressBar
   templateUrl: './usage.component.html',
   styleUrls: ['./usage.component.scss']
 })
-export class PACAccountUsageComponent implements OnInit {
+export class XpAccountUsageComponent implements OnInit {
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
@@ -68,8 +68,8 @@ export class PACAccountUsageComponent implements OnInit {
   }
 
   heatmapTitle(bucket: IMembershipUsageBucket) {
-    const points = this.#translate.instant('PAC.Membership.Points', { Default: 'points' })
-    const tokens = this.#translate.instant('PAC.Membership.Tokens', { Default: 'tokens' })
+    const points = this.#translate.instant('XP.Membership.Points', { Default: 'points' })
+    const tokens = this.#translate.instant('XP.Membership.Tokens', { Default: 'tokens' })
     return `${bucket.date}: ${bucket.pointsUsed} ${points} / ${bucket.tokenUsed} ${tokens}`
   }
 }

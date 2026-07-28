@@ -2,7 +2,7 @@
   <div class="flex items-center flex-1 gap-2 rounded-2xl bg-background-default-subtle/80 px-3 py-2.5">
     <i class="ri-search-2-line text-lg text-text-secondary"></i>
     <input
-      [placeholder]="'PAC.Chat.SearchChats' | translate: {Default: 'Search chats...'}"
+      [placeholder]="'XP.Chat.SearchChats' | translate: { Default: 'Search chats...' }"
       class="xp-input flex-grow w-full focus-visible:outline-none"
       role="combobox"
       type="text"
@@ -33,7 +33,7 @@
             <i class="ri-chat-new-line text-lg"></i>
           </span>
           <span class="flex-1 truncate font-medium">
-            {{ 'PAC.Chat.NewChat' | translate: { Default: 'New Chat' } }}
+            {{ 'XP.Chat.NewChat' | translate: { Default: 'New Chat' } }}
           </span>
         </button>
       </div>
@@ -54,7 +54,7 @@
 
       <div class="rounded-2xl bg-components-card-bg">
         <div class="px-4 pt-3 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary/80">
-          {{ 'PAC.Chat.History' | translate: { Default: 'History' } }}
+          {{ 'XP.Chat.History' | translate: { Default: 'History' } }}
         </div>
 
         <div class="relative px-2 pb-2" waIntersectionObserver waIntersectionThreshold="0.5">
@@ -65,12 +65,12 @@
                 [class.pt-2]="first"
                 [class.pt-5]="!first"
               >
-                {{ 'PAC.KEY_WORDS.Date_' + group.name | translate: { Default: group.name } }}
+                {{ 'XP.KEY_WORDS.Date_' + group.name | translate: { Default: group.name } }}
               </li>
 
               @for (item of group.values; track item.id) {
                 <li
-                  class="pac-chat__conversation-item relative group flex justify-between items-center overflow-hidden px-3 py-2 rounded-xl text-text-primary hover:bg-hover-bg"
+                  class="xp-chat__conversation-item relative group flex justify-between items-center overflow-hidden px-3 py-2 rounded-xl text-text-primary hover:bg-hover-bg"
                   [ngClass]="{ active: item.id === conversationId() }"
                 >
                   @if (editingConversation() === item.id) {
@@ -84,7 +84,7 @@
                     <div class="min-w-0 pr-2 flex flex-1 items-center gap-2">
                       <a
                         class="flex-1 min-w-0 truncate cursor-pointer"
-                        [ngmHighlight]="searchValue"
+                        [xpHighlight]="searchValue"
                         [content]="(item.title | i18n) || item.id"
                         (click)="selectConversation(item)"
                         >{{ item.title || item.id }}</a
@@ -124,7 +124,7 @@
                           class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                           type="button"
                           tabindex="-1"
-                          [zTooltip]="'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' }"
+                          [zTooltip]="'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' }"
                           zPosition="top"
                           (click)="exitEdit($event)"
                         >
@@ -135,7 +135,7 @@
                           class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                           type="button"
                           tabindex="-1"
-                          [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
+                          [zTooltip]="'XP.ACTIONS.Save' | translate: { Default: 'Save' }"
                           zPosition="top"
                           (click)="updateTitle(item)"
                         >
@@ -148,7 +148,7 @@
                           class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                           type="button"
                           tabindex="-1"
-                          [zTooltip]="'PAC.ACTIONS.OpenInNewTab' | translate: { Default: 'Open in new tab' }"
+                          [zTooltip]="'XP.ACTIONS.OpenInNewTab' | translate: { Default: 'Open in new tab' }"
                           zPosition="top"
                           (click)="openInTab(item)"
                         >
@@ -177,7 +177,7 @@
                           class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-hover-bg flex items-center gap-3 size-8 rounded-md"
                           type="button"
                           tabindex="-1"
-                          [zTooltip]="'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' }"
+                          [zTooltip]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
                           zPosition="top"
                           (click)="editingConversation.set(item.id); editingTitle.set(item.title)"
                         >
@@ -200,7 +200,7 @@
                           class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-text-destructive hover:!border-text-destructive hover:!bg-status-error-bg hover:!text-text-destructive flex items-center gap-3 size-8 rounded-md"
                           type="button"
                           tabindex="-1"
-                          [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                          [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                           zPosition="top"
                           (click)="deleteConv(item.id)"
                         >
@@ -231,13 +231,13 @@
               }
             } @empty {
               <li class="px-4 py-10 text-center text-sm text-text-secondary">
-                {{ 'PAC.Xpert.NoChatHistory' | translate: { Default: 'No chat history' } }}
+                {{ 'XP.Xpert.NoChatHistory' | translate: { Default: 'No chat history' } }}
               </li>
             }
           </ul>
 
           @if (loading()) {
-            <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+            <xp-spin class="absolute top-0 left-0 w-full h-full" />
           }
 
           <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>

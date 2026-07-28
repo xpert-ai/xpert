@@ -3,10 +3,10 @@ import { DomSanitizer } from '@angular/platform-browser'
 
 @Directive({
   standalone: true,
-  selector: '[ngmHighlight]'
+  selector: '[xpHighlight]'
 })
-export class NgmHighlightDirective implements OnChanges {
-  @Input('ngmHighlight') searchTerm: string
+export class XpHighlightDirective implements OnChanges {
+  @Input('xpHighlight') searchTerm: string
   @Input() content: string
   @Input() caseSensitive = false
   @Input() customClasses = ''

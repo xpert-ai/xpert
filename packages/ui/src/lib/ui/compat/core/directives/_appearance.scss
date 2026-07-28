@@ -1,6 +1,6 @@
 @reference "../../../tailwind-workspace-reference.css";
 
-.ngm-appearance-opacity {
+.xp-appearance-opacity {
   opacity: 0.5;
 }
 
@@ -33,12 +33,12 @@ z-toggle-group {
     }
   }
 
-  &.ngm-appearance-outline {
+  &.xp-appearance-outline {
     --box-shadow-radius: 10px;
     @apply border border-gray-100 border-solid p-1 dark:border-gray-800;
   }
 
-  &.ngm-appearance-hero {
+  &.xp-appearance-hero {
     --border-radius: 1.5rem;
     @apply bg-gray-100 p-1.5 dark:bg-gray-500/10;
 

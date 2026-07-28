@@ -17,8 +17,8 @@ import {
   ChatConversationService,
   injectLanguage,
   injectToastr,
-  PAC_SERVER_AGENT_DEFAULT_OPTIONS,
-  PAC_SERVER_DEFAULT_OPTIONS,
+  XP_SERVER_AGENT_DEFAULT_OPTIONS,
+  XP_SERVER_DEFAULT_OPTIONS,
   routeAnimations,
   Store,
   XpertAPIService
@@ -57,13 +57,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ChatAppService,
     { provide: ChatService, useExisting: ChatAppService },
     {
-      provide: PAC_SERVER_AGENT_DEFAULT_OPTIONS,
+      provide: XP_SERVER_AGENT_DEFAULT_OPTIONS,
       useValue: {
         modelBaseUrl: C_URI_API_MODELS + '/public'
       }
     },
     {
-      provide: PAC_SERVER_DEFAULT_OPTIONS,
+      provide: XP_SERVER_DEFAULT_OPTIONS,
       useValue: { modelEnv: 'internal' }
     }
   ]

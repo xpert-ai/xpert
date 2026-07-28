@@ -1,11 +1,11 @@
 import { Component, input, output } from '@angular/core'
 import { I18nObject, injectHelpWebsite } from '../../../@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, NgmI18nPipe],
+  imports: [TranslateModule, XpI18nPipe],
   selector: 'card-pro',
   templateUrl: 'pro.component.html',
   styleUrls: ['pro.component.scss']

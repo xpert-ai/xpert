@@ -23,8 +23,8 @@ import {
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
-import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { attrModel, myRxResource, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { CloseSvgComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { attrModel, myRxResource, XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -49,9 +49,9 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     CloseSvgComponent,
     EmojiAvatarComponent,
     XpertToolTestComponent,
-    NgmDensityDirective,
-    NgmSpinComponent,
-    NgmI18nPipe,
+    XpDensityDirective,
+    XpSpinComponent,
+    XpI18nPipe,
     XpertVariablesAssignerComponent,
     ZardSwitchComponent
   ]

@@ -10,7 +10,7 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgent, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -28,7 +28,7 @@ import { XpertExecutionService } from '../../services/execution.service'
   imports: [
     FormsModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
   ]

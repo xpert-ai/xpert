@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNTask,
@@ -22,14 +22,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./task.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FFlowModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    NgxFloatUiModule,
-    NgmSpinComponent,
-    NgxJsonViewerModule
-  ]
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, NgxFloatUiModule, XpSpinComponent, NgxJsonViewerModule]
 })
 export class XpertWorkflowNodeTaskComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

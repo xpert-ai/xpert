@@ -2,9 +2,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective, nonBlank } from '@xpert-ai/headless-ui'
+import { XpDynamicGridDirective, nonBlank } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/headless-ui'
-import { AppearanceDirective } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { BehaviorSubject, filter, map, switchMap } from 'rxjs'
@@ -34,8 +34,8 @@ import { XpertNewKnowledgeComponent } from '../../knowledge'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    AppearanceDirective,
-    DynamicGridDirective,
+    XpAppearanceDirective,
+    XpDynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent
   ],
@@ -49,7 +49,7 @@ export class XpertWorkspaceKnowledgesComponent {
   readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #translate = injectTranslate('PAC.Knowledgebase')
+  readonly #translate = injectTranslate('XP.Knowledgebase')
   readonly helpWebsite = injectHelpWebsite()
   readonly confirmUnique = injectConfirmUnique()
   readonly confirmDelete = injectConfirmDelete()
@@ -146,7 +146,7 @@ export class XpertWorkspaceKnowledgesComponent {
       next: () => {
         this.refresh()
         this.deleted.emit(item)
-        this._toastrService.success('PAC.Messages.DeletedSuccessfully', 'Deleted Successfully')
+        this._toastrService.success('XP.Messages.DeletedSuccessfully', 'Deleted Successfully')
       },
       error: (error) => {
         this._toastrService.error(getErrorMessage(error), 'Error')

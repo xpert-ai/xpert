@@ -533,10 +533,10 @@ describe('CloudSidebarAssistantsComponent', () => {
       '.cloud-sidebar-assistants__current-action--primary'
     ).textContent
 
-    expect(statusText).toContain('PAC.Assistant.NotConfigured')
-    expect(statusText).not.toContain('PAC.Assistant.Online')
-    expect(actionText).toContain('PAC.Assistant.Configure')
-    expect(actionText).not.toContain('PAC.Assistant.NewConversation')
+    expect(statusText).toContain('XP.Assistant.NotConfigured')
+    expect(statusText).not.toContain('XP.Assistant.Online')
+    expect(actionText).toContain('XP.Assistant.Configure')
+    expect(actionText).not.toContain('XP.Assistant.NewConversation')
 
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-main').click()
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-action--primary').click()
@@ -558,7 +558,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-status').textContent).toContain(
-      'PAC.Assistant.NotConfigured'
+      'XP.Assistant.NotConfigured'
     )
 
     currentBinding = { assistantId: 'bound-xpert' }
@@ -572,9 +572,9 @@ describe('CloudSidebarAssistantsComponent', () => {
       '.cloud-sidebar-assistants__current-action--primary'
     ).textContent
 
-    expect(statusText).toContain('PAC.Assistant.Online')
-    expect(statusText).not.toContain('PAC.Assistant.NotConfigured')
-    expect(actionText).toContain('PAC.Assistant.NewConversation')
+    expect(statusText).toContain('XP.Assistant.Online')
+    expect(statusText).not.toContain('XP.Assistant.NotConfigured')
+    expect(actionText).toContain('XP.Assistant.NewConversation')
     expect(assistantBindingService.get).toHaveBeenCalledTimes(2)
   })
 
@@ -666,7 +666,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__more-count')).toBeNull()
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__more-chevron')).toBeNull()
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__more').textContent).toContain(
-      'PAC.Assistant.MoreDigitalExperts'
+      'XP.Assistant.MoreDigitalExperts'
     )
 
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__more').click()
@@ -674,7 +674,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(names()).toEqual(['Assistant 1', 'Assistant 2', 'Assistant 3', 'Assistant 4', 'Assistant 5', 'Assistant 6'])
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__more').textContent).toContain(
-      'PAC.Assistant.CollapseDigitalExperts'
+      'XP.Assistant.CollapseDigitalExperts'
     )
 
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__more').click()
@@ -797,7 +797,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__filter')).map((item) =>
         item.textContent.trim()
       )
-    ).toEqual(['PAC.Assistant.CategoryAll', 'Finance', 'Support'])
+    ).toEqual(['XP.Assistant.CategoryAll', 'Finance', 'Support'])
   })
 
   it('keeps the assistant section visible when the selected category no longer exists', async () => {

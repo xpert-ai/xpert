@@ -1,18 +1,18 @@
 <div class="flex items-center justify-between gap-x-2">
   <div class="flex items-center gap-x-1 overflow-hidden">
-    <div class="grow overflow-hidden" data-state="closed">
-    </div>
+    <div class="grow overflow-hidden" data-state="closed"></div>
     <div class="w-[1px] bg-divider-regular mx-1 h-3.5 shrink-0"></div>
   </div>
 
   @if (selectedStrategy()?.meta.helpUrl; as url) {
-    <a [href]="url"
+    <a
+      [href]="url"
       class="system-xs-medium flex shrink-0 items-center gap-x-1 text-text-accent"
       target="_blank"
       rel="noopener noreferrer"
-      >
+    >
       <i class="ri-book-open-line"></i>
-      {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+      {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
     </a>
   }
 </div>
@@ -21,13 +21,14 @@
   <div class="w-full">
     <div class="flex items-center gap-x-1 px-4 py-2">
       <div class="flex grow cursor-pointer select-none items-center gap-x-0.5">
-        <span class="system-sm-semibold-uppercase text-text-secondary">{{ 'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} }}</span>
+        <span class="system-sm-semibold-uppercase text-text-secondary">{{
+          'XP.KEY_WORDS.Options' | translate: { Default: 'Options' }
+        }}</span>
         <i class="ri-arrow-down-s-fill shrink-0 text-text-quaternary"></i>
       </div>
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5"
-        (click)="run()">
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5" (click)="run()">
         <i class="ri-play-line"></i>
-        <span class="px-0.5">{{ 'PAC.ACTIONS.Run' | translate: {Default: 'Run'} }}</span>
+        <span class="px-0.5">{{ 'XP.ACTIONS.Run' | translate: { Default: 'Run' } }}</span>
       </button>
     </div>
     <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
@@ -37,7 +38,9 @@
 
       @switch (providerCategory()) {
         @case (eDocumentSourceProviderCategoryEnum.LocalFile) {
-          <xp-knowledge-local-file class="w-full" [knowledgebaseId]="knowledgebaseId()"
+          <xp-knowledge-local-file
+            class="w-full"
+            [knowledgebaseId]="knowledgebaseId()"
             path="temp"
             [(files)]="files"
             [(selected)]="selectedFile"
@@ -56,8 +59,7 @@
         <bullet-list-content-loader></bullet-list-content-loader>
       } @else if (documents()) {
         @for (doc of documents(); track doc.id) {
-          <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-hover-bg"
-            >
+          <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-hover-bg">
             <div class="flex min-w-0 grow flex-col gap-y-0.5">
               <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
                 {{ doc.metadata.title }}
@@ -69,7 +71,7 @@
           </div>
         } @empty {
           <div class="py-4 text-center text-text-tertiary">
-            {{ 'PAC.Knowledgebase.NoPagesFetched' | translate: {Default: 'No pages fetched'} }}
+            {{ 'XP.Knowledgebase.NoPagesFetched' | translate: { Default: 'No pages fetched' } }}
           </div>
         }
       }
@@ -78,7 +80,8 @@
       <div class="flex flex-col gap-y-px border-t border-divider-subtle bg-background-default-subtle p-2">
         @for (doc of documents(); track doc.id) {
           <div class="relative flex gap-x-1 rounded-xl px-2 py-1 group hover:bg-hover-bg">
-            <ngm-checkbox class="shrink-0"
+            <xp-checkbox
+              class="shrink-0"
               [ngModel]="documentIds.isSelected(doc.id)"
               (ngModelChange)="documentIds.toggle(doc.id)"
             />
@@ -95,20 +98,24 @@
       </div>
 
       @if (busing()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+        <xp-spin class="absolute left-0 top-0 w-full h-full" />
       }
     }
   }
 </div>
 
 <div class="flex justify-end gap-x-2">
-  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
-    (click)="close()"
-  >{{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
-  <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="close()">
+    {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+  </button>
+  <button
+    type="button"
+    class="btn disabled:btn-disabled btn-primary btn-medium"
     [disabled]="!taskId() || !documentIds.selected.length || busing() || successMessage()"
     (click)="start()"
-  >{{ 'PAC.ACTIONS.Start' | translate: {Default: 'Start'} }}</button>
+  >
+    {{ 'XP.ACTIONS.Start' | translate: { Default: 'Start' } }}
+  </button>
 </div>
 
 @if (successMessage(); as message) {

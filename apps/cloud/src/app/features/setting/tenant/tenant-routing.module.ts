@@ -5,7 +5,7 @@ import { FeatureEnum, PermissionsEnum, RolesEnum } from '../../../@core'
 import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
 import { featureGate } from '../../feature-gate'
 import { SettingsComponent } from './settings/settings.component'
-import { PACTenantComponent } from './tenant.component'
+import { XpTenantComponent } from './tenant.component'
 import { TenantTagMaintainComponent } from './maintain/maintain.component'
 
 export function redirectTo() {
@@ -15,7 +15,7 @@ export function redirectTo() {
 const routes: Routes = [
   {
     path: '',
-    component: PACTenantComponent,
+    component: XpTenantComponent,
     canActivate: [NgxPermissionsGuard],
     data: {
       scopeContext: 'tenant-only',

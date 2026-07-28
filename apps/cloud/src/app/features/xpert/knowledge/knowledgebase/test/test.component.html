@@ -1,11 +1,11 @@
 <div class="shrink-0 w-[588px] max-w-2xl flex flex-col px-6 py-3">
   <div class="mb-4 flex flex-col justify-center">
     <h1 class="text-lg font-semibold text-text-primary">
-      {{ 'PAC.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}
+      {{ 'XP.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}
     </h1>
     <p class="mt-0.5 text-[13px] font-body leading-4 text-text-tertiary">
       {{
-        'PAC.Knowledgebase.TestTheHittingEffect'
+        'XP.Knowledgebase.TestTheHittingEffect'
           | translate: { Default: 'Test the hitting effect of the Knowledge based on the given query text.' }
       }}
     </p>
@@ -15,7 +15,7 @@
     <div class="relative rounded-t-xl bg-components-input-bg-normal pt-1.5">
       <div class="flex h-8 items-center justify-between pb-1 pl-4 pr-1.5">
         <span class="text-[13px] font-semibold uppercase leading-4 text-text-secondary">
-          {{ 'PAC.Knowledgebase.SourceText' | translate: { Default: 'Source text' } }}
+          {{ 'XP.Knowledgebase.SourceText' | translate: { Default: 'Source text' } }}
         </span>
         <div class="flex items-center gap-1">
           <div class="flex rounded-lg bg-components-input-bg-normal p-0.5">
@@ -31,13 +31,13 @@
               >
                 @switch (modeOption) {
                   @case ('vector') {
-                    {{ 'PAC.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
+                    {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
                   }
                   @case ('graph') {
-                    {{ 'PAC.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
+                    {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
                   }
                   @case ('hybrid') {
-                    {{ 'PAC.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
+                    {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
                   }
                 }
               </button>
@@ -68,13 +68,13 @@
             <div class="text-xs font-medium uppercase select-none text-text-secondary">
               @switch (retrievalMode()) {
                 @case ('vector') {
-                  {{ 'PAC.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
+                  {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
                 }
                 @case ('graph') {
-                  {{ 'PAC.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
+                  {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
                 }
                 @case ('hybrid') {
-                  {{ 'PAC.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
+                  {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
                 }
               }
             </div>
@@ -88,7 +88,7 @@
       <textarea
         class="xp-input h-[160px] w-full resize-none border-none text-sm font-body text-text-secondary placeholder:font-normal focus-visible:outline-none"
         [placeholder]="
-          'PAC.Knowledgebase.EnterQueryText'
+          'XP.Knowledgebase.EnterQueryText'
             | translate: { Default: 'Please enter a text, a short declarative sentence is recommended.' }
         "
         [(ngModel)]="query"
@@ -107,7 +107,7 @@
             [disabled]="loading() || !query()"
             (click)="test()"
           >
-            {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
+            {{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}
           </button>
         </div>
       </div>
@@ -115,20 +115,20 @@
   </div>
 
   <div class="mb-3 mt-6 text-base font-semibold text-text-primary">
-    {{ 'PAC.Knowledgebase.TestRecords' | translate: { Default: 'Test Records' } }}
+    {{ 'XP.Knowledgebase.TestRecords' | translate: { Default: 'Test Records' } }}
   </div>
   <div class="grow overflow-y-auto">
     <table class="w-full border-collapse border-0 text-[13px] leading-4 text-text-secondary">
       <thead class="sticky top-0 h-7 text-sm font-medium uppercase leading-7 backdrop-blur-[5px]">
         <tr>
           <td class="w-[128px] rounded-l-lg bg-background-section-burn pl-3">
-            {{ 'PAC.Knowledgebase.Source' | translate: { Default: 'Source' } }}
+            {{ 'XP.Knowledgebase.Source' | translate: { Default: 'Source' } }}
           </td>
           <td class="bg-background-section-burn">
-            {{ 'PAC.Knowledgebase.Text' | translate: { Default: 'Text' } }}
+            {{ 'XP.Knowledgebase.Text' | translate: { Default: 'Text' } }}
           </td>
           <td class="w-48 rounded-r-lg bg-background-section-burn pl-2">
-            {{ 'PAC.Knowledgebase.Time' | translate: { Default: 'Time' } }}
+            {{ 'XP.Knowledgebase.Time' | translate: { Default: 'Time' } }}
           </td>
         </tr>
       </thead>
@@ -144,13 +144,13 @@
                 <span class="capitalize">
                   @switch (log.source) {
                     @case ('hit_testing') {
-                      {{ 'PAC.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}
+                      {{ 'XP.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}
                     }
                     @case ('retriever') {
-                      {{ 'PAC.Knowledgebase.Retriever' | translate: { Default: 'Retriever' } }}
+                      {{ 'XP.Knowledgebase.Retriever' | translate: { Default: 'Retriever' } }}
                     }
                     @default {
-                      {{ 'PAC.Knowledgebase.Unknown' | translate: { Default: 'unknown' } }}
+                      {{ 'XP.Knowledgebase.Unknown' | translate: { Default: 'unknown' } }}
                     }
                   }
                 </span>
@@ -175,7 +175,7 @@
   @if (results()) {
     <div class="flex h-full flex-col rounded-tl-2xl bg-background-body px-4 py-3">
       <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">
-        {{ results().length }} {{ 'PAC.Knowledgebase.RecallParagraphs' | translate: { Default: 'recall paragraphs' } }}
+        {{ results().length }} {{ 'XP.Knowledgebase.RecallParagraphs' | translate: { Default: 'recall paragraphs' } }}
       </div>
       <div class="grow space-y-2">
         @for (chunk of results(); track chunk.id; let i = $index) {
@@ -185,7 +185,7 @@
     </div>
 
     @if (loading()) {
-      <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+      <xp-spin class="absolute left-0 top-0 w-full h-full" />
     }
   } @else if (error()) {
     <div
@@ -199,7 +199,7 @@
       <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="loading()"></i>
       <div class="">
         {{
-          'PAC.Knowledgebase.RetrievalTestingResultsHere'
+          'XP.Knowledgebase.RetrievalTestingResultsHere'
             | translate: { Default: 'Retrieval Testing results will show here' }
         }}
       </div>
@@ -214,12 +214,12 @@
   >
     <div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
       <div class="text-base font-semibold text-text-primary">
-        <div>{{ 'PAC.Knowledgebase.RetrievalSetting' | translate: { Default: 'Retrieval Setting' } }}</div>
+        <div>{{ 'XP.Knowledgebase.RetrievalSetting' | translate: { Default: 'Retrieval Setting' } }}</div>
         <div class="text-xs font-normal leading-[18px] font-body text-text-tertiary">
           <a target="_blank" rel="noopener noreferrer" [href]="helpUrl()" class="text-text-accent">{{
-            'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' }
+            'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' }
           }}</a>
-          {{ 'PAC.Knowledgebase.AboutRetrievalMethod' | translate: { Default: ' about retrieval method.' } }}
+          {{ 'XP.Knowledgebase.AboutRetrievalMethod' | translate: { Default: ' about retrieval method.' } }}
         </div>
       </div>
       <div class="flex">

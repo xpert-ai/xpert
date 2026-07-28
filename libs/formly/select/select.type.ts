@@ -12,7 +12,7 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmDisplayBehaviourComponent } from '@xpert-ai/headless-ui'
+import { XpDisplayBehaviourComponent } from '@xpert-ai/headless-ui'
 import { ISelectOption } from '@xpert-ai/headless-ui'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -38,12 +38,12 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
  */
 @Component({
   standalone: true,
-  selector: 'pac-formly-select',
+  selector: 'xp-formly-select',
   templateUrl: `select.type.html`,
   styleUrls: [`select.type.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'pac-formly-select'
+    class: 'xp-formly-select'
   },
   imports: [
     FormsModule,
@@ -55,12 +55,12 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
     ZardComboboxDeprecatedComponent,
     ZardComboboxDeprecatedPanelTemplateDirective,
     ZardLoaderComponent,
-    NgmDisplayBehaviourComponent,
+    XpDisplayBehaviourComponent,
     FormlyModule,
     TranslateModule
   ]
 })
-export class PACFormlySelectComponent extends FieldType implements OnInit {
+export class XpFormlySelectComponent extends FieldType implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly #destroyRef = inject(DestroyRef)
   private skipNextSearchTermChange = false

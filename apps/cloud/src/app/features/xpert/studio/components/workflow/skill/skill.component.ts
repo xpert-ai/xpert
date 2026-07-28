@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNSkill } from 'apps/cloud/src/app/@core'
 import { NgxFloatUiModule } from 'ngx-float-ui'
@@ -14,14 +14,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./skill.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FFlowModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    NgxFloatUiModule,
-    NgmSpinComponent,
-    NgxJsonViewerModule
-  ]
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, NgxFloatUiModule, XpSpinComponent, NgxJsonViewerModule]
 })
 export class XpertWorkflowNodeSkillComponent extends WorkflowBaseNodeComponent {
   // States

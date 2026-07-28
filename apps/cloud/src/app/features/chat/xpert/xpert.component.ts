@@ -28,7 +28,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertChatAppComponent,
     ChatXpertsComponent
   ],
-  selector: 'pac-chat-xpert',
+  selector: 'xp-chat-xpert',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

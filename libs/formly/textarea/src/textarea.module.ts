@@ -25,4 +25,4 @@ import { FormlyFieldTextAreaComponent } from './textarea.type'
     })
   ]
 })
-export class PACFormlyTextAreaModule {}
+export class XpFormlyTextAreaModule {}

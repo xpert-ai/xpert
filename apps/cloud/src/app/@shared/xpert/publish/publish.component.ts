@@ -6,8 +6,8 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, of, switchMap } from 'rxjs'
@@ -41,11 +41,11 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     EmojiAvatarComponent,
     IconComponent,
     IntegrationFormComponent,
-    NgmI18nPipe
+    XpI18nPipe
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -56,7 +56,7 @@ export class XpertPublishComponent {
   readonly #toastr = injectToastr()
   readonly integrationService = inject(IntegrationService)
   readonly xpertService = inject(XpertAPIService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   readonly xpertId = signal(this.#data.xpert.id)
 
@@ -142,7 +142,7 @@ export class XpertPublishComponent {
       })
       .subscribe({
         next: (response) => {
-          this.#toastr.success('PAC.Xpert.XpertPublished', { Default: 'Xpert published successfully!' })
+          this.#toastr.success('XP.Xpert.XpertPublished', { Default: 'Xpert published successfully!' })
           this.loading.set(false)
           this.selectedIntegrations.set([response])
         },
@@ -165,7 +165,7 @@ export class XpertPublishComponent {
         .closed.pipe(switchMap((confirm) => (confirm ? this.delete(integration.id) : EMPTY)))
         .subscribe({
           next: () => {
-            this.#toastr.success('PAC.Xpert.XpertPublishDeleted', { Default: 'Xpert publish deleted!' })
+            this.#toastr.success('XP.Xpert.XpertPublishDeleted', { Default: 'Xpert publish deleted!' })
             this.loading.set(false)
             this.selectedIntegrations.set([])
             this.integrations.update((state) => state.filter((_) => _.id !== integration.id))

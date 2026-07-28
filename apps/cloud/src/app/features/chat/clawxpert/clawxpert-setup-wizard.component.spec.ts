@@ -86,7 +86,7 @@ jest.mock('../../../@shared/copilot', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-copilot-config-form',
+    selector: 'xp-copilot-config-form',
     template: ''
   })
   class CopilotConfigFormComponent {
@@ -153,7 +153,7 @@ jest.mock('../../xpert/xpert', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-xpert-new-blank',
+    selector: 'xp-xpert-new-blank',
     template: ''
   })
   class XpertNewBlankComponent {}
@@ -703,14 +703,14 @@ describe('ClawXpertSetupWizardComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-onboarding-step="default-clawxpert"]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('z-stepper')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DefaultInstallTitle')
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DefaultModelReady')
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.CompleteInitialization')
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.CreateFirst')
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.ModelProviderStepTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.DefaultInstallTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.DefaultModelReady')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.CompleteInitialization')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.CreateFirst')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.ModelProviderStepTitle')
     expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.ACTIONS.Next')
+    expect(fixture.nativeElement.querySelector('xp-copilot-config-form')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('XP.ACTIONS.Next')
     expect(fixture.nativeElement.querySelector('a[href], [routerlink]')).toBeNull()
   })
 
@@ -779,7 +779,7 @@ describe('ClawXpertSetupWizardComponent', () => {
     expect(fixture.componentInstance.recommendedTemplateItems()).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-onboarding-step="default-clawxpert"]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.LoadingRecommendedTemplates')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.LoadingRecommendedTemplates')
   })
 
   it('waits for the model provider lookup before preparing the primary copilot', async () => {
@@ -844,7 +844,7 @@ describe('ClawXpertSetupWizardComponent', () => {
 
     expect(fixture.componentInstance.llmCopilots()).toBeNull()
     expect(copilotServer.enableCopilot).not.toHaveBeenCalled()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.CheckingModelProviders')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.CheckingModelProviders')
     expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).toBeNull()
 
     modelProviders$.next([])
@@ -924,10 +924,10 @@ describe('ClawXpertSetupWizardComponent', () => {
 
     expect(component.canCreateXpert()).toBe(false)
     expect(fixture.nativeElement.querySelector('[data-model-provider-config-form]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('xp-copilot-config-form')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.SaveModelProvider')
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.CompleteInitialization')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.SaveModelProvider')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.CompleteInitialization')
 
     await component.saveModelProvider()
     await flushPromises()
@@ -940,7 +940,7 @@ describe('ClawXpertSetupWizardComponent', () => {
     })
     expect(component.canCreateXpert()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-model-provider-config-form]')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.CompleteInitialization')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.CompleteInitialization')
 
     component.completeInitialization()
     await flushPromises()
@@ -1021,8 +1021,8 @@ describe('ClawXpertSetupWizardComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('button[aria-label="PAC.ACTIONS.Close"]')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.ACTIONS.Cancel')
+    expect(fixture.nativeElement.querySelector('button[aria-label="XP.ACTIONS.Close"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('XP.ACTIONS.Cancel')
   })
 
   it('does not render the general plugin marketplace list in the setup wizard', async () => {
@@ -1324,7 +1324,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         '[data-recommended-template-unavailable="@xpert-ai/plugin-canvas:canvas-assistant"]'
       )
     ).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.RecommendedTemplateToolsetUnavailable')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.RecommendedTemplateToolsetUnavailable')
 
     component.setRecommendedTemplateSelected(canvasTemplate, true)
     expect(component.selectedRecommendedTemplateCount()).toBe(0)
@@ -1514,7 +1514,10 @@ describe('ClawXpertSetupWizardComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    component.setRecommendedTemplateSelected(component.recommendedTemplateItems()?.[0]?.template ?? createRecommendedTemplate(), true)
+    component.setRecommendedTemplateSelected(
+      component.recommendedTemplateItems()?.[0]?.template ?? createRecommendedTemplate(),
+      true
+    )
     component.completeInitialization()
     await flushPromises()
     await flushPromises()
@@ -1669,7 +1672,7 @@ describe('ClawXpertSetupWizardComponent', () => {
     )
     expect(dialogRef.close).toHaveBeenCalled()
     expect(fixture.nativeElement.querySelector('[data-clawxpert-initialization-error]')).toBeNull()
-    expect(toastr.error).toHaveBeenCalledWith('PAC.Chat.ClawXpert.RecommendedTemplatesInitializeFailed', '', {
+    expect(toastr.error).toHaveBeenCalledWith('XP.Chat.ClawXpert.RecommendedTemplatesInitializeFailed', '', {
       Default: 'ClawXpert was initialized, but {{names}} could not be initialized.',
       count: 1,
       names: 'Drawio Assistant'
@@ -1751,9 +1754,9 @@ describe('ClawXpertSetupWizardComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelector('[data-clawxpert-initialization-status]')?.textContent).toContain(
-      'PAC.Chat.ClawXpert.InitializingDefault'
+      'XP.Chat.ClawXpert.InitializingDefault'
     )
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.Initializing')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.Initializing')
 
     resolveCreatedXpert?.({
       id: 'created-clawxpert',
@@ -1846,9 +1849,9 @@ describe('ClawXpertSetupWizardComponent', () => {
     })
     expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DefaultModelReady')
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.PreparingModelProvider')
+    expect(fixture.nativeElement.querySelector('xp-copilot-config-form')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.DefaultModelReady')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.PreparingModelProvider')
   })
 
   it('initializes the default ClawXpert template directly with the selected model', async () => {

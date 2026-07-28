@@ -10,13 +10,13 @@ import {
   signal
 } from '@angular/core'
 import { getErrorMessage, injectToastr, IXpertProjectTask, XpertProjectService } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, ...ZardTooltipImports, NgmSpinComponent],
+  imports: [TranslateModule, ...ZardTooltipImports, XpSpinComponent],
   selector: 'xpert-project-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',

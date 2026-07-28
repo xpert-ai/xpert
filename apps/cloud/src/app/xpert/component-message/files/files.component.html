@@ -110,12 +110,12 @@
       <div class="flex flex-col gap-0.5 flex-1 min-w-0">
         <div class="text-base text-ellipsis overflow-hidden whitespace-nowrap">{{ file.filePath }}</div>
         <div class="text-sm text-text-tertiary">
-          {{ 'PAC.Chat.FileType_' + (file.filePath | fileType) | translate }} · {{ file.size / 1000 | number }} KB
+          {{ 'XP.Chat.FileType_' + (file.filePath | fileType) | translate }} · {{ file.size / 1000 | number }} KB
         </div>
       </div>
       <div
         class="items-center justify-center cursor-pointer rounded-md w-6 h-6 border border-divider-deep hidden group-hover/attach:flex"
-        [zTooltip]="'PAC.Chat.Preview' | translate: { Default: 'Preview' }"
+        [zTooltip]="'XP.Chat.Preview' | translate: { Default: 'Preview' }"
         zPosition="top"
         (click)="openFileViewer(file)"
       >
@@ -130,7 +130,7 @@
   >
     <i class="ri-folders-line text-lg text-zinc-500"></i>
     <span class="text-base">
-      {{ 'PAC.Chat.ViewAllFilesInTask' | translate: { Default: 'View all files in this task' } }}
+      {{ 'XP.Chat.ViewAllFilesInTask' | translate: { Default: 'View all files in this task' } }}
     </span>
   </button>
 </div>

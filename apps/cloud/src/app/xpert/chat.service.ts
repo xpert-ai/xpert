@@ -137,7 +137,7 @@ export abstract class ChatService {
           this.fetchConversation(id).pipe(
             catchError((httpError: HttpErrorResponse) => {
               if (httpError.status === 404) {
-                this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {
+                this.#toastr.error('XP.Messages.NoPermissionOrNotExist', 'XP.KEY_WORDS.Conversation', {
                   Default: 'No permission or does not exist'
                 })
               } else {

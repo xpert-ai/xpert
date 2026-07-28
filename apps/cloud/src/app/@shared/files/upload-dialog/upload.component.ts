@@ -2,8 +2,8 @@ import { HttpEventType } from '@angular/common/http'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSearchComponent } from '@xpert-ai/headless-ui'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/headless-ui'
+import { XpSearchComponent } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective, XpButtonGroupDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { catchError, combineLatest, of, startWith, tap } from 'rxjs'
@@ -14,7 +14,7 @@ import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-files-upload',
+  selector: 'xp-files-upload',
   templateUrl: './upload.component.html',
   styleUrls: ['upload.component.scss'],
   providers: [],
@@ -23,10 +23,10 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
     ReactiveFormsModule,
     SharedUiModule,
     TranslateModule,
-    ButtonGroupDirective,
-    AppearanceDirective,
+    XpButtonGroupDirective,
+    XpAppearanceDirective,
     DensityDirective,
-    NgmSearchComponent,
+    XpSearchComponent,
     FilesUploadComponent
   ],
   animations: [listAnimation]

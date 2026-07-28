@@ -1,5 +1,5 @@
 @reference "../../../tailwind-workspace-reference.css";
-.ngm-input {
+.xp-input {
   @apply flex w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm font-normal text-foreground
     file:border-0 file:bg-transparent file:font-medium file:text-foreground placeholder:text-muted-foreground
     outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]
@@ -9,7 +9,7 @@
   }
 }
 
-.ngm-input-inline {
+.xp-input-inline {
   @apply flex-1 border-0 bg-transparent px-0 py-0 font-normal text-foreground
     placeholder:text-muted-foreground outline-none focus-visible:ring-0 focus-visible:ring-offset-0;
   &.error {
@@ -17,6 +17,6 @@
   }
 }
 
-.ngm-input-sm {
+.xp-input-sm {
   @apply h-8 px-2 py-1 text-xs;
 }

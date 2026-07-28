@@ -18,11 +18,11 @@
 
   @include table-theme.color($config-or-theme);
 
-  .ngm-formly-expansion__panel-row.removeable {
+  .xp-formly-expansion__panel-row.removeable {
     @include removeable($foreground);
   }
 
-  .ngm-formly__title {
+  .xp-formly__title {
     font-size: 1em;
     margin: 5px 0;
   }
@@ -38,7 +38,7 @@
 
   /* for angular formly components */
   formly-form {
-    .pac-formly-select {
+    .xp-formly-select {
       position: relative;
       max-width: 100%;
       flex: 1;
@@ -49,16 +49,16 @@
 @mixin density($config-or-theme) {
   @include table-theme.density($config-or-theme);
 
-  ngm-formly-radio,
-  .ngm-formly-radio-field {
-    .ngm-formly-radio__group {
+  xp-formly-radio,
+  .xp-formly-radio-field {
+    .xp-formly-radio__group {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem 1rem;
     }
   }
 
-  pac-formly-slider {
+  xp-formly-slider {
     // slider-density 官方还没实现
     @include themeCompat.slider-density(-1);
     .mdc-slider {
@@ -80,7 +80,7 @@
     }
   }
 
-  .pac-formly-chart-type {
+  .xp-formly-chart-type {
     @include themeCompat.icon-button-density(
       (
         density: -2
@@ -101,7 +101,7 @@
     }
   }
 
-  ngm-formly-checkbox {
+  xp-formly-checkbox {
     z-checkbox {
       @apply text-sm;
     }
@@ -111,7 +111,7 @@
     }
   }
 
-  .ngm-formly__pb-2 {
+  .xp-formly__pb-2 {
     @apply pb-2;
   }
 }

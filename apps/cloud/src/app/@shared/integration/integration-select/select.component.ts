@@ -2,18 +2,18 @@ import { Component, computed, effect, inject, input, model } from '@angular/core
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { injectIntegrationAPI } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map } from 'rxjs/operators'
 import { IIntegration, IntegrationFeatureEnum, OrderTypeEnum, TSelectOption } from '../../../@core/types'
 import { IconComponent } from '../../avatar'
-import { NgmSelectComponent } from '../../common'
+import { XpSelectComponent } from '../../common'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, NgmSelectComponent, IconComponent, NgmI18nPipe],
+  imports: [FormsModule, TranslateModule, XpSelectComponent, IconComponent, XpI18nPipe],
   selector: 'xp-integration-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],

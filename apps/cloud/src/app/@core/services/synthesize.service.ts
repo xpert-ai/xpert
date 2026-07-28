@@ -47,7 +47,7 @@ export class SynthesizeService {
               const audioContent = message.data.content?.[0] as any
               if (audioContent.type !== 'audio') {
                 this.#toastr.error(
-                  this.#translate.instant('PAC.Chat.PreviewReadAloudError', {
+                  this.#translate.instant('XP.Chat.PreviewReadAloudError', {
                     Default: 'Read aloud only supports audio messages'
                   })
                 )

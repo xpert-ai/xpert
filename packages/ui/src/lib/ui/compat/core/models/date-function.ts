@@ -22,7 +22,7 @@ export interface DateVariable {
   dateRange?: TimeRange
 }
 
-export const NGM_DATE_VARIABLES = new InjectionToken<DateVariable[]>('Date Variables', {
+export const XP_DATE_VARIABLES = new InjectionToken<DateVariable[]>('Date Variables', {
   providedIn: 'root',
   factory: NX_DATE_VARIABLES_FACTORY
 })

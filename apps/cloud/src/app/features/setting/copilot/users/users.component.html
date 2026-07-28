@@ -15,49 +15,49 @@
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-64 truncate"
           >
-            {{ 'PAC.KEY_WORDS.User' | translate: { Default: 'User' } }}
+            {{ 'XP.KEY_WORDS.User' | translate: { Default: 'User' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-64"
           >
-            {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
+            {{ 'XP.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48"
           >
-            {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+            {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48 truncate"
           >
-            {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+            {{ 'XP.Copilot.Model' | translate: { Default: 'Model' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32"
           >
-            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+            {{ 'XP.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32"
           >
-            {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
+            {{ 'XP.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
           >
-            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+            {{ 'XP.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
           </th>
 
           <th
@@ -65,14 +65,14 @@
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
           >
-            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+            {{ 'XP.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
           >
-            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+            {{ 'XP.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
           </th>
 
           <th
@@ -80,14 +80,14 @@
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32"
           >
-            {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
+            {{ 'XP.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
           </th>
           <th
             z-table-head
             scope="col"
             class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
           >
-            {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+            {{ 'XP.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
           </th>
           <th
             z-table-head
@@ -97,7 +97,7 @@
             scope="col"
             class="sticky top-0 whitespace-nowrap border-l border-solid border-divider-regular bg-background-default-subtle p-3 w-[240px]"
           >
-            {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+            {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
           </th>
         </tr>
       </thead>
@@ -118,22 +118,22 @@
                   class="shrink-0 text-text-quaternary"
                   [zTooltip]="
                     isExpanded(item)
-                      ? ('PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
-                      : ('PAC.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                      ? ('XP.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+                      : ('XP.ACTIONS.Expand' | translate: { Default: 'Expand' })
                   "
                   (click)="toggleDetails(item); $event.stopPropagation()"
                 >
                   <z-icon [zType]="isExpanded(item) ? 'chevron-down' : 'chevron-right'"></z-icon>
                 </button>
                 @if (item.user) {
-                  <pac-user-profile-inline class="min-w-0" [user]="item.user" small />
+                  <xp-user-profile-inline class="min-w-0" [user]="item.user" small />
                 }
               </div>
             </td>
             <td z-table-cell class="px-4 py-2">
               @if (item.org) {
                 <div class="flex justify-start items-center overflow-hidden text-ellipsis">
-                  <pac-org-avatar
+                  <xp-org-avatar
                     [organization]="item.org"
                     class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2"
                   />
@@ -166,7 +166,7 @@
                     type="number"
                     zSize="sm"
                     class="w-44"
-                    [placeholder]="'PAC.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
+                    [placeholder]="'XP.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
                     [disabled]="loading()"
                     [ngModel]="tokenLimit()"
                     (ngModelChange)="setTokenLimit($event)"
@@ -179,7 +179,7 @@
                     zShape="circle"
                     class="text-text-quaternary"
                     [disabled]="loading()"
-                    [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
+                    [zTooltip]="'XP.ACTIONS.Save' | translate: { Default: 'Save' }"
                     (click)="save(item); $event.stopPropagation()"
                   >
                     <z-icon zType="save"></z-icon>
@@ -192,7 +192,7 @@
                     zShape="circle"
                     class="text-text-quaternary"
                     [disabled]="loading()"
-                    [zTooltip]="'PAC.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
+                    [zTooltip]="'XP.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
                     (click)="renewToken(item); $event.stopPropagation()"
                   >
                     <z-icon zType="autorenew"></z-icon>
@@ -207,7 +207,7 @@
                 <div class="px-12 py-3">
                   @if (isLoadingDetails(item)) {
                     <div class="flex justify-center py-4">
-                      <ngm-spin />
+                      <xp-spin />
                     </div>
                   } @else if (item.details?.length) {
                     <table
@@ -218,28 +218,28 @@
                       <thead z-table-header class="text-text-secondary">
                         <tr z-table-row>
                           <th z-table-head scope="col" class="px-3 py-2 w-64 truncate">
-                            {{ 'PAC.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
+                            {{ 'XP.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-48 truncate">
-                            {{ 'PAC.KEY_WORDS.Xpert' | translate: { Default: 'Xpert' } }}
+                            {{ 'XP.KEY_WORDS.Xpert' | translate: { Default: 'Xpert' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-40 truncate">
-                            {{ 'PAC.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
+                            {{ 'XP.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-32">
-                            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+                            {{ 'XP.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
-                            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+                            {{ 'XP.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
-                            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+                            {{ 'XP.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
-                            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+                            {{ 'XP.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
                           </th>
                           <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
-                            {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+                            {{ 'XP.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
                           </th>
                         </tr>
                       </thead>
@@ -264,7 +264,7 @@
                     </table>
                   } @else {
                     <div class="py-4 text-center text-text-quaternary">
-                      {{ 'PAC.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
+                      {{ 'XP.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
                     </div>
                   }
                 </div>
@@ -277,7 +277,7 @@
 
     @if (loading()) {
       <div class="flex justify-center">
-        <ngm-spin />
+        <xp-spin />
       </div>
     }
 

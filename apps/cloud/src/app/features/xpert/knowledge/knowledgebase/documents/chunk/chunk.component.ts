@@ -3,8 +3,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
-import { injectConfirmDelete, NgmCommonModule } from '@xpert-ai/headless-ui'
-import { effectAction, linkedModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpCommonModule } from '@xpert-ai/headless-ui'
+import { effectAction, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { nonBlank } from '@xpert-ai/contracts'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -42,8 +42,8 @@ import { CopyComponent } from '@cloud/app/@shared/common'
     ...ZardTooltipImports,
     ZardIconComponent,
     WaIntersectionObserver,
-    NgmCommonModule,
-    NgmI18nPipe,
+    XpCommonModule,
+    XpI18nPipe,
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent,

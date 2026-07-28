@@ -6,8 +6,8 @@
   $accent: map.get($config, accent);
   $background: map.get($config, background);
 
-  [z-button].ngm-appearance-desktop[data-icon-only]:hover:not([disabled]):not([data-disabled]),
-  z-button.ngm-appearance-desktop[data-icon-only]:hover:not([disabled]):not([data-disabled]) {
+  [z-button].xp-appearance-desktop[data-icon-only]:hover:not([disabled]):not([data-disabled]),
+  z-button.xp-appearance-desktop[data-icon-only]:hover:not([disabled]):not([data-disabled]) {
     background-color: themeCompat.m2-get-color-from-palette($background, hover);
   }
 }

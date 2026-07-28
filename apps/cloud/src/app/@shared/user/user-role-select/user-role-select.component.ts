@@ -9,7 +9,7 @@ import {
   ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
 import { UsersService } from '@xpert-ai/cloud/state'
-import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'
 import { IUser } from '../../../@core'
@@ -43,9 +43,9 @@ function isUser(value: unknown): value is IUser {
     ...ZardFormImports,
     ZardLoaderComponent,
     TranslateModule,
-    ButtonGroupDirective
+    XpButtonGroupDirective
   ],
-  selector: 'pac-user-role-select',
+  selector: 'xp-user-role-select',
   templateUrl: 'user-role-select.component.html',
   styleUrls: ['user-role-select.component.scss']
 })

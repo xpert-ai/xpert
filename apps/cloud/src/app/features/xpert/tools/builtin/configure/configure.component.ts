@@ -4,8 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, model, si
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
@@ -43,8 +43,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     EmojiAvatarComponent,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
@@ -216,7 +216,7 @@ export class XpertToolConfigureBuiltinComponent {
     }
     this.#toolsetService.update(this.toolset().id, toolset).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         this.loading.set(false)
         this.#dialogRef.close(toolset)
       },

@@ -6,7 +6,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -30,7 +30,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmSpinComponent
+    XpSpinComponent
   ],
   selector: 'xpert-knowledgebase-api',
   templateUrl: './api.component.html',
@@ -59,7 +59,7 @@ export class XpertKBAPIComponent {
 
   copy(content: string) {
     this.#clipboard.copy(content)
-    this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+    this.#toastr.info({ code: 'XP.Xpert.Copied', default: 'Copied' })
   }
 
   openApiReference() {

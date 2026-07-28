@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core'
 import { SafePipe } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { CanvasFilePreviewKind, CanvasSpreadsheetPreview } from './file-preview.utils'
@@ -9,7 +9,7 @@ import { CanvasFilePreviewKind, CanvasSpreadsheetPreview } from './file-preview.
   standalone: true,
   selector: 'chat-canvas-file-preview-content',
   templateUrl: './file-preview-content.component.html',
-  imports: [TranslateModule, MarkdownModule, SafePipe, NgmSpinComponent, NgmTableComponent],
+  imports: [TranslateModule, MarkdownModule, SafePipe, XpSpinComponent, XpTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasFilePreviewContentComponent {

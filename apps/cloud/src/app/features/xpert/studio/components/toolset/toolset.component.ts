@@ -9,8 +9,8 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
@@ -33,9 +33,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     TranslateModule,
     NgxFloatUiModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     NgxJsonViewerModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     EmojiAvatarComponent
   ],
   host: {

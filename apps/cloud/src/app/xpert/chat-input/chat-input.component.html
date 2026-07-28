@@ -64,11 +64,11 @@
                 zType="secondary"
                 zSize="sm"
                 class="composer-chip"
-                [attr.aria-label]="'PAC.Chat.DisablePlanMode' | translate: { Default: 'Turn off plan mode' }"
+                [attr.aria-label]="'XP.Chat.DisablePlanMode' | translate: { Default: 'Turn off plan mode' }"
                 (click)="setPlanMode(false)"
               >
                 <z-icon zType="list-filter-plus"></z-icon>
-                <span>{{ 'PAC.Chat.PlanModeActive' | translate: { Default: 'Plan' } }}</span>
+                <span>{{ 'XP.Chat.PlanModeActive' | translate: { Default: 'Plan' } }}</span>
                 <z-icon zType="x"></z-icon>
               </button>
             }
@@ -81,7 +81,7 @@
                 zSize="sm"
                 class="composer-chip"
                 [attr.aria-label]="
-                  'PAC.Chat.RemoveRuntimeCapability' | translate: { Default: 'Remove runtime capability' }
+                  'XP.Chat.RemoveRuntimeCapability' | translate: { Default: 'Remove runtime capability' }
                 "
                 (click)="removeRuntimeCapability(option)"
               >
@@ -114,7 +114,7 @@
                   zType="ghost"
                   zSize="icon-sm"
                   zShape="circle"
-                  [attr.aria-label]="'PAC.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
+                  [attr.aria-label]="'XP.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
                   (click)="removeReference(reference)"
                 >
                   <z-icon zType="x"></z-icon>
@@ -127,7 +127,7 @@
         <div class="relative z-10">
           @if (!isComposing() && !promptText() && !hasReferences()) {
             <span class="pointer-events-none absolute px-2 py-5 pt-3 text-text-secondary">
-              {{ 'PAC.Chat.HowCanHelp' | translate: { Default: 'How can Xpert help?' } }}
+              {{ 'XP.Chat.HowCanHelp' | translate: { Default: 'How can Xpert help?' } }}
             </span>
           }
 
@@ -138,7 +138,7 @@
             dir="auto"
             aria-multiline="true"
             [attr.contenteditable]="disabled() ? 'false' : 'true'"
-            [attr.aria-label]="'PAC.Chat.AskAnything' | translate: { Default: 'Ask Xpert anything' }"
+            [attr.aria-label]="'XP.Chat.AskAnything' | translate: { Default: 'Ask Xpert anything' }"
             (input)="onComposerInput()"
             (keydown)="onComposerKeydown($event)"
             (paste)="onComposerPaste($event)"
@@ -157,7 +157,7 @@
             <canvas #waveCanvas class="absolute left-0 top-0 z-0 h-full w-full"></canvas>
             @if (isConverting()) {
               <div class="flex items-center">
-                {{ 'PAC.Xpert.ConvertingSpeechToText' | translate: { Default: 'Converting speech to text' } }}...
+                {{ 'XP.Xpert.ConvertingSpeechToText' | translate: { Default: 'Converting speech to text' } }}...
               </div>
             }
           </div>
@@ -189,14 +189,14 @@
                 tabindex="0"
                 [zTooltip]="
                   canvasOpened()
-                    ? ('PAC.Chat.CloseCanvas' | translate: { Default: 'Close Canvas' })
-                    : ('PAC.Chat.OpenCanvas' | translate: { Default: 'Open Canvas' })
+                    ? ('XP.Chat.CloseCanvas' | translate: { Default: 'Close Canvas' })
+                    : ('XP.Chat.OpenCanvas' | translate: { Default: 'Open Canvas' })
                 "
                 zPosition="top"
                 (click)="toggleCanvas()"
               >
                 <z-icon zType="panel-top-open"></z-icon>
-                <span>{{ 'PAC.Chat.Canvas' | translate: { Default: 'Canvas' } }}</span>
+                <span>{{ 'XP.Chat.Canvas' | translate: { Default: 'Canvas' } }}</span>
               </button>
             </div>
           </div>
@@ -210,7 +210,7 @@
                 zTooltipClass="context-usage-tooltip"
                 zPosition="top"
                 [zDisabled]="!contextUsageTooltip()"
-                [attr.aria-label]="'PAC.Chat.ContextWindowUsage' | translate: { Default: 'Context window usage' }"
+                [attr.aria-label]="'XP.Chat.ContextWindowUsage' | translate: { Default: 'Context window usage' }"
               >
                 <span class="context-usage-ring" [ngStyle]="contextUsageRingStyle()">
                   <span class="context-usage-ring__inner">
@@ -224,9 +224,9 @@
               <div class="z-10 flex items-center px-2">
                 <div class="grow">
                   @if (isRecording()) {
-                    <span>{{ 'PAC.Xpert.Speaking' | translate: { Default: 'Speaking' } }}...</span>
+                    <span>{{ 'XP.Xpert.Speaking' | translate: { Default: 'Speaking' } }}...</span>
                   } @else if (isConverting()) {
-                    <span>{{ 'PAC.Xpert.Converting' | translate: { Default: 'Converting' } }}...</span>
+                    <span>{{ 'XP.Xpert.Converting' | translate: { Default: 'Converting' } }}...</span>
                   }
                 </div>
                 @if (speeching()) {
@@ -258,7 +258,7 @@
               <button
                 type="button"
                 class="flex h-10 w-10 origin-center items-center justify-center rounded-full border border-divider-regular bg-components-card-bg p-1 text-text-primary transition-transform enabled:hover:scale-110 enabled:hover:bg-hover-bg md:bottom-3 md:right-3"
-                [attr.aria-label]="'PAC.Chat.StopGenerate' | translate: { Default: 'Stop generating' }"
+                [attr.aria-label]="'XP.Chat.StopGenerate' | translate: { Default: 'Stop generating' }"
                 (click)="stopGenerating()"
               >
                 <svg
@@ -277,7 +277,7 @@
                 type="button"
                 class="bottom-1.5 flex h-10 w-10 origin-center items-center justify-center rounded-full border border-divider-regular bg-components-card-bg p-1 text-text-primary transition-transform disabled:text-text-quaternary disabled:opacity-10 enabled:hover:scale-110 enabled:hover:bg-hover-bg md:bottom-3 md:right-3"
                 [disabled]="!canSend()"
-                [attr.aria-label]="'PAC.Chat.Send' | translate: { Default: 'Send' }"
+                [attr.aria-label]="'XP.Chat.Send' | translate: { Default: 'Send' }"
                 (click)="send()"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-text-primary">

@@ -24,7 +24,7 @@ import { ChatAttachmentsComponent, isChatAgentFile, type ChatAgentFile } from '@
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
@@ -56,7 +56,7 @@ import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
     CdkMenuModule,
     TextFieldModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     EmojiAvatarComponent,
     TranslatePipe,
 
@@ -73,7 +73,7 @@ import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
     FileIconComponent,
     ExtensionHostOutletComponent
   ],
-  selector: 'pac-chat-project-home',
+  selector: 'xp-chat-project-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -161,7 +161,7 @@ export class ChatProjectHomeComponent {
           map((workspace) => ({ workspace })),
           catchError(() =>
             of({
-              error: this.i18nService.translate('PAC.XProject.NoAccessWorkspace', { Default: 'No access to workspace' })
+              error: this.i18nService.translate('XP.XProject.NoAccessWorkspace', { Default: 'No access to workspace' })
             })
           )
         )

@@ -10,7 +10,7 @@ import { SharedUiModule } from '../../../@shared/ui.module'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot',
+  selector: 'xp-settings-copilot',
   templateUrl: './copilot.component.html',
   styleUrls: ['./copilot.component.scss'],
   imports: [AsyncPipe, RouterModule, TranslateModule, SharedUiModule],

@@ -6,7 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { throwError } from 'rxjs'
 import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui'
 import { ZardSelectComponent } from '@xpert-ai/headless-ui'
-import { PACFormlySelectModule } from './select.module'
+import { XpFormlySelectModule } from './select.module'
 
 const { TestBed } = require('@angular/core/testing')
 const { NoopAnimationsModule } = require('@angular/platform-browser/animations')
@@ -24,7 +24,7 @@ class HostComponent {
 
 @NgModule({
   declarations: [HostComponent],
-  imports: [ReactiveFormsModule, TranslateModule.forRoot(), FormlyModule.forRoot(), PACFormlySelectModule]
+  imports: [ReactiveFormsModule, TranslateModule.forRoot(), FormlyModule.forRoot(), XpFormlySelectModule]
 })
 class TestSelectModule {}
 
@@ -167,10 +167,10 @@ describe('formly: Select Type', () => {
     expect(nativeText()).toContain('Not found value: missing')
   })
 
-  it('should register ngm-select alias', () => {
+  it('should register xp-select alias', () => {
     const { query } = renderComponent({
       key: 'name',
-      type: 'ngm-select',
+      type: 'xp-select',
       props: {
         options: [{ value: 'a', label: 'Option A' }]
       }
@@ -182,7 +182,7 @@ describe('formly: Select Type', () => {
   it('should instantiate searchable alias with z-combobox-deprecated', () => {
     const { fixture } = renderComponent({
       key: 'name',
-      type: 'ngm-select',
+      type: 'xp-select',
       props: {
         searchable: true,
         options: [{ value: 'a', label: 'Option A' }]

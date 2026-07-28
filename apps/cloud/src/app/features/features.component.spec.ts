@@ -373,7 +373,7 @@ describe('FeaturesComponent entry onboarding', () => {
 
     component.entryOnboardingXpertCount.set(0)
 
-    expect(component.entryOnboardingFinishText()).toBe('PAC.ACTIONS.Done')
+    expect(component.entryOnboardingFinishText()).toBe('XP.ACTIONS.Done')
 
     await component.onEntryOnboardingFinish()
 
@@ -388,7 +388,7 @@ describe('FeaturesComponent entry onboarding', () => {
     component.entryOnboardingXpertCount.set(0)
     component.entryOnboardingOpen.set(true)
 
-    expect(component.entryOnboardingFinishText()).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
+    expect(component.entryOnboardingFinishText()).toBe('XP.Chat.ClawXpert.EntryGuideCreate')
 
     await component.onEntryOnboardingFinish()
 

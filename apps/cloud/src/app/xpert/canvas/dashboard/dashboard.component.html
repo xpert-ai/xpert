@@ -2,21 +2,21 @@
   <div class="flex items-center gap-2 w-full">
     <button
       class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [zTooltip]="'PAC.Chat.ExpandCanvas' | translate: { Default: 'Expand canvas' }"
+      [zTooltip]="'XP.Chat.ExpandCanvas' | translate: { Default: 'Expand canvas' }"
       (click)="toggleExpand()"
     >
       <i class="ri-expand-left-line transition-transform" [class.rotate-180]="expand()"></i>
     </button>
 
     <div class="text-text-primary text-lg font-semibold whitespace-nowrap">
-      {{ 'PAC.Chat.WhosDashboard' | translate: { value: 'Xpert', Default: "Xpert's Dashboard" } }}
+      {{ 'XP.Chat.WhosDashboard' | translate: { value: 'Xpert', Default: "Xpert's Dashboard" } }}
     </div>
 
     <div class="flex-1"></div>
 
     <button
       class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [zTooltip]="'PAC.Chat.CloseCanvas' | translate: { Default: 'Close canvas' }"
+      [zTooltip]="'XP.Chat.CloseCanvas' | translate: { Default: 'Close canvas' }"
       (click)="close()"
     >
       <i class="ri-collapse-diagonal-line"></i>

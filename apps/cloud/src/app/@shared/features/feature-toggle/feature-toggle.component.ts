@@ -52,9 +52,9 @@ interface FeatureGroupView {
 }
 
 const STATUS_FILTERS: Array<{ value: FeatureStatusFilter; labelKey: string; labelDefault: string }> = [
-  { value: 'all', labelKey: 'PAC.Feature.Filters.AllStatus', labelDefault: 'All status' },
-  { value: 'enabled', labelKey: 'PAC.Feature.Filters.Enabled', labelDefault: 'Enabled' },
-  { value: 'disabled', labelKey: 'PAC.Feature.Filters.Disabled', labelDefault: 'Disabled' }
+  { value: 'all', labelKey: 'XP.Feature.Filters.AllStatus', labelDefault: 'All status' },
+  { value: 'enabled', labelKey: 'XP.Feature.Filters.Enabled', labelDefault: 'Enabled' },
+  { value: 'disabled', labelKey: 'XP.Feature.Filters.Disabled', labelDefault: 'Disabled' }
 ]
 
 const FEATURE_SCOPE_BY_CODE: Record<string, FeatureToggleScope> = {
@@ -120,7 +120,7 @@ function areFeatureOrganizationsEqual(
     ...ZardTooltipImports
   ],
   providers: [FeatureStoreService],
-  selector: 'pac-feature-toggle',
+  selector: 'xp-feature-toggle',
   templateUrl: './feature-toggle.component.html',
   styleUrls: ['./feature-toggle.component.scss']
 })
@@ -216,12 +216,12 @@ export class FeatureToggleComponent {
     this.confirm(
       {
         title: isEnabled
-          ? this.translate.instant('PAC.Feature.EnableFeature', { Default: 'Enable feature' })
-          : this.translate.instant('PAC.Feature.DisableFeature', { Default: 'Disable feature' }),
+          ? this.translate.instant('XP.Feature.EnableFeature', { Default: 'Enable feature' })
+          : this.translate.instant('XP.Feature.DisableFeature', { Default: 'Disable feature' }),
         information:
-          this.translate.instant('PAC.Feature.Features.' + feature.code + '.Name', { Default: feature.name }) +
+          this.translate.instant('XP.Feature.Features.' + feature.code + '.Name', { Default: feature.name }) +
           ': ' +
-          this.translate.instant('PAC.Feature.Features.' + feature.code + '.Description', {
+          this.translate.instant('XP.Feature.Features.' + feature.code + '.Description', {
             Default: feature.description
           })
       },
@@ -403,12 +403,12 @@ export class FeatureToggleComponent {
 
   groupFilterOptions(features: readonly IFeature[] | null | undefined) {
     return [
-      { value: 'all', labelKey: 'PAC.Feature.Filters.AllGroups', labelDefault: 'All categories' },
+      { value: 'all', labelKey: 'XP.Feature.Filters.AllGroups', labelDefault: 'All categories' },
       ...(features ?? [])
         .filter((feature) => this.matchesCurrentFeatureScope(feature))
         .map((feature) => ({
           value: feature.code,
-          labelKey: `PAC.Feature.Features.${feature.code}.Name`,
+          labelKey: `XP.Feature.Features.${feature.code}.Name`,
           labelDefault: feature.name
         }))
     ]
@@ -423,28 +423,28 @@ export class FeatureToggleComponent {
       {
         id: 'enabled',
         icon: 'circle-check',
-        labelKey: 'PAC.Feature.Summary.Enabled',
+        labelKey: 'XP.Feature.Summary.Enabled',
         labelDefault: 'Enabled modules',
         value: enabledCount
       },
       {
         id: 'disabled',
         icon: 'circle-x',
-        labelKey: 'PAC.Feature.Summary.Disabled',
+        labelKey: 'XP.Feature.Summary.Disabled',
         labelDefault: 'Disabled modules',
         value: allFeatures.length - enabledCount
       },
       {
         id: 'groups',
         icon: 'layers',
-        labelKey: 'PAC.Feature.Summary.Groups',
+        labelKey: 'XP.Feature.Summary.Groups',
         labelDefault: 'Feature groups',
         value: featureGroups.length
       },
       {
         id: 'items',
         icon: 'code',
-        labelKey: 'PAC.Feature.Summary.Items',
+        labelKey: 'XP.Feature.Summary.Items',
         labelDefault: 'Feature items',
         value: allFeatures.length
       }
@@ -472,9 +472,9 @@ export class FeatureToggleComponent {
           id: feature.code,
           feature,
           deprecated: this.isDeprecatedFeature(feature),
-          titleKey: `PAC.Feature.Features.${feature.code}.Name`,
+          titleKey: `XP.Feature.Features.${feature.code}.Name`,
           titleDefault: feature.name,
-          descriptionKey: `PAC.Feature.Features.${feature.code}.Description`,
+          descriptionKey: `XP.Feature.Features.${feature.code}.Description`,
           descriptionDefault: feature.description,
           icon: this.featureIcon(feature),
           features: childFeatures,

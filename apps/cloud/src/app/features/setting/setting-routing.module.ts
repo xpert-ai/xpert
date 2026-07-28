@@ -4,10 +4,10 @@ import { NgxPermissionsGuard } from 'ngx-permissions'
 import { AiFeatureEnum, AIPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
 import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
-import { PACAccountComponent } from './account/account.component'
-import { PACAccountPasswordComponent } from './account/password.component'
-import { PACAccountProfileComponent } from './account/profile.component'
-import { PACSettingComponent } from './settings.component'
+import { XpAccountComponent } from './account/account.component'
+import { XpAccountPasswordComponent } from './account/password.component'
+import { XpAccountProfileComponent } from './account/profile.component'
+import { XpSettingComponent } from './settings.component'
 
 export const membershipPlanSettingsGate = featureGate([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN], ['/settings'])
 export const membershipPlanAccountGate = featureGate(
@@ -17,7 +17,7 @@ export const membershipPlanAccountGate = featureGate(
 export const routes: Routes = [
   {
     path: '',
-    component: PACSettingComponent,
+    component: XpSettingComponent,
     data: { title: 'pac.menu.settings' },
     children: [
       {
@@ -27,7 +27,7 @@ export const routes: Routes = [
       },
       {
         path: 'account',
-        component: PACAccountComponent,
+        component: XpAccountComponent,
         data: {
           title: 'settings/account',
           scopeContext: 'dual-scope'
@@ -40,7 +40,7 @@ export const routes: Routes = [
           },
           {
             path: 'usage',
-            loadComponent: () => import('./account/usage.component').then((m) => m.PACAccountUsageComponent),
+            loadComponent: () => import('./account/usage.component').then((m) => m.XpAccountUsageComponent),
             canActivate: [membershipPlanAccountGate],
             data: {
               title: 'settings/account/usage',
@@ -49,7 +49,7 @@ export const routes: Routes = [
           },
           {
             path: 'billing',
-            loadComponent: () => import('./account/billing.component').then((m) => m.PACAccountBillingComponent),
+            loadComponent: () => import('./account/billing.component').then((m) => m.XpAccountBillingComponent),
             canActivate: [membershipPlanAccountGate],
             data: {
               title: 'settings/account/billing',
@@ -58,7 +58,7 @@ export const routes: Routes = [
           },
           {
             path: 'profile',
-            component: PACAccountProfileComponent,
+            component: XpAccountProfileComponent,
             data: {
               title: 'settings/account/profile',
               scopeContext: 'dual-scope'
@@ -66,7 +66,7 @@ export const routes: Routes = [
           },
           {
             path: 'password',
-            component: PACAccountPasswordComponent,
+            component: XpAccountPasswordComponent,
             data: {
               title: 'settings/account/password',
               scopeContext: 'dual-scope'

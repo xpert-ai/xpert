@@ -8,8 +8,14 @@ import { ClawXpertFacade } from './clawxpert.facade'
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-scheduled-tasks',
-  imports: [CommonModule, TranslateModule, ChatScheduledTaskSummaryCardComponent, ChatTasksComponent, ...ZardCardImports],
+  selector: 'xp-clawxpert-scheduled-tasks',
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ChatScheduledTaskSummaryCardComponent,
+    ChatTasksComponent,
+    ...ZardCardImports
+  ],
   template: `
     @if (!expanded()) {
       <xpert-scheduled-task-summary-card
@@ -24,13 +30,12 @@ import { ClawXpertFacade } from './clawxpert.facade'
           <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-5 py-4">
             <div class="text-lg font-semibold text-text-primary">
               {{
-                'PAC.Chat.ClawXpert.ScheduledTasksHeading'
+                'XP.Chat.ClawXpert.ScheduledTasksHeading'
                   | translate
                     : {
-                        Default: 'Scheduled tasks({{count}})',
-                        count: facade.scheduledTaskCount()
-                      }
-              }}
+                        Default: 'Scheduled tasks({{count
+
+              }})', count: facade.scheduledTaskCount() } }}
             </div>
 
             <button
@@ -38,13 +43,13 @@ import { ClawXpertFacade } from './clawxpert.facade'
               class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm text-text-secondary transition-colors hover:text-text-primary"
               (click)="collapse()"
             >
-              {{ 'PAC.Chat.ClawXpert.CollapseTasks' | translate: { Default: 'Collapse' } }}
+              {{ 'XP.Chat.ClawXpert.CollapseTasks' | translate: { Default: 'Collapse' } }}
               <i class="ri-arrow-up-s-line text-lg"></i>
             </button>
           </div>
 
           <div class="min-h-0 flex-1 overflow-hidden px-5 py-4">
-            <pac-chat-tasks
+            <xp-chat-tasks
               class="block h-full min-h-[32rem]"
               [embedded]="true"
               [xpertId]="facade.xpertId()"

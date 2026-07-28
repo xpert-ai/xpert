@@ -6,14 +6,14 @@
   $accent: map.get($config, accent);
   $background: map.get($config, background);
 
-  .ngm-appearance-desktop.z-tab-group {
+  .xp-appearance-desktop.z-tab-group {
     .z-tab-group__trigger {
       min-width: unset;
       &:hover {
         background-color: themeCompat.m2-get-color-from-palette($background, hover);
       }
 
-      .ngm-tab-button-right {
+      .xp-tab-button-right {
         margin-right: -20px;
       }
     }

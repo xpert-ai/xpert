@@ -5,9 +5,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective, uploadYamlFile } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
-import { AppearanceDirective, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpDynamicGridDirective, uploadYamlFile } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -41,9 +41,9 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    DynamicGridDirective,
-    NgmCommonModule,
-    AppearanceDirective,
+    XpDynamicGridDirective,
+    XpCommonModule,
+    XpAppearanceDirective,
     XpertCardComponent
   ],
   selector: 'xpert-workspace-xperts',
@@ -66,7 +66,7 @@ export class XpertWorkspaceXpertsComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly xpertService = inject(XpertAPIService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly confirmUnique = injectConfirmUnique()
 
   readonly isMobile = this.appService.isMobile
@@ -156,7 +156,7 @@ export class XpertWorkspaceXpertsComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: xpert.title,
-          information: this.#translate.instant('PAC.Xpert.DeleteAllDataXpert', {
+          information: this.#translate.instant('XP.Xpert.DeleteAllDataXpert', {
             value: xpert.name,
             Default: `Delete all data of xpert '${xpert.name}'?`
           })
@@ -174,7 +174,7 @@ export class XpertWorkspaceXpertsComponent {
       .subscribe({
         next: () => {
           this.#loading.set(false)
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
+          this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
           this.refresh()
         },
         error: (error) => {
@@ -204,7 +204,7 @@ export class XpertWorkspaceXpertsComponent {
           })
           .catch((error) => {
             this.#toastr.error(
-              this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+              this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
                 ': ' +
                 getErrorMessage(error)
             )
@@ -247,13 +247,13 @@ export class XpertWorkspaceXpertsComponent {
           this.#loading.set(false)
           this.router.navigate(['/xpert/x/', xpert.id])
           this.#toastr.success(
-            this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
+            this.#translate.instant('XP.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )
         },
         error: (err) => {
           this.#loading.set(false)
           this.#toastr.error(
-            this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+            this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
               ': ' +
               getErrorMessage(err)
           )

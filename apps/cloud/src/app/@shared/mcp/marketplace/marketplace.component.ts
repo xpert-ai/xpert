@@ -14,9 +14,9 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { CapitalizePipe, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -53,8 +53,8 @@ const InlineTemplateCount = 8
     TranslateModule,
 
     CapitalizePipe,
-    DynamicGridDirective,
-    NgmCommonModule
+    XpDynamicGridDirective,
+    XpCommonModule
   ],
   selector: 'mcp-marketplace',
   templateUrl: './marketplace.component.html',
@@ -74,7 +74,7 @@ export class MCPMarketplaceComponent {
   readonly #toastr = inject(ToastrService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly templateService = inject(XpertTemplateService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly queryCategory = injectQueryParams('category')
   readonly confirmUnique = injectConfirmUnique()
 

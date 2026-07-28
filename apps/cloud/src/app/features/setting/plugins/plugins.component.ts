@@ -16,11 +16,11 @@ import {
 } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { injectActiveScope, injectPluginAPI } from '@xpert-ai/cloud/state'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { debouncedSignal, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpHighlightDirective, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom } from 'rxjs'
@@ -71,11 +71,11 @@ type TPluginComponentSummaryItem = {
     CdkMenuModule,
     ZardButtonComponent,
     ...ZardTooltipImports,
-    NgmSelectComponent,
-    NgmI18nPipe,
-    NgmHighlightDirective,
+    XpSelectComponent,
+    XpI18nPipe,
+    XpHighlightDirective,
     IconComponent,
-    NgmSpinComponent,
+    XpSpinComponent,
     PluginsMarketplaceComponent
   ],
   selector: 'xp-settings-plugins',
@@ -354,28 +354,28 @@ export class PluginsComponent {
         key: 'skills',
         count: summary.skills,
         icon: 'ri-book-open-line',
-        label: 'PAC.Plugin.ComponentSkills',
+        label: 'XP.Plugin.ComponentSkills',
         defaultLabel: 'Skills'
       },
       {
         key: 'mcpServers',
         count: summary.mcpServers,
         icon: 'ri-server-line',
-        label: 'PAC.Plugin.ComponentMcpServers',
+        label: 'XP.Plugin.ComponentMcpServers',
         defaultLabel: 'MCP servers'
       },
       {
         key: 'apps',
         count: summary.apps,
         icon: 'ri-apps-2-line',
-        label: 'PAC.Plugin.ComponentApps',
+        label: 'XP.Plugin.ComponentApps',
         defaultLabel: 'Apps'
       },
       {
         key: 'hooks',
         count: summary.hooks,
         icon: 'ri-terminal-box-line',
-        label: 'PAC.Plugin.ComponentHooks',
+        label: 'XP.Plugin.ComponentHooks',
         defaultLabel: 'Hooks'
       }
     ]
@@ -476,8 +476,8 @@ export class PluginsComponent {
 
     this.confirmDelete(
       {
-        title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
-        information: this.i18nService.instant('PAC.Plugin.Uninstall_Message', {
+        title: this.i18nService.instant('XP.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
+        information: this.i18nService.instant('XP.Plugin.Uninstall_Message', {
           Default: `Are you sure you want to uninstall plugin "${plugin.meta?.displayName || plugin.name}"?`
         })
       },
@@ -549,7 +549,7 @@ export class PluginsComponent {
           return
         }
         this.refreshStrategyCaches()
-        this.#toastr.success('PAC.Plugin.RefreshPluginSuccess', {
+        this.#toastr.success('XP.Plugin.RefreshPluginSuccess', {
           Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
         })
       },

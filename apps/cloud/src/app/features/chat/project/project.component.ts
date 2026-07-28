@@ -16,7 +16,7 @@ import { XpertHomeService } from '../../../xpert'
 @Component({
   standalone: true,
   imports: [RouterModule, FormsModule, CdkMenuModule, TranslateModule],
-  selector: 'pac-chat-project',
+  selector: 'xp-chat-project',
   templateUrl: './project.component.html',
   styleUrl: 'project.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

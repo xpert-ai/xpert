@@ -25,7 +25,7 @@ import {
   buildJsonSchemaDefaults,
   jsonSchemaHasConfigFields
 } from '@cloud/app/@shared/workflow/trigger-config/trigger-config.util'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
@@ -43,7 +43,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     IconComponent,
     JSONSchemaFormComponent,
     KnowledgeChunkComponent

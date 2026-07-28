@@ -1,19 +1,15 @@
+import { Component, inject } from '@angular/core'
 
-import { Component, inject } from '@angular/core';
-
-import { Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { Router } from '@angular/router'
+import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-not-found',
+  selector: 'xp-not-found',
   styleUrls: ['./not-found.component.scss'],
   templateUrl: './not-found.component.html',
-  imports: [
-    TranslateModule,
-    ZardButtonComponent
-]
+  imports: [TranslateModule, ZardButtonComponent]
 })
 export class NotFoundComponent {
   readonly #router = inject(Router)

@@ -11,7 +11,7 @@ interface ItemData {
 
 @Component({
   standalone: false,
-  selector: 'pac-tenant-settings',
+  selector: 'xp-tenant-settings',
   templateUrl: 'settings.component.html',
   styles: [':host {display: block; width: 100%; padding: 1rem;}']
 })
@@ -101,13 +101,13 @@ export class SettingsComponent implements OnInit {
     this.dataSourceTypeAPI.sync().subscribe({
       next: () => {
         this.syncing.set(false)
-        this.#toastr.success('PAC.MESSAGE.DataSourceTypesSyncSuccess', {
+        this.#toastr.success('XP.MESSAGE.DataSourceTypesSyncSuccess', {
           Default: 'DataSource Types synchronized successfully'
         })
       },
       error: (error) => {
         this.syncing.set(false)
-        this.#toastr.error('PAC.MESSAGE.DataSourceTypesSyncError', error.message, {
+        this.#toastr.error('XP.MESSAGE.DataSourceTypesSyncError', error.message, {
           Default: 'DataSource Types synchronization failed'
         })
       }

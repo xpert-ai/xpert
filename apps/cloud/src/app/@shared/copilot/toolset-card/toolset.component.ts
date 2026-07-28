@@ -1,6 +1,6 @@
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertToolset } from '../../../@core/types'
 import { AvatarComponent } from '../../files'
@@ -13,11 +13,11 @@ import { SharedUiModule } from '../../ui.module'
     ReactiveFormsModule,
     SharedUiModule,
     TranslateModule,
-    ButtonGroupDirective,
+    XpButtonGroupDirective,
     DensityDirective,
     AvatarComponent
   ],
-  selector: 'pac-toolset-card',
+  selector: 'xp-toolset-card',
   templateUrl: 'toolset.component.html',
   styleUrls: ['toolset.component.scss']
 })

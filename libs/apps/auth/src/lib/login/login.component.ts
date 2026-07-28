@@ -15,9 +15,9 @@ import { CookieService } from 'ngx-cookie-service'
 import { firstValueFrom } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
 import { of } from 'rxjs'
-import { PAC_AUTH_OPTIONS } from '../auth.options'
+import { XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
-import { PacAuthService } from '../services/auth.service'
+import { XpAuthService } from '../services/auth.service'
 
 type SSOProviderDescriptor = {
   provider: string
@@ -34,7 +34,7 @@ type SSOProviderDiscoveryResponse = {
 
 @Component({
   standalone: false,
-  selector: 'pac-login',
+  selector: 'xp-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   providers: [],
@@ -85,9 +85,9 @@ export class UserLoginComponent implements OnDestroy {
 
   constructor(
     private readonly cookieService: CookieService,
-    @Inject(PAC_AUTH_OPTIONS) protected options = {},
+    @Inject(XP_AUTH_OPTIONS) protected options = {},
     fb: FormBuilder,
-    private authService: PacAuthService,
+    private authService: XpAuthService,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
@@ -107,12 +107,10 @@ export class UserLoginComponent implements OnDestroy {
     this.strategy = this.getConfigValue('forms.login.strategy')
     this.enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
 
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((params) => {
-        this.errors = this.resolveSsoErrors(params)
-        this.cdr.markForCheck()
-      })
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
+      this.errors = this.resolveSsoErrors(params)
+      this.cdr.markForCheck()
+    })
   }
 
   /**

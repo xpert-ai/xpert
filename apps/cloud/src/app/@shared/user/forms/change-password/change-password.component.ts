@@ -12,7 +12,7 @@ import { Store } from '../../../../@core'
 @Component({
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
-  selector: 'pac-user-change-password-form',
+  selector: 'xp-user-change-password-form',
   templateUrl: 'change-password.component.html',
   styleUrls: ['change-password.component.scss'],
   providers: [
@@ -57,7 +57,7 @@ export class UserChangePasswordFormComponent implements ControlValueAccessor {
   setDisabledState?(isDisabled: boolean): void {}
 
   ngOnInit() {
-    const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
+    const TRANSLATES = this.#translate.instant('XP.SHARED.USER_BASIC')
     this.fields = [
       {
         fieldGroupClassName: FORMLY_ROW,
@@ -95,7 +95,7 @@ export class UserChangePasswordFormComponent implements ControlValueAccessor {
                   return password === confirmPassword
                 },
                 message: (error, field: FormlyFieldConfig) =>
-                  this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
+                  this.#translate.instant('XP.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
             }
           }

@@ -2,7 +2,7 @@
 
 @mixin color($config-or-theme) {
   // 按钮组指令样式
-  .ngm-button-group {
+  .xp-button-group {
     background-color: #8080800f;
     padding: 5px;
     border-radius: 1.5rem;
@@ -26,8 +26,8 @@
 
 @mixin density($config-or-theme) {
   // 按钮组指令样式
-  .ngm-button-group {
-    &.ngm-density__cosy {
+  .xp-button-group {
+    &.xp-density__cosy {
       padding: 3px;
       [z-button]:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not(
           [data-z-size='icon-sm']
@@ -38,7 +38,7 @@
         border-radius: 1rem;
       }
     }
-    &.ngm-density__compact {
+    &.xp-density__compact {
       padding: 1px 3px;
       [z-button]:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not(
           [data-z-size='icon-sm']

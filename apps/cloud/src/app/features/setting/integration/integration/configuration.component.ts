@@ -5,8 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { IsDirty } from '@xpert-ai/headless-ui'
 import type { IIntegration, TIntegrationProvider } from '@xpert-ai/contracts'
-import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
@@ -14,7 +14,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { environment } from '@cloud/environments/environment'
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import omit from 'lodash-es/omit'
@@ -42,7 +42,7 @@ export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-integration-configuration',
+  selector: 'xp-settings-integration-configuration',
   templateUrl: './configuration.component.html',
   imports: [
     TranslateModule,
@@ -55,13 +55,13 @@ export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
     ZardInputDirective,
     ZardButtonComponent,
     ContentLoaderModule,
-    NgmSelectComponent,
-    NgmInputComponent,
-    NgmSpinComponent,
+    XpSelectComponent,
+    XpInputComponent,
+    XpSpinComponent,
     EmojiAvatarComponent,
     ParameterFormComponent,
     CardProComponent,
-    NgmI18nPipe,
+    XpI18nPipe,
     IconComponent
   ]
 })
@@ -183,7 +183,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
       }
 
       if (slackAuth === 'success') {
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Slack authorization succeeded.' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Slack authorization succeeded.' })
       } else {
         this.#toastr.error(slackError || 'Slack authorization failed')
       }
@@ -246,7 +246,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
         const savedIntegration = isIntegrationEntity(integration) ? integration : null
 
         this.formGroup.markAsPristine()
-        this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
+        this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
 
         if (this.autoValidateOnLoad()) {
           if (!this.paramId() && savedIntegration?.id) {
@@ -306,7 +306,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
         this.loading.set(false)
 
         if (showToast) {
-          this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })
+          this.#toastr.success('XP.Messages.TestSuccessfully', { Default: 'Test successfully!' })
         }
       },
       error: (error) => {

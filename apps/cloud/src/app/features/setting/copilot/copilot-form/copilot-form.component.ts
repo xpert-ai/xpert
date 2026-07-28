@@ -8,7 +8,7 @@ import { ZardButtonComponent, ZardSliderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-copilot-form',
+  selector: 'xp-copilot-form',
   templateUrl: './copilot-form.component.html',
   styleUrls: ['./copilot-form.component.scss'],
   imports: [

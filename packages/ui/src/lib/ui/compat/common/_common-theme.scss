@@ -18,8 +18,8 @@
   @include table.color($config-or-theme);
   @include tree-select.color($config-or-theme);
 
-  .ngm-display-behaviour {
-    .ngm-display-behaviour__highlight {
+  .xp-display-behaviour {
+    .xp-display-behaviour__highlight {
       color: map.get($accent, 500);
     }
   }

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { ZardDialogModule, ZardDialogService, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -13,7 +13,7 @@ import { ZardDialogModule, ZardDialogService, ZardSwitchComponent, ZardTooltipIm
     TranslateModule,
     ZardDialogModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardSwitchComponent
   ],
   selector: 'xpert-tool-builtin-parameters',

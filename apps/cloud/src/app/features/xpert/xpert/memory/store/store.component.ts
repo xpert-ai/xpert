@@ -17,12 +17,12 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import {
   CdkConfirmDeleteComponent,
-  NgmSearchComponent,
-  NgmSpinComponent,
-  NgmTableComponent,
+  XpSearchComponent,
+  XpSpinComponent,
+  XpTableComponent,
   TableColumn
 } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
@@ -56,10 +56,10 @@ import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.compo
     A11yModule,
     CdkMenuModule,
     NgxJsonViewerModule,
-    NgmSelectComponent,
-    NgmTableComponent,
-    NgmSpinComponent,
-    NgmSearchComponent,
+    XpSelectComponent,
+    XpTableComponent,
+    XpSpinComponent,
+    XpSearchComponent,
     UserProfileInlineComponent,
     DateRelativePipe
   ],
@@ -73,7 +73,7 @@ export class XpertMemoryStoreComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
   readonly #translate = inject(TranslateService)
-  readonly colI18n = injectTranslate('PAC.Xpert.MemoryCols')
+  readonly colI18n = injectTranslate('XP.Xpert.MemoryCols')
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly storeService = inject(CopilotStoreService)
@@ -132,15 +132,15 @@ export class XpertMemoryStoreComponent {
   readonly memoryTypesOptions = [
     {
       value: null,
-      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.All', { Default: 'All' })
+      label: this.#translate.instant('XP.Xpert.LongTermMemoryTypeEnum.All', { Default: 'All' })
     },
     {
       value: LongTermMemoryTypeEnum.QA,
-      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.QuestionAnswer', { Default: 'Q&A' })
+      label: this.#translate.instant('XP.Xpert.LongTermMemoryTypeEnum.QuestionAnswer', { Default: 'Q&A' })
     },
     {
       value: LongTermMemoryTypeEnum.PROFILE,
-      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.UserProfile', { Default: 'Profile' })
+      label: this.#translate.instant('XP.Xpert.LongTermMemoryTypeEnum.UserProfile', { Default: 'Profile' })
     }
   ]
 
@@ -226,7 +226,7 @@ export class XpertMemoryStoreComponent {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          information: this.#translate.instant('PAC.Xpert.ClearAllMemoryOfXpert', {
+          information: this.#translate.instant('XP.Xpert.ClearAllMemoryOfXpert', {
             Default: 'Clear all memories related to this expert'
           })
         }
@@ -248,11 +248,11 @@ export class XpertMemoryStoreComponent {
         data: {
           value: id,
           information:
-            this.#translate.instant('PAC.Xpert.DeleteTheMemory', { Default: 'Delete the memory' }) +
+            this.#translate.instant('XP.Xpert.DeleteTheMemory', { Default: 'Delete the memory' }) +
             `:\n` +
             JSON.stringify(value, null, 2) +
             `\n` +
-            this.#translate.instant('PAC.Xpert.GainMemoryAgain', { Default: 'Can be retriggered to gain memory.' })
+            this.#translate.instant('XP.Xpert.GainMemoryAgain', { Default: 'Can be retriggered to gain memory.' })
         }
       })
       .closed.pipe(switchMap((confirm) => (confirm ? this._delete(id) : EMPTY)))
@@ -313,7 +313,7 @@ export class XpertMemoryStoreComponent {
 
   copyValue(id: string, value: any) {
     this.#clipboard.copy(JSON.stringify(value))
-    this.#toastr.success('PAC.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+    this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
   }
 
   bulkImport() {
@@ -327,7 +327,7 @@ export class XpertMemoryStoreComponent {
       .closed.subscribe({
         next: (upload) => {
           if (upload) {
-            this.#toastr.success('PAC.Messages.UploadSuccessful', { Default: 'Upload successful' })
+            this.#toastr.success('XP.Messages.UploadSuccessful', { Default: 'Upload successful' })
             this.#refresh$.next()
           }
         }

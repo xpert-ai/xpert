@@ -6,13 +6,13 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@xpert-ai/cloud/state'
 import { AiFeatureEnum, IUser, UserType } from '@xpert-ai/contracts'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { of } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../../../../@core'
-import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
+import { XpUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
 import { ZardBadgeComponent, ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { UserMembershipComponent } from '../user-membership/user-membership.component'
@@ -28,7 +28,7 @@ const USER_DETAIL_TABS: Array<{ id: UserDetailTab; regularOnly?: boolean }> = [
 
 @Component({
   standalone: true,
-  selector: 'pac-edit-user',
+  selector: 'xp-edit-user',
   templateUrl: './edit-user.component.html',
   styleUrls: ['./edit-user.component.scss'],
   animations: [routeAnimations],
@@ -38,14 +38,14 @@ const USER_DETAIL_TABS: Array<{ id: UserDetailTab; regularOnly?: boolean }> = [
     ZardBadgeComponent,
     ZardButtonComponent,
     ...ZardTabsImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,
-    PACUserOrganizationsComponent,
+    XpUserOrganizationsComponent,
     UserMembershipComponent
   ]
 })
-export class PACEditUserComponent {
+export class XpEditUserComponent {
   RolesEnum = RolesEnum
   readonly userLabel = userLabel
 
@@ -120,7 +120,7 @@ export class PACEditUserComponent {
   }
 
   userTypeLabelKey(type?: UserType) {
-    return type === UserType.COMMUNICATION ? 'PAC.Users.UserTypes.Technical' : 'PAC.Users.UserTypes.Regular'
+    return type === UserType.COMMUNICATION ? 'XP.Users.UserTypes.Technical' : 'XP.Users.UserTypes.Regular'
   }
 
   userTypeDefaultLabel(type?: UserType) {
@@ -128,7 +128,7 @@ export class PACEditUserComponent {
   }
 
   userStatusLabelKey(user?: IUser | null) {
-    return user?.deletedAt ? 'PAC.KEY_WORDS.Disabled' : 'PAC.KEY_WORDS.Active'
+    return user?.deletedAt ? 'XP.KEY_WORDS.Disabled' : 'XP.KEY_WORDS.Active'
   }
 
   userStatusDefaultLabel(user?: IUser | null) {
@@ -176,7 +176,7 @@ export class PACEditUserComponent {
     this.confirmDelete(
       {
         value: userLabel(this.user()),
-        information: this.#translate.instant('PAC.USERS_PAGE.DeleteUserDesc', {
+        information: this.#translate.instant('XP.USERS_PAGE.DeleteUserDesc', {
           Default: 'Delete this user and its associated data'
         })
       },
@@ -189,7 +189,7 @@ export class PACEditUserComponent {
     ).subscribe({
       next: () => {
         this.loading.set(false)
-        this.toastr.success('PAC.USERS_PAGE.UserDeletedSuccessfully', { Default: 'User deleted successfully' })
+        this.toastr.success('XP.USERS_PAGE.UserDeletedSuccessfully', { Default: 'User deleted successfully' })
         this.router.navigate(['..'], { relativeTo: this.route })
       },
       error: (err) => {
@@ -205,7 +205,7 @@ export class PACEditUserComponent {
       try {
         await this.userService.update(this.user().id, { hash: this.newPassword().password })
         this.loading.set(false)
-        this.toastr.success('PAC.USERS_PAGE.PasswordChangedSuccessfully', {
+        this.toastr.success('XP.USERS_PAGE.PasswordChangedSuccessfully', {
           Default: 'Password changed successfully'
         })
         this.newPassword.set({ password: '', confirmPassword: '' })

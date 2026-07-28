@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { RouterModule } from '@angular/router'
 import { KnowledgeChunkComponent, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -35,7 +35,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmCommonModule,
+    XpCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
     KnowledgeRetrievalSettingsComponent

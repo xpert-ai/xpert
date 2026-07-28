@@ -2,29 +2,29 @@
 
 @reference "../../../tailwind-workspace-reference.css";
 
-.ngm-select-element {
+.xp-select-element {
   @apply relative inline-block w-full rounded-md;
 }
 
-.ngm-select-label {
+.xp-select-label {
   @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
 }
 
-.ngm-density__cosy {
-  .ngm-select-element [role='combobox'] {
+.xp-density__cosy {
+  .xp-select-element [role='combobox'] {
     @apply min-h-8 rounded-md px-2 py-1 text-sm;
   }
 }
 
-.ngm-density__compact {
-  .ngm-select-label {
+.xp-density__compact {
+  .xp-select-label {
     @apply text-sm;
   }
-  .ngm-select-element [role='combobox'] {
+  .xp-select-element [role='combobox'] {
     @apply min-h-8 rounded-md px-2 py-1 text-xs;
   }
 
-  .ngm-input-element__clear {
+  .xp-input-element__clear {
     @apply w-5 h-5;
     .z-icon,
     i {

@@ -92,7 +92,7 @@ export class ChatWebsocketService {
         if (!role) {
           role = {
             ...COMMON_COPILOT_ROLE,
-            description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {
+            description: this.#translate.instant('XP.Chat.CommonRoleDescription', {
               Default:
                 'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'
             })

@@ -5,7 +5,7 @@ import { FeatureEnum, PermissionsEnum, Store, routeAnimations } from '../../../@
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-settings-tenant',
+  selector: 'xp-settings-tenant',
   templateUrl: 'tenant.component.html',
   animations: [routeAnimations],
   styles: [
@@ -20,7 +20,7 @@ import { FeatureEnum, PermissionsEnum, Store, routeAnimations } from '../../../@
     `
   ]
 })
-export class PACTenantComponent {
+export class XpTenantComponent {
   private readonly store = inject(Store)
   readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
     initialValue: this.store.featureContextHydrated

@@ -25,7 +25,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { attrModel, linkedModel, TSelectOption } from '@xpert-ai/headless-ui'
-import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
+import { XpSelectPanelComponent } from '@cloud/app/@shared/common'
 import { CapitalizePipe } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -41,7 +41,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     CapitalizePipe,
-    NgmSelectPanelComponent,
+    XpSelectPanelComponent,
     StateVariableSelectComponent,
     KnowledgeRecallParamsComponent,
     XpertKnowledgeCaseFormComponent
@@ -127,15 +127,15 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
   readonly filterModeOptions: TSelectOption[] = [
     {
       value: 'disabled',
-      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled', { Default: 'Disabled' }),
-      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled_Description', {
+      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_disabled', { Default: 'Disabled' }),
+      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_disabled_Description', {
         Default: 'No metadata filtering applied.'
       })
     },
     {
       value: 'manual',
-      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual', { Default: 'Manual' }),
-      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual_Description', {
+      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_manual', { Default: 'Manual' }),
+      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_manual_Description', {
         Default: 'Manually configure metadata filtering options by user.'
       })
     }

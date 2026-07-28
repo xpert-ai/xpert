@@ -3,7 +3,7 @@
 @use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as theming;
 @use 'breadcrumb-variables';
 
-@mixin _ngm-breadcrumb-height($height) {
+@mixin _xp-breadcrumb-height($height) {
   $counter: calc(#{$height} / 2);
 
   .breadcrumb__step {
@@ -51,7 +51,7 @@
   ); // map-get(map-get($config, foreground), text);
   $step-divider-color: map.get(map.get($config, accent), 500);
 
-  .ngm-breadcrumb-bar {
+  .xp-breadcrumb-bar {
     &:not(.disabled) {
       .breadcrumb__step {
         cursor: pointer;
@@ -121,14 +121,14 @@
 }
 
 @mixin density($config-or-theme) {
-  .ngm-breadcrumb-bar {
-    @include _ngm-breadcrumb-height(36px);
+  .xp-breadcrumb-bar {
+    @include _xp-breadcrumb-height(36px);
   }
-  .ngm-breadcrumb-bar.ngm-density__cosy {
-    @include _ngm-breadcrumb-height(30px);
+  .xp-breadcrumb-bar.xp-density__cosy {
+    @include _xp-breadcrumb-height(30px);
   }
-  .ngm-breadcrumb-bar.ngm-density__compact {
-    @include _ngm-breadcrumb-height(24px);
+  .xp-breadcrumb-bar.xp-density__compact {
+    @include _xp-breadcrumb-height(24px);
   }
 }
 

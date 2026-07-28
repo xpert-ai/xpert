@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { PACFormlySelectComponent } from './select.type'
+import { XpFormlySelectComponent } from './select.type'
 
 @NgModule({
   declarations: [],
@@ -12,23 +12,23 @@ import { PACFormlySelectComponent } from './select.type'
       types: [
         {
           name: 'select-inline',
-          component: PACFormlySelectComponent
+          component: XpFormlySelectComponent
         },
         {
           name: 'select',
-          extends: 'select-inline',
+          extends: 'select-inline'
         },
         {
-          name: 'ngm-select',
+          name: 'xp-select',
           extends: 'select',
           defaultOptions: {
             props: {
               virtualScroll: true
             }
           }
-        },
+        }
       ]
     })
   ]
 })
-export class PACFormlySelectModule {}
+export class XpFormlySelectModule {}

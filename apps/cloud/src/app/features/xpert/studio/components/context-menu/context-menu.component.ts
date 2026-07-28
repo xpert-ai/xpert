@@ -5,7 +5,7 @@ import { ChangeDetectorRef, Component, computed, inject, model, signal, Template
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
-import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { debouncedSignal, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   IWFNClassifier,
@@ -96,7 +96,7 @@ import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.c
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { FormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { groupAgentMiddlewares } from './middleware-groups'
 
@@ -111,13 +111,13 @@ import { groupAgentMiddlewares } from './middleware-groups'
     OverlayModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
+    XpI18nPipe,
     IconComponent,
     XpertStudioKnowledgeMenuComponent,
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
     XpertWorkflowIconComponent,
-    NgmCommonModule
+    XpCommonModule
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.css'
@@ -134,7 +134,7 @@ export class XpertStudioContextMenuComponent {
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(I18nService)
   readonly #toastr = inject(ToastrService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   @ViewChild(TemplateRef, { static: true })
   public template!: TemplateRef<CdkMenu>
@@ -294,7 +294,7 @@ export class XpertStudioContextMenuComponent {
       {
         key,
         title:
-          this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' }) + ' ' + (length ? ` ${length + 1}` : '')
+          this.#translate.instant('XP.Workflow.Agent', { Default: 'Agent' }) + ' ' + (length ? ` ${length + 1}` : '')
       },
       byNode?.key
     )
@@ -304,7 +304,7 @@ export class XpertStudioContextMenuComponent {
   public addCollaborator(xpert: IXpert): void {
     if (this.isXpertExists(xpert)) {
       this.#toastr.warning(
-        this.#translate.instant('PAC.Xpert.DuplicateExternalExpert', {
+        this.#translate.instant('XP.Xpert.DuplicateExternalExpert', {
           Default: 'Cannot create duplicate external expert'
         })
       )
@@ -346,9 +346,7 @@ export class XpertStudioContextMenuComponent {
       if (error) {
         console.error(error)
       }
-      this.#toastr.error(
-        this.#translate.instant('PAC.Xpert.UnableParseContent', { Default: 'Unable to parse content' })
-      )
+      this.#toastr.error(this.#translate.instant('XP.Xpert.UnableParseContent', { Default: 'Unable to parse content' }))
     }
   }
 
@@ -359,7 +357,7 @@ export class XpertStudioContextMenuComponent {
       {
         type: WorkflowNodeTypeEnum.NOTE,
         key,
-        title: await this.#translate.instant('PAC.Workflow.Note', { Default: 'Note' })
+        title: await this.#translate.instant('XP.Workflow.Note', { Default: 'Note' })
       } as IWorkflowNode,
       fromNode
     )
@@ -376,7 +374,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.IF_ELSE,
         key,
         title:
-          (await this.#translate.instant('PAC.Workflow.Router', { Default: 'Router' })) +
+          (await this.#translate.instant('XP.Workflow.Router', { Default: 'Router' })) +
           (length ? ` ${length + 1}` : ''),
         cases: [
           {
@@ -407,7 +405,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.ITERATOR,
         key: iteratorKey,
         title:
-          this.#translate.instant('PAC.Workflow.Iterator', { Default: 'Iterator' }) + (length ? ` ${length + 1}` : '')
+          this.#translate.instant('XP.Workflow.Iterator', { Default: 'Iterator' }) + (length ? ` ${length + 1}` : '')
       }
     })
     if (fromNode) {
@@ -440,7 +438,7 @@ export class XpertStudioContextMenuComponent {
       {
         type: WorkflowNodeTypeEnum.ANSWER,
         key,
-        title: this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
+        title: this.#translate.instant('XP.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
       },
       fromNode
     )
@@ -458,7 +456,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.CLASSIFIER,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' }) +
+          this.#translate.instant('XP.Workflow.QuestionClassifier', { Default: 'Question Classifier' }) +
           ` ${length + 1}`,
         inputVariables: ['human.input'],
         classes: [
@@ -486,7 +484,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.KNOWLEDGE,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) +
+          this.#translate.instant('XP.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) +
           (length ? ` ${length + 1}` : ''),
         queryVariable: `input`,
         knowledgebases: []
@@ -505,7 +503,7 @@ export class XpertStudioContextMenuComponent {
       {
         type: WorkflowNodeTypeEnum.CODE,
         key,
-        title: this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
+        title: this.#translate.instant('XP.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
         language: 'javascript',
         code: `return {"result": arg1 + arg2};`,
         inputs: [
@@ -540,7 +538,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.TEMPLATE,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }) +
+          this.#translate.instant('XP.Workflow.TemplateTransform', { Default: 'Template Transform' }) +
           (length ? ` ${length + 1}` : ''),
         code: `{{arg1}}`,
         inputParams: [
@@ -566,7 +564,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.JSONStringify', { Default: 'JSON Stringify' }) +
+          this.#translate.instant('XP.Workflow.JSONStringify', { Default: 'JSON Stringify' }) +
           (length ? ` ${length + 1}` : '')
       } as IWorkflowNode,
       fromNode
@@ -585,8 +583,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.JSON_PARSE,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) +
-          (length ? ` ${length + 1}` : '')
+          this.#translate.instant('XP.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : '')
       } as IWorkflowNode,
       fromNode
     )
@@ -603,7 +600,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.ASSIGNER,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.VariableAssigner', { Default: 'Variable Assigner' }) + ` ${length + 1}`,
+          this.#translate.instant('XP.Workflow.VariableAssigner', { Default: 'Variable Assigner' }) + ` ${length + 1}`,
         assigners: [
           {
             value: '',
@@ -628,7 +625,7 @@ export class XpertStudioContextMenuComponent {
         key,
         method: 'get',
         title:
-          (await this.#translate.instant('PAC.Workflow.HTTPRequest', { Default: 'HTTP Request' })) +
+          (await this.#translate.instant('XP.Workflow.HTTPRequest', { Default: 'HTTP Request' })) +
           (length ? ` ${length + 1}` : '')
       } as IWFNHttp,
       fromNode
@@ -646,7 +643,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.TOOL,
         key,
         title:
-          (await this.#translate.instant('PAC.Workflow.Tool', { Default: 'Tool' })) + (length ? ` ${length + 1}` : '')
+          (await this.#translate.instant('XP.Workflow.Tool', { Default: 'Tool' })) + (length ? ` ${length + 1}` : '')
       } as IWFNTool,
       fromNode
     )
@@ -663,7 +660,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.SUBFLOW,
         key,
         title:
-          (await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' })) +
+          (await this.#translate.instant('XP.Workflow.Subflow', { Default: 'Subflow' })) +
           (length ? ` ${length + 1}` : '')
       } as IWFNSubflow,
       fromNode
@@ -682,7 +679,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.LIST_OPERATOR,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.ListOperator', { Default: 'List Operator' }) +
+          this.#translate.instant('XP.Workflow.ListOperator', { Default: 'List Operator' }) +
           (length ? ` ${length + 1}` : '')
       } as IWFNListOperator,
       fromNode
@@ -701,7 +698,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.VariableAggregator', { Default: 'Variable Aggregator' }) +
+          this.#translate.instant('XP.Workflow.VariableAggregator', { Default: 'Variable Aggregator' }) +
           (length ? ` ${length + 1}` : '')
       } as IWFNVariableAggregator,
       fromNode
@@ -718,7 +715,7 @@ export class XpertStudioContextMenuComponent {
       {
         type: WorkflowNodeTypeEnum.AGENT_WORKFLOW,
         key,
-        title: this.#translate.instant('PAC.Workflow.AgentWorkflow') + (length ? ` ${length + 1}` : '')
+        title: this.#translate.instant('XP.Workflow.AgentWorkflow') + (length ? ` ${length + 1}` : '')
       } as IWFNAgentWorkflow,
       fromNode
     )
@@ -735,7 +732,7 @@ export class XpertStudioContextMenuComponent {
         type: WorkflowNodeTypeEnum.TASK,
         key,
         title:
-          this.#translate.instant('PAC.Workflow.TaskHandover', { Default: 'Task Handover' }) +
+          this.#translate.instant('XP.Workflow.TaskHandover', { Default: 'Task Handover' }) +
           (length ? ` ${length + 1}` : ''),
         descriptionPrefix: TASK_DESCRIPTION_PREFIX,
         descriptionSuffix: TASK_DESCRIPTION_SUFFIX
@@ -757,7 +754,7 @@ export class XpertStudioContextMenuComponent {
       )
     if (hasTrigger) {
       this.#toastr.danger(
-        this.#translate.instant('PAC.Workflow.OnlyOneTrigger', { Default: 'An expert can only have one chat trigger.' })
+        this.#translate.instant('XP.Workflow.OnlyOneTrigger', { Default: 'An expert can only have one chat trigger.' })
       )
       return
     }
@@ -766,7 +763,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TRIGGER,
       key,
-      title: this.#translate.instant('PAC.Workflow.Trigger', { Default: 'Trigger' }),
+      title: this.#translate.instant('XP.Workflow.Trigger', { Default: 'Trigger' }),
       from: typeof from === 'string' ? from : from.name
     } as IWFNTrigger)
     this.reconnectAfterInsert(key)
@@ -800,7 +797,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SOURCE,
       key,
-      title: this.#translate.instant('PAC.Xpert.Source', { Default: 'Source' }) + (length ? ` ${length + 1}` : ''),
+      title: this.#translate.instant('XP.Xpert.Source', { Default: 'Source' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name
     } as IWFNSource)
     this.reconnectAfterInsert(key)
@@ -814,8 +811,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.PROCESSOR,
       key,
-      title:
-        this.#translate.instant('PAC.Xpert.Processor', { Default: 'Processor' }) + (length ? ` ${length + 1}` : ''),
+      title: this.#translate.instant('XP.Xpert.Processor', { Default: 'Processor' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name
     } as IWFNProcessor)
     this.reconnectAfterInsert(key)
@@ -828,7 +824,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CHUNKER,
       key,
-      title: this.#translate.instant('PAC.Xpert.Chunker', { Default: 'Chunker' }) + (length ? ` ${length + 1}` : ''),
+      title: this.#translate.instant('XP.Xpert.Chunker', { Default: 'Chunker' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name
     } as IWFNChunker)
     this.reconnectAfterInsert(key)
@@ -843,7 +839,7 @@ export class XpertStudioContextMenuComponent {
       type: WorkflowNodeTypeEnum.UNDERSTANDING,
       key,
       title:
-        this.#translate.instant('PAC.Pipeline.Understanding', { Default: 'Understanding' }) +
+        this.#translate.instant('XP.Pipeline.Understanding', { Default: 'Understanding' }) +
         (length ? ` ${length + 1}` : ''),
       provider: provider.name
     } as IWFNUnderstanding)
@@ -856,23 +852,23 @@ export class XpertStudioContextMenuComponent {
     switch (type) {
       case WorkflowNodeTypeEnum.DB_INSERT:
         key = genXpertDBInsertKey()
-        title = this.#translate.instant('PAC.Workflow.NewData', { Default: 'New Data' })
+        title = this.#translate.instant('XP.Workflow.NewData', { Default: 'New Data' })
         break
       case WorkflowNodeTypeEnum.DB_UPDATE:
         key = genXpertDBUpdateKey()
-        title = this.#translate.instant('PAC.Workflow.UpdateData', { Default: 'Update Data' })
+        title = this.#translate.instant('XP.Workflow.UpdateData', { Default: 'Update Data' })
         break
       case WorkflowNodeTypeEnum.DB_QUERY:
         key = genXpertDBQueryKey()
-        title = this.#translate.instant('PAC.Workflow.QueryData', { Default: 'Query Data' })
+        title = this.#translate.instant('XP.Workflow.QueryData', { Default: 'Query Data' })
         break
       case WorkflowNodeTypeEnum.DB_DELETE:
         key = genXpertDBDeleteKey()
-        title = this.#translate.instant('PAC.Workflow.DeleteData', { Default: 'Delete Data' })
+        title = this.#translate.instant('XP.Workflow.DeleteData', { Default: 'Delete Data' })
         break
       case WorkflowNodeTypeEnum.DB_SQL:
         key = genXpertDBSqlKey()
-        title = this.#translate.instant('PAC.Workflow.SQLCustom', { Default: 'SQL Custom' })
+        title = this.#translate.instant('XP.Workflow.SQLCustom', { Default: 'SQL Custom' })
         break
     }
     this.apiService.addBlock(this.root.contextMenuPosition, {
@@ -891,7 +887,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SKILL,
       key,
-      title: this.#translate.instant('PAC.Workflow.Skill', { Default: 'Skill' }) + (length ? ` ${length + 1}` : '')
+      title: this.#translate.instant('XP.Workflow.Skill', { Default: 'Skill' }) + (length ? ` ${length + 1}` : '')
     } as IWFNSkill)
     this.reconnectAfterInsert(key)
   }
@@ -906,7 +902,7 @@ export class XpertStudioContextMenuComponent {
       type: WorkflowNodeTypeEnum.MIDDLEWARE,
       key,
       title:
-        this.#translate.instant('PAC.KEY_WORDS.Middleware', { Default: 'Middleware' }) +
+        this.#translate.instant('XP.KEY_WORDS.Middleware', { Default: 'Middleware' }) +
         (length ? ` ${length + 1}` : ''),
       provider,
       required: true

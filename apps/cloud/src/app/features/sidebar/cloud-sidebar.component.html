@@ -1,20 +1,16 @@
 <nav class="cloud-sidebar" [class.is-collapsed]="collapsed()">
   <header class="cloud-sidebar__header">
-    <pac-cloud-sidebar-identity
+    <xp-cloud-sidebar-identity
       [collapsed]="collapsed()"
       (collapsedChange)="collapsedChange.emit($event)"
       (brandClick)="brandClick.emit()"
     />
   </header>
 
-  <pac-cloud-sidebar-assistants
-    class="cloud-sidebar__current-assistant"
-    mode="current-card"
-    [collapsed]="collapsed()"
-  />
+  <xp-cloud-sidebar-assistants class="cloud-sidebar__current-assistant" mode="current-card" [collapsed]="collapsed()" />
 
   <div class="cloud-sidebar__scroll">
-    <pac-cloud-sidebar-menu
+    <xp-cloud-sidebar-menu
       [collapsed]="collapsed()"
       [isMobile]="isMobile()"
       [menus]="menus()"
@@ -24,7 +20,7 @@
 
   <footer class="cloud-sidebar__footer">
     @if (user(); as currentUser) {
-      <pac-header-user
+      <xp-header-user
         class="cloud-sidebar__user"
         [user]="currentUser"
         [compact]="collapsed()"

@@ -22,14 +22,14 @@ import { UserMutationComponent, UserUploadComponent } from '../../../@shared/use
 
 @Component({
   standalone: true,
-  selector: 'pac-users',
+  selector: 'xp-users',
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SharedModule, SharedUiModule]
 })
-export class PACUsersComponent extends TranslationBaseComponent {
+export class XpUsersComponent extends TranslationBaseComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
   userLabel = userLabel
 

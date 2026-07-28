@@ -3,7 +3,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IUser, injectCopilotServer, KnowledgebaseService, XpertAPIService } from 'apps/cloud/src/app/@core'
 import {
@@ -11,14 +11,14 @@ import {
   StatisticsPieChartComponent,
   StatisticsTokenUsageComponent
 } from 'apps/cloud/src/app/@shared/charts'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map } from 'rxjs'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot-overview',
+  selector: 'xp-settings-copilot-overview',
   templateUrl: './overview.component.html',
   styleUrls: ['./overview.component.scss'],
   imports: [
@@ -27,8 +27,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmSelectComponent,
+    XpI18nPipe,
+    XpSelectComponent,
     StatisticsChartComponent,
     StatisticsPieChartComponent,
     StatisticsTokenUsageComponent

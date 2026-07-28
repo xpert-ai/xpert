@@ -4,14 +4,14 @@ import { ChangeDetectionStrategy, Component, computed, input, numberAttribute } 
   standalone: true,
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-progress-spinner',
+  selector: 'xp-progress-spinner',
   templateUrl: './spinner.component.html',
   styleUrls: ['./spinner.component.scss'],
   host: {
-    class: 'ngm-progress-spinner'
+    class: 'xp-progress-spinner'
   }
 })
-export class NgmProgressSpinnerComponent {
+export class XpProgressSpinnerComponent {
   readonly value = input<number, string | number>(0, {
     transform: numberAttribute
   })

@@ -20,7 +20,7 @@ import { EchartsDirective } from '../echarts.directive'
     ...ZardTooltipImports,
     EchartsDirective
   ],
-  selector: 'pac-statistics-token-usage',
+  selector: 'xp-statistics-token-usage',
   templateUrl: 'token-usage.component.html',
   styleUrl: 'token-usage.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

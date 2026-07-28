@@ -37,7 +37,7 @@ import {
   FSelectionChangeEvent,
   FZoomDirective
 } from '@foblex/flow'
-import { DisplayBehaviour, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour, XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
@@ -110,7 +110,7 @@ import { calculateHash } from '../../../@shared/utils'
     NgxFloatUiModule,
     ...ZardTooltipImports,
 
-    NgmCommonModule,
+    XpCommonModule,
 
     EmojiAvatarComponent,
     XpertStudioFeaturesComponent,
@@ -128,7 +128,7 @@ import { calculateHash } from '../../../@shared/utils'
     XpertStudioConnectionMenuComponent,
     XpertStudioConnectionCenterComponent
   ],
-  selector: 'pac-xpert-studio',
+  selector: 'xp-xpert-studio',
   templateUrl: './studio.component.html',
   styleUrl: 'studio.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -528,7 +528,7 @@ export class XpertStudioComponent {
 
   copyNode(node: TXpertTeamNode) {
     this.#clipboard.copy(JSON.stringify(node))
-    this.#toastr.success('PAC.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+    this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
   }
 
   duplicateNode(node: TXpertTeamNode) {

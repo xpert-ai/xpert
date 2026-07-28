@@ -3,42 +3,48 @@ import { Injector, ModuleWithProviders, NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardInputDirective, ZardTabComponent, ZardTabGroupComponent } from '@xpert-ai/headless-ui'
-import { PacAuthRoutingModule } from './auth-routing.module'
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardInputDirective,
+  ZardTabComponent,
+  ZardTabGroupComponent
+} from '@xpert-ai/headless-ui'
+import { XpAuthRoutingModule } from './auth-routing.module'
 import {
   defaultAuthOptions,
-  PacAuthOptions,
-  PacAuthStrategyClass,
-  PAC_AUTH_INTERCEPTOR_HEADER,
-  PAC_AUTH_OPTIONS,
-  PAC_AUTH_STRATEGIES,
-  PAC_AUTH_TOKENS,
-  PAC_AUTH_TOKEN_INTERCEPTOR_FILTER,
-  PAC_AUTH_USER_OPTIONS
+  XpAuthOptions,
+  XpAuthStrategyClass,
+  XP_AUTH_INTERCEPTOR_HEADER,
+  XP_AUTH_OPTIONS,
+  XP_AUTH_STRATEGIES,
+  XP_AUTH_TOKENS,
+  XP_AUTH_TOKEN_INTERCEPTOR_FILTER,
+  XP_AUTH_USER_OPTIONS
 } from './auth.options'
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component'
 import { NoAuthGuard } from './guards/no-auth.guard'
 import { deepExtend } from './helpers'
 import { UserLoginComponent } from './login/login.component'
-import { PacLogoutComponent } from './logout/logout.component'
+import { XpLogoutComponent } from './logout/logout.component'
 import { UserRegisterResultComponent } from './register-result/register-result.component'
 import { UserRegisterComponent } from './register/register.component'
 import { ResetPasswordComponent } from './reset-password/reset-password.component'
 import { SsoBindComponent } from './sso-bind/sso-bind.component'
 import { CurrentUserSsoConfirmComponent } from './current-user-sso-confirm/current-user-sso-confirm.component'
-import { PacAuthService } from './services/auth.service'
+import { XpAuthService } from './services/auth.service'
 import { NbAuthSimpleToken } from './services/token/token'
-import { PacAuthTokenParceler, PAC_AUTH_FALLBACK_TOKEN } from './services/token/token-parceler'
-import { PacTokenLocalStorage, PacTokenStorage } from './services/token/token-storage'
-import { PacTokenService } from './services/token/token.service'
-import { PacAuthStrategy } from './strategies/auth-strategy'
-import { PacAuthStrategyOptions } from './strategies/auth-strategy-options'
+import { XpAuthTokenParceler, XP_AUTH_FALLBACK_TOKEN } from './services/token/token-parceler'
+import { XpTokenLocalStorage, XpTokenStorage } from './services/token/token-storage'
+import { XpAuthTokenService } from './services/token/token.service'
+import { XpAuthStrategy } from './strategies/auth-strategy'
+import { XpAuthStrategyOptions } from './strategies/auth-strategy-options'
 import { VarifyEmailComponent } from './verify-email/verify-email.component'
 
-export function nbStrategiesFactory(options: PacAuthOptions, injector: Injector): PacAuthStrategy[] {
+export function nbStrategiesFactory(options: XpAuthOptions, injector: Injector): XpAuthStrategy[] {
   const strategies = []
-  options.strategies.forEach(([strategyClass, strategyOptions]: [PacAuthStrategyClass, PacAuthStrategyOptions]) => {
-    const strategy: PacAuthStrategy = injector.get(strategyClass)
+  options.strategies.forEach(([strategyClass, strategyOptions]: [XpAuthStrategyClass, XpAuthStrategyOptions]) => {
+    const strategy: XpAuthStrategy = injector.get(strategyClass)
     strategy.setOptions(strategyOptions)
 
     strategies.push(strategy)
@@ -55,7 +61,7 @@ export function nbOptionsFactory(options) {
     UserLoginComponent,
     UserRegisterComponent,
     UserRegisterResultComponent,
-    PacLogoutComponent,
+    XpLogoutComponent,
     ForgotPasswordComponent,
     ResetPasswordComponent,
     VarifyEmailComponent,
@@ -67,7 +73,7 @@ export function nbOptionsFactory(options) {
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    PacAuthRoutingModule,
+    XpAuthRoutingModule,
     TranslateModule,
     ZardButtonComponent,
     ZardInputDirective,
@@ -75,49 +81,44 @@ export function nbOptionsFactory(options) {
     ZardTabComponent,
     ZardCheckboxComponent
   ],
-  exports: [
-    UserLoginComponent,
-    UserRegisterComponent,
-    UserRegisterResultComponent,
-    PacLogoutComponent,
-  ],
+  exports: [UserLoginComponent, UserRegisterComponent, UserRegisterResultComponent, XpLogoutComponent],
   providers: [
-    PacAuthService,
-    PacTokenService,
+    XpAuthService,
+    XpAuthTokenService,
     {
-      provide: PacTokenStorage,
-      useClass: PacTokenLocalStorage
+      provide: XpTokenStorage,
+      useClass: XpTokenLocalStorage
     },
-    PacAuthTokenParceler,
+    XpAuthTokenParceler,
     {
-      provide: PAC_AUTH_TOKENS,
+      provide: XP_AUTH_TOKENS,
       useFactory: function nbOptionsFactory() {
         return {}
       },
-      deps: [PAC_AUTH_STRATEGIES]
+      deps: [XP_AUTH_STRATEGIES]
     },
-    { provide: PAC_AUTH_FALLBACK_TOKEN, useValue: NbAuthSimpleToken },
-    { provide: PAC_AUTH_INTERCEPTOR_HEADER, useValue: 'Authorization' },
-    { provide: PAC_AUTH_TOKEN_INTERCEPTOR_FILTER, useValue: {} },
+    { provide: XP_AUTH_FALLBACK_TOKEN, useValue: NbAuthSimpleToken },
+    { provide: XP_AUTH_INTERCEPTOR_HEADER, useValue: 'Authorization' },
+    { provide: XP_AUTH_TOKEN_INTERCEPTOR_FILTER, useValue: {} },
 
     NoAuthGuard
   ]
 })
-export class PacAuthModule {
-  static forRoot(pacAuthOptions?: PacAuthOptions): ModuleWithProviders<PacAuthModule> {
+export class XpAuthModule {
+  static forRoot(xpAuthOptions?: XpAuthOptions): ModuleWithProviders<XpAuthModule> {
     return {
-      ngModule: PacAuthModule,
+      ngModule: XpAuthModule,
       providers: [
-        { provide: PAC_AUTH_USER_OPTIONS, useValue: pacAuthOptions },
+        { provide: XP_AUTH_USER_OPTIONS, useValue: xpAuthOptions },
         {
-          provide: PAC_AUTH_OPTIONS,
+          provide: XP_AUTH_OPTIONS,
           useFactory: nbOptionsFactory,
-          deps: [PAC_AUTH_USER_OPTIONS]
+          deps: [XP_AUTH_USER_OPTIONS]
         },
         {
-          provide: PAC_AUTH_STRATEGIES,
+          provide: XP_AUTH_STRATEGIES,
           useFactory: nbStrategiesFactory,
-          deps: [PAC_AUTH_OPTIONS, Injector]
+          deps: [XP_AUTH_OPTIONS, Injector]
         }
       ]
     }

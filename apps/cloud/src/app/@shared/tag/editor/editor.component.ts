@@ -6,7 +6,7 @@ import { ZardTagSelectComponent, type ZardTagSelectOption } from '@xpert-ai/head
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
-import { NgmFieldColor } from '@xpert-ai/headless-ui'
+import { XpFieldColor } from '@xpert-ai/headless-ui'
 
 function isTag(value: unknown): value is ITag {
   return !!value && typeof value === 'object' && ('id' in value || 'name' in value || 'category' in value)
@@ -15,7 +15,7 @@ function isTag(value: unknown): value is ITag {
 @Component({
   standalone: true,
   imports: [CommonModule, SharedUiModule, TranslateModule, ZardTagSelectComponent],
-  selector: 'pac-tag-editor',
+  selector: 'xp-tag-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
   inputs: ['disabled', 'color'],
@@ -35,7 +35,7 @@ export class TagEditorComponent implements ControlValueAccessor {
   private store = inject(Store)
 
   disabled = false
-  @Input() color: NgmFieldColor
+  @Input() color: XpFieldColor
   readonly category = input<TagCategoryEnum>(null)
   readonly tags = signal<ITag[]>([])
 

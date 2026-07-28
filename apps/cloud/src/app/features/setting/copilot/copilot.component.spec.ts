@@ -74,8 +74,8 @@ describe('CopilotComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(true)
-    expect(text).toContain('PAC.Copilot.Overview')
-    expect(text).toContain('PAC.Copilot.UsageCenter')
+    expect(text).toContain('XP.Copilot.Overview')
+    expect(text).toContain('XP.Copilot.UsageCenter')
   })
 
   it('hides usage and monitoring tabs when the monitoring feature is disabled', async () => {
@@ -85,8 +85,8 @@ describe('CopilotComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(false)
-    expect(text).not.toContain('PAC.Copilot.Overview')
-    expect(text).not.toContain('PAC.Copilot.UsageCenter')
+    expect(text).not.toContain('XP.Copilot.Overview')
+    expect(text).not.toContain('XP.Copilot.UsageCenter')
   })
 
   it('shows usage tab in tenant scope even when organization monitoring is disabled', async () => {
@@ -97,7 +97,7 @@ describe('CopilotComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(false)
-    expect(text).toContain('PAC.Copilot.Overview')
-    expect(text).toContain('PAC.Copilot.UsageCenter')
+    expect(text).toContain('XP.Copilot.Overview')
+    expect(text).toContain('XP.Copilot.UsageCenter')
   })
 })

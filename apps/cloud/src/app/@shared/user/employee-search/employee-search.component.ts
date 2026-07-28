@@ -9,7 +9,7 @@ import {
   Z_MODAL_DATA,
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'
@@ -39,9 +39,9 @@ function isEmployee(value: unknown): value is IEmployee {
     ...ZardFormImports,
     ZardLoaderComponent,
     TranslateModule,
-    ButtonGroupDirective
+    XpButtonGroupDirective
   ],
-  selector: 'pac-employee-search',
+  selector: 'xp-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']
 })

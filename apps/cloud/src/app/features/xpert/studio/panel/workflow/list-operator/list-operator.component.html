@@ -1,7 +1,7 @@
 <div class="p-4 space-y-6">
   <div>
     <div class="uppercase font-semibold mb-2 flex items-center gap-1">
-      <span>{{ 'PAC.Xpert.InputVariable' | translate: { Default: 'Input Variable' } }}</span>
+      <span>{{ 'XP.Xpert.InputVariable' | translate: { Default: 'Input Variable' } }}</span>
       <span class="text-text-destructive">*</span>
     </div>
     <xpert-state-variable-select [type]="'array'" [variables]="variables()" [(ngModel)]="input" />
@@ -9,11 +9,11 @@
 
   <div class="space-y-2">
     <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
-      <span>{{ 'PAC.Xpert.FilterBy' | translate: { Default: 'Filter By' } }}</span>
+      <span>{{ 'XP.Xpert.FilterBy' | translate: { Default: 'Filter By' } }}</span>
 
       <z-switch
         [(ngModel)]="filterByEnabled"
-        [zTooltip]="'PAC.Xpert.EnableFilterBy' | translate: { Default: 'Enable Filter By' }"
+        [zTooltip]="'XP.Xpert.EnableFilterBy' | translate: { Default: 'Enable Filter By' }"
         zPosition="top"
       />
     </div>
@@ -34,7 +34,7 @@
           (click)="addCondition()"
         >
           <i class="ri-add-line mr-1"></i>
-          {{ 'PAC.Xpert.NoConditions' | translate: { Default: 'No conditions. Please add conditions first.' } }}
+          {{ 'XP.Xpert.NoConditions' | translate: { Default: 'No conditions. Please add conditions first.' } }}
         </div>
       }
     }
@@ -42,11 +42,11 @@
 
   <div>
     <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
-      <span>{{ 'PAC.Xpert.ExtractTheNItem' | translate: { Default: 'Extract the Nth Item' } }}</span>
+      <span>{{ 'XP.Xpert.ExtractTheNItem' | translate: { Default: 'Extract the Nth Item' } }}</span>
 
       <z-switch
         [(ngModel)]="extractByEnabled"
-        [zTooltip]="'PAC.Xpert.EnableExtractTheNItem' | translate: { Default: 'Enable Extract The Nth Item' }"
+        [zTooltip]="'XP.Xpert.EnableExtractTheNItem' | translate: { Default: 'Enable Extract The Nth Item' }"
         zPosition="top"
       />
     </div>
@@ -54,7 +54,7 @@
       <div class="space-y-2">
         <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
           {{
-            'PAC.Xpert.ExtractTheNItemTip'
+            'XP.Xpert.ExtractTheNItemTip'
               | translate
                 : {
                     Default:
@@ -67,7 +67,7 @@
             class="w-full"
             [variables]="variables()"
             [(ngModel)]="extractByIndex"
-            [placeholder]="'PAC.Xpert.EnterIndex' | translate: { Default: 'Enter index...' }"
+            [placeholder]="'XP.Xpert.EnterIndex' | translate: { Default: 'Enter index...' }"
           />
         </div>
       </div>
@@ -76,11 +76,11 @@
 
   <div>
     <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
-      <span>{{ 'PAC.Xpert.TopN' | translate: { Default: 'Top N' } }}</span>
+      <span>{{ 'XP.Xpert.TopN' | translate: { Default: 'Top N' } }}</span>
 
       <z-switch
         [(ngModel)]="topNEnabled"
-        [zTooltip]="'PAC.Xpert.EnableTopN' | translate: { Default: 'Enable Top N' }"
+        [zTooltip]="'XP.Xpert.EnableTopN' | translate: { Default: 'Enable Top N' }"
         zPosition="top"
       />
     </div>
@@ -88,7 +88,7 @@
       <div class="space-y-2">
         <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
           {{
-            'PAC.Xpert.TopNTip'
+            'XP.Xpert.TopNTip'
               | translate
                 : {
                     Default:
@@ -101,7 +101,7 @@
             class="w-full"
             [variables]="variables()"
             [(ngModel)]="topNCount"
-            [placeholder]="'PAC.Xpert.EnterCount' | translate: { Default: 'Enter count...' }"
+            [placeholder]="'XP.Xpert.EnterCount' | translate: { Default: 'Enter count...' }"
           />
         </div>
       </div>
@@ -110,18 +110,18 @@
 
   <div class="space-y-2">
     <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
-      <span>{{ 'PAC.Xpert.SortBy' | translate: { Default: 'Sort By' } }}</span>
+      <span>{{ 'XP.Xpert.SortBy' | translate: { Default: 'Sort By' } }}</span>
 
       <z-switch
         [(ngModel)]="sortByEnabled"
-        [zTooltip]="'PAC.Xpert.EnableSortBy' | translate: { Default: 'Enable Sort By' }"
+        [zTooltip]="'XP.Xpert.EnableSortBy' | translate: { Default: 'Enable Sort By' }"
         zPosition="top"
       />
     </div>
     @if (sortByEnabled()) {
       <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
         {{
-          'PAC.Xpert.SortByTip'
+          'XP.Xpert.SortByTip'
             | translate: { Default: 'Sort the items in the list. For example, you can sort by name or date.' }
         }}
       </div>
@@ -134,10 +134,10 @@
           />
         </div>
 
-        <ngm-checkbox
+        <xp-checkbox
           class="shrink-0"
           [(ngModel)]="sortByDescending"
-          [zTooltip]="'PAC.Xpert.SortDescending' | translate: { Default: 'Sort Descending' }"
+          [zTooltip]="'XP.Xpert.SortDescending' | translate: { Default: 'Sort Descending' }"
           zPosition="top"
         >
           @if (sortByDescending()) {
@@ -145,7 +145,7 @@
           } @else {
             <i class="ri-sort-asc"></i>
           }
-        </ngm-checkbox>
+        </xp-checkbox>
       </div>
     }
   </div>
@@ -162,7 +162,7 @@
       class="font-semibold uppercase flex h-6 cursor-pointer items-center text-text-secondary"
       (click)="toggleOutput()"
     >
-      {{ 'PAC.Workflow.OutputVariables' | translate: { Default: 'Output Variables' } }}
+      {{ 'XP.Workflow.OutputVariables' | translate: { Default: 'Output Variables' } }}
     </div>
   </div>
   @if (expandOutputVariables()) {
@@ -173,7 +173,7 @@
           <div class="system-xs-regular ml-2 capitalize text-text-tertiary">{{ inputVariableType() }}</div>
         </div>
         <div class="system-xs-regular mt-0.5 text-text-tertiary">
-          {{ 'PAC.Workflow.FilterResult' | translate: { Default: 'Filter result' } }}
+          {{ 'XP.Workflow.FilterResult' | translate: { Default: 'Filter result' } }}
         </div>
       </div>
 
@@ -183,7 +183,7 @@
           <div class="system-xs-regular ml-2 capitalize text-text-tertiary">{{ inputVariableItemType() }}</div>
         </div>
         <div class="system-xs-regular mt-0.5 text-text-tertiary">
-          {{ 'PAC.Workflow.FirstRecord' | translate: { Default: 'First record' } }}
+          {{ 'XP.Workflow.FirstRecord' | translate: { Default: 'First record' } }}
         </div>
       </div>
 
@@ -193,7 +193,7 @@
           <div class="system-xs-regular ml-2 capitalize text-text-tertiary">{{ inputVariableItemType() }}</div>
         </div>
         <div class="system-xs-regular mt-0.5 text-text-tertiary">
-          {{ 'PAC.Workflow.LastRecord' | translate: { Default: 'Last record' } }}
+          {{ 'XP.Workflow.LastRecord' | translate: { Default: 'Last record' } }}
         </div>
       </div>
     </div>

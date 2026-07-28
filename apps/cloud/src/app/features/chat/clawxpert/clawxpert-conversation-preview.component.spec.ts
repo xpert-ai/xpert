@@ -69,7 +69,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.BrowserEmptyTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.BrowserEmptyTitle')
     expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
   })
 
@@ -120,7 +120,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     expect(fixture.componentInstance.externalUrl()).toBe(
       'http://localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1'
     )
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.BrowserEmptyTitle')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.BrowserEmptyTitle')
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -371,7 +371,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const viewport = fixture.nativeElement.querySelector('[data-device-viewport]') as HTMLElement | null
 
     expect(toolbar).not.toBeNull()
-    expect(toolbar?.textContent).toContain('PAC.Chat.ClawXpert.Responsive')
+    expect(toolbar?.textContent).toContain('XP.Chat.ClawXpert.Responsive')
     expect(widthInput?.value).toBe('405')
     expect(heightInput?.value).toBe('506')
     expect(viewport?.style.width).toBe('405px')
@@ -467,16 +467,16 @@ describe('ClawXpertConversationPreviewComponent', () => {
     await Promise.resolve()
     fixture.detectChanges()
 
-    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.ShowDeviceToolbar')
-    expect(overlayContainer.getContainerElement().textContent).not.toContain('PAC.Chat.ClawXpert.ShowLogs')
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ShowDeviceToolbar')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('XP.Chat.ClawXpert.ShowLogs')
 
     fixture.componentInstance.toggleDeviceToolbar()
     fixture.detectChanges()
     await Promise.resolve()
     fixture.detectChanges()
 
-    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.HideDeviceToolbar')
-    expect(overlayContainer.getContainerElement().textContent).not.toContain('PAC.Chat.ClawXpert.HideLogs')
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.HideDeviceToolbar')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('XP.Chat.ClawXpert.HideLogs')
   })
 
   it('emits element references selected in inspect mode from an address-bar URL', async () => {

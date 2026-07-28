@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { Store } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'
 import { map, take } from 'rxjs/operators'
@@ -31,7 +31,7 @@ type TOrganizationMembership = IUserOrganization & {
   templateUrl: './authorization.component.html',
   styleUrls: ['./authorization.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslateModule, NgmSpinComponent]
+  imports: [TranslateModule, XpSpinComponent]
 })
 export class XpertAuthorizationComponent {
   readonly #destroyRef = inject(DestroyRef)
@@ -245,7 +245,7 @@ export class XpertAuthorizationComponent {
             [organizationId]: selectedGroupIds
           }))
           this.saving.set(false)
-          this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+          this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
         },
         error: (error) => {
           this.saving.set(false)

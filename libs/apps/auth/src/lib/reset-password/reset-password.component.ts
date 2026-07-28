@@ -5,19 +5,19 @@ import { Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { ZardToastService } from '@xpert-ai/headless-ui'
 import { delay, map, tap } from 'rxjs'
-import { PAC_AUTH_OPTIONS } from '../auth.options'
+import { XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
-import { PacAuthResult, PacAuthService, PasswordStrengthEnum, matchValidator, passwordStrength } from '../services'
+import { XpAuthResult, XpAuthService, PasswordStrengthEnum, matchValidator, passwordStrength } from '../services'
 
 @Component({
   standalone: false,
-  selector: 'pac-reset-password',
+  selector: 'xp-reset-password',
   templateUrl: 'reset-password.component.html',
   styleUrls: ['reset-password.component.scss']
 })
 export class ResetPasswordComponent {
-  readonly #authService = inject(PacAuthService)
-  protected options = inject(PAC_AUTH_OPTIONS)
+  readonly #authService = inject(XpAuthService)
+  protected options = inject(XP_AUTH_OPTIONS)
   readonly translateService = inject(TranslateService)
   readonly toast = inject(ZardToastService)
   readonly router = inject(Router)
@@ -89,7 +89,7 @@ export class ResetPasswordComponent {
     this.#authService
       .resetPassword(this.strategy, this.form.value)
       .pipe(
-        tap((result: PacAuthResult) => {
+        tap((result: XpAuthResult) => {
           if (result.isSuccess()) {
             let RESET_SUCCESS = ''
             this.translateService

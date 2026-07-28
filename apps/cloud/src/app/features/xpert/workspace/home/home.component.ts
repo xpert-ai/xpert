@@ -20,7 +20,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@xpert-ai/cloud/state'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -67,11 +67,11 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     TranslateModule,
     ...ZardTooltipImports,
 
-    NgmCommonModule,
+    XpCommonModule,
     TagFilterComponent,
     XpertWorkspaceWelcomeComponent
   ],
-  selector: 'pac-xpert-home',
+  selector: 'xp-xpert-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
@@ -252,7 +252,7 @@ export class XpertWorkspaceHomeComponent {
   newWorkspace() {
     this.confirmUnique(
       {
-        title: this.#translate.instant('PAC.Xpert.NewWorkspace', { Default: 'New Workspace' })
+        title: this.#translate.instant('XP.Xpert.NewWorkspace', { Default: 'New Workspace' })
       },
       (name: string) => {
         this.loading.set(true)
@@ -264,7 +264,7 @@ export class XpertWorkspaceHomeComponent {
         this.workspaceService.refresh()
         this.selectWorkspace(workspace)
         // this.selectedWorkspaces.set([workspace.id])
-        this.#toastr.success(`PAC.Messages.CreatedSuccessfully`, { Default: 'Created Successfully!' })
+        this.#toastr.success(`XP.Messages.CreatedSuccessfully`, { Default: 'Created Successfully!' })
       },
       error: (error) => {
         this.loading.set(false)
@@ -318,7 +318,7 @@ export class XpertWorkspaceHomeComponent {
       const defaultWorkspace = await firstValueFrom(this.workspaceService.setMyDefault(workspace.id))
       this.defaultWorkspace.set(defaultWorkspace)
       this.#toastr.success(
-        this.#translate.instant('PAC.Xpert.DefaultWorkspaceUpdated', {
+        this.#translate.instant('XP.Xpert.DefaultWorkspaceUpdated', {
           Default: 'Default workspace updated'
         })
       )

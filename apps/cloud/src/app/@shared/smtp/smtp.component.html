@@ -1,18 +1,34 @@
-<formly-form #formly class="flex-1 self-stretch"
+<formly-form
+  #formly
+  class="flex-1 self-stretch"
   [form]="form"
   [fields]="schema"
   [model]="customSmtp"
-  (modelChange)="onFormChange(customSmtp)">
+  (modelChange)="onFormChange(customSmtp)"
+>
 </formly-form>
 
 <div class="flex justify-start">
-  <div ngmButtonGroup>
-    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" displayDensity="cosy" [disabled]="isValidated()" (click)="validateSmtp()">
-      {{ 'PAC.ACTIONS.Validate' | translate: {Default: 'Validate'} }}
+  <div xpButtonGroup>
+    <button
+      class="text-text-accent hover:text-text-accent"
+      z-button
+      zType="outline"
+      displayDensity="cosy"
+      [disabled]="isValidated()"
+      (click)="validateSmtp()"
+    >
+      {{ 'XP.ACTIONS.Validate' | translate: { Default: 'Validate' } }}
     </button>
-  
-    <button z-button zType="default" displayDensity="cosy" [disabled]="!isValidated() || form.invalid || form.pristine" (click)="onSubmit()">
-      {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+
+    <button
+      z-button
+      zType="default"
+      displayDensity="cosy"
+      [disabled]="!isValidated() || form.invalid || form.pristine"
+      (click)="onSubmit()"
+    >
+      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
     </button>
   </div>
 </div>

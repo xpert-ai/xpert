@@ -4,17 +4,17 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { IUserUpdateInput, LanguagesEnum } from '@xpert-ai/contracts'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { CreatedByPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { ToastrService, User } from '../../../../@core'
 import { BasicInfoFormComponent, UserFormsModule } from '../../../../@shared/user/forms'
-import { PACEditUserComponent } from '../edit-user/edit-user.component'
+import { XpEditUserComponent } from '../edit-user/edit-user.component'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-user-basic',
+  selector: 'xp-user-basic',
   templateUrl: 'user-basic.component.html',
   styles: [
     `
@@ -26,7 +26,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       }
     `
   ],
-  imports: [FormsModule, TranslateModule, ZardButtonComponent, NgmCommonModule, UserFormsModule]
+  imports: [FormsModule, TranslateModule, ZardButtonComponent, XpCommonModule, UserFormsModule]
 })
 export class UserBasicComponent {
   // Inputs
@@ -39,7 +39,7 @@ export class UserBasicComponent {
   user: User
 
   constructor(
-    private readonly userComponent: PACEditUserComponent,
+    private readonly userComponent: XpEditUserComponent,
     private readonly userService: UsersService,
     private readonly route: ActivatedRoute,
     private readonly _toastrService: ToastrService
@@ -88,7 +88,7 @@ export class UserBasicComponent {
 
     try {
       await this.userService.update(this.user.id, request)
-      this._toastrService.success(`PAC.NOTES.USERS.USER_UPDATED`, { name: new CreatedByPipe().transform(this.user) })
+      this._toastrService.success(`XP.NOTES.USERS.USER_UPDATED`, { name: new CreatedByPipe().transform(this.user) })
       this.userBasicInfo().form.markAsPristine()
     } catch (error) {
       this._toastrService.danger(error)

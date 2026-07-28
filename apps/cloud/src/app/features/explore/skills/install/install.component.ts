@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, model, si
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import {
@@ -20,7 +20,7 @@ import { map } from 'rxjs/operators'
 @Component({
   standalone: true,
   selector: 'xp-explore-skill-install',
-  imports: [CommonModule, RouterModule, TranslateModule, NgmSpinComponent, ...ZardSelectImports],
+  imports: [CommonModule, RouterModule, TranslateModule, XpSpinComponent, ...ZardSelectImports],
   templateUrl: './install.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -101,7 +101,7 @@ export class ExploreSkillInstallComponent {
       next: () => {
         this.loading.set(false)
         this.#toastr.success(
-          this.#translate.instant('PAC.Explore.SkillInstallSuccess', {
+          this.#translate.instant('XP.Explore.SkillInstallSuccess', {
             Default: 'Skill is ready. Existing installs are reused, and newer versions update automatically.'
           })
         )

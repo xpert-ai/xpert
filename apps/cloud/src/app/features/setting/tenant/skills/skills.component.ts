@@ -22,7 +22,7 @@ import { XpertSkillUploadDialogComponent } from '../../../xpert/workspace/skills
 
 @Component({
   standalone: true,
-  selector: 'pac-tenant-skills',
+  selector: 'xp-tenant-skills',
   imports: [CommonModule, TranslateModule, XpertSkillRepositoriesComponent],
   templateUrl: './skills.component.html'
 })
@@ -179,7 +179,7 @@ export class TenantSkillsComponent {
 
       if (!options?.silent) {
         this.#toastr.success(
-          this.#translate.instant('PAC.Skill.PublicRepositoryReady', {
+          this.#translate.instant('XP.Skill.PublicRepositoryReady', {
             Default: 'The public skill repository is ready.'
           })
         )
@@ -211,15 +211,9 @@ export class TenantSkillsComponent {
       this.syncResult.set(result)
       this.refreshRepositories()
       this.#toastr.success(
-        this.#translate.instant(
-          mode === 'full' ? 'Pro.SkillSync.FullSyncDone' : 'Pro.SkillSync.SyncDone',
-          {
-            Default:
-              mode === 'full'
-                ? 'Template skill assets fully synchronized.'
-                : 'Template skill assets synchronized.'
-          }
-        )
+        this.#translate.instant(mode === 'full' ? 'Pro.SkillSync.FullSyncDone' : 'Pro.SkillSync.SyncDone', {
+          Default: mode === 'full' ? 'Template skill assets fully synchronized.' : 'Template skill assets synchronized.'
+        })
       )
     } catch (error) {
       this.#toastr.danger(getErrorMessage(error))

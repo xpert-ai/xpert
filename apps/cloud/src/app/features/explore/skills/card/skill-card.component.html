@@ -95,7 +95,7 @@
         } @else {
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
-              'PAC.Explore.SkillDescriptionFallback'
+              'XP.Explore.SkillDescriptionFallback'
                 | translate: { Default: 'This skill does not include additional details yet.' }
             }}
           </p>
@@ -162,7 +162,7 @@
       <div class="flex items-end justify-between gap-3">
         <div class="min-w-0">
           <div class="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-quaternary">
-            {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
+            {{ 'XP.Explore.Creator' | translate: { Default: 'Creator' } }}
           </div>
           <div class="mt-1 truncate text-sm font-semibold text-text-primary">
             {{ publisherName() }}
@@ -180,7 +180,7 @@
           (click)="addToWorkspace($event)"
         >
           <z-icon zType="plus"></z-icon>
-          {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+          {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
         </button>
       </div>
     </div>

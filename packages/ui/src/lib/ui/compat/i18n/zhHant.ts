@@ -1,5 +1,5 @@
 export const ZhHant = {
-  Ngm: {
+  XP: {
     Common: {
       Add: '添加',
       Cancel: '取消',

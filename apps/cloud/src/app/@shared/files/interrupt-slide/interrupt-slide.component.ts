@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectToastr, SandboxService } from '@cloud/app/@core/'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { AbstractInterruptComponent } from '../../agent'
@@ -10,7 +10,7 @@ import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, FilesUploadComponent, NgmSpinComponent],
+  imports: [FormsModule, TranslateModule, FilesUploadComponent, XpSpinComponent],
   selector: 'xp-file-interrupt-slide',
   templateUrl: 'interrupt-slide.component.html',
   styleUrls: ['interrupt-slide.component.scss']
@@ -62,7 +62,7 @@ export class InterruptSlideComponent extends AbstractInterruptComponent<
         },
         error: (error) => {
           this.loading.set(false)
-          this.#toastr.error(this.i18nService.t('PAC.MODEL.UploadFailed', { Default: 'Upload failed' }))
+          this.#toastr.error(this.i18nService.t('XP.MODEL.UploadFailed', { Default: 'Upload failed' }))
         }
       })
   }

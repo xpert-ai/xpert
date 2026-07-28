@@ -1,4 +1,4 @@
-<ul class="ngm-radio-select flex flex-wrap space-x-3" cdkListbox [(ngModel)]="value">
+<ul class="xp-radio-select flex flex-wrap space-x-3" cdkListbox [(ngModel)]="value">
   @for (option of options(); track option.key) {
     <li [cdkOption]="option.value" class="" [zTooltip]="option.description | i18n">
       <div class="radio-indicator"></div>

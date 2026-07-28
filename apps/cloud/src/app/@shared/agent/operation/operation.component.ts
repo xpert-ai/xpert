@@ -1,7 +1,7 @@
 import { booleanAttribute, Component, computed, effect, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent } from '@xpert-ai/headless-ui'
-import { attrModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { attrModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { agentLabel, TInterruptCommand, TSensitiveOperation, TToolCall } from '../../../@core'
 import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'
@@ -74,7 +74,7 @@ function readClientToolCalls(value: unknown, depth = 0): ClientToolCall[] {
     FormsModule,
     TranslateModule,
     SlashSvgComponent,
-    NgmI18nPipe,
+    XpI18nPipe,
     XpertAgentIdentityComponent,
     XpertAgentInterruptComponent
   ],

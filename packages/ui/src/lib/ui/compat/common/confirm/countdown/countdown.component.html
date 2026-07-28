@@ -17,11 +17,11 @@
   </span>
   <div class="mt-2">
     {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAIT_UNTIL_RELOAD' | translate: { Default: 'Waiting until reload' } }}
-    <ngm-countdown #cd [config]="countDownConfig" (event)="handleActionEvent($event)" />
+    <xp-countdown #cd [config]="countDownConfig" (event)="handleActionEvent($event)" />
   </div>
 </xp-dialog-content>
 <xp-dialog-actions align="end">
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" xpDialogClose>
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>

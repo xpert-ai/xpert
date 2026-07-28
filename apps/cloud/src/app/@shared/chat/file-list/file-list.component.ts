@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { FileTypePipe } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, sortBy } from 'lodash-es'
@@ -38,7 +38,7 @@ export type TFileDirectoryItem = TFileDirectory & {
     DragDropModule,
     CdkMenuModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     DateRelativePipe,
     FileTypePipe,
     FileIconComponent
@@ -158,11 +158,11 @@ export class ChatFileListComponent {
       next: () => {
         this.loading.set(false)
         this.refresh.set({}) // Trigger refresh
-        this.#toastr.success('PAC.Chat.FileDeleted', { Default: 'File deleted successfully' })
+        this.#toastr.success('XP.Chat.FileDeleted', { Default: 'File deleted successfully' })
       },
       error: (error) => {
         this.loading.set(false)
-        this.#toastr.error('PAC.Chat.FileDeleteError', '', { Default: 'Failed to delete file' })
+        this.#toastr.error('XP.Chat.FileDeleteError', '', { Default: 'Failed to delete file' })
       }
     })
   }

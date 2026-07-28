@@ -1,6 +1,4 @@
-<div class="grow flex flex-col bg-components-input-bg-normal rounded-lg"
-  [class.danger]="hoverDelete()"
->
+<div class="grow flex flex-col bg-components-input-bg-normal rounded-lg" [class.danger]="hoverDelete()">
   <div class="flex items-center p-1">
     <div class="grow px-1 rounded-md bg-components-card-bg shadow-sm font-mono text-sm">
       @switch (variable()?.type) {
@@ -16,14 +14,12 @@
       }
       {{ variableSelector() }}
       @if (variable()?.label; as label) {
-        / {{label | i18n}}
+        / {{ label | i18n }}
       }
     </div>
     <div class="mx-1 w-[1px] h-3 bg-divider-regular"></div>
 
-    <div class="flex items-center p-1 rounded-md text-xs hover:bg-hover-bg"
-      [cdkMenuTriggerFor]="opMenu"
-    >
+    <div class="flex items-center p-1 rounded-md text-xs hover:bg-hover-bg" [cdkMenuTriggerFor]="opMenu">
       <span class="grow mr-2">{{ operatorLabel() | i18n }}</span>
       <i class="ri-arrow-down-s-line"></i>
     </div>
@@ -31,15 +27,18 @@
 
   @if (variableType() !== eXpertParameterTypeEnum.BOOLEAN) {
     <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
-      <xpert-variable-input #input2 class="w-full text-sm leading-5 text-text-secondary bg-transparent focus:bg-components-input-bg-active"
-        [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
+      <xpert-variable-input
+        #input2
+        class="w-full text-sm leading-5 text-text-secondary bg-transparent focus:bg-components-input-bg-active"
+        [placeholder]="'XP.Workflow.InputValue' | translate: { Default: 'Input value' }"
         [(ngModel)]="value"
       />
     </div>
   }
 </div>
 
-<div class="shrink-0 flex items-center justify-center ml-1 mt-1 w-6 h-6 rounded-lg cursor-pointer hover:bg-status-error-bg text-text-tertiary hover:text-text-destructive"
+<div
+  class="shrink-0 flex items-center justify-center ml-1 mt-1 w-6 h-6 rounded-lg cursor-pointer hover:bg-status-error-bg text-text-tertiary hover:text-text-destructive"
   (mouseenter)="hoverDelete.set(true)"
   (mouseleave)="hoverDelete.set(false)"
   (click)="deleted.emit()"
@@ -50,7 +49,7 @@
 <ng-template #opMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (op of operatorOptions(); track op.value) {
-      <div cdkMenuItem class="text-sm" (click)="selectOperator(op.value)">{{op.label | i18n}}</div>
+      <div cdkMenuItem class="text-sm" (click)="selectOperator(op.value)">{{ op.label | i18n }}</div>
     }
   </div>
 </ng-template>

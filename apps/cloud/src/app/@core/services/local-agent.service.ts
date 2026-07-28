@@ -32,7 +32,7 @@ export class LocalAgent extends AbstractAgent implements DataSourceAgent {
   get _agentOfflineMessage() {
     let message
     this.translateService
-      .get('PAC.MESSAGE.LocalAgentOffline', { Default: 'Local Agent Offline' })
+      .get('XP.MESSAGE.LocalAgentOffline', { Default: 'Local Agent Offline' })
       .subscribe((_message) => {
         message = _message
       })

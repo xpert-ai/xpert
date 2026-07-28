@@ -13,18 +13,18 @@ import {
 } from '@angular/core'
 
 @Directive({
-  selector: '[ngmTooltip]',
+  selector: '[xpTooltip]',
   standalone: true
 })
-export class NgmTooltipDirective {
+export class XpTooltipDirective {
   readonly destroyRef = inject(DestroyRef)
 
   // Inputs
-  readonly ngmTooltip = input<TemplateRef<any>>()
-  readonly ngmTooltipContext = input<any>()
+  readonly xpTooltip = input<TemplateRef<any>>()
+  readonly xpTooltipContext = input<any>()
   //   readonly showDelay = input<number>()
   readonly hideDelay = input<number>()
-  readonly ngmTooltipPositions = input<ConnectedPosition[]>()
+  readonly xpTooltipPositions = input<ConnectedPosition[]>()
 
   private overlayRef: OverlayRef
 
@@ -47,7 +47,7 @@ export class NgmTooltipDirective {
       this.overlayRef?.dispose()
       this.overlayRef = this.overlay.create({
         positionStrategy: this.positionBuilder.flexibleConnectedTo(this.elementRef).withPositions(
-          this.ngmTooltipPositions() ?? [
+          this.xpTooltipPositions() ?? [
             {
               originX: 'center',
               originY: 'bottom',
@@ -64,14 +64,14 @@ export class NgmTooltipDirective {
 
   @HostListener('mouseenter')
   show() {
-    if (this.ngmTooltip()) {
+    if (this.xpTooltip()) {
       if (this.detachTimeoutId) {
         clearTimeout(this.detachTimeoutId) // 防止 mouseenter 时清理正在进行的 detach 计时器
         this.detachTimeoutId = null
       }
 
       this.overlayRef.detach()
-      const portal = new TemplatePortal(this.ngmTooltip(), this.viewContainerRef, this.ngmTooltipContext())
+      const portal = new TemplatePortal(this.xpTooltip(), this.viewContainerRef, this.xpTooltipContext())
       this.overlayRef.attach(portal)
     }
   }

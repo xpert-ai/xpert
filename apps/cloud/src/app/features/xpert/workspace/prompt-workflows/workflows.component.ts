@@ -167,16 +167,16 @@ export class XpertWorkspacePromptWorkflowsComponent {
     const draft = this.draft()
     const name = draft.name?.trim() ?? ''
     if (!WORKFLOW_NAME_PATTERN.test(name)) {
-      return this.#translate.instant('PAC.PromptWorkflow.InvalidCommandName')
+      return this.#translate.instant('XP.PromptWorkflow.InvalidCommandName')
     }
     if (!draft.template?.trim()) {
-      return this.#translate.instant('PAC.PromptWorkflow.TemplateRequired')
+      return this.#translate.instant('XP.PromptWorkflow.TemplateRequired')
     }
     if (draft.runtimeCapabilitiesText?.trim()) {
       try {
         JSON.parse(draft.runtimeCapabilitiesText)
       } catch {
-        return this.#translate.instant('PAC.PromptWorkflow.RuntimeCapabilitiesJsonRequired')
+        return this.#translate.instant('XP.PromptWorkflow.RuntimeCapabilitiesJsonRequired')
       }
     }
     return null
@@ -272,7 +272,7 @@ export class XpertWorkspacePromptWorkflowsComponent {
     request.subscribe({
       next: (workflow) => {
         this.saving.set(false)
-        this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+        this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
         this.refresh()
         this.selectWorkflow(workflow)
       },
@@ -328,7 +328,7 @@ export class XpertWorkspacePromptWorkflowsComponent {
     }
     const command = this.api.exportSkillCommand(workflow)
     this.#clipboard.copy(JSON.stringify(command, null, 2))
-    this.#toastr.success('PAC.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+    this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
   }
 
   updateDraft(patch: Partial<PromptWorkflowDraft>) {
@@ -341,13 +341,13 @@ export class XpertWorkspacePromptWorkflowsComponent {
 
   displayVisibility(visibility: PromptWorkflowVisibility | undefined) {
     const value = visibility ?? 'team'
-    const key = `PAC.PromptWorkflow.Visibility.${value}`
+    const key = `XP.PromptWorkflow.Visibility.${value}`
     const label = this.#translate.instant(key)
     return label === key ? value : label
   }
 
   displayUsageVersion(version: string | undefined) {
-    return version || this.#translate.instant('PAC.PromptWorkflow.Draft')
+    return version || this.#translate.instant('XP.PromptWorkflow.Draft')
   }
 
   private createEmptyDraft(): PromptWorkflowDraft {
@@ -422,7 +422,7 @@ export class XpertWorkspacePromptWorkflowsComponent {
     field: 'Label' | 'Description' | 'ArgsHint' | 'Template',
     fallback: string
   ) {
-    const key = `PAC.PromptWorkflow.Templates.${template.name}.${field}`
+    const key = `XP.PromptWorkflow.Templates.${template.name}.${field}`
     const label = this.#translate.instant(key, { args: '{{args}}' })
     return label === key ? fallback : label
   }

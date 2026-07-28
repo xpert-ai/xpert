@@ -237,13 +237,9 @@ describe('XpertConnectorsComponent', () => {
     await component.connect(connectorDefinition)
 
     expect(openSpy).toHaveBeenCalledWith('', '_blank')
-    expect(toastr.error).toHaveBeenCalledWith(
-      'PAC.Xpert.ConnectorAuthorizationPopupBlocked',
-      'PAC.TOASTR.TITLE.ERROR',
-      {
-        Default: 'Authorization page was blocked. Allow pop-ups for this site and try again.'
-      }
-    )
+    expect(toastr.error).toHaveBeenCalledWith('XP.Xpert.ConnectorAuthorizationPopupBlocked', 'XP.TOASTR.TITLE.ERROR', {
+      Default: 'Authorization page was blocked. Allow pop-ups for this site and try again.'
+    })
 
     fixture.destroy()
   })
@@ -474,7 +470,7 @@ describe('XpertConnectorsComponent', () => {
     expect(host.querySelectorAll('z-form-message')).toHaveLength(1)
     expect(connectorService.connect).not.toHaveBeenCalled()
     expect(openSpy).not.toHaveBeenCalled()
-    expect(toastr.error).toHaveBeenCalledWith('PAC.Xpert.ConnectorCredentialsRequired', 'PAC.TOASTR.TITLE.ERROR', {
+    expect(toastr.error).toHaveBeenCalledWith('XP.Xpert.ConnectorCredentialsRequired', 'XP.TOASTR.TITLE.ERROR', {
       Default: 'Complete the required authentication fields before connecting.'
     })
 

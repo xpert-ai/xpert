@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { parseYAML } from '@xpert-ai/headless-ui'
-import { injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -30,7 +30,7 @@ import { injectI18nService } from '../../i18n'
   selector: 'xp-pipelines',
   templateUrl: './pipelines.component.html',
   styleUrls: ['./pipelines.component.scss'],
-  imports: [RouterModule, TranslateModule, NgmSpinComponent, IconComponent],
+  imports: [RouterModule, TranslateModule, XpSpinComponent, IconComponent],
   animations: [routeAnimations]
 })
 export class XpertPipelinesComponent {
@@ -83,10 +83,10 @@ export class XpertPipelinesComponent {
   async createEmptyKB() {
     const name = await firstValueFrom(
       this.inputName<string>({
-        title: this.#i18n.instant('PAC.Knowledgebase.CreateEmptyKnowledgebase', {
+        title: this.#i18n.instant('XP.Knowledgebase.CreateEmptyKnowledgebase', {
           Default: 'Create an empty knowledgebase'
         }),
-        description: this.#i18n.instant('PAC.Knowledgebase.CreateEmptyKnowledgebaseDesc', {
+        description: this.#i18n.instant('XP.Knowledgebase.CreateEmptyKnowledgebaseDesc', {
           Default:
             'There are no documents in an empty knowledge base yet. You can upload documents to this knowledge base at any time in the future.'
         }),

@@ -79,9 +79,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'plan',
     label: 'Plan mode',
-    labelKey: 'PAC.Chat.PlanMode',
+    labelKey: 'XP.Chat.PlanMode',
     description: 'Plan first, then execute after confirmation.',
-    descriptionKey: 'PAC.Chat.PlanModeDesc',
+    descriptionKey: 'XP.Chat.PlanModeDesc',
     executionType: 'submit_prompt',
     builtin: { command: 'plan' },
     source: 'builtin'
@@ -90,9 +90,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'skills',
     label: 'Skills',
-    labelKey: 'PAC.Chat.Skills',
+    labelKey: 'XP.Chat.Skills',
     description: 'Choose skills for this run.',
-    descriptionKey: 'PAC.Chat.SkillsDesc',
+    descriptionKey: 'XP.Chat.SkillsDesc',
     executionType: 'select_capability',
     builtin: { command: 'skills', group: 'skill' },
     source: 'builtin'
@@ -101,9 +101,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'plugins',
     label: 'Plugins',
-    labelKey: 'PAC.Chat.Plugins',
+    labelKey: 'XP.Chat.Plugins',
     description: 'Choose plugins for this run.',
-    descriptionKey: 'PAC.Chat.PluginsDesc',
+    descriptionKey: 'XP.Chat.PluginsDesc',
     aliases: ['tools'],
     executionType: 'select_capability',
     builtin: { command: 'plugins', group: 'plugin' },
@@ -113,9 +113,9 @@ const BUILTIN_OPTIONS: ChatComposerSlashOption[] = [
     type: 'command',
     name: 'subagents',
     label: 'Subagents',
-    labelKey: 'PAC.Chat.Subagents',
+    labelKey: 'XP.Chat.Subagents',
     description: 'Choose subagents for this run.',
-    descriptionKey: 'PAC.Chat.SubagentsDesc',
+    descriptionKey: 'XP.Chat.SubagentsDesc',
     aliases: ['agents'],
     executionType: 'select_capability',
     builtin: { command: 'subagents', group: 'subAgent' },
@@ -467,12 +467,12 @@ export function getCapabilityKindLabel(kind: ChatRuntimeCapabilityKind) {
 
 export function getCapabilityKindLabelKey(kind: ChatRuntimeCapabilityKind) {
   if (kind === 'skill') {
-    return 'PAC.Chat.Skills'
+    return 'XP.Chat.Skills'
   }
   if (kind === 'plugin') {
-    return 'PAC.Chat.Plugins'
+    return 'XP.Chat.Plugins'
   }
-  return 'PAC.Chat.Subagents'
+  return 'XP.Chat.Subagents'
 }
 
 function commandToSlashOption(command: ChatKitSlashCommand, language?: string | null): ChatComposerSlashOption {
@@ -493,7 +493,7 @@ function commandToSlashOption(command: ChatKitSlashCommand, language?: string | 
     executionType: action.type,
     disabled,
     disabledReason,
-    disabledReasonKey: disabled && !disabledReason ? 'PAC.Chat.CommandUnavailable' : undefined,
+    disabledReasonKey: disabled && !disabledReason ? 'XP.Chat.CommandUnavailable' : undefined,
     command,
     source: 'runtime'
   }

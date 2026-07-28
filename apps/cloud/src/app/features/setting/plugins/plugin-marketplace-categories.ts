@@ -50,100 +50,100 @@ type PluginMarketplaceMetadataEntry = {
 export const PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS: readonly PluginMarketplaceCategoryDefinition[] = [
   {
     value: 'featured',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_featured',
+    labelKey: 'XP.Plugin.MarketplaceCategory_featured',
     defaultLabel: 'Featured',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_featured',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_featured',
     defaultDescription: 'Classic and commonly used plugins.'
   },
   {
     value: 'business-operations',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_business-operations',
+    labelKey: 'XP.Plugin.MarketplaceCategory_business-operations',
     defaultLabel: 'Business & Operations',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_business-operations',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_business-operations',
     defaultDescription: 'B2B and operational business workflows.'
   },
   {
     value: 'communication',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_communication',
+    labelKey: 'XP.Plugin.MarketplaceCategory_communication',
     defaultLabel: 'Communication',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_communication',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_communication',
     defaultDescription: 'Meeting, messaging, and collaboration plugins.'
   },
   {
     value: 'creativity',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_creativity',
+    labelKey: 'XP.Plugin.MarketplaceCategory_creativity',
     defaultLabel: 'Creativity',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_creativity',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_creativity',
     defaultDescription: 'Video, page, and design creation.'
   },
   {
     value: 'data-analytics',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_data-analytics',
+    labelKey: 'XP.Plugin.MarketplaceCategory_data-analytics',
     defaultLabel: 'Data & Analytics',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_data-analytics',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_data-analytics',
     defaultDescription: 'Data analysis and reporting tools.'
   },
   {
     value: 'developer-tools',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_developer-tools',
+    labelKey: 'XP.Plugin.MarketplaceCategory_developer-tools',
     defaultLabel: 'Developer Tools',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_developer-tools',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_developer-tools',
     defaultDescription: 'Development, integration, database, middleware, and model tools.'
   },
   {
     value: 'education-research',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_education-research',
+    labelKey: 'XP.Plugin.MarketplaceCategory_education-research',
     defaultLabel: 'Education & Research',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_education-research',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_education-research',
     defaultDescription: 'Research, business intelligence, and scientific information tools.'
   },
   {
     value: 'finance',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_finance',
+    labelKey: 'XP.Plugin.MarketplaceCategory_finance',
     defaultLabel: 'Finance',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_finance',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_finance',
     defaultDescription: 'Financial research and analysis platforms.'
   },
   {
     value: 'productivity',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_productivity',
+    labelKey: 'XP.Plugin.MarketplaceCategory_productivity',
     defaultLabel: 'Productivity',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_productivity',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_productivity',
     defaultDescription: 'Work efficiency and automation plugins.'
   },
   {
     value: 'research',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_research',
+    labelKey: 'XP.Plugin.MarketplaceCategory_research',
     defaultLabel: 'Research',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_research',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_research',
     defaultDescription: 'Research efficiency plugins.'
   },
   {
     value: 'security',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_security',
+    labelKey: 'XP.Plugin.MarketplaceCategory_security',
     defaultLabel: 'Security',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_security',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_security',
     defaultDescription: 'Security and protection plugins.'
   },
   {
     value: 'travel',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_travel',
+    labelKey: 'XP.Plugin.MarketplaceCategory_travel',
     defaultLabel: 'Travel',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_travel',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_travel',
     defaultDescription: 'Travel planning and assistance plugins.'
   },
   {
     value: 'sales',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_sales',
+    labelKey: 'XP.Plugin.MarketplaceCategory_sales',
     defaultLabel: 'Sales',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_sales',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_sales',
     defaultDescription: 'Sales and revenue workflow plugins.'
   },
   {
     value: 'other',
-    labelKey: 'PAC.Plugin.MarketplaceCategory_other',
+    labelKey: 'XP.Plugin.MarketplaceCategory_other',
     defaultLabel: 'Other',
-    descriptionKey: 'PAC.Plugin.MarketplaceCategoryDescription_other',
+    descriptionKey: 'XP.Plugin.MarketplaceCategoryDescription_other',
     defaultDescription: 'Other plugins.'
   }
 ]
@@ -170,17 +170,17 @@ const LEGACY_DEVELOPER_TOOL_CATEGORY_SET = new Set<string>(LEGACY_DEVELOPER_TOOL
 
 /** Stable display order for legacy technical categories inside the Developer Tools group. */
 export const DEVELOPER_TOOL_SUBCATEGORY_DEFINITIONS: readonly PluginDeveloperToolSubcategoryOption[] = [
-  { value: 'middleware', labelKey: 'PAC.Plugin.Category_middleware', defaultLabel: 'Middleware' },
-  { value: 'integration', labelKey: 'PAC.Plugin.Category_integration', defaultLabel: 'System Integration' },
-  { value: 'database', labelKey: 'PAC.Plugin.Category_database', defaultLabel: 'Database' },
-  { value: 'tools', labelKey: 'PAC.Plugin.Category_tools', defaultLabel: 'Developer Tools' },
-  { value: 'model', labelKey: 'PAC.Plugin.Category_model', defaultLabel: 'Language Models' },
-  { value: 'vlm', labelKey: 'PAC.Plugin.Category_vlm', defaultLabel: 'Vision Models' },
-  { value: 'vector-store', labelKey: 'PAC.Plugin.Category_vector-store', defaultLabel: 'Vector Stores' },
-  { value: 'doc-source', labelKey: 'PAC.Plugin.Category_doc-source', defaultLabel: 'Document Sources' },
-  { value: 'datasource', labelKey: 'PAC.Plugin.Category_datasource', defaultLabel: 'Data Sources' },
-  { value: 'agent', labelKey: 'PAC.Plugin.Category_agent', defaultLabel: 'Agent' },
-  { value: 'set', labelKey: 'PAC.Plugin.Category_set', defaultLabel: 'Bundle' }
+  { value: 'middleware', labelKey: 'XP.Plugin.Category_middleware', defaultLabel: 'Middleware' },
+  { value: 'integration', labelKey: 'XP.Plugin.Category_integration', defaultLabel: 'System Integration' },
+  { value: 'database', labelKey: 'XP.Plugin.Category_database', defaultLabel: 'Database' },
+  { value: 'tools', labelKey: 'XP.Plugin.Category_tools', defaultLabel: 'Developer Tools' },
+  { value: 'model', labelKey: 'XP.Plugin.Category_model', defaultLabel: 'Language Models' },
+  { value: 'vlm', labelKey: 'XP.Plugin.Category_vlm', defaultLabel: 'Vision Models' },
+  { value: 'vector-store', labelKey: 'XP.Plugin.Category_vector-store', defaultLabel: 'Vector Stores' },
+  { value: 'doc-source', labelKey: 'XP.Plugin.Category_doc-source', defaultLabel: 'Document Sources' },
+  { value: 'datasource', labelKey: 'XP.Plugin.Category_datasource', defaultLabel: 'Data Sources' },
+  { value: 'agent', labelKey: 'XP.Plugin.Category_agent', defaultLabel: 'Agent' },
+  { value: 'set', labelKey: 'XP.Plugin.Category_set', defaultLabel: 'Bundle' }
 ]
 
 /**

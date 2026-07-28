@@ -1,5 +1,5 @@
 import { I18nObject } from '@xpert-ai/contracts'
-import { NgmI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
 import { includes, upperFirst } from 'lodash-es'
 
 export function convertConfigurationSchema(schema: any, i18n?: any) {
@@ -89,7 +89,7 @@ function convertFormlyField(
  * @param i18n
  * @returns
  */
-export function toFormlySchema(schema: any, i18n: NgmI18nPipe) {
+export function toFormlySchema(schema: any, i18n: XpI18nPipe) {
   const fields = []
   schema.order
     ?.map((name) => ({ name, property: schema.properties[name] }))
@@ -125,7 +125,7 @@ export function toFormlyField(
       label: I18nObject
     }[]
   },
-  i18n?: NgmI18nPipe
+  i18n?: XpI18nPipe
 ) {
   const label = property.title || upperFirst(name)
   let type = ''

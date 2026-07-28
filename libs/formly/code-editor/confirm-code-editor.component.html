@@ -6,7 +6,7 @@
 
 <div class="flex flex-col">
   <ngx-monaco-editor
-    class="ngm-confirm__monaco-editor flex-1 h-full"
+    class="xp-confirm__monaco-editor flex-1 h-full"
     [options]="editorOptions"
     [(ngModel)]="statement"
     (onInit)="editor$.next($event)"
@@ -14,7 +14,7 @@
 </div>
 
 <div class="flex justify-between items-center">
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button z-button zType="ghost" (click)="onReset()">
       {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}
     </button>
@@ -23,7 +23,7 @@
     </button>
   </div>
 
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button z-button zType="ghost" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>

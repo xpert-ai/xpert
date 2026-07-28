@@ -6,7 +6,7 @@
  */
 import { booleanAttribute, Component, OnInit, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {
@@ -18,7 +18,7 @@ import {
   JsonSchema7TypeUnion
 } from 'zod-to-json-schema'
 import { XpertVariableInputComponent } from '../../agent'
-import { NgmSelectComponent } from '../../common'
+import { XpSelectComponent } from '../../common'
 import { XpertRemoteSelectComponent } from '../../form-fields'
 import { TWorkflowVarGroup, JsonSchemaUIExtensions } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
@@ -42,8 +42,8 @@ type JsonSchemaPropertyContext = {
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmSelectComponent,
+    XpI18nPipe,
+    XpSelectComponent,
     XpertVariableInputComponent,
     XpertRemoteSelectComponent,
     JsonSchemaWidgetOutletComponent,
@@ -61,7 +61,7 @@ type JsonSchemaPropertyContext = {
 })
 export class JSONSchemaPropertyComponent implements OnInit {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly widgetRegistry? = inject(JsonSchemaWidgetStrategyRegistry, { optional: true })
 
   // Inputs

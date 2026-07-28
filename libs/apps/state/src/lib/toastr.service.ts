@@ -6,14 +6,17 @@ type TranslationParams = Record<string, unknown> | string | null | undefined
 
 @Injectable({ providedIn: 'root' })
 export class ToastrService {
-  constructor(private readonly toast: ZardToastService, private readonly translateService: TranslateService) {}
+  constructor(
+    private readonly toast: ZardToastService,
+    private readonly translateService: TranslateService
+  ) {}
 
   success(message: any, translationParams: TranslationParams = {}, title?: string) {
     const displayMessage = this.resolveMessage(message)
     const normalizedTitle = typeof translationParams === 'string' && !title ? translationParams : title
 
     this.toast.success(this.getTranslation(displayMessage, this.toTranslationParams(translationParams)), {
-      description: this.getTranslation(normalizedTitle || 'PAC.TOASTR.TITLE.SUCCESS'),
+      description: this.getTranslation(normalizedTitle || 'XP.TOASTR.TITLE.SUCCESS'),
       duration: 2000
     })
   }
@@ -23,21 +26,21 @@ export class ToastrService {
     const normalizedTitle = typeof translationParams === 'string' && !title ? translationParams : title
 
     this.toast.warning(this.getTranslation(displayMessage, this.toTranslationParams(translationParams)), {
-      description: this.getTranslation(normalizedTitle || 'PAC.TOASTR.TITLE.WARNING', { Default: 'Warning' }),
+      description: this.getTranslation(normalizedTitle || 'XP.TOASTR.TITLE.WARNING', { Default: 'Warning' }),
       duration: 3000
     })
   }
 
-  danger(error: any, title: string = 'PAC.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}) {
+  danger(error: any, title: string = 'XP.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}) {
     const displayMessage = this.resolveMessage(error)
 
     this.toast.error(this.getTranslation(displayMessage, this.toTranslationParams(translationParams)), {
-      description: this.getTranslation(title || 'PAC.TOASTR.TITLE.ERROR'),
+      description: this.getTranslation(title || 'XP.TOASTR.TITLE.ERROR'),
       duration: 5000
     })
   }
 
-  error(message: any, title: string = 'PAC.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}) {
+  error(message: any, title: string = 'XP.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}) {
     this.danger(message, title, translationParams)
   }
 

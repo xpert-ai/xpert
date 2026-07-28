@@ -23,31 +23,31 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '../../../../../components'
-import { DisplayBehaviour, DisplayDensity, ISelectOption, NgmDensityDirective, OcapCoreModule } from '../../../core'
+import { DisplayBehaviour, DisplayDensity, ISelectOption, XpDensityDirective, OcapCoreModule } from '../../../core'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
-import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
-import { NgmOptionContent } from '../../input/option-content'
+import { XpDisplayBehaviourComponent } from '../../display-behaviour'
+import { XpOptionContent } from '../../input/option-content'
 
 /**
  * Shared select wrapper for flat option lists.
  * You can use the following custom elements to customize the select:
- * - ngmLabel: the custom label elements of the select
- * - ngmError: the custom error message of the select
- * - ngmSuffix: the custom suffix elements of the select
+ * - xpLabel: the custom label elements of the select
+ * - xpError: the custom error message of the select
+ * - xpSuffix: the custom suffix elements of the select
  */
 @Component({
   standalone: true,
-  selector: 'ngm-select',
+  selector: 'xp-select',
   templateUrl: `select.component.html`,
   styleUrls: [`select.component.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'ngm-select',
+    class: 'xp-select',
     '[attr.disabled]': 'isDisabled || null'
   },
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ],
@@ -55,7 +55,7 @@ import { NgmOptionContent } from '../../input/option-content'
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmSelectComponent)
+      useExisting: forwardRef(() => XpSelectComponent)
     }
   ],
   imports: [
@@ -71,10 +71,10 @@ import { NgmOptionContent } from '../../input/option-content'
     ScrollingModule,
 
     OcapCoreModule,
-    NgmDisplayBehaviourComponent
+    XpDisplayBehaviourComponent
   ]
 })
-export class NgmSelectComponent implements ControlValueAccessor {
+export class XpSelectComponent implements ControlValueAccessor {
   readonly displayBehaviour = input<DisplayBehaviour | string>()
   readonly displayDensity = input<DisplayDensity | string>()
   /**
@@ -106,7 +106,7 @@ export class NgmSelectComponent implements ControlValueAccessor {
     transform: booleanAttribute
   })
 
-  @ContentChild(NgmOptionContent, { read: TemplateRef, static: true })
+  @ContentChild(XpOptionContent, { read: TemplateRef, static: true })
   _explicitContent: TemplateRef<any> = undefined!
 
   formControl = new FormControl<string | number | Array<string | number>>(null)

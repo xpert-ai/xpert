@@ -26,11 +26,11 @@ import {
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-formly-table',
+  selector: 'xp-formly-table',
   templateUrl: `table.type.html`,
   styleUrls: [`table.type.scss`],
   host: {
-    class: 'pac-formly-table'
+    class: 'xp-formly-table'
   },
   imports: [
     CommonModule,
@@ -48,7 +48,7 @@ import {
     OcapCoreModule
   ]
 })
-export class PACFormlyTableComponent extends FieldArrayType implements OnInit {
+export class XpFormlyTableComponent extends FieldArrayType implements OnInit {
   private readonly _dialog = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
@@ -77,7 +77,7 @@ export class PACFormlyTableComponent extends FieldArrayType implements OnInit {
   open(): void {
     this._dialog
       .open(this.dialogRef, {
-        panelClass: ['ngm-dialog-container', 'pac-formly__table'],
+        panelClass: ['xp-dialog-container', 'xp-formly__table'],
         viewContainerRef: this._viewContainerRef
       })
       .afterClosed()

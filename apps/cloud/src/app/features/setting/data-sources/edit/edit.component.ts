@@ -43,19 +43,19 @@ import { ToastrService } from '../../../../@core/services/toastr.service'
     ZardLoaderComponent,
     FormlyModule
   ],
-  selector: 'pac-data-source-edit',
+  selector: 'xp-data-source-edit',
   templateUrl: 'edit.component.html',
   styleUrls: ['edit.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PACDataSourceEditComponent {
+export class XpDataSourceEditComponent {
   AuthenticationEnum = AuthenticationEnum
   enableLocalAgent = environment.enableLocalAgent
 
   readonly dataSourceTypesAPI = inject(DataSourceTypesService)
   readonly dataSourceService = inject(DataSourceService)
   private translateService = inject(TranslateService)
-  public dialogRef = inject<ZardDialogRef<PACDataSourceEditComponent, boolean>>(ZardDialogRef)
+  public dialogRef = inject<ZardDialogRef<XpDataSourceEditComponent, boolean>>(ZardDialogRef)
   public data = inject<Pick<IDataSource, 'id'>>(Z_MODAL_DATA)
   private toastrService = inject(ToastrService)
   private serverAgent = inject(ServerAgent)
@@ -83,7 +83,7 @@ export class PACDataSourceEditComponent {
     const dataSourceType = this.dataSourceType()
     return dataSourceType?.configuration
       ? this.translateService
-          .stream('PAC.DataSources.Schema')
+          .stream('XP.DataSources.Schema')
           .pipe(map((i18n) => convertConfigurationSchema(dataSourceType.configuration, i18n)))
       : of(null)
   })
@@ -129,10 +129,10 @@ export class PACDataSourceEditComponent {
           options: this.model
         })
       )
-      this.toastrService.success('PAC.MESSAGE.Update', { Default: 'Update' })
+      this.toastrService.success('XP.MESSAGE.Update', { Default: 'Update' })
       this.dialogRef.close(true)
     } catch {
-      this.toastrService.error('', 'PAC.MESSAGE.Update', { Default: 'Update' })
+      this.toastrService.error('', 'XP.MESSAGE.Update', { Default: 'Update' })
     }
   }
 
@@ -169,7 +169,7 @@ export class PACDataSourceEditComponent {
       )
 
       this._loading.set(false)
-      this.toastrService.success('PAC.ACTIONS.PING', { Default: 'Ping' })
+      this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })
     } catch (err) {
       const message = getErrorMessage(err)
       this._loading.set(false)

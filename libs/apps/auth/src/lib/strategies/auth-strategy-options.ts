@@ -3,14 +3,14 @@
  * Copyright Akveo. All Rights Reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  */
-import { PacAuthTokenClass } from '../services/token/token';
+import { XpAuthTokenClass } from '../services/token/token'
 
 export interface NbStrategyToken {
-  class?: PacAuthTokenClass;
-  [key: string]: any;
+  class?: XpAuthTokenClass
+  [key: string]: any
 }
 
-export class PacAuthStrategyOptions {
-  name: string;
-  token?: NbStrategyToken;
+export class XpAuthStrategyOptions {
+  name: string
+  token?: NbStrategyToken
 }

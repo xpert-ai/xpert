@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <ul class="pac-nav__tab-bar flex-1 p-2 rounded-lg space-y-1">
+  <ul class="xp-nav__tab-bar flex-1 p-2 rounded-lg space-y-1">
     @for (e of menus(); track $index) {
       <li
         class="link flex justify-start items-center px-3 py-2 cursor-pointer rounded-lg hover:bg-hover-bg"
@@ -42,7 +42,7 @@
         routerLinkActive
         #rla="routerLinkActive"
         [class.active]="rla.isActive"
-        [zTooltip]="'PAC.MENU.' + e.label | translate: { Default: e.label }"
+        [zTooltip]="'XP.MENU.' + e.label | translate: { Default: e.label }"
         zPosition="right"
         [zDisabled]="sideMenuOpened()"
       >
@@ -58,16 +58,16 @@
                 : 'ml-2 min-w-0 truncate'
             "
           >
-            {{ 'PAC.MENU.' + e.label | translate: { Default: e.label } }}
+            {{ 'XP.MENU.' + e.label | translate: { Default: e.label } }}
             @if (e.deprecated) {
-              {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+              {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
             }
           </span>
 
           @if (e.deprecated) {
             <i
               class="ri-alert-line ml-2 shrink-0 text-text-warning"
-              [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+              [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
               zPosition="top"
             ></i>
           }
@@ -79,14 +79,14 @@
 
 <div
   [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
-  class="pac-nav__router relative flex-1 bg-background"
+  class="xp-nav__router relative flex-1 bg-background"
 >
   <router-outlet #o="outlet"></router-outlet>
 
-  <ngm-drawer-trigger
+  <xp-drawer-trigger
     class="absolute -left-2 top-1/2 -translate-y-1/2 z-40"
     [(opened)]="sideMenuOpened"
-    [zTooltip]="'PAC.KEY_WORDS.SettingsNavigation' | translate: { Default: 'Settings Navigation' }"
+    [zTooltip]="'XP.KEY_WORDS.SettingsNavigation' | translate: { Default: 'Settings Navigation' }"
     zPosition="right"
   />
 </div>

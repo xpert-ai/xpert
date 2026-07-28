@@ -8,7 +8,7 @@
   $primary: map.get($config, 'primary');
   $background: map.get($config, background);
 
-  z-tree.ngm-tree-select__panel {
+  z-tree.xp-tree-select__panel {
     background-color: transparent;
 
     [data-slot='tree-node'] {
@@ -32,8 +32,8 @@
     }
   }
 
-  .ngm-tree-select__panel {
-    .ngm-tree-select__option {
+  .xp-tree-select__panel {
+    .xp-tree-select__option {
       .z-icon-rtl-mirror {
         color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.3);
       }
@@ -52,7 +52,7 @@
 }
 
 @mixin density($config-or-theme) {
-  .ngm-tree-select__panel {
+  .xp-tree-select__panel {
     z-checkbox {
       display: flex;
 
@@ -62,7 +62,7 @@
       }
     }
 
-    .ngm-tree-select__option {
+    .xp-tree-select__option {
       [z-button][data-icon-only],
       z-button[data-icon-only] {
         .z-icon {
@@ -71,28 +71,28 @@
       }
     }
 
-    &.ngm-density__cosy {
-      .ngm-tree-select__option {
+    &.xp-density__cosy {
+      .xp-tree-select__option {
         min-height: 34px;
         @apply text-sm;
       }
     }
 
-    &.ngm-density__compact {
-      .ngm-tree-select__option {
+    &.xp-density__compact {
+      .xp-tree-select__option {
         min-height: 28px;
         font-size: 12px;
       }
     }
   }
 
-  z-tree.ngm-tree-select__panel {
-    &.ngm-density__cosy {
+  z-tree.xp-tree-select__panel {
+    &.xp-density__cosy {
       [data-slot='tree-node'] {
         min-height: 34px;
       }
     }
-    &.ngm-density__compact {
+    &.xp-density__compact {
       [data-slot='tree-node'] {
         min-height: 28px;
         font-size: 12px;

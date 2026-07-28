@@ -29,7 +29,7 @@ import {
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { AppService } from '@cloud/app/app.service'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { catchError, finalize, map, of, switchMap } from 'rxjs'
 import {
   buildSlashOptions,
@@ -102,7 +102,7 @@ type SendMetadata = {
     ...ZardTooltipImports,
     ZardButtonComponent,
     ZardIconComponent,
-    NgmCommonModule,
+    XpCommonModule,
     CopilotEnableModelComponent,
     ChatAttachmentsComponent,
     ChatComposerMenuComponent,
@@ -424,7 +424,7 @@ export class ChatInputComponent {
       this.addReferences([
         {
           type: 'quote',
-          source: this.#translate.instant('PAC.Chat.PastedText', { Default: 'Pasted text' }),
+          source: this.#translate.instant('XP.Chat.PastedText', { Default: 'Pasted text' }),
           text: pastedText
         }
       ])
@@ -596,7 +596,7 @@ export class ChatInputComponent {
       const attachments = state ?? []
       if (!attachments.some((attachment) => attachment.storageFile?.id === file.id)) {
         if (attachments.length >= this.attachment_maxNum()) {
-          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
+          this.#toastr.error('XP.Chat.AttachmentsMaxNumExceeded', '', {
             Default: 'Attachments exceed the maximum number allowed.'
           })
           return attachments
@@ -629,7 +629,7 @@ export class ChatInputComponent {
       const attachments = [...(state ?? [])]
       while (attachments.length <= this.attachment_maxNum() && pendingFiles.length > 0) {
         if (attachments.length >= this.attachment_maxNum()) {
-          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
+          this.#toastr.error('XP.Chat.AttachmentsMaxNumExceeded', '', {
             Default: 'Attachments exceed the maximum number allowed.'
           })
           return attachments
@@ -643,7 +643,7 @@ export class ChatInputComponent {
             (attachment) => attachment.file?.name === file.name || attachment.storageFile?.originalName === file.name
           )
         ) {
-          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
+          this.#toastr.error('XP.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
           continue
         }
         attachments.push({ file })

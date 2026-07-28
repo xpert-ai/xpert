@@ -3,8 +3,8 @@ import { Directive, TemplateRef } from '@angular/core'
 /** Decorates the `ng-template` tags and reads out the template from it. */
 @Directive({
   standalone: true,
-  selector: '[ngmOptionContent]'
+  selector: '[xpOptionContent]'
 })
-export class NgmOptionContent {
+export class XpOptionContent {
   constructor(/** Content for the option. */ public template: TemplateRef<any>) {}
 }

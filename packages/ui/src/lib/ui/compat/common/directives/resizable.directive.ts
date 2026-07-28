@@ -11,9 +11,9 @@ export type ResizeDirection =
   | 'bottomRight'
 
 /**
- * @directive NgmResizableDirective
+ * @directive XpResizableDirective
  *
- * Adds one or more resize handles (class .ngm-resize-handle) around the host element, allowing
+ * Adds one or more resize handles (class .xp-resize-handle) around the host element, allowing
  * interactive resizing from multiple directions.
  *
  * Features:
@@ -24,10 +24,10 @@ export type ResizeDirection =
  * - Mouse events handled outside Angular zone for performance.
  */
 @Directive({
-  selector: '[ngmResizable]',
+  selector: '[xpResizable]',
   standalone: true
 })
-export class NgmResizableDirective implements OnDestroy {
+export class XpResizableDirective implements OnDestroy {
   private handles: HTMLElement[] = []
   private startX = 0
   private startY = 0
@@ -82,7 +82,7 @@ export class NgmResizableDirective implements OnDestroy {
    */
   private createHandle(direction: ResizeDirection): void {
     const handle = this.renderer.createElement('div')
-    this.renderer.addClass(handle, 'ngm-resize-handle')
+    this.renderer.addClass(handle, 'xp-resize-handle')
     this.renderer.setStyle(handle, 'position', 'absolute')
     this.renderer.setStyle(handle, 'z-index', '10')
     this.renderer.setStyle(handle, 'pointer-events', 'auto')

@@ -10,12 +10,12 @@
     <div
       class="grow text-[13px] leading-[18px] text-text-destructive truncate"
       [title]="
-        'Ngm.RemoteSelect.OptionNotFound'
+        'XP.RemoteSelect.OptionNotFound'
           | translate: { Default: 'Option ' + option + ' not found, clear to reselect', option: option }
       "
     >
       {{
-        'Ngm.RemoteSelect.OptionNotFound'
+        'XP.RemoteSelect.OptionNotFound'
           | translate: { Default: 'Option ' + option + ' not found, clear to reselect', option: option }
       }}
     </div>
@@ -83,7 +83,7 @@
           value=""
           name="query"
           tabindex="-1"
-          [placeholder]="'Ngm.Common.Search' | translate: { Default: 'Search' }"
+          [placeholder]="'XP.Common.Search' | translate: { Default: 'Search' }"
           [formControl]="searchControl"
         />
       </div>
@@ -110,9 +110,7 @@
           />
           <div>
             <div [title]="option.label | i18n" class="grow text-sm text-gray-700 leading-5 truncate">
-              <span [ngmHighlight]="searchControl.value" [content]="option.label | i18n">{{
-                option.label | i18n
-              }}</span>
+              <span [xpHighlight]="searchControl.value" [content]="option.label | i18n">{{ option.label | i18n }}</span>
             </div>
             <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">
               {{ option.description | i18n }}

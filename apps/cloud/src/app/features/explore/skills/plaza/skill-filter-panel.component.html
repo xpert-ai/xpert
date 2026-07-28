@@ -8,7 +8,7 @@
         [zType]="selectedRepositoryId() === '__all__' ? 'secondary' : 'outline'"
         (click)="selectRepository('__all__')"
       >
-        {{ 'PAC.Explore.AllRepositories' | translate: { Default: 'All repositories' } }}
+        {{ 'XP.Explore.AllRepositories' | translate: { Default: 'All repositories' } }}
       </button>
 
       @for (repository of repositories().slice(0, 5); track repository.id) {
@@ -26,12 +26,12 @@
 
     <div class="flex items-center justify-between gap-3 md:justify-end">
       <div class="text-sm text-muted-foreground">
-        {{ repositoryCount() }} {{ 'PAC.Explore.RepositoriesCount' | translate: { Default: 'repositories' } }}
+        {{ repositoryCount() }} {{ 'XP.Explore.RepositoriesCount' | translate: { Default: 'repositories' } }}
       </div>
 
       <button z-button zType="ghost" zSize="sm" type="button" (click)="toggleOpen()">
         <z-icon zType="filter_alt" zSize="sm" />
-        {{ 'PAC.KEY_WORDS.Filter' | translate: { Default: 'Filter' } }}
+        {{ 'XP.KEY_WORDS.Filter' | translate: { Default: 'Filter' } }}
       </button>
     </div>
   </div>
@@ -40,7 +40,7 @@
     <div class="grid gap-3 rounded-lg border border-border bg-card/90 p-3 lg:grid-cols-3">
       <div class="space-y-2">
         <div class="text-xs font-medium text-muted-foreground">
-          {{ roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: 'Role' }) }}
+          {{ roleFilterGroup().label || ('XP.Explore.RoleFilter' | translate: { Default: 'Role' }) }}
         </div>
         <z-select class="w-full" [zValue]="selectedRole()" (zSelectionChange)="selectRole($event)">
           @for (option of roleOptions(); track option.value) {
@@ -53,7 +53,7 @@
 
       <div class="space-y-2">
         <div class="text-xs font-medium text-muted-foreground">
-          {{ appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: 'App type' }) }}
+          {{ appTypeFilterGroup().label || ('XP.Explore.AppTypeFilter' | translate: { Default: 'App type' }) }}
         </div>
         <z-select class="w-full" [zValue]="selectedAppType()" (zSelectionChange)="selectAppType($event)">
           @for (option of appTypeOptions(); track option.value) {
@@ -66,7 +66,7 @@
 
       <div class="space-y-2">
         <div class="text-xs font-medium text-muted-foreground">
-          {{ hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: 'Hot' }) }}
+          {{ hotFilterGroup().label || ('XP.Explore.HotFilter' | translate: { Default: 'Hot' }) }}
         </div>
         <z-select class="w-full" [zValue]="selectedHot()" (zSelectionChange)="selectHot($event)">
           @for (option of hotOptions(); track option.value) {

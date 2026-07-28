@@ -1,10 +1,10 @@
-<div class="pac-page-header overflow-hidden">
+<div class="xp-page-header overflow-hidden">
   <div class="flex justify-start items-center gap-4 overflow-hidden">
-    <!-- <pac-avatar class="shrink-0 w-16 h-16 rounded-full overflow-hidden" [avatar]="knowledgebase()?.avatar"></pac-avatar> -->
+    <!-- <xp-avatar class="shrink-0 w-16 h-16 rounded-full overflow-hidden" [avatar]="knowledgebase()?.avatar"></xp-avatar> -->
     <emoji-avatar [avatar]="knowledgebase()?.avatar" large class="shrink-0 rounded-md overflow-hidden shadow-sm" />
 
     <div class="flex flex-col items-start overflow-hidden text-ellipsis">
-      <h2 class="pac-page-title">{{ knowledgebase()?.name }}</h2>
+      <h2 class="xp-page-title">{{ knowledgebase()?.name }}</h2>
 
       <span class="overflow-hidden text-ellipsis whitespace-nowrap opacity-80">{{ knowledgebase()?.description }}</span>
     </div>
@@ -12,7 +12,7 @@
 
   <nav
     z-tab-nav-bar
-    class="pac-tab-nav-bar"
+    class="xp-tab-nav-bar"
     zSize="default"
     color="accent"
     alignTabs="start"
@@ -29,7 +29,7 @@
       [active]="rla1.isActive"
     >
       <z-icon zType="document_scanner"></z-icon>
-      {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
+      {{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
     </span>
     <span
       z-tab-link
@@ -40,7 +40,7 @@
       [active]="rla2.isActive"
     >
       <z-icon zType="quiz"></z-icon>
-      {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
+      {{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}
     </span>
     <span
       z-tab-link
@@ -51,7 +51,7 @@
       [active]="rla3.isActive"
     >
       <z-icon zType="manufacturing"></z-icon>
-      {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
+      {{ 'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
     </span>
     @for (view of extensionViews(); track view.key) {
       <span
@@ -73,7 +73,7 @@
 
 <z-tab-nav-panel
   #tabPanel
-  class="pac-page-body flex flex-col items-center"
+  class="xp-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
 >
   <router-outlet #o="outlet"></router-outlet>

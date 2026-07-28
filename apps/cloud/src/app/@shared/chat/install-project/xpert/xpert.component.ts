@@ -14,7 +14,7 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertBasicDialogComponent } from '@cloud/app/@shared/xpert'
-import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSearchComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -30,8 +30,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
-    NgmSearchComponent,
+    XpSpinComponent,
+    XpSearchComponent,
     EmojiAvatarComponent
   ],
   selector: 'project-install-xpert',
@@ -151,14 +151,14 @@ export class ProjectInstallXpertComponent {
         next: (xpert) => {
           this.createdXpert.set(xpert)
           this.#toastr.success(
-            this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
+            this.#translate.instant('XP.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )
         },
         error: (err) => {
           const error = getErrorMessage(err)
           this.error.set(error)
           this.#toastr.error(
-            this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) + ': ' + error
+            this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) + ': ' + error
           )
         }
       })

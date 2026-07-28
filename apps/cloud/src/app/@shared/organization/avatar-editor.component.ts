@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, inject, input } from '@angular/core'
-import { AppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, ScreenshotService, Store } from '../../@core'
@@ -9,10 +9,10 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-org-avatar-editor',
+  selector: 'xp-org-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styles: [``],
-  imports: [ZardIconComponent, CdkMenuModule, TranslateModule, DensityDirective, AppearanceDirective]
+  imports: [ZardIconComponent, CdkMenuModule, TranslateModule, DensityDirective, XpAppearanceDirective]
 })
 export class OrgAvatarEditorComponent {
   private readonly screenshotService = inject(ScreenshotService)

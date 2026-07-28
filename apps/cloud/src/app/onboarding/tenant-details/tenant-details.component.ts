@@ -21,7 +21,7 @@ import {
   ITenant,
   Store
 } from '@xpert-ai/cloud/state'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { omit } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -53,7 +53,7 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
 
 @Component({
   standalone: true,
-  selector: 'ngm-tenant-details',
+  selector: 'xp-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
   imports: [
@@ -67,7 +67,7 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
     ZardProgressBarComponent,
     FormlyModule,
     FeatureCategoryComponent,
-    NgmCommonModule,
+    XpCommonModule,
     CopilotConfigFormComponent,
     ZardButtonComponent
   ],
@@ -174,7 +174,7 @@ export class TenantDetailsComponent {
 
   readonly formlyFields = toSignal(
     combineLatest([
-      this.translateService.stream('PAC.DataSources.Schema'),
+      this.translateService.stream('XP.DataSources.Schema'),
       this.dataSourceTypeFormGroup.get('type').valueChanges
     ]).pipe(map(([i18n, type]) => convertConfigurationSchema(type[0].configuration, i18n)))
   )
@@ -301,7 +301,7 @@ export class TenantDetailsComponent {
     this.loading.set(true)
     this.#featureAPI.featuresToggle(this.features().map(({ feature }) => feature)).subscribe({
       next: async () => {
-        this.toastrService.success('PAC.Onboarding.EnableFeaturesSuccess', {
+        this.toastrService.success('XP.Onboarding.EnableFeaturesSuccess', {
           Default: 'Features enabled successfully!'
         })
 
@@ -333,7 +333,7 @@ export class TenantDetailsComponent {
         })
       )
 
-      this.toastrService.success('PAC.Onboarding.GenerateDemoSuccess', {
+      this.toastrService.success('XP.Onboarding.GenerateDemoSuccess', {
         Default: 'Demo data & samples generated successfully!'
       })
       this.demoCompleted.set(true)
@@ -386,11 +386,11 @@ export class TenantDetailsComponent {
         }
       )
 
-      this.toastrService.success('PAC.ACTIONS.PING', { Default: 'Ping' })
+      this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })
 
       // Create datadource
       const result = await firstValueFrom(this.dataSourceService.create(dataSource))
-      this.toastrService.success('PAC.MESSAGE.CreateDataSource', { Default: 'Create data source' })
+      this.toastrService.success('XP.MESSAGE.CreateDataSource', { Default: 'Create data source' })
       this.loading.set(false)
       this.connectionCompleted.set(true)
       this.stepper.next()

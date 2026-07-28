@@ -3,7 +3,7 @@ import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { Directive, ElementRef, HostBinding, Input } from '@angular/core'
 import { Subject } from 'rxjs'
 
-export type ngmAppearance =
+export type XpButtonAppearance =
   | 'filled'
   | 'outline'
   | 'ghost'
@@ -16,81 +16,81 @@ export type ngmAppearance =
 
 @Directive({
   standalone: true,
-  selector: '[ngmAppearance]',
+  selector: '[xpAppearance]',
   host: {
     '(focus)': 'focus()'
   }
 })
-export class AppearanceDirective implements FocusableOption {
+export class XpAppearanceDirective implements FocusableOption {
   @Input() color: string | null = null
-  @Input() ngmAppearance: ngmAppearance = 'filled'
+  @Input() xpAppearance: XpButtonAppearance = 'filled'
 
   /**
    * Sets `outline` appearance
    */
   @Input()
-  @HostBinding('class.ngm-appearance-outline')
+  @HostBinding('class.xp-appearance-outline')
   get outline(): boolean {
-    return this.ngmAppearance === 'outline'
+    return this.xpAppearance === 'outline'
   }
   set outline(value: boolean) {
     if (coerceBooleanProperty(value)) {
-      this.ngmAppearance = 'outline'
+      this.xpAppearance = 'outline'
     }
   }
 
   @Input()
-  @HostBinding('class.ngm-appearance-hero')
+  @HostBinding('class.xp-appearance-hero')
   get hero(): boolean {
-    return this.ngmAppearance === 'hero'
+    return this.xpAppearance === 'hero'
   }
   set hero(value: boolean) {
     if (coerceBooleanProperty(value)) {
-      this.ngmAppearance = 'hero'
+      this.xpAppearance = 'hero'
     }
   }
 
   @Input()
-  @HostBinding('class.ngm-appearance-acrylic')
+  @HostBinding('class.xp-appearance-acrylic')
   get acrylic(): boolean {
-    return this.ngmAppearance === 'acrylic'
+    return this.xpAppearance === 'acrylic'
   }
   set acrylic(value: boolean) {
     if (coerceBooleanProperty(value)) {
-      this.ngmAppearance = 'acrylic'
+      this.xpAppearance = 'acrylic'
     }
   }
 
   @Input()
-  @HostBinding('class.ngm-appearance-opacity')
+  @HostBinding('class.xp-appearance-opacity')
   get opacity(): boolean {
-    return this.ngmAppearance === 'opacity'
+    return this.xpAppearance === 'opacity'
   }
   set opacity(value: boolean) {
     if (coerceBooleanProperty(value)) {
-      this.ngmAppearance = 'opacity'
+      this.xpAppearance = 'opacity'
     }
   }
 
   @Input()
-  @HostBinding('class.ngm-appearance-dashed')
+  @HostBinding('class.xp-appearance-dashed')
   get dashed(): boolean {
-    return this.ngmAppearance === 'dashed'
+    return this.xpAppearance === 'dashed'
   }
   set dashed(value: any) {
     if (coerceBooleanProperty(value)) {
-      this.ngmAppearance = 'dashed'
+      this.xpAppearance = 'dashed'
     }
   }
 
   @Input()
-  @HostBinding('class.ngm-appearance-danger')
+  @HostBinding('class.xp-appearance-danger')
   get danger(): boolean {
-    return this.ngmAppearance === 'danger'
+    return this.xpAppearance === 'danger'
   }
   set danger(value: any) {
     if (coerceBooleanProperty(value)) {
-      this.ngmAppearance = 'danger'
+      this.xpAppearance = 'danger'
     }
   }
 

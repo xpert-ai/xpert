@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { myRxResource } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { interval, Subscription } from 'rxjs'
 import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
@@ -28,7 +28,7 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
   imports: [
     FormsModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
   ]

@@ -12,19 +12,19 @@
         data-sidebar-toggle-button="viewer"
         [zTooltip]="
           sideMenuVisible()
-            ? ('PAC.Files.HideFileTree' | translate: { Default: 'Hide file tree' })
-            : ('PAC.Files.ShowFileTree' | translate: { Default: 'Show file tree' })
+            ? ('XP.Files.HideFileTree' | translate: { Default: 'Hide file tree' })
+            : ('XP.Files.ShowFileTree' | translate: { Default: 'Show file tree' })
         "
         zPosition="top"
         [title]="
           sideMenuVisible()
-            ? ('PAC.Files.HideFileTree' | translate: { Default: 'Hide file tree' })
-            : ('PAC.Files.ShowFileTree' | translate: { Default: 'Show file tree' })
+            ? ('XP.Files.HideFileTree' | translate: { Default: 'Hide file tree' })
+            : ('XP.Files.ShowFileTree' | translate: { Default: 'Show file tree' })
         "
         [attr.aria-label]="
           sideMenuVisible()
-            ? ('PAC.Files.HideFileTree' | translate: { Default: 'Hide file tree' })
-            : ('PAC.Files.ShowFileTree' | translate: { Default: 'Show file tree' })
+            ? ('XP.Files.HideFileTree' | translate: { Default: 'Hide file tree' })
+            : ('XP.Files.ShowFileTree' | translate: { Default: 'Show file tree' })
         "
         (click)="sideMenuToggle.emit()"
       >
@@ -40,27 +40,27 @@
       <div class="lg:hidden mb-2">
         <button z-button zType="ghost" zSize="sm" type="button" (click)="back.emit()">
           <i class="ri-arrow-left-line mr-1"></i>
-          {{ 'PAC.Files.BackToTree' | translate: { Default: 'Back to tree' } }}
+          {{ 'XP.Files.BackToTree' | translate: { Default: 'Back to tree' } }}
         </button>
       </div>
       <div
         class="truncate font-mono text-xs text-text-tertiary"
         data-file-path-label="viewer"
-        [zTooltip]="filePath() || ('PAC.Files.NoFileSelected' | translate: { Default: 'No file selected' })"
+        [zTooltip]="filePath() || ('XP.Files.NoFileSelected' | translate: { Default: 'No file selected' })"
         zPosition="top"
-        [title]="filePath() || ('PAC.Files.NoFileSelected' | translate: { Default: 'No file selected' })"
+        [title]="filePath() || ('XP.Files.NoFileSelected' | translate: { Default: 'No file selected' })"
       >
-        {{ filePath() || ('PAC.Files.NoFileSelected' | translate: { Default: 'No file selected' }) }}
+        {{ filePath() || ('XP.Files.NoFileSelected' | translate: { Default: 'No file selected' }) }}
       </div>
       <div class="xp-file-heading mt-1 flex flex-wrap items-center gap-2" data-file-content-heading="viewer">
         <div class="text-sm font-semibold text-text-primary">
-          {{ 'PAC.Files.FileContent' | translate: { Default: 'File Content' } }}
+          {{ 'XP.Files.FileContent' | translate: { Default: 'File Content' } }}
         </div>
         @if (dirty()) {
           <span
             class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-warning"
           >
-            {{ 'PAC.Files.UnsavedChanges' | translate: { Default: 'Unsaved changes' } }}
+            {{ 'XP.Files.UnsavedChanges' | translate: { Default: 'Unsaved changes' } }}
           </span>
         }
       </div>
@@ -78,7 +78,7 @@
           (click)="refresh.emit()"
         >
           <i class="ri-refresh-line mr-1" [class.animate-spin]="loading()"></i>
-          {{ 'PAC.Files.RefreshFile' | translate: { Default: 'Refresh' } }}
+          {{ 'XP.Files.RefreshFile' | translate: { Default: 'Refresh' } }}
         </button>
       }
 
@@ -92,7 +92,7 @@
           (click)="emitFileReference()"
         >
           <i class="ri-attachment-2 mr-1"></i>
-          {{ 'PAC.Files.ReferenceFile' | translate: { Default: 'Reference file' } }}
+          {{ 'XP.Files.ReferenceFile' | translate: { Default: 'Reference file' } }}
         </button>
       }
 
@@ -106,23 +106,23 @@
           (click)="toggleHtmlInspectMode()"
         >
           <i class="ri-focus-3-line mr-1"></i>
-          {{ 'PAC.Chat.ClawXpert.Inspect' | translate: { Default: 'Inspect' } }}
+          {{ 'XP.Chat.ClawXpert.Inspect' | translate: { Default: 'Inspect' } }}
         </button>
       }
 
       <z-segmented [(ngModel)]="mode">
-        <z-segmented-item [value]="'view'" [label]="'PAC.Chat.View' | translate: { Default: 'View' }" />
+        <z-segmented-item [value]="'view'" [label]="'XP.Chat.View' | translate: { Default: 'View' }" />
         <z-segmented-item
           [value]="'edit'"
-          [label]="'PAC.Chat.Edit' | translate: { Default: 'Edit' }"
+          [label]="'XP.Chat.Edit' | translate: { Default: 'Edit' }"
           [zDisabled]="!editable()"
         />
       </z-segmented>
 
       @if (mode() === 'view' && canTogglePreview()) {
         <z-segmented [ngModel]="previewMode()" (ngModelChange)="updatePreviewMode($event)">
-          <z-segmented-item [value]="'preview'" [label]="'PAC.Chat.Preview' | translate: { Default: 'Preview' }" />
-          <z-segmented-item [value]="'code'" [label]="'PAC.Chat.Code' | translate: { Default: 'Code' }" />
+          <z-segmented-item [value]="'preview'" [label]="'XP.Chat.Preview' | translate: { Default: 'Preview' }" />
+          <z-segmented-item [value]="'code'" [label]="'XP.Chat.Code' | translate: { Default: 'Code' }" />
         </z-segmented>
       }
 
@@ -136,7 +136,7 @@
           [disabled]="!dirty()"
           (click)="discard.emit()"
         >
-          {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
+          {{ 'XP.Files.Discard' | translate: { Default: 'Discard' } }}
         </button>
         <button
           z-button
@@ -150,7 +150,7 @@
           @if (saving()) {
             <i class="ri-loader-4-line mr-1 animate-spin"></i>
           }
-          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+          {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
         </button>
       }
     </div>
@@ -159,11 +159,11 @@
   <div class="xp-pane-body relative overflow-hidden">
     @if (filePath()) {
       @if (loading()) {
-        <ngm-spin
+        <xp-spin
           class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"
         />
       } @else if (mode() === 'edit' && editable()) {
-        <pac-file-editor
+        <xp-file-editor
           class="h-full"
           [referenceable]="editorReferenceable()"
           [editable]="true"
@@ -175,7 +175,7 @@
           (referenceSelection)="referenceSelection.emit($event)"
         />
       } @else if (showEnhancedPreview()) {
-        <pac-file-preview-content
+        <xp-file-preview-content
           class="h-full"
           [content]="previewData().content"
           [documentBlob]="previewData().documentBlob"
@@ -217,14 +217,14 @@
             @if (downloadable()) {
               <button z-button zType="default" zSize="sm" type="button" class="mt-6" (click)="download.emit()">
                 <i class="ri-download-2-line mr-1"></i>
-                {{ 'PAC.Files.Download' | translate: { Default: 'Download' } }}
+                {{ 'XP.Files.Download' | translate: { Default: 'Download' } }}
               </button>
             }
           </div>
         </div>
       } @else if (markdown() && isPreviewMode()) {
         <div #markdownPreviewHost class="relative h-full overflow-auto px-6 py-5">
-          <markdown class="ngm-copilot-markdown block" [data]="content()" />
+          <markdown class="xp-copilot-markdown block" [data]="content()" />
 
           @if (markdownPreviewReference(); as previewSelection) {
             <button
@@ -239,12 +239,12 @@
               (click)="emitMarkdownPreviewReference()"
             >
               <i class="ri-code-box-line mr-1"></i>
-              {{ 'PAC.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
+              {{ 'XP.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
             </button>
           }
         </div>
       } @else {
-        <pac-file-editor
+        <xp-file-editor
           class="h-full"
           [referenceable]="editorReferenceable()"
           lineNumbers
@@ -263,11 +263,11 @@
     } @else {
       <div class="xp-empty-state h-full">
         <div class="text-lg font-semibold text-text-primary">
-          {{ 'PAC.Files.SelectFile' | translate: { Default: 'Select a file' } }}
+          {{ 'XP.Files.SelectFile' | translate: { Default: 'Select a file' } }}
         </div>
         <div class="text-sm text-text-tertiary">
           {{
-            'PAC.Files.SelectFileHint'
+            'XP.Files.SelectFileHint'
               | translate: { Default: 'Choose a file from the tree pane to preview or edit it.' }
           }}
         </div>

@@ -2,16 +2,16 @@
 :host {
   @apply relative flex flex-col items-stretch min-w-[100px]; // w-full;
 
-  &.ngm-select-error {
-    .ngm-select-element [role='combobox'] {
+  &.xp-select-error {
+    .xp-select-element [role='combobox'] {
       border-color: var(--destructive);
     }
-    .ngm-input-element {
+    .xp-input-element {
       border-color: var(--destructive);
     }
   }
 }
 
-.ngm-select__message {
+.xp-select__message {
   display: inline-flex;
 }

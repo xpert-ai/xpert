@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent, XpertVariableInputComponent } from '@cloud/app/@shared/agent'
 import { XpertWorkflowConditionFormComponent } from '@cloud/app/@shared/workflow'
-import { NgmCheckboxComponent } from '@xpert-ai/headless-ui'
+import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -27,7 +27,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmCheckboxComponent,
+    XpCheckboxComponent,
     StateVariableSelectComponent,
     XpertWorkflowConditionFormComponent,
     XpertVariableInputComponent,

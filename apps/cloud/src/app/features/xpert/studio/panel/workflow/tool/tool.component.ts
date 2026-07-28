@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, injec
 import { FormsModule } from '@angular/forms'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -46,8 +46,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmDensityDirective,
-    NgmI18nPipe,
+    XpDensityDirective,
+    XpI18nPipe,
     EmojiAvatarComponent,
     XpertStudioToolsetMenuComponent,
     XpertWorkflowErrorHandlingComponent,
@@ -190,7 +190,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
       if (this.paramsSample().value) {
         const value = this.paramsSample().value
         this.#clipboard.copy(JSON.stringify(value, null, 2))
-        this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied' })
+        this._toastr.success('XP.Xpert.Copied', { Default: 'Copied' })
         return
       }
       this.paramsSample.update((state) => ({ ...state, loading: true }))
@@ -198,7 +198,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
         next: (value) => {
           this.paramsSample.update((state) => ({ loading: false, value }))
           this.#clipboard.copy(JSON.stringify(value, null, 2))
-          this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied' })
+          this._toastr.success('XP.Xpert.Copied', { Default: 'Copied' })
         },
         error: (error) => {
           this.paramsSample.update((state) => ({ loading: false, value: null }))

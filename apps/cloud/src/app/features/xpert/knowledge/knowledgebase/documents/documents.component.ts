@@ -7,8 +7,8 @@ import { FormsModule } from '@angular/forms'
 import { Dialog } from '@angular/cdk/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { injectConfirmDelete, injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
-import { debouncedSignal, linkedModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { debouncedSignal, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
@@ -87,7 +87,7 @@ interface DocumentTableSortState {
 const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   {
     key: 'name',
-    labelKey: 'PAC.KEY_WORDS.Name',
+    labelKey: 'XP.KEY_WORDS.Name',
     defaultLabel: 'Name',
     width: 300,
     minWidth: 180,
@@ -98,7 +98,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   },
   {
     key: 'type',
-    labelKey: 'PAC.KEY_WORDS.Type',
+    labelKey: 'XP.KEY_WORDS.Type',
     defaultLabel: 'Type',
     width: 176,
     minWidth: 120,
@@ -109,7 +109,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   },
   {
     key: 'createdAtRelative',
-    labelKey: 'PAC.KEY_WORDS.Created At',
+    labelKey: 'XP.KEY_WORDS.Created At',
     defaultLabel: 'Created At',
     width: 176,
     minWidth: 140,
@@ -120,7 +120,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   },
   {
     key: 'disabled',
-    labelKey: 'PAC.KEY_WORDS.Enabled',
+    labelKey: 'XP.KEY_WORDS.Enabled',
     defaultLabel: 'Enabled',
     width: 112,
     minWidth: 96,
@@ -131,7 +131,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   },
   {
     key: 'processMsg',
-    labelKey: 'PAC.KEY_WORDS.Message',
+    labelKey: 'XP.KEY_WORDS.Message',
     defaultLabel: 'Message',
     width: 240,
     minWidth: 160,
@@ -142,7 +142,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   },
   {
     key: 'progress',
-    labelKey: 'PAC.Knowledgebase.ParsingProgress',
+    labelKey: 'XP.Knowledgebase.ParsingProgress',
     defaultLabel: 'Parsing Progress',
     width: 192,
     minWidth: 160,
@@ -174,9 +174,9 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
     CdkMenuModule,
     ...ZardTooltipImports,
     ZardSwitchComponent,
-    NgmCommonModule,
+    XpCommonModule,
     KnowledgeDocIdComponent,
-    NgmI18nPipe
+    XpI18nPipe
   ],
   animations: [
     trigger('detailExpand', [
@@ -554,7 +554,7 @@ export class KnowledgeDocumentsComponent {
     const docs = this.selectedDownloadableOriginalFileDocuments()
     if (!docs.length || this.downloadingSelectedOriginalFiles()) {
       this.#toastr.warning(
-        this.#translate.instant('PAC.Knowledgebase.NoOriginalFilesToDownload', {
+        this.#translate.instant('XP.Knowledgebase.NoOriginalFilesToDownload', {
           Default: 'No downloadable original files are available.'
         })
       )
@@ -621,7 +621,7 @@ export class KnowledgeDocumentsComponent {
     }
     this.confirmUnique<IKnowledgeDocument>(
       {
-        title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' })
+        title: this.#translate.instant('XP.Knowledgebase.NewFolder', { Default: 'New Folder' })
       },
       (name: string) => {
         return name
@@ -820,7 +820,7 @@ export class KnowledgeDocumentsComponent {
   renameDoc(doc: IKnowledgeDocument) {
     this.confirmUnique(
       {
-        title: this.#translate.instant('PAC.ACTIONS.Rename', { Default: 'Rename' }),
+        title: this.#translate.instant('XP.ACTIONS.Rename', { Default: 'Rename' }),
         value: doc.name
       },
       (name: string) => {
@@ -959,7 +959,7 @@ export class KnowledgeDocumentsComponent {
         next: () => {
           this.isLoading.set(false)
           this._toastrService.success(
-            this.#translate.instant('PAC.Knowledgebase.MetadataSchemaSaved', {
+            this.#translate.instant('XP.Knowledgebase.MetadataSchemaSaved', {
               Default: 'Metadata schema saved successfully'
             })
           )

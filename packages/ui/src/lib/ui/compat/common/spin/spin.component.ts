@@ -1,17 +1,17 @@
 import { Component } from '@angular/core'
-import { NgmDensityDirective } from '../../core'
+import { XpDensityDirective } from '../../core'
 
 @Component({
   standalone: true,
   imports: [],
-  selector: 'ngm-spin',
+  selector: 'xp-spin',
   templateUrl: 'spin.component.html',
   styleUrls: ['spin.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ]
 })
-export class NgmSpinComponent {}
+export class XpSpinComponent {}

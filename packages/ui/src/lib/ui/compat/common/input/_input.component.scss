@@ -1,6 +1,6 @@
 @reference "../../../tailwind-workspace-reference.css";
 
-.ngm-input-element[z-input] {
+.xp-input-element[z-input] {
   @apply flex box-border w-full max-w-full min-w-[6rem] rounded-md border border-input bg-transparent px-2.5 py-1 text-sm
     font-normal text-foreground file:border-0 file:bg-transparent file:font-medium file:text-foreground
     placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-ring/50
@@ -14,25 +14,25 @@
     @apply cursor-not-allowed opacity-50;
   }
 
-  &.ngm-input__searching {
+  &.xp-input__searching {
     &:focus {
       @apply bg-transparent;
     }
   }
 }
 
-.ngm-input__suffix {
+.xp-input__suffix {
   @apply absolute right-2;
 }
 
-.ngm-density__cosy {
-  .ngm-input-element[z-input] {
+.xp-density__cosy {
+  .xp-input-element[z-input] {
     @apply h-8 rounded-md px-2 py-1 text-sm;
   }
-  .ngm-input__suffix {
+  .xp-input__suffix {
     @apply absolute right-1;
   }
-  .ngm-input-element__clear {
+  .xp-input-element__clear {
     @apply w-6 h-6;
     .z-icon,
     i {
@@ -41,36 +41,36 @@
   }
 }
 
-.ngm-density__compact {
-  .ngm-input-label {
+.xp-density__compact {
+  .xp-input-label {
     @apply text-sm;
   }
-  .ngm-input-element[z-input] {
+  .xp-input-element[z-input] {
     @apply h-8 rounded-md px-2 py-1 text-xs;
   }
-  .ngm-input__suffix {
+  .xp-input__suffix {
     @apply absolute right-0;
   }
 }
 
-.ngm-input-element[z-input].ngm-w-full {
+.xp-input-element[z-input].xp-w-full {
   @apply w-full;
 }
 
-.ngm-input-label {
+.xp-input-label {
   @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
 }
 
-.ngm-form-field__subscript-wrapper {
+.xp-form-field__subscript-wrapper {
   @apply w-full h-2;
 }
 
-.ngm-input-error {
-  .ngm-input-element {
+.xp-input-error {
+  .xp-input-element {
     border-color: var(--destructive);
   }
 }
 
-textarea.ngm-input-element {
+textarea.xp-input-element {
   @apply h-auto min-h-20 bg-background px-3 py-2 text-base;
 }

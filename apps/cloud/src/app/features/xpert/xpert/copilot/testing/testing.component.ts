@@ -5,9 +5,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpertComponent } from '../../xpert.component'
 import { ExampleVectorStoreRetriever } from 'apps/cloud/src/app/@core/copilot'
 import { CopilotExampleService, getErrorMessage, injectToastr } from 'apps/cloud/src/app/@core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { DocumentInterface } from '@langchain/core/documents'
-import { NgmSliderInputComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSliderInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe, switchMap } from 'rxjs'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -18,9 +18,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     FormsModule,
     ...ZardTooltipImports,
-    NgmSelectComponent,
-    NgmSpinComponent,
-    NgmSliderInputComponent
+    XpSelectComponent,
+    XpSpinComponent,
+    XpSliderInputComponent
   ],
   templateUrl: './testing.component.html',
   styleUrl: './testing.component.scss'
@@ -62,7 +62,7 @@ export class XpertCopilotKnowledgeTestingComponent {
 
   // readonly commands = signal<TSelectOption[]>(Object.values(CopilotCommandEnum).map((command) => ({
   //   value: command,
-  //   label: this.#translate.instant('PAC.Copilot.Commands.' + command, {Default: command})
+  //   label: this.#translate.instant('XP.Copilot.Commands.' + command, {Default: command})
   // })))
 
   readonly commands = derivedFrom(
@@ -72,7 +72,7 @@ export class XpertCopilotKnowledgeTestingComponent {
       map((commands) =>
         commands.map((command) => ({
           value: command,
-          label: this.#translate.instant('PAC.Copilot.Commands.' + command, { Default: command })
+          label: this.#translate.instant('XP.Copilot.Commands.' + command, { Default: command })
         }))
       )
     ),

@@ -5,17 +5,17 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+              {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
             </div>
             <div class="font-medium">{{ membership()?.plan?.name }}</div>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
                 {{ remainingPoints() | number }}
               }
@@ -23,12 +23,12 @@
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
                 {{ membership()?.pointsUsed | number: '1.0-10' }} /
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
                 {{ membership()?.pointsUsed | number: '1.0-10' }} / {{ membership()?.pointsGranted | number: '1.0-10' }}
               }
@@ -36,7 +36,7 @@
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
+              {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
             </div>
             <div class="font-medium">{{ membership()?.currentPeriodEnd | date: 'mediumDate' }}</div>
           </div>
@@ -46,8 +46,7 @@
     } @else {
       <div class="text-text-tertiary">
         {{
-          'PAC.Membership.NoUserMembership'
-            | translate: { Default: 'No membership has been created for this user yet.' }
+          'XP.Membership.NoUserMembership' | translate: { Default: 'No membership has been created for this user yet.' }
         }}
       </div>
     }
@@ -62,10 +61,10 @@
         <input
           z-input
           [(ngModel)]="note"
-          [placeholder]="'PAC.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
+          [placeholder]="'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
         />
         <button z-button zType="default" type="button" [disabled]="loading() || !selectedPlanId" (click)="assign()">
-          {{ 'PAC.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+          {{ 'XP.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
         </button>
       </div>
 
@@ -74,18 +73,18 @@
           z-input
           type="number"
           [(ngModel)]="pointDelta"
-          [placeholder]="'PAC.Membership.PointDelta' | translate: { Default: 'Point delta' }"
+          [placeholder]="'XP.Membership.PointDelta' | translate: { Default: 'Point delta' }"
         />
         <input
           z-input
           [(ngModel)]="reason"
-          [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+          [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
         />
         <button z-button zType="secondary" type="button" [disabled]="loading() || !pointDelta" (click)="adjust()">
-          {{ 'PAC.Membership.AdjustPoints' | translate: { Default: 'Adjust points' } }}
+          {{ 'XP.Membership.AdjustPoints' | translate: { Default: 'Adjust points' } }}
         </button>
         <button z-button zType="secondary" type="button" [disabled]="loading() || !membership()" (click)="renew()">
-          {{ 'PAC.Membership.Renew' | translate: { Default: 'Renew' } }}
+          {{ 'XP.Membership.Renew' | translate: { Default: 'Renew' } }}
         </button>
       </div>
     </div>

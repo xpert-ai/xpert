@@ -4,8 +4,8 @@ import { Component, computed, effect, inject, model, signal, TemplateRef, viewCh
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DisappearFadeOut, DynamicGridDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent, NgmTagsComponent } from '@xpert-ai/headless-ui'
+import { DisappearFadeOut, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { XpSelectComponent, XpTagsComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'
 import { EmailTemplateNameEnum } from '../../../@core/types'
@@ -16,7 +16,7 @@ import { injectOrganization } from '@xpert-ai/cloud/state'
 import { LanguagesEnum } from '@xpert-ai/contracts'
 import { EmailTemplateComponent } from './template/template.component'
 
-import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
@@ -32,11 +32,11 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardIconComponent,
     ZardButtonComponent,
-    NgmSelectComponent,
-    NgmTagsComponent,
+    XpSelectComponent,
+    XpTagsComponent,
     CardCreateComponent,
-    DynamicGridDirective,
-    ButtonGroupDirective,
+    XpDynamicGridDirective,
+    XpButtonGroupDirective,
     LanguageSelectorComponent,
     EmailTemplateComponent
   ],

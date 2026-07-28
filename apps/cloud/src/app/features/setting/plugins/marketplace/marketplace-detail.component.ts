@@ -4,8 +4,8 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectPluginAPI,
@@ -60,8 +60,8 @@ export type PluginMarketplaceDetailDialogData = {
   imports: [
     CommonModule,
     TranslateModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     IconComponent,
     ZardBadgeComponent,
     ZardButtonComponent

@@ -6,7 +6,7 @@
  */
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -26,7 +26,7 @@ import { JSONSchemaPropertyComponent } from '../json-schema-property/property.co
 })
 export class JSONSchemaFormComponent {
   protected cva = inject<NgxControlValueAccessor<Record<string, unknown>>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly schema = input<JsonSchemaObjectType>()

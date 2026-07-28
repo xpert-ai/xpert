@@ -14,7 +14,7 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
@@ -33,7 +33,7 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmSelectComponent,
+    XpSelectComponent,
     StateVariableSelectComponent,
     ZardSliderComponent,
     ZardSwitchComponent

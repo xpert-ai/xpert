@@ -35,10 +35,10 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { Samples } from '../types'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
-import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
@@ -60,8 +60,8 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     EntriesPipe,
     EmojiAvatarComponent,
     TagSelectComponent,
-    NgmSpinComponent,
-    NgmDensityDirective,
+    XpSpinComponent,
+    XpDensityDirective,
 
     XpertToolAuthorizationInputComponent,
     XpertToolNameInputComponent,

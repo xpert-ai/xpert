@@ -6,7 +6,7 @@
     cdkDragHandle
   >
     {{
-      (startMode() === 'template' ? 'PAC.Xpert.CreateXpert' : 'PAC.Xpert.CreateBlankXpert')
+      (startMode() === 'template' ? 'XP.Xpert.CreateXpert' : 'XP.Xpert.CreateBlankXpert')
         | translate
           : {
               Default: startMode() === 'template' ? 'Create Xpert' : 'Create blank Xpert'
@@ -20,7 +20,7 @@
     <div class="shrink-0 py-2 px-8">
       <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-5">
         <div class="py-2 text-sm leading-[20px] font-medium">
-          {{ 'PAC.Xpert.ChooseXpertType' | translate: { Default: 'What type of Xpert do you want?' } }}
+          {{ 'XP.Xpert.ChooseXpertType' | translate: { Default: 'What type of Xpert do you want?' } }}
         </div>
         <ul class="xpert-type-list flex flex-wrap items-center gap-1.5" cdkListbox [(ngModel)]="types">
           @if (availableModes().includes(eXpertTypeEnum.Agent)) {
@@ -54,7 +54,7 @@
                 </g>
               </svg>
               <div class="text-[13px] font-medium leading-[18px]">
-                {{ 'PAC.Xpert.Agent' | translate: { Default: 'Agent' } }}
+                {{ 'XP.Xpert.Agent' | translate: { Default: 'Agent' } }}
               </div>
             </li>
           }
@@ -64,7 +64,7 @@
               <i class="ri-flow-chart text-xl text-text-info"></i>
 
               <div class="h-5 text-[13px] font-medium leading-[18px]">
-                {{ 'PAC.Xpert.Workflow' | translate: { Default: 'Workflow' } }}
+                {{ 'XP.Xpert.Workflow' | translate: { Default: 'Workflow' } }}
               </div>
             </li>
           }
@@ -74,7 +74,7 @@
               <i class="ri-contacts-book-fill text-base text-text-success"></i>
 
               <div class="text-[13px] font-medium leading-[18px]">
-                {{ 'PAC.Xpert.KnowledgePipeline' | translate: { Default: 'Knowledge Pipeline' } }}
+                {{ 'XP.Xpert.KnowledgePipeline' | translate: { Default: 'Knowledge Pipeline' } }}
               </div>
             </li>
           }
@@ -94,7 +94,7 @@
         (selectionChange)="onAgentStepChange($event)"
       >
         <z-step
-          [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }"
+          [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }"
           [completed]="skipTemplateSelectionStep"
           [editable]="!skipTemplateSelectionStep"
         >
@@ -102,7 +102,7 @@
             <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
               <div class="text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Xpert.StartFromHelp'
+                  'XP.Xpert.StartFromHelp'
                     | translate
                       : {
                           Default:
@@ -122,11 +122,11 @@
                     (click)="setStartMode('blank')"
                   >
                     <div class="text-base font-semibold text-text-primary">
-                      {{ 'PAC.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+                      {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
                     </div>
                     <div class="mt-2 text-sm leading-6 text-text-secondary">
                       {{
-                        'PAC.Xpert.BlankStartHelp'
+                        'XP.Xpert.BlankStartHelp'
                           | translate
                             : {
                                 Default:
@@ -145,11 +145,11 @@
                     (click)="setStartMode('template')"
                   >
                     <div class="text-base font-semibold text-text-primary">
-                      {{ 'PAC.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+                      {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
                     </div>
                     <div class="mt-2 text-sm leading-6 text-text-secondary">
                       {{
-                        'PAC.Xpert.TemplateStartHelp'
+                        'XP.Xpert.TemplateStartHelp'
                           | translate
                             : {
                                 Default:
@@ -168,13 +168,13 @@
                   [category]="templateCategory"
                   [loading]="templateOptionsLoading()"
                   [error]="templateOptionsError()"
-                  [emptyKey]="'PAC.Xpert.NoAgentTemplatesFound'"
+                  [emptyKey]="'XP.Xpert.NoAgentTemplatesFound'"
                   [emptyDefault]="'No agent templates found'"
                 />
 
                 @if (selectedTemplateId() && templateLoading()) {
                   <div class="text-sm text-text-secondary">
-                    {{ 'PAC.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
+                    {{ 'XP.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
                   </div>
                 }
 
@@ -189,7 +189,7 @@
                     class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-secondary"
                   >
                     {{
-                      'PAC.Xpert.TemplateLoadedHelp'
+                      'XP.Xpert.TemplateLoadedHelp'
                         | translate
                           : {
                               Default:
@@ -203,7 +203,7 @@
               @if (checkingModelProviders()) {
                 <div class="text-sm text-text-secondary">
                   {{
-                    'PAC.Xpert.CheckingModelProviders' | translate: { Default: 'Checking available model providers...' }
+                    'XP.Xpert.CheckingModelProviders' | translate: { Default: 'Checking available model providers...' }
                   }}
                 </div>
               }
@@ -212,12 +212,12 @@
         </z-step>
 
         @if (needsModelProviderSetup()) {
-          <z-step [label]="'PAC.Xpert.ModelProvider' | translate: { Default: 'Model provider' }">
+          <z-step [label]="'XP.Xpert.ModelProvider' | translate: { Default: 'Model provider' }">
             <div class="px-4">
               <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
                 <div class="text-sm leading-6 text-text-secondary">
                   {{
-                    'PAC.Xpert.ConfigureModelProviderBeforeBasic'
+                    'XP.Xpert.ConfigureModelProviderBeforeBasic'
                       | translate
                         : {
                             Default:
@@ -242,7 +242,7 @@
                     class="rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm leading-6 text-text-secondary"
                   >
                     {{
-                      'PAC.Xpert.ModelProviderPermissionRequired'
+                      'XP.Xpert.ModelProviderPermissionRequired'
                         | translate
                           : {
                               Default:
@@ -254,37 +254,37 @@
                   <div
                     class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm text-text-secondary"
                   >
-                    {{ 'PAC.Xpert.PreparingModelProvider' | translate: { Default: 'Preparing model provider...' } }}
-                    <ngm-spin class="absolute inset-0 flex items-center justify-center" />
+                    {{ 'XP.Xpert.PreparingModelProvider' | translate: { Default: 'Preparing model provider...' } }}
+                    <xp-spin class="absolute inset-0 flex items-center justify-center" />
                   </div>
                 } @else {
-                  <pac-copilot-config-form #clawCopilotForm class="w-full" [copilot]="primaryCopilot()" />
+                  <xp-copilot-config-form #clawCopilotForm class="w-full" [copilot]="primaryCopilot()" />
                 }
               </div>
             </div>
           </z-step>
         }
 
-        <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             @if (allowWorkspaceSelection) {
               <div class="pb-4">
                 <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
                   <span class="text-text-destructive">*</span>
-                  {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
                 <div class="flex items-center gap-2">
                   <z-combobox-deprecated
                     class="flex-1"
                     [options]="workspaceOptions()"
-                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
                     type="button"
                     class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
                     (click)="refreshWorkspaces()"
                   >
                     <i class="ri-refresh-line"></i>
@@ -296,7 +296,7 @@
                     class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
                   >
                     {{
-                      'PAC.Xpert.NoWorkspaceAvailableForCreate'
+                      'XP.Xpert.NoWorkspaceAvailableForCreate'
                         | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
@@ -305,13 +305,13 @@
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
                     </a>
                   </div>
                 } @else if (workspaceSelectionInvalid()) {
                   <div class="mt-2 text-sm text-text-destructive">
                     {{
-                      'PAC.Xpert.WorkspaceRequiredForCreate'
+                      'XP.Xpert.WorkspaceRequiredForCreate'
                         | translate: { Default: 'Select a workspace before continuing.' }
                     }}
                   </div>
@@ -329,20 +329,20 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' }">
+        <z-step [label]="'XP.Workflow.Trigger' | translate: { Default: 'Trigger' }">
           <xp-blank-trigger-selection
             [(selections)]="selectedTriggers"
             [providers]="triggerProviderOptions()"
-            [descriptionKey]="'PAC.Xpert.SelectTriggerProviders'"
+            [descriptionKey]="'XP.Xpert.SelectTriggerProviders'"
             [defaultDescription]="'Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.'"
           />
         </z-step>
 
-        <z-step [label]="'PAC.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' }">
+        <z-step [label]="'XP.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.SelectMiddlewares'
+                'XP.Xpert.SelectMiddlewares'
                   | translate
                     : {
                         Default:
@@ -352,7 +352,7 @@
             </div>
             <div class="text-xs leading-5 text-text-secondary">
               {{
-                'PAC.Xpert.MiddlewareFeaturesAutoEnabled'
+                'XP.Xpert.MiddlewareFeaturesAutoEnabled'
                   | translate
                     : {
                         Default:
@@ -362,7 +362,7 @@
             </div>
             <div class="text-xs leading-5 text-text-secondary">
               {{
-                'PAC.Xpert.MiddlewareRequiredModeHelp'
+                'XP.Xpert.MiddlewareRequiredModeHelp'
                   | translate
                     : {
                         Default:
@@ -381,7 +381,7 @@
                 [ngModel]="middlewareSearch()"
                 (ngModelChange)="middlewareSearch.set($event)"
                 [placeholder]="
-                  'PAC.Xpert.SearchMiddlewaresPlaceholder'
+                  'XP.Xpert.SearchMiddlewaresPlaceholder'
                     | translate: { Default: 'Search middleware name or description' }
                 "
               />
@@ -389,7 +389,7 @@
                 <button
                   type="button"
                   class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
-                  [attr.aria-label]="'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' }"
+                  [attr.aria-label]="'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' }"
                   (click)="middlewareSearch.set('')"
                 >
                   <i class="ri-close-line"></i>
@@ -425,7 +425,7 @@
                           [zTooltip]="
                             middleware.meta.deprecationMessage
                               ? (middleware.meta.deprecationMessage | i18n)
-                              : ('PAC.Xpert.DeprecatedMiddleware'
+                              : ('XP.Xpert.DeprecatedMiddleware'
                                 | translate
                                   : {
                                       Default:
@@ -440,7 +440,7 @@
                           class="inline-flex items-center rounded-md bg-components-input-bg-normal px-2 py-px text-xs text-text-warning"
                         >
                           {{
-                            'PAC.Xpert.TemplateMiddlewareUnavailable'
+                            'XP.Xpert.TemplateMiddlewareUnavailable'
                               | translate: { Default: 'Unavailable in current runtime' }
                           }}
                         </span>
@@ -458,9 +458,9 @@
                         (ngModelChange)="toggleMiddlewareRequired(middleware.meta.name, $event)"
                       >
                         @if (isMiddlewareRequired(middleware.meta.name)) {
-                          {{ 'PAC.Xpert.MiddlewareRequiredBadge' | translate: { Default: 'Always load' } }}
+                          {{ 'XP.Xpert.MiddlewareRequiredBadge' | translate: { Default: 'Always load' } }}
                         } @else {
-                          {{ 'PAC.Xpert.MiddlewareOptionalBadge' | translate: { Default: 'Manual load' } }}
+                          {{ 'XP.Xpert.MiddlewareOptionalBadge' | translate: { Default: 'Manual load' } }}
                         }
                       </z-switch>
                     </div>
@@ -471,15 +471,14 @@
                   <div
                     class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
                   >
-                    {{ 'PAC.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
+                    {{ 'XP.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
                   </div>
                 } @else {
                   <div
                     class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
                   >
                     {{
-                      'PAC.Workflow.NoMiddlewaresAvailable'
-                        | translate: { Default: 'No middleware providers available' }
+                      'XP.Workflow.NoMiddlewaresAvailable' | translate: { Default: 'No middleware providers available' }
                     }}
                   </div>
                 }
@@ -488,12 +487,12 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Workflow.Skill' | translate: { Default: 'Skill' }">
+        <z-step [label]="'XP.Workflow.Skill' | translate: { Default: 'Skill' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-4 space-y-4">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="max-w-3xl text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Xpert.AddWorkspaceSkillsHelp'
+                  'XP.Xpert.AddWorkspaceSkillsHelp'
                     | translate
                       : {
                           Default: usesWorkspaceSkillDefaults()
@@ -508,7 +507,7 @@
                   <span
                     class="inline-flex items-center rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1 text-xs text-text-secondary"
                   >
-                    {{ 'PAC.Xpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
+                    {{ 'XP.Xpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
                   </span>
                 }
 
@@ -520,7 +519,7 @@
                 >
                   <i class="ri-download-cloud-2-line"></i>
                   <span>{{
-                    'PAC.Xpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' }
+                    'XP.Xpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' }
                   }}</span>
                 </button>
               </div>
@@ -531,7 +530,7 @@
                 class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
               >
                 {{
-                  'PAC.Xpert.WorkspaceRequiredForSkillInstall'
+                  'XP.Xpert.WorkspaceRequiredForSkillInstall'
                     | translate
                       : {
                           Default:
@@ -546,7 +545,7 @@
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-text-primary">
                       {{
-                        'PAC.Xpert.TemplatePluginSkillsInstallFailed'
+                        'XP.Xpert.TemplatePluginSkillsInstallFailed'
                           | translate: { Default: 'Failed to initialize template skills' }
                       }}
                     </div>
@@ -560,7 +559,7 @@
               <div
                 class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
               >
-                {{ 'PAC.Xpert.LoadingWorkspaceSkills' | translate: { Default: 'Loading workspace skills…' } }}
+                {{ 'XP.Xpert.LoadingWorkspaceSkills' | translate: { Default: 'Loading workspace skills…' } }}
               </div>
             } @else {
               @if (skillState().errorMessage) {
@@ -570,7 +569,7 @@
                     <div class="min-w-0">
                       <div class="text-sm font-semibold text-text-primary">
                         {{
-                          'PAC.Xpert.WorkspaceSkillsLoadFailed'
+                          'XP.Xpert.WorkspaceSkillsLoadFailed'
                             | translate: { Default: 'Failed to load workspace skills' }
                         }}
                       </div>
@@ -585,7 +584,7 @@
                   class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
                 >
                   {{
-                    'PAC.Xpert.NoWorkspaceSkillsAvailableDesc'
+                    'XP.Xpert.NoWorkspaceSkillsAvailableDesc'
                       | translate
                         : {
                             Default:
@@ -631,7 +630,7 @@
             @if (selectedSkillItems().length) {
               <div class="space-y-2">
                 <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                  {{ selectedSkillItems().length }} {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
+                  {{ selectedSkillItems().length }} {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
                 </div>
                 <div class="flex flex-wrap gap-2">
                   @for (skill of selectedSkillItems(); track skill.id) {
@@ -650,19 +649,19 @@
               <div
                 class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
               >
-                {{ 'PAC.Workflow.NoSkillsAdded' | translate: { Default: 'No skills added yet' } }}
+                {{ 'XP.Workflow.NoSkillsAdded' | translate: { Default: 'No skills added yet' } }}
               </div>
             }
           </div>
         </z-step>
 
         @if (hasTemplateToolsetStep()) {
-          <z-step [label]="'PAC.KEY_WORDS.Toolsets' | translate: { Default: 'Toolsets' }">
+          <z-step [label]="'XP.KEY_WORDS.Toolsets' | translate: { Default: 'Toolsets' }">
             <div class="rounded-xl bg-background-default-subtle px-4 py-4 space-y-4">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="max-w-3xl text-sm leading-6 text-text-secondary">
                   {{
-                    'PAC.Xpert.TemplateToolsetsHelp'
+                    'XP.Xpert.TemplateToolsetsHelp'
                       | translate
                         : {
                             Default:
@@ -680,7 +679,7 @@
                   (click)="refreshTemplateToolsetStep()"
                 >
                   <z-icon zType="refresh"></z-icon>
-                  <span>{{ 'PAC.Xpert.TemplateToolsetRefresh' | translate: { Default: 'Refresh' } }}</span>
+                  <span>{{ 'XP.Xpert.TemplateToolsetRefresh' | translate: { Default: 'Refresh' } }}</span>
                 </button>
               </div>
 
@@ -689,7 +688,7 @@
                   class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
                 >
                   {{
-                    'PAC.Xpert.WorkspaceRequiredForToolsets'
+                    'XP.Xpert.WorkspaceRequiredForToolsets'
                       | translate
                         : {
                             Default: 'Select a workspace first before choosing the built-in toolsets for this template.'
@@ -704,7 +703,7 @@
                       <div class="min-w-0">
                         <div class="text-sm font-semibold text-text-primary">
                           {{
-                            'PAC.Xpert.TemplateToolsetsInstallFailed'
+                            'XP.Xpert.TemplateToolsetsInstallFailed'
                               | translate: { Default: 'Failed to initialize template toolsets' }
                           }}
                         </div>
@@ -725,44 +724,44 @@
                             <div class="font-medium text-text-primary">{{ state.dependency.provider }}</div>
                             @if (state.loading) {
                               <z-badge zType="outline" zShape="pill" class="text-text-secondary">
-                                {{ 'PAC.Xpert.TemplateToolsetStatusLoading' | translate: { Default: 'Loading' } }}
+                                {{ 'XP.Xpert.TemplateToolsetStatusLoading' | translate: { Default: 'Loading' } }}
                               </z-badge>
                             } @else if (state.selectedToolsetId) {
                               <z-badge zType="outline" zShape="pill" class="text-text-success">
-                                {{ 'PAC.Xpert.TemplateToolsetStatusReady' | translate: { Default: 'Ready' } }}
+                                {{ 'XP.Xpert.TemplateToolsetStatusReady' | translate: { Default: 'Ready' } }}
                               </z-badge>
                             } @else if (state.toolsets.length) {
                               <z-badge zType="outline" zShape="pill" class="text-text-warning">
-                                {{ 'PAC.Xpert.SelectionRequired' | translate: { Default: 'Selection required' } }}
+                                {{ 'XP.Xpert.SelectionRequired' | translate: { Default: 'Selection required' } }}
                               </z-badge>
                             } @else {
                               <z-badge zType="destructive" zShape="pill">
-                                {{ 'PAC.Xpert.TemplateToolsetStatusMissing' | translate: { Default: 'Missing' } }}
+                                {{ 'XP.Xpert.TemplateToolsetStatusMissing' | translate: { Default: 'Missing' } }}
                               </z-badge>
                             }
                           </div>
                           <div class="mt-2 grid gap-x-4 gap-y-1 text-xs leading-5 text-text-secondary md:grid-cols-2">
                             <div>
                               <span class="text-text-tertiary">
-                                {{ 'PAC.Xpert.TemplateToolsetPlugin' | translate: { Default: 'Plugin' } }}
+                                {{ 'XP.Xpert.TemplateToolsetPlugin' | translate: { Default: 'Plugin' } }}
                               </span>
                               <span class="ml-1 font-mono">{{ state.dependency.pluginName }}</span>
                             </div>
                             <div>
                               <span class="text-text-tertiary">
-                                {{ 'PAC.Xpert.TemplateToolsetAgent' | translate: { Default: 'Agent' } }}
+                                {{ 'XP.Xpert.TemplateToolsetAgent' | translate: { Default: 'Agent' } }}
                               </span>
                               <span class="ml-1 font-mono">{{ state.dependency.targetAgentKey || '-' }}</span>
                             </div>
                             <div>
                               <span class="text-text-tertiary">
-                                {{ 'PAC.Xpert.TemplateToolsetNode' | translate: { Default: 'Node' } }}
+                                {{ 'XP.Xpert.TemplateToolsetNode' | translate: { Default: 'Node' } }}
                               </span>
                               <span class="ml-1 font-mono">{{ state.dependency.templateNodeKey }}</span>
                             </div>
                             <div>
                               <span class="text-text-tertiary">
-                                {{ 'PAC.Xpert.TemplateToolsetDefaultInstance' | translate: { Default: 'Default' } }}
+                                {{ 'XP.Xpert.TemplateToolsetDefaultInstance' | translate: { Default: 'Default' } }}
                               </span>
                               <span class="ml-1">{{ state.dependency.instanceName || '-' }}</span>
                             </div>
@@ -786,9 +785,9 @@
                           <z-icon zType="settings"></z-icon>
                           <span>
                             @if (configuringTemplateToolsetKey() === state.key) {
-                              {{ 'PAC.Xpert.TemplateToolsetConfiguring' | translate: { Default: 'Configuring…' } }}
+                              {{ 'XP.Xpert.TemplateToolsetConfiguring' | translate: { Default: 'Configuring…' } }}
                             } @else {
-                              {{ 'PAC.Xpert.ConfigureToolset' | translate: { Default: 'Configure Toolset' } }}
+                              {{ 'XP.Xpert.ConfigureToolset' | translate: { Default: 'Configure Toolset' } }}
                             }
                           </span>
                         </button>
@@ -799,9 +798,9 @@
                           class="relative mt-4 flex min-h-20 items-center justify-center rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
                         >
                           {{
-                            'PAC.Xpert.LoadingWorkspaceToolsets' | translate: { Default: 'Loading workspace toolsets…' }
+                            'XP.Xpert.LoadingWorkspaceToolsets' | translate: { Default: 'Loading workspace toolsets…' }
                           }}
-                          <ngm-spin class="absolute inset-0 flex items-center justify-center" />
+                          <xp-spin class="absolute inset-0 flex items-center justify-center" />
                         </div>
                       } @else if (state.toolsets.length) {
                         <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
@@ -809,7 +808,7 @@
                             class="min-w-0 flex-1"
                             [zValue]="state.selectedToolsetId || ''"
                             [zPlaceholder]="
-                              'PAC.Xpert.SelectToolsetInstance' | translate: { Default: 'Select a toolset instance' }
+                              'XP.Xpert.SelectToolsetInstance' | translate: { Default: 'Select a toolset instance' }
                             "
                             (zSelectionChange)="selectTemplateToolsetValue(state.key, $event)"
                           >
@@ -827,7 +826,7 @@
                             @if (selectedToolset.tools?.length) {
                               <span class="ml-2 text-xs text-text-tertiary">
                                 {{ selectedToolset.tools.length }}
-                                {{ 'PAC.Xpert.TemplateToolsetToolsCount' | translate: { Default: 'tools' } }}
+                                {{ 'XP.Xpert.TemplateToolsetToolsCount' | translate: { Default: 'tools' } }}
                               </span>
                             }
                           </div>
@@ -837,7 +836,7 @@
                           class="mt-4 rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
                         >
                           {{
-                            'PAC.Xpert.NoMatchingToolsetConfigured'
+                            'XP.Xpert.NoMatchingToolsetConfigured'
                               | translate
                                 : {
                                     Default:
@@ -857,7 +856,7 @@
                     <div
                       class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
                     >
-                      {{ 'PAC.Xpert.NoTemplateToolsetsRequired' | translate: { Default: 'No toolsets required' } }}
+                      {{ 'XP.Xpert.NoTemplateToolsetsRequired' | translate: { Default: 'No toolsets required' } }}
                     </div>
                   }
                 </div>
@@ -870,7 +869,7 @@
       <div class="w-full shrink-0 flex justify-end p-4">
         <div class="flex items-center gap-2">
           <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
           </button>
 
           @if (stepper.selectedIndex > agentInitialStepIndex) {
@@ -880,7 +879,7 @@
               [disabled]="loading()"
               (click)="stepper.previous()"
             >
-              {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
             </button>
           }
 
@@ -892,7 +891,7 @@
                 [disabled]="clawModelProviderSaveDisabled()"
                 (click)="saveClawModelProviderStep()"
               >
-                {{ 'PAC.Xpert.SaveModelProviderAndContinue' | translate: { Default: 'Save and continue' } }}
+                {{ 'XP.Xpert.SaveModelProviderAndContinue' | translate: { Default: 'Save and continue' } }}
               </button>
             } @else {
               <button
@@ -909,7 +908,7 @@
                 "
                 (click)="stepper.next()"
               >
-                {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+                {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
               </button>
             }
           } @else {
@@ -930,7 +929,7 @@
             >
               <i class="ri-save-line mr-1"></i>
               {{
-                (completionMode === 'publish' ? 'PAC.Xpert.CreateAndPublish' : 'Story.Common.Save')
+                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'Story.Common.Save')
                   | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
               }}
             </button>
@@ -946,12 +945,12 @@
         zSize="sm"
         class="min-h-0 flex-1 overflow-hidden px-4 pb-2"
       >
-        <z-step [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }">
+        <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }">
           <div class="px-4">
             <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
               <div class="text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Xpert.WorkflowStartFromHelp'
+                  'XP.Xpert.WorkflowStartFromHelp'
                     | translate
                       : {
                           Default:
@@ -967,11 +966,11 @@
                   (click)="setStartMode('blank')"
                 >
                   <div class="text-base font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+                    {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
                   </div>
                   <div class="mt-2 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Xpert.WorkflowBlankStartHelp'
+                      'XP.Xpert.WorkflowBlankStartHelp'
                         | translate
                           : {
                               Default:
@@ -988,17 +987,17 @@
                 >
                   <div class="flex items-center justify-between gap-3">
                     <div class="text-base font-semibold text-text-primary">
-                      {{ 'PAC.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+                      {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
                     </div>
                     <div
                       class="rounded-full border border-components-panel-border px-2 py-0.5 text-xs font-medium text-text-secondary"
                     >
-                      {{ 'PAC.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
+                      {{ 'XP.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
                     </div>
                   </div>
                   <div class="mt-2 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Xpert.WorkflowTemplateStartHelp'
+                      'XP.Xpert.WorkflowTemplateStartHelp'
                         | translate
                           : {
                               Default:
@@ -1012,26 +1011,26 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             @if (allowWorkspaceSelection) {
               <div class="pb-4">
                 <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
                   <span class="text-text-destructive">*</span>
-                  {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
                 <div class="flex items-center gap-2">
                   <z-combobox-deprecated
                     class="flex-1"
                     [options]="workspaceOptions()"
-                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
                     type="button"
                     class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
                     (click)="refreshWorkspaces()"
                   >
                     <i class="ri-refresh-line"></i>
@@ -1043,7 +1042,7 @@
                     class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
                   >
                     {{
-                      'PAC.Xpert.NoWorkspaceAvailableForCreate'
+                      'XP.Xpert.NoWorkspaceAvailableForCreate'
                         | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
@@ -1052,13 +1051,13 @@
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
                     </a>
                   </div>
                 } @else if (workspaceSelectionInvalid()) {
                   <div class="mt-2 text-sm text-text-destructive">
                     {{
-                      'PAC.Xpert.WorkspaceRequiredForCreate'
+                      'XP.Xpert.WorkspaceRequiredForCreate'
                         | translate: { Default: 'Select a workspace before continuing.' }
                     }}
                   </div>
@@ -1076,11 +1075,11 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.WorkflowActionNodes' | translate: { Default: 'Action nodes' }">
+        <z-step [label]="'XP.Xpert.WorkflowActionNodes' | translate: { Default: 'Action nodes' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.WorkflowActionNodesHelp'
+                'XP.Xpert.WorkflowActionNodesHelp'
                   | translate
                     : {
                         Default:
@@ -1098,11 +1097,11 @@
                 </div>
                 <div class="min-w-0 grow">
                   <div class="font-medium text-text-primary">
-                    {{ 'PAC.Workflow.Chat' | translate: { Default: 'Chat' } }}
+                    {{ 'XP.Workflow.Chat' | translate: { Default: 'Chat' } }}
                   </div>
                   <div class="text-sm text-text-secondary">
                     {{
-                      'PAC.Xpert.WorkflowChatTriggerIncluded'
+                      'XP.Xpert.WorkflowChatTriggerIncluded'
                         | translate: { Default: 'Always included as the first node in this starter workflow.' }
                     }}
                   </div>
@@ -1110,7 +1109,7 @@
                 <div
                   class="shrink-0 rounded-full border border-components-panel-border bg-background-default-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"
                 >
-                  {{ 'PAC.KEY_WORDS.Default' | translate: { Default: 'Default' } }}
+                  {{ 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' } }}
                 </div>
               </div>
             </div>
@@ -1136,9 +1135,7 @@
                       {{ node.labelKey | translate: { Default: node.defaultLabel } }}
                     </div>
                     <div class="text-sm text-text-secondary">
-                      {{
-                        'PAC.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' }
-                      }}
+                      {{ 'XP.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' } }}
                     </div>
                   </div>
                 </label>
@@ -1147,11 +1144,11 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.WorkflowTransformResponse' | translate: { Default: 'Transform & response' }">
+        <z-step [label]="'XP.Xpert.WorkflowTransformResponse' | translate: { Default: 'Transform & response' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.WorkflowTransformNodesHelp'
+                'XP.Xpert.WorkflowTransformNodesHelp'
                   | translate
                     : {
                         Default:
@@ -1181,9 +1178,7 @@
                       {{ node.labelKey | translate: { Default: node.defaultLabel } }}
                     </div>
                     <div class="text-sm text-text-secondary">
-                      {{
-                        'PAC.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' }
-                      }}
+                      {{ 'XP.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' } }}
                     </div>
                   </div>
                 </label>
@@ -1196,7 +1191,7 @@
       <div class="w-full shrink-0 flex justify-end p-4">
         <div class="flex items-center gap-2">
           <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
           </button>
 
           @if (stepper.selectedIndex > 0) {
@@ -1206,7 +1201,7 @@
               [disabled]="loading()"
               (click)="stepper.previous()"
             >
-              {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
             </button>
           }
 
@@ -1221,7 +1216,7 @@
               "
               (click)="stepper.next()"
             >
-              {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+              {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
             </button>
           } @else {
             <button
@@ -1233,7 +1228,7 @@
             >
               <i class="ri-save-line mr-1"></i>
               {{
-                (completionMode === 'publish' ? 'PAC.Xpert.CreateAndPublish' : 'Story.Common.Save')
+                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'Story.Common.Save')
                   | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
               }}
             </button>
@@ -1249,12 +1244,12 @@
         zSize="sm"
         class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
       >
-        <z-step [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }">
+        <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }">
           <div class="px-4">
             <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
               <div class="text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Xpert.KnowledgeStartFromHelp'
+                  'XP.Xpert.KnowledgeStartFromHelp'
                     | translate
                       : {
                           Default:
@@ -1273,11 +1268,11 @@
                   (click)="setStartMode('blank')"
                 >
                   <div class="text-base font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+                    {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
                   </div>
                   <div class="mt-2 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Xpert.KnowledgeBlankStartHelp'
+                      'XP.Xpert.KnowledgeBlankStartHelp'
                         | translate
                           : {
                               Default:
@@ -1296,11 +1291,11 @@
                   (click)="setStartMode('template')"
                 >
                   <div class="text-base font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+                    {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
                   </div>
                   <div class="mt-2 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Xpert.KnowledgeTemplateStartHelp'
+                      'XP.Xpert.KnowledgeTemplateStartHelp'
                         | translate
                           : {
                               Default:
@@ -1318,13 +1313,13 @@
                   [category]="templateCategory"
                   [loading]="templateOptionsLoading()"
                   [error]="templateOptionsError()"
-                  [emptyKey]="'PAC.Xpert.NoKnowledgeTemplatesFound'"
+                  [emptyKey]="'XP.Xpert.NoKnowledgeTemplatesFound'"
                   [emptyDefault]="'No knowledge pipeline templates found'"
                 />
 
                 @if (selectedTemplateId() && templateLoading()) {
                   <div class="text-sm text-text-secondary">
-                    {{ 'PAC.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
+                    {{ 'XP.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
                   </div>
                 }
 
@@ -1335,7 +1330,7 @@
                 } @else if (selectedTemplateDraft()) {
                   <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-secondary">
                     {{
-                      'PAC.Xpert.TemplateLoadedKnowledgeHelp'
+                      'XP.Xpert.TemplateLoadedKnowledgeHelp'
                         | translate
                           : {
                               Default:
@@ -1349,26 +1344,26 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             @if (allowWorkspaceSelection) {
               <div class="pb-4">
                 <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
                   <span class="text-text-destructive">*</span>
-                  {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
                 <div class="flex items-center gap-2">
                   <z-combobox-deprecated
                     class="flex-1"
                     [options]="workspaceOptions()"
-                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
                     type="button"
                     class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
                     (click)="refreshWorkspaces()"
                   >
                     <i class="ri-refresh-line"></i>
@@ -1380,7 +1375,7 @@
                     class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
                   >
                     {{
-                      'PAC.Xpert.NoWorkspaceAvailableForCreate'
+                      'XP.Xpert.NoWorkspaceAvailableForCreate'
                         | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
@@ -1389,13 +1384,13 @@
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
                     </a>
                   </div>
                 } @else if (workspaceSelectionInvalid()) {
                   <div class="mt-2 text-sm text-text-destructive">
                     {{
-                      'PAC.Xpert.WorkspaceRequiredForCreate'
+                      'XP.Xpert.WorkspaceRequiredForCreate'
                         | translate: { Default: 'Select a workspace before continuing.' }
                     }}
                   </div>
@@ -1413,20 +1408,20 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' }">
+        <z-step [label]="'XP.Workflow.Trigger' | translate: { Default: 'Trigger' }">
           <xp-blank-trigger-selection
             [(selections)]="selectedKnowledgeTriggers"
             [providers]="triggerProviderOptions()"
-            [descriptionKey]="'PAC.Xpert.SelectKnowledgeTriggers'"
+            [descriptionKey]="'XP.Xpert.SelectKnowledgeTriggers'"
             [defaultDescription]="'Choose the triggers to prepare for this knowledge pipeline. You can skip this step and add more later in Studio.'"
           />
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.DataSource' | translate: { Default: 'Data Source' }">
+        <z-step [label]="'XP.Xpert.DataSource' | translate: { Default: 'Data Source' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.SelectDataSources'
+                'XP.Xpert.SelectDataSources'
                   | translate
                     : {
                         Default:
@@ -1459,20 +1454,18 @@
                 <div
                   class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
                 >
-                  {{
-                    'PAC.Xpert.NoDataSourcesAvailable' | translate: { Default: 'No data source providers available' }
-                  }}
+                  {{ 'XP.Xpert.NoDataSourcesAvailable' | translate: { Default: 'No data source providers available' } }}
                 </div>
               }
             </div>
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.Processor' | translate: { Default: 'Processor' }">
+        <z-step [label]="'XP.Xpert.Processor' | translate: { Default: 'Processor' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.SelectProcessors'
+                'XP.Xpert.SelectProcessors'
                   | translate
                     : {
                         Default:
@@ -1505,18 +1498,18 @@
                 <div
                   class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
                 >
-                  {{ 'PAC.Xpert.NoProcessorsAvailable' | translate: { Default: 'No processor providers available' } }}
+                  {{ 'XP.Xpert.NoProcessorsAvailable' | translate: { Default: 'No processor providers available' } }}
                 </div>
               }
             </div>
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.Chunker' | translate: { Default: 'Chunker' }">
+        <z-step [label]="'XP.Xpert.Chunker' | translate: { Default: 'Chunker' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.SelectChunkers'
+                'XP.Xpert.SelectChunkers'
                   | translate
                     : {
                         Default: 'Choose the chunkers to split processed content before it reaches the knowledge base.'
@@ -1548,18 +1541,18 @@
                 <div
                   class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
                 >
-                  {{ 'PAC.Xpert.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
+                  {{ 'XP.Xpert.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
                 </div>
               }
             </div>
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' }">
+        <z-step [label]="'XP.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
               {{
-                'PAC.Xpert.SelectImageUnderstandings'
+                'XP.Xpert.SelectImageUnderstandings'
                   | translate
                     : {
                         Default:
@@ -1593,7 +1586,7 @@
                   class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
                 >
                   {{
-                    'PAC.Xpert.NoImageUnderstandingsAvailable'
+                    'XP.Xpert.NoImageUnderstandingsAvailable'
                       | translate: { Default: 'No image understanding providers available' }
                   }}
                 </div>
@@ -1606,7 +1599,7 @@
       <div class="w-full shrink-0 flex justify-end p-4">
         <div class="flex items-center gap-2">
           <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
           </button>
 
           @if (stepper.selectedIndex > 0) {
@@ -1616,7 +1609,7 @@
               [disabled]="loading()"
               (click)="stepper.previous()"
             >
-              {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
             </button>
           }
 
@@ -1632,7 +1625,7 @@
               "
               (click)="stepper.next()"
             >
-              {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+              {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
             </button>
           } @else {
             <button
@@ -1644,7 +1637,7 @@
             >
               <i class="ri-save-line mr-1"></i>
               {{
-                (completionMode === 'publish' ? 'PAC.Xpert.CreateAndPublish' : 'Story.Common.Save')
+                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'Story.Common.Save')
                   | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
               }}
             </button>
@@ -1660,12 +1653,12 @@
         zSize="sm"
         class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
       >
-        <z-step [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }">
+        <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }">
           <div class="px-4">
             <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
               <div class="text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Xpert.StartFromHelp'
+                  'XP.Xpert.StartFromHelp'
                     | translate
                       : {
                           Default:
@@ -1684,11 +1677,11 @@
                   (click)="setStartMode('blank')"
                 >
                   <div class="text-base font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+                    {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
                   </div>
                   <div class="mt-2 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Xpert.BlankStartHelp'
+                      'XP.Xpert.BlankStartHelp'
                         | translate
                           : {
                               Default:
@@ -1705,17 +1698,17 @@
                 >
                   <div class="flex items-center justify-between gap-3">
                     <div class="text-base font-semibold text-text-primary">
-                      {{ 'PAC.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+                      {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
                     </div>
                     <div
                       class="rounded-full border border-components-panel-border px-2 py-0.5 text-xs font-medium text-text-secondary"
                     >
-                      {{ 'PAC.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
+                      {{ 'XP.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
                     </div>
                   </div>
                   <div class="mt-2 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Xpert.TemplateUnavailableForMode'
+                      'XP.Xpert.TemplateUnavailableForMode'
                         | translate: { Default: 'Template starters are not available for this mode yet.' }
                     }}
                   </div>
@@ -1725,26 +1718,26 @@
           </div>
         </z-step>
 
-        <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             @if (allowWorkspaceSelection) {
               <div class="pb-4">
                 <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
                   <span class="text-text-destructive">*</span>
-                  {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
                 <div class="flex items-center gap-2">
                   <z-combobox-deprecated
                     class="flex-1"
                     [options]="workspaceOptions()"
-                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
                     type="button"
                     class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
                     (click)="refreshWorkspaces()"
                   >
                     <i class="ri-refresh-line"></i>
@@ -1756,7 +1749,7 @@
                     class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
                   >
                     {{
-                      'PAC.Xpert.NoWorkspaceAvailableForCreate'
+                      'XP.Xpert.NoWorkspaceAvailableForCreate'
                         | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
@@ -1765,13 +1758,13 @@
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
                     </a>
                   </div>
                 } @else if (workspaceSelectionInvalid()) {
                   <div class="mt-2 text-sm text-text-destructive">
                     {{
-                      'PAC.Xpert.WorkspaceRequiredForCreate'
+                      'XP.Xpert.WorkspaceRequiredForCreate'
                         | translate: { Default: 'Select a workspace before continuing.' }
                     }}
                   </div>
@@ -1793,7 +1786,7 @@
       <div class="w-full shrink-0 flex justify-end p-4">
         <div class="flex items-center gap-2">
           <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
           </button>
 
           @if (stepper.selectedIndex > 0) {
@@ -1803,7 +1796,7 @@
               [disabled]="loading()"
               (click)="stepper.previous()"
             >
-              {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
             </button>
           }
 
@@ -1814,7 +1807,7 @@
               [disabled]="loading() || (stepper.selectedIndex === 0 && startStepInvalid())"
               (click)="stepper.next()"
             >
-              {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+              {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
             </button>
           } @else {
             <button
@@ -1826,7 +1819,7 @@
             >
               <i class="ri-save-line mr-1"></i>
               {{
-                (completionMode === 'publish' ? 'PAC.Xpert.CreateAndPublish' : 'Story.Common.Save')
+                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'Story.Common.Save')
                   | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
               }}
             </button>
@@ -1846,5 +1839,5 @@
 </button>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

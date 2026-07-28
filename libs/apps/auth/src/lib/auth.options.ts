@@ -1,16 +1,16 @@
 import { HttpRequest } from '@angular/common/http'
 import { InjectionToken } from '@angular/core'
-import { PacAuthToken, PacAuthTokenClass } from './services/token/token'
-import { PacAuthStrategy } from './strategies/auth-strategy'
-import { PacAuthStrategyOptions } from './strategies/auth-strategy-options'
+import { XpAuthToken, XpAuthTokenClass } from './services/token/token'
+import { XpAuthStrategy } from './strategies/auth-strategy'
+import { XpAuthStrategyOptions } from './strategies/auth-strategy-options'
 
-export type PacAuthStrategyClass = new (...params: any[]) => PacAuthStrategy
+export type XpAuthStrategyClass = new (...params: any[]) => XpAuthStrategy
 
-export type PacAuthStrategies = [PacAuthStrategyClass, PacAuthStrategyOptions][]
+export type XpAuthStrategies = [XpAuthStrategyClass, XpAuthStrategyOptions][]
 
-export interface PacAuthOptions {
+export interface XpAuthOptions {
   forms?: any
-  strategies?: PacAuthStrategies
+  strategies?: XpAuthStrategies
 }
 
 export interface NbAuthSocialLink {
@@ -88,12 +88,12 @@ export const defaultAuthOptions: any = {
   }
 }
 
-export const PAC_AUTH_OPTIONS = new InjectionToken<PacAuthOptions>('Metad Auth Options')
-export const PAC_AUTH_USER_OPTIONS = new InjectionToken<PacAuthOptions>('Metad User Auth Options')
-export const PAC_AUTH_STRATEGIES = new InjectionToken<PacAuthStrategies>('Metad Auth Strategies')
-export const PAC_AUTH_TOKENS = new InjectionToken<PacAuthTokenClass<PacAuthToken>[]>('Metad Auth Tokens')
-export const PAC_AUTH_INTERCEPTOR_HEADER = new InjectionToken<string>('Metad Simple Interceptor Header')
-export const PAC_AUTH_TOKEN_INTERCEPTOR_FILTER = new InjectionToken<(req: HttpRequest<any>) => boolean>(
+export const XP_AUTH_OPTIONS = new InjectionToken<XpAuthOptions>('Metad Auth Options')
+export const XP_AUTH_USER_OPTIONS = new InjectionToken<XpAuthOptions>('Metad User Auth Options')
+export const XP_AUTH_STRATEGIES = new InjectionToken<XpAuthStrategies>('Metad Auth Strategies')
+export const XP_AUTH_TOKENS = new InjectionToken<XpAuthTokenClass<XpAuthToken>[]>('Metad Auth Tokens')
+export const XP_AUTH_INTERCEPTOR_HEADER = new InjectionToken<string>('Metad Simple Interceptor Header')
+export const XP_AUTH_TOKEN_INTERCEPTOR_FILTER = new InjectionToken<(req: HttpRequest<any>) => boolean>(
   'Metad Interceptor Filter'
 )
-export const PAC_API_BASE_URL = new InjectionToken<string>('Metad API Base Url')
+export const XP_API_BASE_URL = new InjectionToken<string>('Metad API Base Url')

@@ -1,6 +1,6 @@
 @if (quotaCopilots()?.length) {
   <div class="text-lg px-2 py-2">
-    {{ 'PAC.Copilot.FreeQuota' | translate: { Default: 'Free Quota' } }}
+    {{ 'XP.Copilot.FreeQuota' | translate: { Default: 'Free Quota' } }}
   </div>
 
   @for (copilot of quotaCopilots(); track copilot.id) {
@@ -16,7 +16,7 @@
 
 @if (quotaCopilots()?.length) {
   <div class="text-lg px-2 py-4">
-    {{ 'PAC.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
+    {{ 'XP.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
   </div>
 }
 <z-accordion class="space-y-2">
@@ -52,14 +52,14 @@
           }
         }
         <div class="ml-2">
-          {{ 'PAC.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
-          {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+          {{ 'XP.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
+          {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
         </div>
       </z-accordion-title>
       <z-accordion-description class="!flex-none">
         <z-switch
           labelPosition="before"
-          [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
+          [zTooltip]="'XP.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
           zPosition="top"
           [checked]="primary()?.enabled"
           (change)="onToggle(null, eAiProviderRole.Primary, primary()?.enabled, expansion)"
@@ -70,11 +70,16 @@
       </z-accordion-description>
     </z-accordion-header>
 
-    <pac-copilot-form [copilot]="primary()" />
+    <xp-copilot-form [copilot]="primary()" />
   </z-accordion-item>
 
   @for (copilot of copilots(); track copilot.id) {
-    <z-accordion-item #expansion="zAccordionItem" hideToggle class="shadow-sm rounded-[1rem]" [disabled]="!copilot.enabled">
+    <z-accordion-item
+      #expansion="zAccordionItem"
+      hideToggle
+      class="shadow-sm rounded-[1rem]"
+      [disabled]="!copilot.enabled"
+    >
       <z-accordion-header>
         <z-accordion-title>
           <div [zTooltip]="copilot.id" zPosition="left" class="flex">
@@ -107,7 +112,11 @@
                 [(ngModel)]="name"
                 (click)="$event.stopPropagation()"
               />
-              <button z-button zType="ghost" zSize="sm" class="ml-2 w-4 h-4 shrink-0 rounded-full"
+              <button
+                z-button
+                zType="ghost"
+                zSize="sm"
+                class="ml-2 w-4 h-4 shrink-0 rounded-full"
                 type="button"
                 (click)="$event.stopPropagation(); saveCopilotName(copilot)"
               >
@@ -122,9 +131,9 @@
                   {{ copilot.name }}
                 } @else {
                   {{
-                    'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) }
+                    'XP.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) }
                   }}
-                  {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+                  {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
                 }
               </div>
             }
@@ -133,7 +142,7 @@
         <z-accordion-description class="!flex-none">
           <z-switch
             labelPosition="before"
-            [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
+            [zTooltip]="'XP.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
             zPosition="top"
             [checked]="copilot.enabled"
             (change)="onToggle(copilot, null, copilot.enabled, expansion)"
@@ -145,7 +154,7 @@
             <button
               type="button"
               class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
-              [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+              [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
               zPosition="top"
               (click)="deleteCopilot(copilot)"
             >
@@ -155,14 +164,14 @@
         </z-accordion-description>
       </z-accordion-header>
 
-      <pac-copilot-form [copilot]="copilot" />
+      <xp-copilot-form [copilot]="copilot" />
     </z-accordion-item>
   }
 </z-accordion>
 
 <div class="flex justify-end mt-2">
   <button type="button" class="btn btn-primary btn-large pressable" [cdkMenuTriggerFor]="addMenu">
-    <i class="ri-apps-2-add-line"></i> {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+    <i class="ri-apps-2-add-line"></i> {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
   </button>
 </div>
 
@@ -170,12 +179,12 @@
   <div cdkMenu class="cdk-menu__large w-[200px] divide-y-2 p-2">
     @for (provider of providers(); track provider.value) {
       <div cdkMenuItem (click)="addProvider(provider.value)">
-        {{ 'PAC.KEY_WORDS.' + provider.label | translate: { Default: provider.label } }}
+        {{ 'XP.KEY_WORDS.' + provider.label | translate: { Default: provider.label } }}
       </div>
     }
   </div>
 </ng-template>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

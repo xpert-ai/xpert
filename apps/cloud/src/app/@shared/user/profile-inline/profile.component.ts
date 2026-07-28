@@ -1,21 +1,21 @@
 import { Component, input } from '@angular/core'
-import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IUser } from '../../../@core'
 import { UserPipe } from '../../pipes'
 
 @Component({
   standalone: true,
-  selector: 'pac-user-profile-inline',
+  selector: 'xp-user-profile-inline',
   templateUrl: 'profile.component.html',
   styleUrls: ['profile.component.scss'],
   imports: [TranslateModule, UserPipe],
   host: {
-    class: 'pac-user-profile-inline'
+    class: 'xp-user-profile-inline'
   },
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ]

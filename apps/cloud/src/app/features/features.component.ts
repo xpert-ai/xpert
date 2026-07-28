@@ -77,7 +77,7 @@ function isWorkspaceRoute(url?: string | null) {
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-features',
+  selector: 'xp-features',
   templateUrl: './features.component.html',
   styleUrls: ['./features.component.scss'],
   animations: [routeAnimations]
@@ -159,7 +159,7 @@ export class FeaturesComponent implements OnInit {
   public readonly isAuthenticated$ = this.#store.user$
   public readonly navigation$ = this.#appService.navigation$.pipe(
     filter(nonNullable),
-    combineLatestWith(this.#translateService.stream('PAC.KEY_WORDS')),
+    combineLatestWith(this.#translateService.stream('XP.KEY_WORDS')),
     map(([navigation, i18n]) => {
       let catalogName: string
       let icon: string
@@ -379,7 +379,7 @@ export class FeaturesComponent implements OnInit {
   }
 
   refreshMenuItem(item: CloudMenuItem) {
-    item.title = this.#translateService.instant('PAC.MENU.' + item.data.translationKey, {
+    item.title = this.#translateService.instant('XP.MENU.' + item.data.translationKey, {
       Default: item.title || item.data.translationKey
     })
     if (item.data.permissionKeys || item.data.hide) {

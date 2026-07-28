@@ -4,7 +4,7 @@
   cdkDragRootElement=".cdk-overlay-pane"
   cdkDragHandle
 >
-  {{ 'PAC.Xpert.Release' | translate: { Default: 'Release' } }}
+  {{ 'XP.Xpert.Release' | translate: { Default: 'Release' } }}
 </h3>
 
 <div
@@ -16,27 +16,26 @@
 
 <div class="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
   <div class="my-2">
-    {{ 'PAC.Xpert.CurrentVersion' | translate: { Default: 'Current Version' } }}:
-    {{ version() ? 'v' + version() : ('PAC.Xpert.Draft' | translate: { Default: 'Draft' }) }}
+    {{ 'XP.Xpert.CurrentVersion' | translate: { Default: 'Current Version' } }}:
+    {{ version() ? 'v' + version() : ('XP.Xpert.Draft' | translate: { Default: 'Draft' }) }}
   </div>
 
   <z-switch [(ngModel)]="newVersion">{{
-    'PAC.Xpert.CreateNewVersion' | translate: { Default: 'Create a new version' }
+    'XP.Xpert.CreateNewVersion' | translate: { Default: 'Create a new version' }
   }}</z-switch>
 
   <div class="relative my-3 text-sm text-text-secondary">
     @if (newVersion()) {
       <div @slideUpAnimation>
         {{
-          'PAC.Xpert.NewVersionDesc'
+          'XP.Xpert.NewVersionDesc'
             | translate: { Default: 'Create a subsequent version number based on the current version' }
         }}
       </div>
     } @else {
       <div @slideUpAnimation>
         {{
-          'PAC.Xpert.UpdateCurrentVersion'
-            | translate: { Default: 'Directly update the content in the current version' }
+          'XP.Xpert.UpdateCurrentVersion' | translate: { Default: 'Directly update the content in the current version' }
         }}
       </div>
     }
@@ -45,7 +44,7 @@
   <div>
     <textarea
       rows="3"
-      [placeholder]="'PAC.Xpert.AddReleaseNotes' | translate: { Default: 'Add release notes' }"
+      [placeholder]="'XP.Xpert.AddReleaseNotes' | translate: { Default: 'Add release notes' }"
       class="xp-input w-full text-sm text-text-primary leading-[18px] bg-background-default-subtle resize-none"
       [class.border-red-300]="releaseNotesError()"
       [(ngModel)]="releaseNotes"
@@ -55,7 +54,7 @@
     }
   </div>
 
-  <div>{{ 'PAC.Xpert.VersionHistory' | translate: { Default: 'Version History' } }}</div>
+  <div>{{ 'XP.Xpert.VersionHistory' | translate: { Default: 'Version History' } }}</div>
   <ul class="w-full max-h-80 overflow-auto">
     @for (item of versions(); track item.version) {
       <li class="group flex justify-between items-center px-4 py-2 rounded-lg text-sm hover:bg-hover-bg">
@@ -63,19 +62,19 @@
           @if (item.version) {
             <span class="mr-1" [zTooltip]="item.releaseNotes">v{{ item.version }}</span>
           } @else {
-            <span class="mr-1">{{ 'PAC.Xpert.Draft' | translate: { Default: 'Draft' } }}</span>
+            <span class="mr-1">{{ 'XP.Xpert.Draft' | translate: { Default: 'Draft' } }}</span>
           }
           @if (item.version === version()) {
             <i
               class="ri-checkbox-circle-fill text-lg mx-1 text-primary-500"
-              [zTooltip]="'PAC.Xpert.CurrentVersion' | translate: { Default: 'Current Version' }"
+              [zTooltip]="'XP.Xpert.CurrentVersion' | translate: { Default: 'Current Version' }"
             ></i>
           }
 
           @if (item.latest) {
             <i
               class="ri-lightbulb-flash-fill text-lg mx-1 text-text-success"
-              [zTooltip]="'PAC.Xpert.LatestVersion' | translate: { Default: 'Latest Version' }"
+              [zTooltip]="'XP.Xpert.LatestVersion' | translate: { Default: 'Latest Version' }"
             ></i>
           }
 
@@ -89,7 +88,7 @@
               (click)="setAsLatest(item)"
             >
               <i class="ri-lightbulb-flash-fill mr-1 text-text-success"></i
-              >{{ 'PAC.Xpert.SetAsLatest' | translate: { Default: 'Set as latest' } }}
+              >{{ 'XP.Xpert.SetAsLatest' | translate: { Default: 'Set as latest' } }}
             </button>
             <button
               class="btn btn-small danger w-6 h-6 justify-center opacity-0 group-hover:opacity-100"
@@ -105,13 +104,13 @@
 
   @if (environments()?.length) {
     <div class="text-text-secondary mt-2">
-      {{ 'PAC.Environment.Environment' | translate: { Default: 'Environment' } }}
+      {{ 'XP.Environment.Environment' | translate: { Default: 'Environment' } }}
     </div>
     <div class="flex items-center gap-2">
-      <div>{{ 'PAC.Xpert.PublishBinding' | translate: { Default: 'Publish binding' } }}</div>
-      <ngm-select
+      <div>{{ 'XP.Xpert.PublishBinding' | translate: { Default: 'Publish binding' } }}</div>
+      <xp-select
         class="w-44"
-        [placeholder]="'PAC.Xpert.SelectAEnv' | translate: { Default: 'Select a environment' }"
+        [placeholder]="'XP.Xpert.SelectAEnv' | translate: { Default: 'Select a environment' }"
         [selectOptions]="environments()"
         [(ngModel)]="environmentId"
       />
@@ -123,22 +122,22 @@
       <z-accordion-item class="rounded-lg border border-border bg-background-default-subtle">
         <z-accordion-header>
           <z-accordion-title>
-            {{ 'PAC.Xpert.MarketplaceInfo' | translate: { Default: 'Marketplace information' } }}
+            {{ 'XP.Xpert.MarketplaceInfo' | translate: { Default: 'Marketplace information' } }}
           </z-accordion-title>
           <z-accordion-description class="text-xs text-text-tertiary">
-            {{ 'PAC.Xpert.MarketplaceInfoConfigureHint' | translate: { Default: 'Expand to configure' } }}
+            {{ 'XP.Xpert.MarketplaceInfoConfigureHint' | translate: { Default: 'Expand to configure' } }}
           </z-accordion-description>
         </z-accordion-header>
 
         <label class="block text-xs font-medium text-text-secondary">
-          {{ 'PAC.Xpert.MarketplaceSummary' | translate: { Default: 'Display summary' } }}
+          {{ 'XP.Xpert.MarketplaceSummary' | translate: { Default: 'Display summary' } }}
         </label>
         <textarea
           rows="2"
           maxlength="240"
           class="xp-input mt-1 w-full resize-none bg-background text-sm leading-[18px] text-text-primary"
           [placeholder]="
-            'PAC.Xpert.MarketplaceSummaryPlaceholder'
+            'XP.Xpert.MarketplaceSummaryPlaceholder'
               | translate: { Default: 'Briefly describe the tasks this agent is best suited for.' }
           "
           [ngModel]="marketplaceSummary()"
@@ -146,7 +145,7 @@
         ></textarea>
 
         <div class="mt-3 text-xs font-medium text-text-secondary">
-          {{ 'PAC.Xpert.MarketplaceBusinessCategories' | translate: { Default: 'Marketplace categories' } }}
+          {{ 'XP.Xpert.MarketplaceBusinessCategories' | translate: { Default: 'Marketplace categories' } }}
         </div>
         <div class="mt-2 flex flex-wrap gap-2">
           @for (category of businessCategories; track category) {
@@ -165,19 +164,19 @@
         </div>
 
         <label class="mt-3 block text-xs font-medium text-text-secondary">
-          {{ 'PAC.Xpert.MarketplaceCapabilityTags' | translate: { Default: 'Capability tags' } }}
+          {{ 'XP.Xpert.MarketplaceCapabilityTags' | translate: { Default: 'Capability tags' } }}
         </label>
         <input
           class="xp-input mt-1 w-full bg-background text-sm text-text-primary"
           [placeholder]="
-            'PAC.Xpert.MarketplaceCapabilityTagsPlaceholder' | translate: { Default: 'knowledge, citation, workflow' }
+            'XP.Xpert.MarketplaceCapabilityTagsPlaceholder' | translate: { Default: 'knowledge, citation, workflow' }
           "
           [ngModel]="capabilityTagsText()"
           (ngModelChange)="capabilityTagsText.set($event)"
         />
 
         <div class="mt-3 text-xs font-medium text-text-secondary">
-          {{ 'PAC.Xpert.MarketplaceTechnicalPreview' | translate: { Default: 'Technical categories preview' } }}
+          {{ 'XP.Xpert.MarketplaceTechnicalPreview' | translate: { Default: 'Technical categories preview' } }}
         </div>
         <div class="mt-2 flex flex-wrap gap-2">
           @for (category of technicalPreview().categories; track category) {
@@ -189,7 +188,7 @@
           } @empty {
             <span class="rounded-md border border-dashed border-border px-2.5 py-1 text-xs text-text-tertiary">
               {{
-                'PAC.Xpert.MarketplaceNoTechnicalPreview' | translate: { Default: 'No technical category detected yet' }
+                'XP.Xpert.MarketplaceNoTechnicalPreview' | translate: { Default: 'No technical category detected yet' }
               }}
             </span>
           }
@@ -199,7 +198,7 @@
   }
 
   @if (loading()) {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    <xp-spin class="absolute top-0 left-0 w-full h-full" />
   }
 </div>
 
@@ -210,6 +209,6 @@
     [disabled]="releaseNotesError()"
     (click)="publish()"
   >
-    {{ 'PAC.Xpert.Release' | translate: { Default: 'Release' } }}
+    {{ 'XP.Xpert.Release' | translate: { Default: 'Release' } }}
   </button>
 </div>

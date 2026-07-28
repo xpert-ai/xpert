@@ -17,7 +17,7 @@ import {
   XpertTypeEnum
 } from '@cloud/app/@core'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { ExploreXpertCardComponent } from './xpert-card.component'
 import { createAgentTemplateWizardData } from './agent-template-wizard'
 import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
@@ -27,7 +27,7 @@ type ExploreViewMode = 'square' | 'mine'
 @Component({
   standalone: true,
   selector: 'xp-explore-agents',
-  imports: [CommonModule, TranslateModule, NgmSpinComponent, ExploreXpertCardComponent],
+  imports: [CommonModule, TranslateModule, XpSpinComponent, ExploreXpertCardComponent],
   templateUrl: './agents.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

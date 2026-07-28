@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -31,7 +31,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     DragDropModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     CopilotModelSelectComponent,
     CopilotInstructionEditorComponent
   ]
@@ -79,7 +79,7 @@ export class CopilotPromptGeneratorComponent {
   presetInstruction(name: string) {
     const item = PRESET_INSTRUCTIONS.find((_) => _.key === name)
     this.instructions.set(
-      this.#translate.instant(`PAC.Copilot.PromptGenerator.${item.key}.instruction`, { Default: item.instruction })
+      this.#translate.instant(`XP.Copilot.PromptGenerator.${item.key}.instruction`, { Default: item.instruction })
     )
   }
 

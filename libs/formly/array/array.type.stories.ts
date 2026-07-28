@@ -3,11 +3,11 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { FormlyModule } from '@ngx-formly/core'
 import { Meta, moduleMetadata, Story } from '@storybook/angular'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
-import { PACFormlyCodeEditorComponent, PACFormlyCodeEditorModule } from '../code-editor/public-api'
+import { XpFormlyCodeEditorComponent, XpFormlyCodeEditorModule } from '../code-editor/public-api'
 
 export default {
   title: 'Components/Formly/Code Editor',
-  component: PACFormlyCodeEditorComponent,
+  component: XpFormlyCodeEditorComponent,
   argTypes: {
     selectedChange: { action: 'clicked' }
   },
@@ -21,14 +21,14 @@ export default {
           level: NgxLoggerLevel.DEBUG
         }),
         FormlyModule.forRoot(),
-        PACFormlyCodeEditorModule
+        XpFormlyCodeEditorModule
       ]
     })
   ]
 } as Meta
 
-const Template: Story<PACFormlyCodeEditorComponent> = (args: PACFormlyCodeEditorComponent) => ({
-  component: PACFormlyCodeEditorComponent,
+const Template: Story<XpFormlyCodeEditorComponent> = (args: XpFormlyCodeEditorComponent) => ({
+  component: XpFormlyCodeEditorComponent,
   props: args
 })
 

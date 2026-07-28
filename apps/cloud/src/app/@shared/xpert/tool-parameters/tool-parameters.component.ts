@@ -7,7 +7,7 @@ import {
   TToolParameter,
   TWorkflowVarGroup
 } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
@@ -29,7 +29,7 @@ type JsonSchemaPropertyWithUi = {
   imports: [
     FormsModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     JSONSchemaFormComponent,
     XpertVariableInputComponent,
     ZardInputDirective
@@ -41,7 +41,7 @@ type JsonSchemaPropertyWithUi = {
 })
 export class XpToolParametersFormComponent {
   protected cva = inject<NgxControlValueAccessor<Record<string, unknown>>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly tool = input<IXpertTool>()

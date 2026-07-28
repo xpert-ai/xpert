@@ -1,21 +1,33 @@
-<header class="flex justify-between items-center p-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <div class="text-xl font-semibold">{{ 'PAC.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' } }}</div>
+<header
+  class="flex justify-between items-center p-4 cursor-move"
+  cdkDrag
+  cdkDragRootElement=".cdk-overlay-pane"
+  cdkDragHandle
+>
+  <div class="text-xl font-semibold">{{ 'XP.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' } }}</div>
 </header>
 
 <div class="flex justify-center pb-2">
-  <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
+  <ul
+    class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
     cdkListbox
     [(ngModel)]="providerTypes"
-    >
-    <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+  >
+    <li
+      #option2="cdkOption"
+      class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'openapi'">
+      [cdkOption]="'openapi'"
+    >
       <i class="ri-links-line"></i> &nbsp; OpenAPI
     </li>
 
-    <li #option3="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+    <li
+      #option3="cdkOption"
+      class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'odata'">
+      [cdkOption]="'odata'"
+    >
       <i class="ri-exchange-2-line"></i> &nbsp; OData
     </li>
   </ul>
@@ -24,32 +36,28 @@
 <div class="block px-8 py-2 overflow-auto">
   @switch (providerTypes()[0]) {
     @case ('openapi') {
-      <xpert-tool-openapi-configure #configure
-        (valueChange)="onValueChange($event)"
-      />
+      <xpert-tool-openapi-configure #configure (valueChange)="onValueChange($event)" />
     }
     @case ('odata') {
-      <xpert-tool-odata-configure #configure
-        (valueChange)="onValueChange($event)"
-      />
+      <xpert-tool-odata-configure #configure (valueChange)="onValueChange($event)" />
     }
   }
 </div>
 
 <div class="w-full flex justify-end p-4">
   <div class="flex items-center gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-large"
-      (click)="cancel()"
-    >
-      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+    <button type="button" class="btn disabled:btn-disabled btn-large" (click)="cancel()">
+      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-large"
       [disabled]="!configure()?.isValid()"
       (click)="createTool()"
     >
       <i class="ri-save-line mr-1"></i>
-      {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+      {{ 'XP.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
     </button>
   </div>
 </div>

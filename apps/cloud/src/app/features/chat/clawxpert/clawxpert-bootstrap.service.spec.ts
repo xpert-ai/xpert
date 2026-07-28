@@ -291,7 +291,7 @@ describe('ClawXpertBootstrapService', () => {
     })
 
     expect(xpertTemplateService.installTemplate).toHaveBeenCalled()
-    expect(toastrService.warning).toHaveBeenCalledWith('PAC.Chat.ClawXpert.PluginPrepareFailed', {
+    expect(toastrService.warning).toHaveBeenCalledWith('XP.Chat.ClawXpert.PluginPrepareFailed', {
       Default:
         'Digital expert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
     })

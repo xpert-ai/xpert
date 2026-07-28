@@ -165,7 +165,7 @@ export interface ColumnDef {
   fraction?: number
 }
 
-export class NgmError extends Error {
+export class XpError extends Error {
   public code: string
   public date: Date
   constructor(code: string, ...params) {
@@ -174,10 +174,10 @@ export class NgmError extends Error {
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, NgmError)
+      Error.captureStackTrace(this, XpError)
     }
 
-    this.name = 'NgmError'
+    this.name = 'XpError'
     // Custom debugging information
     this.code = code
     this.date = new Date()

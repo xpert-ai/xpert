@@ -1,13 +1,13 @@
 <div class="filter-bar p-2 flex items-center gap-4">
   <span class="flex-1"></span>
 
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button
       z-button
       zType="default"
       zSize="icon-sm"
       zShape="circle"
-      [zTooltip]="'PAC.Knowledgebase.NewFiles' | translate: { Default: 'New Files' }"
+      [zTooltip]="'XP.Knowledgebase.NewFiles' | translate: { Default: 'New Files' }"
       (click)="uploadDocuments()"
     >
       <z-icon zType="add"></z-icon>
@@ -27,7 +27,7 @@
               [zDisableClear]="true"
               (zSortChange)="onSortChange(column.name, $event)"
             >
-              {{ 'PAC.KEY_WORDS.' + column.caption | translate: { Default: column.caption } }}
+              {{ 'XP.KEY_WORDS.' + column.caption | translate: { Default: column.caption } }}
             </button>
           </th>
         }
@@ -38,7 +38,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('progress', $event)"
           >
-            {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
+            {{ 'XP.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
           </button>
         </th>
         <th z-table-head class="sticky top-0 z-10 bg-background" aria-label="row actions">&nbsp;</th>
@@ -47,11 +47,7 @@
 
     <tbody z-table-body>
       @for (element of data(); track element.id) {
-        <tr
-          z-table-row
-          class="example-element-row"
-          [class.example-expanded-row]="expandedElement?.id === element.id"
-        >
+        <tr z-table-row class="example-element-row" [class.example-expanded-row]="expandedElement?.id === element.id">
           @for (column of columnsToDisplay; track column.name) {
             <td z-table-cell>
               @if (column.name === 'name') {
@@ -71,23 +67,23 @@
                 </div>
               }
               @case ('finish') {
-                <ngm-tags
+                <xp-tags
                   class="text-sm"
-                  [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
+                  [tags]="[{ caption: 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
                   color="green"
                 />
               }
               @case ('error') {
-                <ngm-tags
+                <xp-tags
                   class="text-sm"
-                  [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
+                  [tags]="[{ caption: 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
                   color="red"
                 />
               }
               @default {
-                <ngm-tags
+                <xp-tags
                   class="text-sm"
-                  [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }]"
+                  [tags]="[{ caption: 'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }]"
                   color="gray"
                 />
               }
@@ -102,7 +98,9 @@
                 zSize="icon"
                 zShape="circle"
                 aria-label="expand row"
-                (click)="expandedElement = expandedElement?.id === element.id ? null : element; $event.stopPropagation()"
+                (click)="
+                  expandedElement = expandedElement?.id === element.id ? null : element; $event.stopPropagation()
+                "
               >
                 @if (expandedElement?.id === element.id) {
                   <z-icon zType="keyboard_arrow_up"></z-icon>
@@ -117,7 +115,7 @@
                   zType="ghost"
                   zSize="icon"
                   zShape="circle"
-                  [zTooltip]="'PAC.Knowledgebase.RestartParsing' | translate: { Default: 'Restart parsing' }"
+                  [zTooltip]="'XP.Knowledgebase.RestartParsing' | translate: { Default: 'Restart parsing' }"
                   zPosition="top"
                   (click)="restartParsing(element.id)"
                 >
@@ -129,7 +127,7 @@
                   zType="ghost"
                   zSize="icon"
                   zShape="circle"
-                  [zTooltip]="'PAC.Knowledgebase.StopParsing' | translate: { Default: 'Stop parsing' }"
+                  [zTooltip]="'XP.Knowledgebase.StopParsing' | translate: { Default: 'Stop parsing' }"
                   zPosition="top"
                   (click)="stopParsing(element.id)"
                 >
@@ -141,7 +139,7 @@
                   zType="ghost"
                   zSize="icon"
                   zShape="circle"
-                  [zTooltip]="'PAC.Knowledgebase.StartParsing' | translate: { Default: 'Start parsing' }"
+                  [zTooltip]="'XP.Knowledgebase.StartParsing' | translate: { Default: 'Start parsing' }"
                   zPosition="top"
                   (click)="startParsing(element)"
                 >
@@ -155,9 +153,9 @@
                 zType="ghost"
                 zSize="icon"
                 zShape="circle"
-                ngmAppearance="danger"
+                xpAppearance="danger"
                 [zTooltip]="
-                  'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: { Default: 'Delete Knowledge Document' }
+                  'XP.Knowledgebase.DeleteKnowledgeDocument' | translate: { Default: 'Delete Knowledge Document' }
                 "
                 zPosition="top"
                 (click)="deleteDocument(element)"
@@ -181,8 +179,8 @@
                 <div class="uppercase text-lg">{{ element.type }}</div>
               </div>
               <div class="example-element-description flex-1 flex flex-wrap gap-2">
-                <ngm-slider-input
-                  [label]="'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
+                <xp-slider-input
+                  [label]="'XP.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
                   class="w-[300px]"
                   [ngModel]="element.parserConfig.chunkSize"
                   (ngModelChange)="element.parserConfig.chunkSize = $event"
@@ -191,8 +189,8 @@
                   [max]="10000"
                 />
 
-                <ngm-slider-input
-                  [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
+                <xp-slider-input
+                  [label]="'XP.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
                   class="w-[300px]"
                   [ngModel]="element.parserConfig.chunkOverlap"
                   (ngModelChange)="element.parserConfig.chunkOverlap = $event"
@@ -201,8 +199,8 @@
                   [max]="1000"
                 />
 
-                <ngm-input
-                  [label]="'PAC.Knowledgebase.Delimiter' | translate: { Default: 'Delimiter' }"
+                <xp-input
+                  [label]="'XP.Knowledgebase.Delimiter' | translate: { Default: 'Delimiter' }"
                   class="w-[200px]"
                   [ngModel]="element.parserConfig.delimiter"
                   (ngModelChange)="updateParserConfig(element, { delimiter: $event })"
@@ -213,8 +211,12 @@
         </tr>
       } @empty {
         <tr z-table-row>
-          <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="py-8 text-center text-muted-foreground">
-            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+          <td
+            z-table-cell
+            [attr.colspan]="columnsToDisplayWithExpand.length"
+            class="py-8 text-center text-muted-foreground"
+          >
+            {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
           </td>
         </tr>
       }

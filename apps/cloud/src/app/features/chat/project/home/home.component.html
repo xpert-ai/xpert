@@ -41,16 +41,16 @@
       (click)="openInstruction()"
     >
       <i class="ri-equalizer-2-line"></i>
-      <span>{{ 'PAC.XProject.Instruction' | translate: { Default: 'Instruction' } }}</span>
+      <span>{{ 'XP.XProject.Instruction' | translate: { Default: 'Instruction' } }}</span>
     </button>
 
     @if (loading()) {
-      <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+      <xp-spin class="absolute left-0 top-0 w-full h-full" />
     }
   </div>
 
   <div class="flex-1 flex gap-6 flex-col">
-    <pac-chat-project-xperts class="mt-12 self-center" />
+    <xp-chat-project-xperts class="mt-12 self-center" />
 
     <div class="relative">
       <form
@@ -82,7 +82,7 @@
             <div class="relative z-10">
               <textarea
                 [placeholder]="
-                  'PAC.XProject.InputPlaceholder' | translate: { Default: 'Start a conversation in this project' }
+                  'XP.XProject.InputPlaceholder' | translate: { Default: 'Start a conversation in this project' }
                 "
                 dir="auto"
                 class="w-full px-2 @[480px]/input:px-3 bg-transparent focus:outline-none text-text-primary align-bottom min-h-14 pt-5 my-0 mb-5"
@@ -107,7 +107,7 @@
                 aria-label="Attach"
                 tabindex="0"
                 [zTooltip]="
-                  'PAC.XProject.UploadAttachmentsTooltip'
+                  'XP.XProject.UploadAttachmentsTooltip'
                     | translate: { Default: 'Upload attachments (only recognize text and images)' }
                 "
                 zPosition="top"
@@ -161,10 +161,10 @@
                     >
                       @if (mode() === 'plan') {
                         <i class="ri-quill-pen-ai-line text-lg"></i>
-                        <span>{{ 'PAC.XProject.PlanningMode' | translate: { Default: 'Planning Mode' } }}</span>
+                        <span>{{ 'XP.XProject.PlanningMode' | translate: { Default: 'Planning Mode' } }}</span>
                       } @else {
                         <i class="ri-shake-hands-line text-lg"></i>
-                        <span>{{ 'PAC.XProject.ExploreMode' | translate: { Default: 'Explore Mode' } }}</span>
+                        <span>{{ 'XP.XProject.ExploreMode' | translate: { Default: 'Explore Mode' } }}</span>
                       }
                     </button>
                     <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
@@ -277,7 +277,7 @@
             (click)="viewType.set('files')"
           >
             <i class="ri-hard-drive-3-line text-lg"></i>
-            {{ 'PAC.XProject.Files' | translate: { Default: 'Files' } }}
+            {{ 'XP.XProject.Files' | translate: { Default: 'Files' } }}
           </button>
 
           <button
@@ -288,7 +288,7 @@
             (click)="viewType.set('tools')"
           >
             <i class="ri-hammer-line text-lg"></i>
-            {{ 'PAC.XProject.Tools' | translate: { Default: 'Tools' } }}
+            {{ 'XP.XProject.Tools' | translate: { Default: 'Tools' } }}
           </button>
           <button
             type="button"
@@ -298,7 +298,7 @@
             (click)="viewType.set('knowledges')"
           >
             <i class="ri-book-shelf-line text-lg"></i>
-            {{ 'PAC.XProject.Knowledges' | translate: { Default: 'Knowledges' } }}
+            {{ 'XP.XProject.Knowledges' | translate: { Default: 'Knowledges' } }}
           </button>
 
           <button
@@ -309,7 +309,7 @@
             (click)="viewType.set('conversations')"
           >
             <i class="ri-chat-thread-line text-lg"></i>
-            {{ 'PAC.XProject.Conversations' | translate: { Default: 'Conversations' } }}
+            {{ 'XP.XProject.Conversations' | translate: { Default: 'Conversations' } }}
           </button>
 
           @if (project()?.vcsId) {
@@ -321,7 +321,7 @@
               (click)="viewType.set('vcs')"
             >
               <i class="ri-github-fill text-lg"></i>
-              {{ 'PAC.XProject.GitHub' | translate: { Default: 'GitHub' } }}
+              {{ 'XP.XProject.GitHub' | translate: { Default: 'GitHub' } }}
             </button>
           }
         </div>
@@ -357,7 +357,7 @@
                 <i class="ri-external-link-line"></i>
               </button>
             } @else {
-              <span>{{ 'PAC.XProject.SelectWorkspace' | translate: { Default: 'Select workspace' } }}</span>
+              <span>{{ 'XP.XProject.SelectWorkspace' | translate: { Default: 'Select workspace' } }}</span>
             }
           }
         </button>
@@ -390,10 +390,10 @@
     <div cdkMenuItem [class.active]="!mode()" (click)="setMode('')">
       <i class="ri-shake-hands-line text-lg mr-2"></i>
       <div class="flex-1 text-left">
-        <div class="text-sm font-medium">{{ 'PAC.XProject.ExploreMode' | translate: { Default: 'Explore Mode' } }}</div>
+        <div class="text-sm font-medium">{{ 'XP.XProject.ExploreMode' | translate: { Default: 'Explore Mode' } }}</div>
         <div class="text-xs">
           {{
-            'PAC.XProject.ExploreModeDesc'
+            'XP.XProject.ExploreModeDesc'
               | translate: { Default: 'Let AI think dynamically and autonomously to complete tasks faster' }
           }}
         </div>
@@ -404,11 +404,11 @@
       <i class="ri-quill-pen-ai-line text-lg mr-2"></i>
       <div class="flex-1 text-left">
         <div class="text-sm font-medium">
-          {{ 'PAC.XProject.PlanningMode' | translate: { Default: 'Planning Mode' } }}
+          {{ 'XP.XProject.PlanningMode' | translate: { Default: 'Planning Mode' } }}
         </div>
         <div class="text-xs">
           {{
-            'PAC.XProject.PlanningModeDesc'
+            'XP.XProject.PlanningModeDesc'
               | translate: { Default: 'AI helps you plan steps and execute them step by step' }
           }}
         </div>
@@ -432,31 +432,31 @@
     @if (editing()) {
       <div cdkMenuItem (click)="cancelEdit()">
         <i class="ri-pencil-line mr-1"></i>
-        <span>{{ 'PAC.XProject.CancelEdit' | translate: { Default: 'Cancel Edit' } }}</span>
+        <span>{{ 'XP.XProject.CancelEdit' | translate: { Default: 'Cancel Edit' } }}</span>
       </div>
     } @else {
       <div cdkMenuItem (click)="edit()">
         <i class="ri-pencil-line mr-1"></i>
-        <span>{{ 'PAC.XProject.Edit' | translate: { Default: 'Edit' } }}</span>
+        <span>{{ 'XP.XProject.Edit' | translate: { Default: 'Edit' } }}</span>
       </div>
     }
     <!-- @if (editing()) {
       <div cdkMenuItem [cdkMenuTriggerFor]="copilotMenu">
         <i class="ri-brain-2-line mr-1"></i>
-        <span>{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</span>
+        <span>{{ 'XP.XProject.AiModel' | translate: {Default: 'AI Model'} }}</span>
       </div>
     } -->
 
     <div cdkMenuItem (click)="exportDsl()">
       <i class="ri-export-line mr-1"></i>
-      <span>{{ 'PAC.XProject.ExportDSL' | translate: { Default: 'Export DSL' } }}</span>
+      <span>{{ 'XP.XProject.ExportDSL' | translate: { Default: 'Export DSL' } }}</span>
     </div>
 
     <div class="border-b border-solid border-divider-regular my-1"></div>
 
     <div cdkMenuItem (click)="manage()">
       <i class="ri-settings-4-line mr-1"></i>
-      <span>{{ 'PAC.XProject.Manage' | translate: { Default: 'Manage' } }}</span>
+      <span>{{ 'XP.XProject.Manage' | translate: { Default: 'Manage' } }}</span>
     </div>
   </div>
 </ng-template>
@@ -465,12 +465,12 @@
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="fileDropRef.click()">
       <i class="ri-folder-line text-lg mr-2"></i>
-      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</div>
+      <div class="text-sm font-medium">{{ 'XP.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</div>
     </div>
 
     <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu">
       <i class="ri-file-history-line text-lg mr-2"></i>
-      <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: { Default: 'Recent' } }}</div>
+      <div class="grow text-sm font-medium">{{ 'XP.XProject.Recent' | translate: { Default: 'Recent' } }}</div>
       <i class="ri-arrow-right-s-line"></i>
     </div>
   </div>
@@ -480,7 +480,7 @@
   <div cdkMenu class="cdk-menu__medium !rounded-2xl">
     @for (file of project_attachments(); track file.id) {
       <div cdkMenuItem class="flex items-center gap-2" (click)="addAttachment(file)">
-        <pac-file-icon [fileType]="file.originalName | fileType" />
+        <xp-file-icon [fileType]="file.originalName | fileType" />
         <div class="flex-1 text-left max-w-sm truncate">
           <div class="text-base truncate">{{ file.originalName }}</div>
           <div class="text-xs font-mono text-secondary">
@@ -497,7 +497,7 @@
       </div>
     } @empty {
       <div class="text-center text-sm text-text-secondary px-2 py-1">
-        {{ 'PAC.XProject.NoRecentFiles' | translate: { Default: 'No recent files' } }}
+        {{ 'XP.XProject.NoRecentFiles' | translate: { Default: 'No recent files' } }}
       </div>
     }
   </div>

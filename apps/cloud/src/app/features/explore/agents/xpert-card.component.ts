@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpert, TXpertTemplate, XpertTypeEnum } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { ZardButtonComponent, ZardTooltipDirective } from '@xpert-ai/headless-ui'
 
 export type ExploreXpertCardVariant = 'square' | 'mine'
@@ -15,7 +15,7 @@ export type ExploreXpertCardVariant = 'square' | 'mine'
     CommonModule,
     TranslateModule,
     EmojiAvatarComponent,
-    NgmHighlightDirective,
+    XpHighlightDirective,
     ZardButtonComponent,
     ZardTooltipDirective
   ],

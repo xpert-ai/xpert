@@ -5,8 +5,8 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,17 +28,17 @@ import { EmojiAvatarComponent } from '../../avatar'
     FormlyModule,
     ZardInputDirective,
     EmojiAvatarComponent,
-    NgmInputComponent,
-    NgmSpinComponent
+    XpInputComponent,
+    XpSpinComponent
   ],
-  selector: 'pac-integration-form',
+  selector: 'xp-integration-form',
   templateUrl: 'integration.component.html',
   styleUrls: ['integration.component.scss']
 })
 export class IntegrationFormComponent {
   readonly integrationService = inject(IntegrationService)
   readonly #toastr = injectToastr()
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   readonly integration = model<IIntegration>()
   readonly #providers = toSignal(this.integrationService.getProviders(), { initialValue: [] })
@@ -115,7 +115,7 @@ export class IntegrationFormComponent {
         this.formGroup.patchValue(result)
         this.formGroup.markAsDirty()
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.Successfully', { Default: 'Successfully!' })
+        this.#toastr.success('XP.Messages.Successfully', { Default: 'Successfully!' })
       },
       error: (error) => {
         this.#toastr.danger(getErrorMessage(error))

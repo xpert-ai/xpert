@@ -14,8 +14,8 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   CredentialsType,
@@ -41,8 +41,8 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     TranslateModule,
     ZardDialogModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     ZardInputDirective,
     TextFieldModule,
     XpertToolBuiltinCredentialComponent,
@@ -133,7 +133,7 @@ export class XpertToolBuiltinAuthorizeComponent {
     this.loading.set(true)
     this.toolsetService.delete(this.toolsetId()).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         this.loading.set(false)
         this.credentials.set(null)
         this.toolset.set(null)
@@ -168,12 +168,12 @@ export class XpertToolBuiltinAuthorizeComponent {
         next: (toolset) => {
           if (this.toolsetId()) {
             this.#toastr.success(
-              'PAC.Messages.UpdatedSuccessfully',
+              'XP.Messages.UpdatedSuccessfully',
               { Default: 'Updated successfully' },
               this.toolset().type
             )
           } else {
-            this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' }, toolset.type)
+            this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully' }, toolset.type)
           }
           if (toolset) {
             this.toolset.update((state) => ({

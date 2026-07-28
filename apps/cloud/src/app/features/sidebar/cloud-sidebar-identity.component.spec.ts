@@ -30,17 +30,17 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Component({
     standalone: true,
-    selector: 'ngm-search',
+    selector: 'xp-search',
     template: ''
   })
-  class NgmSearchComponent {}
+  class XpSearchComponent {}
 
   @Directive({
     standalone: true,
-    selector: '[ngmHighlight]'
+    selector: '[xpHighlight]'
   })
-  class NgmHighlightDirective {
-    @Input() ngmHighlight?: string
+  class XpHighlightDirective {
+    @Input() xpHighlight?: string
     @Input() content?: string
   }
 
@@ -53,8 +53,8 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   return {
     debouncedSignal: (value: unknown) => value,
-    NgmHighlightDirective,
-    NgmSearchComponent,
+    XpHighlightDirective,
+    XpSearchComponent,
     nonNullable: <T>(value: T | null | undefined): value is T => value != null,
     OverlayAnimation1: [],
     ZardButtonComponent
@@ -86,7 +86,7 @@ jest.mock('../../@shared/organization', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-org-avatar',
+    selector: 'xp-org-avatar',
     template: ''
   })
   class OrgAvatarComponent {

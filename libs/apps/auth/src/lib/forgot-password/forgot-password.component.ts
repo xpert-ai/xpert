@@ -3,19 +3,19 @@ import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { TranslateService } from '@ngx-translate/core'
 import { ZardToastService } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import { PAC_AUTH_OPTIONS } from '../auth.options'
+import { XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
-import { PacAuthResult, PacAuthService } from '../services'
+import { XpAuthResult, XpAuthService } from '../services'
 
 @Component({
   standalone: false,
-  selector: 'pac-auth-forgot-password',
+  selector: 'xp-auth-forgot-password',
   templateUrl: 'forgot-password.component.html',
   styleUrls: ['forgot-password.component.scss']
 })
 export class ForgotPasswordComponent {
-  private authService = inject(PacAuthService)
-  protected options = inject(PAC_AUTH_OPTIONS)
+  private authService = inject(XpAuthService)
+  protected options = inject(XP_AUTH_OPTIONS)
   private translateService = inject(TranslateService)
   private readonly toast = inject(ZardToastService)
   private _cdr = inject(ChangeDetectorRef)
@@ -31,7 +31,7 @@ export class ForgotPasswordComponent {
     this.submitted = true
 
     try {
-      const result: PacAuthResult = await firstValueFrom(
+      const result: XpAuthResult = await firstValueFrom(
         this.authService.requestPassword(this.strategy, this.form.value)
       )
 

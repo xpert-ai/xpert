@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { injectOrganizationId } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
@@ -8,7 +8,7 @@ import { EmojiAvatarComponent } from '../../avatar'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent, NgmI18nPipe],
+  imports: [TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent, XpI18nPipe],
   selector: 'xpert-tool-provider-card',
   templateUrl: 'provider.component.html',
   styleUrls: ['provider.component.scss']

@@ -7,7 +7,7 @@ import { RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { parseYAML } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -28,7 +28,7 @@ import {
   XpertTemplateService,
   XpertWorkspaceService
 } from 'apps/cloud/src/app/@core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { ProjectInstallToolsetComponent } from './toolset/toolset.component'
@@ -45,8 +45,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     ...ZardTooltipImports,
     EmojiAvatarComponent,
-    NgmSpinComponent,
-    NgmSelectComponent,
+    XpSpinComponent,
+    XpSelectComponent,
     CopilotModelSelectComponent,
     ProjectInstallXpertComponent,
     ProjectInstallToolsetComponent
@@ -153,7 +153,7 @@ export class XpertProjectInstallComponent {
         next: (project) => {
           this.#loading.set(false)
           this.createdProject.update((p) => ({ ...p, ...entity }))
-          this.#toastr.success('PAC.XProject.ProjectUpdated', { Default: 'Project updated successfully' })
+          this.#toastr.success('XP.XProject.ProjectUpdated', { Default: 'Project updated successfully' })
         },
         error: (err) => {
           this.#loading.set(false)
@@ -173,7 +173,7 @@ export class XpertProjectInstallComponent {
           next: (project) => {
             this.#loading.set(false)
             this.createdProject.set(project)
-            this.#toastr.success('PAC.XProject.ProjectCreated', { Default: 'Project created successfully' })
+            this.#toastr.success('XP.XProject.ProjectCreated', { Default: 'Project created successfully' })
           },
           error: (err) => {
             this.#loading.set(false)

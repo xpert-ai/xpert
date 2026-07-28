@@ -20,7 +20,7 @@ import { EchartsDirective } from '../echarts.directive'
     ...ZardTooltipImports,
     EchartsDirective
   ],
-  selector: 'pac-statistics-chart',
+  selector: 'xp-statistics-chart',
   templateUrl: './chart.component.html',
   styleUrl: 'chart.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

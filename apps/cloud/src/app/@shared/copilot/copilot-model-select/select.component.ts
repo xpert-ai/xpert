@@ -15,8 +15,8 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
-import { debouncedSignal, myRxResource, NgmI18nPipe, nonBlank } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
+import { debouncedSignal, myRxResource, XpI18nPipe, nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -60,8 +60,8 @@ const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
     CdkMenuModule,
     ...ZardTabsImports,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmHighlightDirective,
+    XpI18nPipe,
+    XpHighlightDirective,
     ModelParameterInputComponent,
     ZardAlertComponent
   ],
@@ -78,7 +78,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   protected cva = inject<NgxControlValueAccessor<Partial<ICopilotModel> | null>>(NgxControlValueAccessor)
   readonly copilotServer = inject(CopilotServerService)
   readonly copilotProviderService = injectCopilotProviderService()
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #destroyRef = inject(DestroyRef)
 

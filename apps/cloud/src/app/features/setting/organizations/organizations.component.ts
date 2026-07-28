@@ -5,7 +5,7 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { ActivatedRoute, Router } from '@angular/router'
 import { IFeatureOrganization, IOrganizationCreateInput, IUser, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
 import { CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
@@ -62,13 +62,13 @@ type OrganizationDetailsTab = 'general' | 'members' | 'user-groups' | 'controls'
     ZardSwitchComponent,
     OrgAvatarEditorComponent,
     OrgAvatarComponent,
-    NgmTableComponent,
+    XpTableComponent,
     TagMaintainComponent,
     OrganizationMembersComponent,
     OrganizationUserGroupsComponent,
     SMTPComponent
   ],
-  selector: 'pac-organizations',
+  selector: 'xp-organizations',
   templateUrl: './organizations.component.html',
   styleUrls: ['./organizations.component.css'],
   animations: [routeAnimations],
@@ -193,10 +193,10 @@ export class OrganizationsComponent {
   readonly registrySectionTitle = computed(() => {
     this.activeLanguage()
     return this.isTenantScope()
-      ? this.#translate.instant('PAC.Organization.RegistryTitle', {
+      ? this.#translate.instant('XP.Organization.RegistryTitle', {
           Default: 'Organization Registry'
         })
-      : this.#translate.instant('PAC.Organization.CurrentOrganizationTitle', {
+      : this.#translate.instant('XP.Organization.CurrentOrganizationTitle', {
           Default: 'Current organization'
         })
   })
@@ -263,7 +263,7 @@ export class OrganizationsComponent {
 
     try {
       const created = await firstValueFrom(this.#organizationsService.create(organization))
-      this.#toastrService.success('PAC.NOTES.ORGANIZATIONS.AddNewOrganization', {
+      this.#toastrService.success('XP.NOTES.ORGANIZATIONS.AddNewOrganization', {
         Default: 'Add New Organization'
       })
       await this.navigateToOrganization(created.id)
@@ -313,7 +313,7 @@ export class OrganizationsComponent {
       return
     }
 
-    const information = this.#translate.instant('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
+    const information = this.#translate.instant('XP.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
       Default: 'Delete this organization only when it has no members, pending invites, or user groups.'
     })
 
@@ -326,7 +326,7 @@ export class OrganizationsComponent {
     ).subscribe({
       next: async () => {
         await this.refreshCurrentUserContext()
-        this.#toastrService.success('PAC.NOTES.ORGANIZATIONS.DELETE_ORGANIZATION', {
+        this.#toastrService.success('XP.NOTES.ORGANIZATIONS.DELETE_ORGANIZATION', {
           Default: `Organization '{{ name }}' was removed`,
           name: organization.name
         })
@@ -368,7 +368,7 @@ export class OrganizationsComponent {
       )
       await this.refreshCurrentUserContext()
 
-      this.#toastrService.success('PAC.MESSAGE.MAIN_ORGANIZATION_UPDATED', {
+      this.#toastrService.success('XP.MESSAGE.MAIN_ORGANIZATION_UPDATED', {
         Default: 'Main Org Updated'
       })
       this.refresh()
@@ -422,7 +422,7 @@ export class OrganizationsComponent {
           importData: true
         })
       )
-      this.#toastrService.success('PAC.NOTES.ORGANIZATIONS.DEMO_GENERATED', {
+      this.#toastrService.success('XP.NOTES.ORGANIZATIONS.DEMO_GENERATED', {
         Default: 'Demo generated'
       })
       this.refresh()
@@ -448,8 +448,8 @@ export class OrganizationsComponent {
   organizationStatusLabel(organization: IOrganization) {
     this.activeLanguage()
     return organization?.isActive
-      ? this.#translate.instant('PAC.KEY_WORDS.Active', { Default: 'Active' })
-      : this.#translate.instant('PAC.KEY_WORDS.Disabled', { Default: 'Disabled' })
+      ? this.#translate.instant('XP.KEY_WORDS.Active', { Default: 'Active' })
+      : this.#translate.instant('XP.KEY_WORDS.Disabled', { Default: 'Disabled' })
   }
 
   organizationStatusTone(organization: IOrganization) {
@@ -460,7 +460,7 @@ export class OrganizationsComponent {
 
   governanceReadonlyHint() {
     this.activeLanguage()
-    return this.#translate.instant('PAC.Organization.GovernanceReadonlyHint', {
+    return this.#translate.instant('XP.Organization.GovernanceReadonlyHint', {
       Default: 'Tenant-governed fields remain locked in organization scope.'
     })
   }

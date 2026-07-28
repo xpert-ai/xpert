@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, HostBinding, input, model } from '@angular/core'
 
 @Component({
-  selector: 'ngm-drawer-trigger',
+  selector: 'xp-drawer-trigger',
   standalone: true,
   imports: [],
   templateUrl: './drawer-trigger.component.html',
   styleUrl: './drawer-trigger.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class NgmDrawerTriggerComponent {
+export class XpDrawerTriggerComponent {
   readonly opened = model<boolean>()
 
   readonly side = input<'left' | 'right'>('left')
@@ -17,7 +17,7 @@ export class NgmDrawerTriggerComponent {
     this.opened.update((opened) => !opened)
   }
 
-  @HostBinding('class.ngm-drawer__opened')
+  @HostBinding('class.xp-drawer__opened')
   get _opened() {
     return this.opened()
   }

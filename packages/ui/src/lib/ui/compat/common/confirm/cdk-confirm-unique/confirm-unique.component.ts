@@ -5,7 +5,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '../../../../../components'
-import { ButtonGroupDirective } from '../../../core'
+import { XpButtonGroupDirective } from '../../../core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
 
@@ -28,7 +28,7 @@ export type TConfirmUniqueInfo = {
     ...ZardFormImports,
     ZardInputDirective,
     TranslateModule,
-    ButtonGroupDirective
+    XpButtonGroupDirective
   ],
   selector: 'cdk-confirm-unique',
   templateUrl: './confirm-unique.component.html',
@@ -38,7 +38,7 @@ export type TConfirmUniqueInfo = {
   }
 })
 export class CdkConfirmUniqueComponent implements OnInit {
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   public data = inject<TConfirmUniqueInfo>(DIALOG_DATA)
   private _dialogRef = inject(DialogRef<string, CdkConfirmUniqueComponent>)

@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, model, out
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IfAnimations } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IXpertTool,
@@ -25,9 +25,9 @@ import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xper
     TranslateModule,
     ZardDialogModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmDensityDirective,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpDensityDirective,
+    XpSpinComponent,
     XpertToolsetToolTestComponent,
     ZardSwitchComponent
   ],

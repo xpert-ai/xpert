@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { TSandboxProvider } from '@cloud/app/@core'
 import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { attrModel } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { of, switchMap } from 'rxjs'
@@ -18,7 +18,7 @@ import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
   imports: [
     TranslateModule,
     FormsModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardCheckboxComponent,
     IconComponent,
     ExtensionHostOutletComponent

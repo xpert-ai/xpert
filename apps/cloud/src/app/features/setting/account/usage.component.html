@@ -5,13 +5,13 @@
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <div class="text-xs font-medium uppercase text-text-tertiary">
-              {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+              {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
             </div>
             <div class="mt-2 truncate text-2xl font-semibold text-text-primary" [title]="overview()?.plan?.name || '-'">
               {{ overview()?.plan?.name || '-' }}
             </div>
             <div class="mt-2 text-sm text-text-tertiary">
-              {{ 'PAC.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
+              {{ 'XP.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
             </div>
           </div>
 
@@ -25,11 +25,11 @@
         <div class="mt-6 grid grid-cols-2 gap-3">
           <div class="rounded-lg bg-components-panel-bg p-3">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
               @if (overview()?.pointsRemaining === null) {
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
                 {{ overview()?.pointsRemaining | number: '1.0-10' }}
               }
@@ -37,7 +37,7 @@
           </div>
           <div class="rounded-lg bg-components-panel-bg p-3">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
               {{ overview()?.pointsUsed | number: '1.0-10' }}
@@ -47,10 +47,10 @@
 
         <div class="mt-4">
           <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
-            <span>{{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
+            <span>{{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
             <span>
               @if (isUnlimited()) {
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
                 {{ usedPercent() | number }}%
               }
@@ -71,7 +71,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.TotalTokens' | translate: { Default: 'Total tokens' } }}
+              {{ 'XP.Membership.TotalTokens' | translate: { Default: 'Total tokens' } }}
             </div>
             <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.totalTokens | number }}</div>
           </div>
@@ -87,7 +87,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.ActiveDays' | translate: { Default: 'Active days' } }}
+              {{ 'XP.Membership.ActiveDays' | translate: { Default: 'Active days' } }}
             </div>
             <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.activeDays | number }}</div>
           </div>
@@ -103,7 +103,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.PeakDailyTokens' | translate: { Default: 'Peak daily tokens' } }}
+              {{ 'XP.Membership.PeakDailyTokens' | translate: { Default: 'Peak daily tokens' } }}
             </div>
             <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.peakDailyTokens | number }}</div>
           </div>
@@ -116,16 +116,16 @@
     <z-card-header class="border-b border-divider-regular py-4">
       <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <z-card-title>{{ 'PAC.Membership.TokenActivity' | translate: { Default: 'Token activity' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TokenActivity' | translate: { Default: 'Token activity' } }}</z-card-title>
           <z-card-subtitle class="mt-1">
             {{
-              'PAC.Membership.TokenActivityHint'
+              'XP.Membership.TokenActivityHint'
                 | translate: { Default: 'Daily point and token usage in the current window.' }
             }}
           </z-card-subtitle>
         </div>
         <z-badge zType="secondary" zShape="pill">
-          {{ 'PAC.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
+          {{ 'XP.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
         </z-badge>
       </div>
     </z-card-header>
@@ -146,7 +146,7 @@
               <z-icon zType="activity"></z-icon>
             </span>
             <div class="text-sm font-medium text-text-tertiary">
-              {{ 'PAC.Membership.NoUsageYet' | translate: { Default: 'No usage in this period yet.' } }}
+              {{ 'XP.Membership.NoUsageYet' | translate: { Default: 'No usage in this period yet.' } }}
             </div>
           </div>
         }
@@ -159,7 +159,7 @@
       <z-card-header class="border-b border-divider-regular py-4">
         <div class="flex items-center gap-2">
           <z-icon zType="sparkles" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'PAC.Membership.TopModels' | translate: { Default: 'Top models' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TopModels' | translate: { Default: 'Top models' } }}</z-card-title>
         </div>
       </z-card-header>
       <z-card-content class="p-3">
@@ -170,19 +170,19 @@
                 {{ item.label || item.key }}
               </div>
               <div class="text-xs text-text-tertiary">
-                {{ item.tokenUsed | number }} {{ 'PAC.Membership.Tokens' | translate: { Default: 'tokens' } }}
+                {{ item.tokenUsed | number }} {{ 'XP.Membership.Tokens' | translate: { Default: 'tokens' } }}
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
               {{ item.pointsUsed | number: '1.0-10' }}
-              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
           <div
             class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
           >
-            {{ 'PAC.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
+            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
           </div>
         }
       </z-card-content>
@@ -192,7 +192,7 @@
       <z-card-header class="border-b border-divider-regular py-4">
         <div class="flex items-center gap-2">
           <z-icon zType="orbit" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'PAC.Membership.TopXperts' | translate: { Default: 'Top Xperts' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TopXperts' | translate: { Default: 'Top Xperts' } }}</z-card-title>
         </div>
       </z-card-header>
       <z-card-content class="p-3">
@@ -203,19 +203,19 @@
                 {{ item.label || item.key }}
               </div>
               <div class="text-xs text-text-tertiary">
-                {{ item.tokenUsed | number }} {{ 'PAC.Membership.Tokens' | translate: { Default: 'tokens' } }}
+                {{ item.tokenUsed | number }} {{ 'XP.Membership.Tokens' | translate: { Default: 'tokens' } }}
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
               {{ item.pointsUsed | number: '1.0-10' }}
-              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
           <div
             class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
           >
-            {{ 'PAC.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
+            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
           </div>
         }
       </z-card-content>
@@ -225,7 +225,7 @@
       <z-card-header class="border-b border-divider-regular py-4">
         <div class="flex items-center gap-2">
           <z-icon zType="message-circle-more" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'PAC.Membership.TopThreads' | translate: { Default: 'Top threads' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TopThreads' | translate: { Default: 'Top threads' } }}</z-card-title>
         </div>
       </z-card-header>
       <z-card-content class="p-3">
@@ -236,19 +236,19 @@
                 {{ item.label || item.key }}
               </div>
               <div class="text-xs text-text-tertiary">
-                {{ item.tokenUsed | number }} {{ 'PAC.Membership.Tokens' | translate: { Default: 'tokens' } }}
+                {{ item.tokenUsed | number }} {{ 'XP.Membership.Tokens' | translate: { Default: 'tokens' } }}
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
               {{ item.pointsUsed | number: '1.0-10' }}
-              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
           <div
             class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
           >
-            {{ 'PAC.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
+            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
           </div>
         }
       </z-card-content>

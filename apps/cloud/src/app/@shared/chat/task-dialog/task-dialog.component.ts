@@ -22,7 +22,7 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpProgressSpinnerComponent, XpSearchComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { attrModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -40,10 +40,10 @@ import { buildJsonSchemaDefaults, hasJsonSchemaRequiredErrors } from '../../work
     DragDropModule,
     FormsModule,
     CdkMenuModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     EmojiAvatarComponent,
-    NgmSearchComponent,
-    NgmProgressSpinnerComponent,
+    XpSearchComponent,
+    XpProgressSpinnerComponent,
     ScheduleFormComponent,
     JSONSchemaFormComponent,
     ...ZardTooltipImports
@@ -187,7 +187,7 @@ export class XpertTaskDialogComponent {
       .subscribe({
         next: (task) => {
           this.loading.set(false)
-          this.#toastr.success('PAC.Xpert.TaskCreatedSuccessfully', { Default: 'Task created successfully' })
+          this.#toastr.success('XP.Xpert.TaskCreatedSuccessfully', { Default: 'Task created successfully' })
           this.close(task)
         },
         error: (error) => {

@@ -28,9 +28,9 @@ import {
   TGatewayQueryEvent
 } from '../types'
 import { AgentService } from './agent.service'
-import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from './server-agent.service'
+import { XP_SERVER_AGENT_DEFAULT_OPTIONS, XpServerAgentDefaultOptions } from './server-agent.service'
 import { injectToastr } from './toastr.service'
-import { PAC_SERVER_DEFAULT_OPTIONS, PacServerDefaultOptions } from '../providers'
+import { XP_SERVER_DEFAULT_OPTIONS, XpServerDefaultOptions } from '../providers'
 import {
   DataSourceAgent,
   DataSourceAgentOptions,
@@ -49,7 +49,7 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
   readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)
   readonly #organizationId = injectOrganizationId()
-  protected readonly serverOptions = inject<PacServerDefaultOptions>(PAC_SERVER_DEFAULT_OPTIONS, { optional: true })
+  protected readonly serverOptions = inject<XpServerDefaultOptions>(XP_SERVER_DEFAULT_OPTIONS, { optional: true })
   readonly #toastr = injectToastr()
 
   type = DataSourceAgentType.Server
@@ -76,8 +76,8 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
   readonly connected = toSignal(this.#agentService.connected$)
 
   constructor(
-    @Inject(PAC_SERVER_AGENT_DEFAULT_OPTIONS)
-    private options: PacServerAgentDefaultOptions,
+    @Inject(XP_SERVER_AGENT_DEFAULT_OPTIONS)
+    private options: XpServerAgentDefaultOptions,
     private httpClient: HttpClient,
     dataSourceService: DataSourceService,
     _bottomSheet: ZardSheetService
@@ -332,7 +332,7 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
     }
   }
 
-  setServerOptions(options: PacServerDefaultOptions) {
+  setServerOptions(options: XpServerDefaultOptions) {
     this.serverOptions.modelEnv = options.modelEnv
   }
 }

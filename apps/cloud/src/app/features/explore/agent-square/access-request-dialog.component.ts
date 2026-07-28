@@ -18,7 +18,7 @@ type AccessRequestDialogData = {
     <section class="w-[min(92vw,520px)] rounded-lg border border-border bg-card p-5 shadow-xl">
       <header class="space-y-2">
         <h2 class="text-lg font-semibold text-foreground">
-          {{ 'PAC.Explore.AgentSquare.RequestAccessTitle' | translate: { Default: 'Request access' } }}
+          {{ 'XP.Explore.AgentSquare.RequestAccessTitle' | translate: { Default: 'Request access' } }}
         </h2>
         <p class="text-sm leading-6 text-muted-foreground">
           {{ itemTitle() }}
@@ -26,12 +26,12 @@ type AccessRequestDialogData = {
       </header>
 
       <label class="mt-5 block text-sm font-medium text-foreground">
-        {{ 'PAC.Explore.AgentSquare.RequestReason' | translate: { Default: 'Reason' } }}
+        {{ 'XP.Explore.AgentSquare.RequestReason' | translate: { Default: 'Reason' } }}
       </label>
       <textarea
         class="mt-2 min-h-28 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
         [placeholder]="
-          'PAC.Explore.AgentSquare.RequestReasonPlaceholder'
+          'XP.Explore.AgentSquare.RequestReasonPlaceholder'
             | translate: { Default: 'Tell the owner what you plan to use this agent for.' }
         "
         [ngModel]="reason()"
@@ -41,7 +41,7 @@ type AccessRequestDialogData = {
 
       <footer class="mt-5 flex justify-end gap-2">
         <button z-button zType="outline" type="button" (click)="close()">
-          {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
         <button
           z-button
@@ -49,7 +49,7 @@ type AccessRequestDialogData = {
           class="bg-primary text-primary-foreground hover:bg-primary/90"
           (click)="submit()"
         >
-          {{ 'PAC.Explore.AgentSquare.SubmitRequest' | translate: { Default: 'Submit request' } }}
+          {{ 'XP.Explore.AgentSquare.SubmitRequest' | translate: { Default: 'Submit request' } }}
         </button>
       </footer>
     </section>

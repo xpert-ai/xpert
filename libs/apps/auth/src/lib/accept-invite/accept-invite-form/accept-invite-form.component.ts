@@ -17,7 +17,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
     ZardInputDirective,
     ZardCheckboxComponent
   ],
-  selector: 'pac-accept-invite-form',
+  selector: 'xp-accept-invite-form',
   templateUrl: 'accept-invite-form.component.html',
   styleUrls: ['accept-invite-form.component.scss']
 })

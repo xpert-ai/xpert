@@ -12,8 +12,8 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -36,8 +36,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmDensityDirective,
-    NgmSpinComponent,
+    XpDensityDirective,
+    XpSpinComponent,
     XpToolParametersFormComponent,
     ZardSwitchComponent
   ],

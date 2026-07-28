@@ -26,7 +26,7 @@ import {
   XpertParameterTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { expandVariablesWithItems, TStateVariableType } from 'apps/cloud/src/app/@shared/agent/types'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
@@ -102,7 +102,7 @@ export class XpertStudioStateInspectorComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #locale = inject(LOCALE_ID)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly resizable = viewChild(ZardResizableComponent)
 
   readonly eExecutionStatusEnum = XpertAgentExecutionStatusEnum
@@ -396,14 +396,14 @@ export class XpertStudioStateInspectorComponent {
     const source =
       checkpoint.metadata?.['source'] && typeof checkpoint.metadata['source'] === 'string'
         ? checkpoint.metadata['source']
-        : this.#translate.instant('PAC.Xpert.Snapshot', { Default: 'Snapshot' })
+        : this.#translate.instant('XP.Xpert.Snapshot', { Default: 'Snapshot' })
 
     return [
-      `${this.#translate.instant('PAC.Xpert.Checkpoint', { Default: 'Checkpoint' })} #${index + 1}`,
-      timestamp ? `${this.#translate.instant('PAC.KEY_WORDS.Time', { Default: 'Time' })}: ${timestamp}` : null,
-      `${this.#translate.instant('PAC.KEY_WORDS.Source', { Default: 'Source' })}: ${source}`,
-      `${this.#translate.instant('PAC.KEY_WORDS.ID', { Default: 'ID' })}: ${checkpoint.checkpointId}`,
-      checkpoint.isCurrent ? this.#translate.instant('PAC.Xpert.Current', { Default: 'Current' }) : null
+      `${this.#translate.instant('XP.Xpert.Checkpoint', { Default: 'Checkpoint' })} #${index + 1}`,
+      timestamp ? `${this.#translate.instant('XP.KEY_WORDS.Time', { Default: 'Time' })}: ${timestamp}` : null,
+      `${this.#translate.instant('XP.KEY_WORDS.Source', { Default: 'Source' })}: ${source}`,
+      `${this.#translate.instant('XP.KEY_WORDS.ID', { Default: 'ID' })}: ${checkpoint.checkpointId}`,
+      checkpoint.isCurrent ? this.#translate.instant('XP.Xpert.Current', { Default: 'Current' }) : null
     ]
       .filter(Boolean)
       .join(' • ')
@@ -468,7 +468,7 @@ export class XpertStudioStateInspectorComponent {
     const messageId = this.retryMessageId()
     const checkpointId = this.selectedCheckpointId()
     if (!messageId || !checkpointId) {
-      this.#toastr.error('PAC.Xpert.ExecutionRetrySourceMissing', '', {
+      this.#toastr.error('XP.Xpert.ExecutionRetrySourceMissing', '', {
         Default: 'Retry source message not found'
       })
       return

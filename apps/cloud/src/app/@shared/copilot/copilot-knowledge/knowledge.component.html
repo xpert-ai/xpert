@@ -1,27 +1,39 @@
 <div class="flex-1 mx-auto max-w-2xl">
   <form class="flex flex-wrap gap-4 p-4" [formGroup]="formGroup">
-    <!-- <ngm-select class="flex-1" [label]="'PAC.Copilot.ExpertRole' | translate: {Default: 'Expert Role'}" valueKey="key" [displayBehaviour]="DisplayBehaviour.descriptionOnly"
+    <!-- <xp-select class="flex-1" [label]="'XP.Copilot.ExpertRole' | translate: {Default: 'Expert Role'}" valueKey="key" [displayBehaviour]="DisplayBehaviour.descriptionOnly"
       formControlName="role"
       [selectOptions]="roles()"
     /> -->
-  
-    <ngm-input class="w-1/2" [label]="'PAC.Copilot.Examples.Command' | translate: {Default: 'Command'}" valueKey="key"
+
+    <xp-input
+      class="w-1/2"
+      [label]="'XP.Copilot.Examples.Command' | translate: { Default: 'Command' }"
+      valueKey="key"
       formControlName="command"
       [options]="commandOptions()"
     />
-  
+
     <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{'PAC.Copilot.Examples.Input' | translate: {Default: 'Input'} }}</label>
-        <textarea class="ngm-input-element" z-input formControlName="input"
-          cdkTextareaAutosize
-          cdkAutosizeMinRows="1"
-          cdkAutosizeMaxRows="5">
+      <label class="xp-input-label shrink-0">{{ 'XP.Copilot.Examples.Input' | translate: { Default: 'Input' } }}</label>
+      <textarea
+        class="xp-input-element"
+        z-input
+        formControlName="input"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="1"
+        cdkAutosizeMaxRows="5"
+      >
       </textarea>
     </div>
 
     <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{'PAC.Copilot.Examples.Output' | translate: {Default: 'Output'} }}</label>
-      <textarea class="ngm-input-element" z-input formControlName="output"
+      <label class="xp-input-label shrink-0">{{
+        'XP.Copilot.Examples.Output' | translate: { Default: 'Output' }
+      }}</label>
+      <textarea
+        class="xp-input-element"
+        z-input
+        formControlName="output"
         cdkTextareaAutosize
         cdkAutosizeMinRows="2"
         cdkAutosizeMaxRows="8"
@@ -33,13 +45,22 @@
 <div class="w-full sticky bottom-0 bg-background-default-subtle">
   <div class="flex justify-between items-center p-4 mx-auto max-w-2xl">
     <div></div>
-    <div ngmButtonGroup>
-      <button z-button zType="ghost" (click)="close()">{{'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}</button>
-      <button z-button zType="default" [disabled]="loading() || formGroup.invalid || formGroup.pristine" (click)="upsert()">{{'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}</button>
+    <div xpButtonGroup>
+      <button z-button zType="ghost" (click)="close()">
+        {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        z-button
+        zType="default"
+        [disabled]="loading() || formGroup.invalid || formGroup.pristine"
+        (click)="upsert()"
+      >
+        {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+      </button>
     </div>
   </div>
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center"></ngm-spin>
+  <xp-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center"></xp-spin>
 }

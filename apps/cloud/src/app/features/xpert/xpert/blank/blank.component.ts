@@ -12,7 +12,7 @@ import {
   type PluginResourceComponentSelector
 } from '@xpert-ai/cloud/state'
 import { parseYAML } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
@@ -73,7 +73,7 @@ import {
 import { genAgentKey } from '../../utils'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 
 import {
   CHAT_WORKFLOW_TRIGGER_PROVIDER,
@@ -271,19 +271,19 @@ const WORKFLOW_ACTION_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   {
     key: 'knowledge',
     type: WorkflowNodeTypeEnum.KNOWLEDGE,
-    labelKey: 'PAC.Workflow.KnowledgeRetrieval',
+    labelKey: 'XP.Workflow.KnowledgeRetrieval',
     defaultLabel: 'Knowledge Retrieval'
   },
   {
     key: 'http',
     type: WorkflowNodeTypeEnum.HTTP,
-    labelKey: 'PAC.Workflow.HTTPRequest',
+    labelKey: 'XP.Workflow.HTTPRequest',
     defaultLabel: 'HTTP Request'
   },
   {
     key: 'code',
     type: WorkflowNodeTypeEnum.CODE,
-    labelKey: 'PAC.Workflow.CodeExecution',
+    labelKey: 'XP.Workflow.CodeExecution',
     defaultLabel: 'Code Execution'
   }
 ]
@@ -292,31 +292,31 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   {
     key: 'template',
     type: WorkflowNodeTypeEnum.TEMPLATE,
-    labelKey: 'PAC.Workflow.TemplateTransform',
+    labelKey: 'XP.Workflow.TemplateTransform',
     defaultLabel: 'Template Transform'
   },
   {
     key: 'assigner',
     type: WorkflowNodeTypeEnum.ASSIGNER,
-    labelKey: 'PAC.Workflow.VariableAssigner',
+    labelKey: 'XP.Workflow.VariableAssigner',
     defaultLabel: 'Variable Assigner'
   },
   {
     key: 'json-parse',
     type: WorkflowNodeTypeEnum.JSON_PARSE,
-    labelKey: 'PAC.Workflow.JSONParse',
+    labelKey: 'XP.Workflow.JSONParse',
     defaultLabel: 'JSON Parse'
   },
   {
     key: 'json-stringify',
     type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
-    labelKey: 'PAC.Workflow.JSONStringify',
+    labelKey: 'XP.Workflow.JSONStringify',
     defaultLabel: 'JSON Stringify'
   },
   {
     key: 'answer',
     type: WorkflowNodeTypeEnum.ANSWER,
-    labelKey: 'PAC.Workflow.Answer',
+    labelKey: 'XP.Workflow.Answer',
     defaultLabel: 'Answer'
   }
 ]
@@ -332,8 +332,8 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     ...ZardTooltipImports,
     FormsModule,
     CdkListboxModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardCheckboxComponent,
@@ -1048,9 +1048,7 @@ export class XpertNewBlankComponent {
       const result = this.startMode() === 'template' ? await this.createFromTemplate() : await this.createBlankXpert()
 
       this.#toastr.success(
-        result.status === 'published'
-          ? 'PAC.Xpert.CreatedAndPublishedSuccessfully'
-          : 'PAC.Messages.CreatedSuccessfully',
+        result.status === 'published' ? 'XP.Xpert.CreatedAndPublishedSuccessfully' : 'XP.Messages.CreatedSuccessfully',
         {
           Default: result.status === 'published' ? 'Created and published successfully' : 'Created Successfully'
         }
@@ -1745,7 +1743,7 @@ export class XpertNewBlankComponent {
 
   private showAutoPublishInterruptedWarning(detail?: string) {
     this.showTranslatedWarning(
-      'PAC.Xpert.AutoPublishInterrupted',
+      'XP.Xpert.AutoPublishInterrupted',
       'Expert created, but auto publish was not completed. You can continue in Studio.',
       detail
     )
@@ -1753,7 +1751,7 @@ export class XpertNewBlankComponent {
 
   private showAutoPublishFailedWarning(detail?: string) {
     this.showTranslatedWarning(
-      'PAC.Xpert.AutoPublishFailed',
+      'XP.Xpert.AutoPublishFailed',
       'Expert created, but auto publish was not completed. You can continue in Studio.',
       detail
     )
@@ -1761,7 +1759,7 @@ export class XpertNewBlankComponent {
 
   private showPreconfigurationNotSavedWarning(detail?: string) {
     this.showTranslatedWarning(
-      'PAC.Xpert.PreconfigurationNotSaved',
+      'XP.Xpert.PreconfigurationNotSaved',
       'Expert created, but the preconfiguration could not be saved. You can continue in Studio.',
       detail
     )
@@ -2200,11 +2198,11 @@ export class XpertNewBlankComponent {
       }
 
       this.mergeConfiguredTemplateToolset(key, toolset)
-      this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Xpert.TemplateToolsetConfigureFailed', {
+          this.#translate.instant('XP.Xpert.TemplateToolsetConfigureFailed', {
             Default: 'Failed to configure the required toolset.'
           })
       )
@@ -2306,7 +2304,7 @@ export class XpertNewBlankComponent {
     } catch (error) {
       const message =
         getErrorMessage(error) ||
-        this.#translate.instant('PAC.Xpert.TemplateToolsetsLoadFailed', {
+        this.#translate.instant('XP.Xpert.TemplateToolsetsLoadFailed', {
           Default: 'Failed to load template toolsets.'
         })
       this.templateToolsetSelectionStates.update((states) =>
@@ -2399,18 +2397,18 @@ export class XpertNewBlankComponent {
   private getTemplateToolsetSelectionError(dependency: BlankTemplateToolsetDependency, toolsets: IXpertToolset[]) {
     if (!toolsets.length) {
       return dependency.instanceName
-        ? this.#translate.instant('PAC.Xpert.TemplateToolsetMissingNamed', {
+        ? this.#translate.instant('XP.Xpert.TemplateToolsetMissingNamed', {
             Default: `Required template toolset '${dependency.instanceName}' (${dependency.provider}) is not configured in this workspace.`,
             instanceName: dependency.instanceName,
             provider: dependency.provider
           })
-        : this.#translate.instant('PAC.Xpert.TemplateToolsetMissingProvider', {
+        : this.#translate.instant('XP.Xpert.TemplateToolsetMissingProvider', {
             Default: `Required template toolset '${dependency.provider}' is not configured in this workspace.`,
             provider: dependency.provider
           })
     }
 
-    return this.#translate.instant('PAC.Xpert.TemplateToolsetSelectRequired', {
+    return this.#translate.instant('XP.Xpert.TemplateToolsetSelectRequired', {
       Default: `Select a '${dependency.provider}' toolset before creating this template.`,
       provider: dependency.provider
     })

@@ -1,35 +1,46 @@
 <div class="sticky top-0 z-10 bg-components-panel-bg mb-4">
   <div class="flex justify-between items-center p-2">
-    <h1 class="shrink-0 text-lg px-2 font-semibold text-text-primary">{{ 'PAC.Xpert.ConversationLog' | translate: {Default: 'Conversation Log'} }}</h1>
-    <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-      (click)="onClose()">
+    <h1 class="shrink-0 text-lg px-2 font-semibold text-text-primary">
+      {{ 'XP.Xpert.ConversationLog' | translate: { Default: 'Conversation Log' } }}
+    </h1>
+    <button
+      type="button"
+      class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="onClose()"
+    >
       <i class="ri-close-line"></i>
-    </button>  
+    </button>
   </div>
   <div class="shrink-0 flex items-center px-4 border-b-[0.5px] border-[rgba(0,0,0,0.05)]">
-    <div class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-text-quaternary cursor-pointer"
+    <div
+      class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-text-quaternary cursor-pointer"
       [class.active]="pageType() === 'primary'"
       (click)="pageType.set('primary')"
-    >{{ 'PAC.Xpert.PrimaryAgent' | translate: {Default: 'Primary Agent'} }}</div>
-    <div class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-text-quaternary cursor-pointer"
+    >
+      {{ 'XP.Xpert.PrimaryAgent' | translate: { Default: 'Primary Agent' } }}
+    </div>
+    <div
+      class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-text-quaternary cursor-pointer"
       [class.active]="pageType() === 'members'"
       (click)="pageType.set('members')"
-    >{{ 'PAC.Xpert.MembersOrSteps' | translate: {Default: 'Members/Steps'} }}</div>
+    >
+      {{ 'XP.Xpert.MembersOrSteps' | translate: { Default: 'Members/Steps' } }}
+    </div>
   </div>
 </div>
 
 @switch (pageType()) {
-  @case('primary') {
+  @case ('primary') {
     @if (execution(); as execution) {
       <xpert-agent-execution class="w-full px-4" [execution]="execution" />
     }
   }
-  @case('members') {
+  @case ('members') {
     @for (execution of executions(); track execution.id) {
       <xpert-agent-execution-accordion class="px-2 mb-1" [execution]="execution" />
     } @empty {
       <div class="w-full p-8 flex justify-center items-center text-text-secondary">
-        {{ 'PAC.Xpert.NoExecutionMembersSteps' | translate: {Default: 'No execution sub-members or steps'} }}
+        {{ 'XP.Xpert.NoExecutionMembersSteps' | translate: { Default: 'No execution sub-members or steps' } }}
       </div>
     }
   }
@@ -37,10 +48,10 @@
 
 @if (error()) {
   <div class="w-full p-4 flex justify-center text-text-destructive">
-    {{error()}}
+    {{ error() }}
   </div>
 }
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full z-10" />
+  <xp-spin class="absolute left-0 top-0 w-full h-full z-10" />
 }

@@ -7,8 +7,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { injectOrganizationId } from '@xpert-ai/cloud/state'
 import { AiProviderRole, ICopilot } from '@xpert-ai/contracts'
 import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardAccordionImports,
@@ -24,7 +24,7 @@ import { map, Observable, switchMap } from 'rxjs'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot-basic',
+  selector: 'xp-settings-copilot-basic',
   templateUrl: './basic.component.html',
   styleUrls: ['./basic.component.scss'],
   imports: [
@@ -36,9 +36,9 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     ...ZardAccordionImports,
     ...ZardTooltipImports,
     ZardButtonComponent,
-    NgmDensityDirective,
-    NgmSpinComponent,
-    NgmI18nPipe,
+    XpDensityDirective,
+    XpSpinComponent,
+    XpI18nPipe,
     CapitalizePipe,
     CopilotProviderComponent,
     CopilotFormComponent,

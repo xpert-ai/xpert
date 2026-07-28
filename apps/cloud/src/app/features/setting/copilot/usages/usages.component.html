@@ -5,45 +5,45 @@
     >
       <tr>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48 truncate">
-          {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
+          {{ 'XP.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48 truncate">
-          {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+          {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48">
-          {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+          {{ 'XP.Copilot.Model' | translate: { Default: 'Model' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32">
-          {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+          {{ 'XP.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32">
-          {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
+          {{ 'XP.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+          {{ 'XP.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
         </th>
 
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+          {{ 'XP.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' } }}
+          {{ 'XP.Copilot.PriceLimit' | translate: { Default: 'Price Limit' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+          {{ 'XP.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
         </th>
 
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32">
-          {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
+          {{ 'XP.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+          {{ 'XP.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
         </th>
         <th
           scope="col"
           class="sticky top-0 right-0 whitespace-nowrap z-10 border-l border-solid border-divider-regular bg-background-default-subtle p-3 w-[240px]"
         >
-          {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+          {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
         </th>
       </tr>
     </thead>
@@ -53,7 +53,7 @@
           <td class="px-4 py-2">
             @if (item.organization) {
               <div class="flex justify-start items-center overflow-hidden text-ellipsis">
-                <pac-org-avatar
+                <xp-org-avatar
                   [organization]="item.organization"
                   class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2"
                 />
@@ -78,17 +78,17 @@
           >
             <div class="flex items-center gap-2" displayDensity="compact">
               @if (editId() === item.id) {
-                <ngm-input
+                <xp-input
                   type="number"
                   simple
-                  [placeholder]="'PAC.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
+                  [placeholder]="'XP.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
                   [disabled]="loading()"
                   [(ngModel)]="tokenLimit"
                 />
-                <ngm-input
+                <xp-input
                   type="number"
                   simple
-                  [placeholder]="'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }"
+                  [placeholder]="'XP.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }"
                   [disabled]="loading()"
                   [(ngModel)]="priceLimit"
                 />
@@ -99,7 +99,7 @@
                   zShape="circle"
                   class="text-text-quaternary"
                   [disabled]="loading()"
-                  [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
+                  [zTooltip]="'XP.ACTIONS.Save' | translate: { Default: 'Save' }"
                   (click)="save(item.id)"
                 >
                   <z-icon zType="save"></z-icon>
@@ -112,7 +112,7 @@
                   zShape="circle"
                   class="text-text-quaternary"
                   [disabled]="loading()"
-                  [zTooltip]="'PAC.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
+                  [zTooltip]="'XP.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
                   (click)="renewToken(item.id)"
                 >
                   <z-icon zType="autorenew"></z-icon>
@@ -127,7 +127,7 @@
 
   @if (loading()) {
     <div class="flex justify-center">
-      <ngm-spin />
+      <xp-spin />
     </div>
   }
 

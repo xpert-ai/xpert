@@ -6,7 +6,7 @@
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
-  .ngm-card-error {
+  .xp-card-error {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -21,14 +21,14 @@
 }
 
 @mixin density($config-or-theme) {
-  .ngm-card-header {
+  .xp-card-header {
     height: 40px;
     padding: 0 10px;
     max-width: 100%;
   }
 
-  .ngm-density__cosy {
-    .ngm-card-header {
+  .xp-density__cosy {
+    .xp-card-header {
       height: 35px;
       padding: 0 8px;
 
@@ -40,8 +40,8 @@
     }
   }
 
-  .ngm-density__compact {
-    .ngm-card-header {
+  .xp-density__compact {
+    .xp-card-header {
       height: 30px;
       padding: 0 5px;
 

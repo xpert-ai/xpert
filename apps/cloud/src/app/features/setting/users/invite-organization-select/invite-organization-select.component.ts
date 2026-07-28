@@ -3,8 +3,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective, XpSearchComponent } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IOrganization } from '../../../../@core'
 import { OrgAvatarComponent } from '../../../../@shared/organization'
@@ -17,7 +17,7 @@ export interface InviteOrganizationSelectDialogData {
 
 @Component({
   standalone: true,
-  selector: 'pac-invite-organization-select',
+  selector: 'xp-invite-organization-select',
   templateUrl: './invite-organization-select.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -28,16 +28,16 @@ export interface InviteOrganizationSelectDialogData {
     FormsModule,
     DragDropModule,
     TranslateModule,
-    NgmSearchComponent,
-    NgmHighlightDirective,
-    ButtonGroupDirective,
+    XpSearchComponent,
+    XpHighlightDirective,
+    XpButtonGroupDirective,
     OrgAvatarComponent,
     ZardButtonComponent,
     ZardIconComponent
   ]
 })
 export class InviteOrganizationSelectComponent {
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   readonly dialogRef = inject(DialogRef<IOrganization | undefined>)
   readonly data = inject<InviteOrganizationSelectDialogData>(DIALOG_DATA)

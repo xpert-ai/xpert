@@ -1,12 +1,12 @@
 import { Component } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmTableComponent } from '@xpert-ai/headless-ui'
+import { XpTableComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [NgmTableComponent],
-  template: ` <ngm-table [columns]="columns" [data]="data" /> `
+  imports: [XpTableComponent],
+  template: ` <xp-table [columns]="columns" [data]="data" /> `
 })
 class TableHostComponent {
   readonly columns = [
@@ -27,8 +27,8 @@ class TableHostComponent {
 
 @Component({
   standalone: true,
-  imports: [NgmTableComponent],
-  template: ` <ngm-table [columns]="columns" [data]="data" /> `
+  imports: [XpTableComponent],
+  template: ` <xp-table [columns]="columns" [data]="data" /> `
 })
 class ResizableTableHostComponent {
   readonly columns = [
@@ -45,8 +45,8 @@ class ResizableTableHostComponent {
 
 @Component({
   standalone: true,
-  imports: [NgmTableComponent],
-  template: ` <ngm-table [columns]="columns" [data]="data" /> `
+  imports: [XpTableComponent],
+  template: ` <xp-table [columns]="columns" [data]="data" /> `
 })
 class DefaultWidthTableHostComponent {
   readonly columns = [
@@ -74,7 +74,7 @@ class DefaultWidthTableHostComponent {
 }
 
 describe('table column options', () => {
-  it('applies sizing and custom classes to ngm-table columns', async () => {
+  it('applies sizing and custom classes to xp-table columns', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), TableHostComponent]
     }).createComponent(TableHostComponent)
@@ -102,7 +102,7 @@ describe('table column options', () => {
     expect(content.textContent?.trim()).toBe('Quarterly forecast')
   })
 
-  it('resizes ngm-table columns from the header handle', async () => {
+  it('resizes xp-table columns from the header handle', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ResizableTableHostComponent]
     }).createComponent(ResizableTableHostComponent)
@@ -113,7 +113,7 @@ describe('table column options', () => {
     const table = nativeElement.querySelector('table[z-table]') as HTMLElement
     const header = nativeElement.querySelector('th[z-table-head]') as HTMLElement
     const cell = nativeElement.querySelector('td[z-table-cell]') as HTMLElement
-    const resizeHandle = header.querySelector('[data-ngm-table-resize-handle]') as HTMLElement
+    const resizeHandle = header.querySelector('[data-xp-table-resize-handle]') as HTMLElement
 
     expect(table.classList.contains('table-fixed')).toBe(true)
     expect(resizeHandle.classList.contains('cursor-col-resize')).toBe(true)
@@ -144,7 +144,7 @@ describe('table column options', () => {
     const header = nativeElement.querySelector('th[z-table-head]') as HTMLElement
     const cell = nativeElement.querySelector('td[z-table-cell]') as HTMLElement
     const content = cell.querySelector('div') as HTMLElement
-    const resizeHandle = header.querySelector('[data-ngm-table-resize-handle]') as HTMLElement
+    const resizeHandle = header.querySelector('[data-xp-table-resize-handle]') as HTMLElement
 
     expect(header.style.maxWidth).toBe('240px')
     expect(cell.style.maxWidth).toBe('240px')

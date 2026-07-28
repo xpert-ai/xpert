@@ -1,15 +1,15 @@
 import { Component, computed } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { I18nObject, TSelectOption } from '@cloud/app/@core'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { linkedModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AbstractInterruptComponent } from '../../types'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, NgmI18nPipe, NgmSelectComponent],
+  imports: [FormsModule, TranslateModule, XpI18nPipe, XpSelectComponent],
   selector: 'xp-agent-interrupt-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss']

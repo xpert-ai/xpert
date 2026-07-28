@@ -44,13 +44,13 @@
                 <span class="cloud-sidebar-assistants__current-status">
                   @if (isClawXpertConfigured()) {
                     <span class="cloud-sidebar-assistants__current-status-dot"></span>
-                    {{ 'PAC.Assistant.Online' | translate: { Default: 'Online' } }}
+                    {{ 'XP.Assistant.Online' | translate: { Default: 'Online' } }}
                     <span class="cloud-sidebar-assistants__current-separator">·</span>
-                    {{ 'PAC.Assistant.ActiveAssistant' | translate: { Default: 'Current assistant' } }}
+                    {{ 'XP.Assistant.ActiveAssistant' | translate: { Default: 'Current assistant' } }}
                   } @else {
-                    {{ 'PAC.Assistant.NotConfigured' | translate: { Default: 'Not configured' } }}
+                    {{ 'XP.Assistant.NotConfigured' | translate: { Default: 'Not configured' } }}
                     <span class="cloud-sidebar-assistants__current-separator">·</span>
-                    {{ 'PAC.Assistant.Configure' | translate: { Default: 'Configure' } }}
+                    {{ 'XP.Assistant.Configure' | translate: { Default: 'Configure' } }}
                   }
                 </span>
               </span>
@@ -58,8 +58,8 @@
             <button
               type="button"
               class="cloud-sidebar-assistants__current-config"
-              [attr.aria-label]="'PAC.Assistant.Configure' | translate: { Default: 'Configure' }"
-              [zTooltip]="'PAC.Assistant.Configure' | translate: { Default: 'Configure' }"
+              [attr.aria-label]="'XP.Assistant.Configure' | translate: { Default: 'Configure' }"
+              [zTooltip]="'XP.Assistant.Configure' | translate: { Default: 'Configure' }"
               zPosition="right"
               (click)="openClawXpertOverview($event)"
             >
@@ -76,9 +76,9 @@
               <z-icon [zType]="isClawXpertConfigured() ? 'message-circle-more' : 'settings'"></z-icon>
               <span>
                 @if (isClawXpertConfigured()) {
-                  {{ 'PAC.Assistant.NewConversation' | translate: { Default: 'New conversation' } }}
+                  {{ 'XP.Assistant.NewConversation' | translate: { Default: 'New conversation' } }}
                 } @else {
-                  {{ 'PAC.Assistant.Configure' | translate: { Default: 'Configure' } }}
+                  {{ 'XP.Assistant.Configure' | translate: { Default: 'Configure' } }}
                 }
               </span>
             </button>
@@ -99,7 +99,7 @@
             </span>
             <span class="cloud-sidebar-assistants__header-copy">
               <span class="cloud-sidebar-assistants__title">
-                {{ 'PAC.MENU.Assistants' | translate: { Default: 'Assistants' } }}
+                {{ 'XP.MENU.Assistants' | translate: { Default: 'Assistants' } }}
               </span>
             </span>
           </button>
@@ -110,8 +110,8 @@
             <button
               type="button"
               class="cloud-sidebar-assistants__create"
-              [attr.aria-label]="'PAC.Xpert.CreateDigitalExpert' | translate: { Default: 'Create digital expert' }"
-              [zTooltip]="'PAC.Xpert.CreateDigitalExpert' | translate: { Default: 'Create digital expert' }"
+              [attr.aria-label]="'XP.Xpert.CreateDigitalExpert' | translate: { Default: 'Create digital expert' }"
+              [zTooltip]="'XP.Xpert.CreateDigitalExpert' | translate: { Default: 'Create digital expert' }"
               zPosition="right"
               (click)="openCreateDigitalExpert($event)"
             >
@@ -122,7 +122,7 @@
           <button
             type="button"
             class="cloud-sidebar-assistants__header-toggle"
-            [attr.aria-label]="'PAC.MENU.Assistants' | translate: { Default: 'Assistants' }"
+            [attr.aria-label]="'XP.MENU.Assistants' | translate: { Default: 'Assistants' }"
             [attr.aria-expanded]="expanded()"
             (click)="toggleExpanded()"
           >
@@ -136,7 +136,7 @@
             <input
               type="search"
               [value]="query()"
-              [placeholder]="'PAC.Assistant.Search' | translate: { Default: 'Search' }"
+              [placeholder]="'XP.Assistant.Search' | translate: { Default: 'Search' }"
               (input)="updateQuery($event)"
             />
           </label>
@@ -221,7 +221,7 @@
                     <button
                       type="button"
                       class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
-                      [attr.aria-label]="'PAC.Assistant.OpenStudio' | translate: { Default: '编排助手' }"
+                      [attr.aria-label]="'XP.Assistant.OpenStudio' | translate: { Default: '编排助手' }"
                       (click)="openAssistantSettings($event, xpert)"
                     >
                       <i class="ri-equalizer-2-line"></i>
@@ -233,7 +233,7 @@
           } @empty {
             @if (!collapsed() && (query() || activeCategory() !== 'all')) {
               <li class="cloud-sidebar-assistants__empty">
-                {{ 'PAC.Assistant.EmptySearch' | translate: { Default: 'No matching assistants.' } }}
+                {{ 'XP.Assistant.EmptySearch' | translate: { Default: 'No matching assistants.' } }}
               </li>
             }
           }
@@ -249,9 +249,9 @@
               >
                 <span class="cloud-sidebar-assistants__more-label">
                   @if (moreExpanded()) {
-                    {{ 'PAC.Assistant.CollapseDigitalExperts' | translate: { Default: 'Show less' } }}
+                    {{ 'XP.Assistant.CollapseDigitalExperts' | translate: { Default: 'Show less' } }}
                   } @else {
-                    {{ 'PAC.Assistant.MoreDigitalExperts' | translate: { Default: 'Show more' } }}
+                    {{ 'XP.Assistant.MoreDigitalExperts' | translate: { Default: 'Show more' } }}
                   }
                 </span>
               </button>

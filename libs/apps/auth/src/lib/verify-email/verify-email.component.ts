@@ -4,12 +4,12 @@ import { TranslateService } from '@ngx-translate/core'
 import { AuthService } from '@xpert-ai/cloud/state'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { PAC_AUTH_OPTIONS } from '../auth.options'
+import { XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 
 @Component({
   standalone: false,
-  selector: 'pac-auth-varify-email',
+  selector: 'xp-auth-varify-email',
   templateUrl: 'varify-email.component.html',
   styles: [
     `
@@ -25,7 +25,7 @@ export class VarifyEmailComponent {
   private readonly route = inject(ActivatedRoute)
   private readonly translateService = inject(TranslateService)
   private readonly _cdr = inject(ChangeDetectorRef)
-  private readonly options = inject(PAC_AUTH_OPTIONS)
+  private readonly options = inject(XP_AUTH_OPTIONS)
 
   messages = []
   errors = []

@@ -3,7 +3,7 @@ import { Component, effect, Inject, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DisplayBehaviour, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour, XpCommonModule } from '@xpert-ai/headless-ui'
 import { nonBlank } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
@@ -29,7 +29,7 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-xpert-role',
+  selector: 'xp-settings-xpert-role',
   templateUrl: './role.component.html',
   styleUrls: ['./role.component.scss'],
   imports: [
@@ -39,7 +39,7 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     FormsModule,
     ReactiveFormsModule,
-    NgmCommonModule,
+    XpCommonModule,
     ZardLoaderComponent,
     AvatarEditorComponent,
     KnowledgebaseListComponent,

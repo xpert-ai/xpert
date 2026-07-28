@@ -9,31 +9,31 @@ import {
   model
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { TSelectOption, NgmDensityDirective, NgmI18nPipe } from '../../core'
+import { TSelectOption, XpDensityDirective, XpI18nPipe } from '../../core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ZardTooltipImports } from '../../../../components'
 @Component({
   standalone: true,
-  selector: 'ngm-radio-select',
+  selector: 'xp-radio-select',
   templateUrl: `select.component.html`,
   styleUrls: [`select.component.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'ngm-radio-select',
+    class: 'xp-radio-select',
     '[attr.disabled]': 'isDisabled() || null',
     '[class.simple]': 'simple()'
   },
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     },
     NgxControlValueAccessor
   ],
-  imports: [FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardTooltipImports, NgmI18nPipe]
+  imports: [FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardTooltipImports, XpI18nPipe]
 })
-export class NgmRadioSelectComponent {
+export class XpRadioSelectComponent {
   protected cva = inject<NgxControlValueAccessor<any | null>>(NgxControlValueAccessor)
 
   readonly selectOptions = input<TSelectOption[]>()

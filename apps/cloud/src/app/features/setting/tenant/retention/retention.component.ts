@@ -15,17 +15,12 @@ import {
   MIN_COPILOT_CHECKPOINT_RETENTION_DAYS
 } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardInputDirective,
-  ZardSwitchComponent
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { TenantService, ToastrService, getErrorMessage } from '../../../../@core'
 
 @Component({
   standalone: true,
-  selector: 'pac-tenant-retention',
+  selector: 'xp-tenant-retention',
   templateUrl: './retention.component.html',
   styles: [
     `
@@ -104,7 +99,7 @@ export class TenantRetentionComponent implements OnInit {
         [COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING]: String(this.retentionDaysCtrl.value)
       })
       this.form.markAsPristine()
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
@@ -119,9 +114,7 @@ function parseEnabled(value: unknown): boolean {
 
 function parseRetentionDays(value: unknown): number {
   const parsed = Number(value)
-  return isValidRetentionDays(parsed)
-    ? parsed
-    : DEFAULT_COPILOT_CHECKPOINT_RETENTION_DAYS
+  return isValidRetentionDays(parsed) ? parsed : DEFAULT_COPILOT_CHECKPOINT_RETENTION_DAYS
 }
 
 function integerValidator(control: AbstractControl<unknown>): ValidationErrors | null {

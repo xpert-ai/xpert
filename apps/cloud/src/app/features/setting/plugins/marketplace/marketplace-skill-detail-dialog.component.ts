@@ -6,8 +6,8 @@ import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
 import { type IPluginComponentDefinition, type IPluginComponentDocument, injectPluginAPI } from '@xpert-ai/cloud/state'
 import { type I18nObject, type IconDefinition } from '@xpert-ai/contracts'
 import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { of } from 'rxjs'
@@ -37,8 +37,8 @@ const DEFAULT_SKILL_ICON = {
     CommonModule,
     TranslateModule,
     MarkdownModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     IconComponent,
     ZardBadgeComponent,
     ZardButtonComponent

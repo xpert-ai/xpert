@@ -5,18 +5,18 @@ import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { FeatureService, Store, injectToastr } from '../../../@core/services'
 import { getErrorMessage } from '../../../@core/types'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [RouterOutlet, TranslateModule, NgmSpinComponent],
+  imports: [RouterOutlet, TranslateModule, XpSpinComponent],
   providers: [FeatureService],
-  selector: 'pac-features',
+  selector: 'xp-features',
   templateUrl: './features.component.html',
   styleUrls: ['./features.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PACFeaturesComponent {
+export class XpFeaturesComponent {
   readonly #store = inject(Store)
   readonly #featureService = inject(FeatureService)
   readonly #toastr = injectToastr()
@@ -37,7 +37,7 @@ export class PACFeaturesComponent {
       next: () => {
         this.#featureService.notifyFeatureDefinitionsRefreshed()
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
       },
       error: (err) => {
         this.loading.set(false)

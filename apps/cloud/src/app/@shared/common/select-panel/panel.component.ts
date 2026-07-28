@@ -14,13 +14,13 @@ import {
   ViewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import {
   buildListboxOptions,
   debouncedSignal,
   formatSelectOptionValue,
   hasSelectOptionValue,
-  NgmI18nPipe,
+  XpI18nPipe,
   TSelectOption
 } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -38,17 +38,17 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     TranslateModule,
     CdkListboxModule,
     CdkMenuModule,
-    NgmHighlightDirective,
-    NgmI18nPipe
+    XpHighlightDirective,
+    XpI18nPipe
   ],
-  selector: 'ngm-select-panel',
+  selector: 'xp-select-panel',
   templateUrl: 'panel.component.html',
   styleUrls: ['panel.component.scss'],
   hostDirectives: [NgxControlValueAccessor]
 })
-export class NgmSelectPanelComponent {
+export class XpSelectPanelComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly selectOptions = input<TSelectOption<any>[]>()

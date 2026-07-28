@@ -20,7 +20,7 @@ type CompleteSsoBindingResponse = {
 
 @Component({
   standalone: false,
-  selector: 'pac-sso-bind',
+  selector: 'xp-sso-bind',
   templateUrl: './sso-bind.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -56,12 +56,10 @@ export class SsoBindComponent {
       password: [null, [Validators.required]]
     })
 
-    this.#route.queryParamMap
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((params) => {
-        this.ticket = params.get('ticket')?.trim() ?? ''
-        void this.loadChallenge()
-      })
+    this.#route.queryParamMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
+      this.ticket = params.get('ticket')?.trim() ?? ''
+      void this.loadChallenge()
+    })
   }
 
   async submit(): Promise<void> {

@@ -3,7 +3,7 @@ import { Component, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { IKnowledgebase, KnowledgebaseTypeEnum } from '@cloud/app/@core/types'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { startWith } from 'rxjs/operators'
 import { EmojiAvatarComponent } from '../../avatar'
@@ -11,7 +11,7 @@ import { UserPipe } from '../../pipes'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmHighlightDirective, EmojiAvatarComponent, UserPipe],
+  imports: [CommonModule, TranslateModule, XpHighlightDirective, EmojiAvatarComponent, UserPipe],
   selector: 'knowledgebase-card',
   templateUrl: `card.component.html`,
   styleUrl: `card.component.scss`

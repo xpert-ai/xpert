@@ -1,6 +1,6 @@
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgebase } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'
@@ -13,10 +13,10 @@ import { SharedUiModule } from '../../ui.module'
     ReactiveFormsModule,
     SharedUiModule,
     TranslateModule,
-    ButtonGroupDirective,
+    XpButtonGroupDirective,
     EmojiAvatarComponent
   ],
-  selector: 'pac-knowledgebase-card',
+  selector: 'xp-knowledgebase-card',
   templateUrl: 'knowledgebase.component.html',
   styleUrls: ['knowledgebase.component.scss']
 })

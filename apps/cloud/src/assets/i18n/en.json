@@ -21,7 +21,7 @@
     "EmailTemplates": "Email Templates",
     "CustomSMTP": "Custom SMTP"
   },
-  "PAC": {
+  "XP": {
     "Title": "Metad Analytics Cloud",
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime Operations",

@@ -12,7 +12,7 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { InterruptMessageType, isInterruptMessage, TInterruptMessage, TSensitiveOperation } from '../../../@core'
 import { AbstractInterruptComponent } from '../types'
@@ -23,7 +23,7 @@ import { XpAgentInterruptHitlComponent } from './hitl/hitl.component'
  */
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [FormsModule, TranslateModule, XpI18nPipe],
   selector: 'xp-xpert-agent-interrupt',
   templateUrl: 'interrupt.component.html',
   styleUrls: ['interrupt.component.scss']

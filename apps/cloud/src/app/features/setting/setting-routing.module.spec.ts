@@ -29,19 +29,19 @@ jest.mock('../feature-gate', () => ({
 }))
 
 jest.mock('./account/account.component', () => ({
-  PACAccountComponent: class PACAccountComponent {}
+  XpAccountComponent: class XpAccountComponent {}
 }))
 
 jest.mock('./account/password.component', () => ({
-  PACAccountPasswordComponent: class PACAccountPasswordComponent {}
+  XpAccountPasswordComponent: class XpAccountPasswordComponent {}
 }))
 
 jest.mock('./account/profile.component', () => ({
-  PACAccountProfileComponent: class PACAccountProfileComponent {}
+  XpAccountProfileComponent: class XpAccountProfileComponent {}
 }))
 
 jest.mock('./settings.component', () => ({
-  PACSettingComponent: class PACSettingComponent {}
+  XpSettingComponent: class XpSettingComponent {}
 }))
 
 import { NgxPermissionsGuard } from 'ngx-permissions'

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { ISelectOption } from '@xpert-ai/headless-ui'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,24 +14,24 @@ import { ZardFormImports, ZardInputStatusVariants, ZardInputDirective } from '@x
 
 @Component({
   standalone: true,
-  selector: 'pac-formly-input',
+  selector: 'xp-formly-input',
   templateUrl: `input.type.html`,
   styleUrls: [`input.type.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'pac-formly-input'
+    class: 'xp-formly-input'
   },
   imports: [
     TranslateModule,
     ZardComboboxDeprecatedComponent,
     ZardComboboxDeprecatedOptionTemplateDirective,
     ZardInputDirective,
-    NgmHighlightDirective,
+    XpHighlightDirective,
     ...ZardFormImports,
     FormlyModule
   ]
 })
-export class PACFormlyInputComponent extends FieldType implements OnInit {
+export class XpFormlyInputComponent extends FieldType implements OnInit {
   readonly #destroyRef = inject(DestroyRef)
 
   readonly selectOptions = signal<ISelectOption[]>([])

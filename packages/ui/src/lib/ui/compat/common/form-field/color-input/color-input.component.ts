@@ -14,11 +14,11 @@ const TRANSPARENT_COLOR_DEFAULT = createEmptyHexColor(8)
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective, DensityDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-color-input',
+  selector: 'xp-color-input',
   templateUrl: './color-input.component.html',
   styleUrl: './color-input.component.scss',
   host: {
-    class: 'ngm-color-input',
+    class: 'xp-color-input',
     '[attr.disabled]': 'disabled || null',
     '[class.disabled]': 'disabled || null'
   },
@@ -26,11 +26,11 @@ const TRANSPARENT_COLOR_DEFAULT = createEmptyHexColor(8)
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmColorInputComponent)
+      useExisting: forwardRef(() => XpColorInputComponent)
     }
   ]
 })
-export class NgmColorInputComponent implements ControlValueAccessor {
+export class XpColorInputComponent implements ControlValueAccessor {
   @Input() disabled = false
   @Input() color: string | null = null
   @Input() label = ''

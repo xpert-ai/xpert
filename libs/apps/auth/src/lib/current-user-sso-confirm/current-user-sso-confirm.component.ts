@@ -19,7 +19,7 @@ type CompleteSsoBindingResponse = {
 
 @Component({
   standalone: false,
-  selector: 'pac-current-user-sso-confirm',
+  selector: 'xp-current-user-sso-confirm',
   templateUrl: './current-user-sso-confirm.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -39,12 +39,10 @@ export class CurrentUserSsoConfirmComponent {
   submitError = ''
 
   constructor() {
-    this.#route.queryParamMap
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((params) => {
-        this.ticket = params.get('ticket')?.trim() ?? ''
-        void this.loadChallenge()
-      })
+    this.#route.queryParamMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
+      this.ticket = params.get('ticket')?.trim() ?? ''
+      void this.loadChallenge()
+    })
   }
 
   async submit(): Promise<void> {
@@ -120,10 +118,7 @@ export class CurrentUserSsoConfirmComponent {
       } else {
         this.loadError = this.resolveErrorMessage(
           error,
-          this.translate(
-            'Auth.SSO_CONFIRM.SESSION_EXPIRED',
-            'This binding session has expired. Please start again.'
-          )
+          this.translate('Auth.SSO_CONFIRM.SESSION_EXPIRED', 'This binding session has expired. Please start again.')
         )
       }
     } finally {
@@ -140,10 +135,7 @@ export class CurrentUserSsoConfirmComponent {
       this.challenge = null
       this.loadError = this.resolveErrorMessage(
         error,
-        this.translate(
-          'Auth.SSO_CONFIRM.SESSION_EXPIRED',
-          'This binding session has expired. Please start again.'
-        )
+        this.translate('Auth.SSO_CONFIRM.SESSION_EXPIRED', 'This binding session has expired. Please start again.')
       )
       return
     }

@@ -20,14 +20,13 @@ import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.compone
     ChatCanvasComputerComponent,
     ChatCanvasDashboardComponent,
     ChatCanvasFileViewerComponent
-],
-  selector: 'pac-chat-canvas',
+  ],
+  selector: 'xp-chat-canvas',
   templateUrl: './canvas.component.html',
   styleUrl: 'canvas.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasComponent {
-
   readonly homeService = inject(XpertHomeService)
 
   readonly canvas = this.homeService.canvasOpened
@@ -36,17 +35,15 @@ export class ChatCanvasComponent {
   readonly componentId = computed(() => this.canvas()?.componentId)
 
   constructor() {
-    effect(
-      () => {
-        const conversation = this.homeService.conversation()
-        if (
-          conversation?.messages &&
-          this.canvas()?.messageId &&
-          !conversation.messages.some((_) => _.id === this.canvas().messageId)
-        ) {
-          this.canvas.update((state) => ({ opened: true, type: state.type }))
-        }
+    effect(() => {
+      const conversation = this.homeService.conversation()
+      if (
+        conversation?.messages &&
+        this.canvas()?.messageId &&
+        !conversation.messages.some((_) => _.id === this.canvas().messageId)
+      ) {
+        this.canvas.update((state) => ({ opened: true, type: state.type }))
       }
-    )
+    })
   }
 }

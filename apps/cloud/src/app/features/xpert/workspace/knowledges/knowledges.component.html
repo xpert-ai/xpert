@@ -1,19 +1,18 @@
-<nav class="relative content-start gap-4 pt-2 pb-4 grow shrink-0"
-  ngmDynamicGrid colWidth="280"
-  box="content-box"
-  >
+<nav class="relative content-start gap-4 pt-2 pb-4 grow shrink-0" xpDynamicGrid colWidth="280" box="content-box">
   @if (canWriteWorkspace()) {
-    <div class="ngm-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-[var(--sys-surface-subtle)]">
+    <div
+      class="xp-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-[var(--sys-surface-subtle)]"
+    >
       <div class="grow rounded-t-xl p-2">
         <div class="px-6 pb-1 pt-2 text-sm font-medium leading-[18px] text-text-tertiary">
-          {{ 'PAC.Knowledgebase.CreateKnowledgebase' | translate: {Default: 'Create knowledgebase'} }}
+          {{ 'XP.Knowledgebase.CreateKnowledgebase' | translate: { Default: 'Create knowledgebase' } }}
         </div>
         <a
           class="mb-1 flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
           (click)="newKnowledgebase()"
         >
           <i class="ri-add-line mr-2 shrink-0 text-base"></i>
-          {{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}
+          {{ 'XP.Knowledgebase.AddKnowledgebase' | translate: { Default: 'Add knowledgebase' } }}
         </a>
         <a
           class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
@@ -21,7 +20,9 @@
           [queryParams]="{ workspaceId: workspaceId() }"
         >
           <i class="ri-mind-map mr-2 shrink-0 text-base"></i>
-          {{ 'PAC.Knowledgebase.CreateFromKnowledgePipeline' | translate: {Default: 'Create from Knowledge Pipeline'} }}
+          {{
+            'XP.Knowledgebase.CreateFromKnowledgePipeline' | translate: { Default: 'Create from Knowledge Pipeline' }
+          }}
         </a>
       </div>
       <div class="rounded-b-xl border-t-[0.5px] border-components-panel-border p-2">
@@ -31,15 +32,19 @@
           [queryParams]="{ workspaceId: workspaceId() }"
         >
           <i class="ri-plug-line mr-2 shrink-0 text-base"></i>
-          {{ 'PAC.Knowledgebase.ConnectExternalKnowledgebase' | translate: {Default: 'Connect External Knowledgebase'} }}
+          {{
+            'XP.Knowledgebase.ConnectExternalKnowledgebase' | translate: { Default: 'Connect External Knowledgebase' }
+          }}
         </a>
       </div>
     </div>
   }
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card-shadow group relative min-h-[160px] flex-1 flex flex-col rounded-xl border-2 border-solid border-transparent p-4 overflow-hidden cursor-pointer bg-[var(--sys-surface-subtle)] hover:bg-hover-bg"
-      (click)="openKnowledgebase(item.id)">
+    <div
+      class="xp-card-shadow group relative min-h-[160px] flex-1 flex flex-col rounded-xl border-2 border-solid border-transparent p-4 overflow-hidden cursor-pointer bg-[var(--sys-surface-subtle)] hover:bg-hover-bg"
+      (click)="openKnowledgebase(item.id)"
+    >
       <div class="flex-1">
         <div class="flex items-start gap-2">
           <emoji-avatar [avatar]="item.avatar" class="shrink-0 rounded-md overflow-hidden shadow-sm" />
@@ -48,28 +53,29 @@
             <p class="text-xs flex items-center text-text-secondary opacity-80">
               @if (item.permission === KnowledgebasePermission.Public) {
                 <i class="ri-earth-line mr-1"></i>
-                {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
+                {{ 'XP.Knowledgebase.Permission_Public' | translate: { Default: 'Public' } }}
               } @else if (item.permission === KnowledgebasePermission.Organization) {
                 <i class="ri-community-line mr-1"></i>
-                {{ 'PAC.Knowledgebase.Permission_Organization' | translate: {Default:'Organization'} }}
+                {{ 'XP.Knowledgebase.Permission_Organization' | translate: { Default: 'Organization' } }}
               } @else {
                 <i class="ri-git-repository-private-line mr-1"></i>
-                {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
+                {{ 'XP.Knowledgebase.Permission_Private' | translate: { Default: 'Private' } }}
               }
             </p>
-            <div class="max-w-full font-bold text-base truncate" [title]="item.name">{{item.name}}</div>
+            <div class="max-w-full font-bold text-base truncate" [title]="item.name">{{ item.name }}</div>
           </div>
-
         </div>
 
-        <div class="w-full pt-2 text-sm font-thin overflow-hidden line-clamp-3 text-text-secondary" [title]="item.description">
-          {{item.description}}
+        <div
+          class="w-full pt-2 text-sm font-thin overflow-hidden line-clamp-3 text-text-secondary"
+          [title]="item.description"
+        >
+          {{ item.description }}
         </div>
-        
       </div>
 
       <div class="flex justify-between items-end">
-        <pac-user-profile-inline [user]="item.createdBy" small class="mt-2" />
+        <xp-user-profile-inline [user]="item.createdBy" small class="mt-2" />
 
         <!-- <a class="inline-block cursor-pointer" (click)="openKnowledgebase(item.id)">
           <button
@@ -77,7 +83,7 @@
               hover:bg-gray-900/10 active:bg-gray-900/20 hover:text-zinc-800
               dark:text-zinc-200 dark:hover:bg-neutral-700 dark:active:bg-background-default-subtle"
             type="button">
-            {{'PAC.KEY_WORDS.Open' | translate: {Default: 'Open'} }}
+            {{'XP.KEY_WORDS.Open' | translate: {Default: 'Open'} }}
 
             <i class="ri-arrow-right-line ml-2"></i>
           </button>
@@ -85,37 +91,38 @@
       </div>
 
       @if (canWriteWorkspace()) {
-      <div class="absolute right-2 top-2 z-[5] hidden group-hover:block">
-        <button type="button" class="group inline-flex items-center text-base font-medium hover:bg-components-button-secondary-bg-hover focus:outline-none w-9 h-9 cursor-pointer justify-center rounded-[10px] border-[0.5px]
-          border-components-button-secondary-border bg-components-button-secondary-bg p-0 shadow-lg shadow-shadow-shadow-5
-          ring-[2px] ring-inset ring-divider-subtle hover:border-components-button-secondary-border-hover"
-          #mt="cdkMenuTriggerFor"
-          [cdkMenuTriggerFor]="menu"
-          [cdkMenuTriggerData]="{item: item}"
-          [class.active]="mt.isOpen()"
-          (click)="$event.stopPropagation()">
-          <div class="flex w-8 h-8 items-center justify-center rounded-[10px] hover:bg-hover-bg">
-            <i class="ri-more-fill text-lg text-text-tertiary"></i>
-          </div>
-        </button>
-      </div>
+        <div class="absolute right-2 top-2 z-[5] hidden group-hover:block">
+          <button
+            type="button"
+            class="group inline-flex items-center text-base font-medium hover:bg-components-button-secondary-bg-hover focus:outline-none w-9 h-9 cursor-pointer justify-center rounded-[10px] border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg p-0 shadow-lg shadow-shadow-shadow-5 ring-[2px] ring-inset ring-divider-subtle hover:border-components-button-secondary-border-hover"
+            #mt="cdkMenuTriggerFor"
+            [cdkMenuTriggerFor]="menu"
+            [cdkMenuTriggerData]="{ item: item }"
+            [class.active]="mt.isOpen()"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="flex w-8 h-8 items-center justify-center rounded-[10px] hover:bg-hover-bg">
+              <i class="ri-more-fill text-lg text-text-tertiary"></i>
+            </div>
+          </button>
+        </div>
       }
     </div>
   }
 </nav>
 
 <ng-template #menu let-item="item">
-  <div class="ngm-cdk-menu p-2" cdkMenu>
-    <button cdkMenuItem class="ngm-cdk-menu-item p-1" (click)="edit(item)">
+  <div class="xp-cdk-menu p-2" cdkMenu>
+    <button cdkMenuItem class="xp-cdk-menu-item p-1" (click)="edit(item)">
       <i class="ri-pencil-line mr-1"></i>
       <span>
-        {{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}
+        {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </span>
     </button>
 
-    <button cdkMenuItem ngmAppearance="danger" class="ngm-cdk-menu-item p-1" (click)="remove(item)">
+    <button cdkMenuItem xpAppearance="danger" class="xp-cdk-menu-item p-1" (click)="remove(item)">
       <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>

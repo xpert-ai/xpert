@@ -1,11 +1,11 @@
 <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <div class="pointer-events-none">
     <h4 class="text-text-primary">
-      {{ 'PAC.Scope.SelectOrganization' | translate: { Default: 'Select an organization' } }}
+      {{ 'XP.Scope.SelectOrganization' | translate: { Default: 'Select an organization' } }}
     </h4>
     <div class="mt-1 text-sm text-text-secondary">
       {{
-        'PAC.Users.InviteOrganizationHint'
+        'XP.Users.InviteOrganizationHint'
           | translate: { Default: 'Choose the organization that the invite should belong to before continuing.' }
       }}
     </div>
@@ -13,7 +13,7 @@
 </header>
 
 <div xpDialogContent class="flex w-full max-w-2xl flex-col gap-3">
-  <ngm-search class="w-full overflow-hidden rounded-lg" [(ngModel)]="searchTerm" />
+  <xp-search class="w-full overflow-hidden rounded-lg" [(ngModel)]="searchTerm" />
 
   <div class="max-h-96 overflow-y-auto rounded-xl border border-divider-deep bg-components-card-bg">
     @if (organizations().length) {
@@ -27,15 +27,12 @@
           (click)="selectOrganization(organization)"
           displayDensity="cosy"
         >
-          <pac-org-avatar
-            [organization]="organization"
-            class="block h-10 w-10 shrink-0 overflow-hidden rounded-xl"
-          />
+          <xp-org-avatar [organization]="organization" class="block h-10 w-10 shrink-0 overflow-hidden rounded-xl" />
 
           <span class="min-w-0 flex-1">
             <span
               class="block truncate text-sm font-medium text-text-primary"
-              [ngmHighlight]="searchTerm()"
+              [xpHighlight]="searchTerm()"
               [content]="organization.name"
             >
               {{ organization.name }}
@@ -55,17 +52,14 @@
       }
     } @else {
       <div class="px-4 py-10 text-center text-sm text-text-secondary">
-        {{
-          'PAC.Organization.EmptySearch'
-            | translate: { Default: 'No organizations match the current search.' }
-        }}
+        {{ 'XP.Organization.EmptySearch' | translate: { Default: 'No organizations match the current search.' } }}
       </div>
     }
   </div>
 </div>
 
 <div xpDialogActions align="end">
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button z-button zType="ghost" cdkFocusInitial (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>

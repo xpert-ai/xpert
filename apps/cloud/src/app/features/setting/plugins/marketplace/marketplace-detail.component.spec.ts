@@ -107,10 +107,10 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Component({
     standalone: true,
-    selector: 'ngm-spin',
+    selector: 'xp-spin',
     template: ''
   })
-  class NgmSpinComponent {
+  class XpSpinComponent {
     @Input() small?: boolean
   }
 
@@ -118,7 +118,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
     name: 'i18n',
     standalone: true
   })
-  class NgmI18nPipe {
+  class XpI18nPipe {
     transform(value: unknown): string {
       if (typeof value === 'string') {
         return value
@@ -156,7 +156,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
     return typeof property === 'string' ? property : null
   }
 
-  return { myRxResource, NgmI18nPipe, NgmSpinComponent, ZardBadgeComponent, ZardButtonComponent }
+  return { myRxResource, XpI18nPipe, XpSpinComponent, ZardBadgeComponent, ZardButtonComponent }
 })
 
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
@@ -911,7 +911,7 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(component.resourceContribution(app)).toBeNull()
     expect(component.appSetupAction(app).type).toBe('details')
     expect(fixture.nativeElement.textContent).not.toContain('Install app')
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Plugin.InstallApp')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Plugin.InstallApp')
   })
 
   it('initializes the associated assistant template from an app without a real app component', async () => {

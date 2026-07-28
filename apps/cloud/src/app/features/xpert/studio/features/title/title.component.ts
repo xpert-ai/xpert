@@ -3,7 +3,7 @@ import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, IfAnimations, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
@@ -18,7 +18,7 @@ import { linkedXpertFeaturesModel } from '../types'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmDensityDirective,
+    XpDensityDirective,
     CopilotPromptEditorComponent,
     ZardSwitchComponent
   ],

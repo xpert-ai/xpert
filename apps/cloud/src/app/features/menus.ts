@@ -60,7 +60,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'Assistants',
       icon: 'robot_2',
       scopeContext: 'dual-scope',
-      subtitleKey: isTenantScope ? 'PAC.Assistant.MenuTenantSubtitle' : 'PAC.Assistant.MenuOrganizationSubtitle',
+      subtitleKey: isTenantScope ? 'XP.Assistant.MenuTenantSubtitle' : 'XP.Assistant.MenuOrganizationSubtitle',
       subtitleDefault: isTenantScope ? 'Tenant defaults' : 'Organization overrides',
       data: {
         featureKey: AiFeatureEnum.FEATURE_XPERT,
@@ -147,7 +147,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'Organization',
       icon: 'corporate_fare',
       scopeContext: 'dual-scope',
-      subtitleKey: isTenantScope ? 'PAC.Organization.MenuTenantSubtitle' : 'PAC.Organization.MenuOrganizationSubtitle',
+      subtitleKey: isTenantScope ? 'XP.Organization.MenuTenantSubtitle' : 'XP.Organization.MenuOrganizationSubtitle',
       subtitleDefault: isTenantScope ? 'Manage all organizations' : 'Review the current organization',
       data: {
         permissionKeys: [

@@ -16,7 +16,7 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 @Component({
   standalone: true,
   imports: [SharedModule, FormlyModule],
-  selector: 'pac-edit-org-main',
+  selector: 'xp-edit-org-main',
   templateUrl: './edit-organization-main.component.html',
   styleUrls: ['./edit-organization-main.component.scss']
 })
@@ -46,7 +46,7 @@ export class EditOrganizationMainComponent {
 
   ngOnInit(): void {
     const className = FORMLY_W_1_2
-    this.translateService.get('PAC.ORGANIZATIONS_PAGE.Organization').subscribe((Organization) => {
+    this.translateService.get('XP.ORGANIZATIONS_PAGE.Organization').subscribe((Organization) => {
       this.fields = [
         {
           fieldGroupClassName: FORMLY_ROW,
@@ -173,7 +173,7 @@ export class EditOrganizationMainComponent {
           ...this.form.value
         })
       )
-      this.toastrService.success(`PAC.MESSAGE.MAIN_ORGANIZATION_UPDATED`, { Default: 'Main Org Updated' })
+      this.toastrService.success(`XP.MESSAGE.MAIN_ORGANIZATION_UPDATED`, { Default: 'Main Org Updated' })
       this.goBack()
     } catch (error) {
       this.toastrService.error(getErrorMessage(error))

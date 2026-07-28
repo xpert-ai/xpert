@@ -9,7 +9,7 @@ import {
   KnowledgeDocumentService
 } from '@cloud/app/@core'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpCheckboxComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal, linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
@@ -22,7 +22,7 @@ import { KnowledgebaseComponent } from '../../../knowledgebase.component'
   selector: 'xp-knowledge-document-preview',
   templateUrl: './preview.component.html',
   styleUrl: './preview.component.scss',
-  imports: [FormsModule, TranslateModule, NgmSpinComponent, NgmCheckboxComponent, KnowledgeChunkComponent]
+  imports: [FormsModule, TranslateModule, XpSpinComponent, XpCheckboxComponent, KnowledgeChunkComponent]
 })
 export class KnowledgeDocumentPreviewComponent {
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum

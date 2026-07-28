@@ -11,7 +11,7 @@ import {
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSliderComponent } from '../../../../components'
 import type { ZardSliderValue } from '../../../../components'
-import { NgmFieldColor } from '../../core'
+import { XpFieldColor } from '../../core'
 
 /**
  * @deprecated use headless components instead
@@ -19,7 +19,7 @@ import { NgmFieldColor } from '../../core'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-slider-input',
+  selector: 'xp-slider-input',
   templateUrl: 'slider-input.component.html',
   styleUrls: ['slider-input.component.scss'],
   inputs: ['disabled', 'disableRipple', 'color'],
@@ -30,16 +30,16 @@ import { NgmFieldColor } from '../../core'
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmSliderInputComponent)
+      useExisting: forwardRef(() => XpSliderInputComponent)
     }
   ],
   imports: [FormsModule, ReactiveFormsModule, ZardInputDirective, ZardSliderComponent]
 })
-export class NgmSliderInputComponent implements ControlValueAccessor, OnChanges {
+export class XpSliderInputComponent implements ControlValueAccessor, OnChanges {
   @Input() disabled = false
   @Input() disableRipple = false
-  @Input() color: NgmFieldColor = null
-  @HostBinding('class.ngm-slider-input') _isSliderInputComponent = true
+  @Input() color: XpFieldColor = null
+  @HostBinding('class.xp-slider-input') _isSliderInputComponent = true
 
   @Input() label: string
   @Input() unit: string

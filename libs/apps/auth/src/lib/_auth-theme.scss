@@ -7,7 +7,7 @@
   $primary: map.get($config, primary);
   $warn: map.get($config, warn);
 
-  .pac-auth {
+  .xp-auth {
     .mtx-alert {
       &.mtx-alert-success {
         color: themeCompat.m2-get-color-from-palette($primary, '200-contrast');
@@ -19,12 +19,12 @@
       }
     }
 
-    .ngm-button {
-      &.ngm-button-disabled {
+    .xp-button {
+      &.xp-button-disabled {
         @apply opacity-50 cursor-not-allowed;
       }
 
-      &:not(.ngm-button-disabled) {
+      &:not(.xp-button-disabled) {
         @apply hover:from-green-400 hover:to-blue-600 hover:text-white;
       }
     }

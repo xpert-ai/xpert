@@ -55,11 +55,11 @@ interface ColumnResizeState {
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-table',
+  selector: 'xp-table',
   templateUrl: './table.component.html',
   styleUrls: [`table.component.scss`],
   host: {
-    class: 'ngm-table'
+    class: 'xp-table'
   },
   imports: [
     CommonModule,
@@ -78,7 +78,7 @@ interface ColumnResizeState {
     OcapCoreModule
   ]
 })
-export class NgmTableComponent {
+export class XpTableComponent {
   isSignal = isSignal
 
   /**

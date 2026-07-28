@@ -1,9 +1,13 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="left" class="left absolute"></div>
 
-<div class="relative bg-background-default-subtle flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+<div
+  class="relative bg-background-default-subtle flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder"
+>
   @if (chunkerProvider(); as chunkerProvider) {
     <div class="flex items-center gap-1">
-      <div class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-components-input-bg-normal">
+      <div
+        class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-components-input-bg-normal"
+      >
         <xp-icon class="!block w-5 h-5" [icon]="chunkerProvider.icon" />
       </div>
       <div class="text-xs font-medium text-text-secondary">
@@ -16,15 +20,21 @@
         <i class="ri-cpu-line"></i>
       </div>
       <div class="text-xs font-medium text-text-tertiary">
-        {{ 'PAC.Xpert.Chunker' | translate: {Default: 'Chunker'} }}
+        {{ 'XP.Xpert.Chunker' | translate: { Default: 'Chunker' } }}
       </div>
     </div>
   }
 
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
-    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/edge'"
+    fOutputConnectableSide="right"
+    class="right group"
+    [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  >
     <div class="inner-dot cursor-crosshair">
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
 </div>

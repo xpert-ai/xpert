@@ -4,7 +4,7 @@
       @if (label()) {
         {{ label() | i18n }}
       } @else {
-        <div class="">{{ 'PAC.Copilot.Models' | translate: { Default: 'Models' } }}</div>
+        <div class="">{{ 'XP.Copilot.Models' | translate: { Default: 'Models' } }}</div>
       }
 
       @if (required()) {
@@ -42,12 +42,12 @@
   <div class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden">
     @if (inheritModel()) {
       @if (isInherit()) {
-        <i class="ri-skip-up-line mx-1" [zTooltip]="'PAC.Copilot.Inherited' | translate: { Default: 'Inherited' }"></i>
+        <i class="ri-skip-up-line mx-1" [zTooltip]="'XP.Copilot.Inherited' | translate: { Default: 'Inherited' }"></i>
       } @else if (!readonly()) {
         <button
           class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
           [zTooltip]="
-            'PAC.Copilot.DelCopilotModelUseInherit'
+            'XP.Copilot.DelCopilotModelUseInherit'
               | translate: { Default: 'Delete current configuration, and use the inherited configuration if possible' }
           "
           (click)="$event.stopPropagation(); delete()"
@@ -128,7 +128,7 @@
       }
     } @else if (__copilotModel()) {
       <div class="truncate text-sm text-text-warning" [title]="__copilotModel().model">
-        {{ 'PAC.Copilot.ChooseRightCopilot' | translate: { Default: 'Please choose right copilot' } }}
+        {{ 'XP.Copilot.ChooseRightCopilot' | translate: { Default: 'Please choose right copilot' } }}
         @if (__copilotModel().model) {
           <span>{{ __copilotModel().modelType + '/' + __copilotModel().model }}</span>
         }
@@ -180,7 +180,7 @@
         </svg>
       </div>
       <div class="text-text-secondary group-hover/container:text-text-primary">
-        {{ 'PAC.Copilot.SelectModel' | translate: { Default: 'Select model' } }}
+        {{ 'XP.Copilot.SelectModel' | translate: { Default: 'Select model' } }}
       </div>
     }
 
@@ -232,7 +232,7 @@
   <z-alert
     class="mt-2"
     zType="destructive"
-    [zTitle]="'PAC.Copilot.LoadModelParameterRulesFailed' | translate: { Default: 'Failed to load model parameters' }"
+    [zTitle]="'XP.Copilot.LoadModelParameterRulesFailed' | translate: { Default: 'Failed to load model parameters' }"
     [zDescription]="modelParameterRulesError()"
   />
 }
@@ -241,11 +241,11 @@
   <div
     #menu="cdkMenu"
     cdkMenu
-    class="ngm-cdk-menu copilot-model-parameters-menu w-[460px] max-h-[480px] overflow-y-auto px-6 py-4 rounded-2xl"
+    class="xp-cdk-menu copilot-model-parameters-menu w-[460px] max-h-[480px] overflow-y-auto px-6 py-4 rounded-2xl"
   >
     <div class="flex items-center justify-between mb-2">
       <div class="font-semibold text-lg text-text-primary">
-        {{ 'PAC.Copilot.Parameters' | translate: { Default: 'Parameters' } }}
+        {{ 'XP.Copilot.Parameters' | translate: { Default: 'Parameters' } }}
       </div>
     </div>
     <div class="space-y-1">
@@ -291,7 +291,7 @@
   <div
     #menu="cdkMenu"
     cdkMenu
-    class="ngm-cdk-menu flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden pl-2"
+    class="xp-cdk-menu flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden pl-2"
     [style.width.px]="menuWidth"
     [style.max-height.px]="getMenuMaxHeight(modelContainer)"
     [style.--copilot-picker-rail-width.px]="menuRailWidth"
@@ -301,7 +301,7 @@
         <i class="ri-search-2-line absolute left-1.5 top-1"></i>
         <input
           class="xp-input w-full pl-[26px]"
-          [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
+          [placeholder]="'XP.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
           tabindex="0"
           [(ngModel)]="searchTerm"
           [ngModelOptions]="{ standalone: true }"
@@ -310,7 +310,7 @@
       @if (modelFilterTags().length) {
         <div class="mt-2 flex min-w-0 items-center gap-1.5 overflow-x-auto">
           <span class="shrink-0 text-[11px] font-medium text-text-tertiary">
-            {{ 'PAC.Copilot.ModelFilters' | translate: { Default: 'Filters' } }}
+            {{ 'XP.Copilot.ModelFilters' | translate: { Default: 'Filters' } }}
           </span>
           @for (filter of modelFilterTags(); track filter.id) {
             <button
@@ -337,7 +337,7 @@
               (mousedown)="$event.preventDefault(); $event.stopPropagation()"
               (click)="$event.stopPropagation(); clearModelFilters()"
             >
-              {{ 'PAC.Copilot.ClearFilters' | translate: { Default: 'Clear' } }}
+              {{ 'XP.Copilot.ClearFilters' | translate: { Default: 'Clear' } }}
             </button>
           }
         </div>
@@ -347,7 +347,7 @@
     <div class="min-h-0 flex-1 overflow-hidden">
       @if ((searchedModels()?.length ?? 0) === 0) {
         <div class="flex h-full items-center justify-center p-6 text-sm text-text-tertiary">
-          {{ 'PAC.Copilot.NoMatchingModels' | translate: { Default: 'No matching models' } }}
+          {{ 'XP.Copilot.NoMatchingModels' | translate: { Default: 'No matching models' } }}
         </div>
       } @else {
         <div class="relative flex h-full min-h-0 flex-col overflow-hidden">
@@ -356,10 +356,10 @@
             [style.grid-template-columns]="getMenuGridTemplateColumns(menuWidth)"
           >
             <div class="border-r border-divider-regular px-3 py-1.5">
-              {{ 'PAC.Copilot.Provider' | translate: { Default: 'Provider' } }}
+              {{ 'XP.Copilot.Provider' | translate: { Default: 'Provider' } }}
             </div>
             <div class="px-3 py-1.5">
-              {{ 'PAC.Copilot.Models' | translate: { Default: 'Models' } }}
+              {{ 'XP.Copilot.Models' | translate: { Default: 'Models' } }}
             </div>
           </div>
 
@@ -369,7 +369,7 @@
             aria-orientation="vertical"
             class="group/divider absolute inset-y-0 z-20 flex w-5 -translate-x-1/2 cursor-col-resize touch-none select-none items-stretch justify-center outline-none"
             [style.left.px]="menuRailWidth"
-            [attr.aria-label]="'PAC.Copilot.ResizeProviderPanel' | translate: { Default: 'Resize provider panel' }"
+            [attr.aria-label]="'XP.Copilot.ResizeProviderPanel' | translate: { Default: 'Resize provider panel' }"
             [attr.aria-valuemin]="getMenuRailMinWidth(menuWidth)"
             [attr.aria-valuemax]="getMenuRailMaxWidth(menuWidth)"
             [attr.aria-valuenow]="menuRailWidth"
@@ -420,7 +420,7 @@
                           @if (copilot.name) {
                             {{ copilot.name }}
                           } @else {
-                            {{ 'PAC.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}
+                            {{ 'XP.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}
                           }
                         </span>
                       </span>
@@ -452,7 +452,7 @@
       target="_blank"
       class="group flex cursor-pointer items-center rounded-b-lg border-t border-divider-subtle bg-components-panel-bg px-4 py-2 text-text-accent"
     >
-      <span class="system-xs-medium">{{ 'PAC.Copilot.ModelConfig' | translate: { Default: 'Model config' } }}</span>
+      <span class="system-xs-medium">{{ 'XP.Copilot.ModelConfig' | translate: { Default: 'Model config' } }}</span>
       <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
     </a>
   </div>
@@ -470,7 +470,7 @@
         @if (copilot.name) {
           <span>{{ copilot.name }}</span>
         } @else {
-          <span class="uppercase">{{ 'PAC.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}</span>
+          <span class="uppercase">{{ 'XP.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}</span>
         }
       </span>
     </div>
@@ -512,7 +512,7 @@
       [class.opacity-60]="item.deprecated"
       [zTooltip]="
         item.deprecated
-          ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' })
+          ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' })
           : showInlineTags
             ? null
             : modelTagsPreview
@@ -532,7 +532,7 @@
       <span
         class="min-w-0 flex-1 truncate"
         [title]="item.model"
-        [ngmHighlight]="searchTerm()"
+        [xpHighlight]="searchTerm()"
         [content]="item.model"
         customClasses="text-primary-600"
         >{{ item.model }}</span

@@ -1,20 +1,20 @@
 <div clas="flex flex-col">
-  <label class="block p-2">{{ 'PAC.Xpert.MemoryType' | translate: { Default: 'Memory Type' } }}</label>
-  <!-- <ngm-radio-select [options]="options()" [(ngModel)]="type" /> -->
+  <label class="block p-2">{{ 'XP.Xpert.MemoryType' | translate: { Default: 'Memory Type' } }}</label>
+  <!-- <xp-radio-select [options]="options()" [(ngModel)]="type" /> -->
 </div>
 
 <section class="memory-section">
   <z-checkbox class="memory-checkbox" [(ngModel)]="profileEnabled">
-    {{ 'PAC.Xpert.LongTermMemoryTypeEnum.UserProfile' | translate: { Default: 'User Profile' } }}
+    {{ 'XP.Xpert.LongTermMemoryTypeEnum.UserProfile' | translate: { Default: 'User Profile' } }}
   </z-checkbox>
   @if (profileEnabled) {
     <div class="flex items-center px-2">
-      <label>{{ 'PAC.Xpert.AfterSeconds' | translate: { Default: 'After Seconds' } }}</label>
+      <label>{{ 'XP.Xpert.AfterSeconds' | translate: { Default: 'After Seconds' } }}</label>
 
       <i
         class="ri-question-line mr-4 shrink-0 text-text-quaternary hover:text-text-tertiary"
         [zTooltip]="
-          'PAC.Xpert.AfterSecondsTooltip'
+          'XP.Xpert.AfterSecondsTooltip'
             | translate
               : {
                   Default:
@@ -24,15 +24,24 @@
         zPosition="top"
       ></i>
 
-      <z-slider class="grow" min="0" max="100" step="1" [showTickMarks]="true" [showValueLabel]="true" [formatValue]="formatLabel" [(ngModel)]="afterSeconds"></z-slider>
+      <z-slider
+        class="grow"
+        min="0"
+        max="100"
+        step="1"
+        [showTickMarks]="true"
+        [showValueLabel]="true"
+        [formatValue]="formatLabel"
+        [(ngModel)]="afterSeconds"
+      ></z-slider>
     </div>
 
     <copilot-prompt-editor
       @heightChangeAnimation
-      class="relative ngm-card-border-gradient self-stretch"
+      class="relative xp-card-border-gradient self-stretch"
       role="system"
       [tooltip]="
-        'PAC.Xpert.ProfileMemoryPromptTooltip'
+        'XP.Xpert.ProfileMemoryPromptTooltip'
           | translate: { Default: 'Prompt guide AI to extract user information through instructions and constraints' }
       "
       [(prompt)]="profilePrompt"
@@ -43,16 +52,16 @@
 
 <section class="memory-section">
   <z-checkbox class="memory-checkbox" [(ngModel)]="qaEnabled">
-    {{ 'PAC.Xpert.LongTermMemoryTypeEnum.QuestionAnswer' | translate: { Default: 'Question/Answer' } }}
+    {{ 'XP.Xpert.LongTermMemoryTypeEnum.QuestionAnswer' | translate: { Default: 'Question/Answer' } }}
   </z-checkbox>
 
   @if (qaEnabled) {
     <copilot-prompt-editor
       @heightChangeAnimation
-      class="relative shadow-sm ngm-card-border-gradient self-stretch"
+      class="relative shadow-sm xp-card-border-gradient self-stretch"
       role="system"
       [tooltip]="
-        'PAC.Xpert.QAMemoryPromptTooltip'
+        'XP.Xpert.QAMemoryPromptTooltip'
           | translate
             : {
                 Default:
@@ -65,12 +74,12 @@
   }
 </section>
 
-<section class="memory-section" [ngmTooltip]="customInDevelopment" [hideDelay]="100">
+<section class="memory-section" [xpTooltip]="customInDevelopment" [hideDelay]="100">
   <z-checkbox class="memory-checkbox" [zDisabled]="true">
-    {{ 'PAC.Xpert.LongTermMemoryTypeEnum.Custom' | translate: { Default: 'Custom' } }}
+    {{ 'XP.Xpert.LongTermMemoryTypeEnum.Custom' | translate: { Default: 'Custom' } }}
   </z-checkbox>
 </section>
 
 <ng-template #customInDevelopment>
-  <pac-in-development @overlayAnimation1 feature="Custom Memory" class="w-80" />
+  <xp-in-development @overlayAnimation1 feature="Custom Memory" class="w-80" />
 </ng-template>

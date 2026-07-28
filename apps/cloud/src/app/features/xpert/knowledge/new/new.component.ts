@@ -53,7 +53,7 @@ export class XpertNewKnowledgeComponent {
       })
       .subscribe({
         next: (knowledgebase) => {
-          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
+          this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
           this.close(knowledgebase)
         },
         error: (error) => {

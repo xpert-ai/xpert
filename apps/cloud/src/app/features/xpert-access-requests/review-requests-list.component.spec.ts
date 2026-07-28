@@ -79,7 +79,7 @@ describe('XpertAccessRequestReviewListComponent', () => {
     const { fixture, service } = await createFixture([])
 
     expect(service.findReviewableRequests).toHaveBeenCalledTimes(1)
-    expect(fixture.nativeElement.textContent).toContain('PAC.XpertAccessRequests.EmptyTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.XpertAccessRequests.EmptyTitle')
   })
 
   it('filters requests by assistant, requester, and reason', async () => {

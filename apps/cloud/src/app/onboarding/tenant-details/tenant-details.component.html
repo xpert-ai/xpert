@@ -14,48 +14,48 @@
   <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4" (ngSubmit)="onboard()">
       <ng-template zStepLabel>
-        {{ 'PAC.Onboarding.WhatCallYou' | translate: { Default: 'What should we call you' } }}?</ng-template
+        {{ 'XP.Onboarding.WhatCallYou' | translate: { Default: 'What should we call you' } }}?</ng-template
       >
 
       <div class="description mb-4">
         {{
-          'PAC.Onboarding.CreateAdminAndOrg'
+          'XP.Onboarding.CreateAdminAndOrg'
             | translate: { Default: 'Create your super admin account and default organization.' }
         }}
       </div>
 
       <div class="relative grid grid-cols-2 gap-2">
         <z-form-field>
-          <z-form-label>{{ 'PAC.Onboarding.FirstName' | translate: { Default: 'First name' } }}</z-form-label>
+          <z-form-label>{{ 'XP.Onboarding.FirstName' | translate: { Default: 'First name' } }}</z-form-label>
           <input z-input formControlName="firstName" />
         </z-form-field>
 
         <z-form-field>
-          <z-form-label>{{ 'PAC.Onboarding.LastName' | translate: { Default: 'Last name' } }}</z-form-label>
+          <z-form-label>{{ 'XP.Onboarding.LastName' | translate: { Default: 'Last name' } }}</z-form-label>
           <input z-input formControlName="lastName" />
         </z-form-field>
 
         <z-form-field class="col-span-2">
-          <z-form-label>{{ 'PAC.Onboarding.Email' | translate: { Default: 'Email' } }}</z-form-label>
+          <z-form-label>{{ 'XP.Onboarding.Email' | translate: { Default: 'Email' } }}</z-form-label>
           <input z-input placeholder="email" formControlName="email" autocomplete="email" />
         </z-form-field>
 
         <z-form-field class="col-span-2">
           <z-form-label>{{
-            'PAC.Onboarding.CompanyTeamName' | translate: { Default: 'Company or team name' }
+            'XP.Onboarding.CompanyTeamName' | translate: { Default: 'Company or team name' }
           }}</z-form-label>
           <input z-input formControlName="organizationName" />
         </z-form-field>
 
         <z-form-field class="col-span-2">
           <z-form-label>{{
-            'PAC.Onboarding.CreateAPassword' | translate: { Default: 'Create a password' }
+            'XP.Onboarding.CreateAPassword' | translate: { Default: 'Create a password' }
           }}</z-form-label>
           <input z-input type="password" placeholder="*******" formControlName="password" autocomplete="password" />
           @if (minlengthError(); as error) {
             <z-form-message zType="error">
-              {{ 'PAC.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
-              {{ 'PAC.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
+              {{ 'XP.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
+              {{ 'XP.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
               {{ error.actualLength }}</z-form-message
             >
           }
@@ -63,7 +63,7 @@
 
         <z-form-field class="col-span-2">
           <z-form-label>{{
-            'PAC.Onboarding.ConfirmYourPassword' | translate: { Default: 'Confirm your password' }
+            'XP.Onboarding.ConfirmYourPassword' | translate: { Default: 'Confirm your password' }
           }}</z-form-label>
           <input
             z-input
@@ -74,19 +74,19 @@
           />
           @if (mustMatchError()) {
             <z-form-message zType="error">{{
-              'PAC.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
+              'XP.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
             }}</z-form-message>
           }
         </z-form-field>
 
         @if (loading()) {
-          <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+          <xp-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
         }
       </div>
 
       <div class="flex items-center gap-4">
         <button type="submit" class="btn btn-primary btn-large" [disabled]="userFormGroup.invalid || loading()">
-          {{ 'PAC.Onboarding.Next' | translate: { Default: 'Next' } }}
+          {{ 'XP.Onboarding.Next' | translate: { Default: 'Next' } }}
         </button>
       </div>
     </form>
@@ -94,12 +94,12 @@
 
   <z-step [editable]="selectedOrganization() && !loading() && step1.completed">
     <ng-template zStepLabel>{{
-      'PAC.Onboarding.EnableFeatures' | translate: { Default: 'Enable Features' }
+      'XP.Onboarding.EnableFeatures' | translate: { Default: 'Enable Features' }
     }}</ng-template>
 
     <div class="description">
       {{
-        'PAC.Onboarding.EnableFeaturesDesc'
+        'XP.Onboarding.EnableFeaturesDesc'
           | translate
             : {
                 Default:
@@ -113,13 +113,13 @@
         <xp-feature-category [(ngModel)]="features" />
       }
       @if (loading()) {
-        <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+        <xp-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
       }
     </div>
 
     <div class="flex items-center gap-4">
       <button type="button" class="btn btn-primary btn-large" (click)="enableFeatures()">
-        {{ 'PAC.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
+        {{ 'XP.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
       </button>
     </div>
   </z-step>
@@ -128,13 +128,13 @@
     <z-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()">
       <ng-template zStepLabel
         >{{
-          'PAC.Onboarding.WantGenerateDemo' | translate: { Default: 'Do you want to generate samples' }
+          'XP.Onboarding.WantGenerateDemo' | translate: { Default: 'Do you want to generate samples' }
         }}?</ng-template
       >
 
       <div class="description my-4">
         {{
-          'PAC.Onboarding.GenerateDemoDescription'
+          'XP.Onboarding.GenerateDemoDescription'
             | translate
               : {
                   Default:
@@ -144,7 +144,7 @@
       </div>
 
       <form [formGroup]="demoFormGroup" class="flex flex-col">
-        <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: { Default: 'Select Network' } }}</label>
+        <label>{{ 'XP.Onboarding.SelectNetwork' | translate: { Default: 'Select Network' } }}</label>
         <z-radio-group formControlName="source" [disabled]="loading()" displayDensity="cosy">
           <z-radio [value]="OrganizationDemoNetworkEnum.github" displayDensity="cosy">GitHub</z-radio>
           <z-radio [value]="OrganizationDemoNetworkEnum.aliyun" displayDensity="cosy">Aliyun OSS</z-radio>
@@ -162,7 +162,7 @@
 
       <div class="flex items-center gap-4">
         <button type="button" class="btn btn-secondary btn-large" zStepperNext>
-          {{ 'PAC.Onboarding.Skip' | translate: { Default: 'Skip' } }}
+          {{ 'XP.Onboarding.Skip' | translate: { Default: 'Skip' } }}
         </button>
         <button
           type="button"
@@ -171,28 +171,28 @@
           (click)="generateDemo()"
         >
           @if (demoError()) {
-            <span>{{ 'PAC.Onboarding.Retry' | translate: { Default: 'Retry' } }}</span>
+            <span>{{ 'XP.Onboarding.Retry' | translate: { Default: 'Retry' } }}</span>
           } @else {
-            <span>{{ 'PAC.Onboarding.Generate' | translate: { Default: 'Generate' } }}</span>
+            <span>{{ 'XP.Onboarding.Generate' | translate: { Default: 'Generate' } }}</span>
           }
         </button>
       </div>
     </z-step>
 
     <z-step [editable]="!loading() && !connectionCompleted()">
-      <ng-template zStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: { Default: 'Add your data' } }}</ng-template>
+      <ng-template zStepLabel>{{ 'XP.Onboarding.AddYourData' | translate: { Default: 'Add your data' } }}</ng-template>
 
       <div class="w-full flex flex-col gap-3">
         <div class="description space-y-1">
           <p>
             {{
-              'PAC.Onboarding.ReadyExploringYourData'
+              'XP.Onboarding.ReadyExploringYourData'
                 | translate: { Default: 'Are you ready to start exploring your data? Add it below.' }
             }}
           </p>
           <p>
             {{
-              'PAC.Onboarding.NotReadySample'
+              'XP.Onboarding.NotReadySample'
                 | translate: { Default: 'Not ready? Skip and play around with our Samples.' }
             }}
           </p>
@@ -206,7 +206,7 @@
               <i class="ri-search-2-line absolute left-2 top-2 text-text-tertiary"></i>
               <input
                 class="xp-input w-full pr-3 pl-8"
-                [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
+                [placeholder]="'XP.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
                 tabindex="0"
                 [formControl]="searchControl"
               />
@@ -215,7 +215,7 @@
             <div class="min-h-0 flex-1 overflow-auto pr-1">
               @if (dataSourceTypesLoading()) {
                 <div class="flex min-h-40 items-center justify-center">
-                  <ngm-spin />
+                  <xp-spin />
                 </div>
               } @else if (filteredDataSourceTypes()?.length) {
                 <ul
@@ -246,7 +246,7 @@
                 <div class="rounded-xl border border-divider-regular bg-background-default p-4">
                   <div class="text-sm text-text-secondary">
                     {{
-                      'PAC.Onboarding.NoDataSourceTypes'
+                      'XP.Onboarding.NoDataSourceTypes'
                         | translate: { Default: 'No data source types are available yet.' }
                     }}
                   </div>
@@ -273,7 +273,7 @@
                   <div class="min-w-0">
                     <div class="truncate text-sm font-medium text-text-primary">{{ selectedType.name }}</div>
                     <div class="text-xs text-text-tertiary">
-                      {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: { Default: 'Configuration' } }}
+                      {{ 'XP.MENU.DATA_SOURCES.CONFIGURATION' | translate: { Default: 'Configuration' } }}
                     </div>
                   </div>
                 </div>
@@ -282,12 +282,12 @@
                   <div class="flex flex-col gap-3">
                     <z-form-field appearance="fill">
                       <z-form-label>
-                        {{ 'PAC.Onboarding.DisplayName' | translate: { Default: 'Display Name' } }}
+                        {{ 'XP.Onboarding.DisplayName' | translate: { Default: 'Display Name' } }}
                       </z-form-label>
                       <input z-input formControlName="name" />
                       @if (dataSourceNameError()) {
                         <z-form-message zType="error">
-                          {{ 'PAC.Onboarding.NameRequired' | translate: { Default: 'Name Required' } }}
+                          {{ 'XP.Onboarding.NameRequired' | translate: { Default: 'Name Required' } }}
                         </z-form-message>
                       }
                     </z-form-field>
@@ -309,7 +309,7 @@
                 </div>
                 <div class="text-sm font-medium text-text-primary">
                   {{
-                    'PAC.MENU.DATA_SOURCES.SelectTypeToCreate'
+                    'XP.MENU.DATA_SOURCES.SelectTypeToCreate'
                       | translate: { Default: 'Select a data source type to create' }
                   }}
                 </div>
@@ -320,7 +320,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3">
           <button z-button zType="secondary" zStepperNext>
-            {{ 'PAC.Onboarding.AddDataLater' | translate: { Default: "I'll add my data later" } }}
+            {{ 'XP.Onboarding.AddDataLater' | translate: { Default: "I'll add my data later" } }}
           </button>
           @if (type) {
             <button
@@ -329,7 +329,7 @@
               [disabled]="dataSourceTypeFormGroup.invalid || loading()"
               (click)="connectDatabase()"
             >
-              {{ 'PAC.Onboarding.ConnectDatabase' | translate: { Default: 'Connect database' } }}
+              {{ 'XP.Onboarding.ConnectDatabase' | translate: { Default: 'Connect database' } }}
             </button>
           }
         </div>
@@ -340,13 +340,13 @@
   @if (hasAiFeature()) {
     <z-step [editable]="!loading()">
       <ng-template zStepLabel>{{
-        'PAC.Onboarding.ConfigureAiModel' | translate: { Default: 'Configure AI Model' }
+        'XP.Onboarding.ConfigureAiModel' | translate: { Default: 'Configure AI Model' }
       }}</ng-template>
 
       <div class="w-full flex flex-col gap-4 relative">
         <div class="description">
           {{
-            'PAC.Onboarding.ConfigureAiModelDesc'
+            'XP.Onboarding.ConfigureAiModelDesc'
               | translate
                 : {
                     Default:
@@ -355,7 +355,7 @@
           }}
         </div>
 
-        <pac-copilot-config-form
+        <xp-copilot-config-form
           #onboardingCopilotForm
           class="w-full"
           [copilot]="primaryCopilot()"
@@ -363,7 +363,7 @@
         />
         <div class="flex items-center gap-4">
           <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="skipAiModelSetup()">
-            {{ 'PAC.Onboarding.Skip' | translate: { Default: 'Skip' } }}
+            {{ 'XP.Onboarding.Skip' | translate: { Default: 'Skip' } }}
           </button>
           <button
             z-button
@@ -377,22 +377,22 @@
             "
             (click)="onboardingCopilotForm.submit()"
           >
-            {{ 'PAC.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
+            {{ 'XP.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
           </button>
         </div>
 
         @if (loading()) {
-          <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+          <xp-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
         }
       </div>
     </z-step>
   }
 
   <z-step [editable]="!loading()">
-    <ng-template zStepLabel>{{ 'PAC.Onboarding.Done' | translate: { Default: 'Done' } }}</ng-template>
+    <ng-template zStepLabel>{{ 'XP.Onboarding.Done' | translate: { Default: 'Done' } }}</ng-template>
     <div class="flex flex-col justify-start items-center gap-4">
       <div class="text-3xl text-primary-500 p-8">
-        {{ 'PAC.Onboarding.AllSetup' | translate: { Default: "You're all set up!" } }}
+        {{ 'XP.Onboarding.AllSetup' | translate: { Default: "You're all set up!" } }}
       </div>
 
       <div class="w-full border-b border-solid border-divider-regular"></div>
@@ -404,7 +404,7 @@
           [disabled]="navigating()"
           (click)="navigateHome()"
         >
-          {{ 'PAC.Onboarding.TakeMetoXpertAiPlatform' | translate: { Default: 'Take me to Xpert AI Platform' } }}
+          {{ 'XP.Onboarding.TakeMetoXpertAiPlatform' | translate: { Default: 'Take me to Xpert AI Platform' } }}
         </button>
       </div>
     </div>
@@ -412,10 +412,10 @@
 </z-stepper>
 
 <div class="p-4 my-8">
-  {{ 'PAC.Onboarding.FeelStuck' | translate: { Default: 'If you feel stuck' } }}
+  {{ 'XP.Onboarding.FeelStuck' | translate: { Default: 'If you feel stuck' } }}
   ,
   <a [href]="helpWebsite() + '/ai/getting-started/onboarding'" class="text-primary-500 italic">
-    {{ 'PAC.Onboarding.OurGuide' | translate: { Default: 'our getting started guide' } }}
+    {{ 'XP.Onboarding.OurGuide' | translate: { Default: 'our getting started guide' } }}
   </a>
-  {{ 'PAC.Onboarding.ClickAway' | translate: { Default: 'is just a click away' } }}.
+  {{ 'XP.Onboarding.ClickAway' | translate: { Default: 'is just a click away' } }}.
 </div>

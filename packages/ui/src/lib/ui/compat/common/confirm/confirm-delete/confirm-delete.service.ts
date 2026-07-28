@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core'
 import { ZardAlertDialogOptions, ZardAlertDialogService } from '../../../../../components'
 import { TranslateService } from '@ngx-translate/core'
 
-export interface NgmConfirmDeleteData {
+export interface XpConfirmDeleteData {
   title?: string
   value?: unknown
   information?: string
@@ -14,12 +14,12 @@ export interface NgmConfirmDeleteData {
 @Injectable({
   providedIn: 'root'
 })
-export class NgmConfirmDeleteService {
+export class XpConfirmDeleteService {
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
 
   confirm(
-    data: NgmConfirmDeleteData = {},
+    data: XpConfirmDeleteData = {},
     options: Pick<
       ZardAlertDialogOptions,
       'closable' | 'customClasses' | 'maskClosable' | 'viewContainerRef' | 'width'
@@ -35,7 +35,7 @@ export class NgmConfirmDeleteService {
     })
   }
 
-  private getTitle(data: NgmConfirmDeleteData) {
+  private getTitle(data: XpConfirmDeleteData) {
     if (data.title) {
       return data.title
     }

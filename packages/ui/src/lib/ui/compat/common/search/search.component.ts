@@ -10,21 +10,21 @@ import { TranslateModule } from '@ngx-translate/core'
 @Component({
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective],
-  selector: 'ngm-search',
+  selector: 'xp-search',
   templateUrl: 'search.component.html',
   styleUrls: ['search.component.scss'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmSearchComponent)
+      useExisting: forwardRef(() => XpSearchComponent)
     }
   ],
   host: {
-    class: 'ngm-search'
+    class: 'xp-search'
   }
 })
-export class NgmSearchComponent implements ControlValueAccessor {
+export class XpSearchComponent implements ControlValueAccessor {
   @Input() formControl: FormControl
   @Input() disabled: boolean
 
@@ -36,7 +36,7 @@ export class NgmSearchComponent implements ControlValueAccessor {
   }
   readonly displayDensity$ = signal<DisplayDensity>(null)
 
-  @HostBinding('class.ngm-search__has-value')
+  @HostBinding('class.xp-search__has-value')
   get hasValue() {
     return this._value !== null && this._value !== undefined && this._value !== ''
   }

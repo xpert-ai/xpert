@@ -107,7 +107,7 @@ type SelectValue = string | number | Array<string | number>
 const LOG_COLUMNS: readonly LogColumn[] = [
   {
     key: 'title',
-    labelKey: 'PAC.KEY_WORDS.Title',
+    labelKey: 'XP.KEY_WORDS.Title',
     defaultLabel: 'Title',
     width: 360,
     minWidth: 220,
@@ -115,21 +115,21 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'createdBy',
-    labelKey: 'PAC.KEY_WORDS.CreatedBy',
+    labelKey: 'XP.KEY_WORDS.CreatedBy',
     defaultLabel: 'Created By',
     width: 180,
     minWidth: 140
   },
   {
     key: 'from',
-    labelKey: 'PAC.Xpert.ChatFrom',
+    labelKey: 'XP.Xpert.ChatFrom',
     defaultLabel: 'Chat From',
     width: 140,
     minWidth: 120
   },
   {
     key: 'sourceIntegrationId',
-    labelKey: 'PAC.Xpert.SourceIntegrationId',
+    labelKey: 'XP.Xpert.SourceIntegrationId',
     defaultLabel: 'Source Integration',
     width: 260,
     minWidth: 180,
@@ -137,7 +137,7 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'channelType',
-    labelKey: 'PAC.Xpert.ChannelType',
+    labelKey: 'XP.Xpert.ChannelType',
     defaultLabel: 'Channel Type',
     width: 160,
     minWidth: 130,
@@ -145,7 +145,7 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'sourceMessageLogIds',
-    labelKey: 'PAC.Xpert.SourceMessageLogIds',
+    labelKey: 'XP.Xpert.SourceMessageLogIds',
     defaultLabel: 'Source Message Logs',
     width: 300,
     minWidth: 200,
@@ -153,14 +153,14 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'fromEndUser',
-    labelKey: 'PAC.KEY_WORDS.EndUser',
+    labelKey: 'XP.KEY_WORDS.EndUser',
     defaultLabel: 'End User',
     width: 180,
     minWidth: 140
   },
   {
     key: 'messageCount',
-    labelKey: 'PAC.KEY_WORDS.MessageCount',
+    labelKey: 'XP.KEY_WORDS.MessageCount',
     defaultLabel: 'Message Count',
     width: 120,
     minWidth: 100,
@@ -168,21 +168,21 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'status',
-    labelKey: 'PAC.KEY_WORDS.Status',
+    labelKey: 'XP.KEY_WORDS.Status',
     defaultLabel: 'Status',
     width: 140,
     minWidth: 120
   },
   {
     key: 'updatedAt',
-    labelKey: 'PAC.KEY_WORDS.UpdatedAt',
+    labelKey: 'XP.KEY_WORDS.UpdatedAt',
     defaultLabel: 'Updated At',
     width: 170,
     minWidth: 140
   },
   {
     key: 'actions',
-    labelKey: 'PAC.KEY_WORDS.Actions',
+    labelKey: 'XP.KEY_WORDS.Actions',
     defaultLabel: 'Actions',
     width: 112,
     minWidth: 96,
@@ -191,7 +191,7 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'id',
-    labelKey: 'PAC.Xpert.ConversationId',
+    labelKey: 'XP.Xpert.ConversationId',
     defaultLabel: 'Conversation ID',
     width: 240,
     minWidth: 180,
@@ -199,7 +199,7 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'threadId',
-    labelKey: 'PAC.Xpert.ThreadId',
+    labelKey: 'XP.Xpert.ThreadId',
     defaultLabel: 'Thread ID',
     width: 260,
     minWidth: 180,
@@ -207,7 +207,7 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'createdAt',
-    labelKey: 'PAC.KEY_WORDS.CreatedAt',
+    labelKey: 'XP.KEY_WORDS.CreatedAt',
     defaultLabel: 'Created At',
     width: 170,
     minWidth: 140,
@@ -215,7 +215,7 @@ const LOG_COLUMNS: readonly LogColumn[] = [
   },
   {
     key: 'error',
-    labelKey: 'PAC.KEY_WORDS.Error',
+    labelKey: 'XP.KEY_WORDS.Error',
     defaultLabel: 'Error',
     width: 300,
     minWidth: 180,
@@ -228,10 +228,10 @@ const STATUS_OPTIONS: readonly {
   labelKey: string
   defaultLabel: string
 }[] = [
-  { value: 'busy', labelKey: 'PAC.Xpert.Busy', defaultLabel: 'Busy' },
-  { value: 'error', labelKey: 'PAC.Xpert.Failure', defaultLabel: 'Failure' },
-  { value: 'interrupted', labelKey: 'PAC.Xpert.Interrupted', defaultLabel: 'Interrupted' },
-  { value: 'idle', labelKey: 'PAC.Xpert.Idle', defaultLabel: 'Idle' }
+  { value: 'busy', labelKey: 'XP.Xpert.Busy', defaultLabel: 'Busy' },
+  { value: 'error', labelKey: 'XP.Xpert.Failure', defaultLabel: 'Failure' },
+  { value: 'interrupted', labelKey: 'XP.Xpert.Interrupted', defaultLabel: 'Interrupted' },
+  { value: 'idle', labelKey: 'XP.Xpert.Idle', defaultLabel: 'Idle' }
 ]
 
 const SOURCE_OPTIONS: readonly {
@@ -239,17 +239,17 @@ const SOURCE_OPTIONS: readonly {
   labelKey: string
   defaultLabel: string
 }[] = [
-  { value: 'platform', labelKey: 'PAC.Xpert.ChatFromPlatform', defaultLabel: 'Platform' },
-  { value: 'webapp', labelKey: 'PAC.Xpert.ChatFromWebapp', defaultLabel: 'Web App' },
-  { value: 'debugger', labelKey: 'PAC.Xpert.ChatFromDebugger', defaultLabel: 'Debugger' },
-  { value: 'knowledge', labelKey: 'PAC.Xpert.ChatFromKnowledge', defaultLabel: 'Knowledge' },
-  { value: 'job', labelKey: 'PAC.Xpert.ChatFromJob', defaultLabel: 'Job' },
-  { value: 'api', labelKey: 'PAC.Xpert.ChatFromApi', defaultLabel: 'API' },
-  { value: 'feishu', labelKey: 'PAC.Xpert.ChatFromFeishu', defaultLabel: 'Feishu' },
-  { value: 'lark', labelKey: 'PAC.Xpert.ChatFromLark', defaultLabel: 'Lark' },
-  { value: 'dingtalk', labelKey: 'PAC.Xpert.ChatFromDingtalk', defaultLabel: 'DingTalk' },
-  { value: 'wecom', labelKey: 'PAC.Xpert.ChatFromWecom', defaultLabel: 'WeCom' },
-  { value: 'wechat', labelKey: 'PAC.Xpert.ChatFromWechat', defaultLabel: 'WeChat' }
+  { value: 'platform', labelKey: 'XP.Xpert.ChatFromPlatform', defaultLabel: 'Platform' },
+  { value: 'webapp', labelKey: 'XP.Xpert.ChatFromWebapp', defaultLabel: 'Web App' },
+  { value: 'debugger', labelKey: 'XP.Xpert.ChatFromDebugger', defaultLabel: 'Debugger' },
+  { value: 'knowledge', labelKey: 'XP.Xpert.ChatFromKnowledge', defaultLabel: 'Knowledge' },
+  { value: 'job', labelKey: 'XP.Xpert.ChatFromJob', defaultLabel: 'Job' },
+  { value: 'api', labelKey: 'XP.Xpert.ChatFromApi', defaultLabel: 'API' },
+  { value: 'feishu', labelKey: 'XP.Xpert.ChatFromFeishu', defaultLabel: 'Feishu' },
+  { value: 'lark', labelKey: 'XP.Xpert.ChatFromLark', defaultLabel: 'Lark' },
+  { value: 'dingtalk', labelKey: 'XP.Xpert.ChatFromDingtalk', defaultLabel: 'DingTalk' },
+  { value: 'wecom', labelKey: 'XP.Xpert.ChatFromWecom', defaultLabel: 'WeCom' },
+  { value: 'wechat', labelKey: 'XP.Xpert.ChatFromWechat', defaultLabel: 'WeChat' }
 ]
 
 function isObjectLike(value: unknown): value is object {
@@ -771,7 +771,7 @@ export class XpertLogsComponent {
   }
 
   statusLabelKey(status: TChatConversationStatus | null | undefined) {
-    return STATUS_OPTIONS.find((option) => option.value === status)?.labelKey ?? 'PAC.KEY_WORDS.Status'
+    return STATUS_OPTIONS.find((option) => option.value === status)?.labelKey ?? 'XP.KEY_WORDS.Status'
   }
 
   statusDefaultLabel(status: TChatConversationStatus | null | undefined) {
@@ -779,7 +779,7 @@ export class XpertLogsComponent {
   }
 
   sourceLabelKey(source: TChatFrom | null | undefined) {
-    return SOURCE_OPTIONS.find((option) => option.value === source)?.labelKey ?? 'PAC.Xpert.ChatFrom'
+    return SOURCE_OPTIONS.find((option) => option.value === source)?.labelKey ?? 'XP.Xpert.ChatFrom'
   }
 
   sourceDefaultLabel(source: TChatFrom | null | undefined) {

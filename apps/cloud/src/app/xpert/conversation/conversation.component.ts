@@ -14,7 +14,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
@@ -40,7 +40,7 @@ type QuoteSelectionState = {
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    NgmCommonModule,
+    XpCommonModule,
     EmojiAvatarComponent,
     XpertAgentOperationComponent,
     ChatAiMessageComponent,
@@ -182,13 +182,13 @@ export class ChatConversationComponent {
 
   getMessageSourceLabel(role: string | undefined): string {
     if (role === 'user' || role === 'human') {
-      return this.#translate.instant('PAC.KEY_WORDS.You', { Default: 'You' })
+      return this.#translate.instant('XP.KEY_WORDS.You', { Default: 'You' })
     }
 
     return (
       this.xpert()?.title ||
       this.xpert()?.name ||
-      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+      this.#translate.instant('XP.Xpert.Assistant', { Default: 'Assistant' })
     )
   }
 
@@ -236,7 +236,7 @@ export class ChatConversationComponent {
       anchorMessage.dataset.messageSource?.trim() ||
       this.xpert()?.title ||
       this.xpert()?.name ||
-      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+      this.#translate.instant('XP.Xpert.Assistant', { Default: 'Assistant' })
     const messageId = anchorMessage.dataset.messageId?.trim() || undefined
     const left = clamp(rect.left + rect.width / 2, 88, window.innerWidth - 88)
     const top = Math.max(16, rect.top - 48)

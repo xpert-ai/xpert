@@ -12,13 +12,13 @@ import { UserFormsModule } from '../../../@shared/user'
 @Component({
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
-  selector: 'pac-account-profile',
+  selector: 'xp-account-profile',
   template: `<div class="flex flex-col items-center justify-start p-4">
-    <pac-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]" [(ngModel)]="user" />
+    <xp-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]" [(ngModel)]="user" />
 
     <div class="w-full flex justify-center items-center gap-2">
       <button type="button" class="btn disabled:btn-disabled btn-large" (click)="reset()">
-        {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+        {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
       </button>
       <button
         type="button"
@@ -26,13 +26,13 @@ import { UserFormsModule } from '../../../@shared/user'
         [disabled]="form.form.invalid || form.form.pristine"
         (click)="save(form.form)"
       >
-        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </div>`,
   styles: [``]
 })
-export class PACAccountProfileComponent {
+export class XpAccountProfileComponent {
   readonly #user = toSignal(this.store.user$)
   readonly reloadTrigger = signal(0)
 
@@ -79,7 +79,7 @@ export class PACAccountProfileComponent {
 
     this.userService.updateMe(request).subscribe({
       next: (user) => {
-        this._toastrService.success(`PAC.NOTES.USERS.USER_UPDATED`, {
+        this._toastrService.success(`XP.NOTES.USERS.USER_UPDATED`, {
           Default: 'User Updated',
           name: new CreatedByPipe().transform(this.user())
         })

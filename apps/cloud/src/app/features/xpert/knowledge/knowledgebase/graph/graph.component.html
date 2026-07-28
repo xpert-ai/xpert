@@ -4,7 +4,7 @@
       <div class="min-w-0">
         <div class="flex items-center gap-2">
           <h2 class="text-lg font-semibold text-text-primary">
-            {{ 'PAC.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
+            {{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
           </h2>
           <z-badge zType="secondary">
             {{ statusLabel(status()?.status) | translate: { Default: 'Pending' } }}
@@ -12,7 +12,7 @@
         </div>
         <p class="mt-1 text-sm text-text-tertiary">
           {{
-            'PAC.Knowledgebase.GraphExplorerSubtitle'
+            'XP.Knowledgebase.GraphExplorerSubtitle'
               | translate: { Default: 'Visualize and maintain extracted entities and relations.' }
           }}
         </p>
@@ -24,13 +24,13 @@
         >
           <z-icon zType="bot" class="shrink-0 text-text-tertiary" />
           <span class="shrink-0 font-medium">
-            {{ 'PAC.Knowledgebase.GraphChatModel' | translate: { Default: 'Chat model' } }}
+            {{ 'XP.Knowledgebase.GraphChatModel' | translate: { Default: 'Chat model' } }}
           </span>
           <span class="max-w-48 truncate text-text-primary">
             @if (chatModelName(); as modelName) {
               {{ modelName }}
             } @else {
-              {{ 'PAC.Knowledgebase.GraphChatModelFallback' | translate: { Default: 'Primary Copilot fallback' } }}
+              {{ 'XP.Knowledgebase.GraphChatModelFallback' | translate: { Default: 'Primary Copilot fallback' } }}
             }
           </span>
           <a
@@ -41,16 +41,16 @@
             [routerLink]="['/xpert/knowledges', knowledgebase()?.id, 'configuration']"
           >
             <z-icon zType="settings" />
-            {{ 'PAC.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
+            {{ 'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
           </a>
         </div>
         <button z-button type="button" zType="outline" zSize="lg" [disabled]="loading()" (click)="loadGraph()">
           <z-icon zType="refresh" />
-          {{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+          {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
         </button>
         <button z-button type="button" zType="outline" zSize="lg" [disabled]="disabled()" (click)="openCreateEntity()">
           <z-icon zType="hub" />
-          {{ 'PAC.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
+          {{ 'XP.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
         </button>
         <button
           z-button
@@ -60,7 +60,7 @@
           (click)="openCreateRelation()"
         >
           <z-icon zType="share" />
-          {{ 'PAC.Knowledgebase.NewRelation' | translate: { Default: 'New relation' } }}
+          {{ 'XP.Knowledgebase.NewRelation' | translate: { Default: 'New relation' } }}
         </button>
       </div>
     </div>
@@ -73,17 +73,17 @@
           class="min-w-0 flex-1"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
-          [placeholder]="'PAC.Knowledgebase.SearchGraph' | translate: { Default: 'Search graph' }"
+          [placeholder]="'XP.Knowledgebase.SearchGraph' | translate: { Default: 'Search graph' }"
         />
       </label>
 
       <z-select
         [zValue]="selectFilterValue(entityType())"
         (zSelectionChange)="setEntityTypeFilter($event)"
-        [zPlaceholder]="'PAC.Knowledgebase.AllEntityTypes' | translate: { Default: 'All entity types' }"
+        [zPlaceholder]="'XP.Knowledgebase.AllEntityTypes' | translate: { Default: 'All entity types' }"
       >
         <z-select-item [zValue]="allSelectValue">{{
-          'PAC.Knowledgebase.AllEntityTypes' | translate: { Default: 'All entity types' }
+          'XP.Knowledgebase.AllEntityTypes' | translate: { Default: 'All entity types' }
         }}</z-select-item>
         @for (type of entityTypes(); track type) {
           <z-select-item [zValue]="type">{{ type }}</z-select-item>
@@ -93,10 +93,10 @@
       <z-select
         [zValue]="selectFilterValue(relationType())"
         (zSelectionChange)="setRelationTypeFilter($event)"
-        [zPlaceholder]="'PAC.Knowledgebase.AllRelationTypes' | translate: { Default: 'All relation types' }"
+        [zPlaceholder]="'XP.Knowledgebase.AllRelationTypes' | translate: { Default: 'All relation types' }"
       >
         <z-select-item [zValue]="allSelectValue">{{
-          'PAC.Knowledgebase.AllRelationTypes' | translate: { Default: 'All relation types' }
+          'XP.Knowledgebase.AllRelationTypes' | translate: { Default: 'All relation types' }
         }}</z-select-item>
         @for (type of relationTypes(); track type) {
           <z-select-item [zValue]="type">{{ type }}</z-select-item>
@@ -106,15 +106,15 @@
       <z-select
         [zValue]="selectFilterValue(origin())"
         (zSelectionChange)="setOriginFilter($event)"
-        [zPlaceholder]="'PAC.Knowledgebase.AllOrigins' | translate: { Default: 'All origins' }"
+        [zPlaceholder]="'XP.Knowledgebase.AllOrigins' | translate: { Default: 'All origins' }"
       >
         <z-select-item [zValue]="allSelectValue">{{
-          'PAC.Knowledgebase.AllOrigins' | translate: { Default: 'All origins' }
+          'XP.Knowledgebase.AllOrigins' | translate: { Default: 'All origins' }
         }}</z-select-item>
         @for (originOption of origins; track originOption) {
           @if (originOption) {
             <z-select-item [zValue]="originOption">{{
-              'PAC.Knowledgebase.GraphOrigin_' + originOption | translate: { Default: originOption }
+              'XP.Knowledgebase.GraphOrigin_' + originOption | translate: { Default: originOption }
             }}</z-select-item>
           }
         }
@@ -123,7 +123,7 @@
       <z-select [zValue]="visibility()" (zSelectionChange)="setVisibilityFilter($event)">
         @for (visibilityOption of visibilities; track visibilityOption) {
           <z-select-item [zValue]="visibilityOption">
-            {{ 'PAC.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption } }}
+            {{ 'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption } }}
           </z-select-item>
         }
       </z-select>
@@ -131,10 +131,10 @@
       <z-select
         [zValue]="selectFilterValue(focusEntityId())"
         (zSelectionChange)="setFocusEntityFilter($event)"
-        [zPlaceholder]="'PAC.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus' }"
+        [zPlaceholder]="'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus' }"
       >
         <z-select-item [zValue]="allSelectValue">{{
-          'PAC.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus' }
+          'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus' }
         }}</z-select-item>
         @for (entity of entityOptions(); track entity.id) {
           <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
@@ -144,7 +144,7 @@
       <label
         class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2 text-sm text-text-secondary"
       >
-        <span>{{ 'PAC.Knowledgebase.Depth' | translate: { Default: 'Depth' } }}</span>
+        <span>{{ 'XP.Knowledgebase.Depth' | translate: { Default: 'Depth' } }}</span>
         <input
           z-input
           type="number"
@@ -159,7 +159,7 @@
       <label
         class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2 text-sm text-text-secondary"
       >
-        <span>{{ 'PAC.Knowledgebase.Take' | translate: { Default: 'Take' } }}</span>
+        <span>{{ 'XP.Knowledgebase.Take' | translate: { Default: 'Take' } }}</span>
         <input
           z-input
           type="number"
@@ -172,7 +172,7 @@
       </label>
 
       <button z-button type="button" zSize="lg" (click)="loadGraph()">
-        {{ 'PAC.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+        {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
       </button>
     </div>
   </header>
@@ -180,16 +180,16 @@
   <section class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px]">
     <div class="relative min-h-0 border-r border-components-panel-border">
       @if (loading()) {
-        <ngm-spin class="absolute inset-0 z-10 flex items-center justify-center bg-background-default-subtle/60" />
+        <xp-spin class="absolute inset-0 z-10 flex items-center justify-center bg-background-default-subtle/60" />
       }
 
       @if (disabled()) {
         <z-empty
           class="h-full rounded-none border-0"
           zIcon="hub"
-          [zTitle]="'PAC.Knowledgebase.GraphDisabledTitle' | translate: { Default: 'GraphRAG is disabled' }"
+          [zTitle]="'XP.Knowledgebase.GraphDisabledTitle' | translate: { Default: 'GraphRAG is disabled' }"
           [zDescription]="
-            'PAC.Knowledgebase.GraphDisabledDesc'
+            'XP.Knowledgebase.GraphDisabledDesc'
               | translate: { Default: 'Enable GraphRAG in configuration and rebuild the graph to use visualization.' }
           "
         />
@@ -197,9 +197,9 @@
         <z-empty
           class="h-full rounded-none border-0"
           zIcon="share"
-          [zTitle]="'PAC.Knowledgebase.GraphEmptyTitle' | translate: { Default: 'No graph data' }"
+          [zTitle]="'XP.Knowledgebase.GraphEmptyTitle' | translate: { Default: 'No graph data' }"
           [zDescription]="
-            'PAC.Knowledgebase.GraphEmptyDesc'
+            'XP.Knowledgebase.GraphEmptyDesc'
               | translate
                 : {
                     Default: 'Rebuild the graph or create entities manually to start maintaining this knowledge graph.'
@@ -221,13 +221,13 @@
         <div class="px-4 py-3">
           <div class="text-lg font-semibold text-text-primary">{{ nodes().length }}</div>
           <div class="text-xs uppercase text-text-tertiary">
-            {{ 'PAC.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
+            {{ 'XP.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
           </div>
         </div>
         <div class="border-l border-components-panel-border px-4 py-3">
           <div class="text-lg font-semibold text-text-primary">{{ edges().length }}</div>
           <div class="text-xs uppercase text-text-tertiary">
-            {{ 'PAC.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
+            {{ 'XP.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
           </div>
         </div>
       </div>
@@ -243,7 +243,7 @@
                     <z-badge zType="outline">{{ entity.type }}</z-badge>
                     <z-badge zType="secondary">
                       {{
-                        'PAC.Knowledgebase.GraphOrigin_' + (entity.origin ?? 'extracted')
+                        'XP.Knowledgebase.GraphOrigin_' + (entity.origin ?? 'extracted')
                           | translate: { Default: entity.origin ?? 'extracted' }
                       }}
                     </z-badge>
@@ -271,7 +271,7 @@
               @if (relatedRelations().length) {
                 <div class="mt-4 border-t border-components-panel-border pt-3">
                   <div class="mb-2 text-xs font-medium uppercase text-text-tertiary">
-                    {{ 'PAC.Knowledgebase.RelatedRelations' | translate: { Default: 'Related relations' } }}
+                    {{ 'XP.Knowledgebase.RelatedRelations' | translate: { Default: 'Related relations' } }}
                   </div>
                   <div class="space-y-1">
                     @for (relation of relatedRelations(); track relation.id) {
@@ -317,7 +317,7 @@
           <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
             <z-card-content class="p-3 text-sm text-text-tertiary">
               {{
-                'PAC.Knowledgebase.SelectGraphItem'
+                'XP.Knowledgebase.SelectGraphItem'
                   | translate: { Default: 'Select an entity or relation to inspect it.' }
               }}
             </z-card-content>
@@ -327,7 +327,7 @@
         <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
           <z-card-header class="border-b border-components-panel-border px-3 py-2">
             <z-card-title class="text-sm font-medium text-text-primary">
-              {{ 'PAC.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
+              {{ 'XP.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
             </z-card-title>
           </z-card-header>
           <z-card-content class="max-h-56 overflow-auto p-2">
@@ -347,7 +347,7 @@
               <z-empty
                 class="rounded-none border-0 p-4 md:p-4"
                 zIcon="hub"
-                [zTitle]="'PAC.Knowledgebase.NoEntities' | translate: { Default: 'No entities' }"
+                [zTitle]="'XP.Knowledgebase.NoEntities' | translate: { Default: 'No entities' }"
               />
             }
           </z-card-content>
@@ -356,7 +356,7 @@
         <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
           <z-card-header class="border-b border-components-panel-border px-3 py-2">
             <z-card-title class="text-sm font-medium text-text-primary">
-              {{ 'PAC.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
+              {{ 'XP.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
             </z-card-title>
           </z-card-header>
           <z-card-content class="max-h-56 overflow-auto p-2">
@@ -372,14 +372,14 @@
                 <span class="block max-w-full truncate">{{ relationLabel(relation) }}</span>
                 <span class="mt-1 block text-xs text-text-tertiary">
                   {{ relation.evidenceCount ?? 0 }}
-                  {{ 'PAC.Knowledgebase.Evidence' | translate: { Default: 'evidence' } }}
+                  {{ 'XP.Knowledgebase.Evidence' | translate: { Default: 'evidence' } }}
                 </span>
               </button>
             } @empty {
               <z-empty
                 class="rounded-none border-0 p-4 md:p-4"
                 zIcon="share"
-                [zTitle]="'PAC.Knowledgebase.NoRelations' | translate: { Default: 'No relations' }"
+                [zTitle]="'XP.Knowledgebase.NoRelations' | translate: { Default: 'No relations' }"
               />
             }
           </z-card-content>
@@ -388,7 +388,7 @@
         <z-card class="gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
           <z-card-header class="border-b border-components-panel-border px-3 py-2">
             <z-card-title class="text-sm font-medium text-text-primary">
-              {{ 'PAC.Knowledgebase.Evidence' | translate: { Default: 'Evidence' } }}
+              {{ 'XP.Knowledgebase.Evidence' | translate: { Default: 'Evidence' } }}
             </z-card-title>
           </z-card-header>
           <z-card-content class="max-h-72 overflow-auto p-3">
@@ -403,7 +403,7 @@
               <z-empty
                 class="rounded-none border-0 p-4 md:p-4"
                 zIcon="file-text"
-                [zTitle]="'PAC.Knowledgebase.NoEvidence' | translate: { Default: 'No evidence' }"
+                [zTitle]="'XP.Knowledgebase.NoEvidence' | translate: { Default: 'No evidence' }"
               />
             }
           </z-card-content>
@@ -426,16 +426,16 @@
         <z-card-title class="text-base font-semibold text-text-primary">
           @switch (mode) {
             @case ('create-entity') {
-              {{ 'PAC.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
+              {{ 'XP.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
             }
             @case ('edit-entity') {
-              {{ 'PAC.Knowledgebase.EditEntity' | translate: { Default: 'Edit entity' } }}
+              {{ 'XP.Knowledgebase.EditEntity' | translate: { Default: 'Edit entity' } }}
             }
             @case ('create-relation') {
-              {{ 'PAC.Knowledgebase.NewRelation' | translate: { Default: 'New relation' } }}
+              {{ 'XP.Knowledgebase.NewRelation' | translate: { Default: 'New relation' } }}
             }
             @case ('edit-relation') {
-              {{ 'PAC.Knowledgebase.EditRelation' | translate: { Default: 'Edit relation' } }}
+              {{ 'XP.Knowledgebase.EditRelation' | translate: { Default: 'Edit relation' } }}
             }
           }
         </z-card-title>
@@ -447,28 +447,28 @@
       @if (mode === 'create-entity' || mode === 'edit-entity') {
         <form class="space-y-4 p-5" [formGroup]="entityForm" (ngSubmit)="saveEditor()">
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</z-form-label>
+            <z-form-label zRequired>{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</z-form-label>
             <input z-input formControlName="name" />
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{ 'PAC.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
+            <z-form-label zRequired>{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
             <input z-input formControlName="type" />
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'PAC.Knowledgebase.Aliases' | translate: { Default: 'Aliases' } }}</z-form-label>
+            <z-form-label>{{ 'XP.Knowledgebase.Aliases' | translate: { Default: 'Aliases' } }}</z-form-label>
             <input z-input formControlName="aliases" />
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
+            <z-form-label>{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
             <textarea z-input class="min-h-24" formControlName="description"></textarea>
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'PAC.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
+            <z-form-label>{{ 'XP.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
             <z-select formControlName="visibility" class="w-full">
               @for (visibilityOption of visibilities; track visibilityOption) {
                 <z-select-item [zValue]="visibilityOption">
                   {{
-                    'PAC.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
+                    'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
                   }}
                 </z-select-item>
               }
@@ -476,7 +476,7 @@
           </z-form-field>
           <div class="flex justify-end gap-2 pt-2">
             <button z-button type="button" zType="outline" zSize="lg" (click)="closeEditor()">
-              {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+              {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
             </button>
             <button
               z-button
@@ -485,7 +485,7 @@
               [zDisabled]="entityForm.invalid || saving()"
               [zLoading]="saving()"
             >
-              {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+              {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
             </button>
           </div>
         </form>
@@ -493,12 +493,12 @@
         <form class="space-y-4 p-5" [formGroup]="relationForm" (ngSubmit)="saveEditor()">
           <z-form-field appearance="fill" floatLabel="always">
             <z-form-label zRequired>{{
-              'PAC.Knowledgebase.SourceEntity' | translate: { Default: 'Source entity' }
+              'XP.Knowledgebase.SourceEntity' | translate: { Default: 'Source entity' }
             }}</z-form-label>
             <z-select
               formControlName="sourceEntityId"
               class="w-full"
-              [zPlaceholder]="'PAC.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
+              [zPlaceholder]="'XP.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
             >
               @for (entity of entityOptions(); track entity.id) {
                 <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
@@ -507,12 +507,12 @@
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
             <z-form-label zRequired>{{
-              'PAC.Knowledgebase.TargetEntity' | translate: { Default: 'Target entity' }
+              'XP.Knowledgebase.TargetEntity' | translate: { Default: 'Target entity' }
             }}</z-form-label>
             <z-select
               formControlName="targetEntityId"
               class="w-full"
-              [zPlaceholder]="'PAC.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
+              [zPlaceholder]="'XP.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
             >
               @for (entity of entityOptions(); track entity.id) {
                 <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
@@ -520,24 +520,24 @@
             </z-select>
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{ 'PAC.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
+            <z-form-label zRequired>{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
             <input z-input formControlName="type" />
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'PAC.Knowledgebase.Weight' | translate: { Default: 'Weight' } }}</z-form-label>
+            <z-form-label>{{ 'XP.Knowledgebase.Weight' | translate: { Default: 'Weight' } }}</z-form-label>
             <input z-input type="number" min="0" max="1" step="0.01" formControlName="weight" />
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
+            <z-form-label>{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
             <textarea z-input class="min-h-24" formControlName="description"></textarea>
           </z-form-field>
           <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'PAC.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
+            <z-form-label>{{ 'XP.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
             <z-select formControlName="visibility" class="w-full">
               @for (visibilityOption of visibilities; track visibilityOption) {
                 <z-select-item [zValue]="visibilityOption">
                   {{
-                    'PAC.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
+                    'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
                   }}
                 </z-select-item>
               }
@@ -545,7 +545,7 @@
           </z-form-field>
           <div class="flex justify-end gap-2 pt-2">
             <button z-button type="button" zType="outline" zSize="lg" (click)="closeEditor()">
-              {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+              {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
             </button>
             <button
               z-button
@@ -554,7 +554,7 @@
               [zDisabled]="relationForm.invalid || saving()"
               [zLoading]="saving()"
             >
-              {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+              {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
             </button>
           </div>
         </form>

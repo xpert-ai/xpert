@@ -5,13 +5,13 @@ import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
 import { rxResource, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import {
   buildListboxOptions,
   formatSelectOptionValue,
   getErrorMessage,
   hasSelectOptionValue,
-  NgmI18nPipe,
+  XpI18nPipe,
   TSelectOption
 } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -36,8 +36,8 @@ type TSelectOptionValue = string | { id: string }
     TranslateModule,
     CdkListboxModule,
     CdkMenuModule,
-    NgmI18nPipe,
-    NgmHighlightDirective,
+    XpI18nPipe,
+    XpHighlightDirective,
     ZardIconComponent,
     ZardButtonComponent,
     ZardLoaderComponent
@@ -51,7 +51,7 @@ export class XpertRemoteSelectComponent {
   readonly httpClient = inject(HttpClient)
   protected cva =
     inject<NgxControlValueAccessor<TSelectOptionValue[] | TSelectOptionValue | null>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly url = input<string>()

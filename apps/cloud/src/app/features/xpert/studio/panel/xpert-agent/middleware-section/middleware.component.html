@@ -1,12 +1,12 @@
 <div class="flex items-center gap-1 px-2 py-1">
   <i class="ri-stack-fill text-indigo-500"></i>
   <div class="text-sm font-semibold text-text-secondary">
-    {{ 'PAC.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' } }}
+    {{ 'XP.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' } }}
   </div>
   <i
     class="ri-information-2-line text-text-tertiary opacity-50 hover:opacity-100"
     [zTooltip]="
-      'PAC.Xpert.AgentMiddlewaresTooltip'
+      'XP.Xpert.AgentMiddlewaresTooltip'
         | translate
           : {
               Default:
@@ -59,7 +59,7 @@
               [zTooltip]="
                 middleware.strategy?.meta?.deprecationMessage
                   ? (middleware.strategy?.meta?.deprecationMessage | i18n)
-                  : ('PAC.Xpert.DeprecatedMiddleware'
+                  : ('XP.Xpert.DeprecatedMiddleware'
                     | translate
                       : {
                           Default:
@@ -87,7 +87,7 @@
     <div
       class="font-body text-text-tertiary text-sm px-2 py-3 text-center rounded-xl border border-dashed border-divider-regular"
     >
-      {{ 'PAC.Xpert.NoMiddlewares' | translate: { Default: 'No middlewares added yet' } }}
+      {{ 'XP.Xpert.NoMiddlewares' | translate: { Default: 'No middlewares added yet' } }}
     </div>
   }
 </div>

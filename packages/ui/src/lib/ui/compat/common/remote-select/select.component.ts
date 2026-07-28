@@ -10,7 +10,7 @@ import {
   formatSelectOptionValue,
   getErrorMessage,
   hasSelectOptionValue,
-  NgmI18nPipe,
+  XpI18nPipe,
   toParams,
   TSelectOption
 } from '../../core'
@@ -18,7 +18,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, debounceTime, of, startWith, switchMap, tap } from 'rxjs'
-import { NgmHighlightDirective } from '../directives'
+import { XpHighlightDirective } from '../directives'
 
 type TSelectOptionValue = string | { id: string }
 
@@ -33,19 +33,19 @@ type TSelectOptionValue = string | { id: string }
     TranslateModule,
     CdkListboxModule,
     CdkMenuModule,
-    NgmI18nPipe,
-    NgmHighlightDirective
+    XpI18nPipe,
+    XpHighlightDirective
   ],
-  selector: 'ngm-remote-select',
+  selector: 'xp-remote-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
   hostDirectives: [NgxControlValueAccessor]
 })
-export class NgmRemoteSelectComponent {
+export class XpRemoteSelectComponent {
   readonly httpClient = inject(HttpClient)
   protected cva =
     inject<NgxControlValueAccessor<TSelectOptionValue[] | TSelectOptionValue | null>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly url = input<string>()

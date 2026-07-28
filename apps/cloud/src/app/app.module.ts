@@ -27,7 +27,7 @@ import {
 import { AuthModule } from './@core/auth/auth.module'
 import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
-import { PAC_API_BASE_URL } from '@xpert-ai/cloud/auth'
+import { XP_API_BASE_URL } from '@xpert-ai/cloud/auth'
 import { environment } from '../environments/environment'
 import { createUiI18nAdapter, I18nService, initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
@@ -122,7 +122,7 @@ function detectSubjectType(subject) {
     { provide: Ability, useValue: new Ability([], { detectSubjectType }) },
     { provide: PureAbility, useExisting: Ability },
     {
-      provide: PAC_API_BASE_URL,
+      provide: XP_API_BASE_URL,
       useValue: normalizeApiBaseUrl(environment.API_BASE_URL)
     },
     provideUiI18nAdapterFactory(createUiI18nAdapter, [I18nService]),

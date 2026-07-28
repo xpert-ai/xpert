@@ -5,7 +5,7 @@ import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { attrModel, linkedModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -30,7 +30,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     JSONSchemaFormComponent,
     StateVariableSelectComponent,
     CopilotModelSelectComponent,

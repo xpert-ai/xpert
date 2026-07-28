@@ -43,11 +43,11 @@ import {
     ...ZardFormImports,
     ...ZardTooltipImports
   ],
-  selector: 'pac-data-source-creation',
+  selector: 'xp-data-source-creation',
   templateUrl: './creation.component.html',
   styleUrls: ['./creation.component.scss']
 })
-export class PACDataSourceCreationComponent implements OnInit {
+export class XpDataSourceCreationComponent implements OnInit {
   AuthenticationEnum = AuthenticationEnum
   enableLocalAgent = environment.enableLocalAgent
 
@@ -56,7 +56,7 @@ export class PACDataSourceCreationComponent implements OnInit {
   private toastrService = inject(ToastrService)
   private translateService = inject(TranslateService)
   private data = inject<IDataSource | null>(Z_MODAL_DATA, { optional: true })
-  public dialogRef = inject<ZardDialogRef<PACDataSourceCreationComponent, Partial<IDataSource>>>(ZardDialogRef)
+  public dialogRef = inject<ZardDialogRef<XpDataSourceCreationComponent, Partial<IDataSource>>>(ZardDialogRef)
   private localAgent? = inject(LocalAgent, { optional: true })
   private serverAgent = inject(ServerSocketAgent)
 
@@ -111,7 +111,7 @@ export class PACDataSourceCreationComponent implements OnInit {
   private _typeFieldsEffect = effect(() => {
     const type = this.dataSourceType()
     if (type) {
-      const i18n = this.translateService.instant('PAC.DataSources.Schema')
+      const i18n = this.translateService.instant('XP.DataSources.Schema')
       this.fields$.next(convertConfigurationSchema(type.configuration, i18n))
     }
   })
@@ -137,7 +137,7 @@ export class PACDataSourceCreationComponent implements OnInit {
         })
       )
 
-      this.toastrService.success('PAC.MESSAGE.CreateDataSource', { Default: 'Create data source' })
+      this.toastrService.success('XP.MESSAGE.CreateDataSource', { Default: 'Create data source' })
       this.dialogRef.close(result)
     }
   }
@@ -169,7 +169,7 @@ export class PACDataSourceCreationComponent implements OnInit {
       )
 
       this.loading.set(false)
-      this.toastrService.success('PAC.ACTIONS.PING', { Default: 'Ping' })
+      this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })
     } catch (err) {
       const message = getErrorMessage(err)
       this.loading.set(false)

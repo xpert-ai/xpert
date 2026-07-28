@@ -4,9 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@xpert-ai/headless-ui'
-import { AppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
+import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, XpSearchComponent } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {
@@ -28,7 +28,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebases',
+  selector: 'xp-settings-knowledgebases',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   imports: [
@@ -37,13 +37,13 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardButtonComponent,
     ZardIconComponent,
-    AppearanceDirective,
+    XpAppearanceDirective,
     DensityDirective,
-    DynamicGridDirective,
+    XpDynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent,
     CardCreateComponent,
-    NgmSearchComponent
+    XpSearchComponent
   ],
   animations: [routeAnimations]
 })
@@ -96,7 +96,7 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   newKnowledgebase() {
     this.confirmUnique(
       {
-        title: this.translateService.instant('PAC.Knowledgebase.NewKnowledgebase', {
+        title: this.translateService.instant('XP.Knowledgebase.NewKnowledgebase', {
           Default: `New Knowledgebase`
         })
       },
@@ -107,7 +107,7 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
     ).subscribe({
       next: (result) => {
         this.refresh()
-        this._toastrService.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
+        this._toastrService.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
       },
       error: (error) => {
         this._toastrService.error(error, 'Error')
@@ -123,7 +123,7 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
     this.confirmDelete(
       {
         value: item.name,
-        information: this.translateService.instant('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
+        information: this.translateService.instant('XP.Knowledgebase.ConfirmDeleteKnowledgebase', {
           Default: `Confirm delete knowledgebase and all its contents?`
         })
       },
@@ -131,7 +131,7 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
     ).subscribe({
       next: () => {
         this.refresh()
-        this._toastrService.success('PAC.Messages.DeletedSuccessfully', 'Deleted Successfully')
+        this._toastrService.success('XP.Messages.DeletedSuccessfully', 'Deleted Successfully')
       },
       error: (error) => {
         this._toastrService.error(getErrorMessage(error), 'Error')

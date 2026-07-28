@@ -81,7 +81,7 @@ jest.mock('../../../@shared/editors/code-editor/editor.component', () => {
 
   angularCore.Component({
     standalone: true,
-    selector: 'pac-code-editor',
+    selector: 'xp-code-editor',
     template: '<textarea data-testid="code-editor"></textarea>',
     providers: [
       {

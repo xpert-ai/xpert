@@ -3,8 +3,8 @@ import { AsyncPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { linkedModel, NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { CloseSvgComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -38,8 +38,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     XpertParametersCardComponent,
-    NgmSpinComponent,
-    NgmDensityDirective,
+    XpSpinComponent,
+    XpDensityDirective,
     ZardSwitchComponent
   ],
   host: {

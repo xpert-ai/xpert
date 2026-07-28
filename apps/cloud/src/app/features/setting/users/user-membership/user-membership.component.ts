@@ -15,7 +15,7 @@ import { ZardButtonComponent, ZardInputDirective, ZardProgressBarComponent } fro
 
 @Component({
   standalone: true,
-  selector: 'pac-user-membership',
+  selector: 'xp-user-membership',
   imports: [
     CommonModule,
     FormsModule,

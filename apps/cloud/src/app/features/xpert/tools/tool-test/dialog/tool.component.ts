@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms'
 
 import { DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool } from 'apps/cloud/src/app/@core'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
@@ -18,7 +18,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     DialogModule,
     DragDropModule,
     ZardButtonComponent,
-    NgmI18nPipe,
+    XpI18nPipe,
     XpertToolsetToolTestComponent,
     XpertToolAuthorizationInputComponent
   ],

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmRemoteSelectComponent } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpRemoteSelectComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
@@ -16,9 +16,9 @@ import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xper
     TranslateModule,
     ZardDialogModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmRemoteSelectComponent,
-    NgmDensityDirective,
+    XpI18nPipe,
+    XpRemoteSelectComponent,
+    XpDensityDirective,
     CopilotModelSelectComponent,
     ZardSwitchComponent
   ],

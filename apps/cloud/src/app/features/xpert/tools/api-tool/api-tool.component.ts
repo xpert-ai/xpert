@@ -13,7 +13,7 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectConfirmDelete } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -48,8 +48,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmI18nPipe,
-    NgmDensityDirective,
+    XpI18nPipe,
+    XpDensityDirective,
     EmojiAvatarComponent,
     XpertStudioConfigureToolComponent,
     XpertStudioConfigureODataComponent,
@@ -59,7 +59,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     MCPServerFormComponent,
     ZardSwitchComponent
   ],
-  selector: 'pac-xpert-api-tool',
+  selector: 'xp-xpert-api-tool',
   templateUrl: './api-tool.component.html',
   styleUrl: 'api-tool.component.scss',
   animations: [routeAnimations],
@@ -165,7 +165,7 @@ export class XpertStudioAPIToolComponent {
 
     this.toolsetService.update(this.toolset().id, value).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
         this.loading.set(false)
         this.toolsDirty.set(false)
         this.configure()?.formGroup.markAsPristine()
@@ -320,12 +320,12 @@ export class XpertStudioAPIToolComponent {
     this.confirmDelete(
       {
         value: toolset.name,
-        information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+        information: this.#translate.instant('XP.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
       },
       this.toolsetService.delete(toolset.id)
     ).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
         this.close()
       },
       error: (error) => {

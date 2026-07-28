@@ -4,18 +4,18 @@ import { firstValueFrom } from 'rxjs'
 import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { injectViewExtensionApi } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ViewRendererComponent } from './view-renderer.component'
 import { getErrorMessage } from '@cloud/app/@core/types'
 
 @Component({
   standalone: true,
   selector: 'xp-extension-host-outlet',
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, ViewRendererComponent],
+  imports: [CommonModule, TranslateModule, XpI18nPipe, ViewRendererComponent],
   template: `
     @if (loading()) {
       <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
-        {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+        {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
       </div>
     } @else if (error()) {
       <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
@@ -37,14 +37,14 @@ import { getErrorMessage } from '@cloud/app/@core/types'
         <div
           class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
         >
-          {{ 'PAC.ViewExtension.NotFound' | translate: { Default: 'View not found' } }}
+          {{ 'XP.ViewExtension.NotFound' | translate: { Default: 'View not found' } }}
         </div>
       }
     } @else if (!views().length) {
       <div
         class="rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
       >
-        {{ 'PAC.ViewExtension.Empty' | translate: { Default: 'No extension views available' } }}
+        {{ 'XP.ViewExtension.Empty' | translate: { Default: 'No extension views available' } }}
       </div>
     } @else {
       <div class="flex flex-col gap-4">
@@ -68,7 +68,7 @@ import { getErrorMessage } from '@cloud/app/@core/types'
               <xp-view-renderer [hostType]="hostType()" [hostId]="hostId()" [manifest]="view" [active]="true" />
             } @placeholder {
               <div class="rounded-2xl border border-divider-subtle px-4 py-5 text-sm text-text-tertiary">
-                {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+                {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
               </div>
             }
           </section>

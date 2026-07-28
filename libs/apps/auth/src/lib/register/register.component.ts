@@ -5,9 +5,9 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { take } from 'rxjs'
-import { NbAuthSocialLink, PAC_AUTH_OPTIONS } from '../auth.options'
+import { NbAuthSocialLink, XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
-import { matchValidator, PacAuthResult, PacAuthService, passwordStrength, PasswordStrengthEnum } from '../services'
+import { matchValidator, XpAuthResult, XpAuthService, passwordStrength, PasswordStrengthEnum } from '../services'
 
 type CompleteSsoBindingResponse = {
   location: string
@@ -15,7 +15,7 @@ type CompleteSsoBindingResponse = {
 
 @Component({
   standalone: false,
-  selector: 'pac-register',
+  selector: 'xp-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -33,8 +33,8 @@ export class UserRegisterComponent implements OnDestroy {
   enablePublicSignup = true
 
   constructor(
-    protected service: PacAuthService,
-    @Inject(PAC_AUTH_OPTIONS) protected options = {},
+    protected service: XpAuthService,
+    @Inject(XP_AUTH_OPTIONS) protected options = {},
     fb: UntypedFormBuilder,
     private http: HttpClient,
     private translateService: TranslateService,
@@ -49,7 +49,7 @@ export class UserRegisterComponent implements OnDestroy {
           null,
           [Validators.required, Validators.minLength(6), UserRegisterComponent.checkPassword.bind(this)]
         ],
-        confirm: [null, [Validators.required, Validators.minLength(6)]],
+        confirm: [null, [Validators.required, Validators.minLength(6)]]
         // mobilePrefix: ['+86'],
         // mobile: [null, [Validators.required, Validators.pattern(/^1\d{10}$/)]],
         // captcha: [null, [Validators.required]]
@@ -95,7 +95,7 @@ export class UserRegisterComponent implements OnDestroy {
   visible = false
   status = 'pool'
   progress = 0
-  passwordProgressMap: { [key: string]: {color: 'success' | 'normal' | 'accent' | 'warn', progress: number} } = {
+  passwordProgressMap: { [key: string]: { color: 'success' | 'normal' | 'accent' | 'warn'; progress: number } } = {
     [PasswordStrengthEnum.Strong]: {
       color: 'success',
       progress: 100
@@ -111,7 +111,7 @@ export class UserRegisterComponent implements OnDestroy {
     [PasswordStrengthEnum.Tooweak]: {
       color: 'warn',
       progress: 10
-    },
+    }
   }
 
   count = 0
@@ -179,9 +179,13 @@ export class UserRegisterComponent implements OnDestroy {
       }
     }
 
-    this.service.register(this.strategy, data).subscribe((result: PacAuthResult) => {
+    this.service.register(this.strategy, data).subscribe((result: XpAuthResult) => {
       if (result.isSuccess()) {
-        this.messages = [this.getTranslation('Auth.SignupSuccess', {Default: '🎉 Signup success, please active the link in your email'})]
+        this.messages = [
+          this.getTranslation('Auth.SignupSuccess', {
+            Default: '🎉 Signup success, please active the link in your email'
+          })
+        ]
       } else {
         this.submitted = false
         this.errors = result.getErrors()
@@ -203,9 +207,12 @@ export class UserRegisterComponent implements OnDestroy {
 
   getTranslation(key: string, params: any) {
     let t = ''
-    this.translateService.get(key, params).pipe(take(1)).subscribe((value) => {
-      t = value
-    })
+    this.translateService
+      .get(key, params)
+      .pipe(take(1))
+      .subscribe((value) => {
+        t = value
+      })
     return t
   }
 

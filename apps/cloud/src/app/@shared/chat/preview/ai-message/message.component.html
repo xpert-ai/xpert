@@ -11,7 +11,7 @@
           <i class="ri-arrow-right-s-line"></i>
         }
         <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
-          {{ 'PAC.Chat.Reasoning' | translate: { Default: 'Reasoning' } }}
+          {{ 'XP.Chat.Reasoning' | translate: { Default: 'Reasoning' } }}
         </div>
       </div>
 
@@ -21,8 +21,8 @@
         [content]="reasoningText()"
         [zTooltip]="
           copy.copied()
-            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+            ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
         "
         zPosition="top"
       />
@@ -30,7 +30,7 @@
     @if (expandReason()) {
       @for (item of reasoning; track item.id) {
         <markdown
-          class="ngm-copilot-markdown text-xs font-body text-text-tertiary"
+          class="xp-copilot-markdown text-xs font-body text-text-tertiary"
           lineNumbers
           [start]="5"
           [data]="item.text"
@@ -44,7 +44,7 @@
   @switch (chunk.type) {
     @case ('text') {
       <markdown
-        class="ngm-copilot-markdown text-sm"
+        class="xp-copilot-markdown text-sm"
         [disableSanitizer]="true"
         lineNumbers
         [start]="5"
@@ -67,11 +67,11 @@
           <div class="flex justify-between items-center text-base p-2">
             <div>
               <span class="font-semibold shrink-0">{{
-                'PAC.Xpert.Component' | translate: { Default: 'Component' }
+                'XP.Xpert.Component' | translate: { Default: 'Component' }
               }}</span>
               <i
                 class="ri-information-2-line ml-1 text-text-secondary hover:text-text-primary"
-                [zTooltip]="'PAC.Chat.DisplayOnlyData' | translate: { Default: 'Only display component data' }"
+                [zTooltip]="'XP.Chat.DisplayOnlyData' | translate: { Default: 'Only display component data' }"
                 zPosition="top"
               ></i>
             </div>
@@ -82,8 +82,8 @@
               [content]="chunk"
               [zTooltip]="
                 copy.copied()
-                  ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-                  : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+                  ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+                  : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
               "
               zPosition="top"
             />
@@ -103,7 +103,7 @@
 @if (thirdPartyMessage()) {
   <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-hover-bg transition-all">
     <div class="text-base font-semibold shrink-0 p-2">
-      {{ 'PAC.Xpert.ThirdPartyMessage' | translate: { Default: 'Third-party platform message' } }}
+      {{ 'XP.Xpert.ThirdPartyMessage' | translate: { Default: 'Third-party platform message' } }}
     </div>
     <div class="flex-1 text-sm rounded-lg whitespace-normal overflow-auto">
       <p class="px-4 pb-4">{{ thirdPartyMessage() | json }}</p>

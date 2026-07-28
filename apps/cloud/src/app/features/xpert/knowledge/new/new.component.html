@@ -5,7 +5,7 @@
   cdkDragHandle
 >
   <div class="text-xl font-semibold text-text-primary">
-    {{ 'PAC.Knowledgebase.CreateKnowledgebase' | translate: { Default: 'Create Knowledgebase' } }}
+    {{ 'XP.Knowledgebase.CreateKnowledgebase' | translate: { Default: 'Create Knowledgebase' } }}
   </div>
 
   <button
@@ -19,7 +19,7 @@
 <div class="px-6 pb-4">
   <div class="text-sm text-text-secondary">
     {{
-      'PAC.Knowledgebase.CreateKnowledgebaseDesc'
+      'XP.Knowledgebase.CreateKnowledgebaseDesc'
         | translate
           : {
               Default:
@@ -29,35 +29,32 @@
   </div>
   <div class="my-4">
     <div class="text-text-secondary font-semibold">
-      {{ 'PAC.Knowledgebase.KnowledgebaseName' | translate: { Default: 'Knowledgebase Name' } }}
+      {{ 'XP.Knowledgebase.KnowledgebaseName' | translate: { Default: 'Knowledgebase Name' } }}
       <span class="mx-1 text-text-destructive">*</span>
     </div>
     <div class="relative w-full">
-      <input
-        class="xp-input w-full"
-        [(ngModel)]="name"
-      />
+      <input class="xp-input w-full" [(ngModel)]="name" />
     </div>
   </div>
 
   <copilot-model-select
     class="block mb-4"
     required
-    [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: { Default: 'Embedding Model' }"
+    [label]="'XP.Knowledgebase.EmbeddingModel' | translate: { Default: 'Embedding Model' }"
     [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
     [(ngModel)]="copilotModel"
   />
 
   <copilot-model-select
     class="block mb-4"
-    [label]="'PAC.Knowledgebase.ChatModel' | translate: { Default: 'Chat Model' }"
+    [label]="'XP.Knowledgebase.ChatModel' | translate: { Default: 'Chat Model' }"
     [modelType]="eAiModelTypeEnum.LLM"
     [(ngModel)]="chatModel"
   />
 
   <copilot-model-select
     class="block mb-4"
-    [label]="'PAC.Knowledgebase.RerankModel' | translate: { Default: 'Rerank Model' }"
+    [label]="'XP.Knowledgebase.RerankModel' | translate: { Default: 'Rerank Model' }"
     [modelType]="eAiModelTypeEnum.RERANK"
     [(ngModel)]="rerankModel"
   />
@@ -70,7 +67,7 @@
     [disabled]="loading()"
     (click)="close()"
   >
-    {{ 'PAC.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
+    {{ 'XP.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
   </button>
   <button
     type="button"
@@ -78,6 +75,6 @@
     [disabled]="invalid() || loading()"
     (click)="create()"
   >
-    {{ 'PAC.Xpert.Create' | translate: { Default: 'Create' } }}
+    {{ 'XP.Xpert.Create' | translate: { Default: 'Create' } }}
   </button>
 </div>

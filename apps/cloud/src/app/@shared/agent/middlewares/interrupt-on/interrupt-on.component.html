@@ -7,7 +7,7 @@
       [disabled]="readonly() || !addableTools().length"
     >
       <option [ngValue]="null" disabled>
-        {{ 'PAC.Xpert.SelectTool' | translate: {Default: 'Select a tool'} }}
+        {{ 'XP.Xpert.SelectTool' | translate: { Default: 'Select a tool' } }}
       </option>
       @for (tool of addableTools(); track tool.name) {
         <option [ngValue]="tool.name">{{ tool.name }}</option>
@@ -21,19 +21,21 @@
       (click)="addTool()"
     >
       <span>+</span>
-      <span>{{ 'PAC.Xpert.AddTool' | translate: {Default: 'Add tool'} }}</span>
+      <span>{{ 'XP.Xpert.AddTool' | translate: { Default: 'Add tool' } }}</span>
     </button>
 
     @if (!availableTools().length) {
       <span class="text-xs text-text-tertiary">
-        {{ 'PAC.Xpert.NoAvailableTools' | translate: {Default: 'No tools available for this agent'} }}
+        {{ 'XP.Xpert.NoAvailableTools' | translate: { Default: 'No tools available for this agent' } }}
       </span>
     }
   </div>
 
   @if (!toolEntries().length) {
-    <div class="rounded-lg border border-dashed border-divider-regular bg-background-default-subtle p-4 text-sm text-text-tertiary">
-      {{ 'PAC.Xpert.NoInterruptTools' | translate: {Default: 'No tools configured for approval yet'} }}
+    <div
+      class="rounded-lg border border-dashed border-divider-regular bg-background-default-subtle p-4 text-sm text-text-tertiary"
+    >
+      {{ 'XP.Xpert.NoInterruptTools' | translate: { Default: 'No tools configured for approval yet' } }}
     </div>
   } @else {
     <div class="space-y-3">
@@ -57,26 +59,28 @@
               [disabled]="readonly()"
               (click)="removeTool(tool.name)"
             >
-              {{ 'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}
+              {{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
             </button>
           </div>
 
           <div class="space-y-1">
             <div class="text-xs font-medium text-text-secondary">
-              {{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Description'} }}
+              {{ 'XP.Xpert.ToolDescription' | translate: { Default: 'Description' } }}
             </div>
             <textarea
               class="xp-input w-full min-h-[70px] border-divider-regular text-sm text-text-primary disabled:cursor-not-allowed"
               [ngModel]="tool.description"
               (ngModelChange)="updateDescription(tool.name, $event)"
               [disabled]="readonly()"
-              [placeholder]="'PAC.Xpert.ToolDescriptionPlaceholder' | translate: {Default: 'Describe what requires approval'}"
+              [placeholder]="
+                'XP.Xpert.ToolDescriptionPlaceholder' | translate: { Default: 'Describe what requires approval' }
+              "
             ></textarea>
           </div>
 
           <div class="space-y-2">
             <div class="text-xs font-medium text-text-secondary">
-              {{ 'PAC.Xpert.AllowedDecisions' | translate: {Default: 'Allowed decisions'} }}
+              {{ 'XP.Xpert.AllowedDecisions' | translate: { Default: 'Allowed decisions' } }}
             </div>
             <div class="flex flex-wrap gap-4">
               @for (decision of decisionOptions; track decision) {
@@ -89,9 +93,15 @@
                     [disabled]="readonly()"
                   />
                   @switch (decision) {
-                    @case ('approve') { {{ 'PAC.ACTIONS.Approve' | translate: {Default: 'Approve'} }} }
-                    @case ('edit') { {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }} }
-                    @default { {{ 'PAC.ACTIONS.Reject' | translate: {Default: 'Reject'} }} }
+                    @case ('approve') {
+                      {{ 'XP.ACTIONS.Approve' | translate: { Default: 'Approve' } }}
+                    }
+                    @case ('edit') {
+                      {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                    }
+                    @default {
+                      {{ 'XP.ACTIONS.Reject' | translate: { Default: 'Reject' } }}
+                    }
                   }
                 </label>
               }

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, signal } f
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { DisappearSlideLeft, OverlayAnimations } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { routeAnimations, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
@@ -22,7 +22,7 @@ import { XpertHeaderSwitcherComponent } from './switcher/switcher.component'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    NgmCommonModule,
+    XpCommonModule,
     EmojiAvatarComponent,
     XpertBasicManageComponent,
     XpertHeaderSwitcherComponent,

@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
@@ -18,7 +18,7 @@ import {
 @Component({
   selector: 'xpert-workspace-settings-general',
   standalone: true,
-  imports: [FormsModule, CdkListboxModule, TranslateModule, NgmSpinComponent],
+  imports: [FormsModule, CdkListboxModule, TranslateModule, XpSpinComponent],
   templateUrl: './general.component.html',
   styleUrl: './general.component.scss',
   animations: [IfAnimation]
@@ -27,7 +27,7 @@ export class XpertWorkspaceSettingsGeneralComponent {
   readonly workspaceService = injectWorkspaceService()
   readonly #toastr = injectToastr()
   readonly confirmDel = injectConfirmDelete()
-  readonly i18n = injectTranslate('PAC.Xpert.Workspace')
+  readonly i18n = injectTranslate('XP.Xpert.Workspace')
 
   // Inputs
   readonly workspace = input<IXpertWorkspace>()
@@ -90,7 +90,7 @@ export class XpertWorkspaceSettingsGeneralComponent {
       }
 
       this.workspaceService.refresh()
-      this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
@@ -110,7 +110,7 @@ export class XpertWorkspaceSettingsGeneralComponent {
     ).subscribe({
       next: () => {
         this.archived.emit()
-        this.#toastr.success('PAC.Messages.ArchivedSuccessfully', { Default: 'Archived successfully' })
+        this.#toastr.success('XP.Messages.ArchivedSuccessfully', { Default: 'Archived successfully' })
       },
       error: (error) => {
         this.loading.set(false)
@@ -134,7 +134,7 @@ export class XpertWorkspaceSettingsGeneralComponent {
     ).subscribe({
       next: () => {
         this.deleted.emit()
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
       },
       error: (error) => {
         this.loading.set(false)

@@ -62,7 +62,7 @@ type HtmlSourceLineRange = {
 
 @Component({
   standalone: true,
-  selector: 'pac-file-html-preview',
+  selector: 'xp-file-html-preview',
   templateUrl: './file-html-preview.component.html',
   imports: [SafePipe],
   host: {

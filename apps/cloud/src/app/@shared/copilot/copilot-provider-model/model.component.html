@@ -1,14 +1,15 @@
-<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle 
+<div
+  cdkDrag
+  cdkDragRootElement=".cdk-overlay-pane"
+  cdkDragHandle
   class="flex justify-between items-center mb-2 px-8 py-4 cursor-move sticky top-0 z-10 bg-gradient-to-b to-components-card-bg"
-  [style.--tw-gradient-stops]="backgroundColor()+', var(--tw-gradient-to)'"
+  [style.--tw-gradient-stops]="backgroundColor() + ', var(--tw-gradient-to)'"
 >
-  <div class="text-2xl font-semibold text-teext-primary">{{'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }} {{label() | i18n}}</div>
+  <div class="text-2xl font-semibold text-teext-primary">
+    {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }} {{ label() | i18n }}
+  </div>
   @if (icon()) {
-    <img
-      alt="provider-icon"
-      [src]="icon() | i18n"
-      class="w-auto h-8"
-    />
+    <img alt="provider-icon" [src]="icon() | i18n" class="w-auto h-8" />
   } @else {
     <div>
       {{ label() | i18n }}
@@ -19,14 +20,14 @@
 <div class="px-8 flex flex-col w-full">
   <div>
     <div class="py-2 leading-5 text-base font-medium">
-      {{ 'PAC.Copilot.ModelType' | translate: { Default: 'Model type' } }}
+      {{ 'XP.Copilot.ModelType' | translate: { Default: 'Model type' } }}
       <span class="ml-1 text-red-500">*</span>
     </div>
-    <ul class="ngm-radio-select grid grid-cols-3 gap-3" cdkListbox [(ngModel)]="modelTypes">
+    <ul class="xp-radio-select grid grid-cols-3 gap-3" cdkListbox [(ngModel)]="modelTypes">
       @for (type of supported_model_types(); track type) {
         <li [cdkOption]="type">
           <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">{{type | kebabToCamelCase}}</div>
+          <div class="text-sm font-normal">{{ type | kebabToCamelCase }}</div>
         </li>
       }
     </ul>
@@ -38,56 +39,92 @@
       <span class="ml-1 text-red-500">*</span>
     </div>
     <div class="relative">
-      <input class="xp-input block w-full h-9 text-sm"
+      <input
+        class="xp-input block w-full h-9 text-sm"
         [placeholder]="modelSchema().placeholder | i18n"
         [(ngModel)]="modelName"
         type="text"
-      >
+      />
     </div>
   </div>
 
   <div class="relative">
-    <copilot-credential-form #credentialForm
+    <copilot-credential-form
+      #credentialForm
       [credentialFormSchemas]="credential_form_schemas()"
       [modelType]="modelTypes()?.[0]"
       [(ngModel)]="credentials"
     />
     @if (loading()) {
-      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+      <xp-spin class="absolute top-0 left-0 w-full h-full" />
     }
   </div>
-
-  
 </div>
 
-<div class="sticky bottom-0 mt-2 px-8 py-4 flex-wrap gap-y-2 border-t-[0.5px] border-divider-regular bg-components-card-bg">
+<div
+  class="sticky bottom-0 mt-2 px-8 py-4 flex-wrap gap-y-2 border-t-[0.5px] border-divider-regular bg-components-card-bg"
+>
   @if (error()) {
-    <div class="p-2 text-sm text-text-destructive">{{error()}}</div>
+    <div class="p-2 text-sm text-text-destructive">{{ error() }}</div>
   }
   <div class="flex justify-between items-center gap-1">
     @if (help()) {
-      <a [href]="help().url | i18n" target="_blank" rel="noopener noreferrer" class="flex-1 inline-flex items-center text-sm mr-auto text-primary-600">
-        {{help().title | i18n}}
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="ml-1 w-3 h-3" >
-          <g id="link-external-02"><path id="Icon" d="M10.5 4.5L10.5 1.5M10.5 1.5H7.49999M10.5 1.5L6 6M5 1.5H3.9C3.05992 1.5 2.63988 1.5 2.31901 1.66349C2.03677 1.8073 1.8073 2.03677 1.66349 2.31901C1.5 2.63988 1.5 3.05992 1.5 3.9V8.1C1.5 8.94008 1.5 9.36012 1.66349 9.68099C1.8073 9.96323 2.03677 10.1927 2.31901 10.3365C2.63988 10.5 3.05992 10.5 3.9 10.5H8.1C8.94008 10.5 9.36012 10.5 9.68099 10.3365C9.96323 10.1927 10.1927 9.96323 10.3365 9.68099C10.5 9.36012 10.5 8.94008 10.5 8.1V7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path></g>
+      <a
+        [href]="help().url | i18n"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex-1 inline-flex items-center text-sm mr-auto text-primary-600"
+      >
+        {{ help().title | i18n }}
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="ml-1 w-3 h-3"
+        >
+          <g id="link-external-02">
+            <path
+              id="Icon"
+              d="M10.5 4.5L10.5 1.5M10.5 1.5H7.49999M10.5 1.5L6 6M5 1.5H3.9C3.05992 1.5 2.63988 1.5 2.31901 1.66349C2.03677 1.8073 1.8073 2.03677 1.66349 2.31901C1.5 2.63988 1.5 3.05992 1.5 3.9V8.1C1.5 8.94008 1.5 9.36012 1.66349 9.68099C1.8073 9.96323 2.03677 10.1927 2.31901 10.3365C2.63988 10.5 3.05992 10.5 3.9 10.5H8.1C8.94008 10.5 9.36012 10.5 9.68099 10.3365C9.96323 10.1927 10.1927 9.96323 10.3365 9.68099C10.5 9.36012 10.5 8.94008 10.5 8.1V7"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></path>
+          </g>
         </svg>
       </a>
     }
 
     @if (modelId()) {
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large btn-danger mr-auto"
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-large btn-danger mr-auto"
         [disabled]="loading()"
         (click)="delete()"
-      >{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</button>
+      >
+        {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+      </button>
     }
 
     <div class="flex items-center gap-1">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-large"
         [disabled]="loading()"
-        (click)="close()">{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        (click)="close()"
+      >
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large"
         [disabled]="invalid || loading()"
-        (click)="apply()">{{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
+        (click)="apply()"
+      >
+        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
     </div>
   </div>
 </div>

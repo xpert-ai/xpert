@@ -1,8 +1,8 @@
-<div class="ngm-table__container flex-1 h-full flex flex-col overflow-auto">
+<div class="xp-table__container flex-1 h-full flex flex-col overflow-auto">
   <table
     z-table
     [zSize]="tableSize()"
-    [class.ngm-table-grid]="grid()"
+    [class.xp-table-grid]="grid()"
     class="min-w-full table-fixed text-sm"
     [style.min-width.px]="tableMinWidth()"
     [displayDensity]="displayDensity()"
@@ -62,7 +62,7 @@
                       ? 'shrink-0 pointer-events-auto opacity-100 transition-opacity hover:opacity-100'
                       : 'shrink-0 pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-60 hover:opacity-100'
                   "
-                  [zTooltip]="'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' }"
+                  [zTooltip]="'XP.KEY_WORDS.SEARCH' | translate: { Default: 'Search' }"
                   (click)="$event.stopPropagation(); toggleSearchingColumn(column.name)"
                 >
                   <z-icon zType="search" />
@@ -73,7 +73,7 @@
                 <input
                   z-input
                   zBorderless
-                  placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' } }}"
+                  placeholder="{{ 'XP.KEY_WORDS.SEARCH' | translate: { Default: 'Search' } }}"
                   type="text"
                   class="h-6 w-full text-left text-sm"
                   [formControl]="searchControl"
@@ -86,7 +86,7 @@
             @if (canResizeColumn(column)) {
               <button
                 type="button"
-                data-ngm-table-resize-handle
+                data-xp-table-resize-handle
                 class="absolute inset-y-0 right-0 z-10 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 select-none"
                 [ngClass]="resizingColumn() === column.name ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
                 tabindex="-1"
@@ -152,7 +152,7 @@
       } @else {
         <tr z-table-row>
           <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="displayedColumns().length">
-            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+            {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
           </td>
         </tr>
       }

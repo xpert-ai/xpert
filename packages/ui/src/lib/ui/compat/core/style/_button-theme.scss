@@ -20,7 +20,7 @@
 }
 
 @mixin density($config-or-theme) {
-  @include _button-target('ngm-density__cosy') {
+  @include _button-target('xp-density__cosy') {
     height: 30px;
     line-height: 30px;
 
@@ -45,7 +45,7 @@
     }
   }
 
-  @include _button-target('ngm-density__compact') {
+  @include _button-target('xp-density__compact') {
     height: 24px;
     line-height: 24px;
 

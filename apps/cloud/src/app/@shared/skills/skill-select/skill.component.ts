@@ -3,10 +3,10 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
-import { debouncedSignal, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
 import { injectSkillPackageAPI } from 'apps/cloud/src/app/@core'
 import { of } from 'rxjs'
@@ -23,8 +23,8 @@ import { JSON_SCHEMA_WIDGET_CONTEXT, JsonSchemaWidgetContext } from '../../forms
     ClipboardModule,
     CdkMenuModule,
     TranslateModule,
-    NgmI18nPipe,
-    NgmCommonModule,
+    XpI18nPipe,
+    XpCommonModule,
     ...ZardTooltipImports,
     ZardSwitchComponent
   ]
@@ -35,7 +35,7 @@ export class XpertSkillSelectComponent implements ControlValueAccessor {
     optional: true
   })
   readonly selectedWorkspace = injectWorkspace()
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Models
   readonly skills = signal<string[] | null>(null)

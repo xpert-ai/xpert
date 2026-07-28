@@ -1,4 +1,3 @@
-
 import { ChangeDetectionStrategy, Component, inject, model, output } from '@angular/core'
 import { Store, UsersService } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
@@ -11,7 +10,7 @@ import { AvatarEditorComponent } from '../../files'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-user-avatar-editor',
+  selector: 'xp-user-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styles: [``],
   imports: [TranslateModule, AvatarEditorComponent]

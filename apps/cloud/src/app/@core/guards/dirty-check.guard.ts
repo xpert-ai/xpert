@@ -37,10 +37,10 @@ export class DirtyCheckGuard {
 
   confirmChanges(currentRoute: ActivatedRouteSnapshot): Observable<boolean> | boolean {
     return this.alertDialog.confirm({
-      description: this.getTranslation('PAC.MESSAGE.ConfirmExitDirtyData', {
+      description: this.getTranslation('XP.MESSAGE.ConfirmExitDirtyData', {
         Default: 'Has dirty data, confirm exit?'
       }),
-      actionText: this.getTranslation('PAC.MESSAGE.Sure', { Default: 'Sure' }),
+      actionText: this.getTranslation('XP.MESSAGE.Sure', { Default: 'Sure' }),
       cancelText: this.getTranslation('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' })
     })
   }
@@ -74,10 +74,10 @@ function confirmChanges(
   translateService: TranslateService
 ): Observable<boolean> | boolean {
   return alertDialog.confirm({
-    description: translateService.instant('PAC.MESSAGE.ConfirmExitDirtyData', {
+    description: translateService.instant('XP.MESSAGE.ConfirmExitDirtyData', {
       Default: 'Has dirty data, confirm exit?'
     }),
-    actionText: translateService.instant('PAC.MESSAGE.Sure', { Default: 'Sure' }),
+    actionText: translateService.instant('XP.MESSAGE.Sure', { Default: 'Sure' }),
     cancelText: translateService.instant('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' })
   })
 }

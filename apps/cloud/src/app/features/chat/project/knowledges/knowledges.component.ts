@@ -16,7 +16,7 @@ import {
 import { KnowledgebaseCardComponent } from '@cloud/app/@shared/knowledge'
 import {
   DisappearFadeOut,
-  DynamicGridDirective,
+  XpDynamicGridDirective,
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
@@ -43,7 +43,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    DynamicGridDirective,
+    XpDynamicGridDirective,
     KnowledgebaseCardComponent
   ],
   selector: 'chat-project-knowledges',

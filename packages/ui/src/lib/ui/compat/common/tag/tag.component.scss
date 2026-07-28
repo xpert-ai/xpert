@@ -107,15 +107,15 @@
 }
 
 ::ng-deep {
-  .ngm-density__cosy .ngm-tags,
-  .ngm-tags.ngm-density__cosy {
+  .xp-density__cosy .xp-tags,
+  .xp-tags.xp-density__cosy {
     .tag {
       @apply px-2 py-0.5 rounded-lg text-sm;
     }
   }
 
-  .ngm-density__compact .ngm-tags,
-  .ngm-tags.ngm-density__compact {
+  .xp-density__compact .xp-tags,
+  .xp-tags.xp-density__compact {
     .tag {
       @apply px-1 py-0 rounded-md text-sm font-semibold;
     }

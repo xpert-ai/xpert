@@ -2,38 +2,38 @@ import { DecimalPipe } from '@angular/common'
 import { Inject, LOCALE_ID, Pipe, PipeTransform, Type } from '@angular/core'
 import { findLocaleData } from '../i18n/locale_data_api'
 
-export enum NgmFormatNumberStyle {
+export enum XpFormatNumberStyle {
   short = 'short',
   standard = 'standard',
   long = 'long'
 }
 
-export enum NgmRoundingMode {
+export enum XpRoundingMode {
   none = 'none', // 无舍入行为,按照 decimals 或者 shortDecimals 进行 toFixed()
   ceil = 'ceil', // 对数进行上舍入。（向上取整；大于等于x的最小整数）
   floor = 'floor', // 对数进行下舍入。（小于等于x的最大整数）
   round = 'round' // 把数四舍五入为最接近的整数。（对x四舍五入）
 }
 
-export const FORMATOPTIONS: NgmFormatOprions = {
+export const FORMATOPTIONS: XpFormatOprions = {
   decimals: 2, // 保留几个小数
   // shortDecimals: 2,
   // shortLimit: 1000, // 大于此参数的才进行short
   shortRefNumber: undefined, // 用户自定义的比例因子,默认按照语言文件里面
-  // style: NgmFormatNumberStyle.short, // 默认 short 类型 为 short
-  // roundingMode: NgmRoundingMode.none, // 舍入行为
+  // style: XpFormatNumberStyle.short, // 默认 short 类型 为 short
+  // roundingMode: XpRoundingMode.none, // 舍入行为
   // Delimiter: ',', // 分隔符
   // showDelimiter: true, // 是否启用分隔符
   isformatNumber: true
 }
 
-export interface NgmFormatOprions {
+export interface XpFormatOprions {
   decimals?: number // 保留几个小数
   // shortDecimals?: 2,
   // shortLimit?: number, // 大于此参数的才进行short
   shortRefNumber?: any // 用户自定义的比例因子,默认按照语言文件里面
-  // style?: NgmFormatNumberStyle.short, // 默认 short 类型 为 short
-  // roundingMode?: NgmRoundingMode, // 舍入行为
+  // style?: XpFormatNumberStyle.short, // 默认 short 类型 为 short
+  // roundingMode?: XpRoundingMode, // 舍入行为
   // Delimiter?: ',', // 分隔符
   // showDelimiter?: true, // 是否启用分隔符
   isformatNumber?: boolean
@@ -48,7 +48,7 @@ export interface NgmFormatOprions {
   standalone: true,
   name: 'shortNumber'
 })
-export class NgmShortNumberPipe implements PipeTransform {
+export class XpShortNumberPipe implements PipeTransform {
   constructor(@Inject(LOCALE_ID) private _locale: string) {}
 
   /**

@@ -20,10 +20,10 @@ import {
   ZardFormImports,
   ZardInputDirective
 } from '../../../../components'
-import { DisplayDensity, ISelectOption, NgmDensityDirective } from '../../core'
+import { DisplayDensity, ISelectOption, XpDensityDirective } from '../../core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmOptionContent } from './option-content'
-import { NgmHighlightDirective } from '../directives'
+import { XpOptionContent } from './option-content'
+import { XpHighlightDirective } from '../directives'
 
 @Component({
   standalone: true,
@@ -36,15 +36,15 @@ import { NgmHighlightDirective } from '../directives'
     ZardComboboxDeprecatedOptionTemplateDirective,
     ZardInputDirective,
     ...ZardFormImports,
-    NgmHighlightDirective
+    XpHighlightDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-input',
+  selector: 'xp-input',
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ],
@@ -52,17 +52,17 @@ import { NgmHighlightDirective } from '../directives'
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmInputComponent)
+      useExisting: forwardRef(() => XpInputComponent)
     }
   ]
 })
 /**
  * You can use the following custom elements to customize the input:
- * - ngmLabel: the custom label elements of the input
+ * - xpLabel: the custom label elements of the input
  * @deprecated Use `z-form-field` + `input[z-input]` for plain inputs, or
  * `z-form-field` + `z-combobox-deprecated` for option-backed inputs.
  */
-export class NgmInputComponent implements ControlValueAccessor {
+export class XpInputComponent implements ControlValueAccessor {
   readonly label = input<string>()
   readonly placeholder = input<string>()
   readonly type = input<string>(null)
@@ -91,7 +91,7 @@ export class NgmInputComponent implements ControlValueAccessor {
   /**
    * Template provided in the tab content that will be used if present, used to enable lazy-loading
    */
-  @ContentChild(NgmOptionContent, { read: TemplateRef, static: true })
+  @ContentChild(XpOptionContent, { read: TemplateRef, static: true })
   // We need an initializer here to avoid a TS error. The value will be set in `ngAfterViewInit`.
   _explicitContent: TemplateRef<any> = undefined!
 

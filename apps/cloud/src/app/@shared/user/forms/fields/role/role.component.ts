@@ -15,15 +15,15 @@ import { IRole, IUser, RolesEnum } from '@xpert-ai/contracts'
 import { RoleService, Store } from './../../../../../@core/services'
 
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectComponent } from '@xpert-ai/headless-ui'
+import { XpSelectComponent } from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmFieldAppearance } from '@xpert-ai/headless-ui'
+import { XpFieldAppearance } from '@xpert-ai/headless-ui'
 import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, NgmSelectComponent],
-  selector: 'pac-role-form-field',
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, XpSelectComponent],
+  selector: 'xp-role-form-field',
   templateUrl: './role.component.html',
   styleUrls: [],
   providers: [
@@ -42,7 +42,7 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
   onChange: any = () => {}
   onTouched: any = () => {}
 
-  @Input() appearance: NgmFieldAppearance
+  @Input() appearance: XpFieldAppearance
 
   /**
    * Getter & Setter for dynamic remove role from options

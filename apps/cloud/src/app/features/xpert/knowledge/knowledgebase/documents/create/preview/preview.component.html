@@ -4,13 +4,17 @@
       <thead class="">
         <tr>
           @for (field of fields(); track field.value) {
-            <th scope="col" class="px-6 py-3 bg-background-default-subtle dark:bg-gray-800 whitespace-nowrap sticky top-0 z-10">
+            <th
+              scope="col"
+              class="px-6 py-3 bg-background-default-subtle dark:bg-gray-800 whitespace-nowrap sticky top-0 z-10"
+            >
               <div class="inline-flex items-center gap-2">
                 <div class="inline-block text-text-secondary uppercase dark:text-text-quaternary">
-                  {{field.label}}
+                  {{ field.label }}
                 </div>
                 <div class="inline-block font-normal">
-                  <ngm-checkbox [label]="'PAC.Knowledgebase.Index' | translate: {Default: 'Index'}"
+                  <xp-checkbox
+                    [label]="'XP.Knowledgebase.Index' | translate: { Default: 'Index' }"
                     [ngModel]="this.allIndexed() || sheetParserConfig()?.indexedFields?.includes(field.value)"
                     (ngModelChange)="updateIndexed(field.value, $event)"
                   />
@@ -24,8 +28,11 @@
         @for (doc of docs(); track doc) {
           <tr class="border-b border-divider-deep dark:border-gray-700">
             @for (field of fields(); track field.value) {
-              <td scope="col" class="px-6 py-1 font-medium text-text-primary whitespace-nowrap bg-background-default-subtle/50 dark:text-white dark:bg-gray-800/50">
-                {{doc.metadata.raw?.[field.value] || 'N/A'}}
+              <td
+                scope="col"
+                class="px-6 py-1 font-medium text-text-primary whitespace-nowrap bg-background-default-subtle/50 dark:text-white dark:bg-gray-800/50"
+              >
+                {{ doc.metadata.raw?.[field.value] || 'N/A' }}
               </td>
             }
           </tr>
@@ -42,16 +49,16 @@
     @if (error()) {
       <div class="p-4 font-body text-text-destructive">
         <i class="ri-error-warning-line mr-1"></i>
-        {{error()}}
+        {{ error() }}
       </div>
     } @else {
       @for (chunk of docs(); track chunk; let i = $index) {
-        <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()"/>
+        <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()" />
       }
     }
   }
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute w-full h-full left-0 top-0"/>
+  <xp-spin class="absolute w-full h-full left-0 top-0" />
 }

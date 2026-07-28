@@ -1,17 +1,15 @@
-
-
-@use "sass:meta";
+@use 'sass:meta';
 @reference "tailwindcss";
 :root[data-theme='light'],
 [data-theme='light'] {
-  @include meta.load-css("prismjs/themes/prism-tomorrow.min.css");
+  @include meta.load-css('prismjs/themes/prism-tomorrow.min.css');
 }
 :root[data-theme='dark'],
 [data-theme='dark'] {
-  @include meta.load-css("prismjs/themes/prism-okaidia.min.css");
+  @include meta.load-css('prismjs/themes/prism-okaidia.min.css');
 }
 
-.ngm-prism-highlight {
+.xp-prism-highlight {
   @apply bg-gray-950 text-neutral-50;
 
   .mdc-icon-button {

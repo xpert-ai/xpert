@@ -16,7 +16,7 @@ import { ChatCommonService } from './common-chat.service'
 
 @Component({
   standalone: true,
-  selector: 'pac-chat-common-assistant',
+  selector: 'xp-chat-common-assistant',
   imports: [
     CommonModule,
     RouterModule,
@@ -41,11 +41,11 @@ export class ChatCommonAssistantComponent {
     code: AssistantCode.CHAT_COMMON,
     featureKeys: [],
     management: 'system',
-    labelKey: 'PAC.Assistant.ChatCommon.Label',
+    labelKey: 'XP.Assistant.ChatCommon.Label',
     defaultLabel: 'Common Assistant',
-    titleKey: 'PAC.Chat.Common',
+    titleKey: 'XP.Chat.Common',
     defaultTitle: 'Common',
-    descriptionKey: 'PAC.Assistant.ChatCommon.Description',
+    descriptionKey: 'XP.Assistant.ChatCommon.Description',
     defaultDescription: 'Embedded assistant used by the common chat page.'
   }
   readonly assistantsRoute = ['/settings/assistants']

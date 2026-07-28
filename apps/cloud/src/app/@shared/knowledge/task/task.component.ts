@@ -2,7 +2,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { DateRelativePipe, IKnowledgebase, KnowledgeDocumentService } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -10,7 +10,7 @@ import { ChatMessageExecutionPanelComponent } from '../../chat'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, MarkdownModule, NgmSpinComponent, DateRelativePipe, ChatMessageExecutionPanelComponent],
+  imports: [TranslateModule, MarkdownModule, XpSpinComponent, DateRelativePipe, ChatMessageExecutionPanelComponent],
   selector: 'xp-knowledge-task',
   templateUrl: 'task.component.html',
   styleUrls: ['task.component.scss']

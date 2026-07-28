@@ -144,7 +144,7 @@ describe('ChatSharedTerminalComponent', () => {
     translate.setTranslation(
       'en',
       {
-        PAC: {
+        XP: {
           Chat: {
             Terminal: 'Terminal',
             TerminalConnected: 'Connected via i18n',

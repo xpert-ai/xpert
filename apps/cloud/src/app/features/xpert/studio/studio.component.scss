@@ -217,7 +217,7 @@
     @apply invisible;
   }
   &:hover,
-  &.ngm-selected,
+  &.xp-selected,
   &.f-selected {
     .node-toolbar {
       @apply visible;
@@ -231,10 +231,10 @@ f-flow {
 .f-node {
   @include flow-common.node;
   @apply border-[2px] rounded-2xl border-transparent;
-  &.f-hover:not(.ngm-selected) {
+  &.f-hover:not(.xp-selected) {
     border-color: var(--f-component-hover-border);
   }
-  &.ngm-selected {
+  &.xp-selected {
     @apply border-components-option-card-option-selected-border shadow-md;
   }
   &.f-selected {

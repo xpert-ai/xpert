@@ -25,13 +25,7 @@ import {
   ZardTreeFlattener,
   ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import {
-  DisplayBehaviour,
-  DisplayDensity,
-  NgmFieldAppearance,
-  NgmFieldColor,
-  NgmFloatLabel
-} from '@xpert-ai/headless-ui'
+import { DisplayBehaviour, DisplayDensity, XpFieldAppearance, XpFieldColor, XpFloatLabel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   displayTreeSelectText,
@@ -58,7 +52,7 @@ type TreeSelectFlatNode<T = unknown> = {
   styleUrls: ['./tree-select.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'xp-tree-select ngm-focus-indicator ngm-tree-select',
+    class: 'xp-tree-select xp-focus-indicator xp-tree-select',
     '[attr.disabled]': 'disabled() || null',
     '[class.xp-tree-select--tree-viewer]': 'treeViewer()'
   },
@@ -84,11 +78,11 @@ type TreeSelectFlatNode<T = unknown> = {
   ]
 })
 export class XpTreeSelectComponent<T = unknown> implements ControlValueAccessor {
-  readonly appearance = input<NgmFieldAppearance>()
-  readonly color = input<NgmFieldColor>()
+  readonly appearance = input<XpFieldAppearance>()
+  readonly color = input<XpFieldColor>()
   readonly displayBehaviour = input<DisplayBehaviour | string>(DisplayBehaviour.descriptionOnly)
   readonly displayDensity = input<DisplayDensity | string>()
-  readonly floatLabel = input<NgmFloatLabel>()
+  readonly floatLabel = input<XpFloatLabel>()
   readonly initialLevel = input<number | null, number | string | null>(null, {
     transform: (value) => (value === null || value === undefined || value === '' ? null : numberAttribute(value))
   })

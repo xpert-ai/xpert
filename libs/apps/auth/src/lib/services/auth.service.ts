@@ -3,31 +3,32 @@
  * Copyright Akveo. All Rights Reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  */
-import { Inject, Injectable } from '@angular/core';
-import { Observable, of as observableOf } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
-import { PAC_AUTH_STRATEGIES } from '../auth.options';
-import { PacAuthStrategy } from '../strategies/auth-strategy';
-import { PacAuthResult } from './auth-result';
-import { PacAuthToken } from './token/token';
-import { PacTokenService } from './token/token.service';
+import { Inject, Injectable } from '@angular/core'
+import { Observable, of as observableOf } from 'rxjs'
+import { switchMap, map } from 'rxjs/operators'
+import { XP_AUTH_STRATEGIES } from '../auth.options'
+import { XpAuthStrategy } from '../strategies/auth-strategy'
+import { XpAuthResult } from './auth-result'
+import { XpAuthToken } from './token/token'
+import { XpAuthTokenService } from './token/token.service'
 
 /**
  * Common authentication service.
  * Should be used to as an interlayer between UI Components and Auth Strategy.
  */
 @Injectable()
-export class PacAuthService {
-
-  constructor(protected tokenService: PacTokenService, @Inject(PAC_AUTH_STRATEGIES) protected strategies) {
-  }
+export class XpAuthService {
+  constructor(
+    protected tokenService: XpAuthTokenService,
+    @Inject(XP_AUTH_STRATEGIES) protected strategies
+  ) {}
 
   /**
    * Retrieves current authenticated token stored
    * @returns {Observable<any>}
    */
-  getToken(): Observable<PacAuthToken> {
-    return this.tokenService.get();
+  getToken(): Observable<XpAuthToken> {
+    return this.tokenService.get()
   }
 
   /**
@@ -35,8 +36,7 @@ export class PacAuthService {
    * @returns {Observable<boolean>}
    */
   isAuthenticated(): Observable<boolean> {
-    return this.getToken()
-      .pipe(map((token: PacAuthToken) => token.isValid()));
+    return this.getToken().pipe(map((token: XpAuthToken) => token.isValid()))
   }
 
   /**
@@ -45,32 +45,31 @@ export class PacAuthService {
    * @returns {Observable<boolean>}
    */
   isAuthenticatedOrRefresh(): Observable<boolean> {
-    return this.getToken()
-      .pipe(
-        switchMap(token => {
+    return this.getToken().pipe(
+      switchMap((token) => {
         if (token.getValue() && !token.isValid()) {
-          return this.refreshToken(token.getOwnerStrategyName(), token)
-            .pipe(
-              switchMap(res => {
-                if (res.isSuccess()) {
-                  return this.isAuthenticated();
-                } else {
-                  return observableOf(false);
-                }
-              }),
-            )
+          return this.refreshToken(token.getOwnerStrategyName(), token).pipe(
+            switchMap((res) => {
+              if (res.isSuccess()) {
+                return this.isAuthenticated()
+              } else {
+                return observableOf(false)
+              }
+            })
+          )
         } else {
-          return observableOf(token.isValid());
+          return observableOf(token.isValid())
         }
-    }));
+      })
+    )
   }
 
   /**
    * Returns tokens stream
    * @returns {Observable<NbAuthSimpleToken>}
    */
-  onTokenChange(): Observable<PacAuthToken> {
-    return this.tokenService.tokenChange();
+  onTokenChange(): Observable<XpAuthToken> {
+    return this.tokenService.tokenChange()
   }
 
   /**
@@ -78,8 +77,7 @@ export class PacAuthService {
    * @returns {Observable<boolean>}
    */
   onAuthenticationChange(): Observable<boolean> {
-    return this.onTokenChange()
-      .pipe(map((token: PacAuthToken) => token.isValid()));
+    return this.onTokenChange().pipe(map((token: XpAuthToken) => token.isValid()))
   }
 
   /**
@@ -91,15 +89,16 @@ export class PacAuthService {
    *
    * @param strategyName
    * @param data
-   * @returns {Observable<PacAuthResult>}
+   * @returns {Observable<XpAuthResult>}
    */
-  authenticate(strategyName: string, data?: any): Observable<PacAuthResult> {
-    return this.getStrategy(strategyName).authenticate(data)
+  authenticate(strategyName: string, data?: any): Observable<XpAuthResult> {
+    return this.getStrategy(strategyName)
+      .authenticate(data)
       .pipe(
-        switchMap((result: PacAuthResult) => {
-          return this.processResultToken(result);
-        }),
-      );
+        switchMap((result: XpAuthResult) => {
+          return this.processResultToken(result)
+        })
+      )
   }
 
   /**
@@ -111,15 +110,16 @@ export class PacAuthService {
    *
    * @param strategyName
    * @param data
-   * @returns {Observable<PacAuthResult>}
+   * @returns {Observable<XpAuthResult>}
    */
-  register(strategyName: string, data?: any): Observable<PacAuthResult> {
-    return this.getStrategy(strategyName).register(data)
+  register(strategyName: string, data?: any): Observable<XpAuthResult> {
+    return this.getStrategy(strategyName)
+      .register(data)
       .pipe(
-        switchMap((result: PacAuthResult) => {
-          return this.processResultToken(result);
-        }),
-      );
+        switchMap((result: XpAuthResult) => {
+          return this.processResultToken(result)
+        })
+      )
   }
 
   /**
@@ -130,19 +130,19 @@ export class PacAuthService {
    * logout('email')
    *
    * @param strategyName
-   * @returns {Observable<PacAuthResult>}
+   * @returns {Observable<XpAuthResult>}
    */
-  logout(strategyName: string): Observable<PacAuthResult> {
-    return this.getStrategy(strategyName).logout()
+  logout(strategyName: string): Observable<XpAuthResult> {
+    return this.getStrategy(strategyName)
+      .logout()
       .pipe(
-        switchMap((result: PacAuthResult) => {
+        switchMap((result: XpAuthResult) => {
           if (result.isSuccess()) {
-            this.tokenService.clear()
-              .pipe(map(() => result));
+            this.tokenService.clear().pipe(map(() => result))
           }
-          return observableOf(result);
-        }),
-      );
+          return observableOf(result)
+        })
+      )
   }
 
   /**
@@ -153,10 +153,10 @@ export class PacAuthService {
    *
    * @param strategyName
    * @param data
-   * @returns {Observable<PacAuthResult>}
+   * @returns {Observable<XpAuthResult>}
    */
-  requestPassword(strategyName: string, data?: any): Observable<PacAuthResult> {
-    return this.getStrategy(strategyName).requestPassword(data);
+  requestPassword(strategyName: string, data?: any): Observable<XpAuthResult> {
+    return this.getStrategy(strategyName).requestPassword(data)
   }
 
   /**
@@ -167,10 +167,10 @@ export class PacAuthService {
    *
    * @param strategyName
    * @param data
-   * @returns {Observable<PacAuthResult>}
+   * @returns {Observable<XpAuthResult>}
    */
-  resetPassword(strategyName: string, data?: any): Observable<PacAuthResult> {
-    return this.getStrategy(strategyName).resetPassword(data);
+  resetPassword(strategyName: string, data?: any): Observable<XpAuthResult> {
+    return this.getStrategy(strategyName).resetPassword(data)
   }
 
   /**
@@ -182,15 +182,16 @@ export class PacAuthService {
    *
    * @param {string} strategyName
    * @param data
-   * @returns {Observable<PacAuthResult>}
+   * @returns {Observable<XpAuthResult>}
    */
-  refreshToken(strategyName: string, data?: any): Observable<PacAuthResult> {
-    return this.getStrategy(strategyName).refreshToken(data)
+  refreshToken(strategyName: string, data?: any): Observable<XpAuthResult> {
+    return this.getStrategy(strategyName)
+      .refreshToken(data)
       .pipe(
-        switchMap((result: PacAuthResult) => {
-          return this.processResultToken(result);
-        }),
-      );
+        switchMap((result: XpAuthResult) => {
+          return this.processResultToken(result)
+        })
+      )
   }
 
   /**
@@ -202,26 +203,25 @@ export class PacAuthService {
    * @param {string} provider
    * @returns {NbAbstractAuthProvider}
    */
-  protected getStrategy(strategyName: string): PacAuthStrategy {
-    const found = this.strategies.find((strategy: PacAuthStrategy) => strategy.getName() === strategyName);
+  protected getStrategy(strategyName: string): XpAuthStrategy {
+    const found = this.strategies.find((strategy: XpAuthStrategy) => strategy.getName() === strategyName)
 
     if (!found) {
-      throw new TypeError(`There is no Auth Strategy registered under '${strategyName}' name`);
+      throw new TypeError(`There is no Auth Strategy registered under '${strategyName}' name`)
     }
 
-    return found;
+    return found
   }
 
-  private processResultToken(result: PacAuthResult) {
+  private processResultToken(result: XpAuthResult) {
     if (result.isSuccess() && result.getToken()) {
-      return this.tokenService.set(result.getToken())
-        .pipe(
-          map((token: PacAuthToken) => {
-            return result;
-          }),
-        );
+      return this.tokenService.set(result.getToken()).pipe(
+        map((token: XpAuthToken) => {
+          return result
+        })
+      )
     }
 
-    return observableOf(result);
+    return observableOf(result)
   }
 }

@@ -30,7 +30,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
 jest.mock('@xpert-ai/headless-ui', () => {
   const angularCore = jest.requireActual('@angular/core')
 
-  class NgmShortNumberPipe {
+  class XpShortNumberPipe {
     transform(value: unknown) {
       return value
     }
@@ -39,10 +39,10 @@ jest.mock('@xpert-ai/headless-ui', () => {
   angularCore.Pipe({
     name: 'shortNumber',
     standalone: true
-  })(NgmShortNumberPipe)
+  })(XpShortNumberPipe)
 
   return {
-    NgmShortNumberPipe
+    XpShortNumberPipe
   }
 })
 
@@ -108,7 +108,7 @@ jest.mock('../xperts/xperts.component', () => {
   class ChatXpertsComponent {}
 
   angularCore.Component({
-    selector: 'pac-chat-xperts',
+    selector: 'xp-chat-xperts',
     standalone: true,
     template: ''
   })(ChatXpertsComponent)
@@ -249,7 +249,7 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.MissingTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.MissingTitle')
   })
 
   it('renders a disabled assistant empty state', () => {
@@ -258,7 +258,7 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.DisabledTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.DisabledTitle')
   })
 
   it('renders an error empty state when the assistant config fails to load', () => {
@@ -267,7 +267,7 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.LoadFailed')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.LoadFailed')
   })
 
   it('renders the merged common shell with welcome content when ready', () => {
@@ -290,8 +290,8 @@ describe('ChatCommonAssistantComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="xpert-webapp"]').getAttribute('data-idle-layout')).toBe(
       'welcome'
     )
-    expect(fixture.nativeElement.querySelector('pac-chat-xperts')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.CommonWelcomeDescription')
+    expect(fixture.nativeElement.querySelector('xp-chat-xperts')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.CommonWelcomeDescription')
   })
 
   it('starts a new assistant thread without leaving the common route', () => {
@@ -315,7 +315,7 @@ describe('ChatCommonAssistantComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.componentInstance.canManageAssistantSettings()).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.ChangeSettings')
   })
 
   it('hides the change settings action from members in the idle welcome content', () => {
@@ -330,7 +330,7 @@ describe('ChatCommonAssistantComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.componentInstance.canManageAssistantSettings()).toBe(false)
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Assistant.ChangeSettings')
   })
 
   it('hides the projected welcome content once a conversation is active', () => {
@@ -346,8 +346,8 @@ describe('ChatCommonAssistantComponent', () => {
     service.conversationId.set('conv-1')
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('pac-chat-xperts')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.querySelector('xp-chat-xperts')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Assistant.ChangeSettings')
     expect(fixture.nativeElement.querySelector('[data-testid="conversation-view"]')).not.toBeNull()
   })
 })

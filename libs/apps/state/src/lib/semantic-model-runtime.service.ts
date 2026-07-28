@@ -11,7 +11,7 @@ export type RuntimeIndicator = Omit<IIndicator, 'type'> & {
   [key: string]: unknown
 }
 
-export type NgmSemanticModel = Partial<TSemanticModelDraft> &
+export type XpSemanticModel = Partial<TSemanticModelDraft> &
   Pick<ISemanticModel, 'cube' | 'roles'> & {
     key?: string
     preferences?: ISemanticModel['preferences']
@@ -47,12 +47,12 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
 
 export function convertNewSemanticModelResult(
   result: ISemanticModel
-): NgmSemanticModel & Omit<ISemanticModel, 'indicators'> {
+): XpSemanticModel & Omit<ISemanticModel, 'indicators'> {
   return {
     ...result.options,
     ...omit(result, 'options'),
     indicators: result.indicators?.map(convertIndicatorResult)
-  } as NgmSemanticModel & Omit<ISemanticModel, 'indicators'>
+  } as XpSemanticModel & Omit<ISemanticModel, 'indicators'>
 }
 
 function convertIndicatorResult(result: IIndicator): RuntimeIndicator {

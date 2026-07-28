@@ -14,7 +14,7 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { myRxResource, TSelectOption } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -35,7 +35,7 @@ import { of } from 'rxjs'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmSelectComponent,
+    XpSelectComponent,
     StateVariableSelectComponent,
     ZardSliderComponent,
     ZardSwitchComponent

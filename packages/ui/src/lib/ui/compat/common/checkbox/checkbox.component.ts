@@ -1,6 +1,6 @@
 import { booleanAttribute, Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective } from '../../core'
+import { XpDensityDirective } from '../../core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
 let checkboxId = 0
@@ -8,18 +8,18 @@ let checkboxId = 0
 @Component({
   standalone: true,
   imports: [FormsModule],
-  selector: 'ngm-checkbox',
+  selector: 'xp-checkbox',
   templateUrl: 'checkbox.component.html',
   styleUrls: ['checkbox.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     },
     NgxControlValueAccessor
   ]
 })
-export class NgmCheckboxComponent {
+export class XpCheckboxComponent {
   id = checkboxId++
 
   readonly cva = inject(NgxControlValueAccessor)

@@ -7,8 +7,8 @@ import { RouterModule } from '@angular/router'
 import { injectProjectService, injectToastr, TFileDirectory } from '@cloud/app/@core'
 import { ChatFileListComponent } from '@cloud/app/@shared/chat/'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { NgmDndDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDndDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ChatProjectComponent } from '../project.component'
@@ -25,8 +25,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
-    NgmDndDirective,
+    XpSpinComponent,
+    XpDndDirective,
     ChatFileListComponent
   ],
   selector: 'chat-project-files',

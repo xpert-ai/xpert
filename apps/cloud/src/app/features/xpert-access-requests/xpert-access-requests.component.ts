@@ -29,15 +29,15 @@ import { XpertAccessRequestReviewListComponent } from './review-requests-list.co
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <h1 class="truncate text-xl font-semibold text-foreground">
-                    {{ 'PAC.XpertAccessRequests.Title' | translate: { Default: 'Xpert access approvals' } }}
+                    {{ 'XP.XpertAccessRequests.Title' | translate: { Default: 'Xpert access approvals' } }}
                   </h1>
                   <z-badge zType="outline" zShape="pill">
-                    {{ 'PAC.XpertAccessRequests.PendingBadge' | translate: { Default: 'Pending review' } }}
+                    {{ 'XP.XpertAccessRequests.PendingBadge' | translate: { Default: 'Pending review' } }}
                   </z-badge>
                 </div>
                 <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
                   {{
-                    'PAC.XpertAccessRequests.Subtitle'
+                    'XP.XpertAccessRequests.Subtitle'
                       | translate
                         : { Default: 'Review pending requests for published xperts in the current organization.' }
                   }}
@@ -51,7 +51,7 @@ import { XpertAccessRequestReviewListComponent } from './review-requests-list.co
                   class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground"
                 >
                   <z-icon zType="corporate_fare" class="size-3.5" />
-                  <span>{{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}</span>
+                  <span>{{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}</span>
                   <span class="font-medium text-foreground">{{ organization.name }}</span>
                 </div>
               }
@@ -61,7 +61,7 @@ import { XpertAccessRequestReviewListComponent } from './review-requests-list.co
                 <z-icon zType="shield" class="size-3.5" />
                 <span>
                   {{
-                    'PAC.XpertAccessRequests.ReviewScope'
+                    'XP.XpertAccessRequests.ReviewScope'
                       | translate: { Default: 'Only requests you can approve are shown' }
                   }}
                 </span>
@@ -73,13 +73,13 @@ import { XpertAccessRequestReviewListComponent } from './review-requests-list.co
             <div class="rounded-lg border border-border bg-background px-4 py-3">
               <div class="text-2xl font-semibold text-foreground">{{ reviewableCount() }}</div>
               <div class="mt-1 text-xs text-muted-foreground">
-                {{ 'PAC.XpertAccessRequests.PendingRequests' | translate: { Default: 'pending requests' } }}
+                {{ 'XP.XpertAccessRequests.PendingRequests' | translate: { Default: 'pending requests' } }}
               </div>
             </div>
             <div class="rounded-lg border border-border bg-background px-4 py-3">
               <div class="text-2xl font-semibold text-foreground">{{ filteredCount() }}</div>
               <div class="mt-1 text-xs text-muted-foreground">
-                {{ 'PAC.XpertAccessRequests.VisibleRequests' | translate: { Default: 'visible now' } }}
+                {{ 'XP.XpertAccessRequests.VisibleRequests' | translate: { Default: 'visible now' } }}
               </div>
             </div>
           </div>

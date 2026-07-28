@@ -22,25 +22,25 @@ import {
 } from './data-source-agent.types'
 
 /**
- * @deprecated use PAC_SERVER_DEFAULT_OPTIONS
+ * @deprecated use XP_SERVER_DEFAULT_OPTIONS
  */
-export interface PacServerAgentDefaultOptions {
+export interface XpServerAgentDefaultOptions {
   modelBaseUrl: string
 }
 
 /**
- * @deprecated use PAC_SERVER_DEFAULT_OPTIONS
+ * @deprecated use XP_SERVER_DEFAULT_OPTIONS
  */
-export const PAC_SERVER_AGENT_DEFAULT_OPTIONS = new InjectionToken<PacServerAgentDefaultOptions>(
-  'pac-server-agent-default-options',
+export const XP_SERVER_AGENT_DEFAULT_OPTIONS = new InjectionToken<XpServerAgentDefaultOptions>(
+  'xp-server-agent-default-options',
   {
     providedIn: 'root',
-    factory: PAC_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY
+    factory: XP_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY
   }
 )
 
 /** @docs-private */
-export function PAC_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY(): PacServerAgentDefaultOptions {
+export function XP_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY(): XpServerAgentDefaultOptions {
   return { modelBaseUrl: C_URI_API_MODELS }
 }
 
@@ -57,8 +57,8 @@ export class ServerAgent extends AbstractAgent implements DataSourceAgent {
   batchSize = 10
 
   constructor(
-    @Inject(PAC_SERVER_AGENT_DEFAULT_OPTIONS)
-    private options: PacServerAgentDefaultOptions,
+    @Inject(XP_SERVER_AGENT_DEFAULT_OPTIONS)
+    private options: XpServerAgentDefaultOptions,
     private httpClient: HttpClient,
     dataSourceService: DataSourceService,
     _bottomSheet: ZardSheetService

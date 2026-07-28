@@ -1,6 +1,6 @@
 @reference "../../../tailwind-workspace-reference.css";
-.cdk-menu.ngm-menu-card,
-[z-menu-content].ngm-menu-card {
+.cdk-menu.xp-menu-card,
+[z-menu-content].xp-menu-card {
   overflow: hidden;
   max-height: 80vh;
 }
@@ -35,8 +35,8 @@ button[z-menu].active,
   @apply outline-none;
 }
 
-.cdk-menu.ngm-density__compact,
-[z-menu-content].ngm-density__compact {
+.cdk-menu.xp-density__compact,
+[z-menu-content].xp-density__compact {
   .cdk-menu-item,
   [z-menu-item] {
     line-height: 38px;
@@ -54,8 +54,8 @@ button[z-menu].active,
   }
 }
 
-.cdk-menu.ngm-density__cosy,
-[z-menu-content].ngm-density__cosy {
+.cdk-menu.xp-density__cosy,
+[z-menu-content].xp-density__cosy {
   .cdk-menu-item,
   [z-menu-item] {
     line-height: 40px;
@@ -90,7 +90,7 @@ button[z-menu].active,
       @apply bg-gray-50 dark:bg-white/5;
     }
 
-    &.ngm-cdk-menu-item__disabled {
+    &.xp-cdk-menu-item__disabled {
       cursor: default;
       opacity: 0.5;
       &:hover {
@@ -98,7 +98,7 @@ button[z-menu].active,
       }
     }
 
-    &.ngm-cdk-menu__danger:hover {
+    &.xp-cdk-menu__danger:hover {
       @apply bg-red-400 text-white;
     }
 

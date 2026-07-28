@@ -13,9 +13,16 @@ const noopDesignerPanelService: DesignerPanelService = {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-formly-designer',
+  selector: 'xp-formly-designer',
   standalone: false,
-  template: `<button z-button zType="ghost" type="button" ngmAppearance="dashed" displayDensity="cosy" (click)="openDesigner()">
+  template: `<button
+    z-button
+    zType="ghost"
+    type="button"
+    xpAppearance="dashed"
+    displayDensity="cosy"
+    (click)="openDesigner()"
+  >
     {{ 'FORMLY.COMMON.Options' | translate: { Default: 'Options' } }}
   </button>`,
   styles: [
@@ -27,12 +34,12 @@ const noopDesignerPanelService: DesignerPanelService = {
     `
   ]
 })
-export class PACFormlyDesignerComponent extends FieldType implements OnInit {
-  @HostBinding('class.pac-formly-designer') public _formlyDesignerComponent = true
+export class XpFormlyDesignerComponent extends FieldType implements OnInit {
+  @HostBinding('class.xp-formly-designer') public _formlyDesignerComponent = true
 
   readonly destroyRef = inject(DestroyRef)
   private readonly settingsService: DesignerPanelService = noopDesignerPanelService
-  
+
   type: string
   private subscription: Subscription
 
@@ -47,7 +54,12 @@ export class PACFormlyDesignerComponent extends FieldType implements OnInit {
   async openDesigner() {
     this.subscription?.unsubscribe()
     this.subscription = this.settingsService
-      .openSecondDesigner(this.type, this.formControl.value ?? this.field.defaultValue, this.props.title, this.props.liveMode)
+      .openSecondDesigner(
+        this.type,
+        this.formControl.value ?? this.field.defaultValue,
+        this.props.title,
+        this.props.liveMode
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result) => {
         if (result) {

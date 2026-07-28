@@ -3,20 +3,20 @@ import { Component, inject } from '@angular/core'
 import { FieldType } from '@ngx-formly/core'
 import { isUndefined } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
-import { NgmConfirmCodeEditorComponent } from './confirm-code-editor.component'
+import { XpConfirmCodeEditorComponent } from './confirm-code-editor.component'
 
 @Component({
-  selector: 'pac-formly-code-editor',
+  selector: 'xp-formly-code-editor',
   standalone: false,
   templateUrl: './code-editor.component.html',
   styleUrls: ['./code-editor.component.scss']
 })
-export class PACFormlyCodeEditorComponent extends FieldType {
+export class XpFormlyCodeEditorComponent extends FieldType {
   readonly #dialog = inject(Dialog)
 
   async openCodeEditorDialog() {
     const result = await firstValueFrom(
-      this.#dialog.open(NgmConfirmCodeEditorComponent, {
+      this.#dialog.open(XpConfirmCodeEditorComponent, {
         panelClass: 'large',
         data: {
           model: this.field.formControl!.value,

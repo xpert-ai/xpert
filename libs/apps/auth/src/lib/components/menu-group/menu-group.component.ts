@@ -6,13 +6,13 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { DensityDirective } from '@xpert-ai/headless-ui'
 import { isNil } from '@xpert-ai/contracts'
-import { PacMenuItem } from '../types'
+import { XpMenuItem } from '../types'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 @Component({
   standalone: true,
-  selector: 'pac-menu-group',
+  selector: 'xp-menu-group',
   templateUrl: './menu-group.component.html',
   styleUrls: ['menu-group.component.scss'],
   imports: [
@@ -31,7 +31,7 @@ import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
  * `apps/cloud/src/app/features/sidebar` for the cloud shell menu. This component
  * remains exported only for compatibility during auth package migration.
  */
-export class PacMenuGroupComponent {
+export class XpMenuGroupComponent {
   isNil = isNil
   readonly #router = inject(Router)
 
@@ -41,7 +41,7 @@ export class PacMenuGroupComponent {
 
   readonly isMobile = input<boolean>(false)
 
-  readonly menus = input.required<PacMenuItem[]>()
+  readonly menus = input.required<XpMenuItem[]>()
 
   @Output() clicked = new EventEmitter()
 
@@ -57,17 +57,17 @@ export class PacMenuGroupComponent {
     { initialValue: this.#router.url }
   )
 
-  hasActiveChild(menu: PacMenuItem) {
+  hasActiveChild(menu: XpMenuItem) {
     this.currentUrl()
 
     return !!menu.children?.some((item) => this.isMenuItemActive(item))
   }
 
-  isExternalLink(item: PacMenuItem) {
+  isExternalLink(item: XpMenuItem) {
     return item.external === true || /^https?:\/\//i.test(item.link ?? '')
   }
 
-  isMenuItemActive(item: PacMenuItem, exact = true) {
+  isMenuItemActive(item: XpMenuItem, exact = true) {
     const link = item.link
     if (!link || this.isExternalLink(item)) {
       return false
@@ -92,7 +92,7 @@ export class PacMenuGroupComponent {
     })
   }
 
-  openExternalLink(item: PacMenuItem) {
+  openExternalLink(item: XpMenuItem) {
     if (item.children?.length || !item.link || !this.isExternalLink(item)) {
       return
     }
@@ -101,7 +101,7 @@ export class PacMenuGroupComponent {
     this.clicked.emit()
   }
 
-  isExpanded(menu: PacMenuItem) {
+  isExpanded(menu: XpMenuItem) {
     if (!menu.children?.length) {
       return false
     }
@@ -109,7 +109,7 @@ export class PacMenuGroupComponent {
     return isNil(menu.expanded) ? this.hasActiveChild(menu) : menu.expanded
   }
 
-  toggleMenu(menu: PacMenuItem) {
+  toggleMenu(menu: XpMenuItem) {
     if (!menu.children?.length) {
       return
     }
@@ -117,7 +117,7 @@ export class PacMenuGroupComponent {
     menu.expanded = !this.isExpanded(menu)
   }
 
-  openSubMenu(item: PacMenuItem) {
+  openSubMenu(item: XpMenuItem) {
     this.delayClose.update((state) => {
       if (state[item.link]) {
         clearTimeout(state[item.link])
@@ -131,7 +131,7 @@ export class PacMenuGroupComponent {
     this.menuOpen.update((state) => ({ ...state, [item.link]: true }))
   }
 
-  closeSubMenu(item: PacMenuItem) {
+  closeSubMenu(item: XpMenuItem) {
     this.delayClose.update((state) => {
       if (state[item.link]) {
         clearTimeout(state[item.link])

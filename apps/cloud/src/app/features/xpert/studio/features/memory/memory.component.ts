@@ -9,7 +9,7 @@ import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
-import { NgmTooltipDirective } from '@xpert-ai/headless-ui'
+import { XpTooltipDirective } from '@xpert-ai/headless-ui'
 import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -21,7 +21,7 @@ import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '
     ZardSliderComponent,
     ...ZardTooltipImports,
     ZardCheckboxComponent,
-    NgmTooltipDirective,
+    XpTooltipDirective,
     CopilotPromptEditorComponent,
     InDevelopmentComponent
   ],
@@ -33,7 +33,7 @@ export class XpertStudioFeaturesMemoryComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
   readonly apiService = inject(XpertStudioApiService)
-  readonly i18n = injectTranslate('PAC.Xpert.LongTermMemoryTypeEnum')
+  readonly i18n = injectTranslate('XP.Xpert.LongTermMemoryTypeEnum')
 
   readonly xpert = this.apiService.xpert
   readonly memory = computed(() => this.xpert()?.memory)

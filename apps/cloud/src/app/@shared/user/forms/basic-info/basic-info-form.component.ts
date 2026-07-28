@@ -26,7 +26,7 @@ import { LANGUAGES, RoleService, Store } from '../../../../@core'
 
 @Component({
   standalone: false,
-  selector: 'pac-user-basic-info-form',
+  selector: 'xp-user-basic-info-form',
   templateUrl: 'basic-info-form.component.html',
   styleUrls: ['basic-info-form.component.scss'],
   providers: [
@@ -99,7 +99,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   }
 
   ngOnInit() {
-    const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
+    const TRANSLATES = this.#translate.instant('XP.SHARED.USER_BASIC')
 
     this.#roleService
       .getAll()
@@ -147,7 +147,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
                   return password === confirmPassword
                 },
                 message: (error, field: FormlyFieldConfig) =>
-                  this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
+                  this.#translate.instant('XP.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
             }
           }

@@ -11,7 +11,7 @@
   --auth-card-outline-color: color-mix(in oklab, var(--color-components-button-primary-text) 40%, transparent);
 }
 
-.pac-auth-card {
+.xp-auth-card {
   background-color: var(--sys-surface);
   box-shadow:
     0 32px 48px var(--auth-card-shadow-color),
@@ -19,13 +19,13 @@
   @apply rounded-[36px] border-[0.5px] border-solid border-divider-regular;
 }
 
-.pac-auth__header {
+.xp-auth__header {
   font-size: 2rem;
   display: flex;
   align-items: center;
   justify-content: flex-start;
 }
 
-.pac-auth__copyright {
+.xp-auth__copyright {
   margin: 1rem;
 }

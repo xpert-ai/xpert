@@ -13,7 +13,7 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -27,7 +27,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     EmojiAvatarComponent
   ],
   selector: 'project-install-toolset',

@@ -1,6 +1,6 @@
 <div class="flex justify-between items-center mb-4">
   <h3 class="text-2xl font-semibold text-text-primary">
-    {{ 'PAC.Xpert.ExportXpertDSL' | translate: { Default: 'Export Xpert DSL' } }}
+    {{ 'XP.Xpert.ExportXpertDSL' | translate: { Default: 'Export Xpert DSL' } }}
   </h3>
 
   <button type="button" class="w-7 h-7 rounded-md cursor-pointer pressable hover:bg-hover-bg" (click)="close()">
@@ -10,33 +10,33 @@
 
 <div>
   <div class="px-6 flex flex-col mt-4">
-    <z-switch [(ngModel)]="isDraft">{{ 'PAC.Xpert.UseDraft' | translate: { Default: 'Use Draft' } }}</z-switch>
+    <z-switch [(ngModel)]="isDraft">{{ 'XP.Xpert.UseDraft' | translate: { Default: 'Use Draft' } }}</z-switch>
 
     <div class="relative my-3 text-text-secondary">
       @if (isDraft()) {
         <div @slideUpAnimation>
-          {{ 'PAC.Xpert.UseDraftTooltip' | translate: { Default: 'Export using the draft version' } }}
+          {{ 'XP.Xpert.UseDraftTooltip' | translate: { Default: 'Export using the draft version' } }}
         </div>
       } @else {
         <div @slideUpAnimation>
-          {{ 'PAC.Xpert.NotUseDraftTooltip' | translate: { Default: 'Export using the latest released version' } }}
+          {{ 'XP.Xpert.NotUseDraftTooltip' | translate: { Default: 'Export using the latest released version' } }}
         </div>
       }
     </div>
   </div>
   <div class="px-6 flex flex-col mt-4">
     <z-switch [(ngModel)]="includeMemory">{{
-      'PAC.Xpert.IncludeMemory' | translate: { Default: 'Include Memory' }
+      'XP.Xpert.IncludeMemory' | translate: { Default: 'Include Memory' }
     }}</z-switch>
 
     <div class="relative my-3 text-text-secondary">
       @if (includeMemory()) {
         <div @slideUpAnimation>
-          {{ 'PAC.Xpert.IncludeMemoryTooltip' | translate: { Default: 'Include memories in export' } }}
+          {{ 'XP.Xpert.IncludeMemoryTooltip' | translate: { Default: 'Include memories in export' } }}
         </div>
       } @else {
         <div @slideUpAnimation>
-          {{ 'PAC.Xpert.NotIncludeMemoryTooltip' | translate: { Default: 'Do not include memories in export' } }}
+          {{ 'XP.Xpert.NotIncludeMemoryTooltip' | translate: { Default: 'Do not include memories in export' } }}
         </div>
       }
     </div>
@@ -50,7 +50,7 @@
   >
     <i class="ri-save-3-line mr-1"></i>
     <div class="text-sm font-medium">
-      {{ 'PAC.Xpert.ExportAsTemplate' | translate: { Default: 'Export as template' } }}
+      {{ 'XP.Xpert.ExportAsTemplate' | translate: { Default: 'Export as template' } }}
     </div>
   </button>
   <button
@@ -60,11 +60,11 @@
   >
     <i class="ri-export-line mr-1"></i>
     <div class="text-sm font-medium">
-      {{ 'PAC.ACTIONS.Export' | translate: { Default: 'Export' } }}
+      {{ 'XP.ACTIONS.Export' | translate: { Default: 'Export' } }}
     </div>
   </button>
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full"></ngm-spin>
+  <xp-spin class="absolute top-0 left-0 w-full h-full"></xp-spin>
 }

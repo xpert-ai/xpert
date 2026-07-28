@@ -11,7 +11,7 @@ import { ChatHomeService } from '../home.service'
 @Component({
   standalone: true,
   imports: [RouterModule],
-  selector: 'pac-chat-home',
+  selector: 'xp-chat-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],

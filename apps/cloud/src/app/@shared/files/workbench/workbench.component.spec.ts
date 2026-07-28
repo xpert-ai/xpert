@@ -51,7 +51,7 @@ var MockFileTreeComponent: any
 jest.mock('../tree/tree.component', () => {
   @Component({
     standalone: true,
-    selector: 'pac-file-tree',
+    selector: 'xp-file-tree',
     template: ''
   })
   class MockFileTreeComponentImpl {
@@ -93,7 +93,7 @@ var MockFileViewerComponent: any
 jest.mock('../viewer/viewer.component', () => {
   @Component({
     standalone: true,
-    selector: 'pac-file-viewer',
+    selector: 'xp-file-viewer',
     template: ''
   })
   class MockFileViewerComponentImpl {

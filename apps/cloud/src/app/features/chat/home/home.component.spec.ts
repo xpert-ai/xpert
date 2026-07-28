@@ -119,7 +119,7 @@ describe('ChatHomeComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelector('router-outlet')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-chat-sidebar-xperts')).toBeNull()
+    expect(fixture.nativeElement.querySelector('xp-chat-sidebar-xperts')).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-chat-sidebar-xperts]')).toBeNull()
   })
 

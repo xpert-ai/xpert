@@ -1,41 +1,41 @@
 import { NgModule } from '@angular/core'
 import { OcapCoreModule } from '../core'
-import { NgmCheckboxComponent } from './checkbox/checkbox.component'
-import { NgmCopyComponent } from './copy/copy.component'
-import { NgmHighlightDirective, NgmResizableDirective } from './directives'
-import { NgmDisplayBehaviourComponent } from './display-behaviour'
-import { NgmDrawerTriggerComponent } from './drawer-trigger/drawer-trigger.component'
-import { NgmInputComponent } from './input/input.component'
-import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.component'
-import { NgmRadioSelectComponent } from './radio-select/select.component'
-import { NgmRemoteSelectComponent } from './remote-select/select.component'
-import { NgmSearchComponent } from './search/search.component'
-import { NgmSelectComponent } from './select/select/select.component'
-import { NgmSliderInputComponent } from './slider-input/slider-input.component'
-import { NgmSpinComponent } from './spin/spin.component'
-import { NgmStepperComponent } from './stepper/stepper.component'
-import { NgmTableComponent } from './table/table/table.component'
-import { NgmTagsComponent } from './tag/tag.component'
+import { XpCheckboxComponent } from './checkbox/checkbox.component'
+import { XpCopyComponent } from './copy/copy.component'
+import { XpHighlightDirective, XpResizableDirective } from './directives'
+import { XpDisplayBehaviourComponent } from './display-behaviour'
+import { XpDrawerTriggerComponent } from './drawer-trigger/drawer-trigger.component'
+import { XpInputComponent } from './input/input.component'
+import { XpProgressSpinnerComponent } from './progress-spinner/spinner.component'
+import { XpRadioSelectComponent } from './radio-select/select.component'
+import { XpRemoteSelectComponent } from './remote-select/select.component'
+import { XpSearchComponent } from './search/search.component'
+import { XpSelectComponent } from './select/select/select.component'
+import { XpSliderInputComponent } from './slider-input/slider-input.component'
+import { XpSpinComponent } from './spin/spin.component'
+import { XpStepperComponent } from './stepper/stepper.component'
+import { XpTableComponent } from './table/table/table.component'
+import { XpTagsComponent } from './tag/tag.component'
 
 const COMMON_IMPORTS = [
   OcapCoreModule,
-  NgmHighlightDirective,
-  NgmResizableDirective,
-  NgmDisplayBehaviourComponent,
-  NgmSearchComponent,
-  NgmSelectComponent,
-  NgmSliderInputComponent,
-  NgmTagsComponent,
-  NgmInputComponent,
-  NgmDrawerTriggerComponent,
-  NgmTableComponent,
-  NgmSpinComponent,
-  NgmCheckboxComponent,
-  NgmStepperComponent,
-  NgmCopyComponent,
-  NgmProgressSpinnerComponent,
-  NgmRadioSelectComponent,
-  NgmRemoteSelectComponent
+  XpHighlightDirective,
+  XpResizableDirective,
+  XpDisplayBehaviourComponent,
+  XpSearchComponent,
+  XpSelectComponent,
+  XpSliderInputComponent,
+  XpTagsComponent,
+  XpInputComponent,
+  XpDrawerTriggerComponent,
+  XpTableComponent,
+  XpSpinComponent,
+  XpCheckboxComponent,
+  XpStepperComponent,
+  XpCopyComponent,
+  XpProgressSpinnerComponent,
+  XpRadioSelectComponent,
+  XpRemoteSelectComponent
 ]
 
 /**
@@ -46,4 +46,4 @@ const COMMON_IMPORTS = [
   imports: COMMON_IMPORTS,
   exports: COMMON_IMPORTS
 })
-export class NgmCommonModule {}
+export class XpCommonModule {}

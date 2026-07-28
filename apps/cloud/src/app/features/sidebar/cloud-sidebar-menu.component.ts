@@ -19,7 +19,7 @@ import {
 
 @Component({
   standalone: true,
-  selector: 'pac-cloud-sidebar-menu',
+  selector: 'xp-cloud-sidebar-menu',
   templateUrl: './cloud-sidebar-menu.component.html',
   styleUrl: './cloud-sidebar-menu.component.scss',
   imports: [
@@ -153,7 +153,7 @@ export class CloudSidebarMenuComponent {
   }
 
   menuTitleKey(item: CloudMenuItem) {
-    return item.data?.translationKey ? `PAC.MENU.${item.data.translationKey}` : ''
+    return item.data?.translationKey ? `XP.MENU.${item.data.translationKey}` : ''
   }
 
   menuTitleDefault(item: CloudMenuItem) {

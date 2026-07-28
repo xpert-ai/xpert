@@ -212,7 +212,7 @@ export class ClawXpertBootstrapService {
         return
       }
 
-      this.#toastr.warning('PAC.Chat.ClawXpert.PluginPrepareFailed', {
+      this.#toastr.warning('XP.Chat.ClawXpert.PluginPrepareFailed', {
         Default:
           'Digital expert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
       })
@@ -306,7 +306,7 @@ export class ClawXpertBootstrapService {
         return xpert
       }
 
-      this.#toastr.warning('PAC.Xpert.AutoPublishFailed', {
+      this.#toastr.warning('XP.Xpert.AutoPublishFailed', {
         Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
       })
       return xpert

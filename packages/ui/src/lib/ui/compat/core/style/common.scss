@@ -2,15 +2,15 @@
 /**
  * React opacity to hover event for buttons or others actionable.
  */
-.ngm-actionable-opacity {
+.xp-actionable-opacity {
   @apply opacity-60 hover:opacity-100 transition-opacity duration-200;
 }
 
 /**
  * For radio buttons in menu.
  */
-.ngm-radio-menu[z-menu-content],
-.ngm-radio-menu.cdk-menu {
+.xp-radio-menu[z-menu-content],
+.xp-radio-menu.cdk-menu {
   .mdc-form-field {
     width: 100%;
   }
@@ -19,6 +19,6 @@
   }
 }
 
-.ngm-error {
+.xp-error {
   color: var(--color-text-destructive, var(--mdc-theme-error, theme('colors.red.500')));
 }

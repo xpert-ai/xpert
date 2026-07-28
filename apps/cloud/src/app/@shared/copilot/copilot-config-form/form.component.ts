@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, input, output, signal } from '@ang
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { auditTime, distinctUntilChanged, firstValueFrom, startWith } from 'rxjs'
 import { CopilotAiProvidersComponent } from '../ai-providers/providers.component'
@@ -13,7 +13,7 @@ import { getErrorMessage, ICopilotProviderModel, injectCopilotServer, ToastrServ
 
 @Component({
   standalone: true,
-  selector: 'pac-copilot-config-form',
+  selector: 'xp-copilot-config-form',
   templateUrl: './form.component.html',
   host: {
     class: 'block overflow-hidden'
@@ -21,7 +21,7 @@ import { getErrorMessage, ICopilotProviderModel, injectCopilotServer, ToastrServ
   imports: [
     TranslateModule,
     ReactiveFormsModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     CopilotProviderComponent,
     CopilotModelSelectComponent
   ]
@@ -98,7 +98,7 @@ export class CopilotConfigFormComponent {
         })
       )
       this.formGroup.markAsPristine()
-      this.#toastrService.success('PAC.ACTIONS.Save', { Default: 'Save' })
+      this.#toastrService.success('XP.ACTIONS.Save', { Default: 'Save' })
       this.#copilotServer.refresh()
       this.saved.emit()
       return true

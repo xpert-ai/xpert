@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { attrModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { attrModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AbstractInterruptComponent } from '../../types'
 
@@ -113,7 +113,7 @@ export interface HITLResponse {
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [CommonModule, FormsModule, TranslateModule, XpI18nPipe],
   selector: 'xp-agent-interrupt-hitl',
   templateUrl: 'hitl.component.html',
   styleUrls: ['hitl.component.scss']

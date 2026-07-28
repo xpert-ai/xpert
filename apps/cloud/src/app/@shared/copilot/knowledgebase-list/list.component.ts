@@ -9,15 +9,8 @@ import { SharedUiModule } from '../../ui.module'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    SharedUiModule,
-    CdkListboxModule,
-    TranslateModule,
-    EmojiAvatarComponent
-],
-  selector: 'pac-knowledgebase-list',
+  imports: [FormsModule, ReactiveFormsModule, SharedUiModule, CdkListboxModule, TranslateModule, EmojiAvatarComponent],
+  selector: 'xp-knowledgebase-list',
   templateUrl: 'list.component.html',
   styleUrls: ['list.component.scss']
 })

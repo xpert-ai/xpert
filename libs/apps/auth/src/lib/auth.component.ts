@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { Store } from '@xpert-ai/cloud/state'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map, startWith } from 'rxjs/operators'
-import { PacAuthService } from './services/auth.service'
+import { XpAuthService } from './services/auth.service'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
@@ -16,32 +16,27 @@ type AuthAppConfig = {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    ...ZardSelectImports,
-  ],
-  selector: 'pac-auth',
+  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardSelectImports],
+  selector: 'xp-auth',
   styleUrls: ['./auth.component.scss'],
   templateUrl: './auth.component.html',
   host: {
-    class: 'pac-auth',
+    class: 'xp-auth'
   }
 })
-export class PacAuthComponent {
+export class XpAuthComponent {
   readonly #translate = inject(TranslateService)
-  protected auth = inject(PacAuthService)
+  protected auth = inject(XpAuthService)
   protected store = inject(Store)
   protected location = inject(Location)
 
   readonly tenantSettings = toSignal(this.store.tenantSettings$)
-  readonly appConfig = computed<AuthAppConfig | null>(() => (this.tenantSettings() as AuthAppConfig | null))
-  readonly language = toSignal(this.#translate.onLangChange.pipe(
-    startWith(this.#translate.defaultLang),
-    map(() => this.#translate.currentLang))
+  readonly appConfig = computed<AuthAppConfig | null>(() => this.tenantSettings() as AuthAppConfig | null)
+  readonly language = toSignal(
+    this.#translate.onLangChange.pipe(
+      startWith(this.#translate.defaultLang),
+      map(() => this.#translate.currentLang)
+    )
   )
   readonly title = computed(() => {
     const langTitle = `tenant_title_${this.language()}`

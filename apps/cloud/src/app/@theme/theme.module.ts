@@ -22,4 +22,4 @@ import { OrganizationSelectorComponent } from './header/organization-selector/or
   declarations: [],
   providers: []
 })
-export class PACThemeModule {}
+export class XpThemeModule {}

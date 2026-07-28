@@ -25,7 +25,7 @@ import {
 import { SafePipe } from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
-import { NgmThemeService } from '@xpert-ai/headless-ui'
+import { XpThemeService } from '@xpert-ai/headless-ui'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 import {
   ViewHostEventBus,
@@ -97,7 +97,7 @@ export class RemoteComponentRendererComponent {
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #destroyRef = inject(DestroyRef)
   readonly #document = inject(DOCUMENT)
-  readonly #themeService = inject(NgmThemeService)
+  readonly #themeService = inject(XpThemeService)
   readonly #hostEvents = inject(ViewHostEventBus)
   readonly frame = viewChild('frame', { read: ElementRef<HTMLIFrameElement> })
 

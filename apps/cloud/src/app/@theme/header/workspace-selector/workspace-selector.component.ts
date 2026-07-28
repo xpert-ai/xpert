@@ -12,11 +12,11 @@ import { injectUser, IXpertWorkspace, OrderTypeEnum, Store, XpertWorkspaceServic
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-workspace-selector',
+  selector: 'xp-workspace-selector',
   templateUrl: 'workspace-selector.component.html',
   styleUrl: 'workspace-selector.component.scss',
   host: {
-    class: 'pac-workspace-selector'
+    class: 'xp-workspace-selector'
   },
   imports: [FormsModule, CdkMenuModule, TranslateModule, ...ZardTooltipImports],
   animations: [OverlayAnimation1]

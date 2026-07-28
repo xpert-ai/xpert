@@ -40,19 +40,19 @@ export interface ColorPaletteGroup {
     DensityDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-colors',
+  selector: 'xp-colors',
   templateUrl: './colors.component.html',
   styleUrl: './colors.component.scss',
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmColorsComponent)
+      useExisting: forwardRef(() => XpColorsComponent)
     }
   ],
   animations: [colorsEnterAnimation]
 })
-export class NgmColorsComponent implements ControlValueAccessor {
+export class XpColorsComponent implements ControlValueAccessor {
   @Input() label = ''
   @Input() placeholder = ''
   @Input() options: ColorPaletteGroup[] = []

@@ -6,45 +6,45 @@ import { ZardIconComponent } from '../../../../components'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-display-behaviour',
+  selector: 'xp-display-behaviour',
   templateUrl: './display-behaviour.component.html',
   styleUrls: ['./display-behaviour.component.scss'],
   imports: [CommonModule, ZardIconComponent]
 })
-export class NgmDisplayBehaviourComponent {
+export class XpDisplayBehaviourComponent {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
 
   @Input() displayBehaviour: DisplayBehaviour | string
-  @HostBinding('class.ngm-display-behaviour__exclude-selected')
+  @HostBinding('class.xp-display-behaviour__exclude-selected')
   @Input()
   excludeSelected: boolean
 
   readonly option = input<ISelectOption<any>>({})
   readonly highlight = input<string | string[]>()
 
-  @HostBinding('class.ngm-display-behaviour') isDisplayBehaviour = true
+  @HostBinding('class.xp-display-behaviour') isDisplayBehaviour = true
 
-  @HostBinding('class.ngm-display-behaviour__descriptionAndId')
+  @HostBinding('class.xp-display-behaviour__descriptionAndId')
   get isDescriptionAndId() {
     return this.displayBehaviour === DisplayBehaviour.descriptionAndId
   }
 
-  @HostBinding('class.ngm-display-behaviour__idAndDescription')
+  @HostBinding('class.xp-display-behaviour__idAndDescription')
   get isIdAndDescription() {
     return this.displayBehaviour === DisplayBehaviour.idAndDescription
   }
 
-  @HostBinding('class.ngm-display-behaviour__descriptionOnly')
+  @HostBinding('class.xp-display-behaviour__descriptionOnly')
   get isDescriptionOnly() {
     return this.displayBehaviour === DisplayBehaviour.descriptionOnly
   }
 
-  @HostBinding('class.ngm-display-behaviour__auto')
+  @HostBinding('class.xp-display-behaviour__auto')
   get isAuto() {
     return this.displayBehaviour === DisplayBehaviour.auto || !this.displayBehaviour
   }
 
-  @HostBinding('class.ngm-display-behaviour__no-label')
+  @HostBinding('class.xp-display-behaviour__no-label')
   get noLabel() {
     return !(this.option()?.caption || this.option()?.label)
   }

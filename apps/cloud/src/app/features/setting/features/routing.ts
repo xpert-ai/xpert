@@ -1,11 +1,11 @@
 import { Routes } from '@angular/router'
 import { FeatureToggleComponent } from '../../../@shared/features/feature-toggle'
-import { PACFeaturesComponent } from './features.component'
+import { XpFeaturesComponent } from './features.component'
 
 export default [
   {
     path: '',
-    component: PACFeaturesComponent,
+    component: XpFeaturesComponent,
     children: [
       {
         path: '',

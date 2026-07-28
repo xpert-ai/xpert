@@ -1,9 +1,15 @@
 @if (file().preview$ | async; as docs) {
-  <div class="relative flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5 overflow-auto">
-    <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4 sticky top-0 bg-components-panel-bg z-10">
+  <div
+    class="relative flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5 overflow-auto"
+  >
+    <div
+      class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4 sticky top-0 bg-components-panel-bg z-10"
+    >
       <div class="flex grow flex-col gap-y-1">
-        <div class="system-2xs-semibold-uppercase text-text-accent">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</div>
-        <div class="title-md-semi-bold text-tex-primary">{{file().document$.value?.name}}</div>
+        <div class="system-2xs-semibold-uppercase text-text-accent">
+          {{ 'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}
+        </div>
+        <div class="title-md-semi-bold text-tex-primary">{{ file().document$.value?.name }}</div>
         <div class="system-xs-medium flex items-center gap-x-1 text-text-tertiary">
           <svg
             viewBox="0 0 24 24"
@@ -21,12 +27,17 @@
           <p class="text-xs text-text-tertiary">
             <span class="truncate">{{ file().file.type || 'FILE' }}</span> · {{ file().formatSize() }}
             <span>·</span>
-            <span>{{ totalChars(docs) }} {{ 'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</span>
+            <span
+              >{{ totalChars(docs) }} {{ 'XP.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}</span
+            >
           </p>
         </div>
       </div>
-      <button type="button" class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
-        (click)="closed.emit()">
+      <button
+        type="button"
+        class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
+        (click)="closed.emit()"
+      >
         <i class="ri-close-line"></i>
       </button>
     </div>

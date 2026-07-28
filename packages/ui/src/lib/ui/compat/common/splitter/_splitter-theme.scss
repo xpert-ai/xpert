@@ -30,16 +30,16 @@ $prefix: (ngm, splitter);
   $splitter-focus-color: themeCompat.m2-get-color-from-palette($accent, 500);
 
   @include token-utils.use-tokens($prefix, get-token-slots()) {
-    .ngm-splitter-bar {
+    .xp-splitter-bar {
       background-color: var(#{token-utils.get-token-variable(background-color)});
     }
   }
 
-  ngm-splitter {
+  xp-splitter {
     @include token-utils.create-token-values($prefix, get-token-slots());
   }
 
-  %ngm-splitter-expander {
+  %xp-splitter-expander {
     position: relative;
     width: 0;
     height: 0;
@@ -49,7 +49,7 @@ $prefix: (ngm, splitter);
     z-index: 1;
   }
 
-  .ngm-splitter-bar-host {
+  .xp-splitter-bar-host {
     --splitter-size: 4px;
     --splitter-focus-color: #{$splitter-focus-color};
 
@@ -59,7 +59,7 @@ $prefix: (ngm, splitter);
     }
   }
 
-  .ngm-splitter-bar {
+  .xp-splitter-bar {
     position: relative;
     display: flex;
     flex-grow: 1;
@@ -74,47 +74,47 @@ $prefix: (ngm, splitter);
       opacity: 1;
     }
 
-    .ngm-splitter-bar__handle {
+    .xp-splitter-bar__handle {
       background: $splitter-color;
       border-radius: 2px;
     }
 
-    .ngm-splitter-bar__handle {
+    .xp-splitter-bar__handle {
       width: 25%;
       height: var(--splitter-size);
       margin: 0 3rem;
     }
 
-    .ngm-splitter-bar__expander--start {
-      @extend %ngm-splitter-expander;
+    .xp-splitter-bar__expander--start {
+      @extend %xp-splitter-expander;
       border-bottom: var(--splitter-size) solid $splitter-color;
     }
 
-    .ngm-splitter-bar__expander--end {
-      @extend %ngm-splitter-expander;
+    .xp-splitter-bar__expander--end {
+      @extend %xp-splitter-expander;
       border-top: var(--splitter-size) solid $splitter-color;
     }
 
-    &.ngm-splitter-bar--vertical {
+    &.xp-splitter-bar--vertical {
       flex-direction: column;
       height: 100%;
 
-      .ngm-splitter-bar__handle {
+      .xp-splitter-bar__handle {
         width: var(--splitter-size);
         height: 25%;
         margin: 3rem 0;
       }
 
-      .ngm-splitter-bar__expander--start {
-        @extend %ngm-splitter-expander;
+      .xp-splitter-bar__expander--start {
+        @extend %xp-splitter-expander;
         border-top: var(--splitter-size) solid transparent;
         border-right: var(--splitter-size) solid $splitter-color;
         border-bottom: var(--splitter-size) solid transparent;
         border-left: unset;
       }
 
-      .ngm-splitter-bar__expander--end {
-        @extend %ngm-splitter-expander;
+      .xp-splitter-bar__expander--end {
+        @extend %xp-splitter-expander;
         border-top: var(--splitter-size) solid transparent;
         border-left: var(--splitter-size) solid $splitter-color;
         border-bottom: var(--splitter-size) solid transparent;

@@ -17,9 +17,9 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { KebabToCamelCasePipe } from '@xpert-ai/headless-ui'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
   getErrorMessage,
@@ -43,9 +43,9 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     CdkListboxModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-    NgmI18nPipe,
+    XpI18nPipe,
     KebabToCamelCasePipe,
-    NgmSpinComponent,
+    XpSpinComponent,
     CopilotCredentialFormComponent
   ]
 })
@@ -134,7 +134,7 @@ export class CopilotProviderModelComponent {
     this.#copilotProviderService.deleteModel(this.copilotProvider().id, this.modelId()).subscribe({
       next: (deleteResult) => {
         this.#loading.set(false)
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         this.#dialogRef.close(deleteResult)
       },
       error: (err) => {
@@ -160,7 +160,7 @@ export class CopilotProviderModelComponent {
       .subscribe({
         next: (providerModel) => {
           this.#loading.set(false)
-          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
+          this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
           this.#dialogRef.close(providerModel)
         },
         error: (err) => {
@@ -183,7 +183,7 @@ export class CopilotProviderModelComponent {
       .subscribe({
         next: (providerModel) => {
           this.#loading.set(false)
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
           this.#dialogRef.close(providerModel)
         },
         error: (err) => {

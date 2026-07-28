@@ -2,7 +2,7 @@ import { Component, TemplateRef, inject, signal, viewChild } from '@angular/core
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmConfirmDeleteService, TableColumn } from '@xpert-ai/headless-ui'
+import { XpCommonModule, XpConfirmDeleteService, TableColumn } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, catchError, EMPTY, map, switchMap, tap } from 'rxjs'
@@ -14,7 +14,7 @@ type XpertToolsetRowType = Partial<IXpertToolset> & { __edit__?: boolean }
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-xpert-toolsets',
+  selector: 'xp-settings-xpert-toolsets',
   templateUrl: './toolsets.component.html',
   styleUrls: ['./toolsets.component.scss'],
   imports: [
@@ -23,7 +23,7 @@ type XpertToolsetRowType = Partial<IXpertToolset> & { __edit__?: boolean }
     SharedUiModule,
     FormsModule,
     ReactiveFormsModule,
-    NgmCommonModule,
+    XpCommonModule,
     AvatarComponent
   ]
 })
@@ -35,7 +35,7 @@ export class XpertToolsetsComponent {
   readonly #translate = inject(TranslateService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #confirmDelete = inject(NgmConfirmDeleteService)
+  readonly #confirmDelete = inject(XpConfirmDeleteService)
 
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
 
@@ -85,7 +85,7 @@ export class XpertToolsetsComponent {
       this.#confirmDelete
         .confirm({
           value: item.name,
-          information: this.#translate.instant('PAC.Xpert.Toolset.SureDeleteToolset', {
+          information: this.#translate.instant('XP.Xpert.Toolset.SureDeleteToolset', {
             Default: 'Are you sure you want to delete this toolset?'
           })
         })
@@ -94,7 +94,7 @@ export class XpertToolsetsComponent {
             if (result) {
               return this.toolsetService.delete(item.id).pipe(
                 tap(() => {
-                  this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+                  this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
                   this.dataSource.update((items) => items.filter((x) => x !== item))
                 }),
                 catchError((err) => {

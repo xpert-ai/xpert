@@ -2,7 +2,7 @@
 :host {
   @apply block relative;
 
-  .ngm-search__icon {
+  .xp-search__icon {
     position: absolute;
     left: 10px;
     top: 0px;
@@ -11,6 +11,6 @@
     align-items: center;
   }
 }
-.ngm-search__input {
+.xp-search__input {
   @apply w-full text-sm;
 }

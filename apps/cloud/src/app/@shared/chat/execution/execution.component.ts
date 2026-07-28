@@ -1,14 +1,14 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, signal } from '@angular/core'
-import { NgmIsNilPipe } from '@xpert-ai/headless-ui'
+import { XpIsNilPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { CopyComponent } from '../../common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, CopyComponent, NgmIsNilPipe],
+  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, CopyComponent, XpIsNilPipe],
   selector: 'chat-message-execution',
   templateUrl: 'execution.component.html',
   styleUrls: ['execution.component.scss'],

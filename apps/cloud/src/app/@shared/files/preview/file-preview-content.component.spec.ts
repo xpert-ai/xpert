@@ -10,18 +10,18 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Component({
     standalone: true,
-    selector: 'ngm-spin',
+    selector: 'xp-spin',
     template: '<div class="mock-spin"></div>'
   })
-  class NgmSpinComponent {}
+  class XpSpinComponent {}
 
   @Component({
     standalone: true,
-    selector: 'ngm-table',
+    selector: 'xp-table',
     template:
       '<div class="mock-table" [attr.data-rows]="data?.length ?? 0" [attr.data-columns]="columns?.length ?? 0"></div>'
   })
-  class NgmTableComponent {
+  class XpTableComponent {
     @Input() columns: unknown[] | null = null
     @Input() data: unknown[] | null = null
   }
@@ -43,8 +43,8 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
-    NgmSpinComponent,
-    NgmTableComponent,
+    XpSpinComponent,
+    XpTableComponent,
     SafePipe
   }
 })
@@ -81,7 +81,7 @@ jest.mock('./file-html-preview.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-file-html-preview',
+    selector: 'xp-file-html-preview',
     template: '<div data-html-preview="true"></div>'
   })
   class FileHtmlPreviewComponent {
@@ -106,7 +106,7 @@ jest.mock('./file-docx-preview.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-file-docx-preview',
+    selector: 'xp-file-docx-preview',
     template: '<div data-docx-preview="true"><h1>Executive summary</h1><p>Next steps</p></div>'
   })
   class FileDocxPreviewComponent {
@@ -162,7 +162,7 @@ describe('FilePreviewContentComponent', () => {
     fixture.componentRef.setInput('documentBlob', documentBlob)
     fixture.detectChanges()
 
-    const docxPreview = fixture.debugElement.query(By.css('pac-file-docx-preview'))
+    const docxPreview = fixture.debugElement.query(By.css('xp-file-docx-preview'))
     expect(docxPreview).not.toBeNull()
     expect(docxPreview.componentInstance.documentBlob).toBe(documentBlob)
     expect(fixture.nativeElement.textContent).toContain('Executive summary')
@@ -182,7 +182,7 @@ describe('FilePreviewContentComponent', () => {
     fixture.componentRef.setInput('content', '<html><body><button id="hero">Launch</button></body></html>')
     fixture.detectChanges()
 
-    const htmlPreview = fixture.debugElement.query(By.css('pac-file-html-preview'))
+    const htmlPreview = fixture.debugElement.query(By.css('xp-file-html-preview'))
     expect(htmlPreview).not.toBeNull()
     expect(htmlPreview.componentInstance.content).toBe('<html><body><button id="hero">Launch</button></body></html>')
     expect(htmlPreview.componentInstance.filePath).toBe('src/index.html')

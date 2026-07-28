@@ -53,12 +53,12 @@ describe('XpertAgentOperationComponent', () => {
     fixture.detectChanges()
 
     const text = fixture.nativeElement.textContent as string
-    expect(text).toContain('PAC.Xpert.ClientToolWaiting')
+    expect(text).toContain('XP.Xpert.ClientToolWaiting')
     expect(text).toContain('submit_ai_result_file')
     expect(text).not.toContain('https://example.com/result.xlsx')
     expect(text).not.toContain('AI生成数据.xlsx')
-    expect(text).not.toContain('PAC.Xpert.ActionToReview')
-    expect(text).not.toContain('PAC.Xpert.HITLEmpty')
+    expect(text).not.toContain('XP.Xpert.ActionToReview')
+    expect(text).not.toContain('XP.Xpert.HITLEmpty')
     expect(fixture.nativeElement.querySelector('xp-xpert-agent-interrupt')).toBeNull()
     expect(fixture.nativeElement.querySelector('button')).toBeNull()
   })

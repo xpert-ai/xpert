@@ -7,7 +7,7 @@ jest.mock('./clawxpert-setup-wizard.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-clawxpert-setup-wizard',
+    selector: 'xp-clawxpert-setup-wizard',
     template: ''
   })
   class ClawXpertSetupWizardComponent {}

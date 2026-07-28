@@ -3,12 +3,12 @@ import { CountdownConfig, CountdownEvent, CountdownTimer } from '../../countdown
 
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef } from '../../../../../components'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmCountdownModule } from '../../countdown'
+import { XpCountdownModule } from '../../countdown'
 /**
  * @deprecated Use `injectConfirm`
  */
 @Component({
-  selector: 'ngm-countdown-confirmation',
+  selector: 'xp-countdown-confirmation',
   templateUrl: 'countdown.component.html',
   styles: [
     `
@@ -19,12 +19,12 @@ import { NgmCountdownModule } from '../../countdown'
     `
   ],
   providers: [CountdownTimer],
-  imports: [NgmCountdownModule, TranslateModule, ZardDialogModule, ZardButtonComponent]
+  imports: [XpCountdownModule, TranslateModule, ZardDialogModule, ZardButtonComponent]
 })
-export class NgmCountdownConfirmationComponent {
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+export class XpCountdownConfirmationComponent {
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
-  protected dialogRef: ZardDialogRef<NgmCountdownConfirmationComponent> = inject(ZardDialogRef)
+  protected dialogRef: ZardDialogRef<XpCountdownConfirmationComponent> = inject(ZardDialogRef)
   private data = inject(Z_MODAL_DATA)
 
   recordType: string

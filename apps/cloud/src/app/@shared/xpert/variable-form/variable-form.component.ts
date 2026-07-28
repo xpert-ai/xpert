@@ -1,13 +1,13 @@
 import { Component, inject, output, input, effect } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { TStateVariable, VariableOperationEnum, XpertParameterTypeEnum } from '../../../@core/types'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, NgmI18nPipe, ...ZardSelectImports],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, XpI18nPipe, ...ZardSelectImports],
   selector: 'xpert-variable-form',
   templateUrl: 'variable-form.component.html',
   styleUrls: ['variable-form.component.scss']

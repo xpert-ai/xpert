@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, Input, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
@@ -14,12 +14,12 @@ import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-organization-members',
+  selector: 'xp-organization-members',
   templateUrl: './organization-members.component.html',
   host: {
     class: 'block w-full min-w-0'
   },
-  imports: [SharedModule, ZardButtonComponent, ZardSwitchComponent, UserProfileInlineComponent, NgmTableComponent]
+  imports: [SharedModule, ZardButtonComponent, ZardSwitchComponent, UserProfileInlineComponent, XpTableComponent]
 })
 export class OrganizationMembersComponent extends TranslationBaseComponent {
   readonly confirmDelete = injectConfirmDelete()
@@ -102,7 +102,7 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
     const firstFailure = results.find((result) => result.status === 'rejected') as PromiseRejectedResult | undefined
 
     if (successCount) {
-      this.toastrService.success('PAC.Organization.MemberAdded', {
+      this.toastrService.success('XP.Organization.MemberAdded', {
         Default: successCount === 1 ? 'Member added' : `${successCount} members added`
       })
       this.refresh$.next()
@@ -120,7 +120,7 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
 
     try {
       await firstValueFrom(this.userOrganizationsService.update(membership.id, { isDefault: true }))
-      this.toastrService.success('PAC.Users.DefaultOrganizationUpdated', {
+      this.toastrService.success('XP.Users.DefaultOrganizationUpdated', {
         Default: 'Default organization updated'
       })
       this.refresh$.next()
@@ -136,7 +136,7 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
 
     try {
       await firstValueFrom(this.userOrganizationsService.update(membership.id, { isActive }))
-      this.toastrService.success('PAC.Users.OrganizationStatusUpdated', {
+      this.toastrService.success('XP.Users.OrganizationStatusUpdated', {
         Default: 'Organization membership updated'
       })
       this.refresh$.next()
@@ -171,14 +171,14 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
     this.confirmDelete(
       {
         value: userLabel(membership.user),
-        information: this.getTranslation('PAC.USERS_PAGE.RemoveUserFromOrg', {
+        information: this.getTranslation('XP.USERS_PAGE.RemoveUserFromOrg', {
           Default: 'Remove this user from this organization'
         })
       },
       this.userOrganizationsService.removeUserFromOrg(membership.id)
     ).subscribe({
       next: () => {
-        this.toastrService.success('PAC.MESSAGE.USER_ORGANIZATION_REMOVED', {
+        this.toastrService.success('XP.MESSAGE.USER_ORGANIZATION_REMOVED', {
           Default: 'User Org Removed'
         })
         this.refresh$.next()

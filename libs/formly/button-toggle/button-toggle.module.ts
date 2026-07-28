@@ -5,10 +5,10 @@ import { OcapCoreModule } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardToggleGroupComponent, ZardToggleGroupItemComponent } from '@xpert-ai/headless-ui'
-import { PACFormlyButtonToggleComponent } from './button-toggle.type'
+import { XpFormlyButtonToggleComponent } from './button-toggle.type'
 
 @NgModule({
-  declarations: [PACFormlyButtonToggleComponent],
+  declarations: [XpFormlyButtonToggleComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -20,11 +20,11 @@ import { PACFormlyButtonToggleComponent } from './button-toggle.type'
       types: [
         {
           name: 'button-toggle',
-          component: PACFormlyButtonToggleComponent
+          component: XpFormlyButtonToggleComponent
         }
       ]
     })
   ],
-  exports: [PACFormlyButtonToggleComponent]
+  exports: [XpFormlyButtonToggleComponent]
 })
-export class PACFormlyButtonToggleModule {}
+export class XpFormlyButtonToggleModule {}

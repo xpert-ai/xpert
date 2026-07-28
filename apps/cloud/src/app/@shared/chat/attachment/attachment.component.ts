@@ -15,23 +15,23 @@ import {
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage } from '@cloud/app/@core/types'
 import { FileTypePipe, linkedModel } from '@xpert-ai/headless-ui'
-import { effectAction, NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { effectAction, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
-import { NgmProgressSpinnerComponent } from '@xpert-ai/headless-ui'
+import { XpProgressSpinnerComponent } from '@xpert-ai/headless-ui'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { FileIconComponent } from '../../files'
 import { getChatStorageFileId, type ChatAttachmentStorageFile } from '../attachments/agent-file'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, NgmProgressSpinnerComponent, FileTypePipe, FileIconComponent],
+  imports: [TranslateModule, XpProgressSpinnerComponent, FileTypePipe, FileIconComponent],
   selector: 'chat-attachment',
   templateUrl: './attachment.component.html',
   styleUrls: ['./attachment.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ]

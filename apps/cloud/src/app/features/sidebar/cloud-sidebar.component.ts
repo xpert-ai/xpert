@@ -9,7 +9,7 @@ import { CloudMenuItem } from './cloud-sidebar-menu.types'
 
 @Component({
   standalone: true,
-  selector: 'pac-cloud-sidebar',
+  selector: 'xp-cloud-sidebar',
   templateUrl: './cloud-sidebar.component.html',
   styleUrl: './cloud-sidebar.component.scss',
   imports: [

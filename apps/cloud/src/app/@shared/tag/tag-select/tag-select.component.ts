@@ -3,14 +3,14 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, forwardRef, inject, input, model } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import { ITag, TagCategoryEnum, TagService } from '../../../@core'
 import { TagComponent } from '../tag/tag.component'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,8 +21,8 @@ import { NgmI18nPipe } from '@xpert-ai/headless-ui'
     NgxFloatUiModule,
     FormsModule,
     ReactiveFormsModule,
-    NgmHighlightDirective,
-    NgmI18nPipe,
+    XpHighlightDirective,
+    XpI18nPipe,
     TagComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

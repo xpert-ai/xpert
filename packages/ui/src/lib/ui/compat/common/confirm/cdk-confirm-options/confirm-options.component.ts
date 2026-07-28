@@ -21,7 +21,7 @@ export class CdkConfirmOptionsComponent<T> {
   readonly data = inject<{ formFields: FormlyFieldConfig[]; information: string; value: T }>(DIALOG_DATA)
   readonly dialogRef = inject(DialogRef)
 
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   formGroup = new FormGroup({})
   model = {}

@@ -10,7 +10,7 @@ export enum DisplayDensity {
 }
 
 /**
- * @deprecated use hostDirectives {@link NgmDensityDirective }.
+ * @deprecated use hostDirectives {@link XpDensityDirective }.
  *
  * 组件的 display density 配置
  *
@@ -23,17 +23,17 @@ export enum DisplayDensity {
 export class DensityDirective {
   @Input() displayDensity: DisplayDensity | string
 
-  @HostBinding('class.ngm-density__comfortable')
+  @HostBinding('class.xp-density__comfortable')
   get densityCosy(): boolean {
     return this.displayDensity === DisplayDensity.comfortable
   }
 
-  @HostBinding('class.ngm-density__compact')
+  @HostBinding('class.xp-density__compact')
   get densityCompact(): boolean {
     return this.displayDensity === DisplayDensity.compact
   }
 
-  @HostBinding('class.ngm-density__cosy')
+  @HostBinding('class.xp-density__cosy')
   get densityComfortable(): boolean {
     return this.displayDensity === DisplayDensity.cosy
   }
@@ -41,19 +41,19 @@ export class DensityDirective {
 
 @Directive({
   standalone: true,
-  selector: '[ngmDensity],[ngm-density]',
+  selector: '[xpDensity],[xp-density]',
   host: {
-    '[class.ngm-density__cosy]': 'cosy()',
-    '[class.ngm-density__compact]': 'small()',
+    '[class.xp-density__cosy]': 'cosy()',
+    '[class.xp-density__compact]': 'small()',
     '[class.small]': 'small()',
-    '[class.ngm-density__comfortable]': 'large()',
+    '[class.xp-density__comfortable]': 'large()',
     '[class.large]': 'large()',
-    '[class]': 'ngmDensity()'
+    '[class]': 'xpDensity()'
   }
 })
-export class NgmDensityDirective {
-  readonly ngmDensity = input<string>(null, {
-    alias: 'ngm-density'
+export class XpDensityDirective {
+  readonly xpDensity = input<string>(null, {
+    alias: 'xp-density'
   })
 
   readonly small = input<boolean, boolean | string>(false, {
@@ -63,5 +63,5 @@ export class NgmDensityDirective {
     transform: booleanAttribute
   })
 
-  readonly cosy = computed(() => !this.ngmDensity() && !this.small() && !this.large())
+  readonly cosy = computed(() => !this.xpDensity() && !this.small() && !this.large())
 }

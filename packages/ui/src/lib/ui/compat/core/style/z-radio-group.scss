@@ -1,9 +1,9 @@
 @reference "../../../tailwind-workspace-reference.css";
-.ngm-radio-group__horizontal.z-radio-group {
+.xp-radio-group__horizontal.z-radio-group {
   @apply flex flex-wrap items-center gap-2;
 }
 
-z-radio.ngm-radio-button__property {
+z-radio.xp-radio-button__property {
   @apply block w-60 max-w-full;
 
   .z-radio__item {

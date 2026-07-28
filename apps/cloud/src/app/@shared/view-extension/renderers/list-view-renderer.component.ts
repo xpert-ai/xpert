@@ -3,7 +3,7 @@ import { Component, effect, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertListViewSchema, XpertViewActionDefinition } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
   ZardButtonComponent,
   ZardCardImports,
@@ -19,7 +19,7 @@ import {
     CommonModule,
     FormsModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardButtonComponent,
     ...ZardCardImports,
     ZardEmptyComponent,
@@ -36,12 +36,12 @@ import {
             class="flex-1"
             [(ngModel)]="searchText"
             [placeholder]="
-              (schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })
+              (schema().search?.placeholder | i18n) || ('XP.ViewExtension.Search' | translate: { Default: 'Search' })
             "
             (keyup.enter)="applySearch.emit(searchText.trim())"
           />
           <button z-button type="button" zType="default" zSize="sm" (click)="applySearch.emit(searchText.trim())">
-            {{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
+            {{ 'XP.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
           </button>
         </div>
       }
@@ -51,11 +51,11 @@ import {
           @if (loading()) {
             <div class="flex items-center gap-2 px-4 py-6 text-sm text-text-tertiary">
               <z-loader zSize="sm" />
-              <span>{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
+              <span>{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
             </div>
           } @else if (!items().length) {
             <div class="px-4 py-8">
-              <z-empty zIcon="inbox" [zTitle]="'PAC.ViewExtension.NoData' | translate: { Default: 'No data' }" />
+              <z-empty zIcon="inbox" [zTitle]="'XP.ViewExtension.NoData' | translate: { Default: 'No data' }" />
             </div>
           } @else {
             @for (item of items(); track trackRow(item)) {
@@ -98,7 +98,7 @@ import {
       @if (schema().pagination?.enabled && page() * pageSize() < total()) {
         <div class="flex justify-center">
           <button z-button type="button" zType="outline" zSize="sm" (click)="changePage.emit(page() + 1)">
-            {{ 'PAC.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
+            {{ 'XP.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
           </button>
         </div>
       }

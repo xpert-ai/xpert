@@ -7,7 +7,7 @@ body.mobile {
   }
 }
 
-.ngm-smart-echarts__tooltip {
+.xp-smart-echarts__tooltip {
   z-index: 100 !important;
 }
 
@@ -49,7 +49,7 @@ z-button[data-icon-only] {
   }
 }
 
-.ngm-settings-panel__drawer-content {
+.xp-settings-panel__drawer-content {
   .z-tab-group__nav {
     min-height: 38px;
   }
@@ -59,7 +59,7 @@ z-button[data-icon-only] {
   @apply px-4 pb-2;
 }
 
-.ngm-dialog-container {
+.xp-dialog-container {
   @apply flex-1 flex flex-col;
 }
 

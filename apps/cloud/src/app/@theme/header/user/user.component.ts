@@ -46,7 +46,7 @@ const THEMES = [
 @Component({
   standalone: true,
   imports: [FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
-  selector: 'pac-header-user',
+  selector: 'xp-header-user',
   templateUrl: './user.component.html',
   animations: [OverlayAnimation1]
 })
@@ -81,7 +81,7 @@ export class HeaderUserComponent {
     initialValue: this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
   })
 
-  readonly themesT$ = toSignal(this.#i18n.stream('PAC.Themes'))
+  readonly themesT$ = toSignal(this.#i18n.stream('XP.Themes'))
 
   readonly themeOptions$ = computed(() => {
     const translate = this.themesT$()

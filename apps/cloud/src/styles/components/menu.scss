@@ -9,7 +9,7 @@
 [z-menu-content] {
   .cdk-menu-item,
   [z-menu-item],
-  .ngm-cdk-menu-item {
+  .xp-cdk-menu-item {
     @apply relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-left text-sm
       outline-none transition-colors hover:bg-hover-bg hover:text-text-primary
       focus:bg-components-list-option-active-bg focus:text-text-primary data-disabled:pointer-events-none data-disabled:opacity-50;
@@ -45,8 +45,8 @@
     }
 
     &.danger,
-    &.ngm-appearance-danger,
-    &.ngm-cdk-menu__danger {
+    &.xp-appearance-danger,
+    &.xp-cdk-menu__danger {
       @apply text-destructive;
 
       &:hover,
@@ -60,17 +60,17 @@
     &[disabled],
     &[aria-disabled='true'],
     &[data-disabled='true'],
-    &.ngm-cdk-menu-item__disabled {
+    &.xp-cdk-menu-item__disabled {
       @apply pointer-events-none opacity-50;
     }
   }
 }
 
-.ngm-cdk-menu {
-  .ngm-cdk-menu-item {
+.xp-cdk-menu {
+  .xp-cdk-menu-item {
     @apply w-full overflow-hidden;
   }
-  .ngm-cdk-menu-item.danger:hover {
+  .xp-cdk-menu-item.danger:hover {
     @apply bg-destructive/10 text-destructive;
   }
 }

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, effect, inject, signal } from '@angular/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { IUserGroup, OrderTypeEnum, UserGroupService, getErrorMessage, injectToastr } from '../../../../@core'
@@ -8,9 +8,9 @@ import { TranslationBaseComponent } from '../../../../@shared/language'
 
 @Component({
   standalone: true,
-  selector: 'pac-organization-user-groups',
+  selector: 'xp-organization-user-groups',
   templateUrl: './organization-user-groups.component.html',
-  imports: [CommonModule, TranslateModule, NgmTableComponent, NgmSpinComponent]
+  imports: [CommonModule, TranslateModule, XpTableComponent, XpSpinComponent]
 })
 export class OrganizationUserGroupsComponent extends TranslationBaseComponent {
   readonly #userGroupService = inject(UserGroupService)

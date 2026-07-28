@@ -5,9 +5,9 @@ import { Directive } from '@angular/core'
  */
 @Directive({
   standalone: true,
-  selector: '[ngmButtonGroup]',
+  selector: '[xpButtonGroup]',
   host: {
-    class: 'ngm-button-group'
+    class: 'xp-button-group'
   }
 })
-export class ButtonGroupDirective {}
+export class XpButtonGroupDirective {}

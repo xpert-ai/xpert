@@ -3,7 +3,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, computed, HostBinding, inject } from '@angular/core'
 
-import { ButtonGroupDirective } from '../../../core'
+import { XpButtonGroupDirective } from '../../../core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, isObservable, Observable, of, switchMap } from 'rxjs'
 import { ZardButtonComponent } from '../../../../../components'
@@ -19,7 +19,7 @@ export type TConfirmDeleteInfo = {
   selector: 'cdk-confirm-delete',
   templateUrl: './confirm-delete.component.html',
   styleUrls: ['./confirm-delete.component.scss'],
-  imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent, ButtonGroupDirective],
+  imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent, XpButtonGroupDirective],
   host: {
     class: 'cdk-dialog-card'
   }
@@ -28,7 +28,7 @@ export class CdkConfirmDeleteComponent {
   readonly #data = inject<TConfirmDeleteInfo>(DIALOG_DATA)
   readonly dialogRef = inject(DialogRef)
 
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   readonly title = computed(() => this.#data?.title)
   readonly value = computed(() => this.#data?.value)

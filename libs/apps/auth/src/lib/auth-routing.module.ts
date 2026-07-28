@@ -1,10 +1,10 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
-import { PacAuthComponent } from './auth.component'
+import { XpAuthComponent } from './auth.component'
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component'
 import { NoAuthGuard } from './guards/no-auth.guard'
 import { UserLoginComponent } from './login/login.component'
-import { PacLogoutComponent } from './logout/logout.component'
+import { XpLogoutComponent } from './logout/logout.component'
 import { UserRegisterResultComponent } from './register-result/register-result.component'
 import { UserRegisterComponent } from './register/register.component'
 import { ResetPasswordComponent } from './reset-password/reset-password.component'
@@ -16,7 +16,7 @@ const routes: Routes = [
   // Auth Root
   {
     path: '',
-    component: PacAuthComponent,
+    component: XpAuthComponent,
     children: [
       {
         path: 'login',
@@ -34,20 +34,20 @@ const routes: Routes = [
         data: { title: '注册结果', titleI18n: 'app.register.register' }
       },
       {
-				path: 'request-password',
-				component: ForgotPasswordComponent,
-				canActivate: [NoAuthGuard]
-			},
+        path: 'request-password',
+        component: ForgotPasswordComponent,
+        canActivate: [NoAuthGuard]
+      },
       {
         path: 'reset-password',
         component: ResetPasswordComponent,
-				canActivate: [NoAuthGuard]
+        canActivate: [NoAuthGuard]
       },
       {
-				path: 'accept-invite',
+        path: 'accept-invite',
         loadComponent: () => import('./accept-invite/accept-invite.component').then((m) => m.AcceptInvitePageComponent),
-				canActivate: [NoAuthGuard]
-			},
+        canActivate: [NoAuthGuard]
+      },
       {
         path: 'verify',
         component: VarifyEmailComponent,
@@ -55,7 +55,7 @@ const routes: Routes = [
       },
       {
         path: 'logout',
-        component: PacLogoutComponent
+        component: XpLogoutComponent
       },
       {
         path: 'sso-bind',
@@ -77,4 +77,4 @@ const routes: Routes = [
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class PacAuthRoutingModule {}
+export class XpAuthRoutingModule {}

@@ -1,7 +1,7 @@
 <ng-template let-menuTrigger="menuTrigger" let-fromNode="fromNode">
   <div #menu="cdkMenu" cdkMenu class="cdk-menu__large bg-components-panel-bg-blur">
     <div cdkMenuItem class="text-text-secondary hover:text-text-primary" (click)="createAgent(menu, fromNode)">
-      <i class="ri-robot-3-line mr-1"></i><span>{{ 'PAC.Xpert.NewAgent' | translate: { Default: 'New Agent' } }}</span>
+      <i class="ri-robot-3-line mr-1"></i><span>{{ 'XP.Xpert.NewAgent' | translate: { Default: 'New Agent' } }}</span>
     </div>
     <div
       cdkMenuItem
@@ -18,7 +18,7 @@
       ]"
     >
       <i class="ri-user-add-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddExternalExpert' | translate: { Default: 'Add External Expert' } }}</span>
+      <span class="grow">{{ 'XP.Xpert.AddExternalExpert' | translate: { Default: 'Add External Expert' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
     <div
@@ -36,7 +36,7 @@
       ]"
     >
       <i class="ri-book-shelf-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddKnowledgebase' | translate: { Default: 'Add Knowledgebase' } }}</span>
+      <span class="grow">{{ 'XP.Xpert.AddKnowledgebase' | translate: { Default: 'Add Knowledgebase' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
     <div
@@ -54,7 +54,7 @@
       ]"
     >
       <i class="ri-hammer-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddToolset' | translate: { Default: 'Add Toolset' } }}</span>
+      <span class="grow">{{ 'XP.Xpert.AddToolset' | translate: { Default: 'Add Toolset' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
@@ -73,7 +73,7 @@
       ]"
     >
       <i class="ri-stack-line mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddMiddleware' | translate: { Default: 'Add Middleware' } }}</span>
+      <span class="grow">{{ 'XP.Xpert.AddMiddleware' | translate: { Default: 'Add Middleware' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
@@ -93,7 +93,7 @@
       ]"
     >
       <i class="ri-flow-chart mr-1"></i>
-      <span class="grow">{{ 'PAC.Xpert.AddWorkflow' | translate: { Default: 'Add Workflow' } }}</span>
+      <span class="grow">{{ 'XP.Xpert.AddWorkflow' | translate: { Default: 'Add Workflow' } }}</span>
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
@@ -115,7 +115,7 @@
       >
         <i class="ri-folder-transfer-line mr-1"></i>
         <span class="grow">{{
-          'PAC.Xpert.AddKnowledgePipeline' | translate: { Default: 'Add Knowledge Pipeline' }
+          'XP.Xpert.AddKnowledgePipeline' | translate: { Default: 'Add Knowledge Pipeline' }
         }}</span>
         <i class="ri-arrow-drop-right-fill ml-4"></i>
       </div>
@@ -123,15 +123,14 @@
 
     @if (node) {
       <div cdkMenuItem class="danger" (click)="deleteNode(menu, node)">
-        <i class="ri-delete-bin-3-line mr-1"></i
-        ><span>{{ 'PAC.Xpert.Remove' | translate: { Default: 'Remove' } }}</span>
+        <i class="ri-delete-bin-3-line mr-1"></i><span>{{ 'XP.Xpert.Remove' | translate: { Default: 'Remove' } }}</span>
       </div>
     }
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
 
     <div cdkMenuItem class="text-text-secondary hover:text-text-primary" (click)="pasteNode()">
-      <i class="ri-clipboard-line mr-1"></i> {{ 'PAC.ACTIONS.PasteHere' | translate: { Default: 'Paste Here' } }}
+      <i class="ri-clipboard-line mr-1"></i> {{ 'XP.ACTIONS.PasteHere' | translate: { Default: 'Paste Here' } }}
     </div>
   </div>
 </ng-template>
@@ -156,7 +155,7 @@
         [class.cursor-not-allowed]="isXpertExists(xpert)"
         [zTooltip]="
           isXpertExists(xpert)
-            ? ('PAC.Xpert.DuplicateExternalExpert' | translate: { Default: 'Cannot create duplicate external expert' })
+            ? ('XP.Xpert.DuplicateExternalExpert' | translate: { Default: 'Cannot create duplicate external expert' })
             : ''
         "
         [zDisabled]="!isXpertExists(xpert)"
@@ -172,7 +171,7 @@
       </div>
     } @empty {
       <div class="p-2">
-        {{ 'PAC.Xpert.NoExternalExpert' | translate: { Default: 'No external expert' } }}
+        {{ 'XP.Xpert.NoExternalExpert' | translate: { Default: 'No external expert' } }}
       </div>
     }
   </div>
@@ -184,7 +183,7 @@
     class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[256px]"
   >
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Logic' | translate: { Default: 'Logic' } }}
+      {{ 'XP.Xpert.Logic' | translate: { Default: 'Logic' } }}
     </div>
     <div
       cdkMenuItem
@@ -193,7 +192,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TRIGGER" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary grow">
-        {{ 'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' } }}
+        {{ 'XP.Workflow.Trigger' | translate: { Default: 'Trigger' } }}
       </div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
@@ -204,7 +203,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.IF_ELSE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Xpert.Router' | translate: { Default: 'Router' } }}
+        {{ 'XP.Xpert.Router' | translate: { Default: 'Router' } }}
       </div>
     </div>
 
@@ -214,7 +213,7 @@
       (click)="addWorkflowIterator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ITERATOR" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Xpert.Iterator' | translate: { Default: 'Iterator' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Xpert.Iterator' | translate: { Default: 'Iterator' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -222,7 +221,7 @@
       (click)="addWorkflowSubflow(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SUBFLOW" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Xpert.Subflow' | translate: { Default: 'Subflow' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Xpert.Subflow' | translate: { Default: 'Subflow' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -230,7 +229,7 @@
       (click)="addWorkflowListOperator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.LIST_OPERATOR" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.ListOperator' | translate: { Default: 'List Operator' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Workflow.ListOperator' | translate: { Default: 'List Operator' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -239,7 +238,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.VariableAggregator' | translate: { Default: 'Variable Aggregator' } }}
+        {{ 'XP.Workflow.VariableAggregator' | translate: { Default: 'Variable Aggregator' } }}
       </div>
     </div>
     <div
@@ -249,12 +248,12 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.VariableAssigner' | translate: { Default: 'Variable Assigner' } }}
+        {{ 'XP.Workflow.VariableAssigner' | translate: { Default: 'Variable Assigner' } }}
       </div>
     </div>
 
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Transform' | translate: { Default: 'Transform' } }}
+      {{ 'XP.Xpert.Transform' | translate: { Default: 'Transform' } }}
     </div>
     <div
       cdkMenuItem
@@ -263,7 +262,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.CLASSIFIER" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.QuestionClassifier' | translate: { Default: 'Question Classifier' } }}
+        {{ 'XP.Workflow.QuestionClassifier' | translate: { Default: 'Question Classifier' } }}
       </div>
     </div>
     <div
@@ -273,7 +272,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.KNOWLEDGE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Xpert.KnowledgeRetrieval' | translate: { Default: 'Knowledge Retrieval' } }}
+        {{ 'XP.Xpert.KnowledgeRetrieval' | translate: { Default: 'Knowledge Retrieval' } }}
       </div>
     </div>
     <div
@@ -282,7 +281,7 @@
       (click)="addWorkflowCode(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.CODE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Xpert.Code' | translate: { Default: 'Code' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Xpert.Code' | translate: { Default: 'Code' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -290,7 +289,7 @@
       (click)="addWorkflowTemplate(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TEMPLATE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Xpert.Template' | translate: { Default: 'Template' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Xpert.Template' | translate: { Default: 'Template' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -298,7 +297,7 @@
       (click)="addWorkflowJSONStringify(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_STRINGIFY" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.JSONStringify' | translate: { Default: 'JSON Stringify' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Workflow.JSONStringify' | translate: { Default: 'JSON Stringify' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -306,7 +305,7 @@
       (click)="addWorkflowJSONParse(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_PARSE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.JSONParse' | translate: { Default: 'JSON Parse' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Workflow.JSONParse' | translate: { Default: 'JSON Parse' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -314,11 +313,11 @@
       (click)="addWorkflowAnswer(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ANSWER" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Xpert.Answer' | translate: { Default: 'Answer' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Xpert.Answer' | translate: { Default: 'Answer' } }}</div>
     </div>
 
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Tools' | translate: { Default: 'Tools' } }}
+      {{ 'XP.Xpert.Tools' | translate: { Default: 'Tools' } }}
     </div>
     <div
       cdkMenuItem
@@ -326,7 +325,7 @@
       (click)="addWorkflowHttp(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.HTTP" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Xpert.Http' | translate: { Default: 'HTTP' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Xpert.Http' | translate: { Default: 'HTTP' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -334,7 +333,7 @@
       (click)="addWorkflowTool(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TOOL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.ToolCall' | translate: { Default: 'Tool Call' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Workflow.ToolCall' | translate: { Default: 'Tool Call' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -342,7 +341,7 @@
       (click)="addWorkflowAgentWorkflow(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_WORKFLOW" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.AgentWorkflow' | translate }}</div>
+      <div class="text-text-primary">{{ 'XP.Workflow.AgentWorkflow' | translate }}</div>
     </div>
     <div
       cdkMenuItem
@@ -350,17 +349,17 @@
       (click)="addWorkflowTask(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TASK" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.TaskHandover' | translate: { Default: 'Task Handover' } }}</div>
+      <div class="text-text-primary">{{ 'XP.Workflow.TaskHandover' | translate: { Default: 'Task Handover' } }}</div>
     </div>
     <!-- <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addSkill()"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SKILL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.Skill' | translate: {Default: 'Skill'} }}</div>
+      <div class="text-text-primary">{{'XP.Workflow.Skill' | translate: {Default: 'Skill'} }}</div>
     </div> -->
 
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Memory' | translate: { Default: 'Memory' } }}
+      {{ 'XP.Xpert.Memory' | translate: { Default: 'Memory' } }}
     </div>
     <div
       cdkMenuItem
@@ -369,18 +368,18 @@
     >
       <xpert-workflow-icon type="database" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary grow">
-        {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
+        {{ 'XP.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
       </div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
 
     <div class="flex items-start px-2 mt-2 font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.Others' | translate: { Default: 'Others' } }}
+      {{ 'XP.Xpert.Others' | translate: { Default: 'Others' } }}
     </div>
     <div cdkMenuItem class="shrink-0 px-4 w-full h-9" (click)="addWorkflowNote(fromNode)">
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.NOTE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Xpert.Note' | translate: { Default: 'Note' } }}
+        {{ 'XP.Xpert.Note' | translate: { Default: 'Note' } }}
       </div>
     </div>
   </div>
@@ -392,7 +391,7 @@
     class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]"
   >
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Workflow.Triggers' | translate: { Default: 'Triggers' } }}
+      {{ 'XP.Workflow.Triggers' | translate: { Default: 'Triggers' } }}
     </div>
     <div
       cdkMenuItem
@@ -401,7 +400,7 @@
     >
       <xpert-workflow-icon [type]="'chat'" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.Chat' | translate: { Default: 'Chat' } }}
+        {{ 'XP.Workflow.Chat' | translate: { Default: 'Chat' } }}
       </div>
     </div>
 
@@ -429,7 +428,7 @@
     class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]"
   >
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
+      {{ 'XP.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
     </div>
     <div
       cdkMenuItem
@@ -438,7 +437,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_SQL" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.SQLCustom' | translate: { Default: 'SQL Custom' } }}
+        {{ 'XP.Workflow.SQLCustom' | translate: { Default: 'SQL Custom' } }}
       </div>
     </div>
     <div
@@ -448,7 +447,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_INSERT" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.NewData' | translate: { Default: 'New Data' } }}
+        {{ 'XP.Workflow.NewData' | translate: { Default: 'New Data' } }}
       </div>
     </div>
     <div
@@ -458,7 +457,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_UPDATE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.UpdateData' | translate: { Default: 'Update Data' } }}
+        {{ 'XP.Workflow.UpdateData' | translate: { Default: 'Update Data' } }}
       </div>
     </div>
     <div
@@ -468,7 +467,7 @@
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_DELETE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
-        {{ 'PAC.Workflow.DeleteData' | translate: { Default: 'Delete Data' } }}
+        {{ 'XP.Workflow.DeleteData' | translate: { Default: 'Delete Data' } }}
       </div>
     </div>
   </div>
@@ -485,28 +484,28 @@
         [class.selected]="pipelineType() === 'source'"
         (click)="pipelineType.set('source')"
       >
-        {{ 'PAC.Xpert.DataSource' | translate: { Default: 'Data Source' } }}
+        {{ 'XP.Xpert.DataSource' | translate: { Default: 'Data Source' } }}
       </div>
       <div
         class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'processor'"
         (click)="pipelineType.set('processor')"
       >
-        {{ 'PAC.Xpert.Processor' | translate: { Default: 'Processor' } }}
+        {{ 'XP.Xpert.Processor' | translate: { Default: 'Processor' } }}
       </div>
       <div
         class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'chunker'"
         (click)="pipelineType.set('chunker')"
       >
-        {{ 'PAC.Xpert.Chunker' | translate: { Default: 'Chunker' } }}
+        {{ 'XP.Xpert.Chunker' | translate: { Default: 'Chunker' } }}
       </div>
       <div
         class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'understanding'"
         (click)="pipelineType.set('understanding')"
       >
-        {{ 'PAC.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}
+        {{ 'XP.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}
       </div>
     </div>
     <div class="p-1.5">
@@ -585,7 +584,7 @@
     class="cdk-menu__medium max-h-[70vh] overflow-y-auto bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[360px] !px-1"
   >
     <div class="flex justify-between items-center px-1 my-1 text-base font-medium text-text-tertiary">
-      <span>{{ 'PAC.Xpert.AgentMiddlewares' | translate: { Default: 'Agent Middlewares' } }}</span>
+      <span>{{ 'XP.Xpert.AgentMiddlewares' | translate: { Default: 'Agent Middlewares' } }}</span>
 
       <div class="relative w-[160px] ml-4">
         <i
@@ -593,7 +592,7 @@
         ></i>
         <input
           class="xp-input w-full pl-[26px]"
-          [placeholder]="'PAC.ACTIONS.Search' | translate: { Default: 'Search' }"
+          [placeholder]="'XP.ACTIONS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="searchMiddlewares"
         />
         @if (searchMiddlewares()) {
@@ -607,7 +606,7 @@
     @if (agentMiddlewares() === undefined) {
       <div class="flex items-center justify-center gap-2 px-4 py-8 text-sm text-text-tertiary">
         <i class="ri-loader-4-line animate-spin"></i>
-        {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
+        {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
       </div>
     } @else {
       @for (group of middlewareGroups(); track group.key) {
@@ -620,7 +619,7 @@
           >
             <span class="min-w-0 flex-1 truncate">
               @if (group.source.kind === 'builtin') {
-                {{ 'PAC.Xpert.SystemMiddleware' | translate: { Default: 'Built-in Middleware' } }}
+                {{ 'XP.Xpert.SystemMiddleware' | translate: { Default: 'Built-in Middleware' } }}
               } @else {
                 {{ group.source.displayName | i18n }}
               }
@@ -653,7 +652,7 @@
                 >
                   @if (!middleware.meta?.name) {
                     <div class="text-text-destructive">
-                      {{ 'PAC.Xpert.UnknownMiddleware' | translate: { Default: 'Unknown Middleware' } }}
+                      {{ 'XP.Xpert.UnknownMiddleware' | translate: { Default: 'Unknown Middleware' } }}
                     </div>
                   } @else {
                     @if (middleware.meta.icon) {
@@ -669,7 +668,7 @@
                       <div
                         class="grow text-text-primary"
                         [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''"
-                        [ngmHighlight]="searchMiddlewares()"
+                        [xpHighlight]="searchMiddlewares()"
                         [content]="label"
                       >
                         {{ label }}
@@ -681,7 +680,7 @@
                         [zTooltip]="
                           middleware.meta.deprecationMessage
                             ? (middleware.meta.deprecationMessage | i18n)
-                            : ('PAC.Xpert.DeprecatedMiddleware'
+                            : ('XP.Xpert.DeprecatedMiddleware'
                               | translate
                                 : {
                                     Default:
@@ -707,7 +706,7 @@
         </div>
       } @empty {
         <div class="px-4 py-8 text-center text-sm text-text-tertiary">
-          {{ 'PAC.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
+          {{ 'XP.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
         </div>
       }
     }
@@ -781,7 +780,7 @@
             {{
               middleware.meta.deprecationMessage
                 ? (middleware.meta.deprecationMessage | i18n)
-                : ('PAC.Xpert.DeprecatedMiddleware'
+                : ('XP.Xpert.DeprecatedMiddleware'
                   | translate
                     : {
                         Default:
@@ -794,7 +793,7 @@
 
       <div class="mt-4 rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-3">
         <div class="text-xs font-medium uppercase tracking-[0.08em] text-text-tertiary">
-          {{ 'PAC.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
+          {{ 'XP.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
         </div>
 
         @if (middlewareConfigPreview(middleware).length) {
@@ -817,7 +816,7 @@
           </div>
         } @else {
           <div class="mt-2 text-sm text-text-secondary">
-            {{ 'PAC.Xpert.NoConfigurationRequired' | translate: { Default: 'No configuration required' } }}
+            {{ 'XP.Xpert.NoConfigurationRequired' | translate: { Default: 'No configuration required' } }}
           </div>
         }
       </div>

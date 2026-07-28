@@ -1,10 +1,10 @@
 import { Directive, effect, ElementRef, input, OnDestroy, OnInit, signal } from '@angular/core'
 
 @Directive({
-  selector: '[ngmAutoScrollBottom]',
+  selector: '[xpAutoScrollBottom]',
   standalone: true
 })
-export class NgmAutoScrollBottomDirective implements OnInit, OnDestroy {
+export class XpAutoScrollBottomDirective implements OnInit, OnDestroy {
   private el: HTMLElement
 
   // Whether to follow to the bottom

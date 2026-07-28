@@ -12,14 +12,14 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
 }
 
 @Component({
-  selector: 'pac-formly-textarea',
+  selector: 'xp-formly-textarea',
   standalone: false,
   template: `
     @if (props?.label) {
       <label class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{ to.label }}</label>
     }
     <textarea
-      class="ngm-input-element"
+      class="xp-input-element"
       z-input
       [id]="id"
       [readonly]="props.readonly"
@@ -46,7 +46,7 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./textarea.type.scss'],
   host: {
-    class: 'pac-formly-textarea'
+    class: 'xp-formly-textarea'
   }
 })
 export class FormlyFieldTextAreaComponent extends FieldType<FieldTypeConfig<TextAreaProps>> {

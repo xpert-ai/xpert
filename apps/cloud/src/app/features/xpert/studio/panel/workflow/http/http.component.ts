@@ -8,7 +8,7 @@ import {
   XpertWorkflowRetryComponent
 } from '@cloud/app/@shared/workflow'
 import { linkedModel } from '@xpert-ai/headless-ui'
-import { NgmRadioSelectComponent } from '@xpert-ai/headless-ui'
+import { XpRadioSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BodyType,
@@ -23,7 +23,7 @@ import {
   XpertParameterTypeEnum,
   XpertAPIService
 } from 'apps/cloud/src/app/@core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -38,8 +38,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmSelectComponent,
-    NgmRadioSelectComponent,
+    XpSelectComponent,
+    XpRadioSelectComponent,
     XpertVariableInputComponent,
     XpertWorkflowRetryComponent,
     XpertWorkflowErrorHandlingComponent,

@@ -21,7 +21,7 @@ import { FORMLY_W_1_2 } from '@xpert-ai/formly'
 import {
   CdkConfirmDeleteComponent,
   CdkConfirmOptionsComponent,
-  NgmCommonModule,
+  XpCommonModule,
   TableColumn
 } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
@@ -42,7 +42,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     ...ZardTooltipImports,
-    NgmCommonModule
+    XpCommonModule
   ],
   selector: 'copilot-knowledges',
   templateUrl: 'knowledges.component.html',
@@ -112,7 +112,7 @@ export class CopilotKnowledgesComponent {
   readonly loading = signal(true)
 
   readonly columns = toSignal<TableColumn[]>(
-    this.#translate.stream('PAC.Copilot.Examples').pipe(
+    this.#translate.stream('XP.Copilot.Examples').pipe(
       map((i18n) => [
         {
           name: 'vector',
@@ -193,14 +193,14 @@ export class CopilotKnowledgesComponent {
     )
 
     if (!examples?.length && !roles?.length) {
-      this.#toastr.error('', 'PAC.Messages.NoRecordsFoundinFile', { Default: 'No records found in the file' })
+      this.#toastr.error('', 'XP.Messages.NoRecordsFoundinFile', { Default: 'No records found in the file' })
       return
     }
 
     this.#dialog
       .open<{ clearRole: boolean }>(CdkConfirmOptionsComponent, {
         data: {
-          information: this.#translate.instant('PAC.Copilot.Examples.ConfirmOptionsForUploadExample', {
+          information: this.#translate.instant('XP.Copilot.Examples.ConfirmOptionsForUploadExample', {
             Default: 'Please confirm the options for upload copilot examples'
           }),
           formFields: [
@@ -209,7 +209,7 @@ export class CopilotKnowledgesComponent {
             //   key: 'createRole',
             //   type: 'checkbox',
             //   props: {
-            //     label: this.#translate.instant('PAC.Copilot.Examples.CreateRole', {
+            //     label: this.#translate.instant('XP.Copilot.Examples.CreateRole', {
             //       Default: 'Auto create role if not existed'
             //     })
             //   }
@@ -219,7 +219,7 @@ export class CopilotKnowledgesComponent {
               key: 'clearRole',
               type: 'checkbox',
               props: {
-                label: this.#translate.instant('PAC.Copilot.Examples.ClearRole', {
+                label: this.#translate.instant('XP.Copilot.Examples.ClearRole', {
                   Default: 'Clear all existed examples for roles'
                 })
               }
@@ -242,7 +242,7 @@ export class CopilotKnowledgesComponent {
       )
       .subscribe({
         next: () => {
-          this.#toastr.success('PAC.Messages.UploadSuccessfully', { Default: 'Upload successfully' })
+          this.#toastr.success('XP.Messages.UploadSuccessfully', { Default: 'Upload successfully' })
           this.refresh()
           this.refreshFilter$.next()
         },
@@ -279,7 +279,7 @@ export class CopilotKnowledgesComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: id,
-          information: `${this.#translate.instant('PAC.Copilot.Examples.Input', { Default: 'Input' })}: ${input}`
+          information: `${this.#translate.instant('XP.Copilot.Examples.Input', { Default: 'Input' })}: ${input}`
         }
       })
       .closed.pipe(
@@ -294,7 +294,7 @@ export class CopilotKnowledgesComponent {
       )
       .subscribe({
         next: () => {
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+          this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
           return this.refresh()
         },
         error: (error) => {

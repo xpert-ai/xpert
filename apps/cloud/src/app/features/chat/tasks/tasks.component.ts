@@ -3,7 +3,7 @@ import { CommonModule, Location } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -34,12 +34,12 @@ import { buildTaskHistoryConversationRoute } from './tasks.utils'
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardEmptyComponent,
-    NgmCommonModule,
+    XpCommonModule,
     EmojiAvatarComponent,
     DateRelativePipe,
     XpertInlineProfileComponent
   ],
-  selector: 'pac-chat-tasks',
+  selector: 'xp-chat-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -167,7 +167,7 @@ export class ChatTasksComponent {
 
     const route = buildTaskHistoryConversationRoute(conversation, this.taskHistory() ?? this.openedTask())
     if (!route) {
-      this.#toastr.error('PAC.Chat.ClawXpert.TaskHistoryThreadMissing', 'PAC.TOASTR.TITLE.ERROR', {
+      this.#toastr.error('XP.Chat.ClawXpert.TaskHistoryThreadMissing', 'XP.TOASTR.TITLE.ERROR', {
         Default: 'This task history record has no conversation thread.'
       })
       return

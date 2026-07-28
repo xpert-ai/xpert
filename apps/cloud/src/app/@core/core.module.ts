@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { MissingTranslationHandler, TranslateLoader, TranslateModule } from '@ngx-translate/core'
 import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
-import { NgmMissingTranslationHandler } from '@xpert-ai/headless-ui'
+import { XpMissingTranslationHandler } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -17,7 +17,7 @@ import { NgmMissingTranslationHandler } from '@xpert-ai/headless-ui'
     TranslateModule.forRoot({
       missingTranslationHandler: {
         provide: MissingTranslationHandler,
-        useClass: NgmMissingTranslationHandler
+        useClass: XpMissingTranslationHandler
       },
       loader: {
         provide: TranslateLoader,

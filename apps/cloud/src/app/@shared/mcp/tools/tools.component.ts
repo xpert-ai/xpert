@@ -3,7 +3,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from '@cloud/app/@core/types'
 import { XpertToolNameInputComponent } from '@cloud/app/@shared/xpert'
@@ -20,7 +20,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     DragDropModule,
     ...ZardTooltipImports,
-    NgmDensityDirective,
+    XpDensityDirective,
     XpertToolNameInputComponent,
     ZardSwitchComponent
   ],
@@ -31,7 +31,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 })
 export class MCPToolsComponent {
   protected cva = inject<NgxControlValueAccessor<IXpertTool[]>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly #dialog = inject(Dialog)
 
   // Inputs

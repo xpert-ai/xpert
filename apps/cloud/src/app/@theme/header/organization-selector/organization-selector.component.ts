@@ -13,7 +13,7 @@ import {
   UsersService
 } from '@xpert-ai/cloud/state'
 import { nonNullable, OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { NgmSearchComponent, NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpSearchComponent, XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
@@ -26,11 +26,11 @@ const ORGANIZATION_PAGE_SIZE = 10
 
 @Component({
   standalone: true,
-  selector: 'pac-organization-selector',
+  selector: 'xp-organization-selector',
   templateUrl: 'organization-selector.component.html',
   styleUrl: 'organization-selector.component.scss',
   host: {
-    class: 'pac-organization-selector'
+    class: 'xp-organization-selector'
   },
   imports: [
     FormsModule,
@@ -38,9 +38,9 @@ const ORGANIZATION_PAGE_SIZE = 10
     CdkMenuModule,
     ...ZardTooltipImports,
     ZardButtonComponent,
-    NgmSearchComponent,
+    XpSearchComponent,
     OrgAvatarComponent,
-    NgmHighlightDirective
+    XpHighlightDirective
   ],
   animations: [OverlayAnimation1]
 })
@@ -113,21 +113,21 @@ export class OrganizationSelectorComponent {
 
   readonly scopeEyebrow = computed(() =>
     this.activeScope().level === RequestScopeLevel.TENANT
-      ? this.i18nService.instant('PAC.Scope.TenantEyebrow', {
+      ? this.i18nService.instant('XP.Scope.TenantEyebrow', {
           Default: 'Tenant Console'
         })
-      : this.i18nService.instant('PAC.Scope.OrganizationEyebrow', {
+      : this.i18nService.instant('XP.Scope.OrganizationEyebrow', {
           Default: 'Organization Scope'
         })
   )
 
   readonly scopeLabel = computed(() =>
     this.activeScope().level === RequestScopeLevel.TENANT
-      ? this.i18nService.instant('PAC.Scope.TenantLabel', {
+      ? this.i18nService.instant('XP.Scope.TenantLabel', {
           Default: 'Tenant defaults and governance'
         })
       : this.currentOrganization()?.name ||
-        this.i18nService.instant('PAC.Scope.SelectOrganization', {
+        this.i18nService.instant('XP.Scope.SelectOrganization', {
           Default: 'Select an organization'
         })
   )

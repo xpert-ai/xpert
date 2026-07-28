@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing'
 
-import { NgmSliderInputComponent } from './slider-input.component'
+import { XpSliderInputComponent } from './slider-input.component'
 
-describe('NgmSliderInputComponent', () => {
+describe('XpSliderInputComponent', () => {
   it('keeps zero values written through the control value accessor', async () => {
     const fixture = await TestBed.configureTestingModule({
-      imports: [NgmSliderInputComponent]
-    }).createComponent(NgmSliderInputComponent)
+      imports: [XpSliderInputComponent]
+    }).createComponent(XpSliderInputComponent)
 
     fixture.componentRef.setInput('max', 10)
     fixture.componentRef.setInput('min', 0)
@@ -19,8 +19,8 @@ describe('NgmSliderInputComponent', () => {
 
   it('expands the maximum while auto scale is enabled', async () => {
     const fixture = await TestBed.configureTestingModule({
-      imports: [NgmSliderInputComponent]
-    }).createComponent(NgmSliderInputComponent)
+      imports: [XpSliderInputComponent]
+    }).createComponent(XpSliderInputComponent)
 
     fixture.componentRef.setInput('autoScale', true)
     fixture.componentRef.setInput('max', 10)

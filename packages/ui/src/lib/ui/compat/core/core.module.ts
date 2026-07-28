@@ -1,9 +1,9 @@
 import { NgModule } from '@angular/core'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from './directives'
+import { XpAppearanceDirective, XpButtonGroupDirective, DensityDirective } from './directives'
 
 @NgModule({
-  imports: [DensityDirective, AppearanceDirective, ButtonGroupDirective],
-  exports: [DensityDirective, AppearanceDirective, ButtonGroupDirective],
+  imports: [DensityDirective, XpAppearanceDirective, XpButtonGroupDirective],
+  exports: [DensityDirective, XpAppearanceDirective, XpButtonGroupDirective],
   declarations: [],
   providers: []
 })

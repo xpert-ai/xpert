@@ -14,7 +14,7 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
 import { EChartsOption } from 'echarts'
 import { firstValueFrom } from 'rxjs'
@@ -92,7 +92,7 @@ const ALL_SELECT_VALUE = '__all__'
     RouterModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     EchartsDirective,
     ZardBadgeComponent,
     ZardButtonComponent,
@@ -500,7 +500,7 @@ export class KnowledgeGraphComponent {
         await this.selectRelation(saved.id)
       }
       this.closeEditor()
-      this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
@@ -545,17 +545,17 @@ export class KnowledgeGraphComponent {
   statusLabel(status?: KnowledgeGraphStatus | null) {
     switch (status) {
       case KnowledgeGraphStatus.INDEXING:
-        return 'PAC.Knowledgebase.GraphStatus_Indexing'
+        return 'XP.Knowledgebase.GraphStatus_Indexing'
       case KnowledgeGraphStatus.READY:
-        return 'PAC.Knowledgebase.GraphStatus_Ready'
+        return 'XP.Knowledgebase.GraphStatus_Ready'
       case KnowledgeGraphStatus.FAILED:
-        return 'PAC.Knowledgebase.GraphStatus_Failed'
+        return 'XP.Knowledgebase.GraphStatus_Failed'
       case KnowledgeGraphStatus.REBUILD_REQUIRED:
-        return 'PAC.Knowledgebase.GraphStatus_RebuildRequired'
+        return 'XP.Knowledgebase.GraphStatus_RebuildRequired'
       case KnowledgeGraphStatus.DISABLED:
-        return 'PAC.Knowledgebase.GraphStatus_Disabled'
+        return 'XP.Knowledgebase.GraphStatus_Disabled'
       default:
-        return 'PAC.Knowledgebase.GraphStatus_Pending'
+        return 'XP.Knowledgebase.GraphStatus_Pending'
     }
   }
 

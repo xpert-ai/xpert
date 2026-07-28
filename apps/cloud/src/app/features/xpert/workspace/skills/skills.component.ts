@@ -30,8 +30,8 @@ import {
 } from '@cloud/app/@shared/skills'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
 import {
@@ -60,8 +60,8 @@ type MobilePane = 'skills' | 'tree' | 'file'
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     FileWorkbenchComponent,
     XpertGithubSkillInstallComponent,
     XpertSkillRepositoriesComponent,
@@ -342,7 +342,7 @@ export class XpertWorkspaceSkillsComponent {
     return (
       skill?.skillIndex?.repository?.name ||
       readGithubProvenanceText(skill?.metadata, 'repositoryUrl') ||
-      this.translateDefault('PAC.Skill.DirectUpload', 'Direct Upload')
+      this.translateDefault('XP.Skill.DirectUpload', 'Direct Upload')
     )
   }
 
@@ -353,7 +353,7 @@ export class XpertWorkspaceSkillsComponent {
 
     return (
       readGithubProvenanceText(skill?.metadata, 'sourceProvider') ||
-      this.translateDefault('PAC.Skill.LocalProvider', 'local')
+      this.translateDefault('XP.Skill.LocalProvider', 'local')
     )
   }
 
@@ -363,7 +363,7 @@ export class XpertWorkspaceSkillsComponent {
       skill?.skillIndex?.publisher?.name ||
       skill?.skillIndex?.publisher?.handle ||
       skill?.metadata?.author?.name ||
-      this.translateDefault('PAC.Skill.LocalAuthor', 'Local upload')
+      this.translateDefault('XP.Skill.LocalAuthor', 'Local upload')
     )
   }
 
@@ -386,7 +386,7 @@ export class XpertWorkspaceSkillsComponent {
     try {
       await firstValueFrom(this.skillPackageAPI.installPackage(workspaceId, indexId))
       this.#toastr.success(
-        this.#translate.instant('PAC.Skill.SkillPackageInstalled', {
+        this.#translate.instant('XP.Skill.SkillPackageInstalled', {
           Default: 'Skill is ready. Existing installs are reused, and newer versions update automatically.'
         })
       )
@@ -525,11 +525,11 @@ export class XpertWorkspaceSkillsComponent {
 
     this.confirmDelete(
       {
-        title: this.#translate.instant('PAC.Skill.DeleteSkillPackageTitle', {
+        title: this.#translate.instant('XP.Skill.DeleteSkillPackageTitle', {
           Default: 'Delete Skill Package'
         }),
         value: skill.name,
-        information: this.#translate.instant('PAC.Skill.DeleteSkillPackageInfo', {
+        information: this.#translate.instant('XP.Skill.DeleteSkillPackageInfo', {
           Default: 'Are you sure you want to delete this skill package? This action cannot be undone.'
         })
       },
@@ -541,7 +541,7 @@ export class XpertWorkspaceSkillsComponent {
       next: () => {
         this.#loading.set(false)
         this.#toastr.success(
-          this.#translate.instant('PAC.Skill.SkillPackageDeleted', {
+          this.#translate.instant('XP.Skill.SkillPackageDeleted', {
             Default: 'Skill Package Deleted'
           })
         )
@@ -609,14 +609,14 @@ export class XpertWorkspaceSkillsComponent {
 
     this.confirmDelete(
       {
-        title: this.#translate.instant('PAC.Skill.DeleteSkillPackageTitle', {
+        title: this.#translate.instant('XP.Skill.DeleteSkillPackageTitle', {
           Default: 'Delete Skill Package'
         }),
-        value: this.#translate.instant('PAC.Skill.SelectedSkillPackages', {
+        value: this.#translate.instant('XP.Skill.SelectedSkillPackages', {
           Default: `${ids.length} selected`,
           count: ids.length
         }),
-        information: this.#translate.instant('PAC.Skill.DeleteSkillPackageInfo', {
+        information: this.#translate.instant('XP.Skill.DeleteSkillPackageInfo', {
           Default: 'Are you sure you want to delete this skill package? This action cannot be undone.'
         })
       },
@@ -629,7 +629,7 @@ export class XpertWorkspaceSkillsComponent {
         this.#loading.set(false)
         this.selectedSkillIds.set(new Set())
         this.#toastr.success(
-          this.#translate.instant('PAC.Skill.SkillPackagesDeleted', {
+          this.#translate.instant('XP.Skill.SkillPackagesDeleted', {
             Default: 'Selected Skill Packages Deleted'
           })
         )

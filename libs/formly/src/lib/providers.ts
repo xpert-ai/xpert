@@ -1,8 +1,8 @@
 import { importProvidersFrom } from '@angular/core'
 import { AbstractControl } from '@angular/forms'
-import { PacFormlyColorsComponent } from '@xpert-ai/formly/colors'
-import { NgmFormlyToggleComponent } from '@xpert-ai/formly/toggle'
-import { NgmFormlyRadioModule } from '@xpert-ai/formly/radio'
+import { XpFormlyColorsComponent } from '@xpert-ai/formly/colors'
+import { XpFormlyToggleComponent } from '@xpert-ai/formly/toggle'
+import { XpFormlyRadioModule } from '@xpert-ai/formly/radio'
 import { FORMLY_CONFIG, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 
@@ -10,21 +10,25 @@ export function provideFormly() {
   return { provide: FORMLY_CONFIG, multi: true, useFactory: formlyValidationConfig, deps: [TranslateService] }
 }
 
-export function fieldMatchValidator(control: AbstractControl, field: FormlyFieldConfig, options = {password: 'password', passwordConfirm: 'passwordConfirm'}) {
+export function fieldMatchValidator(
+  control: AbstractControl,
+  field: FormlyFieldConfig,
+  options = { password: 'password', passwordConfirm: 'passwordConfirm' }
+) {
   const password = control.value[options.password]
   const passwordConfirm = control.value[options.passwordConfirm]
 
   // avoid displaying the message error when values are empty
   if (!passwordConfirm || !password) {
-    return null;
+    return null
   }
 
   if (passwordConfirm === password) {
-    return null;
+    return null
   }
   console.log(passwordConfirm, password)
 
-  return { fieldMatch: { message: 'Password Not Matching' } };
+  return { fieldMatch: { message: 'Password Not Matching' } }
 }
 
 export function formlyValidationConfig(translate: TranslateService) {
@@ -87,28 +91,26 @@ export function formlyValidationConfig(translate: TranslateService) {
         message() {
           return translate.stream('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
         }
-      },
+      }
     ],
     types: [
       {
         name: 'colors',
-        component: PacFormlyColorsComponent
+        component: XpFormlyColorsComponent
       }
     ],
-    validators: [
-      { name: 'fieldMatch', validation: fieldMatchValidator },
-    ]
+    validators: [{ name: 'fieldMatch', validation: fieldMatchValidator }]
   }
 }
 
 export function provideFormlyUi() {
   return [
-    importProvidersFrom(NgmFormlyRadioModule),
+    importProvidersFrom(XpFormlyRadioModule),
     ...FormlyModule.forChild({
       types: [
         {
           name: 'toggle',
-          component: NgmFormlyToggleComponent
+          component: XpFormlyToggleComponent
         }
         // {
         //   name: 'textarea',

@@ -5,7 +5,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, effect, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
@@ -26,7 +26,7 @@ import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
     DragDropModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-    NgmDensityDirective,
+    XpDensityDirective,
     ZardSwitchComponent
   ],
 

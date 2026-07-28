@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input, model } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, IXpertToolset, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { XpertToolTestDialogComponent } from '../../tool-test'
@@ -18,8 +18,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     DialogModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmDensityDirective,
+    XpI18nPipe,
+    XpDensityDirective,
     XpertToolBuiltinParametersComponent,
     ZardSwitchComponent
   ],
@@ -34,7 +34,7 @@ export class XpertToolBuiltinToolComponent {
   readonly #formBuilder = inject(FormBuilder)
   readonly #dialog = inject(Dialog)
   readonly #cdr = inject(ChangeDetectorRef)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   readonly toolset = input<IXpertToolset>()
   readonly tool = input<IBuiltinTool>()

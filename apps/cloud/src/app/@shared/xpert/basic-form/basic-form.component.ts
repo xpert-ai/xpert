@@ -72,7 +72,7 @@ export class XpertBasicFormComponent {
       next: (valid) => {
         this.checking.set(false)
         if (!valid) {
-          this.error.set(this.#translate.instant('PAC.Xpert.IDNotAvailable', { Default: 'ID not available' }))
+          this.error.set(this.#translate.instant('XP.Xpert.IDNotAvailable', { Default: 'ID not available' }))
         }
       },
       error: (err) => {
@@ -105,7 +105,7 @@ export class XpertBasicFormComponent {
       // Validate character set: only allow alphanumeric, dash, and spaces
       if (/[^a-zA-Z0-9-\s]/.test(name)) {
         this.error.set(
-          this.#translate.instant('PAC.Xpert.NameContainsNonAlpha', {
+          this.#translate.instant('XP.Xpert.NameContainsNonAlpha', {
             Default: 'Name contains non (alphabetic | - | blank) characters'
           })
         )
@@ -116,7 +116,7 @@ export class XpertBasicFormComponent {
       // Validate length: convert to URL path and check minimum length
       const slug = convertToUrlPath(name)
       if (slug.length < 5) {
-        this.error.set(this.#translate.instant('PAC.Xpert.TooShort', { Default: 'Too short' }))
+        this.error.set(this.#translate.instant('XP.Xpert.TooShort', { Default: 'Too short' }))
         this.checking.set(false)
         return
       }

@@ -1,13 +1,13 @@
 import { Component, computed, effect, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr, Repository } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-project-github-repositories',
   standalone: true,
-  imports: [FormsModule, NgmSpinComponent],
+  imports: [FormsModule, XpSpinComponent],
   templateUrl: './repositories.component.html',
   styleUrl: './repositories.component.scss'
 })

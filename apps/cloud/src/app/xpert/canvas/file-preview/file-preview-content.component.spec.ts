@@ -9,18 +9,18 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Component({
     standalone: true,
-    selector: 'ngm-spin',
+    selector: 'xp-spin',
     template: '<div class="mock-spin"></div>'
   })
-  class NgmSpinComponent {}
+  class XpSpinComponent {}
 
   @Component({
     standalone: true,
-    selector: 'ngm-table',
+    selector: 'xp-table',
     template:
       '<div class="mock-table" [attr.data-rows]="data?.length ?? 0" [attr.data-columns]="columns?.length ?? 0"></div>'
   })
-  class NgmTableComponent {
+  class XpTableComponent {
     @Input() columns: unknown[] | null = null
     @Input() data: unknown[] | null = null
   }
@@ -42,8 +42,8 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
-    NgmSpinComponent,
-    NgmTableComponent,
+    XpSpinComponent,
+    XpTableComponent,
     SafePipe
   }
 })
@@ -190,6 +190,6 @@ describe('ChatCanvasFilePreviewContentComponent', () => {
     fixture.componentRef.setInput('previewKind', 'unsupported')
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.FormatCannotPreviewed')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.FormatCannotPreviewed')
   })
 })

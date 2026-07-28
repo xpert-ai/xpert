@@ -5,7 +5,7 @@ import { resolveTheme } from '../models'
 @Injectable({
   providedIn: 'root'
 })
-export class NgmThemeService {
+export class XpThemeService {
   readonly #themeClass$ = signal<string>('')
 
   readonly themeClass$ = toObservable(this.#themeClass$)

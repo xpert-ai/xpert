@@ -3,9 +3,9 @@ import { DomSanitizer } from '@angular/platform-browser'
 
 @Directive({
   standalone: true,
-  selector: '[ngmHighlightVar]'
+  selector: '[xpHighlightVar]'
 })
-export class NgmHighlightVarDirective {
+export class XpHighlightVarDirective {
   readonly regex = input<string>()
   readonly content = input<string>()
   readonly customClasses = input<string>('')

@@ -7,7 +7,7 @@
       z-input
       type="text"
       class="w-full pl-9"
-      [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+      [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
       [(ngModel)]="search"
     />
   </div>
@@ -29,7 +29,7 @@
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
       <label class="shrink-0 text-sm text-text-tertiary">
-        {{ 'PAC.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
+        {{ 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
       </label>
 
       @if (availableRoles$ | async; as availableRoles) {
@@ -52,13 +52,13 @@
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
       <label class="shrink-0 text-sm text-text-tertiary">
-        {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+        {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
       </label>
 
       <z-select
         class="w-full max-w-full sm:w-40"
         [zValue]="status"
-        [zPlaceholder]="'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' }"
+        [zPlaceholder]="'XP.KEY_WORDS.Status' | translate: { Default: 'Status' }"
         (zSelectionChange)="onStatusSelectionChange($event)"
       >
         @for (option of statusOptions; track option.value) {
@@ -71,7 +71,7 @@
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
       <label class="shrink-0 text-sm text-text-tertiary">
-        {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
+        {{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
       </label>
 
       @if (availableOrganizations$ | async; as availableOrganizations) {
@@ -80,7 +80,7 @@
           [zMultiple]="true"
           [zValue]="organizationIds"
           [zMaxLabelCount]="2"
-          [zPlaceholder]="'PAC.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' }"
+          [zPlaceholder]="'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' }"
           (zSelectionChange)="onOrganizationSelectionChange($event)"
         >
           @for (organization of availableOrganizations; track organization.id || organization.name) {
@@ -100,12 +100,12 @@
   <div class="flex items-center justify-between px-1 text-sm text-text-tertiary">
     <span>
       {{ users.length }}
-      {{ 'PAC.KEY_WORDS.Users' | translate: { Default: 'Users' } }}
+      {{ 'XP.KEY_WORDS.Users' | translate: { Default: 'Users' } }}
     </span>
 
     @if (roles.length || !isDefaultUserTypeFilter() || status !== allStatusFilter || organizationIds.length) {
       <button z-button zType="ghost" zSize="sm" type="button" (click)="clearFilters()">
-        {{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+        {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
       </button>
     }
   </div>
@@ -116,22 +116,22 @@
         <thead z-table-header class="text-text-secondary">
           <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
             <th z-table-head scope="col" class="sticky top-0 z-10 w-80 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.KEY_WORDS.User' | translate: { Default: 'User' } }}
+              {{ 'XP.KEY_WORDS.User' | translate: { Default: 'User' } }}
             </th>
             <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.Users.UserType' | translate: { Default: 'User type' } }}
+              {{ 'XP.Users.UserType' | translate: { Default: 'User type' } }}
             </th>
             <th z-table-head scope="col" class="sticky top-0 z-10 w-64 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
+              {{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
             </th>
             <th z-table-head scope="col" class="sticky top-0 z-10 w-32 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+              {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
             </th>
             <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: { Default: 'Updated' } }}
+              {{ 'XP.KEY_WORDS.UpdatedAt' | translate: { Default: 'Updated' } }}
             </th>
             <th z-table-head scope="col" class="sticky top-0 z-10 w-56 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
+              {{ 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
             </th>
             @if (isTenantScope()) {
               <th
@@ -142,7 +142,7 @@
                 scope="col"
                 class="sticky top-0 z-10 w-32 bg-background px-4 text-left whitespace-nowrap"
               >
-                {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+                {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
               </th>
             }
           </tr>
@@ -165,15 +165,19 @@
                       [alt]="userIdentityTitle(user)"
                     />
                     @if (user.deletedAt) {
-                      <span class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-tertiary ring ring-components-card-bg"></span>
+                      <span
+                        class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-tertiary ring ring-components-card-bg"
+                      ></span>
                     } @else {
-                      <span class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-success ring ring-components-card-bg"></span>
+                      <span
+                        class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-success ring ring-components-card-bg"
+                      ></span>
                     }
                   </div>
 
                   <div class="min-w-0">
                     <div class="max-w-64 truncate font-medium text-text-primary" [title]="userIdentityTitle(user)">
-                      {{ userIdentityTitle(user) || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                      {{ userIdentityTitle(user) || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
                     </div>
 
                     @if (userIdentitySubtitle(user)) {
@@ -216,7 +220,7 @@
                   </div>
                 } @else {
                   <span class="text-text-tertiary">
-                    {{ 'PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                    {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
                   </span>
                 }
               </td>
@@ -224,11 +228,11 @@
               <td z-table-cell class="px-4 py-3">
                 @if (user.deletedAt) {
                   <z-badge zType="secondary" zShape="pill" class="text-text-tertiary">
-                    {{ 'PAC.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
+                    {{ 'XP.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
                   </z-badge>
                 } @else {
                   <z-badge zType="secondary" zShape="pill" class="text-text-success">
-                    {{ 'PAC.KEY_WORDS.Active' | translate: { Default: 'Active' } }}
+                    {{ 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' } }}
                   </z-badge>
                 }
               </td>
@@ -237,7 +241,7 @@
                 @if (user.updatedAt) {
                   {{ user.updatedAt | relative }}
                 } @else {
-                  {{ 'PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                  {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
                 }
               </td>
 
@@ -253,7 +257,7 @@
                   </z-badge>
                 } @else {
                   <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
-                    {{ 'PAC.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
+                    {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
                   </z-badge>
                 }
               </td>
@@ -275,7 +279,7 @@
                       type="button"
                       class="text-text-tertiary"
                       [routerLink]="['/settings/users/', user.id]"
-                      [attr.aria-label]="'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' }"
+                      [attr.aria-label]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
                       (click)="$event.stopPropagation()"
                     >
                       <z-icon zType="edit"></z-icon>
@@ -289,7 +293,7 @@
                         zShape="circle"
                         type="button"
                         class="text-text-destructive"
-                        [attr.aria-label]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                        [attr.aria-label]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                         (click)="remove(user); $event.stopPropagation()"
                       >
                         <z-icon zType="trash"></z-icon>
@@ -309,7 +313,7 @@
     >
       <z-icon zType="users" class="text-text-tertiary" zSize="lg"></z-icon>
       <div class="mt-3 text-sm font-medium text-text-primary">
-        {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+        {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
       </div>
     </div>
   }

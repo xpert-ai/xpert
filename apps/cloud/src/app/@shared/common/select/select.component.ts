@@ -3,14 +3,14 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, contentChild, inject, input, model, TemplateRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import {
   buildListboxOptions,
   debouncedSignal,
   formatSelectOptionValue,
   hasSelectOptionValue,
-  NgmDensityDirective,
-  NgmI18nPipe,
+  XpDensityDirective,
+  XpI18nPipe,
   TSelectOption
 } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,21 +28,21 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     TranslateModule,
     CdkListboxModule,
     CdkMenuModule,
-    NgmHighlightDirective,
-    NgmI18nPipe
+    XpHighlightDirective,
+    XpI18nPipe
   ],
-  selector: 'ngm-select',
+  selector: 'xp-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
-  hostDirectives: [NgxControlValueAccessor, NgmDensityDirective],
+  hostDirectives: [NgxControlValueAccessor, XpDensityDirective],
   inputs: ['small', 'large'],
   host: {
     '[class.inline]': 'inline()'
   }
 })
-export class NgmSelectComponent {
+export class XpSelectComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly placeholder = input<string>()

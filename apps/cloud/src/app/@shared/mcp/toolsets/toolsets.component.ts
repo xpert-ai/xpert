@@ -5,9 +5,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { CapitalizePipe, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
@@ -44,8 +44,8 @@ import { XpertMCPManageComponent } from '../manage/manage.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    DynamicGridDirective,
-    NgmCommonModule,
+    XpDynamicGridDirective,
+    XpCommonModule,
     CardCreateComponent,
     ToolsetCardComponent
   ],
@@ -67,7 +67,7 @@ export class MCPToolsetsComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly toolsetService = inject(XpertToolsetService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly confirmUnique = injectConfirmUnique()
 
   // Inputs

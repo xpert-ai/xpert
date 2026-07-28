@@ -1,16 +1,16 @@
 @reference "../../../../../../styles/tailwind-reference.css";
 
-.ngm-cdk-menu {
-    @apply w-60 p-1.5;
+.xp-cdk-menu {
+  @apply w-60 p-1.5;
 }
-.ngm-cdk-menu-item {
-    @apply p-2;
+.xp-cdk-menu-item {
+  @apply p-2;
 }
 
 .pipeline-tab.selected {
-    @apply cursor-default bg-components-panel-bg text-text-accent;
+  @apply cursor-default bg-components-panel-bg text-text-accent;
 }
 
 .middleware-tip-card {
-    @apply rounded-2xl border-[0.5px] border-solid border-divider-deep p-4 shadow-md;
+  @apply rounded-2xl border-[0.5px] border-solid border-divider-deep p-4 shadow-md;
 }

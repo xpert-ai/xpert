@@ -21,7 +21,7 @@ $prefix: (ngm, shell);
     background-color: var(#{token-utils.get-token-variable(bg-color)});
   }
 
-  .pac-features__sidenav {
+  .xp-features__sidenav {
     background-color: var(#{token-utils.get-token-variable(bg-color)});
   }
 }
@@ -34,20 +34,20 @@ $prefix: (ngm, shell);
   max-width: 100%;
 }
 
-.pac-features__sidenav-shell {
+.xp-features__sidenav-shell {
   @apply relative h-full shrink-0 z-30;
 }
 
-.pac-features__sidenav-shell--over {
+.xp-features__sidenav-shell--over {
   @apply absolute top-0 left-0 bottom-0;
 }
 
-.pac-features__sidenav {
+.xp-features__sidenav {
   @apply h-full duration-200 ease-in-out;
   transition: width;
 }
 
-.pac-features__sidenav-backdrop {
+.xp-features__sidenav-backdrop {
   @apply border-0 p-0;
 }
 
@@ -60,8 +60,8 @@ $prefix: (ngm, shell);
   }
 }
 
-.pac-auth-button[z-button],
-z-button.pac-auth-button {
+.xp-auth-button[z-button],
+z-button.xp-auth-button {
   --mdc-icon-button-icon-size: 100%;
   .avatar {
     max-width: 100%;
@@ -69,7 +69,7 @@ z-button.pac-auth-button {
   }
 }
 
-.pac-home-title {
+.xp-home-title {
   background: linear-gradient(-45deg, #5d55f4, #00ff95, #5d55f4);
   background-size: 200%;
   background-position: 180% 50%;
@@ -113,6 +113,6 @@ emoji-avatar.copilot-thinking {
   @apply border-2 animate-twinkling-slow;
 }
 
-.pac-copilot-trigger.active {
+.xp-copilot-trigger.active {
   @apply shadow-lg bg-components-card-bg;
 }

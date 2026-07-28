@@ -1,11 +1,11 @@
 @reference "../../../tailwind-workspace-reference.css";
-.ngm-list.mdc-list {
+.xp-list.mdc-list {
   .mdc-list-item {
     @apply hover:bg-black/5 dark:hover:bg-white/5;
   }
 }
 
-ul.ngm-nav-list {
+ul.xp-nav-list {
   li.active {
     @apply font-semibold bg-white/90 text-primary-500;
   }
@@ -15,7 +15,7 @@ ul.ngm-nav-list {
   }
 }
 
-ul.ngm-list {
+ul.xp-list {
   li {
     @apply rounded-lg;
 

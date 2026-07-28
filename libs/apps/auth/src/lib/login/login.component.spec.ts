@@ -4,8 +4,8 @@ import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
 import { CookieService } from 'ngx-cookie-service'
 import { BehaviorSubject, of } from 'rxjs'
-import { PAC_AUTH_OPTIONS } from '../auth.options'
-import { PacAuthService } from '../services/auth.service'
+import { XP_AUTH_OPTIONS } from '../auth.options'
+import { XpAuthService } from '../services/auth.service'
 import { UserLoginComponent } from './login.component'
 
 type SSOProviderDescriptor = {
@@ -22,10 +22,7 @@ describe('UserLoginComponent', () => {
     jest.clearAllMocks()
   })
 
-  async function createFixture(
-    queryParams: Record<string, string> = {},
-    providers: SSOProviderDescriptor[] = []
-  ) {
+  async function createFixture(queryParams: Record<string, string> = {}, providers: SSOProviderDescriptor[] = []) {
     const queryParamMap$ = new BehaviorSubject(convertToParamMap(queryParams))
 
     await TestBed.configureTestingModule({
@@ -46,7 +43,7 @@ describe('UserLoginComponent', () => {
           }
         },
         {
-          provide: PAC_AUTH_OPTIONS,
+          provide: XP_AUTH_OPTIONS,
           useValue: {
             forms: {
               login: {
@@ -60,7 +57,7 @@ describe('UserLoginComponent', () => {
           }
         },
         {
-          provide: PacAuthService,
+          provide: XpAuthService,
           useValue: {
             authenticate: jest.fn(() =>
               of({
@@ -118,18 +115,15 @@ describe('UserLoginComponent', () => {
   })
 
   it('falls back to a generic provider message when only the SSO error code is present', async () => {
-    const { component, queryParamMap$, fixture } = await createFixture(
-      {},
-      [
-        {
-          provider: 'lark',
-          displayName: 'Feishu',
-          icon: '/feishu.png',
-          order: 1,
-          startUrl: '/api/lark-identity/login/start'
-        }
-      ]
-    )
+    const { component, queryParamMap$, fixture } = await createFixture({}, [
+      {
+        provider: 'lark',
+        displayName: 'Feishu',
+        icon: '/feishu.png',
+        order: 1,
+        startUrl: '/api/lark-identity/login/start'
+      }
+    ])
 
     queryParamMap$.next(
       convertToParamMap({

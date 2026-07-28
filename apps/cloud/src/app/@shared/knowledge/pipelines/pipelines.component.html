@@ -11,11 +11,18 @@
           <i class="ri-add-circle-line text-2xl text-text-quaternary group-hover:text-text-accent"></i>
         </div>
         <div class="system-md-semibold truncate text-text-primary">
-          {{ 'PAC.Knowledgebase.BlankKnowledgePipeline' | translate: {Default: 'Blank Knowledge Pipeline'} }}
+          {{ 'XP.Knowledgebase.BlankKnowledgePipeline' | translate: { Default: 'Blank Knowledge Pipeline' } }}
         </div>
       </div>
       <p class="system-xs-regular line-clamp-3 px-4 py-1 text-text-tertiary font-body">
-        {{ 'PAC.Knowledgebase.BlankKnowledgePipelineDesc' | translate: {Default: 'Create a custom knowledge pipeline from scratch with full control over data processing and structure.'} }}
+        {{
+          'XP.Knowledgebase.BlankKnowledgePipelineDesc'
+            | translate
+              : {
+                  Default:
+                    'Create a custom knowledge pipeline from scratch with full control over data processing and structure.'
+                }
+        }}
       </p>
     </div>
 
@@ -26,7 +33,11 @@
         <div class="flex items-center gap-x-3 p-4 pb-2">
           <div class="relative shrink-0">
             @if (template.icon) {
-              <xp-icon [icon]="template.icon" size="32" class="flex justify-center items-center w-10 h-10 rounded-[10px] overflow-hidden border-[0.5px] border-divider-regular" />
+              <xp-icon
+                [icon]="template.icon"
+                size="32"
+                class="flex justify-center items-center w-10 h-10 rounded-[10px] overflow-hidden border-[0.5px] border-divider-regular"
+              />
             } @else {
               <div
                 class="flex items-center justify-center relative grow-0 shrink-0 overflow-hidden border-[0.5px] border-divider-regular w-10 h-10 text-[24px] rounded-[10px] bg-pipeline-template-default-icon-bg text-text-secondary"
@@ -36,28 +47,29 @@
             }
           </div>
           <div class="flex grow flex-col gap-y-1 overflow-hidden py-px">
-            <div class="system-md-semibold truncate text-text-secondary" [title]="template.title">{{ template.title }}</div>
+            <div class="system-md-semibold truncate text-text-secondary" [title]="template.title">
+              {{ template.title }}
+            </div>
             <div class="text-xs font-mono font-medium uppercase text-text-tertiary">{{ template.category }}</div>
           </div>
         </div>
-        <p
-          class="system-xs-regular line-clamp-3 grow px-4 py-1 text-text-tertiary"
-          [title]="template.description"
-        >
+        <p class="system-xs-regular line-clamp-3 grow px-4 py-1 text-text-tertiary" [title]="template.description">
           {{ template.description }}
         </p>
         <div
           class="absolute bottom-0 left-0 z-10 hidden w-full items-center gap-x-1 bg-hero-gradient p-4 pt-8 group-hover:flex"
         >
-          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium grow gap-x-0.5"
-            (click)="installTemplate(template)">
+          <button
+            type="button"
+            class="btn disabled:btn-disabled btn-primary btn-medium grow gap-x-0.5"
+            (click)="installTemplate(template)"
+          >
             <i class="ri-add-line"></i>
-            <span class="px-0.5">{{ 'PAC.Knowledgebase.Install' | translate: {Default: 'Install'} }}</span>
+            <span class="px-0.5">{{ 'XP.Knowledgebase.Install' | translate: { Default: 'Install' } }}</span>
           </button>
-          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium grow gap-x-0.5"
-            disabled>
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium grow gap-x-0.5" disabled>
             <i class="ri-corner-right-up-line"></i>
-            <span class="px-0.5">{{ 'PAC.Knowledgebase.Details' | translate: {Default: 'Details'} }}</span>
+            <span class="px-0.5">{{ 'XP.Knowledgebase.Details' | translate: { Default: 'Details' } }}</span>
           </button>
         </div>
       </div>
@@ -69,17 +81,25 @@
   class="absolute bottom-0 left-0 right-0 z-10 flex flex-col gap-y-4 bg-knowledge-pipeline-creation-footer-bg px-16 pb-6 backdrop-blur-[6px]"
 >
   <div class="h-[0.5px] bg-divider-regular my-0 w-8"></div>
-  <input type="file" #fileDropRef id="fileDropRef" class="invisible"
+  <input
+    type="file"
+    #fileDropRef
+    id="fileDropRef"
+    class="invisible"
     (change)="fileBrowseHandler($event.target)"
-    (click)="fileDropRef.value=null;"/>
-  <label for="fileDropRef" class="system-md-medium flex items-center gap-x-3 cursor-pointer text-text-primary hover:text-text-accent">
+    (click)="fileDropRef.value = null"
+  />
+  <label
+    for="fileDropRef"
+    class="system-md-medium flex items-center gap-x-3 cursor-pointer text-text-primary hover:text-text-accent"
+  >
     <i class="ri-contacts-book-upload-line w-5 h-5 text-xl flex justify-center items-center"></i>
     <span>
-      {{ 'PAC.Knowledgebase.ImportFromDSLFile' | translate: {Default: 'Import from DSL File'} }}
+      {{ 'XP.Knowledgebase.ImportFromDSLFile' | translate: { Default: 'Import from DSL File' } }}
     </span>
   </label>
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+  <xp-spin class="absolute left-0 top-0 w-full h-full" />
 }

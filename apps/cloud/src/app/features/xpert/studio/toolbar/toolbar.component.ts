@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { AppearanceDirective } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { XpertStudioComponent } from '../studio.component'
@@ -16,7 +16,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    AppearanceDirective,
+    XpAppearanceDirective,
 
     XpertStudioContextMenuComponent
   ],

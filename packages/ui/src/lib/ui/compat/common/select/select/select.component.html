@@ -3,18 +3,18 @@
     <span class="text-red-500">*</span>
   }
   @if (label()) {
-    <label class="ngm-select-label shrink-0" [title]="label()">
+    <label class="xp-select-label shrink-0" [title]="label()">
       {{ label() }}
     </label>
   }
 
-  <ng-content select="[ngmLabel]"></ng-content>
+  <ng-content select="[xpLabel]"></ng-content>
 </div>
 
 @if (!searchable() || multiple()) {
   <div class="relative">
     <z-select
-      class="ngm-select-element relative"
+      class="xp-select-element relative"
       [attr.disabled]="isDisabled"
       [formControl]="formControl"
       [zDisabled]="isDisabled"
@@ -36,7 +36,7 @@
   <div class="relative">
     <z-combobox-deprecated
       zTriggerMode="input"
-      class="ngm-input-element w-full relative"
+      class="xp-input-element w-full relative"
       [value]="value()"
       [options]="comboboxOptions()"
       [placeholder]="placeholder() || ''"
@@ -110,11 +110,11 @@
 
 <div class="flex items-center">
   <ng-content select="[help]"></ng-content>
-  <z-form-message zType="error" class="ngm-select__message text-xs h-4">
+  <z-form-message zType="error" class="xp-select__message text-xs h-4">
     @if (formControl.invalid) {
       <span>{{ formControl.getError('error') }}</span>
     }
-    <ng-content select="[ngmError]"></ng-content>
+    <ng-content select="[xpError]"></ng-content>
   </z-form-message>
 </div>
 
@@ -136,7 +136,7 @@
     @if (option.icon) {
       <z-icon [zType]="option.icon"></z-icon>
     }
-    <ngm-display-behaviour
+    <xp-display-behaviour
       class="flex-1 overflow-hidden"
       [displayBehaviour]="displayBehaviour()"
       [option]="option"
@@ -146,5 +146,5 @@
 </ng-template>
 
 <ng-template #suffixTemplate>
-  <ng-content select="[ngmSuffix]"></ng-content>
+  <ng-content select="[xpSuffix]"></ng-content>
 </ng-template>

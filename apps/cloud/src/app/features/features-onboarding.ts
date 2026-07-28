@@ -20,24 +20,24 @@ export function createFeatureEntryOnboardingSteps(translate = (key: string) => k
     {
       key: 'scope-switcher',
       target: onboardingTarget('scope-switcher'),
-      title: translate('PAC.Chat.ClawXpert.EntryGuideScopeTitle'),
-      description: translate('PAC.Chat.ClawXpert.EntryGuideScopeDesc'),
+      title: translate('XP.Chat.ClawXpert.EntryGuideScopeTitle'),
+      description: translate('XP.Chat.ClawXpert.EntryGuideScopeDesc'),
       placement: 'rightTop',
       type: 'primary'
     },
     {
       key: 'model-providers',
       target: onboardingTarget('model-providers'),
-      title: translate('PAC.Chat.ClawXpert.EntryGuideModelProvidersTitle'),
-      description: translate('PAC.Chat.ClawXpert.EntryGuideModelProvidersDesc'),
+      title: translate('XP.Chat.ClawXpert.EntryGuideModelProvidersTitle'),
+      description: translate('XP.Chat.ClawXpert.EntryGuideModelProvidersDesc'),
       placement: 'rightTop',
       type: 'primary'
     },
     {
       key: 'workspace',
       target: onboardingTarget('workspace'),
-      title: translate('PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle'),
-      description: translate('PAC.Chat.ClawXpert.EntryGuideWorkspaceDesc'),
+      title: translate('XP.Chat.ClawXpert.EntryGuideWorkspaceTitle'),
+      description: translate('XP.Chat.ClawXpert.EntryGuideWorkspaceDesc'),
       placement: 'rightTop',
       type: 'primary'
     }
@@ -87,10 +87,10 @@ export function shouldCreateClawXpertAfterEntryOnboarding(
 
 export function getFeatureEntryOnboardingFinishText(xpertCount: number | null | undefined, canCreateXpert = true) {
   if (!shouldCreateClawXpertAfterEntryOnboarding(xpertCount, canCreateXpert)) {
-    return 'PAC.ACTIONS.Done'
+    return 'XP.ACTIONS.Done'
   }
 
-  return 'PAC.Chat.ClawXpert.EntryGuideCreate'
+  return 'XP.Chat.ClawXpert.EntryGuideCreate'
 }
 
 export function shouldExpandSidebarForEntryOnboarding(defaultCollapsed: boolean, entryOnboardingVisible: boolean) {

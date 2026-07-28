@@ -44,9 +44,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
           </div>
           <div class="min-w-0">
             <h2 class="truncate text-base font-semibold leading-6">
-              {{
-                file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
-              }}
+              {{ file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' }) }}
             </h2>
             @if (file.mimeType) {
               <p class="mt-1 truncate text-xs text-text-tertiary">{{ file.mimeType }}</p>
@@ -60,7 +58,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
               type="button"
               data-file-preview-open-external="true"
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-              [attr.aria-label]="'PAC.Assistant.FilePreview.OpenFile' | translate: { Default: 'Open file' }"
+              [attr.aria-label]="'XP.Assistant.FilePreview.OpenFile' | translate: { Default: 'Open file' }"
               (click)="openExternal()"
             >
               <i class="ri-external-link-line"></i>
@@ -70,14 +68,14 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
             [href]="previewUrl()"
             [download]="file.name || 'source-document'"
-            [attr.aria-label]="'PAC.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' }"
+            [attr.aria-label]="'XP.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' }"
           >
             <i class="ri-download-line"></i>
           </a>
           <button
             type="button"
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-            [attr.aria-label]="'PAC.Assistant.FilePreview.Close' | translate: { Default: 'Close' }"
+            [attr.aria-label]="'XP.Assistant.FilePreview.Close' | translate: { Default: 'Close' }"
             (click)="close()"
           >
             <i class="ri-close-line"></i>
@@ -97,23 +95,25 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
               <i class="ri-file-download-line text-xl"></i>
             </div>
             <h3 class="mt-4 text-base font-semibold text-text-primary">
-              {{ 'PAC.Chat.FileTooLargeToPreview' | translate: { Default: 'This file is too large to preview.' } }}
+              {{ 'XP.Chat.FileTooLargeToPreview' | translate: { Default: 'This file is too large to preview.' } }}
             </h3>
             <p class="mt-2 text-sm leading-6 text-text-tertiary">
               {{
-                'PAC.Chat.FileTooLargeDownloadHint'
+                'XP.Chat.FileTooLargeDownloadHint'
                   | translate: { Default: 'Download it and open it locally to view its contents.' }
               }}
             </p>
             @if (fileSizeLabel() && previewSizeLimitLabel()) {
               <p class="mt-2 text-sm text-text-tertiary">
                 {{
-                  'PAC.Chat.FilePreviewSizeLimit'
+                  'XP.Chat.FilePreviewSizeLimit'
                     | translate
                       : {
                           size: fileSizeLabel(),
                           limit: previewSizeLimitLabel(),
                           Default: 'File size: {{size
+
+
 
                 }}. File preview limit: {{ limit }}.' } }}
               </p>
@@ -124,7 +124,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
               (click)="downloadFile()"
             >
               <i class="ri-download-line"></i>
-              {{ 'PAC.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' } }}
+              {{ 'XP.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' } }}
             </button>
           </div>
         </div>
@@ -136,7 +136,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
                 class="block h-full min-h-0"
                 [box]="evidenceBox()"
                 [fileName]="
-                  file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                  file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
                 "
                 [page]="evidencePage()"
                 [rotation]="evidenceRotation()"
@@ -150,7 +150,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
                     [src]="basePreviewUrl()"
                     [alt]="
                       file.name ||
-                      ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                      ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
                     "
                     class="block h-auto max-w-full rounded-xl object-contain shadow-sm"
                   />
@@ -165,14 +165,14 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
                 </div>
               </div>
             } @else {
-              <pac-file-preview-content
+              <xp-file-preview-content
                 class="flex h-full min-h-0 flex-col overflow-hidden bg-components-card-bg"
                 [content]="previewContent()"
                 [documentBlob]="previewData().documentBlob"
                 [downloadable]="true"
                 [error]="previewError()"
                 [fileName]="
-                  file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                  file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
                 "
                 [loading]="previewLoading()"
                 [previewKind]="previewKind()"
@@ -188,7 +188,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
           >
             <div>
               <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                {{ 'PAC.Assistant.FilePreview.EvidenceLocation' | translate: { Default: 'Evidence location' } }}
+                {{ 'XP.Assistant.FilePreview.EvidenceLocation' | translate: { Default: 'Evidence location' } }}
               </div>
               <div class="mt-1 text-text-primary">
                 @if (evidencePage()) {
@@ -209,9 +209,8 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
               }
               @if (currentEvidence.locator?.recognitionRotation !== undefined) {
                 <div class="mt-1 text-xs text-text-tertiary">
-                  {{
-                    'PAC.Assistant.FilePreview.RecognitionRotation' | translate: { Default: 'Recognition rotation' }
-                  }}: {{ currentEvidence.locator?.recognitionRotation }}°
+                  {{ 'XP.Assistant.FilePreview.RecognitionRotation' | translate: { Default: 'Recognition rotation' } }}:
+                  {{ currentEvidence.locator?.recognitionRotation }}°
                 </div>
               }
             </div>
@@ -230,7 +229,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
             @if (currentEvidence.text) {
               <div>
                 <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                  {{ 'PAC.Assistant.FilePreview.EvidenceText' | translate: { Default: 'Evidence text' } }}
+                  {{ 'XP.Assistant.FilePreview.EvidenceText' | translate: { Default: 'Evidence text' } }}
                 </div>
                 <p class="mt-1 whitespace-pre-wrap leading-6 text-text-primary">{{ currentEvidence.text }}</p>
               </div>
@@ -238,7 +237,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
 
             <p class="text-xs leading-5 text-text-tertiary">
               {{
-                'PAC.Assistant.FilePreview.EvidenceHint'
+                'XP.Assistant.FilePreview.EvidenceHint'
                   | translate
                     : {
                         Default:
@@ -249,14 +248,14 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
           </aside>
         </div>
       } @else {
-        <pac-file-preview-content
+        <xp-file-preview-content
           class="flex min-h-0 flex-1 flex-col overflow-hidden bg-components-card-bg"
           [content]="previewContent()"
           [documentBlob]="previewData().documentBlob"
           [downloadable]="true"
           [error]="previewError()"
           [fileName]="
-            file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+            file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
           "
           [loading]="previewLoading()"
           [previewKind]="previewKind()"

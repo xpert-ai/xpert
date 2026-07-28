@@ -23,7 +23,7 @@ import {
 
 @Component({
   standalone: true,
-  selector: 'pac-membership-admin',
+  selector: 'xp-membership-admin',
   imports: [
     CommonModule,
     FormsModule,
@@ -106,7 +106,7 @@ export class MembershipAdminComponent implements OnInit {
       next: (status) => {
         this.scopeStatus.set(status)
         this.#toastr.success(
-          this.#translate.instant('PAC.Membership.InitializeSuccess', {
+          this.#translate.instant('XP.Membership.InitializeSuccess', {
             Default: 'Organization membership is ready.'
           })
         )
@@ -192,28 +192,28 @@ export class MembershipAdminComponent implements OnInit {
 
   pointsLabel(points?: number | null) {
     return points === null
-      ? this.#translate.instant('PAC.Membership.Unlimited', { Default: 'Unlimited' })
+      ? this.#translate.instant('XP.Membership.Unlimited', { Default: 'Unlimited' })
       : String(points ?? 0)
   }
 
   scopeDefaultPlanLabel(status: IMembershipScopeStatus | null) {
     if (!status?.defaultPlan) {
-      return this.#translate.instant('PAC.Membership.NoDefaultPlan', { Default: 'No default plan' })
+      return this.#translate.instant('XP.Membership.NoDefaultPlan', { Default: 'No default plan' })
     }
     return `${status.defaultPlan.name} · ${this.pointsLabel(status.defaultPlan.includedPoints)}`
   }
 
   scopeStatusLabel(status: IMembershipScopeStatus | null) {
     if (!status) {
-      return this.#translate.instant('PAC.KEY_WORDS.Loading', { Default: 'Loading...' })
+      return this.#translate.instant('XP.KEY_WORDS.Loading', { Default: 'Loading...' })
     }
     if (status.initialized) {
-      return this.#translate.instant('PAC.Membership.ScopeInitialized', { Default: 'Initialized' })
+      return this.#translate.instant('XP.Membership.ScopeInitialized', { Default: 'Initialized' })
     }
     if (status.needsRepair) {
-      return this.#translate.instant('PAC.Membership.ScopeNeedsRepair', { Default: 'Needs repair' })
+      return this.#translate.instant('XP.Membership.ScopeNeedsRepair', { Default: 'Needs repair' })
     }
-    return this.#translate.instant('PAC.Membership.ScopeNotInitialized', { Default: 'Not initialized' })
+    return this.#translate.instant('XP.Membership.ScopeNotInitialized', { Default: 'Not initialized' })
   }
 
   setDraftUnlimited(enabled: boolean) {
@@ -266,7 +266,7 @@ export class MembershipAdminComponent implements OnInit {
       }
     } catch {
       this.#toastr.error(
-        this.#translate.instant('PAC.Membership.InvalidJson', { Default: 'Invalid JSON configuration.' })
+        this.#translate.instant('XP.Membership.InvalidJson', { Default: 'Invalid JSON configuration.' })
       )
       return null
     }

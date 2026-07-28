@@ -4,11 +4,11 @@
 // import { ThemesEnum } from '@xpert-ai/headless-ui'
 
 // @Component({
-//   selector: 'pac-general',
+//   selector: 'xp-general',
 //   templateUrl: './general.component.html',
 //   styleUrls: ['./general.component.scss']
 // })
-// export class PACGeneralComponent {
+// export class XpGeneralComponent {
 //   readonly store = inject(Store)
 
 //   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS

@@ -1,10 +1,10 @@
-<div class="pac-page-header">
+<div class="xp-page-header">
   <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
     <div class="min-w-0">
-      <div class="pac-page-title">{{ 'PAC.Membership.AdminTitle' | translate: { Default: 'Membership Plans' } }}</div>
+      <div class="xp-page-title">{{ 'XP.Membership.AdminTitle' | translate: { Default: 'Membership Plans' } }}</div>
       <div class="mt-1 text-sm text-text-tertiary">
         {{
-          'PAC.Membership.AdminDescription'
+          'XP.Membership.AdminDescription'
             | translate
               : { Default: 'Configure current-scope membership plans, point allowances, and model usage rules.' }
         }}
@@ -13,12 +13,12 @@
 
     <button z-button zType="default" type="button" class="self-start lg:self-auto" (click)="create()">
       <z-icon zType="add"></z-icon>
-      {{ 'PAC.Membership.NewPlan' | translate: { Default: 'New plan' } }}
+      {{ 'XP.Membership.NewPlan' | translate: { Default: 'New plan' } }}
     </button>
   </div>
 </div>
 
-<div class="pac-page-body flex flex-1 flex-col gap-4 p-4">
+<div class="xp-page-body flex flex-1 flex-col gap-4 p-4">
   @if (scopeStatus(); as status) {
     <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
       <z-card-content class="flex flex-col gap-4 p-4 xl:flex-row xl:items-center xl:justify-between">
@@ -32,15 +32,15 @@
             <div class="min-w-0">
               <div class="text-base font-semibold text-text-primary">
                 @if (status.scope === 'organization') {
-                  {{ 'PAC.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
+                  {{ 'XP.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
                 } @else {
-                  {{ 'PAC.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
+                  {{ 'XP.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
                 }
               </div>
               <div class="mt-1 text-sm text-text-tertiary">
                 @if (status.scope === 'organization') {
                   {{
-                    'PAC.Membership.OrganizationScopeHint'
+                    'XP.Membership.OrganizationScopeHint'
                       | translate
                         : {
                             Default:
@@ -49,7 +49,7 @@
                   }}
                 } @else {
                   {{
-                    'PAC.Membership.TenantScopeHint'
+                    'XP.Membership.TenantScopeHint'
                       | translate: { Default: 'Tenant plans control tenant Copilot models and tenant fallback access.' }
                   }}
                 }
@@ -74,7 +74,7 @@
         <div class="grid shrink-0 grid-cols-2 gap-2 text-sm md:grid-cols-4">
           <div class="rounded-lg bg-components-card-bg px-3 py-2">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.DefaultPlanLabel' | translate: { Default: 'Default plan' } }}
+              {{ 'XP.Membership.DefaultPlanLabel' | translate: { Default: 'Default plan' } }}
             </div>
             <div class="mt-1 truncate font-semibold text-text-primary" [title]="scopeDefaultPlanLabel(status)">
               {{ scopeDefaultPlanLabel(status) }}
@@ -82,14 +82,14 @@
           </div>
           <div class="rounded-lg bg-components-card-bg px-3 py-2">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
+              {{ 'XP.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
             </div>
             <div class="mt-1 font-semibold text-text-primary">{{ status.activePlanCount | number }}</div>
           </div>
           @if (status.scope === 'organization') {
             <div class="rounded-lg bg-components-card-bg px-3 py-2">
               <div class="text-xs text-text-tertiary">
-                {{ 'PAC.Membership.AssignedMembers' | translate: { Default: 'Assigned members' } }}
+                {{ 'XP.Membership.AssignedMembers' | translate: { Default: 'Assigned members' } }}
               </div>
               <div class="mt-1 font-semibold text-text-primary">
                 {{ status.assignedMemberCount ?? 0 | number }} / {{ status.activeMemberCount ?? 0 | number }}
@@ -97,7 +97,7 @@
             </div>
             <div class="rounded-lg bg-components-card-bg px-3 py-2">
               <div class="text-xs text-text-tertiary">
-                {{ 'PAC.Membership.LocalCopilots' | translate: { Default: 'Local Copilots' } }}
+                {{ 'XP.Membership.LocalCopilots' | translate: { Default: 'Local Copilots' } }}
               </div>
               <div class="mt-1 font-semibold text-text-primary">{{ status.localCopilotCount ?? 0 | number }}</div>
             </div>
@@ -115,10 +115,10 @@
           >
             <z-icon zType="settings_backup_restore"></z-icon>
             @if (status.activePlanCount > 0) {
-              {{ 'PAC.Membership.RepairAssignments' | translate: { Default: 'Repair assignments' } }}
+              {{ 'XP.Membership.RepairAssignments' | translate: { Default: 'Repair assignments' } }}
             } @else {
               {{
-                'PAC.Membership.InitializeOrganization' | translate: { Default: 'Initialize organization membership' }
+                'XP.Membership.InitializeOrganization' | translate: { Default: 'Initialize organization membership' }
               }}
             }
           </button>
@@ -137,7 +137,7 @@
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
-            {{ 'PAC.Membership.TotalPlans' | translate: { Default: 'Total plans' } }}
+            {{ 'XP.Membership.TotalPlans' | translate: { Default: 'Total plans' } }}
           </div>
           <div class="mt-1 text-xl font-semibold text-text-primary">{{ plans().length | number }}</div>
         </div>
@@ -153,7 +153,7 @@
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
-            {{ 'PAC.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
+            {{ 'XP.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
           </div>
           <div class="mt-1 text-xl font-semibold text-text-primary">{{ activePlanCount() | number }}</div>
         </div>
@@ -169,7 +169,7 @@
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
-            {{ 'PAC.Membership.ArchivedPlans' | translate: { Default: 'Archived plans' } }}
+            {{ 'XP.Membership.ArchivedPlans' | translate: { Default: 'Archived plans' } }}
           </div>
           <div class="mt-1 text-xl font-semibold text-text-primary">{{ archivedPlanCount() | number }}</div>
         </div>
@@ -184,16 +184,16 @@
       <z-card-header class="items-center border-b border-divider-regular py-5">
         <div class="flex w-full items-center justify-between gap-3">
           <div class="min-w-0">
-            <z-card-title>{{ 'PAC.Membership.PlanCatalog' | translate: { Default: 'Plan catalog' } }}</z-card-title>
+            <z-card-title>{{ 'XP.Membership.PlanCatalog' | translate: { Default: 'Plan catalog' } }}</z-card-title>
             <z-card-subtitle class="mt-1">
               {{
-                'PAC.Membership.PlanCatalogHint' | translate: { Default: 'Select a plan to review or edit its rules.' }
+                'XP.Membership.PlanCatalogHint' | translate: { Default: 'Select a plan to review or edit its rules.' }
               }}
             </z-card-subtitle>
           </div>
           @if (loading()) {
             <z-badge zType="secondary" zShape="pill">
-              {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
             </z-badge>
           }
         </div>
@@ -228,7 +228,7 @@
                 <div class="flex shrink-0 flex-wrap justify-end gap-1">
                   @if (plan.isDefault) {
                     <z-badge zType="secondary" zShape="pill">
-                      {{ 'PAC.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
+                      {{ 'XP.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
                     </z-badge>
                   }
                   <z-badge
@@ -240,7 +240,7 @@
                         : 'border-divider-regular text-text-tertiary'
                     "
                   >
-                    {{ 'PAC.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
+                    {{ 'XP.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
                   </z-badge>
                 </div>
               </div>
@@ -248,11 +248,11 @@
               <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
                 <div class="rounded-lg bg-components-panel-bg px-3 py-2">
                   <div class="text-xs text-text-tertiary">
-                    {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
+                    {{ 'XP.Membership.Points' | translate: { Default: 'Points' } }}
                   </div>
                   <div class="mt-1 font-semibold text-text-primary">
                     @if (plan.includedPoints === null) {
-                      {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                      {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                     } @else {
                       {{ plan.includedPoints | number }}
                     }
@@ -260,7 +260,7 @@
                 </div>
                 <div class="rounded-lg bg-components-panel-bg px-3 py-2">
                   <div class="text-xs text-text-tertiary">
-                    {{ 'PAC.Membership.Ratio' | translate: { Default: 'Ratio' } }}
+                    {{ 'XP.Membership.Ratio' | translate: { Default: 'Ratio' } }}
                   </div>
                   <div class="mt-1 font-semibold text-text-primary">1 : {{ plan.tokensPerPoint | number }}</div>
                 </div>
@@ -271,7 +271,7 @@
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
                     {{ plan.priceCurrency || '' }} {{ plan.priceAmount | number: '1.0-4' }}
                   } @else {
-                    {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
+                    {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
                   }
                 </div>
 
@@ -284,7 +284,7 @@
                     (click)="$event.stopPropagation(); edit(plan)"
                   >
                     <z-icon zType="edit"></z-icon>
-                    {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                    {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                   </button>
                   <button
                     z-button
@@ -295,7 +295,7 @@
                     (click)="$event.stopPropagation(); archive(plan)"
                   >
                     <z-icon zType="archive"></z-icon>
-                    {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
+                    {{ 'XP.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
                   </button>
                 </div>
               </div>
@@ -310,11 +310,11 @@
                 <z-icon zType="credit-card"></z-icon>
               </span>
               <div class="text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.NoPlans' | translate: { Default: 'No membership plans yet.' } }}
+                {{ 'XP.Membership.NoPlans' | translate: { Default: 'No membership plans yet.' } }}
               </div>
               <button z-button zType="default" type="button" (click)="create()">
                 <z-icon zType="add"></z-icon>
-                {{ 'PAC.Membership.NewPlan' | translate: { Default: 'New plan' } }}
+                {{ 'XP.Membership.NewPlan' | translate: { Default: 'New plan' } }}
               </button>
             </div>
           }
@@ -330,13 +330,13 @@
               <div class="min-w-0">
                 <z-card-title>
                   {{
-                    (draft.id ? 'PAC.Membership.EditPlan' : 'PAC.Membership.CreatePlan')
+                    (draft.id ? 'XP.Membership.EditPlan' : 'XP.Membership.CreatePlan')
                       | translate: { Default: draft.id ? 'Edit plan' : 'Create plan' }
                   }}
                 </z-card-title>
                 <z-card-subtitle class="mt-1">
                   {{
-                    'PAC.Membership.PlanFormHint'
+                    'XP.Membership.PlanFormHint'
                       | translate: { Default: 'Define the allowance, exchange rate, and optional model rules.' }
                   }}
                 </z-card-subtitle>
@@ -344,11 +344,11 @@
 
               <div class="flex shrink-0 items-center gap-2">
                 <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="cancel()">
-                  {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+                  {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
                 </button>
                 <button z-button zType="default" type="button" [disabled]="loading()" (click)="save()">
                   <z-icon zType="save"></z-icon>
-                  {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+                  {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
                 </button>
               </div>
             </div>
@@ -357,27 +357,27 @@
           <z-card-content class="space-y-5 p-4">
             <section class="rounded-lg bg-components-panel-bg p-4">
               <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.PlanIdentity' | translate: { Default: 'Plan identity' } }}
+                {{ 'XP.Membership.PlanIdentity' | translate: { Default: 'Plan identity' } }}
               </div>
 
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.Code' | translate: { Default: 'Code' }
+                    'XP.Membership.Code' | translate: { Default: 'Code' }
                   }}</span>
                   <input z-input [(ngModel)]="draft.code" />
                 </label>
 
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.Name' | translate: { Default: 'Name' }
+                    'XP.Membership.Name' | translate: { Default: 'Name' }
                   }}</span>
                   <input z-input [(ngModel)]="draft.name" />
                 </label>
 
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.Status' | translate: { Default: 'Status' }
+                    'XP.Membership.Status' | translate: { Default: 'Status' }
                   }}</span>
                   <z-select
                     class="w-full"
@@ -385,10 +385,10 @@
                     (zSelectionChange)="setDraftStatus($event)"
                   >
                     <z-select-item [zValue]="MembershipPlanStatusEnum.Active">
-                      {{ 'PAC.Membership.Statuses.active' | translate: { Default: 'Active' } }}
+                      {{ 'XP.Membership.Statuses.active' | translate: { Default: 'Active' } }}
                     </z-select-item>
                     <z-select-item [zValue]="MembershipPlanStatusEnum.Archived">
-                      {{ 'PAC.Membership.Statuses.archived' | translate: { Default: 'Archived' } }}
+                      {{ 'XP.Membership.Statuses.archived' | translate: { Default: 'Archived' } }}
                     </z-select-item>
                   </z-select>
                 </label>
@@ -400,7 +400,7 @@
                     [ngModel]="draft.isDefault"
                     (checkChange)="draft.isDefault = $event"
                   >
-                    {{ 'PAC.Membership.SetDefaultPlan' | translate: { Default: 'Set as default plan' } }}
+                    {{ 'XP.Membership.SetDefaultPlan' | translate: { Default: 'Set as default plan' } }}
                   </z-checkbox>
                 </div>
               </div>
@@ -408,13 +408,13 @@
 
             <section class="rounded-lg bg-components-panel-bg p-4">
               <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.PointRules' | translate: { Default: 'Point rules' } }}
+                {{ 'XP.Membership.PointRules' | translate: { Default: 'Point rules' } }}
               </div>
 
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
+                    {{ 'XP.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
                   </span>
                   <input
                     z-input
@@ -429,13 +429,13 @@
                     [ngModel]="draft.includedPoints === null"
                     (checkChange)="setDraftUnlimited($event)"
                   >
-                    {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                    {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                   </z-checkbox>
                 </label>
 
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.TokensPerPoint' | translate: { Default: 'Tokens per point' } }}
+                    {{ 'XP.Membership.TokensPerPoint' | translate: { Default: 'Tokens per point' } }}
                   </span>
                   <z-select
                     class="w-full"
@@ -450,14 +450,14 @@
 
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
+                    {{ 'XP.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
                   </span>
                   <input z-input type="number" min="0" [(ngModel)]="draft.priceAmount" />
                 </label>
 
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.PriceCurrency' | translate: { Default: 'Currency' }
+                    'XP.Membership.PriceCurrency' | translate: { Default: 'Currency' }
                   }}</span>
                   <input z-input [(ngModel)]="draft.priceCurrency" />
                 </label>
@@ -466,20 +466,20 @@
 
             <section class="rounded-lg bg-components-panel-bg p-4">
               <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.Description' | translate: { Default: 'Description' } }}
+                {{ 'XP.Membership.Description' | translate: { Default: 'Description' } }}
               </div>
               <textarea z-input class="min-h-24 resize-y" [(ngModel)]="draft.description"></textarea>
             </section>
 
             <section class="rounded-lg bg-components-panel-bg p-4">
               <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.JsonConfiguration' | translate: { Default: 'JSON configuration' } }}
+                {{ 'XP.Membership.JsonConfiguration' | translate: { Default: 'JSON configuration' } }}
               </div>
 
               <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                    {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
                   </span>
                   <textarea
                     z-input
@@ -490,7 +490,7 @@
 
                 <label class="flex flex-col gap-1">
                   <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
+                    {{ 'XP.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
                   </span>
                   <textarea z-input class="min-h-40 resize-y font-mono text-xs" [(ngModel)]="rateLimitsText"></textarea>
                 </label>
@@ -507,7 +507,7 @@
                   <z-card-title class="truncate text-2xl">{{ plan.name }}</z-card-title>
                   @if (plan.isDefault) {
                     <z-badge zType="secondary" zShape="pill">
-                      {{ 'PAC.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
+                      {{ 'XP.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
                     </z-badge>
                   }
                 </div>
@@ -517,11 +517,11 @@
               <div class="flex shrink-0 items-center gap-2">
                 <button z-button zType="secondary" type="button" (click)="edit(plan)">
                   <z-icon zType="edit"></z-icon>
-                  {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                  {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                 </button>
                 <button z-button zType="outline" type="button" [disabled]="plan.isDefault" (click)="archive(plan)">
                   <z-icon zType="archive"></z-icon>
-                  {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
+                  {{ 'XP.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
                 </button>
               </div>
             </div>
@@ -531,7 +531,7 @@
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}
+                  {{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}
                 </div>
                 <div class="mt-2">
                   <z-badge
@@ -543,18 +543,18 @@
                         : 'border-divider-regular text-text-tertiary'
                     "
                   >
-                    {{ 'PAC.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
+                    {{ 'XP.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
                   </z-badge>
                 </div>
               </div>
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
+                  {{ 'XP.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">
                   @if (plan.includedPoints === null) {
-                    {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                    {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                   } @else {
                     {{ plan.includedPoints | number }}
                   }
@@ -563,21 +563,21 @@
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Ratio' | translate: { Default: 'Ratio' } }}
+                  {{ 'XP.Membership.Ratio' | translate: { Default: 'Ratio' } }}
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">1 : {{ plan.tokensPerPoint | number }}</div>
               </div>
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Price' | translate: { Default: 'Price' } }}
+                  {{ 'XP.Membership.Price' | translate: { Default: 'Price' } }}
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
                     {{ plan.priceCurrency || '' }} {{ plan.priceAmount | number: '1.0-4' }}
                   } @else {
                     <span class="text-base font-medium text-text-tertiary">
-                      {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
+                      {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
                     </span>
                   }
                 </div>
@@ -587,7 +587,7 @@
             @if (plan.description) {
               <section class="rounded-lg border border-divider-subtle px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Description' | translate: { Default: 'Description' } }}
+                  {{ 'XP.Membership.Description' | translate: { Default: 'Description' } }}
                 </div>
                 <div class="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">{{ plan.description }}</div>
               </section>
@@ -598,11 +598,11 @@
                 <div class="flex items-center justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-text-primary">
-                      {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                      {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
                     </div>
                     <div class="mt-1 text-sm text-text-tertiary">
                       {{ modelMultiplierCount(plan) | number }}
-                      {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+                      {{ 'XP.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                     </div>
                   </div>
                   <z-icon zType="tune" class="size-6 text-text-tertiary"></z-icon>
@@ -613,11 +613,11 @@
                 <div class="flex items-center justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-text-primary">
-                      {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
+                      {{ 'XP.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
                     </div>
                     <div class="mt-1 text-sm text-text-tertiary">
                       {{ rateLimitCount(plan) | number }}
-                      {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+                      {{ 'XP.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                     </div>
                   </div>
                   <z-icon zType="activity" class="size-6 text-text-tertiary"></z-icon>
@@ -633,17 +633,17 @@
               <z-icon zType="credit-card"></z-icon>
             </span>
             <div class="text-lg font-semibold text-text-primary">
-              {{ 'PAC.Membership.NoPlanSelected' | translate: { Default: 'No plan selected' } }}
+              {{ 'XP.Membership.NoPlanSelected' | translate: { Default: 'No plan selected' } }}
             </div>
             <div class="max-w-md text-sm text-text-tertiary">
               {{
-                'PAC.Membership.SelectPlanHint'
+                'XP.Membership.SelectPlanHint'
                   | translate: { Default: 'Create a plan or select one from the catalog to manage it.' }
               }}
             </div>
             <button z-button zType="default" type="button" (click)="create()">
               <z-icon zType="add"></z-icon>
-              {{ 'PAC.Membership.NewPlan' | translate: { Default: 'New plan' } }}
+              {{ 'XP.Membership.NewPlan' | translate: { Default: 'New plan' } }}
             </button>
           </z-card-content>
         </z-card>

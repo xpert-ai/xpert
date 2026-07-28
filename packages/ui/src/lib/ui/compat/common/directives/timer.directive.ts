@@ -1,11 +1,11 @@
 import { Directive, ElementRef, Input, OnDestroy, OnInit, effect, input, signal } from '@angular/core'
 
 @Directive({
-  selector: '[ngmTimer]',
+  selector: '[xpTimer]',
   standalone: true
 })
-export class NgmTimerDirective implements OnInit, OnDestroy {
-  @Input('ngmTimer') startTime!: Date | string | number
+export class XpTimerDirective implements OnInit, OnDestroy {
+  @Input('xpTimer') startTime!: Date | string | number
   readonly stopTime = input<Date | string | number | null>(null)
 
   private elapsedSeconds = signal(0)

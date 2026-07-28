@@ -30,7 +30,7 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
     XpertStudioConfigureToolComponent,
     XpertStudioConfigureODataComponent
   ],
-  selector: 'pac-xpert-tool-create',
+  selector: 'xp-xpert-tool-create',
   templateUrl: './create.component.html',
   styleUrl: 'create.component.scss',
   animations: [routeAnimations],
@@ -64,7 +64,7 @@ export class XpertStudioCreateToolComponent {
       })
       .subscribe({
         next: (result) => {
-          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' }, result.name)
+          this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' }, result.name)
           this.#dialogRef.close(result)
         },
         error: (error) => {

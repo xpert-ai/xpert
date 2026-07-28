@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model } from '@an
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { distinctUntilChanged } from 'rxjs/operators'
@@ -13,14 +13,14 @@ import { getSettingsMenuItems } from '../menus'
 
 @Component({
   standalone: true,
-  imports: [RouterModule, ...ZardTooltipImports, ZardIconComponent, TranslateModule, NgmCommonModule],
-  selector: 'pac-settings',
+  imports: [RouterModule, ...ZardTooltipImports, ZardIconComponent, TranslateModule, XpCommonModule],
+  selector: 'xp-settings',
   templateUrl: `settings.component.html`,
   styleUrl: './settings.component.css',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PACSettingComponent {
+export class XpSettingComponent {
   private readonly rolesService = inject(NgxRolesService)
   private readonly permissionsService = inject(NgxPermissionsService)
   private readonly store = inject(Store)
@@ -37,7 +37,7 @@ export class PACSettingComponent {
   readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
     initialValue: this.store.featureContextHydrated
   })
-  readonly scopeTranslations = toSignal(this.i18nService.stream('PAC.Scope'))
+  readonly scopeTranslations = toSignal(this.i18nService.stream('XP.Scope'))
   readonly scopeIcon = computed(() =>
     this.activeScope().level === RequestScopeLevel.TENANT ? 'storage' : 'corporate_fare'
   )

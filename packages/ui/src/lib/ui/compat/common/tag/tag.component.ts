@@ -3,7 +3,7 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, Output, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { ISelectOption, NgmDensityDirective } from '../../core'
+import { ISelectOption, XpDensityDirective } from '../../core'
 import { map } from 'rxjs/operators'
 import { ITagOption } from './types'
 
@@ -11,28 +11,28 @@ import { ITagOption } from './types'
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-tags',
+  selector: 'xp-tags',
   templateUrl: './tag.component.html',
   styleUrls: ['./tag.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
-      inputs: ['small', 'large', 'ngm-density']
+      directive: XpDensityDirective,
+      inputs: ['small', 'large', 'xp-density']
     }
   ],
   host: {
-    class: 'ngm-tags'
+    class: 'xp-tags'
   },
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmTagsComponent)
+      useExisting: forwardRef(() => XpTagsComponent)
     }
   ]
 })
-export class NgmTagsComponent implements ControlValueAccessor {
-  // @HostBinding('class.ngm-tags') isTagsComponent = true
+export class XpTagsComponent implements ControlValueAccessor {
+  // @HostBinding('class.xp-tags') isTagsComponent = true
 
   @Input() tags: ITagOption<string>[] = []
   @Input() exclude = false

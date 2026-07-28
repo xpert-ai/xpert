@@ -9,7 +9,7 @@
   border-top-left-radius: var(--layout-shell-top-left-radius);
 }
 
-.pac-nav__router {
+.xp-nav__router {
   display: flex;
   overflow-y: auto;
   overflow-x: hidden;

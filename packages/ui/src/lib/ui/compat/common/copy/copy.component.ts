@@ -8,11 +8,11 @@ import { switchMap, tap } from 'rxjs/operators'
 @Component({
   standalone: true,
   imports: [],
-  selector: 'ngm-copy',
+  selector: 'xp-copy',
   templateUrl: 'copy.component.html',
   styleUrls: ['copy.component.scss']
 })
-export class NgmCopyComponent {
+export class XpCopyComponent {
   readonly #clipboard = inject(Clipboard)
 
   // Inputs

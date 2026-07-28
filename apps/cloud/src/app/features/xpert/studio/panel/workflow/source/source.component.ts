@@ -15,7 +15,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -32,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     XpertParametersEditComponent,
     JSONSchemaFormComponent,
-    NgmSelectComponent,
+    XpSelectComponent,
     IntegrationSelectComponent
   ]
 })

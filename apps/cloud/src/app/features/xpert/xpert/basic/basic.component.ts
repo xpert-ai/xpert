@@ -7,8 +7,8 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { IsDirty } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -44,11 +44,11 @@ import { XpertService } from '../xpert.service'
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
-    NgmDensityDirective,
+    XpDensityDirective,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
-    NgmSpinComponent
+    XpSpinComponent
   ],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
@@ -163,7 +163,7 @@ export class XpertBasicComponent implements IsDirty {
         } as TXpertTeamDraft)
         .subscribe({
           next: (value) => {
-            this.#toastr.success('PAC.Messages.SavedDraft', { Default: 'Saved draft!' })
+            this.#toastr.success('XP.Messages.SavedDraft', { Default: 'Saved draft!' })
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertService.refresh()
@@ -182,7 +182,7 @@ export class XpertBasicComponent implements IsDirty {
         })
         .subscribe({
           next: (value) => {
-            this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
+            this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertService.refresh()

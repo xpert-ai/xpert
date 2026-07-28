@@ -8,15 +8,15 @@ import {
   Repository,
   transformInstallation
 } from '@cloud/app/@core'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 
 @Component({
   selector: 'chat-project-vcs',
   standalone: true,
-  imports: [FormsModule, NgmSelectComponent, NgmSpinComponent],
+  imports: [FormsModule, XpSelectComponent, XpSpinComponent],
   templateUrl: './vcs.component.html',
   styleUrl: './vcs.component.scss'
 })

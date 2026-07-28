@@ -6,8 +6,8 @@ import { firstValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, SkillPackageService, ToastrService } from '@cloud/app/@core'
 import type { IShareSkillPackageInput, ISkillPackage } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 
 type ExploreSkillShareDialogData = {
   skill: ISkillPackage
@@ -17,7 +17,7 @@ type ExploreSkillShareDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-explore-skill-share-dialog',
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, NgmI18nPipe, NgmSpinComponent],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, XpI18nPipe, XpSpinComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="w-full max-w-2xl rounded-[28px] bg-components-card-bg px-6 py-6 shadow-xl">
@@ -26,13 +26,13 @@ type ExploreSkillShareDialogData = {
           <div class="text-2xl font-semibold text-text-primary">
             {{
               skill.publishAt
-                ? ('PAC.Explore.RepublishSkillTitle' | translate: { Default: 'Update Skill Share' })
-                : ('PAC.Explore.ShareSkillTitle' | translate: { Default: 'Share Skill to Organization Market' })
+                ? ('XP.Explore.RepublishSkillTitle' | translate: { Default: 'Update Skill Share' })
+                : ('XP.Explore.ShareSkillTitle' | translate: { Default: 'Share Skill to Organization Market' })
             }}
           </div>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
-              'PAC.Explore.ShareSkillDialogHint'
+              'XP.Explore.ShareSkillDialogHint'
                 | translate
                   : {
                       Default:
@@ -54,7 +54,7 @@ type ExploreSkillShareDialogData = {
 
       <div class="mt-5 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
         <div class="text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-          {{ 'PAC.Explore.SourceSkill' | translate: { Default: 'Source Skill' } }}
+          {{ 'XP.Explore.SourceSkill' | translate: { Default: 'Source Skill' } }}
         </div>
         <div class="mt-2 text-base font-semibold text-text-primary">
           {{ (skill.metadata?.displayName | i18n) || skill.name || skill.metadata?.name || '-' }}
@@ -62,8 +62,7 @@ type ExploreSkillShareDialogData = {
         <div class="mt-1 text-sm text-text-tertiary">
           {{
             skill.metadata?.author?.name ||
-              ('PAC.Explore.AutoCreatorHint'
-                | translate: { Default: 'Creator will be generated from the current user' })
+              ('XP.Explore.AutoCreatorHint' | translate: { Default: 'Creator will be generated from the current user' })
           }}
         </div>
       </div>
@@ -71,7 +70,7 @@ type ExploreSkillShareDialogData = {
       <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
         <label class="grid gap-2">
           <span class="text-sm font-medium text-text-primary">
-            {{ 'PAC.Explore.ShareDisplayName' | translate: { Default: 'Display Name' } }}
+            {{ 'XP.Explore.ShareDisplayName' | translate: { Default: 'Display Name' } }}
           </span>
           <input
             type="text"
@@ -82,7 +81,7 @@ type ExploreSkillShareDialogData = {
 
         <label class="grid gap-2">
           <span class="text-sm font-medium text-text-primary">
-            {{ 'PAC.Explore.ShareDescription' | translate: { Default: 'Description' } }}
+            {{ 'XP.Explore.ShareDescription' | translate: { Default: 'Description' } }}
           </span>
           <textarea
             rows="5"
@@ -94,7 +93,7 @@ type ExploreSkillShareDialogData = {
         <div class="grid gap-4 md:grid-cols-2">
           <label class="grid gap-2">
             <span class="text-sm font-medium text-text-primary">
-              {{ 'PAC.Explore.ShareVersion' | translate: { Default: 'Version' } }}
+              {{ 'XP.Explore.ShareVersion' | translate: { Default: 'Version' } }}
             </span>
             <input
               type="text"
@@ -105,7 +104,7 @@ type ExploreSkillShareDialogData = {
 
           <label class="grid gap-2">
             <span class="text-sm font-medium text-text-primary">
-              {{ 'PAC.KEY_WORDS.License' | translate: { Default: 'License' } }}
+              {{ 'XP.KEY_WORDS.License' | translate: { Default: 'License' } }}
             </span>
             <input
               type="text"
@@ -117,26 +116,26 @@ type ExploreSkillShareDialogData = {
 
         <label class="grid gap-2">
           <span class="text-sm font-medium text-text-primary">
-            {{ 'PAC.Explore.ShareTags' | translate: { Default: 'Tags' } }}
+            {{ 'XP.Explore.ShareTags' | translate: { Default: 'Tags' } }}
           </span>
           <input
             type="text"
             formControlName="tags"
             class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-            [placeholder]="'PAC.Explore.ShareTagsPlaceholder' | translate: { Default: 'Separate tags with commas' }"
+            [placeholder]="'XP.Explore.ShareTagsPlaceholder' | translate: { Default: 'Separate tags with commas' }"
           />
         </label>
 
         <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
           <div class="text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-            {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
+            {{ 'XP.Explore.Creator' | translate: { Default: 'Creator' } }}
           </div>
           <div class="mt-2 text-sm font-medium text-text-primary">
             {{ creatorName }}
           </div>
           <div class="mt-1 text-xs text-text-tertiary">
             {{
-              'PAC.Explore.CreatorReadonlyHint'
+              'XP.Explore.CreatorReadonlyHint'
                 | translate
                   : { Default: 'Creator is filled automatically from the current user and cannot be edited here.' }
             }}
@@ -148,7 +147,7 @@ type ExploreSkillShareDialogData = {
             class="rounded-2xl border border-status-destructive bg-status-destructive/10 px-4 py-3 text-sm text-status-destructive"
           >
             {{
-              'PAC.Explore.ShareValidationHint'
+              'XP.Explore.ShareValidationHint'
                 | translate: { Default: 'Please complete the display name and description first.' }
             }}
           </div>
@@ -156,17 +155,17 @@ type ExploreSkillShareDialogData = {
 
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" class="btn btn-secondary btn-medium" [disabled]="submitting()" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button type="submit" class="btn btn-primary btn-medium min-w-[132px]" [disabled]="submitting()">
             @if (submitting()) {
-              <ngm-spin size="small" class="mr-1" />
-              {{ 'PAC.ACTIONS.Saving' | translate: { Default: 'Saving...' } }}
+              <xp-spin size="small" class="mr-1" />
+              {{ 'XP.ACTIONS.Saving' | translate: { Default: 'Saving...' } }}
             } @else {
               {{
                 skill.publishAt
-                  ? ('PAC.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
-                  : ('PAC.Explore.ShareSkill' | translate: { Default: 'Share' })
+                  ? ('XP.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
+                  : ('XP.Explore.ShareSkill' | translate: { Default: 'Share' })
               }}
             }
           </button>
@@ -188,7 +187,7 @@ export class ExploreSkillShareDialogComponent {
   readonly submitting = signal(false)
   readonly creatorName =
     this.skill.metadata?.author?.name ||
-    this.#translate.instant('PAC.Explore.AutoCreatorHint', {
+    this.#translate.instant('XP.Explore.AutoCreatorHint', {
       Default: 'Creator will be generated from the current user'
     })
 
@@ -232,7 +231,7 @@ export class ExploreSkillShareDialogComponent {
 
       this.#toastr.success(
         this.#translate.instant(
-          this.skill.publishAt ? 'PAC.Explore.RepublishSkillSuccess' : 'PAC.Explore.ShareSkillSuccess',
+          this.skill.publishAt ? 'XP.Explore.RepublishSkillSuccess' : 'XP.Explore.ShareSkillSuccess',
           {
             Default: this.skill.publishAt ? 'Skill share updated successfully' : 'Skill shared successfully'
           }

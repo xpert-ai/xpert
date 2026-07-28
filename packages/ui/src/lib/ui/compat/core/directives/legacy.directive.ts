@@ -17,10 +17,10 @@ import { Observable } from 'rxjs'
 
 @Directive({
   standalone: true,
-  selector: '[ngmDnd]'
+  selector: '[xpDnd]'
 })
-export class NgmDndDirective {
-  @HostBinding('class.ngm-fileover') fileOver = false
+export class XpDndDirective {
+  @HostBinding('class.xp-fileover') fileOver = false
   readonly fileDropped = output<FileList>()
 
   @HostListener('dragover', ['$event'])
@@ -51,7 +51,7 @@ export class NgmDndDirective {
 
 @Directive({
   standalone: true,
-  selector: '[ngmDynamicGrid]',
+  selector: '[xpDynamicGrid]',
   hostDirectives: [
     {
       directive: WaResizeObserver,
@@ -60,7 +60,7 @@ export class NgmDndDirective {
     }
   ]
 })
-export class DynamicGridDirective {
+export class XpDynamicGridDirective {
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef)
   private readonly renderer = inject(Renderer2)
   private readonly entries$ = inject(ResizeObserverService)

@@ -24,7 +24,7 @@ import { UserFormsModule } from '../../../@shared/user/forms'
     UserFormsModule,
     TranslateModule
   ],
-  selector: 'pac-account-password',
+  selector: 'xp-account-password',
   template: `<form
     class="flex flex-col items-start justify-start p-4 m-auto w-96"
     [formGroup]="passwordForm"
@@ -42,22 +42,22 @@ import { UserFormsModule } from '../../../@shared/user/forms'
     <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
       <z-form-label>
         <span class="text-red-500">*</span
-        >{{ 'PAC.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
+        >{{ 'XP.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
       </z-form-label>
       <input type="password" z-input formControlName="hash" autocomplete="current-password" />
       @if (hash.invalid) {
-        <z-form-message zType="error">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</z-form-message>
+        <z-form-message zType="error">{{ 'XP.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</z-form-message>
       }
     </z-form-field>
     <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
       <z-form-label>
-        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
+        <span class="text-red-500">*</span>{{ 'XP.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
       </z-form-label>
       <input type="password" z-input formControlName="password" autocomplete="new-password" />
       @if (minlengthError(); as error) {
         <z-form-message zType="error">
-          {{ 'PAC.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
-          {{ 'PAC.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
+          {{ 'XP.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
+          {{ 'XP.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
           {{ error.actualLength }}</z-form-message
         >
       }
@@ -66,12 +66,12 @@ import { UserFormsModule } from '../../../@shared/user/forms'
     <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
       <z-form-label>
         <span class="text-red-500">*</span
-        >{{ 'PAC.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
+        >{{ 'XP.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
       </z-form-label>
       <input type="password" z-input formControlName="confirmPassword" autocomplete="new-password" />
       @if (mustMatchError(); as error) {
         <z-form-message zType="error">{{
-          'PAC.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
+          'XP.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
         }}</z-form-message>
       }
     </z-form-field>
@@ -82,12 +82,12 @@ import { UserFormsModule } from '../../../@shared/user/forms'
         class="btn disabled:btn-disabled btn-primary btn-large"
         [disabled]="passwordForm.pristine || passwordForm.invalid || loading()"
       >
-        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </form>`
 })
-export class PACAccountPasswordComponent {
+export class XpAccountPasswordComponent {
   user: User
   readonly passwordControl = new FormControl(null, [Validators.required, Validators.minLength(8)])
   passwordForm = new FormGroup(
@@ -130,7 +130,7 @@ export class PACAccountPasswordComponent {
         this.loading.set(true)
         await firstValueFrom(this.userService.password(this.user.id, pick(this.passwordForm.value, 'hash', 'password')))
         this.passwordForm.markAsPristine()
-        this._toastrService.success('PAC.MESSAGE.PasswordChange', { Default: 'Password change' })
+        this._toastrService.success('XP.MESSAGE.PasswordChange', { Default: 'Password change' })
       } catch (err) {
         this._toastrService.error(getErrorMessage(err))
         if (err instanceof HttpErrorResponse) {

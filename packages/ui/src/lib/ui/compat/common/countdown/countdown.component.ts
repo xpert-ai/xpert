@@ -21,7 +21,7 @@ import { CountdownTimer } from './countdown.timer'
 import { CountdownGlobalConfig } from './countdown.config'
 
 @Component({
-  selector: 'ngm-countdown',
+  selector: 'xp-countdown',
   template: `
     @if (!render) {
       <span [innerHTML]="i.text"></span>
@@ -33,7 +33,7 @@ import { CountdownGlobalConfig } from './countdown.config'
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
-export class NgmCountdownComponent implements OnInit, OnChanges, OnDestroy {
+export class XpCountdownComponent implements OnInit, OnChanges, OnDestroy {
   private frequency = 1000
   private _notify: { [key: number]: boolean } = {}
   private status: CountdownStatus = CountdownStatus.ing

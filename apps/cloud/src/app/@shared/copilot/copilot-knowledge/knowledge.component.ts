@@ -6,8 +6,8 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -30,8 +30,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
     ...ZardTooltipImports,
     ZardButtonComponent,
     ZardInputDirective,
-    NgmCommonModule,
-    ButtonGroupDirective
+    XpCommonModule,
+    XpButtonGroupDirective
   ],
   selector: 'copilot-knowledge',
   templateUrl: 'knowledge.component.html',
@@ -66,7 +66,7 @@ export class CopilotKnowledgeComponent {
   // readonly commandFilter = computed(() => this.examplesComponent()?.commandFilter())
 
   readonly commands = signal(Object.values(CopilotCommandEnum))
-  readonly commandLabels = toSignal(this.#translate.stream('PAC.Copilot.Commands', { Default: {} }))
+  readonly commandLabels = toSignal(this.#translate.stream('XP.Copilot.Commands', { Default: {} }))
   readonly commandOptions = computed(() => {
     const commandLabels = this.commandLabels()
     const commands = this.commands()
@@ -123,7 +123,7 @@ export class CopilotKnowledgeComponent {
         .subscribe({
           next: () => {
             this.loading.set(false)
-            this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+            this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
             this.close(true)
           },
           error: (error) => {
@@ -139,7 +139,7 @@ export class CopilotKnowledgeComponent {
     this.exampleService.update(this.paramId(), this.formGroup.value).subscribe({
       next: () => {
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         this.close(true)
       },
       error: (error) => {

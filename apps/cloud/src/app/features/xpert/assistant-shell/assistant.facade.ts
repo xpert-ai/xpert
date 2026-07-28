@@ -111,7 +111,7 @@ export class XpertAssistantFacade {
     requestContext: this.requestContext,
     displayMode: 'pet',
     pet: SHARED_ASSISTANT_PET,
-    titleKey: 'PAC.Xpert.Assistant',
+    titleKey: 'XP.Xpert.Assistant',
     titleDefault: 'Assistant',
     onEffect: (event) => {
       this.handleEffect(event as ChatKitEffectEvent)

@@ -6,13 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { IOrganization } from '@xpert-ai/contracts'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { firstValueFrom, of } from 'rxjs'
-import {
-  OrganizationsService,
-  RequestScopeLevel,
-  ScreenshotService,
-  Store,
-  ToastrService
-} from '../../../@core'
+import { OrganizationsService, RequestScopeLevel, ScreenshotService, Store, ToastrService } from '../../../@core'
 import { OrganizationsComponent } from './organizations.component'
 
 const organization: IOrganization = {
@@ -37,6 +31,8 @@ class MockStore {
   organizationId = organization.id
   featureTenant = []
   featureOrganizations = []
+  featureContextHydrated = true
+  featureContextHydrated$ = of(true)
   user = { organizations: [{ organization, isDefault: true }] }
 
   selectActiveScope() {
@@ -44,6 +40,10 @@ class MockStore {
   }
 
   hasPermission() {
+    return true
+  }
+
+  hasFeatureEnabled() {
     return true
   }
 }
@@ -139,7 +139,7 @@ describe('OrganizationsComponent', () => {
 
     const translate = TestBed.inject(TranslateService)
     translate.setTranslation('zh-Hans', {
-      PAC: {
+      XP: {
         KEY_WORDS: {
           ACTION: '操作',
           CURRENCY: '币种',

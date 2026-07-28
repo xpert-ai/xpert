@@ -5,7 +5,7 @@ import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay'
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -27,7 +27,7 @@ import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
     DragDropModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-    NgmDensityDirective,
+    XpDensityDirective,
     XpertParameterMenuItemComponent,
     XpertParameterIconComponent,
     ZardSwitchComponent

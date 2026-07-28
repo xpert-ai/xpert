@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction } from '@xpert-ai/headless-ui'
 import { nonBlank } from '@xpert-ai/contracts'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -24,10 +24,10 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebase-document-chunk',
+  selector: 'xp-settings-knowledgebase-document-chunk',
   templateUrl: './chunk.component.html',
   styleUrls: ['./chunk.component.scss'],
-  imports: [FormsModule, TranslateModule, SharedUiModule, WaIntersectionObserver, NgmCommonModule]
+  imports: [FormsModule, TranslateModule, SharedUiModule, WaIntersectionObserver, XpCommonModule]
 })
 export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)

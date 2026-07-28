@@ -2,14 +2,14 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { AppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { PACFormlyDesignerComponent } from './designer.type'
+import { XpFormlyDesignerComponent } from './designer.type'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
-  declarations: [PACFormlyDesignerComponent],
+  declarations: [XpFormlyDesignerComponent],
   imports: [
     CommonModule,
     FormsModule,
@@ -17,17 +17,17 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
 
     TranslateModule,
-    AppearanceDirective,
+    XpAppearanceDirective,
     DensityDirective,
 
     FormlyModule.forChild({
       types: [
         {
           name: 'designer',
-          component: PACFormlyDesignerComponent
+          component: XpFormlyDesignerComponent
         }
       ]
     })
   ]
 })
-export class PACFormlyDesignerModule {}
+export class XpFormlyDesignerModule {}

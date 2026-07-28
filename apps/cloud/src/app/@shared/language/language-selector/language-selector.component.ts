@@ -18,14 +18,14 @@ import { filter, tap } from 'rxjs/operators'
 import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 
 import { TranslationBaseComponent } from '../translation-base.component'
-import { NgmSelectComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSelectComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmFieldAppearance } from '@xpert-ai/headless-ui'
+import { XpFieldAppearance } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, NgmSelectComponent, NgmSpinComponent],
-  selector: 'pac-language-selector',
+  imports: [FormsModule, TranslateModule, XpSelectComponent, XpSpinComponent],
+  selector: 'xp-language-selector',
   templateUrl: './language-selector.component.html',
   styleUrls: ['./language-selector.component.scss'],
   providers: [
@@ -47,7 +47,7 @@ export class LanguageSelectorComponent extends TranslationBaseComponent implemen
     this.languages().map((language: ILanguage) => ({ key: language.code, caption: language.name }))
   )
 
-  @Input() appearance: NgmFieldAppearance
+  @Input() appearance: XpFieldAppearance
 
   /*
    * Getter & Setter for dynamic placeholder

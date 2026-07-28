@@ -13,7 +13,7 @@ import { environment } from '@cloud/environments/environment'
 @Component({
   standalone: true,
   imports: [TranslateModule],
-  selector: 'pac-header-about',
+  selector: 'xp-header-about',
   templateUrl: './about.component.html',
   styleUrl: 'about.component.scss',
   animations: [OverlayAnimation1]

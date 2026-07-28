@@ -24,19 +24,19 @@ nxRegisterLocaleData(CoreZhHans, LanguagesEnum.SimplifiedChinese)
 nxRegisterLocaleData(CoreZhHant, LanguagesEnum.TraditionalChinese)
 
 class CustomTranslateHttpLoader extends TranslateHttpLoader {
-  getTranslation(lang: string): Observable<Object> {
-    let ocapTranslates = {}
+  getTranslation(lang: string): Observable<object> {
+    let compatTranslations = {}
     switch (lang) {
       case LanguagesEnum.Chinese:
       case LanguagesEnum.SimplifiedChinese:
-        ocapTranslates = {
+        compatTranslations = {
           ...ZhHans,
           ...CoreZhHans,
           ...AuthZhHans
         }
         break
       case LanguagesEnum.TraditionalChinese:
-        ocapTranslates = {
+        compatTranslations = {
           ...ZhHant,
           ...CoreZhHant,
           ...AuthZhHant
@@ -44,13 +44,32 @@ class CustomTranslateHttpLoader extends TranslateHttpLoader {
         break
       default:
     }
-    return super.getTranslation(lang).pipe(
-      map((t) => ({
-        ...t,
-        ...ocapTranslates
-      }))
-    )
+    return super
+      .getTranslation(lang)
+      .pipe(map((translations) => mergeTranslationRecords(translations, compatTranslations)))
   }
+}
+
+type TranslationRecord = Record<string, unknown>
+
+function mergeTranslationRecords(...sources: object[]): TranslationRecord {
+  return sources.reduce<TranslationRecord>((target, source) => {
+    if (!isTranslationRecord(source)) {
+      return target
+    }
+
+    for (const [key, value] of Object.entries(source)) {
+      const current = target[key]
+      target[key] =
+        isTranslationRecord(current) && isTranslationRecord(value) ? mergeTranslationRecords(current, value) : value
+    }
+
+    return target
+  }, {})
+}
+
+function isTranslationRecord(value: unknown): value is TranslationRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {

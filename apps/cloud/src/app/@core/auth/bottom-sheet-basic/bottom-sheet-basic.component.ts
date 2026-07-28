@@ -2,8 +2,8 @@ import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { ToastrService } from '@xpert-ai/cloud/state'
-import { NgmInputComponent } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
+import { XpInputComponent } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
 import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef } from '@xpert-ai/headless-ui'
@@ -16,9 +16,9 @@ import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef 
     ZardButtonComponent,
     ZardCheckboxComponent,
     TranslateModule,
-    ButtonGroupDirective,
+    XpButtonGroupDirective,
     OcapCoreModule,
-    NgmInputComponent
+    XpInputComponent
   ],
   selector: 'bottom-sheet-basic',
   templateUrl: 'bottom-sheet-basic.component.html'
@@ -43,7 +43,7 @@ export class BottomSheetBasicAuthComponent {
       this.#sheetRef.close(this.form.value as AuthInfoType)
     } catch (err) {
       this.toastrService.error(
-        this.#translate.instant('PAC.MESSAGE.UserAuthenticationFailure', { Default: 'User authentication failure' })
+        this.#translate.instant('XP.MESSAGE.UserAuthenticationFailure', { Default: 'User authentication failure' })
       )
     }
   }

@@ -3,15 +3,15 @@
 <div class="w-full flex-1 flex justify-start rounded-t-3xl bg-background-default-subtle overflow-auto">
   <div class="flex flex-col gap-4 w-96 p-4 sticky top-0">
     <div class="w-full text-center text-lg font-semibold">
-      {{ 'PAC.Copilot.Examples.RetrievalTesting' | translate: { Default: 'Retrieval Testing' } }}
+      {{ 'XP.Copilot.Examples.RetrievalTesting' | translate: { Default: 'Retrieval Testing' } }}
     </div>
     <div>
-      <label>{{ 'PAC.Xpert.Command' | translate: { Default: 'Command' } }}</label>
-      <ngm-select [selectOptions]="commands()" [(ngModel)]="command" />
+      <label>{{ 'XP.Xpert.Command' | translate: { Default: 'Command' } }}</label>
+      <xp-select [selectOptions]="commands()" [(ngModel)]="command" />
     </div>
 
-    <ngm-slider-input
-      [label]="'PAC.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
+    <xp-slider-input
+      [label]="'XP.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
       [(ngModel)]="score"
       [min]="0"
       [max]="1"
@@ -20,7 +20,7 @@
       <span
         class="font-notoColorEmoji"
         [zTooltip]="
-          'PAC.Knowledgebase.SimilarityThresholdInfo'
+          'XP.Knowledgebase.SimilarityThresholdInfo'
             | translate
               : {
                   Default:
@@ -30,10 +30,10 @@
         zPosition="top"
         >💡</span
       >
-    </ngm-slider-input>
+    </xp-slider-input>
 
-    <ngm-slider-input
-      [label]="'PAC.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
+    <xp-slider-input
+      [label]="'XP.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
       [(ngModel)]="topK"
       [min]="1"
       [max]="100"
@@ -41,15 +41,12 @@
     />
 
     <div>
-      <label>{{ 'PAC.Xpert.Input' | translate: { Default: 'Input' } }}</label>
+      <label>{{ 'XP.Xpert.Input' | translate: { Default: 'Input' } }}</label>
       <div class="flex items-center gap-2">
-        <input
-          class="xp-input w-full max-w-[480px] text-sm text-text-primary h-9"
-          [(ngModel)]="search"
-        />
+        <input class="xp-input w-full max-w-[480px] text-sm text-text-primary h-9" [(ngModel)]="search" />
 
         <button type="button" class="btn btn-primary px-4 py-1 rounded-lg whitespace-nowrap" (click)="retrieve()">
-          {{ 'PAC.Xpert.Retrieval' | translate: { Default: 'Retrieval' } }}
+          {{ 'XP.Xpert.Retrieval' | translate: { Default: 'Retrieval' } }}
         </button>
       </div>
     </div>
@@ -58,7 +55,7 @@
   <div class="flex-1 min-h-full flex flex-col items-stretch gap-4 p-4">
     <div>
       <span class="px-2 py-1 rounded-lg bg-background-default-subtle"
-        >{{ items().length }} {{ 'PAC.Xpert.Examples' | translate: { Default: 'Examples' } }}</span
+        >{{ items().length }} {{ 'XP.Xpert.Examples' | translate: { Default: 'Examples' } }}</span
       >
     </div>
     @for (doc of items(); track doc) {
@@ -87,5 +84,5 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full"></ngm-spin>
+  <xp-spin class="absolute top-0 left-0 w-full h-full"></xp-spin>
 }

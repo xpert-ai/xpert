@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, input, model, signal } from '@angu
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@xpert-ai/headless-ui'
-import { NgmAutoScrollBottomDirective, NgmTimerDirective } from '@xpert-ai/headless-ui'
+import { XpAutoScrollBottomDirective, XpTimerDirective } from '@xpert-ai/headless-ui'
 import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
@@ -43,8 +43,8 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     MCPToolsComponent,
     EntriesPipe,
     XpertEnvVarInputComponent,
-    NgmAutoScrollBottomDirective,
-    NgmTimerDirective,
+    XpAutoScrollBottomDirective,
+    XpTimerDirective,
     ZardSwitchComponent
   ],
   hostDirectives: [NgxControlValueAccessor]

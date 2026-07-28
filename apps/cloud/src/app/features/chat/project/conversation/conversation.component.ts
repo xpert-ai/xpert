@@ -20,7 +20,7 @@ import { readNavigationInput } from '@cloud/app/@shared/chat/references'
 @Component({
   standalone: true,
   imports: [RouterModule, FormsModule, CdkMenuModule, ...ZardTooltipImports, TranslateModule, XpertChatAppComponent],
-  selector: 'pac-chat-project-conv',
+  selector: 'xp-chat-project-conv',
   templateUrl: './conversation.component.html',
   styleUrl: 'conversation.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

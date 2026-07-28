@@ -6,7 +6,7 @@ import { RouterModule } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import {
   ZardButtonComponent,
   ZardIconComponent,
@@ -29,13 +29,13 @@ import {
   TCopilotUsageDimension,
   ToastrService
 } from '../../../../@core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 
 type QuotaAction = TCopilotQuotaAdjustmentMode | 'renew'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot-usage-center',
+  selector: 'xp-settings-copilot-usage-center',
   templateUrl: './usage-center.component.html',
   styleUrls: ['./usage-center.component.scss'],
   imports: [
@@ -44,8 +44,8 @@ type QuotaAction = TCopilotQuotaAdjustmentMode | 'renew'
     TranslateModule,
     FormsModule,
     WaIntersectionObserver,
-    NgmSelectComponent,
-    NgmSpinComponent,
+    XpSelectComponent,
+    XpSpinComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
@@ -68,12 +68,12 @@ export class CopilotUsageCenterComponent {
     this.languageChange()
 
     return [
-      { value: 'user', label: this.translate.instant('PAC.Copilot.Creator', { Default: 'Creator' }) },
+      { value: 'user', label: this.translate.instant('XP.Copilot.Creator', { Default: 'Creator' }) },
       {
         value: 'organization',
-        label: this.translate.instant('PAC.KEY_WORDS.Organization', { Default: 'Organization' })
+        label: this.translate.instant('XP.KEY_WORDS.Organization', { Default: 'Organization' })
       },
-      { value: 'model', label: this.translate.instant('PAC.Copilot.Model', { Default: 'Model' }) }
+      { value: 'model', label: this.translate.instant('XP.Copilot.Model', { Default: 'Model' }) }
     ] as Array<{ value: TCopilotUsageDimension; label: string }>
   })
   readonly timeRanges = computed(() => {
@@ -125,9 +125,9 @@ export class CopilotUsageCenterComponent {
     this.languageChange()
 
     return this.isTenantScope()
-      ? this.translate.instant('PAC.Scope.TenantEyebrow', { Default: 'Tenant Console' })
+      ? this.translate.instant('XP.Scope.TenantEyebrow', { Default: 'Tenant Console' })
       : this.selectedOrganization()?.name ||
-          this.translate.instant('PAC.Scope.OrganizationEyebrow', { Default: 'Organization Scope' })
+          this.translate.instant('XP.Scope.OrganizationEyebrow', { Default: 'Organization Scope' })
   })
   readonly showOrganizationFilter = this.isTenantScope
   readonly canLoadMore = computed(() => !this.loading() && !this.done())
@@ -135,20 +135,20 @@ export class CopilotUsageCenterComponent {
     this.languageChange()
 
     return this.dimension() === 'user'
-      ? this.translate.instant('PAC.Copilot.CreatorUserId', { Default: 'Creator User ID' })
-      : this.translate.instant('PAC.Copilot.UserId', { Default: 'User ID' })
+      ? this.translate.instant('XP.Copilot.CreatorUserId', { Default: 'Creator User ID' })
+      : this.translate.instant('XP.Copilot.UserId', { Default: 'User ID' })
   })
   readonly quotaTitle = computed(() => {
     this.languageChange()
 
     const action = this.quotaAction()
     if (action === 'increase') {
-      return this.translate.instant('PAC.Copilot.IncreaseQuota', { Default: 'Increase quota' })
+      return this.translate.instant('XP.Copilot.IncreaseQuota', { Default: 'Increase quota' })
     }
     if (action === 'renew') {
-      return this.translate.instant('PAC.Copilot.RenewQuota', { Default: 'Renew quota' })
+      return this.translate.instant('XP.Copilot.RenewQuota', { Default: 'Renew quota' })
     }
-    return this.translate.instant('PAC.Copilot.SetQuota', { Default: 'Set quota' })
+    return this.translate.instant('XP.Copilot.SetQuota', { Default: 'Set quota' })
   })
 
   constructor() {
@@ -387,11 +387,11 @@ export class CopilotUsageCenterComponent {
 
   private translateTimeRange(value: TimeRangeEnum, fallback: string | Record<string, string>) {
     const defaultLabel = typeof fallback === 'string' ? fallback : fallback.en_US || String(value)
-    return this.translate.instant(`PAC.TimeRange.${value}`, { Default: defaultLabel })
+    return this.translate.instant(`XP.TimeRange.${value}`, { Default: defaultLabel })
   }
 
   private errorTitle() {
-    return this.translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' })
+    return this.translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' })
   }
 }
 

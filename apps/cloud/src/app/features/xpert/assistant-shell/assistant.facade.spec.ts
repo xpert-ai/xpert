@@ -167,7 +167,7 @@ describe('XpertAssistantFacade', () => {
             zIndex: 70
           })
         }),
-        titleKey: 'PAC.Xpert.Assistant',
+        titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant',
         onEffect: expect.any(Function)
       })

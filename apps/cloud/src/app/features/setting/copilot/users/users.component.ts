@@ -3,7 +3,7 @@ import { Component, inject, LOCALE_ID, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -29,7 +29,7 @@ import {
 } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot-users',
+  selector: 'xp-settings-copilot-users',
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
   imports: [
@@ -41,7 +41,7 @@ import {
     ZardIconComponent,
     ZardButtonComponent,
     WaIntersectionObserver,
-    NgmCommonModule,
+    XpCommonModule,
     ZardInputDirective,
     ...ZardTableImports,
     OrgAvatarComponent,

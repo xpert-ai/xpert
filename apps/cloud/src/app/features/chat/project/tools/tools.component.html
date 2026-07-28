@@ -9,11 +9,11 @@
     </div>
     <div class="flex flex-col gap-1 items-center text-center">
       <h3 class="font-semibold text-lg">
-        {{ 'PAC.XProject.NoToolsYet' | translate: { Default: 'No tools yet' } }}
+        {{ 'XP.XProject.NoToolsYet' | translate: { Default: 'No tools yet' } }}
       </h3>
       <span class="text-text-secondary max-w-md">
         {{
-          'PAC.XProject.AddToolsForProject'
+          'XP.XProject.AddToolsForProject'
             | translate: { Default: 'Select to bind a workspace to add tools to the project general agent' }
         }}
       </span>
@@ -24,7 +24,7 @@
 <div
   @listEnterAnimation
   class="relative content-start gap-4 pt-2 pb-4 px-1 my-4 grow shrink-0"
-  ngmDynamicGrid
+  xpDynamicGrid
   colWidth="280"
   box="content-box"
 >
@@ -34,7 +34,7 @@
         action
         type="button"
         class="btn rounded-xl justify-center w-8 h-8 danger opacity-0 group-hover/card:opacity-100"
-        [zTooltip]="'PAC.XProject.RemoveTool' | translate: { Default: 'Remove tool' }"
+        [zTooltip]="'XP.XProject.RemoveTool' | translate: { Default: 'Remove tool' }"
         zPosition="right"
         (click)="removeTool(toolset)"
       >
@@ -46,7 +46,7 @@
 
 @if (workspace()) {
   <div class="flex items-center py-4 px-1 text-lg font-semibold text-text-tertiary uppercase">
-    <div class="mr-3">{{ 'PAC.XProject.AvailableToolsets' | translate: { Default: 'Available Toolsets' } }}</div>
+    <div class="mr-3">{{ 'XP.XProject.AvailableToolsets' | translate: { Default: 'Available Toolsets' } }}</div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div>
 
@@ -55,13 +55,13 @@
   } @else {
     <div
       class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
-      ngmDynamicGrid
+      xpDynamicGrid
       colWidth="280"
       box="content-box"
     >
-      <ngm-card-create
-        [title]="'PAC.Xpert.CreateMCPTool' | translate: { Default: 'Create MCP Toolset' }"
-        [helpTitle]="'PAC.Xpert.LearnCreateMCPTool' | translate: { Default: 'Learn more about Xpert MCP toolset' }"
+      <xp-card-create
+        [title]="'XP.Xpert.CreateMCPTool' | translate: { Default: 'Create MCP Toolset' }"
+        [helpTitle]="'XP.Xpert.LearnCreateMCPTool' | translate: { Default: 'Learn more about Xpert MCP toolset' }"
         helpUrl="/docs/ai/tool/mcp/"
         (create)="configureMCP()"
       >
@@ -72,10 +72,10 @@
             (click)="$event.stopPropagation()"
           >
             <i class="ri-tools-line text-lg mr-2"></i>
-            <span>{{ 'PAC.Xpert.OrCreateBuiltinToolset' | translate: { Default: 'Or create built-in toolset' } }}</span>
+            <span>{{ 'XP.Xpert.OrCreateBuiltinToolset' | translate: { Default: 'Or create built-in toolset' } }}</span>
           </button>
         </div>
-      </ngm-card-create>
+      </xp-card-create>
       @for (item of wsToolsets(); track item.toolset.id) {
         <xpert-toolset-card
           class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
@@ -87,7 +87,7 @@
               action
               type="button"
               class="btn rounded-xl justify-center w-8 h-8 text-text-success"
-              [zTooltip]="'PAC.XProject.AddedTool' | translate: { Default: 'Added tool' }"
+              [zTooltip]="'XP.XProject.AddedTool' | translate: { Default: 'Added tool' }"
               zPosition="right"
             >
               <i class="ri-checkbox-circle-line"></i>
@@ -97,7 +97,7 @@
               action
               type="button"
               class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
-              [zTooltip]="'PAC.XProject.AddTool' | translate: { Default: 'Add tool' }"
+              [zTooltip]="'XP.XProject.AddTool' | translate: { Default: 'Add tool' }"
               zPosition="right"
               (click)="$event.stopPropagation(); addTool(item.toolset)"
             >
@@ -122,7 +122,7 @@
       <i class="ri-search-line absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 flex justify-center items-center"></i>
       <input
         class="xp-input w-full pl-[26px]"
-        placeholder="{{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
+        placeholder="{{ 'XP.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
         [(ngModel)]="search"
       />
     </div>
@@ -135,7 +135,7 @@
           (click)="createBuiltinToolset(toolset)"
         >
           <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
-          <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.label | i18n">
+          <div class="flex-1 truncate" [xpHighlight]="searchText()" [content]="toolset.label | i18n">
             {{ toolset.label | i18n }}
           </div>
         </div>

@@ -52,7 +52,7 @@
       </svg>
       <div class="flex items-baseline gap-1 overflow-hidden">
         <span class="text-base text-nowrap whitespace-nowrap">
-          {{ 'PAC.Chat.Thoughts' | translate: { Default: 'Thoughts' } }}
+          {{ 'XP.Chat.Thoughts' | translate: { Default: 'Thoughts' } }}
         </span>
       </div>
     </div>
@@ -65,8 +65,8 @@
       [content]="reasoningText()"
       [zTooltip]="
         copy.copied()
-          ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-          : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+          ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+          : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
       "
       zPosition="top"
       (click)="$event.stopPropagation()"
@@ -90,7 +90,7 @@
     @for (item of reasoning(); track item.id ?? $index) {
       <markdown
         #container
-        class="ngm-copilot-markdown block text-sm font-body text-gray-500"
+        class="xp-copilot-markdown block text-sm font-body text-gray-500"
         [clipboardButtonTemplate]="buttonTemplate"
         lineNumbers
         [start]="5"

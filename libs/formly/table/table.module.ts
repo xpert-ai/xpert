@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { PACFormlyTableComponent } from './table.type'
+import { XpFormlyTableComponent } from './table.type'
 
 @NgModule({
   declarations: [],
@@ -12,7 +12,7 @@ import { PACFormlyTableComponent } from './table.type'
       types: [
         {
           name: 'table',
-          component: PACFormlyTableComponent
+          component: XpFormlyTableComponent
         },
         {
           name: 'table-inline',
@@ -27,4 +27,4 @@ import { PACFormlyTableComponent } from './table.type'
     })
   ]
 })
-export class PACFormlyTableModule {}
+export class XpFormlyTableModule {}
