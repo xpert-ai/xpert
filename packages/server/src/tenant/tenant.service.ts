@@ -113,11 +113,16 @@ export class TenantService extends CrudService<Tenant> {
 		// 		);
 		// 	}
 		// }
-		
+
+
 		//7. Create default organization for tenant.
 		if (defaultOrganization) {
-			const organization = await this.commandBus.execute(new OrganizationCreateCommand(
-				{...defaultOrganization, tenant, tenantId} as IOrganizationCreateInput))
+			const organization = await this.commandBus.execute(
+				new OrganizationCreateCommand(
+					{ ...defaultOrganization, tenant, tenantId } as IOrganizationCreateInput,
+					user.id
+				)
+			)
 			tenant.organizations = [organization]
 		}
 
@@ -126,7 +131,8 @@ export class TenantService extends CrudService<Tenant> {
 			EVENT_TENANT_CREATED,
 			new TenantCreatedEvent(tenant.id, tenant.name),
 		  );
-		  
+
+
 		// const _tenant = this.publisher.mergeObjectContext(tenant)
 		// _tenant.afterCreated()
 		// _tenant.commit()

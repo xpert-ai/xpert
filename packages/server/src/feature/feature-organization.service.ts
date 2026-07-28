@@ -1,5 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Cache } from 'cache-manager'
 import { IsNull, Repository } from 'typeorm'
@@ -10,6 +11,7 @@ import { RequestContext } from './../core/context'
 import { FeatureOrganization } from './feature-organization.entity'
 import { FeatureService } from './feature.service'
 import { DEFAULT_FEATURES } from './default-features'
+import { EVENT_FEATURE_ORGANIZATION_UPDATED, FeatureOrganizationUpdatedEvent } from './events'
 import { touchCurrentUserFeatureTenantCacheVersion } from '../user/current-user-feature-cache'
 
 function collectDefaultFeatureStates(features: IFeature[], states = new Map<string, boolean>()) {
@@ -32,7 +34,9 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 		private readonly _featureService: FeatureService,
 		@Optional()
 		@Inject(CACHE_MANAGER)
-		private readonly cacheManager?: Cache
+		private readonly cacheManager?: Cache,
+		@Optional()
+		private readonly eventEmitter?: EventEmitter2
 	) {
 		super(featureOrganizationRepository)
 	}
@@ -56,6 +60,7 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 				...organizationScope
 			}
 		})
+		const previousIsEnabled = featureOrganizations.some((item) => item.isEnabled === true)
 
 		if (!total) {
 			const featureOrganization: IFeatureOrganization = new FeatureOrganization().instanceOf({
@@ -75,6 +80,20 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 			await this.featureOrganizationRepository.save(featureOrganizations)
 		}
 		await touchCurrentUserFeatureTenantCacheVersion(this.cacheManager, tenantId)
+		if (previousIsEnabled !== entity.isEnabled) {
+			const feature = await this._featureService.findOne(featureId)
+			this.eventEmitter?.emit(
+				EVENT_FEATURE_ORGANIZATION_UPDATED,
+				new FeatureOrganizationUpdatedEvent(
+					tenantId,
+					isNotEmpty(organizationId) ? organizationId : null,
+					featureId,
+					feature.code,
+					previousIsEnabled,
+					entity.isEnabled
+				)
+			)
+		}
 		return featureOrganizations
 	}
 

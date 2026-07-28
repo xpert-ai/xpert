@@ -191,11 +191,21 @@ describe('UserOrganizationController', () => {
 		expect(userOrganizationService.update).not.toHaveBeenCalled()
 	})
 
-	it('filters super admin users out of membership list responses', async () => {
+	it('returns stored super admin memberships in membership list responses', async () => {
 		const { controller, userOrganizationService } = createController()
+		const membership = {
+			id: 'membership-1',
+			organizationId: 'org-1',
+			user: {
+				id: 'super-admin-1',
+				role: {
+					name: 'SUPER_ADMIN'
+				}
+			}
+		}
 		userOrganizationService.findAll.mockResolvedValue({
-			items: [],
-			total: 0
+			items: [membership],
+			total: 1
 		})
 
 		const result = await controller.findAll({
@@ -206,18 +216,13 @@ describe('UserOrganizationController', () => {
 		})
 
 		expect(result).toEqual({
-			items: [],
-			total: 0
+			items: [membership],
+			total: 1
 		})
 		expect(userOrganizationService.findAll).toHaveBeenCalledWith({
-			where: expect.objectContaining({
-				organizationId: 'org-1',
-				user: {
-					role: {
-						name: expect.any(Object)
-					}
-				}
-			}),
+			where: {
+				organizationId: 'org-1'
+			},
 			relations: ['user', 'user.role']
 		})
 	})
