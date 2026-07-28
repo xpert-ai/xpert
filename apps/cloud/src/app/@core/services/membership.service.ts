@@ -5,6 +5,9 @@ import {
   AiFeatureEnum,
   AiModelTypeEnum,
   ICopilotWithProvider,
+  IMembershipAdminUser,
+  IMembershipAdminUsersQuery,
+  IMembershipBulkActionResult,
   IMembershipMe,
   IMembershipPlan,
   IMembershipPointLedger,
@@ -17,16 +20,19 @@ import {
   IUserMembership,
   IUserMembershipPeriod,
   TMembershipAssignInput,
+  TMembershipBulkActionInput,
   TMembershipPlanReassignInput,
   TMembershipPointAdjustInput
 } from '@xpert-ai/contracts'
 import { BehaviorSubject, catchError, combineLatest, map, of, switchMap, tap } from 'rxjs'
 import { API_COPILOT, API_MEMBERSHIP } from '../constants/app.constants'
+import { CopilotServerService } from './copilot-server.service'
 
 @Injectable({ providedIn: 'root' })
 export class MembershipService {
   readonly #http = inject(HttpClient)
   readonly #store = inject(Store)
+  readonly #copilotServer = inject(CopilotServerService)
   readonly #membershipStateRefresh = new BehaviorSubject<void>(undefined)
 
   getPlans() {
@@ -77,8 +83,26 @@ export class MembershipService {
     })
   }
 
+  getAdminMembers(params?: IMembershipAdminUsersQuery) {
+    return this.#http.get<IPagination<IMembershipAdminUser>>(`${API_MEMBERSHIP}/admin/members`, {
+      params: this.toParams(params)
+    })
+  }
+
+  applyBulkUserAction(input: TMembershipBulkActionInput) {
+    return this.#http
+      .post<IMembershipBulkActionResult>(`${API_MEMBERSHIP}/admin/users/bulk`, input)
+      .pipe(tap(() => this.refreshMembershipState()))
+  }
+
   getAdminUserPeriods(userId: string) {
     return this.#http.get<IUserMembershipPeriod[]>(`${API_MEMBERSHIP}/admin/users/${userId}/periods`)
+  }
+
+  getAdminUserAudit(userId: string, params?: { take?: number; skip?: number }) {
+    return this.#http.get<IPagination<IMembershipPointLedger>>(`${API_MEMBERSHIP}/admin/users/${userId}/audit`, {
+      params: this.toParams(params)
+    })
   }
 
   cancelAdminUserPeriod(userId: string, periodId: string) {
@@ -143,6 +167,10 @@ export class MembershipService {
     return this.#http.get<IMembershipMe | null>(`${API_MEMBERSHIP}/me`)
   }
 
+  getMyPeriods() {
+    return this.#http.get<IUserMembershipPeriod[]>(`${API_MEMBERSHIP}/me/periods`)
+  }
+
   hasActiveMembershipInScope() {
     return combineLatest([
       this.#store.selectOrganizationId(),
@@ -162,6 +190,7 @@ export class MembershipService {
 
   refreshMembershipState() {
     this.#membershipStateRefresh.next()
+    this.#copilotServer.refresh()
   }
 
   getOverview(query?: IMembershipUsageQuery) {

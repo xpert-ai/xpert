@@ -10,6 +10,7 @@ import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { FeatureOrganization, RequestContext, User } from '@xpert-ai/server-core'
 import {
+    AiModelTypeEnum,
     DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
     MEMBERSHIP_TOKENS_PER_POINT_SETTING,
     MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
@@ -20,6 +21,10 @@ import {
     MembershipRenewalModeEnum,
     MembershipSourceEnum,
     MembershipStatusEnum,
+    ModelAccessChannelEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum,
+    ModelGatewayUsageChannelEnum,
     UserType
 } from '@xpert-ai/contracts'
 import i18next from 'i18next'
@@ -48,6 +53,12 @@ describe('MembershipService', () => {
         createMembershipStatusLedger: (...args: unknown[]) => Promise<void>
         requireManagedMembership: (...args: unknown[]) => Promise<unknown>
         findMembershipById: (...args: unknown[]) => Promise<unknown>
+        isMembershipPlanEnabledForScope: (...args: unknown[]) => Promise<boolean>
+        acquireMembershipAssignmentLock: (...args: unknown[]) => Promise<void>
+        acquireGatewayRequestLock: (...args: unknown[]) => Promise<void>
+        findModelAccessWithOrganizationSelfHeal: (...args: unknown[]) => Promise<unknown>
+        resolveTenantTokensPerPoint: (...args: unknown[]) => Promise<number>
+        synchronizeCurrentPeriodProjection: (...args: unknown[]) => Promise<void>
     }
 
     function getMembershipServiceTestAccess(service: MembershipService): MembershipServiceTestAccess {
@@ -171,7 +182,8 @@ describe('MembershipService', () => {
         copilotRepository: never | undefined = undefined,
         featureOrganizationRepository: never | undefined = createMembershipFeatureRepository().repository as never,
         tenantSettingRepository: never | undefined = undefined,
-        periodRepository: never | undefined = undefined
+        periodRepository: never | undefined = undefined,
+        organizationRepository: never | undefined = undefined
     ) {
         return new MembershipService(
             dataSource,
@@ -184,9 +196,71 @@ describe('MembershipService', () => {
             copilotRepository,
             featureOrganizationRepository,
             tenantSettingRepository,
-            periodRepository
+            periodRepository,
+            organizationRepository
         )
     }
+
+    it('includes the selected tenant-local day in the admin member expiration filter', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const membershipSubquery = {
+            select: jest.fn().mockReturnThis(),
+            from: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            getQuery: jest.fn().mockReturnValue('SELECT candidate.id')
+        }
+        const userQueryBuilder = {
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            subQuery: jest.fn(() => membershipSubquery),
+            leftJoinAndMapOne: jest.fn().mockReturnThis(),
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+        }
+        const userRepository = {
+            createQueryBuilder: jest.fn(() => userQueryBuilder)
+        }
+        const organizationRepository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'default-org',
+                timeZone: 'Asia/Shanghai'
+            })
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            userRepository as never,
+            undefined,
+            undefined,
+            createMembershipFeatureRepository().repository as never,
+            undefined,
+            undefined,
+            organizationRepository as never
+        )
+
+        await service.findAdminMembers({ expiringBefore: '2027-03-14' })
+
+        expect(organizationRepository.findOne).toHaveBeenCalledWith({
+            where: { tenantId: 'tenant-1', isDefault: true },
+            select: { id: true, timeZone: true }
+        })
+        expect(userQueryBuilder.andWhere).toHaveBeenCalledWith(
+            'membership.currentPeriodEnd <= :expiringBefore',
+            { expiringBefore: new Date('2027-03-14T15:59:59.999Z') }
+        )
+    })
 
     it('calculates fractional points directly from token usage without rounding per call', () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
@@ -194,6 +268,78 @@ describe('MembershipService', () => {
 
         expect(service.calculatePoints(28_868_663, plan, 'tongyi', 'qwen3.6-plus', 100000)).toBe(288.68663)
         expect(service.calculatePoints(1, plan, 'tongyi', 'qwen3.6-plus', 100000)).toBe(0.00001)
+    })
+
+    it('settles due active memberships in a transaction', async () => {
+        const candidate = createMembership({
+            currentPeriodEnd: new Date('2026-07-01T00:00:00.000Z')
+        })
+        const queryBuilder = {
+            innerJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([candidate])
+        }
+        const membershipRepository = {
+            createQueryBuilder: jest.fn(() => queryBuilder)
+        }
+        const manager = {}
+        const dataSource = {
+            transaction: jest.fn((run: (transactionManager: object) => Promise<unknown>) => run(manager))
+        }
+        const service = createMembershipService(
+            dataSource as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+        const access = getMembershipServiceTestAccess(service)
+        jest.spyOn(access, 'isMembershipPlanEnabledForScope').mockResolvedValue(true)
+        jest.spyOn(access, 'acquireMembershipAssignmentLock').mockResolvedValue(undefined)
+        jest.spyOn(access, 'findMembershipForUpdate').mockResolvedValue(candidate)
+        jest.spyOn(access, 'findUsableMembership').mockResolvedValue(candidate)
+
+        const result = await service.processDueMembershipPeriods()
+
+        expect(result).toEqual({ scanned: 1, settled: 1, skipped: 0, failed: 0 })
+        expect(access.findUsableMembership).toHaveBeenCalledWith(
+            candidate.tenantId,
+            null,
+            candidate.userId,
+            manager,
+            true
+        )
+    })
+
+    it('records the current operator on membership audit ledger entries', async () => {
+        const ledgerRepository = {
+            create: jest.fn((input) => input),
+            save: jest.fn(async (input) => ({ id: 'ledger-1', ...input }))
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            ledgerRepository as never,
+            {} as never
+        )
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+
+        await getMembershipServiceTestAccess(service).createLedger(undefined, {
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            source: MembershipLedgerSourceEnum.StatusChange,
+            pointsDelta: 0
+        })
+
+        expect(ledgerRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                actorId: 'admin-1'
+            })
+        )
     })
 
     it('matches explicitly allowed membership models and keeps empty rules unrestricted', () => {
@@ -548,6 +694,7 @@ describe('MembershipService', () => {
             })
         }
         const manager = {
+            connection: { options: { type: 'sqlite' } },
             getRepository: jest.fn((entity) => {
                 if (entity === MembershipPlan) {
                     return planRepository
@@ -811,6 +958,7 @@ describe('MembershipService', () => {
         const queryBuilder = createQueryBuilder([
             {
                 usageHour: '2026-06-30 14',
+                usageChannel: ModelGatewayUsageChannelEnum.ExternalApi,
                 provider: 'tongyi',
                 model: 'qwen3.6-plus',
                 organizationId: 'org-1',
@@ -840,11 +988,17 @@ describe('MembershipService', () => {
             {} as never
         )
 
-        const result = await service.findUserUsageSummaries('tenant-1', 'user-1', undefined, { take: 20, skip: 0 })
+        const result = await service.findUserUsageSummaries(
+            'tenant-1',
+            'user-1',
+            { usageChannel: ModelGatewayUsageChannelEnum.ExternalApi },
+            { take: 20, skip: 0 }
+        )
 
         expect(result.total).toBe(1)
         expect(result.items[0]).toMatchObject({
             usageHour: '2026-06-30 14',
+            usageChannel: ModelGatewayUsageChannelEnum.ExternalApi,
             provider: 'tongyi',
             model: 'qwen3.6-plus',
             organizationId: 'org-1',
@@ -860,6 +1014,7 @@ describe('MembershipService', () => {
             tokenUsed: 99087,
             groupKey: {
                 usageHour: '2026-06-30 14',
+                usageChannel: ModelGatewayUsageChannelEnum.ExternalApi,
                 provider: 'tongyi',
                 model: 'qwen3.6-plus',
                 organizationId: 'org-1',
@@ -870,6 +1025,9 @@ describe('MembershipService', () => {
         })
         expect(queryBuilder.andWhere).toHaveBeenCalledWith('ledger.source IN (:...usageSources)', {
             usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
+        })
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('ledger.usageChannel = :usageChannel', {
+            usageChannel: ModelGatewayUsageChannelEnum.ExternalApi
         })
         expect(queryBuilder.addSelect).toHaveBeenCalledWith(
             'COUNT(ledger.id) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)',
@@ -886,6 +1044,8 @@ describe('MembershipService', () => {
             '"usage_xpert"."tenantId" = ledger."tenantId" AND "usage_xpert"."id"::text = ledger."xpertId"'
         )
         expect(queryBuilder.groupBy).toHaveBeenCalledWith('ledger.usageHour')
+        expect(queryBuilder.addSelect).toHaveBeenCalledWith('ledger.usageChannel', 'usageChannel')
+        expect(queryBuilder.addGroupBy).toHaveBeenCalledWith('ledger.usageChannel')
         expect(queryBuilder.addGroupBy).toHaveBeenCalledWith('ledger.provider')
         expect(queryBuilder.addGroupBy).toHaveBeenCalledWith('ledger.model')
         expect(queryBuilder.addGroupBy).toHaveBeenCalledWith('ledger.threadId')
@@ -2000,7 +2160,7 @@ describe('MembershipService', () => {
         )
     })
 
-    it('falls back to the runtime user when xpert has no creator', async () => {
+    it('rejects usage when xpert has no creator instead of billing the runtime user', async () => {
         const xpertRepository = {
             findOne: jest.fn().mockResolvedValue({
                 id: 'xpert-1',
@@ -2014,22 +2174,38 @@ describe('MembershipService', () => {
             {} as never,
             xpertRepository as never
         )
-        const membership = createMembership({ userId: 'assistant-tech-user', pointsUsed: 0 })
-        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(membership)
+        const findUsableMembership = jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership')
 
-        await service.assertCanUse({
-            tenantId: 'tenant-1',
-            userId: 'assistant-tech-user',
-            xpertId: 'xpert-1'
-        })
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                userId: 'assistant-tech-user',
+                xpertId: 'xpert-1'
+            })
+        ).rejects.toThrow('The Xpert creator is required')
 
-        expect(getMembershipServiceTestAccess(service).findUsableMembership).toHaveBeenCalledWith(
-            'tenant-1',
-            null,
-            'assistant-tech-user',
-            undefined,
-            false
+        expect(findUsableMembership).not.toHaveBeenCalled()
+    })
+
+    it('rejects usage when the referenced xpert no longer exists', async () => {
+        const xpertRepository = {
+            findOne: jest.fn().mockResolvedValue(null)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            xpertRepository as never
         )
+
+        await expect(
+            service.resolveBillableUserId({
+                tenantId: 'tenant-1',
+                userId: 'assistant-tech-user',
+                xpertId: 'missing-xpert'
+            })
+        ).rejects.toThrow('The Xpert creator is required')
     })
 
     it('keeps non-xpert usage on the runtime user', async () => {
@@ -2463,6 +2639,64 @@ describe('MembershipService', () => {
                 membershipId: null,
                 source: MembershipLedgerSourceEnum.PersonalUsage,
                 pointsDelta: -0.5,
+                tokenUsed: 0
+            })
+        )
+    })
+
+    it('does not overdraw membership points when personal points cannot cover the remainder', async () => {
+        const membershipRepository = {
+            save: jest.fn().mockImplementation(async (membership) => membership)
+        }
+        const manager = {
+            connection: { options: { type: 'sqlite' } },
+            getRepository: jest.fn((entity) => {
+                if (entity === UserMembership) {
+                    return membershipRepository
+                }
+                return {}
+            })
+        }
+        const dataSource = {
+            transaction: jest.fn((callback) => callback(manager))
+        }
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const membership = createMembership({ pointsGranted: 10, pointsUsed: 9.5 })
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membership
+        })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0.25)
+        const createLedger = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'createLedger')
+            .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
+
+        await expect(
+            service.recordUsage({
+                tenantId: 'tenant-1',
+                userId: membership.userId,
+                provider: 'tongyi',
+                model: 'qwen3.6-plus',
+                tokenUsed: 1000
+            })
+        ).rejects.toThrow('Membership points limit exceeded.')
+
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 10 }))
+        expect(createLedger).toHaveBeenNthCalledWith(
+            1,
+            manager,
+            expect.objectContaining({
+                pointsDelta: -0.5,
+                tokenUsed: 1000
+            })
+        )
+        expect(createLedger).toHaveBeenNthCalledWith(
+            2,
+            manager,
+            expect.objectContaining({
+                source: MembershipLedgerSourceEnum.PersonalUsage,
+                pointsDelta: -0.25,
                 tokenUsed: 0
             })
         )
@@ -3429,5 +3663,114 @@ describe('MembershipService', () => {
         })
 
         expect(assertRateLimits).toHaveBeenCalledWith(membership, 'tongyi', 'qwen3.6-plus')
+    })
+
+    it('charges gateway usage to membership first, then personal points, and records excess without debt', async () => {
+        const membership = createMembership({ pointsGranted: 10, pointsUsed: 9.5 })
+        const ledgerRepository = {
+            find: jest.fn().mockResolvedValue([])
+        }
+        const membershipRepository = {
+            save: jest.fn(async (value) => value)
+        }
+        const manager = {
+            connection: { options: { type: 'sqlite' } },
+            getRepository: jest.fn((entity) => {
+                if (entity === MembershipPointLedger) {
+                    return ledgerRepository
+                }
+                if (entity === UserMembership) {
+                    return membershipRepository
+                }
+                throw new Error('Unexpected repository')
+            })
+        }
+        const dataSource = {
+            transaction: jest.fn((run: (transactionManager: typeof manager) => Promise<unknown>) => run(manager))
+        }
+        const service = createMembershipService(
+            dataSource as never,
+            {} as never,
+            membershipRepository as never,
+            ledgerRepository as never,
+            {} as never
+        )
+        const access = getMembershipServiceTestAccess(service)
+        jest.spyOn(access, 'acquireGatewayRequestLock').mockResolvedValue(undefined)
+        jest.spyOn(access, 'resolveTenantTokensPerPoint').mockResolvedValue(1000)
+        const findModelAccessSpy = jest.spyOn(access, 'findModelAccessWithOrganizationSelfHeal').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership,
+            personalPointsOnly: false
+        })
+        jest.spyOn(access, 'getPersonalPointsBalance').mockResolvedValue(0.25)
+        jest.spyOn(access, 'synchronizeCurrentPeriodProjection').mockResolvedValue(undefined)
+        const createdLedgers: Array<Partial<MembershipPointLedger>> = []
+        jest.spyOn(access, 'createLedger').mockImplementation(async (_manager, input) => {
+            const ledgerInput = input as Partial<MembershipPointLedger>
+            createdLedgers.push(ledgerInput)
+            return Object.assign(new MembershipPointLedger(), {
+                id: `ledger-${createdLedgers.length}`,
+                ...ledgerInput
+            })
+        })
+
+        const result = await service.recordGatewayUsage({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            copilotOrganizationId: 'org-1',
+            userId: 'user-1',
+            provider: 'openai',
+            model: 'gpt-4.1',
+            tokenUsed: 2000,
+            copilotId: 'copilot-1',
+            gatewayRequestId: 'request-1',
+            gatewayApiKeyId: 'key-1',
+            modelAccess: {
+                allowed: true,
+                channel: ModelAccessChannelEnum.ExternalApi,
+                billableUserId: 'owner-user',
+                copilotId: 'copilot-1',
+                copilotModelId: 'gpt-4.1',
+                provider: 'openai',
+                modelType: AiModelTypeEnum.LLM,
+                model: 'gpt-4.1',
+                accessSource: ModelAccessSourceEnum.Grant,
+                multiplier: 1,
+                scope: ModelAccessOwnershipScopeEnum.Organization,
+                organizationId: 'org-1',
+                grantId: 'grant-1'
+            }
+        })
+
+        expect(findModelAccessSpy).toHaveBeenCalledWith(
+            {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: 'org-1',
+                userId: 'owner-user',
+                xpertId: undefined
+            },
+            manager,
+            true
+        )
+        expect(result).toMatchObject({ chargedPoints: 0.75, excessPoints: 1.25 })
+        expect(membership.pointsUsed).toBe(10)
+        expect(createdLedgers).toEqual([
+            expect.objectContaining({
+                pointsDelta: -0.5,
+                chargedPoints: 0.5,
+                excessPoints: 1.25,
+                usageChannel: ModelGatewayUsageChannelEnum.ExternalApi,
+                gatewayRequestId: 'request-1'
+            }),
+            expect.objectContaining({
+                pointsDelta: -0.25,
+                chargedPoints: 0.25,
+                excessPoints: 0,
+                gatewayRequestId: 'request-1'
+            })
+        ])
     })
 })

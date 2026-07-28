@@ -34,7 +34,7 @@ describe('buildMembershipUsageHeatmap', () => {
     ])
   })
 
-  it('fills missing days, aggregates duplicate buckets and assigns token intensity levels', () => {
+  it('fills missing days, aggregates duplicate buckets and assigns point intensity levels', () => {
     const heatmap = buildMembershipUsageHeatmap(
       [
         { date: '2026-07-21', pointsUsed: 1.5, tokenUsed: 20 },
@@ -54,22 +54,23 @@ describe('buildMembershipUsageHeatmap', () => {
     expect(cells.find((cell) => cell.date === '2026-07-21')).toMatchObject({
       pointsUsed: 2,
       tokenUsed: 25,
-      level: 1
+      level: 2
     })
     expect(cells.find((cell) => cell.date === '2026-07-22')).toMatchObject({
+      pointsUsed: 4,
       tokenUsed: 100,
       level: 4
     })
   })
 
-  it('treats token values below one as zero usage', () => {
+  it('ignores token-only values when calculating point activity levels', () => {
     const heatmap = buildMembershipUsageHeatmap(
-      [{ date: '2026-07-22', pointsUsed: 0, tokenUsed: 0.9 }],
+      [{ date: '2026-07-22', pointsUsed: 0, tokenUsed: 100 }],
       new Date(2026, 6, 22, 12),
       'zh-CN'
     )
     const cell = heatmap.weeks.flatMap((week) => week.cells).find((item) => item?.date === '2026-07-22')
 
-    expect(cell).toMatchObject({ tokenUsed: 0, level: 0 })
+    expect(cell).toMatchObject({ pointsUsed: 0, tokenUsed: 100, level: 0 })
   })
 })

@@ -1,5 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
+import { ModelAccessSourceEnum } from './model-access.model'
+import { ModelGatewayUsageChannelEnum } from './model-gateway.model'
 
 export enum MembershipPlanStatusEnum {
   Active = 'active',
@@ -49,6 +51,21 @@ export enum MembershipLedgerSourceEnum {
   StatusChange = 'status_change',
   PersonalAdjustment = 'personal_adjustment',
   PersonalUsage = 'personal_usage'
+}
+
+export enum MembershipAdminUserStatusEnum {
+  Active = 'active',
+  Paused = 'paused',
+  Expired = 'expired',
+  Unassigned = 'unassigned'
+}
+
+export enum MembershipBulkActionEnum {
+  Assign = 'assign',
+  Renew = 'renew',
+  Pause = 'pause',
+  Resume = 'resume',
+  Revoke = 'revoke'
 }
 
 export type TMembershipRateLimitPeriod = 'hour' | 'day' | 'week' | 'cycle'
@@ -141,6 +158,8 @@ export interface IUserMembershipPeriod extends IBasePerTenantAndOrganizationEnti
 export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   userId: string
   user?: IUser
+  actorId?: string | null
+  actor?: IUser
   membershipId?: string | null
   membership?: IUserMembership
   planId?: string | null
@@ -158,6 +177,13 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   usageHour?: string | null
   sourceReference?: string | null
   reason?: string | null
+  accessSource?: ModelAccessSourceEnum | null
+  modelGrantId?: string | null
+  usageChannel?: ModelGatewayUsageChannelEnum | null
+  gatewayRequestId?: string | null
+  gatewayApiKeyId?: string | null
+  chargedPoints?: number | null
+  excessPoints?: number | null
 }
 
 export interface IMembershipMe {
@@ -176,6 +202,39 @@ export interface IMembershipMe {
 export interface IUserPersonalPoints {
   userId: string
   balance: number
+}
+
+export interface IMembershipAdminUser {
+  user: IUser
+  membership?: IUserMembership | null
+  scheduledPeriodCount: number
+}
+
+export interface IMembershipAdminUsersQuery {
+  search?: string
+  status?: MembershipAdminUserStatusEnum
+  planId?: string
+  expiringBefore?: string
+  take?: number
+  skip?: number
+}
+
+export type TMembershipBulkActionInput = {
+  userIds: string[]
+  action: MembershipBulkActionEnum
+  planId?: string
+  renewalMode?: MembershipRenewalModeEnum
+  note?: string | null
+}
+
+export interface IMembershipBulkActionFailure {
+  userId: string
+  message: string
+}
+
+export interface IMembershipBulkActionResult {
+  succeeded: number
+  failed: IMembershipBulkActionFailure[]
 }
 
 export interface IMembershipScopeStatus {
@@ -207,6 +266,7 @@ export interface IMembershipUsageRank {
 
 export interface IMembershipUsageGroupKey {
   usageHour?: string | null
+  usageChannel?: ModelGatewayUsageChannelEnum | null
   provider?: string | null
   model?: string | null
   organizationId?: string | null
@@ -300,6 +360,7 @@ export type TMembershipCurrentPeriodUpgradeInput = {
 export interface IMembershipUsageQuery {
   start?: string
   end?: string
+  usageChannel?: ModelGatewayUsageChannelEnum
   provider?: string
   model?: string
   organizationId?: string

@@ -358,5 +358,61 @@
         </form>
       }
     </section>
+
+    <section class="overflow-hidden rounded-lg border border-divider-regular">
+      <div class="border-b border-divider-regular px-4 py-3">
+        <div class="font-semibold text-text-primary">
+          {{ 'PAC.Membership.OperationHistory' | translate: { Default: 'Operation history' } }}
+        </div>
+        <div class="mt-1 text-sm text-text-tertiary">
+          {{
+            'PAC.Membership.OperationHistoryHint'
+              | translate: { Default: 'Recent assignments, point changes, renewals, and status changes.' }
+          }}
+        </div>
+      </div>
+
+      <div class="divide-y divide-divider-subtle">
+        @for (entry of auditEntries(); track entry.id) {
+          <div class="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(8rem,auto)_minmax(8rem,auto)]">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-medium text-text-primary">
+                  {{ 'PAC.Membership.LedgerSource.' + entry.source | translate: { Default: entry.source } }}
+                </span>
+                @if (entry.pointsDelta) {
+                  <z-badge [zType]="entry.pointsDelta > 0 ? 'secondary' : 'outline'" zShape="pill">
+                    {{ entry.pointsDelta > 0 ? '+' : '' }}{{ entry.pointsDelta | number: '1.0-10' }}
+                  </z-badge>
+                }
+              </div>
+              <div class="mt-1 truncate text-sm text-text-tertiary" [title]="entry.reason || ''">
+                {{
+                  entry.reason || ('PAC.Membership.NoOperationReason' | translate: { Default: 'No reason provided' })
+                }}
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-text-tertiary">
+                {{ 'PAC.Membership.Operator' | translate: { Default: 'Operator' } }}
+              </div>
+              <div class="mt-1 truncate text-sm text-text-primary" [title]="auditActorLabel(entry)">
+                {{ auditActorLabel(entry) }}
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-text-tertiary">
+                {{ 'PAC.Membership.OperationTime' | translate: { Default: 'Time' } }}
+              </div>
+              <div class="mt-1 text-sm text-text-primary">{{ entry.createdAt | date: 'medium' }}</div>
+            </div>
+          </div>
+        } @empty {
+          <div class="px-4 py-8 text-center text-sm text-text-tertiary">
+            {{ 'PAC.Membership.NoOperationHistory' | translate: { Default: 'No membership operations yet.' } }}
+          </div>
+        }
+      </div>
+    </section>
   </div>
 }

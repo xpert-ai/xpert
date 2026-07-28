@@ -201,16 +201,20 @@
                     [title]="
                       conversationLabel(summary) +
                       ' / ' +
-                      ('PAC.Membership.Xpert' | translate: { Default: 'Xpert' }) +
-                      ' ' +
-                      xpertLabel(summary)
+                      (isExternalApi(summary)
+                        ? ('PAC.Membership.ApiCall' | translate: { Default: 'API call' })
+                        : ('PAC.Membership.Xpert' | translate: { Default: 'Xpert' }) + ' ' + xpertLabel(summary))
                     "
                   >
                     <div class="truncate text-text-primary">
                       {{ conversationLabel(summary) }}
                     </div>
                     <div class="truncate text-xs text-text-tertiary">
-                      {{ 'PAC.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ xpertLabel(summary) }}
+                      @if (isExternalApi(summary)) {
+                        {{ 'PAC.Membership.ApiCall' | translate: { Default: 'API call' } }}
+                      } @else {
+                        {{ 'PAC.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ xpertLabel(summary) }}
+                      }
                     </div>
                   </td>
                   <td
