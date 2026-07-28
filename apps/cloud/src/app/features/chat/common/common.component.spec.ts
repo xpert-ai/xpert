@@ -27,10 +27,6 @@ jest.mock('apps/cloud/src/app/@core', () => {
   }
 })
 
-jest.mock('../../../@core/providers/ocap', () => ({
-  provideOcap: jest.fn(() => [])
-}))
-
 jest.mock('@xpert-ai/ocap-angular/core', () => {
   const angularCore = jest.requireActual('@angular/core')
 
@@ -46,8 +42,7 @@ jest.mock('@xpert-ai/ocap-angular/core', () => {
   })(NgmShortNumberPipe)
 
   return {
-    NgmShortNumberPipe,
-    provideOcapCore: jest.fn(() => [])
+    NgmShortNumberPipe
   }
 })
 
@@ -59,7 +54,6 @@ jest.mock('../../../xpert', () => {
     readonly messages = signal<unknown[]>([])
   }
   class XpertHomeService {}
-  class XpertOcapService {}
   class XpertChatAppComponent {
     idleLayout: 'xpert' | 'welcome' = 'xpert'
     readonly chatService = inject(ChatService)
@@ -88,8 +82,7 @@ jest.mock('../../../xpert', () => {
   return {
     ChatService,
     XpertHomeService,
-    XpertChatAppComponent,
-    XpertOcapService
+    XpertChatAppComponent
   }
 })
 

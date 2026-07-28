@@ -5,11 +5,9 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { AssistantCode, IXpert, RolesEnum, Store } from '../../../@core'
-import { provideOcap } from '../../../@core/providers/ocap'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { ChatService, XpertChatAppComponent, XpertOcapService } from '../../../xpert'
+import { ChatService, XpertChatAppComponent } from '../../../xpert'
 import { TranslateModule } from '@ngx-translate/core'
-import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
 import { injectAssistantBindingRuntimeState } from '../../assistant/assistant-chatkit.runtime'
 import { ChatHomeService } from '../home.service'
@@ -32,13 +30,7 @@ import { ChatCommonService } from './common-chat.service'
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './common.component.html',
-  providers: [
-    ChatCommonService,
-    { provide: ChatService, useExisting: ChatCommonService },
-    provideOcapCore(),
-    provideOcap(),
-    XpertOcapService
-  ]
+  providers: [ChatCommonService, { provide: ChatService, useExisting: ChatCommonService }]
 })
 export class ChatCommonAssistantComponent {
   readonly #homeService = inject(ChatHomeService)

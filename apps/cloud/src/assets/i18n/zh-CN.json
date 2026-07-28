@@ -705,7 +705,6 @@
       "Custom SMTP": "自定义 SMTP",
       "AGENT": "代理",
       "LOCAL_AGENT": "本地代理",
-      "WASM_DB": "WASM 数据库",
       "Attributes": "属性",
       "CALCULATION": "计算",
       "CALCULATED_MEMBERS": "计算成员",

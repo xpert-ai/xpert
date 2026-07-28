@@ -182,6 +182,3 @@ export class NgmError extends Error {
     this.date = new Date()
   }
 }
-
-export const WasmDBDialect = 'duckdb'
-export const WasmDBDefaultCatalog = 'main'

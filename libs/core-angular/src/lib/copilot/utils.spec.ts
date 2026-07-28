@@ -1,12 +1,18 @@
-import { ENTITY_TYPE_SALESORDER } from '@xpert-ai/ocap-sql'
+import { EntityType } from '@xpert-ai/ocap-core'
 import { markdownEntityType } from './utils'
 
 describe('markdownEntityType', () => {
-  beforeEach(() => {})
-
-  afterEach(() => {})
-
   it('should create', () => {
-    markdownEntityType(ENTITY_TYPE_SALESORDER)
+    const entityType = {
+      name: 'SalesOrder',
+      properties: {
+        amount: {
+          name: 'amount',
+          caption: 'Amount'
+        }
+      }
+    } as EntityType
+
+    expect(markdownEntityType(entityType)).toContain('SalesOrder')
   })
 })

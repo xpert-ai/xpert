@@ -1,13 +1,13 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, LOCALE_ID } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { EChartsOption } from 'echarts'
 import { maxBy } from 'lodash-es'
-import { NgxEchartsDirective } from 'ngx-echarts'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { EchartsDirective } from '../echarts.directive'
 @Component({
   standalone: true,
   imports: [
@@ -18,7 +18,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgxEchartsDirective
+    EchartsDirective
   ],
   selector: 'pac-statistics-chart',
   templateUrl: './chart.component.html',

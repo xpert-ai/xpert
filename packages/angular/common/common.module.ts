@@ -19,10 +19,7 @@ import { NgmTagsComponent } from './tag'
 import { NgmTreeSelectComponent } from './tree-select'
 import { NgmDrawerTriggerComponent } from './drawer-trigger'
 import { NgmScrollBackComponent } from './scroll'
-import { NgmPropertyComponent } from './property/property.component'
-import { NgmHierarchySelectComponent } from './hierarchy-select/hierarchy-select.component'
 import { NgmDrawerContainerComponent } from './drawer'
-import { NgmObjectNumberComponent } from './object-number/object-number.component'
 import { NgmSpinComponent } from './spin/spin.component'
 import { NgmCheckboxComponent } from './checkbox/checkbox.component'
 import { NgmStepperComponent } from './stepper/stepper.component'
@@ -57,10 +54,7 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmScrollBackComponent,
     NgmTableComponent,
     NgmSelectionTableComponent,
-    NgmPropertyComponent,
-    NgmHierarchySelectComponent,
     NgmDrawerContainerComponent,
-    NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
     NgmStepperComponent,
@@ -90,10 +84,7 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmScrollBackComponent,
     NgmTableComponent,
     NgmSelectionTableComponent,
-    NgmPropertyComponent,
-    NgmHierarchySelectComponent,
     NgmDrawerContainerComponent,
-    NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
     NgmStepperComponent,

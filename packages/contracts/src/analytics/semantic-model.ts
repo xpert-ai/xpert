@@ -13,8 +13,7 @@ import * as MDX from './schema'
 export enum AgentType {
   Local = 'local',
   Browser = 'browser',
-  Server = 'server',
-  Wasm = 'wasm'
+  Server = 'server'
 }
 
 /**

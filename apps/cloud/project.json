@@ -57,39 +57,9 @@
             "output": "./assets/tinymce/"
           },
           {
-            "glob": "*.wasm",
-            "input": "node_modules/@duckdb/duckdb-wasm/dist/",
-            "output": "./assets/"
-          },
-          {
-            "glob": "*.worker.js",
-            "input": "node_modules/@duckdb/duckdb-wasm/dist/",
-            "output": "./assets/"
-          },
-          {
-            "glob": "*.worker.js",
-            "input": "packages/duckdb/dist/",
-            "output": "./assets/"
-          },
-          {
             "glob": "**/*.json",
             "input": "packages/core/src/i18n/",
             "output": "./assets/locales/core/"
-          },
-          {
-            "glob": "**/*.json",
-            "input": "packages/sql/src/i18n/",
-            "output": "./assets/locales/sql/"
-          },
-          {
-            "glob": "**/*.json",
-            "input": "packages/xmla/src/i18n/",
-            "output": "./assets/locales/xmla/"
-          },
-          {
-            "glob": "**/*.json",
-            "input": "legacies/echarts/src/i18n/",
-            "output": "./assets/locales/echarts/"
           },
           {
             "glob": "**/*.json",
@@ -174,11 +144,6 @@
       "dependsOn": [
         {
           "projects": ["contracts"],
-          "target": "build",
-          "params": "ignore"
-        },
-        {
-          "projects": ["sql"],
           "target": "build",
           "params": "ignore"
         }

@@ -5,12 +5,11 @@ import { HttpHeaders } from '../types'
 export enum AgentType {
   Local = 'local',
   Browser = 'browser',
-  Server = 'server',
-  Wasm = 'wasm'
+  Server = 'server'
 }
 
 export interface AgentStatus {
-  status: AgentStatusEnum,
+  status: AgentStatusEnum
   payload?: any
 }
 
@@ -25,8 +24,8 @@ export interface Agent {
   request(dataSource: DataSourceOptions, options: any): Promise<any>
   /**
    * New API
-   * @param dataSource 
-   * @param options 
+   * @param dataSource
+   * @param options
    */
   _request?(dataSource: DataSourceOptions, options: any): Observable<any>
 }
@@ -65,7 +64,7 @@ export interface OcapCache {
 }
 
 export interface OcapCacheOptions {
-  key: string;
+  key: string
   maxAge: number
   level: number
   version: string

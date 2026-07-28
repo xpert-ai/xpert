@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common'
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
-import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { TranslateModule } from '@ngx-translate/core'
 import { Meta, StoryObj, applicationConfig, argsToTemplate, moduleMetadata } from '@storybook/angular'
+import { provideTranslate } from '../../.storybook/translate'
 import { NgmSearchComponent } from './search.component'
 
 export default {

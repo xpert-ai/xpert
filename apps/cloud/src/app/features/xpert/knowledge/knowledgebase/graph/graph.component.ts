@@ -15,8 +15,8 @@ import {
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
 import { EChartsOption } from 'echarts'
-import { NgxEchartsDirective } from 'ngx-echarts'
 import { firstValueFrom } from 'rxjs'
 import {
   getErrorMessage,
@@ -93,7 +93,7 @@ const ALL_SELECT_VALUE = '__all__'
     ReactiveFormsModule,
     TranslateModule,
     NgmSpinComponent,
-    NgxEchartsDirective,
+    EchartsDirective,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardEmptyComponent,

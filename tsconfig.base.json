@@ -36,10 +36,6 @@
       "@xpert-ai/ocap-angular": ["packages/angular/src/index.ts"],
       "@xpert-ai/ocap-angular/*": ["packages/angular/*/index.ts", "packages/angular/*"],
       "@xpert-ai/ocap-core": ["packages/core/src/index.ts"],
-      "@xpert-ai/ocap-duckdb": ["legacies/duckdb/src/index.ts"],
-      "@xpert-ai/ocap-echarts": ["legacies/echarts/src/index.ts"],
-      "@xpert-ai/ocap-sql": ["packages/sql/src/index.ts"],
-      "@xpert-ai/ocap-xmla": ["packages/xmla/src/index.ts"],
       "@xpert-ai/server-ai": ["packages/server-ai/src/index.ts"],
       "@xpert-ai/server-auth": ["packages/auth/src/index.ts"],
       "@xpert-ai/server-common": ["packages/common/src/index.ts"],
@@ -52,7 +48,6 @@
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
       "@xpert-ai/plugin-sdk/connector": ["packages/plugin-sdk/src/connector.ts"],
       "@xpert-ai/plugin-vlm-default": ["packages/plugins/vlm-default/src/index.ts"],
-      "ngx-echarts": ["legacies/ngx-echarts/src/public-api"],
       "@xpert-ai/headless-ui": ["packages/ui/src/index.ts"],
       "@xpert-ai/headless-ui/*": ["packages/ui/src/lib/*"]
     },

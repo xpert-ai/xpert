@@ -9,10 +9,7 @@
 
 @include formly.theme(runtimeTheme.$theme);
 @include ocap.core-theme(runtimeTheme.$theme);
-@include ocap.analytical-grid-theme(runtimeTheme.$theme);
 @include ocap.breadcrumb-theme(runtimeTheme.$theme);
-@include ocap.controls-theme(runtimeTheme.$theme);
-@include ocap.entity-theme(runtimeTheme.$theme);
 @include ocap.common-color(runtimeTheme.$theme);
 @include ocap.common-density(runtimeTheme.$theme);
 @include auth.theme(runtimeTheme.$theme);

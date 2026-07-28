@@ -1,9 +1,0 @@
-@reference "../../../tailwind-workspace-reference.css";
-:host {
-  display: block;
-  width: 100%;
-  overflow: hidden;
-}
-[z-input] {
-  @apply outline-none text-right max-w-[50%];
-}

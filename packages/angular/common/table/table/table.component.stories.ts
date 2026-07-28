@@ -3,8 +3,8 @@
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
-import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { applicationConfig, moduleMetadata, type Meta, type StoryObj } from '@storybook/angular'
+import { provideTranslate } from '../../../.storybook/translate'
 import { NgmTableComponent } from './table.component'
 
 const meta: Meta<NgmTableComponent> = {
@@ -24,7 +24,11 @@ const meta: Meta<NgmTableComponent> = {
 export default meta
 type Story = StoryObj<NgmTableComponent>
 
-const columns = [{ name: 'name', caption: 'Name' }, { name: 'caption', caption: 'Caption' }, { name: 'type', caption: 'Type' }]
+const columns = [
+  { name: 'name', caption: 'Name' },
+  { name: 'caption', caption: 'Caption' },
+  { name: 'type', caption: 'Type' }
+]
 const data = [
   {
     name: 'name1',

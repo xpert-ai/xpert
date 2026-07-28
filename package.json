@@ -21,8 +21,7 @@
     "Xpert",
     "AI",
     "Agent",
-    "Copilot",
-    "BI"
+    "Copilot"
   ],
   "scripts": {
     "start": "concurrently \"pnpm start:api\" \"pnpm start:cloud\"",
@@ -46,8 +45,7 @@
     "prebuild": "rimraf dist coverage",
     "build:plugins": "pnpm nx build vlm-default && pnpm nx build draft",
     "build:embed": "pnpm exec terser apps/cloud/src/assets/embed.js --compress --mangle --output apps/cloud/src/assets/embed.min.js && printf '\\n' >> apps/cloud/src/assets/embed.min.js",
-    "build": "pnpm nx build store && pnpm nx build core && pnpm nx build echarts && pnpm nx build sql && pnpm nx build xmla && pnpm -C ./packages/duckdb build:release && pnpm nx build duckdb && pnpm b:p:copilot && pnpm b:p:angular",
-    "b:p:duckdb": "pnpm -C ./packages/duckdb build:release && pnpm nx build duckdb",
+    "build": "pnpm nx build store && pnpm nx build core && pnpm b:p:copilot && pnpm b:p:angular",
     "b:p:contracts": "pnpm nx build contracts",
     "b:p:common": "pnpm nx build common",
     "b:p:config": "pnpm nx build config",
@@ -69,7 +67,7 @@
     "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts",
     "check:typeorm-columns": "node tools/scripts/check-typeorm-column-types.cjs",
     "release:publish": "node tools/release/publish-npm-packages.mjs",
-    "b:docs": "concurrently \"pnpm -C ./packages/store docs\" \"pnpm -C ./packages/core docs\" \"pnpm -C ./packages/xmla docs\" \"pnpm -C ./packages/sql docs\" \"pnpm -C ./packages/echarts docs\" \"pnpm -C ./packages/duckdb docs\" \"pnpm -C ./legacies/copilot docs\"",
+    "b:docs": "concurrently \"pnpm -C ./packages/store docs\" \"pnpm -C ./packages/core docs\" \"pnpm -C ./legacies/copilot docs\"",
     "b:stats": "pnpm nx build cloud --stats-json",
     "analyze": "webpack-bundle-analyzer dist/apps/cloud/stats.json",
     "show": "pnpm nx show project cloud --web",
@@ -100,7 +98,6 @@
     "@ctrl/ngx-emoji-mart": "^9.2.0",
     "@dagrejs/dagre": "^1.1.4",
     "@datorama/akita": "^6.2.3",
-    "@duckdb/duckdb-wasm": "1.25.0",
     "@emoji-mart/data": "^1.2.1",
     "@floating-ui/dom": "^1.6.11",
     "@langchain/community": "0.3.53",

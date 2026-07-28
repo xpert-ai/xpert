@@ -39,11 +39,11 @@
    - `tools/workspace/projects.manifest.json`（显式声明项目、构建器、依赖顺序、输出路径、资产拷贝规则）。
 2. 核心项目构建映射固定如下（决策完成，实施不再二次选型）：
    - `rollup`: `adapter, contracts, copilot, core, sql, store, xmla, plugin-sdk, retriever-common, textsplitter-common, transformer-common, trigger-schedule, vlm-default, ocr-paddle, vstore-chroma, vstore-weaviate`
-   - `tsc`: `auth, common, config, server, server-ai, analytics, duckdb, echarts`
-   - `ng-packagr`: `ngx-echarts, ocap-angular, copilot-angular, component-angular, formly, story-angular, core-angular`
+   - `tsc`: `auth, common, config, server, server-ai`
+   - `ng-packagr`: `ocap-angular, copilot-angular, component-angular, formly, core-angular`
    - `app`: `api(webpack)`, `cloud(angular cli)`
 3. 固定核心构建顺序（替代 Nx dependsOn）：
-   - `contracts -> common -> config -> auth -> server -> server-ai -> adapter -> analytics -> plugins(全部) -> store -> core -> echarts -> sql -> xmla -> duckdb -> copilot -> ngx-echarts -> ocap-angular -> api`
+   - `contracts -> common -> config -> auth -> server -> server-ai -> adapter -> plugins(全部) -> store -> core -> sql -> xmla -> copilot -> ocap-angular -> api`
    - Cloud 在 `localpack` 和 webapp Docker 中单独执行生产构建。
 4. 修改 `apps/api/config/webpack.config.js`：
    - 删除 `@nx/webpack` 的 `composePlugins/withNx` 依赖。

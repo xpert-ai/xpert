@@ -9,7 +9,6 @@
     "packages/server/src",
     "packages/auth/src",
     "packages/server-ai/src",
-    "packages/xmla/src",
     "packages/plugin-sdk/src",
     "packages/plugins"
   ],

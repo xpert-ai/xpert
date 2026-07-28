@@ -8,12 +8,9 @@ import { ChangeDetectionStrategy, Component, inject, signal, ViewContainerRef } 
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { provideECharts } from '@cloud/app/@core/providers/echarts'
-import { provideOcap } from '@cloud/app/@core/providers/ocap'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { HeaderUserComponent } from '@cloud/app/@theme/header'
 import { C_URI_API_MODELS, LanguagesEnum } from '@xpert-ai/cloud/state'
-import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -30,7 +27,6 @@ import { ChatAppService } from '../chat-app.service'
 import { ChatService } from '../chat.service'
 import { ChatConversationsComponent } from '../conversations/conversations.component'
 import { XpertHomeService } from '../home.service'
-import { XpertOcapService } from '../ocap.service'
 import { XpertChatAppComponent } from '../xpert/xpert.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -50,22 +46,16 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     HeaderUserComponent,
     XpertChatAppComponent
-],
+  ],
   selector: 'chat-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
-    provideOcapCore(),
     XpertHomeService,
     ChatAppService,
     { provide: ChatService, useExisting: ChatAppService },
-    XpertOcapService,
-    provideOcap(),
-    provideECharts({
-      echarts: () => import('echarts')
-    }),
     {
       provide: PAC_SERVER_AGENT_DEFAULT_OPTIONS,
       useValue: {

@@ -1,11 +1,19 @@
-
-import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, SecurityContext, signal } from '@angular/core'
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  inject,
+  output,
+  SecurityContext,
+  signal
+} from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
-import { EditorThemeMap } from '@xpert-ai/ocap-angular/formula'
+import { EditorThemeMap } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -26,7 +34,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     MonacoEditorModule,
     ButtonGroupDirective
-],
+  ],
   selector: 'pac-email-template',
   templateUrl: './template.component.html',
   styleUrls: ['./template.component.scss']

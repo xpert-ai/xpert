@@ -8,6 +8,12 @@ export enum ThemesEnum {
 
 export type ThemeHost = ThemesEnum.light | ThemesEnum.dark
 
+export const EditorThemeMap: Record<ThemesEnum, 'vs' | 'vs-dark'> = {
+  [ThemesEnum.default]: 'vs',
+  [ThemesEnum.light]: 'vs',
+  [ThemesEnum.dark]: 'vs-dark'
+}
+
 export function normalizeTheme(theme?: string | null): ThemesEnum {
   switch (theme) {
     case ThemesEnum.dark:

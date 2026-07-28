@@ -1,80 +1,59 @@
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, Type } from '@angular/core';
-import { EntitySchemaType } from '@xpert-ai/ocap-angular/entity';
-import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core';
+import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
+import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
 
 interface TextAreaProps extends FormlyFieldProps {
-  autosize?: boolean;
-  autosizeMinRows?: number;
-  autosizeMaxRows?: number;
-  dropEntity?: boolean;
+  autosize?: boolean
+  autosizeMinRows?: number
+  autosizeMaxRows?: number
 }
 
 export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaProps> {
-  type: 'textarea' | Type<FormlyFieldTextAreaComponent>;
+  type: 'textarea' | Type<FormlyFieldTextAreaComponent>
 }
 
 @Component({
   selector: 'pac-formly-textarea',
   standalone: false,
   template: `
-@if (props?.label) {
-  <label class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
-}
-<textarea class="ngm-input-element"
-  z-input
-  [id]="id"
-  [readonly]="props.readonly"
-  [required]="props.required"
-  [formControl]="formControl"
-  [cols]="props.cols"
-  [rows]="props.rows"
-  [formlyAttributes]="field"
-  [placeholder]="props.placeholder"
-  [tabindex]="props.tabindex"
-  [cdkTextareaAutosize]="props.autosize"
-  [cdkAutosizeMinRows]="props.autosizeMinRows"
-  [cdkAutosizeMaxRows]="props.autosizeMaxRows"
-  [class.cdk-textarea-autosize]="props.autosize"
-
-  cdkDropList
-  [cdkDropListData]="[]"
-  [cdkDropListDisabled]="!props.dropEntity"
-  (cdkDropListDropped)="drop($event)"
-  >
-</textarea>
-<z-form-message zType="error" class="text-xs h-4">
-  @if (formControl.invalid) {
-    @for (item of formControl.errors | keyvalue; track item) {
-      <span>{{item.value.message}}</span>
+    @if (props?.label) {
+      <label class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{ to.label }}</label>
     }
-  }
-</z-form-message>
-`,
+    <textarea
+      class="ngm-input-element"
+      z-input
+      [id]="id"
+      [readonly]="props.readonly"
+      [required]="props.required"
+      [formControl]="formControl"
+      [cols]="props.cols"
+      [rows]="props.rows"
+      [formlyAttributes]="field"
+      [placeholder]="props.placeholder"
+      [tabindex]="props.tabindex"
+      [cdkTextareaAutosize]="props.autosize"
+      [cdkAutosizeMinRows]="props.autosizeMinRows"
+      [cdkAutosizeMaxRows]="props.autosizeMaxRows"
+      [class.cdk-textarea-autosize]="props.autosize"
+    ></textarea>
+    <z-form-message zType="error" class="text-xs h-4">
+      @if (formControl.invalid) {
+        @for (item of formControl.errors | keyvalue; track item) {
+          <span>{{ item.value.message }}</span>
+        }
+      }
+    </z-form-message>
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./textarea.type.scss'],
   host: {
-    'class': 'pac-formly-textarea'
+    class: 'pac-formly-textarea'
   }
 })
 export class FormlyFieldTextAreaComponent extends FieldType<FieldTypeConfig<TextAreaProps>> {
   override defaultOptions = {
     props: {
       cols: 1,
-      rows: 1,
-    },
-  };
-
-  drop(event: CdkDragDrop<Array<{ name: string }>>) {
-    let text = ''
-    if (event.item.data.type === EntitySchemaType.Parameter) {
-      text = `[@${event.item.data.name}]`
-    } else if (event.item.data.type === EntitySchemaType.IMeasure) {
-      text = `[#${event.item.data.name}]`
-    }
-
-    if (text) {
-      this.formControl.setValue(this.formControl.value + text);
+      rows: 1
     }
   }
 }

@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common'
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { DensityDirective } from '@xpert-ai/ocap-angular/core'
-import { provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { TranslateModule } from '@ngx-translate/core'
 import { Meta, StoryObj, applicationConfig, argsToTemplate, moduleMetadata } from '@storybook/angular'
+import { provideTranslate } from '../../.storybook/translate'
 import { NgmTagsComponent } from './tag.component'
 
 export default {
@@ -26,15 +26,15 @@ type Story = StoryObj<NgmTagsComponent>
 const tags = [
   {
     key: 'tag1',
-    caption: 'Tag 1',
+    caption: 'Tag 1'
   },
   {
     key: 'tag2',
-    caption: 'Tag 2',
+    caption: 'Tag 2'
   },
   {
     key: 'tag3',
-    caption: 'Tag 3',
+    caption: 'Tag 3'
   }
 ]
 

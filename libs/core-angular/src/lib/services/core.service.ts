@@ -28,18 +28,12 @@ export interface NxCoreState {
   timeGranularity: TimeGranularity
 }
 
-/**
- * @deprecated use NgmOcapCoreService instead
- */
 @Injectable()
 export class NxCoreService extends ComponentStore<NxCoreState> {
-
-  // readonly ocapCoreService = inject(NgmOcapCoreService)
-
   private _intent$ = new Subject<Intent>()
 
   /**
-   * Theme name for charts 
+   * Theme name for charts
    */
   public readonly themeName$ = this.select((state) => state.themeName)
   private themeChanges$: Observable<any> = this.themeName$.pipe(
@@ -78,12 +72,12 @@ export class NxCoreService extends ComponentStore<NxCoreState> {
     map(([today, timeGranularity]) => ({ today, timeGranularity }))
   )
   constructor(
-    @Inject(NX_THEME_OPTIONS) protected options: NxThemeOptions,
+    @Inject(NX_THEME_OPTIONS) protected options: NxThemeOptions
     // @Inject(NX_DATE_VARIABLES) protected dateVariables: DateVariable[]
-  ) // @Optional() @Inject(NX_COLOR_CHROMATIC) private chromatics?: Array<ColorScheme>,
-  // @Optional()
-  // private _logger?: NGXLogger
-  {
+  ) {
+    // @Optional() @Inject(NX_COLOR_CHROMATIC) private chromatics?: Array<ColorScheme>,
+    // @Optional()
+    // private _logger?: NGXLogger
     super({ themeName: NX_THEME_DEFAULT, timeGranularity: TimeGranularity.Month } as NxCoreState)
 
     this.changeTheme(options?.name || NX_THEME_DEFAULT)
@@ -118,13 +112,6 @@ export class NxCoreService extends ComponentStore<NxCoreState> {
     // return this.theme$.getValue()
   }
 
-  // /**
-  //  * @deprecated use NgmOcapCoreService instead
-  //  */
-  // getDateVariables() {
-  //   return this.ocapCoreService.getDateVariables()
-  // }
-
   // execDateVariables(id: string): Date | [Date, Date] {
   //   const dateVariable = this.dateVariables.find((item) => item.id === id)
   //   if (!dateVariable) {
@@ -137,5 +124,4 @@ export class NxCoreService extends ComponentStore<NxCoreState> {
 
   //   return dateVariable.useFactory(dateVariable.deps?.map((dep) => this.execDateVariables(dep)))
   // }
-  
 }
