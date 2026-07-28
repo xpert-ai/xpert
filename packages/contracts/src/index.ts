@@ -1,4 +1,5 @@
 export * from './types'
+export * from './utils'
 export type { I18nObject, I18nText } from './i18n.model'
 export { resolveI18nText } from './i18n.model'
 export * from './contact.model'

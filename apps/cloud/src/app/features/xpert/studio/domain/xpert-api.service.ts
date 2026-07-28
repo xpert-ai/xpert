@@ -1,16 +1,22 @@
 import { ChangeDetectorRef, computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { IPoint, IRect } from '@foblex/2d'
+import { nonBlank } from '@xpert-ai/contracts'
 import { nonNullable, debounceUntilChanged } from '@xpert-ai/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { FCanvasChangeEvent } from '@foblex/flow'
-import { nonBlank } from '@xpert-ai/copilot'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { Router } from '@angular/router'
 import { attrModel, effectAction, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { calculateHash } from '@cloud/app/@shared/utils'
-import { EnvironmentService, KnowledgebaseService, ToastrService, XpertAPIService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import {
+  EnvironmentService,
+  KnowledgebaseService,
+  ToastrService,
+  XpertAPIService,
+  XpertToolsetService
+} from 'apps/cloud/src/app/@core'
 import { isEqual, isNil, negate, omit, omitBy, pick } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -41,9 +47,14 @@ import {
   TXpertOptions,
   TXpertTeamConnection,
   TXpertTeamDraft,
-  TXpertTeamNode,
+  TXpertTeamNode
 } from '../../../../@core/types'
-import { CreateConnectionHandler, CreateConnectionRequest, RemoveConnectionHandler, RemoveConnectionRequest } from './connection'
+import {
+  CreateConnectionHandler,
+  CreateConnectionRequest,
+  RemoveConnectionHandler,
+  RemoveConnectionRequest
+} from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
 import {
   CreateNodeHandler,
@@ -60,9 +71,21 @@ import {
   UpdateNodeRequest
 } from './node'
 import { EReloadReason, IStudioStore, TStateHistory } from './types'
-import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHandler, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
+import {
+  CreateTeamHandler,
+  CreateTeamRequest,
+  ExpandTeamRequest,
+  ExpandTeamHandler,
+  UpdateXpertHandler,
+  UpdateXpertRequest
+} from './xpert'
 import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
-import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
+import {
+  CreateWorkflowNodeRequest,
+  CreateWorkflowNodeHandler,
+  UpdateWorkflowNodeHandler,
+  UpdateWorkflowNodeRequest
+} from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
 import { buildEditableXpertDraft, deriveChatTriggerInputParametersFromDraft } from '../../draft/index'
 
@@ -145,7 +168,7 @@ export class XpertStudioApiService {
   /**
    * Operate histories
    */
-  readonly stateHistories = signal<{past: TStateHistory[]; future: TStateHistory[]}>({
+  readonly stateHistories = signal<{ past: TStateHistory[]; future: TStateHistory[] }>({
     past: [],
     future: []
   })
@@ -174,13 +197,22 @@ export class XpertStudioApiService {
   readonly toolsets$ = toObservable(this.workspaceId).pipe(
     filter(nonBlank),
     distinctUntilChanged(),
-    switchMap((id) => this.refreshToolsets$.pipe(switchMap(() => this.toolsetService.getAllByWorkspace(id, {relations: ['createdBy'], order: {updatedAt: OrderTypeEnum.DESC}})))),
+    switchMap((id) =>
+      this.refreshToolsets$.pipe(
+        switchMap(() =>
+          this.toolsetService.getAllByWorkspace(id, {
+            relations: ['createdBy'],
+            order: { updatedAt: OrderTypeEnum.DESC }
+          })
+        )
+      )
+    ),
     map(({ items }) => items),
     shareReplay(1)
   )
 
   readonly builtinToolProviders = derivedAsync(() => this.toolsetService.builtinToolProviders$)
-  
+
   readonly workspace = computed(() => this.team()?.workspace, { equal: (a, b) => a?.id === b?.id })
 
   readonly collaborators$ = toObservable(this.team).pipe(
@@ -196,10 +228,12 @@ export class XpertStudioApiService {
   readonly environments$ = toObservable(this.workspaceId).pipe(
     filter(nonNullable),
     combineLatestWith(this.refreshEnvironments$),
-    switchMap(([workspaceId]) =>  this.environmentService.getAllInOrg({
-      where: {workspaceId}
-    })),
-    map(({items}) => items),
+    switchMap(([workspaceId]) =>
+      this.environmentService.getAllInOrg({
+        where: { workspaceId }
+      })
+    ),
+    map(({ items }) => items),
     shareReplay(1)
   )
 
@@ -271,12 +305,14 @@ export class XpertStudioApiService {
       distinctUntilChanged(),
       tap(() => this.unsaved.set(true)),
       debounceTime(SaveDraftDebounceTime * 1000),
-      switchMap(() => this.saveDraft().pipe(
-        catchError((err) => {
-          this.#toastr.error(getErrorMessage(err))
-          return EMPTY
-        })
-      )),
+      switchMap(() =>
+        this.saveDraft().pipe(
+          catchError((err) => {
+            this.#toastr.error(getErrorMessage(err))
+            return EMPTY
+          })
+        )
+      )
     )
     .subscribe(() => {
       this.savedEvent$.next(true)
@@ -284,16 +320,13 @@ export class XpertStudioApiService {
     })
 
   constructor() {
-    effect(
-      () => {
-        if (this.environment() == null && this.environments()?.length) {
-          this.environmentId.set(
-            this.environments().find((_) => _.isDefault)?.id ?? this.environments()[0]?.id)
-        }
+    effect(() => {
+      if (this.environment() == null && this.environments()?.length) {
+        this.environmentId.set(this.environments().find((_) => _.isDefault)?.id ?? this.environments()[0]?.id)
       }
-    )
+    })
   }
-  
+
   getInitialDraft() {
     return buildEditableXpertDraft(this.team())
   }
@@ -397,7 +430,7 @@ export class XpertStudioApiService {
     this.stateHistories.update((state) => {
       return {
         past: state.past.slice(0, state.past.length - 1),
-        future: [...state.past.slice(state.past.length -1), ...state.future]
+        future: [...state.past.slice(state.past.length - 1), ...state.future]
       }
     })
     this.#stateHistory.jumpToPast(cursor)
@@ -427,7 +460,7 @@ export class XpertStudioApiService {
         past: [history.present],
         present: history.present,
         future: []
-      };
+      }
     })
     this.stateHistories.set({
       past: [
@@ -442,7 +475,7 @@ export class XpertStudioApiService {
   }
 
   // Connections
-  public createConnection(connection: {sourceId: string; targetId: string}): void {
+  public createConnection(connection: { sourceId: string; targetId: string }): void {
     new CreateConnectionHandler(this.store).handle(new CreateConnectionRequest(connection))
     this.#reload.next(EReloadReason.CONNECTION_CHANGED)
   }
@@ -498,7 +531,7 @@ export class XpertStudioApiService {
   }
   // Agent node
   /**
-   * 
+   *
    * @param position Put new node at position
    * @param agent Agent node
    * @param fromKey From which node
@@ -533,7 +566,7 @@ export class XpertStudioApiService {
     new CreateNodeHandler(this.store).handle(new CreateNodeRequest('toolset', position, null, toolset))
     this.#reload.next(EReloadReason.TOOLSET_CREATED)
   }
-  public updateXpertAgent(key: string, entity: Partial<IXpertAgent>, options?: {emitEvent: boolean}) {
+  public updateXpertAgent(key: string, entity: Partial<IXpertAgent>, options?: { emitEvent: boolean }) {
     new UpdateAgentHandler(this.store).handle(new UpdateAgentRequest(key, entity))
     if (options?.emitEvent == null || options.emitEvent) {
       this.#reload.next(EReloadReason.XPERT_UPDATED)
@@ -543,7 +576,7 @@ export class XpertStudioApiService {
   /**
    * Update external expert
    */
-  public updateXpert(key: string, entity: IXpert, options?: {emitEvent: boolean}) {
+  public updateXpert(key: string, entity: IXpert, options?: { emitEvent: boolean }) {
     new UpdateXpertHandler(this.store).handle(new UpdateXpertRequest(key, entity))
     if (options?.emitEvent == null || options.emitEvent) {
       this.#reload.next(EReloadReason.XPERT_UPDATED)
@@ -617,7 +650,7 @@ export class XpertStudioApiService {
   }
 
   updateToolset(key: string, toolset: IXpertToolset) {
-    this.#updateNode(key, (source) => ({ ...source, entity: toolset } as Partial<TXpertTeamNode>))
+    this.#updateNode(key, (source) => ({ ...source, entity: toolset }) as Partial<TXpertTeamNode>)
     this.#reload.next(EReloadReason.TOOLSET_CREATED)
   }
 
@@ -637,12 +670,15 @@ export class XpertStudioApiService {
 
   // Logic blocks of workflow
   addBlock(position: IPoint, entity: Partial<IWorkflowNode>, fromNode?: TXpertTeamNode) {
-    new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(
-      fromNode?.position ? {x: fromNode.position.x + 200, y: fromNode.position.y } : position
-      , entity
-      , {
-      parentId: fromNode?.parentId
-    }))
+    new CreateWorkflowNodeHandler(this.store).handle(
+      new CreateWorkflowNodeRequest(
+        fromNode?.position ? { x: fromNode.position.x + 200, y: fromNode.position.y } : position,
+        entity,
+        {
+          parentId: fromNode?.parentId
+        }
+      )
+    )
     if (fromNode) {
       this.createConnection({
         sourceId: fromNode.key + '/edge',
@@ -667,7 +703,7 @@ export class XpertStudioApiService {
       if (index === -1) {
         throw new Error(`Workflow node with key ${key} not found`)
       }
-      const node = draft.nodes[index] as TXpertTeamNode & {type: 'workflow'}
+      const node = draft.nodes[index] as TXpertTeamNode & { type: 'workflow' }
       node.entity = fn(node.entity)
       return {
         draft
@@ -678,12 +714,14 @@ export class XpertStudioApiService {
 
   pasteNode(node: TXpertTeamNode) {
     let entity = null
-    switch(node.type) {
-      case ('agent'): {
+    switch (node.type) {
+      case 'agent': {
         entity = omitBy(
           {
             ...omit(node.entity, 'id', 'key', 'leaderKey', 'createdAt', 'createdById', 'updatedAt', 'updatedById'),
-            copilotModel: node.entity.copilotModel ? pick(node.entity.copilotModel, 'copilotId', 'model', 'modelType', 'options') : null,
+            copilotModel: node.entity.copilotModel
+              ? pick(node.entity.copilotModel, 'copilotId', 'model', 'modelType', 'options')
+              : null,
             copilotModelId: null
           },
           isNil
@@ -692,7 +730,7 @@ export class XpertStudioApiService {
         this.#reload.next(EReloadReason.XPERT_UPDATED)
         break
       }
-      case ('workflow'): {
+      case 'workflow': {
         entity = omit(node.entity, 'id', 'key')
         entity.key = genWorkflowKey(node.entity.type)
         new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(node.position, entity))
@@ -713,23 +751,31 @@ export class XpertStudioApiService {
 
   // Templates
   replaceToolset(key: string, toolset: IXpertToolset) {
-    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, {entity: toolset, key: toolset.id}))
+    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, { entity: toolset, key: toolset.id }))
     this.#reload.next(EReloadReason.TOOLSET_CREATED)
   }
   replaceKnowledgebase(key: string, knowledgebase: IKnowledgebase) {
-    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, {entity: knowledgebase, key: knowledgebase.id}))
+    new ReplaceNodeHandler(this.store).handle(
+      new ReplaceNodeRequest(key, { entity: knowledgebase, key: knowledgebase.id })
+    )
     this.#reload.next(EReloadReason.KNOWLEDGE_CREATED)
   }
 
-  private readonly toolsets = new Map<string, {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>}>()
+  private readonly toolsets = new Map<
+    string,
+    { toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void> }
+  >()
   /**
    * Get toolset detail with tools from cache or remote
    */
-  getToolset(id: string): {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>} {
+  getToolset(id: string): { toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void> } {
     if (!this.toolsets.get(id)) {
       const refresh$ = new BehaviorSubject<void>(null)
       this.toolsets.set(id, {
-        toolset$: refresh$.pipe(switchMap(() => this.toolsetService.getOneById(id, { relations: ['tools']})), shareReplay(1)),
+        toolset$: refresh$.pipe(
+          switchMap(() => this.toolsetService.getOneById(id, { relations: ['tools'] })),
+          shareReplay(1)
+        ),
         refresh$
       })
     }
@@ -742,17 +788,25 @@ export class XpertStudioApiService {
   private readonly knowledgebases = new Map<string, Observable<IKnowledgebase>>()
   getKnowledgebase(id: string) {
     if (!this.knowledgebases.get(id)) {
-      this.knowledgebases.set(id, this.knowledgebaseService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
+      this.knowledgebases.set(
+        id,
+        this.knowledgebaseService.getOneById(id, { relations: ['tools'] }).pipe(shareReplay(1))
+      )
     }
     return this.knowledgebases.get(id)
   }
 
-  getVariables(options: {xpertId: string; workflowKey?: string; agentKey?: string; type: 'input' | 'output'}) {
+  getVariables(options: { xpertId: string; workflowKey?: string; agentKey?: string; type: 'input' | 'output' }) {
     if (options.workflowKey) {
-      return this.xpertAPI.getWorkflowVariables(options.xpertId, options.workflowKey, options.type, this.environmentId())
+      return this.xpertAPI.getWorkflowVariables(
+        options.xpertId,
+        options.workflowKey,
+        options.type,
+        this.environmentId()
+      )
     } else {
       return this.xpertAPI.getVariables(options.xpertId, options.type, {
-        agentKey: options.agentKey, 
+        agentKey: options.agentKey,
         environmentId: this.environmentId()
       })
     }

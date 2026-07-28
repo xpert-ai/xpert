@@ -16,7 +16,7 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { nonNullable, stringifyMessageContent } from '@xpert-ai/copilot'
+import { nonNullable, stringifyMessageContent } from '@xpert-ai/contracts'
 import { ListHeightStaggerAnimation } from '@xpert-ai/core'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { omit } from '@xpert-ai/ocap-core'

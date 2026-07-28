@@ -680,6 +680,9 @@ importers:
       '@xpert-ai/chatkit-web-shared':
         specifier: ~0.4.1
         version: 0.4.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.21.0)(zod@3.25.67)))
+      '@xpert-ai/store':
+        specifier: 3.9.1
+        version: 3.9.1(immer@10.2.0)(rxjs@7.8.2)
       '@xterm/addon-fit':
         specifier: ^0.10.0
         version: 0.10.0(@xterm/xterm@5.5.0)
@@ -763,24 +766,6 @@ importers:
         specifier: ^8.6.2
         version: 8.16.0
 
-  legacies/copilot:
-    dependencies:
-      '@langchain/langgraph-checkpoint':
-        specifier: 0.1.1
-        version: 0.1.1(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.21.0)(zod@3.25.67)))
-      '@langchain/openai':
-        specifier: 0.6.9
-        version: 0.6.9(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.21.0)(zod@3.25.67)))(ws@8.21.0)
-      '@xpert-ai/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts/dist
-      nanoid:
-        specifier: ^4.0.2
-        version: 4.0.2
-      ollama:
-        specifier: ^0.5.6
-        version: 0.5.18
-
   libs/component-angular:
     dependencies:
       '@angular/common':
@@ -801,6 +786,9 @@ importers:
       '@angular/core':
         specifier: ^21.0.0
         version: 21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2)
+      '@xpert-ai/store':
+        specifier: 3.9.1
+        version: 3.9.1(immer@10.2.0)(rxjs@7.8.2)
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
@@ -1012,8 +1000,8 @@ importers:
   packages/core:
     dependencies:
       '@xpert-ai/store':
-        specifier: workspace:*
-        version: link:../store
+        specifier: ^3.9.1
+        version: 3.9.1(immer@10.2.0)(rxjs@7.8.2)
       date-fns:
         specifier: ^3.0.4
         version: 3.6.0
@@ -1533,9 +1521,6 @@ importers:
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../contracts/dist
-      '@xpert-ai/copilot':
-        specifier: workspace:*
-        version: link:../../legacies/copilot
       '@xpert-ai/ocap-core':
         specifier: workspace:*
         version: link:../../dist/packages/core
@@ -1760,15 +1745,6 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.31)
-
-  packages/store:
-    dependencies:
-      immer:
-        specifier: ^10.0.1
-        version: 10.2.0
-      rxjs:
-        specifier: ~7.8.0
-        version: 7.8.2
 
   packages/ui:
     dependencies:
@@ -9923,6 +9899,12 @@ packages:
   '@xpert-ai/chatkit-web-shared@0.4.1':
     resolution: {integrity: sha512-Oj6grmXeh1YQcp3E28n5IWTGREIfUBrnTk2SjyClSqSs9d5uOvYLf9YlhIchsqNyO4MldKH/nz4G8fc2YhsyIg==}
 
+  '@xpert-ai/store@3.9.1':
+    resolution: {integrity: sha512-ovzC/fCNars3fkbei+sijWj94loyRlVSd/qducy3vlzkmUPdluVnKDlhaQ6AEHfm1B2OBQc7oZpj1//4k+kmRA==}
+    peerDependencies:
+      immer: ^10.0.1
+      rxjs: ~7.8.0
+
   '@xpert-ai/xpert-sdk@0.0.13':
     resolution: {integrity: sha512-hTmO5OLFVqRiZeuUVFAJQUIs3JGeDTTD1HcpqswPiH7BXQ9rNLEEEVFp5c8uk9EOX3SEsyxcRaaNpcOPf/kLXw==}
 
@@ -16647,11 +16629,6 @@ packages:
   nanoid@3.3.15:
     resolution: {integrity: sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@4.0.2:
-    resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
-    engines: {node: ^14 || ^16 || >=18}
     hasBin: true
 
   napi-build-utils@2.0.0:
@@ -33237,6 +33214,11 @@ snapshots:
       - '@a2ui/lit'
       - '@langchain/core'
 
+  '@xpert-ai/store@3.9.1(immer@10.2.0)(rxjs@7.8.2)':
+    dependencies:
+      immer: 10.2.0
+      rxjs: 7.8.2
+
   '@xpert-ai/xpert-sdk@0.0.13':
     dependencies:
       p-queue: 6.6.2
@@ -38408,7 +38390,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.18.1)
+      retry-axios: 2.6.0(axios@1.18.1(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -41753,8 +41735,6 @@ snapshots:
 
   nanoid@3.3.15: {}
 
-  nanoid@4.0.2: {}
-
   napi-build-utils@2.0.0: {}
 
   napi-postinstall@0.3.4: {}
@@ -44661,7 +44641,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.18.1):
+  retry-axios@2.6.0(axios@1.18.1(debug@4.4.3)):
     dependencies:
       axios: 1.18.1(debug@4.4.3)
 

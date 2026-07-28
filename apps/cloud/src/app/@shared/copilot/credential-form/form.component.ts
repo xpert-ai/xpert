@@ -3,8 +3,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { isNil } from '@xpert-ai/contracts'
 import { ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { isNil } from '@xpert-ai/copilot'
 import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -38,7 +38,7 @@ import { NgmSelectComponent } from '../../common'
     NgmDensityDirective,
     NgmI18nPipe,
     NgmSelectComponent
-],
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class CopilotCredentialFormComponent {

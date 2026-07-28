@@ -6,7 +6,6 @@
 // 	IXpert,
 // 	IXpertToolset,
 // } from '@xpert-ai/contracts'
-// import { NgmLanguageEnum } from '@xpert-ai/copilot'
 // import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 // import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 // import { isNil } from 'lodash'
@@ -19,7 +18,6 @@
 // import { ChatWSCommand } from '../chat-ws.command'
 // import { FindXpertToolsetsQuery } from '../../../xpert-toolset/index'
 // import { FindXpertQuery } from '../../../xpert'
-
 
 // @CommandHandler(ChatWSCommand)
 // export class ChatWSCommandHandler implements ICommandHandler<ChatWSCommand> {

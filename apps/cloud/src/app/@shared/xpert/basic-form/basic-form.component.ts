@@ -4,6 +4,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { nonBlank } from '@xpert-ai/contracts'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
@@ -15,7 +16,6 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { nonBlank } from '@xpert-ai/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, filter, switchMap } from 'rxjs/operators'
 import { BehaviorSubject } from 'rxjs'
@@ -32,7 +32,7 @@ import { CopilotModelSelectComponent } from '../../copilot'
     TextFieldModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent
-],
+  ],
   selector: 'xpert-basic-form',
   templateUrl: 'basic-form.component.html',
   styleUrl: 'basic-form.component.scss',
@@ -80,11 +80,11 @@ export class XpertBasicFormComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
-  
+
   constructor() {
     effect(() => {
       const name = this.name()
-      
+
       // If name is empty or not provided, clear error and don't validate
       // Only validate when user has entered content
       if (!name || name.trim() === '') {
@@ -95,7 +95,7 @@ export class XpertBasicFormComponent {
 
       this.checking.set(true)
       this.error.set(null)
-      
+
       // Only validate if name is not blank
       if (!name || name.trim().length === 0) {
         this.checking.set(false)

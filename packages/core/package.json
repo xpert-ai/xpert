@@ -16,7 +16,7 @@
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
   "peerDependencies": {
-    "@xpert-ai/store": "workspace:*",
+    "@xpert-ai/store": "^3.9.1",
     "rxjs": ">=7.4.0",
     "uuid": "^8.3.2",
     "idb-keyval": "^6.2.0",

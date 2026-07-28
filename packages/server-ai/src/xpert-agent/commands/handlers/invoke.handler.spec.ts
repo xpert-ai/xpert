@@ -12,11 +12,6 @@ jest.mock('@xpert-ai/server-core', () => ({
     }
 }))
 
-jest.mock('@xpert-ai/copilot', () => ({
-    AgentRecursionLimit: 25,
-    isNil: (value: unknown) => value == null
-}))
-
 jest.mock('../../../copilot-checkpoint', () => ({
     CopilotCheckpointSaver: class CopilotCheckpointSaver {},
     GetCopilotCheckpointsByParentQuery: class GetCopilotCheckpointsByParentQuery {

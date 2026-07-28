@@ -10,8 +10,7 @@ const scanRoots = [
   'libs/component-angular',
   'libs/formly',
   'packages/angular',
-  'packages/ui',
-  'legacies/copilot-angular/src'
+  'packages/ui'
 ]
 const excludedFiles = new Set([
   'apps/cloud/src/styles/themes/base.scss',
