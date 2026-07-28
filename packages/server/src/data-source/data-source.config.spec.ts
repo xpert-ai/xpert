@@ -2,12 +2,7 @@ import { FeatureEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 import { DEFAULT_FEATURES } from '../feature/default-features'
 import { DEFAULT_ROLE_PERMISSIONS } from '../role-permission/default-role-permissions'
 
-const rolesWithDataSourcePermissions = [
-	RolesEnum.SUPER_ADMIN,
-	RolesEnum.ADMIN,
-	RolesEnum.TRIAL,
-	RolesEnum.ANALYTICS_BUILDER
-]
+const rolesWithDataSourcePermissions = [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
 
 const rolesWithoutDataSourcePermissions = [RolesEnum.AI_BUILDER, RolesEnum.VIEWER]
 

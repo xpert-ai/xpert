@@ -6,7 +6,6 @@ import { ActivatedRoute } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiFeatureEnum,
-  AnalyticsFeatures,
   FeatureEnum,
   IFeature,
   IFeatureOrganization,
@@ -100,7 +99,7 @@ const rolePermissionFeature: IFeature = {
 
 const businessAreaFeature: IFeature = {
   id: 'feature-business-area',
-  code: AnalyticsFeatures.FEATURE_BUSINESS_AREA,
+  code: 'FEATURE_BUSINESS_AREA',
   name: 'Business area',
   description: 'Business area feature'
 }
@@ -235,7 +234,7 @@ describe('FeatureToggleComponent', () => {
     expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
-    expect(groupIds).not.toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
+    expect(groupIds).not.toContain('FEATURE_BUSINESS_AREA')
     expect(
       fixture.componentInstance
         .summaryCards([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
@@ -271,13 +270,13 @@ describe('FeatureToggleComponent', () => {
       .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
       .map((group) => group.id)
 
-    expect(groupIds).toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
+    expect(groupIds).not.toContain('FEATURE_BUSINESS_AREA')
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(groupIds).not.toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
   })
 
-  it('marks the business area feature card as deprecated', async () => {
+  it('does not render removed Analytics feature cards returned by an older server', async () => {
     const featureService = {
       getParentFeatures: jest.fn(() => of({ items: [businessAreaFeature], total: 1 })),
       getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
@@ -307,12 +306,9 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const element = fixture.nativeElement as HTMLElement
-    const businessAreaCard = element.querySelector(
-      `[data-feature-group-id="${AnalyticsFeatures.FEATURE_BUSINESS_AREA}"]`
-    )
+    const businessAreaCard = element.querySelector(`[data-feature-group-id="FEATURE_BUSINESS_AREA"]`)
 
-    expect(businessAreaCard?.querySelector('[data-feature-deprecated]')).not.toBeNull()
-    expect(businessAreaCard?.querySelector('[data-feature-deprecated-icon]')).not.toBeNull()
+    expect(businessAreaCard).toBeNull()
   })
 
   it('renders feature toggles with z-checkbox and uses indeterminate state for partial groups', async () => {
@@ -1082,25 +1078,25 @@ describe('FeatureToggleComponent', () => {
       },
       {
         id: 'feature-model',
-        code: AnalyticsFeatures.FEATURE_MODEL,
+        code: 'FEATURE_MODEL',
         name: 'Model',
         description: 'Model feature'
       },
       {
         id: 'feature-story',
-        code: AnalyticsFeatures.FEATURE_STORY,
+        code: 'FEATURE_STORY',
         name: 'Story',
         description: 'Story feature'
       },
       {
         id: 'feature-indicator',
-        code: AnalyticsFeatures.FEATURE_INDICATOR,
+        code: 'FEATURE_INDICATOR',
         name: 'Indicator',
         description: 'Indicator feature'
       },
       {
         id: 'feature-project',
-        code: AnalyticsFeatures.FEATURE_PROJECT,
+        code: 'FEATURE_PROJECT',
         name: 'Project',
         description: 'Project feature'
       },

@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import { AiFeatureEnum, AIPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
 import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
 import { PACAccountComponent } from './account/account.component'
@@ -137,34 +137,6 @@ export const routes: Routes = [
         }
       },
       {
-        path: 'business-area',
-        loadChildren: () => import('./business-area/').then((m) => m.routes),
-        canActivate: [NgxPermissionsGuard],
-        data: {
-          title: 'settings/business-area',
-          scopeContext: 'organization-only',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-            redirectTo
-          }
-        }
-      },
-      {
-        path: 'certification',
-        loadChildren: () => import('./certification/certification.module').then((m) => m.CertificationModule),
-        canActivate: [NgxPermissionsGuard],
-        data: {
-          title: 'settings/certification',
-          scopeContext: 'organization-only',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-            // only: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT],
-            redirectTo
-          }
-        }
-      },
-
-      {
         path: 'roles',
         loadChildren: () => import('./roles/roles.module').then((m) => m.RolesModule),
         canActivate: [NgxPermissionsGuard],
@@ -267,14 +239,6 @@ export const routes: Routes = [
         ],
         data: {
           title: 'copilot',
-          scopeContext: 'dual-scope'
-        }
-      },
-      {
-        path: 'chatbi',
-        loadChildren: () => import('./chatbi/routing').then((m) => m.default),
-        data: {
-          title: 'settings/chatbi',
           scopeContext: 'dual-scope'
         }
       },

@@ -2,8 +2,6 @@
 @use 'sass:color';
 @use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @use './setting/settings-theme' as settings;
-@use './story/story-theme' as story;
-@use './semantic-model/semantic-models' as semantic-models;
 @use './home/home-theme' as home;
 
 $shell-bar-height: 48px;
@@ -20,8 +18,6 @@ $sidebar-collapsed-width: 40px;
 
   @include home.color($theme);
   @include settings.color($theme);
-  @include story.color($theme);
-  @include semantic-models.color($theme);
   .pac__shell-bar {
     // position: relative; // 使 z-index 生效的属性
     z-index: 2;
@@ -113,7 +109,9 @@ $sidebar-collapsed-width: 40px;
       box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
     }
     &:active {
-      box-shadow: themeCompat.m2-get-color-from-palette($foreground, base, 0.05) 0px 6px 24px 0px, themeCompat.m2-get-color-from-palette($primary, 300) 0px 0px 0px 1px;
+      box-shadow:
+        themeCompat.m2-get-color-from-palette($foreground, base, 0.05) 0px 6px 24px 0px,
+        themeCompat.m2-get-color-from-palette($primary, 300) 0px 0px 0px 1px;
     }
   }
 
@@ -235,13 +233,10 @@ $sidebar-collapsed-width: 40px;
 
 @mixin typography($theme) {
   @include home.typography($theme);
-  @include semantic-models.typography($theme);
 }
 
 @mixin density($theme) {
   @include home.density($theme);
-  @include story.density($theme);
-  @include semantic-models.density($theme);
 
   /**
    * @deprecated

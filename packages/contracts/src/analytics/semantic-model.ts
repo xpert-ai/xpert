@@ -4,7 +4,7 @@ import { ChecklistItem, IPoint, ISize } from '../types'
 import { IUser } from '../user.model'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
-import { IDataSource } from './data-source'
+import { IDataSource } from '../data-source.model'
 import { IIndicator } from './indicator'
 import { IModelQuery } from './model-query'
 import * as MDX from './schema'
@@ -75,8 +75,8 @@ export type TSemanticModelSettings = {
   canvas?: {
     position: IPoint
     scale: number
-  };
-  nodes?: {key: string; position?: IPoint; size?: ISize}[]
+  }
+  nodes?: { key: string; position?: IPoint; size?: ISize }[]
   /**
    * @experimental A hierarchy of intermediate states that are not yet fixed
    */
@@ -121,11 +121,11 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   releaseNotes?: string
 
   tags?: ITag[]
-  
+
   dataSource?: IDataSource
-  
+
   businessArea?: IBusinessArea
-  
+
   // Storing model configuration
   preferences?: ISemanticModelPreferences
 
@@ -203,7 +203,6 @@ export interface ISemanticModelCache extends IBasePerTenantAndOrganizationEntity
   data?: string
 }
 
-
 /**
  * @deprecated Equivalent to `VirtualCube` in the ocap framework
  */
@@ -232,6 +231,6 @@ export function extractSemanticModelDraft<S>(model: TSemanticModel): TSemanticMo
     cube: model.cube,
     schema: model.options?.schema as S,
     settings: model.options?.settings,
-    roles: model.roles,
+    roles: model.roles
   }
 }

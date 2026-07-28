@@ -1,4 +1,4 @@
-import { AiFeatureEnum, AnalyticsFeatures, FeatureEnum, IFeature, IFeatureCreateInput } from '@xpert-ai/contracts'
+import { AiFeatureEnum, FeatureEnum, IFeature, IFeatureCreateInput } from '@xpert-ai/contracts'
 import type { Repository } from 'typeorm'
 import { DEFAULT_FEATURES, setDefaultFeatures } from './default-features'
 import { Feature } from './feature.entity'
@@ -31,26 +31,26 @@ describe('FeatureService', () => {
 		])
 		const smtpFeature = createFeature(FeatureEnum.FEATURE_SMTP)
 		const repository = {
-			findAndCount: jest.fn().mockResolvedValue([
-				[
-					createFeature(FeatureEnum.FEATURE_HOME, [
-						createFeature(FeatureEnum.FEATURE_DASHBOARD),
-						createFeature(AnalyticsFeatures.FEATURE_HOME_CATALOG),
-						createFeature(AnalyticsFeatures.FEATURE_HOME_TREND)
-					]),
-					createFeature(FeatureEnum.FEATURE_SETTING, [
-						createFeature(FeatureEnum.FEATURE_FILE_STORAGE)
-					]),
-					copilotFeature,
-					createFeature(AnalyticsFeatures.FEATURE_INDICATOR, [
-						createFeature(AnalyticsFeatures.FEATURE_INDICATOR_MARKET),
-						createFeature(AnalyticsFeatures.FEATURE_INDICATOR_REGISTER),
-						createFeature(AnalyticsFeatures.FEATURE_INDICATOR_APP)
-					]),
-					smtpFeature
-				],
-				5
-			])
+			findAndCount: jest
+				.fn()
+				.mockResolvedValue([
+					[
+						createFeature(FeatureEnum.FEATURE_HOME, [
+							createFeature(FeatureEnum.FEATURE_DASHBOARD),
+							createFeature('FEATURE_HOME_CATALOG'),
+							createFeature('FEATURE_HOME_TREND')
+						]),
+						createFeature(FeatureEnum.FEATURE_SETTING, [createFeature(FeatureEnum.FEATURE_FILE_STORAGE)]),
+						copilotFeature,
+						createFeature('FEATURE_INDICATOR', [
+							createFeature('FEATURE_INDICATOR_MARKET'),
+							createFeature('FEATURE_INDICATOR_REGISTER'),
+							createFeature('FEATURE_INDICATOR_APP')
+						]),
+						smtpFeature
+					],
+					5
+				])
 		}
 		const service = new FeatureService(repository as unknown as Repository<Feature>)
 

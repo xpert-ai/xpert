@@ -12,7 +12,6 @@ import {
   IProject,
   FeatureEnum,
   OrganizationPermissionsEnum,
-  AnalyticsFeatures,
   ITenantSetting,
   IXpertWorkspace,
   AiFeatureEnum,
@@ -39,7 +38,7 @@ export type PermissionKey = IRolePermission['permission']
 
 function findFeatureOrganizationByCode(
   featureOrganizations: IFeatureOrganization[],
-  feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures
+  feature: FeatureEnum | AiFeatureEnum | string
 ) {
   const matches = featureOrganizations.filter((item) => item.feature.code === feature)
   return matches.find((item) => item.feature.parentId) ?? matches[0]
@@ -467,7 +466,7 @@ export class Store {
   /*
    * Check features are enabled/disabled for the active tenant or organization scope.
    */
-  hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
+  hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | string) {
     // Reading these signals makes feature checks reactive in OnPush templates/computeds
     // after the deferred /user/me hydration updates tenant/org feature state.
     this.featureOrganizationsSignal()
@@ -493,7 +492,7 @@ export class Store {
     return (organizationFeature ?? tenantFeature)?.isEnabled === true
   }
 
-  selectHasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
+  selectHasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | string) {
     return combineLatest([
       this.featureOrganizations$,
       this.featureTenant$,

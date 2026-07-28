@@ -20,7 +20,6 @@
       "@/shared/*": ["packages/ui/src/lib/*"],
       "@/src/lib/*": ["packages/ui/src/lib/*"],
       "@xpert-ai/adapter": ["legacies/adapter/src/index.ts"],
-      "@xpert-ai/analytics": ["packages/analytics/src/index.ts"],
       "@xpert-ai/cloud/auth": ["libs/apps/auth/src/index.ts"],
       "@xpert-ai/cloud/indicator-market": ["libs/apps/indicator-market/src/index.ts"],
       "@xpert-ai/cloud/indicator-market/*": ["libs/apps/indicator-market/*"],

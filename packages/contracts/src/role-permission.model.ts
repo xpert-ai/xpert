@@ -1,4 +1,3 @@
-import { AnalyticsPermissionsEnum } from './analytics/index'
 import { AIPermissionsEnum } from './ai/index'
 import { IBasePerTenantEntityModel } from './base-entity.model'
 import { IRole } from './role.model'
@@ -89,25 +88,7 @@ export const PermissionGroups = {
 
     // DataSource
     PermissionsEnum.DATA_SOURCE_VIEW,
-    PermissionsEnum.DATA_SOURCE_EDIT,
-    // Semantic Model
-    AnalyticsPermissionsEnum.MODELS_VIEW,
-    AnalyticsPermissionsEnum.MODELS_EDIT,
-    // Story
-    AnalyticsPermissionsEnum.STORIES_VIEW,
-    AnalyticsPermissionsEnum.STORIES_EDIT,
-    // Business Area
-    AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,
-    AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT,
-    // Certification
-    AnalyticsPermissionsEnum.CERTIFICATION_EDIT,
-    // Indicator
-    AnalyticsPermissionsEnum.INDICATOR_VIEW,
-    AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW,
-    AnalyticsPermissionsEnum.INDICATOR_EDIT,
-    // Data Factory
-    AnalyticsPermissionsEnum.DATA_FACTORY_VIEW,
-    AnalyticsPermissionsEnum.DATA_FACTORY_EDIT
+    PermissionsEnum.DATA_SOURCE_EDIT
   ],
 
   //Readonly permissions, are only enabled for admin role

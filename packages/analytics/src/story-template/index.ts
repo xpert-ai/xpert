@@ -1,5 +1,0 @@
-export * from './story-template.controller'
-export * from './story-template.service'
-export * from './story-template.module'
-export * from './story-template.entity'
-export * from './story-template.subscriber'

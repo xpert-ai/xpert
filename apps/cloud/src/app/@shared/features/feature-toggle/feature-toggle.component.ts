@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import {
   AiFeatureEnum,
-  AnalyticsFeatures,
   FeatureEnum,
   IFeature,
   IFeatureOrganization,
@@ -60,11 +59,18 @@ const STATUS_FILTERS: Array<{ value: FeatureStatusFilter; labelKey: string; labe
 
 const FEATURE_SCOPE_BY_CODE: Record<string, FeatureToggleScope> = {
   [FeatureEnum.FEATURE_ROLES_PERMISSION]: 'tenant-only',
-  [AnalyticsFeatures.FEATURE_BUSINESS_AREA]: 'organization-only',
   [FeatureEnum.FEATURE_INTEGRATION]: 'dual-scope'
 }
 
-const DEPRECATED_FEATURE_CODES = new Set<string>([AnalyticsFeatures.FEATURE_BUSINESS_AREA])
+const REMOVED_ANALYTICS_FEATURE_CODES = new Set<string>([
+  'FEATURE_BUSINESS_AREA',
+  'FEATURE_MODEL',
+  'FEATURE_STORY',
+  'FEATURE_INDICATOR',
+  'FEATURE_PROJECT'
+])
+
+const DEPRECATED_FEATURE_CODES = new Set<string>()
 
 function isFeatureStatusFilter(value: unknown): value is FeatureStatusFilter {
   return value === 'all' || value === 'enabled' || value === 'disabled'
@@ -527,14 +533,6 @@ export class FeatureToggleComponent {
         return 'robot_2'
       case AiFeatureEnum.FEATURE_XPERT_CHATBI:
         return 'query_stats'
-      case AnalyticsFeatures.FEATURE_MODEL:
-        return 'database'
-      case AnalyticsFeatures.FEATURE_STORY:
-        return 'book-open-text'
-      case AnalyticsFeatures.FEATURE_INDICATOR:
-        return 'leaderboard'
-      case AnalyticsFeatures.FEATURE_PROJECT:
-        return 'workspaces'
       default:
         return 'extension'
     }
@@ -545,6 +543,10 @@ export class FeatureToggleComponent {
   }
 
   private matchesCurrentFeatureScope(feature: IFeature) {
+    if (REMOVED_ANALYTICS_FEATURE_CODES.has(feature.code)) {
+      return false
+    }
+
     return matchesFeatureToggleScope(FEATURE_SCOPE_BY_CODE[feature.code] ?? 'dual-scope', !!this.isOrganization())
   }
 

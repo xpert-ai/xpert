@@ -4,12 +4,18 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTabsImports
+} from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AnalyticsFeatures, FeatureEnum, Store, routeAnimations } from '../../@core'
+import { FeatureEnum, Store, routeAnimations } from '../../@core'
 import { AppService } from '../../app.service'
 
 @Component({
@@ -41,7 +47,7 @@ import { AppService } from '../../app.service'
       disableRipple
       zSize="default"
       class="pac-home__navigation p-0 sm:px-2 md:px-8"
-      >
+    >
       <span
         z-tab-link
         routerLink="."
@@ -49,10 +55,10 @@ import { AppService } from '../../app.service'
         #rla="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: true }"
         [active]="rla.isActive"
-        >
+      >
         {{ 'PAC.MENU.HOME.TODAY' | translate: { Default: 'Today' } }}
       </span>
-      @if (hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_CATALOG)) {
+      @if (hasFeatureEnabled(dataFeatures.FEATURE_HOME_CATALOG)) {
         <span
           z-tab-link
           routerLink="./catalog"
@@ -60,11 +66,11 @@ import { AppService } from '../../app.service'
           #rla2="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
           [active]="rla2.isActive"
-          >
+        >
           {{ 'PAC.MENU.HOME.Catalog' | translate: { Default: 'Catalog' } }}
         </span>
       }
-      @if (hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_TREND)) {
+      @if (hasFeatureEnabled(dataFeatures.FEATURE_HOME_TREND)) {
         <span
           z-tab-link
           routerLink="./trending"
@@ -72,7 +78,7 @@ import { AppService } from '../../app.service'
           #rla3="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
           [active]="rla3.isActive"
-          >
+        >
           {{ 'PAC.MENU.HOME.Trending' | translate: { Default: 'Trending' } }}
         </span>
       }
@@ -82,10 +88,10 @@ import { AppService } from '../../app.service'
       #tabPanel
       class="relative flex-1 overflow-auto"
       [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
-      >
+    >
       <router-outlet #o="outlet"></router-outlet>
     </z-tab-nav-panel>
-    `,
+  `,
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -96,9 +102,12 @@ export class HomeComponent {
   public readonly copilotEnabled = toSignal(this.appService.copilotEnabled$)
 
   FeatureEnum = FeatureEnum
-  AnalyticsFeatures = AnalyticsFeatures
+  readonly dataFeatures = {
+    FEATURE_HOME_CATALOG: 'FEATURE_HOME_CATALOG',
+    FEATURE_HOME_TREND: 'FEATURE_HOME_TREND'
+  } as const
 
-  hasFeatureEnabled(featureKey: FeatureEnum | AnalyticsFeatures) {
+  hasFeatureEnabled(featureKey: FeatureEnum | string) {
     return this.store.hasFeatureEnabled(featureKey)
   }
 }

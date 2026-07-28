@@ -1,4 +1,4 @@
-import { AiFeatureEnum, AnalyticsFeatures, FeatureEnum, IFeature, IPagination } from '@xpert-ai/contracts'
+import { AiFeatureEnum, FeatureEnum, IFeature, IPagination } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'
@@ -27,16 +27,21 @@ function selectFeatureDefinition(features: IFeature[], parentId: string | null, 
 const RETIRED_FEATURE_CODES = new Set<string>([
 	FeatureEnum.FEATURE_HOME,
 	FeatureEnum.FEATURE_DASHBOARD,
-	AnalyticsFeatures.FEATURE_HOME_CATALOG,
-	AnalyticsFeatures.FEATURE_HOME_TREND,
+	'FEATURE_HOME_CATALOG',
+	'FEATURE_HOME_TREND',
 	FeatureEnum.FEATURE_SETTING,
 	FeatureEnum.FEATURE_FILE_STORAGE,
 	AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE,
 	AiFeatureEnum.FEATURE_COPILOT_CHAT,
-	AnalyticsFeatures.FEATURE_INDICATOR,
-	AnalyticsFeatures.FEATURE_INDICATOR_MARKET,
-	AnalyticsFeatures.FEATURE_INDICATOR_REGISTER,
-	AnalyticsFeatures.FEATURE_INDICATOR_APP
+	'FEATURE_INDICATOR',
+	'FEATURE_INDICATOR_MARKET',
+	'FEATURE_INDICATOR_REGISTER',
+	'FEATURE_INDICATOR_APP',
+	'FEATURE_BUSINESS_AREA',
+	'FEATURE_STORY',
+	'FEATURE_MODEL',
+	'FEATURE_PROJECT',
+	'FEATURE_DATA_FACTORY'
 ])
 
 const filterRetiredFeatures = (features: IFeature[]): IFeature[] =>
@@ -82,7 +87,7 @@ export class FeatureService extends CrudService<Feature> {
 			order: {
 				createdAt: 'ASC'
 			}
-		});
+		})
 		const items = filterRetiredFeatures(result.items)
 
 		return {

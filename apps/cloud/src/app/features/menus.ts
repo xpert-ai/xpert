@@ -1,8 +1,6 @@
 import {
   AiFeatureEnum,
   AIPermissionsEnum,
-  AnalyticsFeatures,
-  AnalyticsPermissionsEnum,
   FeatureEnum,
   IOrganization,
   PermissionsEnum,
@@ -12,7 +10,7 @@ import {
 import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
 export type MenuScope = 'tenant-only' | 'organization-only' | 'dual-scope'
-type MenuFeatureKey = AiFeatureEnum | AnalyticsFeatures | FeatureEnum
+type MenuFeatureKey = AiFeatureEnum | FeatureEnum
 type MenuData = {
   translationKey?: string
   permissionKeys?: string[]
@@ -67,40 +65,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       data: {
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
-      }
-    },
-    {
-      path: 'chatbi',
-      label: 'Chat BI',
-      icon: 'try',
-      deprecated: true,
-      scopeContext: 'dual-scope',
-      data: {
-        permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
-        featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]
-      }
-    },
-    {
-      path: 'business-area',
-      label: 'Business Area',
-      icon: 'business_center',
-      deprecated: true,
-      pathMatch: 'prefix',
-      scopeContext: 'organization-only',
-      data: {
-        featureKey: AnalyticsFeatures.FEATURE_BUSINESS_AREA,
-        permissionKeys: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]
-      }
-    },
-    {
-      path: 'certification',
-      label: 'Certification',
-      icon: 'verified_user',
-      deprecated: true,
-      pathMatch: 'prefix',
-      scopeContext: 'organization-only',
-      data: {
-        permissionKeys: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT]
       }
     },
     {
@@ -284,39 +248,6 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
         onboardingTarget: 'workspace'
       }
-    },
-    {
-      title: 'Data',
-      icon: 'ri-database-2-line',
-      link: '/data',
-      pathMatch: 'prefix',
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'Data',
-        hideWhenAllChildrenHidden: true
-      },
-      children: [
-        {
-          title: 'Project',
-          icon: 'ri-numbers-line',
-          link: '/data/project',
-          data: {
-            translationKey: 'BI Project',
-            featureKey: AnalyticsFeatures.FEATURE_PROJECT,
-            permissionKeys: [AnalyticsPermissionsEnum.STORIES_EDIT]
-          }
-        },
-        {
-          title: 'Semantic Model',
-          icon: 'ri-database-2-line',
-          link: '/data/models',
-          data: {
-            translationKey: 'Semantic Model',
-            featureKey: AnalyticsFeatures.FEATURE_MODEL,
-            permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT]
-          }
-        }
-      ]
     },
     {
       title: 'Settings',

@@ -111,8 +111,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
     [RolesEnum.VIEWER]: 'text-text-secondary',
     [RolesEnum.ADMIN]: 'text-text-warning',
     [RolesEnum.SUPER_ADMIN]: 'text-text-destructive',
-    [RolesEnum.AI_BUILDER]: 'text-text-accent',
-    [RolesEnum.ANALYTICS_BUILDER]: 'text-text-success'
+    [RolesEnum.AI_BUILDER]: 'text-text-accent'
   }
 
   private search$ = new BehaviorSubject<string>('')

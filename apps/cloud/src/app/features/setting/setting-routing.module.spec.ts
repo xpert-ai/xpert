@@ -7,9 +7,6 @@ jest.mock('../../@core', () => ({
   AIPermissionsEnum: {
     MEMBERSHIP_EDIT: 'MEMBERSHIP_EDIT'
   },
-  AnalyticsPermissionsEnum: {
-    BUSINESS_AREA_EDIT: 'BUSINESS_AREA_EDIT'
-  },
   PermissionsEnum: {
     ALL_ORG_EDIT: 'ALL_ORG_EDIT',
     ALL_ORG_VIEW: 'ALL_ORG_VIEW',
