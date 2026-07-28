@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { IUserGroup, PaginationParams } from '@xpert-ai/contracts'
-import { toParams } from '@xpert-ai/core'
+import { toParams } from '@xpert-ai/headless-ui'
 import { appendOrganizationIdQueryParam } from './query-params'
 
 const API_USER_GROUP = API_PREFIX + '/user-groups'

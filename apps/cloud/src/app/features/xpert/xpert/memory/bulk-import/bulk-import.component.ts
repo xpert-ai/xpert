@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
 import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@xpert-ai/contracts'
-import { NgmDndDirective, OverlayAnimation1 } from '@xpert-ai/core'
+import { NgmDndDirective, OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'

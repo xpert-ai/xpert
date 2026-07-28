@@ -14,7 +14,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/core'
+import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/headless-ui'
 import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'

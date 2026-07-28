@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { IXpert, TXpertTeamDraft } from '@cloud/app/@core'
-import { nonBlank } from '@xpert-ai/core'
+import { nonBlank } from '@xpert-ai/headless-ui'
 import { linkedModel } from '@xpert-ai/headless-ui'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, distinctUntilChanged, filter, Subject, switchMap } from 'rxjs'

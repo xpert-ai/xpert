@@ -14,7 +14,7 @@ import {
 } from '@angular/core'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, pick } from 'lodash-es'
 import {

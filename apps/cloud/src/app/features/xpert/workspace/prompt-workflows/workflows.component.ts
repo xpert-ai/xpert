@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -129,7 +129,13 @@ export class XpertWorkspacePromptWorkflowsComponent {
   readonly selectedId = signal<string | null>(null)
   readonly loading = signal(false)
   readonly saving = signal(false)
-  readonly usage = signal<Array<{ id?: string; name?: string; title?: string; version?: string; latest?: boolean }> | null>(null)
+  readonly usage = signal<Array<{
+    id?: string
+    name?: string
+    title?: string
+    version?: string
+    latest?: boolean
+  }> | null>(null)
   readonly draft = signal<PromptWorkflowDraft>(this.createEmptyDraft())
 
   readonly activeWorkflows = computed(() => this.workflows().filter((workflow) => !workflow.archivedAt))
@@ -154,7 +160,9 @@ export class XpertWorkspacePromptWorkflowsComponent {
         .includes(term)
     )
   })
-  readonly selectedWorkflow = computed(() => this.workflows().find((workflow) => workflow.id === this.selectedId()) ?? null)
+  readonly selectedWorkflow = computed(
+    () => this.workflows().find((workflow) => workflow.id === this.selectedId()) ?? null
+  )
   readonly validationMessage = computed(() => {
     const draft = this.draft()
     const name = draft.name?.trim() ?? ''
@@ -362,9 +370,7 @@ export class XpertWorkspacePromptWorkflowsComponent {
       ...workflow,
       tagsText: workflow.tags?.join(', ') ?? '',
       aliasesText: workflow.aliases?.join(', ') ?? '',
-      runtimeCapabilitiesText: workflow.runtimeCapabilities
-        ? JSON.stringify(workflow.runtimeCapabilities, null, 2)
-        : ''
+      runtimeCapabilitiesText: workflow.runtimeCapabilities ? JSON.stringify(workflow.runtimeCapabilities, null, 2) : ''
     }
   }
 

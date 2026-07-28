@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,

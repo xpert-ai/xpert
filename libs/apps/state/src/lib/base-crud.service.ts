@@ -1,10 +1,9 @@
 import { HttpClient } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { PaginationParams } from '@xpert-ai/contracts'
-import { toParams } from '@xpert-ai/core'
+import { toParams } from '@xpert-ai/headless-ui'
 import { Store } from './store.service'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
-
 
 export abstract class BaseCrudService<T> {
   protected readonly httpClient = inject(HttpClient)
@@ -51,7 +50,6 @@ export abstract class BaseCrudService<T> {
     return this.httpClient.put(`${this.apiBaseUrl}/${id}/recover`, {})
   }
 }
-
 
 export class BaseOrgCrudService<T> extends BaseCrudService<T> {
   protected store = inject(Store)

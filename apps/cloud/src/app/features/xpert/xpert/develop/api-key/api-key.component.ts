@@ -3,7 +3,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MaskPipe } from '@xpert-ai/core'
+import { MaskPipe } from '@xpert-ai/headless-ui'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {

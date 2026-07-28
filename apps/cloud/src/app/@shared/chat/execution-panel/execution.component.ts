@@ -12,7 +12,7 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { myRxResource } from '@xpert-ai/core'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { interval, Subscription } from 'rxjs'

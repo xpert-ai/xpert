@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'

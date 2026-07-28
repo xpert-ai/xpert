@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@xpert-ai/core'
+import { DynamicGridDirective } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@xpert-ai/headless-ui'
 import { AppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

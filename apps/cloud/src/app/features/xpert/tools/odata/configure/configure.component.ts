@@ -19,7 +19,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { EntriesPipe, routeAnimations } from '@xpert-ai/core'
+import { EntriesPipe, routeAnimations } from '@xpert-ai/headless-ui'
 import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
 import {

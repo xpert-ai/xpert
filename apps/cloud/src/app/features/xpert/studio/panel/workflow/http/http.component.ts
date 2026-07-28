@@ -7,7 +7,7 @@ import {
   XpertWorkflowErrorHandlingComponent,
   XpertWorkflowRetryComponent
 } from '@cloud/app/@shared/workflow'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { NgmRadioSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {

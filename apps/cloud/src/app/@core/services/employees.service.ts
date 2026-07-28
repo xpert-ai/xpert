@@ -4,7 +4,7 @@ import { IEmployee, IEmployeeCreateInput, IEmployeeFindInput, IEmployeeUpdateInp
 import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { firstValueFrom, Observable } from 'rxjs'
 import { first, map } from 'rxjs/operators'
-import { toParams } from '@xpert-ai/core'
+import { toParams } from '@xpert-ai/headless-ui'
 
 @Injectable({ providedIn: 'root' })
 export class EmployeesService {

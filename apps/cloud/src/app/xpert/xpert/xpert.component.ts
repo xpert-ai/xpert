@@ -20,7 +20,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@xpert-ai/core'
+import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@xpert-ai/headless-ui'
 import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'

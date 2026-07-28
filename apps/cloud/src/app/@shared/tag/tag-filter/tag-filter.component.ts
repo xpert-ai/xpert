@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, forwardRef, input, model } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ITag } from '../../../@core'

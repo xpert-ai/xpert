@@ -41,7 +41,7 @@ import {
 } from '../../../../../@core'
 import { UserProfileInlineComponent } from '../../../../../@shared/user'
 import { XpertComponent } from '../../xpert.component'
-import { OverlayAnimation1 } from '@xpert-ai/core'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.component'
 

@@ -10,7 +10,7 @@ import {
   IPluginMarketplaceRegistrySection,
   PluginAPIService
 } from '@xpert-ai/cloud/state'
-import { OverlayAnimations } from '@xpert-ai/core'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -30,7 +30,7 @@ import {
   ZardLoaderComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import {
   type I18nObject,
   type I18nText,

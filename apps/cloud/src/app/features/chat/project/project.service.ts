@@ -7,7 +7,7 @@ import {
   toStorageAttachmentFile,
   type ChatAgentFile
 } from '@cloud/app/@shared/chat/attachments/agent-file'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { attrModel } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'

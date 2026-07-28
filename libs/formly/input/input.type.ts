@@ -9,7 +9,7 @@ import {
   ZardComboboxDeprecatedComponent,
   ZardComboboxDeprecatedOptionTemplateDirective,
   type ZardComboboxDeprecatedOption
-} from '@xpert-ai/headless-ui/components/combobox-deprecated'
+} from '@xpert-ai/headless-ui'
 import { ZardFormImports, ZardInputStatusVariants, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @Component({

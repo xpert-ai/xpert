@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { NgmRadioSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType, TSelectOption, TWorkflowAuthorization, TWorkflowVarGroup } from '../../../@core/types'

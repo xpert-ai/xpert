@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { parseYAML } from '@xpert-ai/core'
+import { parseYAML } from '@xpert-ai/headless-ui'
 import { injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

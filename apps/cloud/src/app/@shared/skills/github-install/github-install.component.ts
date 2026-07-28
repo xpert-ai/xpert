@@ -4,9 +4,9 @@ import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors, Va
 import { getErrorMessage, ISkillPackage, SkillPackageService, ToastrService } from '@cloud/app/@core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { parseGithubSkillInstallCommand } from '@xpert-ai/contracts'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui/components/button'
-import { ZardIconComponent } from '@xpert-ai/headless-ui/components/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui/components/input'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 
 @Component({

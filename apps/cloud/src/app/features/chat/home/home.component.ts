@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { filter, map, startWith } from 'rxjs/operators'
 import { AiFeatureEnum, Store } from '../../../@core'
 import { XpertHomeService } from '../../../xpert'

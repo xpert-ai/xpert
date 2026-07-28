@@ -19,7 +19,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { Store } from '@xpert-ai/cloud/state'
-import { OverlayAnimations } from '@xpert-ai/core'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { map } from 'rxjs'
@@ -41,7 +41,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     EmojiAvatarComponent,
     XpertCardComponent
-],
+  ],
   selector: 'pac-chat-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
@@ -139,14 +139,12 @@ export class ChatXpertsComponent {
       }
     })
 
-    effect(
-      () => {
-        if (!this.hoverTooltip()) {
-          this.overlayRef()?.detach()
-          this.element.set(null)
-        }
+    effect(() => {
+      if (!this.hoverTooltip()) {
+        this.overlayRef()?.detach()
+        this.element.set(null)
       }
-    )
+    })
   }
 
   showMore() {

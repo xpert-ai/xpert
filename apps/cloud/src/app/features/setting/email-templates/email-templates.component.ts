@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, model, signal, TemplateRef, viewCh
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DisappearFadeOut, DynamicGridDirective } from '@xpert-ai/core'
+import { DisappearFadeOut, DynamicGridDirective } from '@xpert-ai/headless-ui'
 import { NgmSelectComponent, NgmTagsComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'

@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { CONTEXT_COMPRESSION_COMPONENT_TYPE, DateRelativePipe } from '@cloud/app/@core'
 import { TMessageContentComplex, TMessageContentText } from '@cloud/app/@core/types'
 import { Copy2Component } from '@cloud/app/@shared/common'
-import { listEnterAnimation } from '@xpert-ai/core'
+import { listEnterAnimation } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { ChatContextCompressionChunkComponent } from '@cloud/app/@shared/chat/context-compression/context-compression.component'

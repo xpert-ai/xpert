@@ -3,7 +3,7 @@ import { Inject, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@xpert-ai/cloud/state'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { nonNullable } from '@xpert-ai/core'
+import { nonNullable } from '@xpert-ai/headless-ui'
 import {
   Observable,
   Subject,

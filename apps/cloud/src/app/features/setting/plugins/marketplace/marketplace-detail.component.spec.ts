@@ -83,7 +83,7 @@ jest.mock('@xpert-ai/cloud/state', () => {
 })
 
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, Input } = jest.requireActual('@angular/core')
+  const { Component, Directive, Input, Pipe, signal } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -105,12 +105,6 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Input() zDisabled?: boolean
   }
 
-  return { ZardBadgeComponent, ZardButtonComponent }
-})
-
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
-
   @Component({
     standalone: true,
     selector: 'ngm-spin',
@@ -119,12 +113,6 @@ jest.mock('@xpert-ai/headless-ui', () => {
   class NgmSpinComponent {
     @Input() small?: boolean
   }
-
-  return { NgmSpinComponent }
-})
-
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Pipe, signal } = jest.requireActual('@angular/core')
 
   @Pipe({
     name: 'i18n',
@@ -168,7 +156,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
     return typeof property === 'string' ? property : null
   }
 
-  return { myRxResource, NgmI18nPipe }
+  return { myRxResource, NgmI18nPipe, NgmSpinComponent, ZardBadgeComponent, ZardButtonComponent }
 })
 
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'

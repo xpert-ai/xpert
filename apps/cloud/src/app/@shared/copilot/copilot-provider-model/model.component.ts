@@ -16,7 +16,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { KebabToCamelCasePipe } from '@xpert-ai/core'
+import { KebabToCamelCasePipe } from '@xpert-ai/headless-ui'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgmSpinComponent } from '@xpert-ai/headless-ui'

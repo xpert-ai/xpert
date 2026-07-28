@@ -8,7 +8,7 @@ import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { environment } from '@cloud/environments/environment'
 import { LanguagesEnum, UsersService } from '@xpert-ai/cloud/state'
-import { OverlayAnimation1 } from '@xpert-ai/core'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {

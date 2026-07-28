@@ -23,7 +23,7 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { OverlayAnimation1 } from '@xpert-ai/core'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { attrModel, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

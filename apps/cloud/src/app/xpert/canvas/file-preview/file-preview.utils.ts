@@ -1,5 +1,5 @@
 import { computed, effect, Signal, signal } from '@angular/core'
-import { readExcelWorkSheets } from '@xpert-ai/core'
+import { readExcelWorkSheets } from '@xpert-ai/headless-ui'
 import { TableColumn } from '@xpert-ai/headless-ui'
 
 export const SPREADSHEET_PREVIEW_ROW_LIMIT = 200
@@ -160,7 +160,7 @@ export async function loadCanvasSpreadsheetPreview(
   const file = new File([blob], fileName || 'spreadsheet', {
     type: mimeType || blob.type || 'application/octet-stream'
   })
-  const sheets = await readExcelWorkSheets<Record<string, unknown>>(file)
+  const sheets = await readExcelWorkSheets(file)
 
   return {
     rowLimit: SPREADSHEET_PREVIEW_ROW_LIMIT,

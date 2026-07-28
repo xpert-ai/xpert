@@ -4,7 +4,7 @@ const { execFileSync } = require('child_process')
 const ts = require('typescript')
 
 const repoRoot = process.cwd()
-const scanRoots = ['apps/cloud/src', 'libs/apps', 'libs/component-angular', 'libs/formly', 'packages/ui']
+const scanRoots = ['apps/cloud/src', 'libs/apps', 'libs/formly', 'packages/ui']
 const excludedFiles = new Set([
   'apps/cloud/src/styles/themes/base.scss',
   'apps/cloud/src/styles/theme/theme.tokens.css'

@@ -1,6 +1,6 @@
 import { Component, booleanAttribute, input, output } from '@angular/core'
 
-import { NgmDndDirective } from '@xpert-ai/core'
+import { NgmDndDirective } from '@xpert-ai/headless-ui'
 import { AppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'

@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, ISkillPackage } from '@xpert-ai/cloud/state'
 import type { InstallGithubSkillPackagesInput } from '@xpert-ai/contracts'
 import { NGXLogger } from 'ngx-logger'
-import { toParams } from '@xpert-ai/core'
+import { toParams } from '@xpert-ai/headless-ui'
 import { IShareSkillPackageInput, TFile, TFileDirectory } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 

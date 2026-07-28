@@ -5,7 +5,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { FileViewerComponent, inferMarkdownPreviewSelection } from './viewer.component'
 
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component } = jest.requireActual('@angular/core')
+  const { Component, Directive, EventEmitter, forwardRef, Input, Output } = jest.requireActual('@angular/core')
+  const { NG_VALUE_ACCESSOR } = jest.requireActual('@angular/forms')
 
   @Component({
     standalone: true,
@@ -13,15 +14,6 @@ jest.mock('@xpert-ai/headless-ui', () => {
     template: ''
   })
   class NgmSpinComponent {}
-
-  return {
-    NgmSpinComponent
-  }
-})
-
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, EventEmitter, forwardRef, Input, Output } = jest.requireActual('@angular/core')
-  const { NG_VALUE_ACCESSOR } = jest.requireActual('@angular/forms')
 
   @Directive({
     standalone: true,
@@ -89,6 +81,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
+    NgmSpinComponent,
     ZardButtonComponent,
     ZardSegmentedComponent,
     ZardSegmentedItemComponent,

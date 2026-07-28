@@ -4,7 +4,8 @@
   "private": true,
   "peerDependencies": {
     "@angular/common": "^21.0.0",
-    "@angular/core": "^21.0.0"
+    "@angular/core": "^21.0.0",
+    "@xpert-ai/headless-ui": "workspace:*"
   },
   "dependencies": {
     "tslib": "^2.3.0"

@@ -1,6 +1,6 @@
-export { type OnClickCallback as SheetOnClickCallback } from '@/src/lib/components/sheet/sheet.component';
-export { ZardSheetComponent, ZardSheetOptions, ZardSheetModule } from '@/src/lib/components/sheet/sheet.component';
-export * from '@/src/lib/components/sheet/sheet.service';
-export * from '@/src/lib/components/sheet/sheet-ref';
-export * from '@/src/lib/components/sheet/sheet.imports';
-export * from '@/src/lib/components/sheet/sheet.variants';
+export { type OnClickCallback as SheetOnClickCallback } from './sheet.component'
+export { ZardSheetComponent, ZardSheetOptions, ZardSheetModule } from './sheet.component'
+export * from './sheet.service'
+export * from './sheet-ref'
+export * from './sheet.imports'
+export * from './sheet.variants'

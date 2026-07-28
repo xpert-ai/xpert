@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { nonBlank, SlideUpAnimation } from '@xpert-ai/core'
+import { nonBlank, SlideUpAnimation } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {

@@ -28,7 +28,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { CapitalizePipe } from '@xpert-ai/core'
+import { CapitalizePipe } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({

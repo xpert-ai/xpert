@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, IfAnimations, linkedModel } from '@xpert-ai/core'
+import { attrModel, IfAnimations, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'

@@ -22,7 +22,7 @@ import {
   type IUserOrganization,
   UsersService
 } from '@xpert-ai/cloud/state'
-import { nonNullable, OverlayAnimation1 } from '@xpert-ai/core'
+import { nonNullable, OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

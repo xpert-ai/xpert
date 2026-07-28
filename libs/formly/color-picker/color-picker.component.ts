@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, HostBinding } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { FieldType } from '@ngx-formly/core'
-import { ColorInputFormat, NgmColorInputComponent } from '@xpert-ai/components/form-field'
+import { ColorInputFormat, NgmColorInputComponent } from '@xpert-ai/headless-ui'
 import { DensityDirective } from '@xpert-ai/headless-ui'
 
 @Component({

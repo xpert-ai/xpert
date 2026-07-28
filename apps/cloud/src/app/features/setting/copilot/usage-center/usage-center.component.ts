@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
+import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import {
   ZardButtonComponent,

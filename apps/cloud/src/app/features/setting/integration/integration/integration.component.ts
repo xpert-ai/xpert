@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { IsDirty } from '@xpert-ai/core'
+import { IsDirty } from '@xpert-ai/headless-ui'
 import type { I18nObject, IIntegration, IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

@@ -1,8 +1,7 @@
-
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertWorkspaceApiToolsComponent } from '../api-tools/tools.component'
 import { XpertWorkspaceBuiltinToolsComponent } from '../builtin-tools/tools.component'
@@ -23,7 +22,7 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     XpertWorkspaceApiToolsComponent,
     XpertWorkspaceBuiltinToolsComponent,
     XpertWorkspaceMCPToolsComponent
-],
+  ],
   selector: 'xpert-workspace-all',
   templateUrl: './all.component.html',
   styleUrl: 'all.component.scss',
@@ -32,7 +31,7 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 })
 export class XpertWorkspaceAllComponent {
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
-  
+
   readonly workspace = this.homeComponent.workspace
   readonly workspaceId = computed(() => this.workspace()?.id)
 }

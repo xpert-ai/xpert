@@ -1,0 +1,66 @@
+<div class="ngm-density__compact flex flex-col items-stretch">
+  <div class="mx-2 flex items-center justify-between">
+    <label class="shrink-0 overflow-hidden text-ellipsis whitespace-nowrap p-1 text-sm">{{ label }}</label>
+
+    <span class="flex-1"></span>
+
+    @if (value) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        [disabled]="!value"
+        (click)="swapColors()"
+      >
+        <z-icon class="m-0" zType="swap_horiz"></z-icon>
+      </button>
+    }
+
+    <div class="flex items-center justify-center overflow-hidden" [@colorsEnterAnimation]="value">
+      @for (color of value; track color) {
+        <div class="h-4 w-4" [style.background-color]="color"></div>
+      }
+    </div>
+  </div>
+
+  <div class="relative mx-1 flex items-center">
+    <z-combobox-deprecated
+      zTriggerMode="input"
+      class="ngm-input-element ngm-w-full"
+      [value]="value"
+      [groups]="colorGroups()"
+      [placeholder]="placeholder"
+      [disabled]="disabled"
+      [allowCustomValue]="true"
+      [zSearchTerm]="searchTerm()"
+      [zDisplayWith]="displayColors"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onComboboxValueChange($event)"
+      (zBlur)="onTouched()"
+    >
+      <ng-template zComboboxDeprecatedOption let-option>
+        <div class="flex items-center justify-start">
+          @for (color of option.data?.colors; track color) {
+            <div class="h-4 w-4" [style.background-color]="color"></div>
+          }
+        </div>
+      </ng-template>
+    </z-combobox-deprecated>
+
+    @if (value) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="ngm-colors__clear right-0"
+        displayDensity="compact"
+        (click)="clear()"
+      >
+        <z-icon zType="close"></z-icon>
+      </button>
+    }
+  </div>
+</div>

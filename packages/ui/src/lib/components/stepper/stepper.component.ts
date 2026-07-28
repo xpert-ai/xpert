@@ -25,7 +25,7 @@ import { AbstractControl } from '@angular/forms'
 
 import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/src/lib/utils/merge-classes'
+import { mergeClasses } from '../../utils/merge-classes'
 import { ZardIconComponent } from '../icon/icon.component'
 import { ZardTooltipImports, type ZardTooltipPositionVariants, type ZardTooltipType } from '../tooltip'
 import {

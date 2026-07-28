@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ITag } from '../../../@core'

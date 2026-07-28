@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, inject, model } from '@angular/core
 import { FormsModule } from '@angular/forms'
 
 import { TChatApp } from '@xpert-ai/contracts'
-import { SlideUpAnimation } from '@xpert-ai/core'
+import { SlideUpAnimation } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'

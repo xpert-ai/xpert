@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

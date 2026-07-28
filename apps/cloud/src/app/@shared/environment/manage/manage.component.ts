@@ -15,7 +15,7 @@ import {
   OrderTypeEnum,
   TEnvironmentVariable
 } from '@cloud/app/@core'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

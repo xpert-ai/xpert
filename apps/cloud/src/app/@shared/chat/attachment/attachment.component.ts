@@ -14,7 +14,7 @@ import {
 } from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage } from '@cloud/app/@core/types'
-import { FileTypePipe, linkedModel } from '@xpert-ai/core'
+import { FileTypePipe, linkedModel } from '@xpert-ai/headless-ui'
 import { effectAction, NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'

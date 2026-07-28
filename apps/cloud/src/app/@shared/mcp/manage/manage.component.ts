@@ -22,7 +22,7 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/core'
+import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/headless-ui'
 import { NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

@@ -1,0 +1,10 @@
+@reference "../../../../../../../../../tailwind-workspace-reference.css";
+
+:host {
+  @apply flex flex-col items-stretch justify-start overflow-hidden pb-1;
+}
+
+.ngm-colors__clear {
+  @apply absolute;
+  background-color: var(--sys-surface);
+}

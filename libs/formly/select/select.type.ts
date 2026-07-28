@@ -22,11 +22,11 @@ import {
   ZardComboboxDeprecatedComponent,
   ZardComboboxDeprecatedPanelTemplateDirective,
   type ZardComboboxDeprecatedOption
-} from '@xpert-ai/headless-ui/components/combobox-deprecated'
-import { ZardFormImports } from '@xpert-ai/headless-ui/components/form'
-import { ZardLoaderComponent } from '@xpert-ai/headless-ui/components/loader'
-import { ZardSelectImports } from '@xpert-ai/headless-ui/components/select'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui/components/tooltip'
+} from '@xpert-ai/headless-ui'
+import { ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
 

@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@xpert-ai/contracts'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'

@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { Store } from '@xpert-ai/cloud/state'
-import { nonNullable } from '@xpert-ai/core'
+import { nonNullable } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { Socket, io } from 'socket.io-client'

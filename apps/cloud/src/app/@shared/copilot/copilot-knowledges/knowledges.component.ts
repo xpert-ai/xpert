@@ -16,7 +16,7 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { saveAsYaml, uploadYamlFile } from '@xpert-ai/core'
+import { saveAsYaml, uploadYamlFile } from '@xpert-ai/headless-ui'
 import { FORMLY_W_1_2 } from '@xpert-ai/formly'
 import {
   CdkConfirmDeleteComponent,

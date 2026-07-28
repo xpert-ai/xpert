@@ -16,7 +16,7 @@ import {
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { myRxResource, TSelectOption } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel } from '@xpert-ai/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'

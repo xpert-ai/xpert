@@ -16,13 +16,13 @@ import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 
 import type { ClassValue } from 'clsx'
 
-import { ZardButtonComponent, type ZardButtonTypeVariants } from '@/src/lib/components/button'
-import { ZardCalendarComponent } from '@/src/lib/components/calendar'
-import { injectUiI18nService } from '@/src/lib/core/i18n/ui-i18n.service'
-import type { ZardDatePickerSizeVariants } from '@/src/lib/components/date-picker/date-picker.variants'
-import { ZardIconComponent } from '@/src/lib/components/icon'
-import { ZardPopoverComponent, ZardPopoverDirective } from '@/src/lib/components/popover'
-import { mergeClasses, noopFn } from '@/shared/utils/merge-classes'
+import { ZardButtonComponent, type ZardButtonTypeVariants } from '../button'
+import { ZardCalendarComponent } from '../calendar'
+import { injectUiI18nService } from '../../core/i18n/ui-i18n.service'
+import type { ZardDatePickerSizeVariants } from './date-picker.variants'
+import { ZardIconComponent } from '../icon'
+import { ZardPopoverComponent, ZardPopoverDirective } from '../popover'
+import { mergeClasses, noopFn } from '../../utils/merge-classes'
 
 /**
  * Height overrides for date-picker sizes.

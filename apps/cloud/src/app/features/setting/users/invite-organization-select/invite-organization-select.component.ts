@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDialogComponent } from '@xpert-ai/components/dialog'
 import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -29,7 +28,6 @@ export interface InviteOrganizationSelectDialogData {
     FormsModule,
     DragDropModule,
     TranslateModule,
-    NgmDialogComponent,
     NgmSearchComponent,
     NgmHighlightDirective,
     ButtonGroupDirective,

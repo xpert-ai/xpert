@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -22,7 +22,7 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     ZardSliderComponent,
     ZardSwitchComponent
-],
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertWorkflowRetryComponent {

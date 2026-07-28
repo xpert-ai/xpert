@@ -1,14 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, ViewEncapsulation } from '@angular/core'
 
-import { getMonthNames } from '@/src/lib/components/calendar/calendar.utils';
-import { injectUiI18nService } from '@/src/lib/core/i18n/ui-i18n.service';
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { getMonthNames } from './calendar.utils'
+import { injectUiI18nService } from '../../core/i18n/ui-i18n.service'
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { calendarNavVariants } from './calendar.variants';
-import { ZardButtonComponent } from '@/src/lib/components/button/button.component';
-import { ZardIconComponent } from '@/src/lib/components/icon/icon.component';
-import { ZardSelectItemComponent } from '@/src/lib/components/select/select-item.component';
-import { ZardSelectComponent, type ZardSelectValue } from '@/src/lib/components/select/select.component';
+import { calendarNavVariants } from './calendar.variants'
+import { ZardButtonComponent } from '../button/button.component'
+import { ZardIconComponent } from '../icon/icon.component'
+import { ZardSelectItemComponent } from '../select/select-item.component'
+import { ZardSelectComponent, type ZardSelectValue } from '../select/select.component'
 
 @Component({
   selector: 'z-calendar-navigation',
@@ -61,107 +61,105 @@ import { ZardSelectComponent, type ZardSelectValue } from '@/src/lib/components/
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  exportAs: 'zCalendarNavigation',
+  exportAs: 'zCalendarNavigation'
 })
 export class ZardCalendarNavigationComponent {
-  private readonly i18n = injectUiI18nService();
+  private readonly i18n = injectUiI18nService()
 
   // Inputs
-  readonly currentMonth = input.required<string>();
-  readonly currentYear = input.required<string>();
-  readonly minDate = input<Date | null>(null);
-  readonly maxDate = input<Date | null>(null);
-  readonly disabled = input<boolean>(false);
+  readonly currentMonth = input.required<string>()
+  readonly currentYear = input.required<string>()
+  readonly minDate = input<Date | null>(null)
+  readonly maxDate = input<Date | null>(null)
+  readonly disabled = input<boolean>(false)
 
   // Outputs
-  readonly monthChange = output<string>();
-  readonly yearChange = output<string>();
-  readonly previousMonth = output<void>();
-  readonly nextMonth = output<void>();
-  protected readonly months = computed(() => getMonthNames(this.i18n.language(), 'short'));
+  readonly monthChange = output<string>()
+  readonly yearChange = output<string>()
+  readonly previousMonth = output<void>()
+  readonly nextMonth = output<void>()
+  protected readonly months = computed(() => getMonthNames(this.i18n.language(), 'short'))
   protected readonly previousMonthLabel = computed(() =>
-    this.i18n.t('datePicker.previousMonth', { Default: 'Previous month' }),
-  );
-  protected readonly nextMonthLabel = computed(() =>
-    this.i18n.t('datePicker.nextMonth', { Default: 'Next month' }),
-  );
+    this.i18n.t('datePicker.previousMonth', { Default: 'Previous month' })
+  )
+  protected readonly nextMonthLabel = computed(() => this.i18n.t('datePicker.nextMonth', { Default: 'Next month' }))
 
-  protected readonly navClasses = computed(() => mergeClasses(calendarNavVariants()));
+  protected readonly navClasses = computed(() => mergeClasses(calendarNavVariants()))
 
   protected readonly availableYears = computed(() => {
-    const minYear = this.minDate()?.getFullYear() ?? new Date().getFullYear() - 10;
-    const maxYear = this.maxDate()?.getFullYear() ?? new Date().getFullYear() + 10;
-    const years = [];
+    const minYear = this.minDate()?.getFullYear() ?? new Date().getFullYear() - 10
+    const maxYear = this.maxDate()?.getFullYear() ?? new Date().getFullYear() + 10
+    const years = []
     for (let i = minYear; i <= maxYear; i++) {
-      years.push(i);
+      years.push(i)
     }
-    return years;
-  });
+    return years
+  })
 
   protected readonly currentMonthName = computed(() => {
-    const selectedMonth = Number.parseInt(this.currentMonth());
-    const months = this.months();
+    const selectedMonth = Number.parseInt(this.currentMonth())
+    const months = this.months()
     if (!Number.isNaN(selectedMonth) && months[selectedMonth]) {
-      return months[selectedMonth];
+      return months[selectedMonth]
     }
-    return months[new Date().getMonth()];
-  });
+    return months[new Date().getMonth()]
+  })
 
   protected readonly isPreviousDisabled = computed(() => {
     if (this.disabled()) {
-      return true;
+      return true
     }
 
-    const minDate = this.minDate();
+    const minDate = this.minDate()
     if (!minDate) {
-      return false;
+      return false
     }
 
-    const currentMonth = Number.parseInt(this.currentMonth());
-    const currentYear = Number.parseInt(this.currentYear());
-    const lastDayOfPreviousMonth = new Date(currentYear, currentMonth, 0);
+    const currentMonth = Number.parseInt(this.currentMonth())
+    const currentYear = Number.parseInt(this.currentYear())
+    const lastDayOfPreviousMonth = new Date(currentYear, currentMonth, 0)
 
-    return lastDayOfPreviousMonth.getTime() < minDate.getTime();
-  });
+    return lastDayOfPreviousMonth.getTime() < minDate.getTime()
+  })
 
   protected readonly isNextDisabled = computed(() => {
     if (this.disabled()) {
-      return true;
+      return true
     }
 
-    const maxDate = this.maxDate();
+    const maxDate = this.maxDate()
     if (!maxDate) {
-      return false;
+      return false
     }
 
-    const currentMonth = Number.parseInt(this.currentMonth());
-    const currentYear = Number.parseInt(this.currentYear());
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1);
+    const currentMonth = Number.parseInt(this.currentMonth())
+    const currentYear = Number.parseInt(this.currentYear())
+    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
 
-    return nextMonth.getTime() > maxDate.getTime();
-  });
+    return nextMonth.getTime() > maxDate.getTime()
+  })
 
   protected onPreviousClick(): void {
-    this.previousMonth.emit();
+    this.previousMonth.emit()
   }
 
   protected onNextClick(): void {
-    this.nextMonth.emit();
+    this.nextMonth.emit()
   }
 
   protected onMonthChange(month: ZardSelectValue | ZardSelectValue[]): void {
     if (Array.isArray(month)) {
-      console.warn('Calendar navigation received array for month selection, expected single value. Ignoring:', month);
-      return;
+      console.warn('Calendar navigation received array for month selection, expected single value. Ignoring:', month)
+      return
     }
-    this.monthChange.emit(month.toString());
+    this.monthChange.emit(month.toString())
   }
 
   protected onYearChange(year: ZardSelectValue | ZardSelectValue[]): void {
     if (Array.isArray(year)) {
-      console.warn('Calendar navigation received array for year selection, expected single value. Ignoring:', year);
-      return;
+      console.warn('Calendar navigation received array for year selection, expected single value. Ignoring:', year)
+      return
     }
-    this.yearChange.emit(year.toString());
+    this.yearChange.emit(year.toString())
   }
 }

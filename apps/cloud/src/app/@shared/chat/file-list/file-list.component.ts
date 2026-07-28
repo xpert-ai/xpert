@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@xpert-ai/core'
+import { FileTypePipe } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

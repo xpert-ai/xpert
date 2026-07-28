@@ -24,7 +24,7 @@ import {
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
-} from '@xpert-ai/core'
+} from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'

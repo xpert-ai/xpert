@@ -19,7 +19,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { catchError, debounceTime, defer, of, startWith } from 'rxjs'
 import { TWorkflowVarGroup } from '../../../@core/types'
 import { expandVariablesWithItems } from '../../agent/types'
-import { toParams } from '@xpert-ai/core'
+import { toParams } from '@xpert-ai/headless-ui'
 import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { buildRemoteSelectRequest, isSameRemoteSelectRequest } from './select.request'
 

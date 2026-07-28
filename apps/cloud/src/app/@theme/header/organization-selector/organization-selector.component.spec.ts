@@ -27,13 +27,8 @@ jest.mock('@xpert-ai/cloud/state', () => {
   }
 })
 
-jest.mock('@xpert-ai/core', () => ({
-  nonNullable: <T>(value: T | null | undefined): value is T => value != null,
-  OverlayAnimation1: []
-}))
-
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Directive } = jest.requireActual('@angular/core')
+  const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
   @Directive({
     standalone: true,
@@ -41,15 +36,6 @@ jest.mock('@xpert-ai/headless-ui', () => {
     selector: '[z-button]'
   })
   class ZardButtonComponent {}
-
-  return {
-    ZardButtonComponent,
-    ZardTooltipImports: []
-  }
-})
-
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -68,14 +54,15 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
+    debouncedSignal: (value: unknown) => value,
     NgmHighlightDirective,
-    NgmSearchComponent
+    NgmSearchComponent,
+    nonNullable: <T>(value: T | null | undefined): value is T => value != null,
+    OverlayAnimation1: [],
+    ZardButtonComponent,
+    ZardTooltipImports: []
   }
 })
-
-jest.mock('@xpert-ai/headless-ui', () => ({
-  debouncedSignal: (value: unknown) => value
-}))
 
 jest.mock('../../../@core', () => {
   class OrganizationsService {}

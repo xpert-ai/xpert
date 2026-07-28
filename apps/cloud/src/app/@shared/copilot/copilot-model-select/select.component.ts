@@ -34,7 +34,7 @@ import { injectCopilotProviderService } from '../../../@core/services/copilot-pr
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import { ModelFilterTag, providerModelDisplayTags, providerModelFilterTags } from '../model-tags'
 
 type ModelParameterRulesResourceValue = {

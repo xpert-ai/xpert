@@ -10,7 +10,7 @@ import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
 import { ChatHomeComponent } from './home.component'
 
-jest.mock('@xpert-ai/core', () => ({
+jest.mock('@xpert-ai/headless-ui', () => ({
   routeAnimations: trigger('routeAnimations', [])
 }))
 

@@ -1,9 +1,8 @@
-
 import { ChangeDetectionStrategy, Component, forwardRef } from '@angular/core'
 import { FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { FieldType } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmColorsComponent } from '@xpert-ai/components/form-field'
+import { NgmColorsComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

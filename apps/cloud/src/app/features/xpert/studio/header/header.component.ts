@@ -40,7 +40,7 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
-import { OverlayAnimations } from '@xpert-ai/core'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-header',

@@ -11,7 +11,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'

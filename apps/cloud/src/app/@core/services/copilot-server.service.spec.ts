@@ -8,7 +8,7 @@ const storeMock = {
   selectOrganizationId: jest.fn(() => organizationId$.asObservable())
 }
 
-jest.mock('@xpert-ai/core', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { HttpParams } = require('@angular/common/http')
 
   return {

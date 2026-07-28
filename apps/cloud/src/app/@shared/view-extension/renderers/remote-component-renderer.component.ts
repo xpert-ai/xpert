@@ -22,7 +22,7 @@ import {
   XpertViewParameterDefinition,
   XpertViewQuery
 } from '@xpert-ai/contracts'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
 import { NgmThemeService } from '@xpert-ai/headless-ui'

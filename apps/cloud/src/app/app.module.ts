@@ -8,7 +8,6 @@ import { provideAnimations } from '@angular/platform-browser/animations'
 import { RouteReuseStrategy } from '@angular/router'
 import { ServiceWorkerModule } from '@angular/service-worker'
 import { Ability, PureAbility } from '@casl/ability'
-import { NxCoreModule } from '@xpert-ai/core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxPermissionsModule } from 'ngx-permissions'
@@ -61,7 +60,6 @@ function detectSubjectType(subject) {
       enableSourceMaps: true
     }),
     MonacoEditorModule.forRoot(),
-    NxCoreModule.forRoot(),
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: false, // environment.production,
       // Register the ServiceWorker as soon as the app is stable

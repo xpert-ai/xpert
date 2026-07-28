@@ -6,7 +6,7 @@ import { FileEditorSelection } from '../editor/editor.component'
 import { FilePreviewContentComponent } from './file-preview-content.component'
 
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
+  const { Component, Input, Pipe, inject } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -26,9 +26,26 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Input() data: unknown[] | null = null
   }
 
+  @Pipe({
+    standalone: true,
+    name: 'safe'
+  })
+  class SafePipe implements PipeTransform {
+    readonly #sanitizer = inject(DomSanitizer)
+
+    transform(value: string, type?: string) {
+      if (type === 'resourceUrl') {
+        return this.#sanitizer.bypassSecurityTrustResourceUrl(value)
+      }
+
+      return value
+    }
+  }
+
   return {
     NgmSpinComponent,
-    NgmTableComponent
+    NgmTableComponent,
+    SafePipe
   }
 })
 
@@ -56,30 +73,6 @@ jest.mock('ngx-markdown', () => {
   return {
     MarkdownModule,
     MarkdownComponent
-  }
-})
-
-jest.mock('@xpert-ai/core', () => {
-  const { Pipe, inject } = jest.requireActual('@angular/core')
-
-  @Pipe({
-    standalone: true,
-    name: 'safe'
-  })
-  class SafePipe implements PipeTransform {
-    readonly #sanitizer = inject(DomSanitizer)
-
-    transform(value: string, type?: string) {
-      if (type === 'resourceUrl') {
-        return this.#sanitizer.bypassSecurityTrustResourceUrl(value)
-      }
-
-      return value
-    }
-  }
-
-  return {
-    SafePipe
   }
 })
 

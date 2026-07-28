@@ -31,7 +31,7 @@ import {
   ZardTableImports,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
+import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
 import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from '@cloud/app/@shared/chat'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import {

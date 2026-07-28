@@ -1,11 +1,10 @@
-
 import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopyComponent } from '@cloud/app/@shared/common'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { TChatMessageStep, TFile } from '@xpert-ai/contracts'
-import { FileTypePipe } from '@xpert-ai/core'
+import { FileTypePipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -63,12 +62,10 @@ export class ChatCanvasFileEditorComponent {
   readonly canExportToPdf = this.previewState.canExportToPdf
 
   constructor() {
-    effect(
-      () => {
-        this.file()
-        this.preview.set(true)
-      }
-    )
+    effect(() => {
+      this.file()
+      this.preview.set(true)
+    })
   }
 
   exportToPdf() {

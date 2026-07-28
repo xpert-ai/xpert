@@ -4,7 +4,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -33,7 +33,7 @@ import { XpertStudioConfigureMCPComponent } from '../configure/configure.compone
     CdkListboxModule,
     MCPServerFormComponent,
     XpertStudioConfigureMCPComponent
-],
+  ],
   selector: 'xpert-tool-mcp-create',
   templateUrl: './create.component.html',
   styleUrl: 'create.component.scss',
@@ -44,14 +44,16 @@ export class XpertToolMCPCreateComponent {
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ workspace: IXpertWorkspace; toolset?: Partial<IXpertToolset>; mcpServer?: TMCPServer;}>(DIALOG_DATA)
+  readonly #data = inject<{ workspace: IXpertWorkspace; toolset?: Partial<IXpertToolset>; mcpServer?: TMCPServer }>(
+    DIALOG_DATA
+  )
 
   readonly workspace = signal(this.#data.workspace)
 
   readonly loading = signal(false)
 
   readonly toolset = model<Partial<IXpertToolset>>(this.#data.toolset)
-  readonly mcpServer = model<TMCPServer>(this.#data.mcpServer ?? {type: MCPServerType.SSE})
+  readonly mcpServer = model<TMCPServer>(this.#data.mcpServer ?? { type: MCPServerType.SSE })
   readonly tools = model<IXpertTool[]>()
   readonly steps = model<number[]>([0])
 
@@ -65,7 +67,7 @@ export class XpertToolMCPCreateComponent {
     this.xpertToolsetService
       .create({
         ...omitBy(this.toolset(), isNil),
-        schema: JSON.stringify({mcpServers: {'': this.mcpServer()}}),
+        schema: JSON.stringify({ mcpServers: { '': this.mcpServer() } }),
         tools: this.tools(),
         workspaceId: this.workspace()?.id
       })
@@ -83,5 +85,4 @@ export class XpertToolMCPCreateComponent {
   cancel() {
     this.#dialogRef.close()
   }
-
 }

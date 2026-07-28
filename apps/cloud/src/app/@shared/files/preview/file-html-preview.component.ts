@@ -11,7 +11,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import type { TChatElementAttribute, TChatFileElementReference } from '@xpert-ai/contracts'
 
 type HtmlInspectorElementPayload = {

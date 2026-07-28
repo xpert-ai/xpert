@@ -1,7 +1,7 @@
 // import { Component, OnInit, inject } from '@angular/core'
 // import { LANGUAGES, ROUTE_ANIMATIONS_ELEMENTS, Store } from '../../../@core/index'
 // import { toSignal } from '@angular/core/rxjs-interop'
-// import { ThemesEnum } from '@xpert-ai/core'
+// import { ThemesEnum } from '@xpert-ai/headless-ui'
 
 // @Component({
 //   selector: 'pac-general',

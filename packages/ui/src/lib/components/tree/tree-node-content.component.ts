@@ -1,33 +1,31 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, ViewEncapsulation } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { ZardTreeService } from './tree.service';
-import { treeNodeContentVariants } from './tree.variants';
+import { ZardTreeService } from './tree.service'
+import { treeNodeContentVariants } from './tree.variants'
 
 @Component({
   selector: 'z-tree-node-content',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'classes()',
+    '[class]': 'classes()'
   },
-  exportAs: 'zTreeNodeContent',
+  exportAs: 'zTreeNodeContent'
 })
 export class ZardTreeNodeContentComponent {
-  private readonly treeService = inject(ZardTreeService);
+  private readonly treeService = inject(ZardTreeService)
 
-  readonly class = input<ClassValue>('');
-  readonly nodeKey = input.required<string>();
+  readonly class = input<ClassValue>('')
+  readonly nodeKey = input.required<string>()
 
-  readonly isSelected = computed(() => this.treeService.isSelected(this.nodeKey()));
+  readonly isSelected = computed(() => this.treeService.isSelected(this.nodeKey()))
 
   protected readonly classes = computed(() =>
-    mergeClasses(treeNodeContentVariants({ isSelected: this.isSelected() }), this.class()),
-  );
+    mergeClasses(treeNodeContentVariants({ isSelected: this.isSelected() }), this.class())
+  )
 }

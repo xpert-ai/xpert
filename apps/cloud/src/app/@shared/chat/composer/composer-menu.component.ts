@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, IStorageFile } from '@cloud/app/@core'
 import { FileIconComponent } from '@cloud/app/@shared/files'
-import { FileTypePipe } from '@xpert-ai/core'
+import { FileTypePipe } from '@xpert-ai/headless-ui'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,

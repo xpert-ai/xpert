@@ -17,6 +17,10 @@ export function nonBlank<T>(value: T): value is NonNullable<T> {
   return !isBlank(value)
 }
 
+export function nonNullable<T>(value: T): value is NonNullable<T> {
+  return value != null
+}
+
 /**
  *@hidden
  */

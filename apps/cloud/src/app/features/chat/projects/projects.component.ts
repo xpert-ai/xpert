@@ -7,7 +7,7 @@ import { getErrorMessage, injectProjectService, injectToastr, IXpertProject, Ord
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { linkedModel, TranslatePipe, uploadYamlFile } from '@xpert-ai/core'
+import { linkedModel, TranslatePipe, uploadYamlFile } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, map, startWith, switchMap } from 'rxjs'

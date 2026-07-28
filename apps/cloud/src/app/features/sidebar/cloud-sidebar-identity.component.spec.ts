@@ -25,11 +25,6 @@ jest.mock('@xpert-ai/cloud/state', () => {
   }
 })
 
-jest.mock('@xpert-ai/core', () => ({
-  nonNullable: <T>(value: T | null | undefined): value is T => value != null,
-  OverlayAnimation1: []
-}))
-
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
@@ -49,15 +44,22 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Input() content?: string
   }
 
+  @Directive({
+    standalone: true,
+    // eslint-disable-next-line @angular-eslint/directive-selector
+    selector: '[z-button]'
+  })
+  class ZardButtonComponent {}
+
   return {
+    debouncedSignal: (value: unknown) => value,
     NgmHighlightDirective,
-    NgmSearchComponent
+    NgmSearchComponent,
+    nonNullable: <T>(value: T | null | undefined): value is T => value != null,
+    OverlayAnimation1: [],
+    ZardButtonComponent
   }
 })
-
-jest.mock('@xpert-ai/headless-ui', () => ({
-  debouncedSignal: (value: unknown) => value
-}))
 
 jest.mock('../../@core', () => {
   class OrganizationsService {}

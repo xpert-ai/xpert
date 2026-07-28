@@ -2,7 +2,7 @@ import { ChangeDetectorRef, computed, effect, inject, Injectable, signal } from 
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { IPoint, IRect } from '@foblex/2d'
 import { nonBlank } from '@xpert-ai/contracts'
-import { nonNullable, debounceUntilChanged } from '@xpert-ai/core'
+import { nonNullable, debounceUntilChanged } from '@xpert-ai/headless-ui'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { FCanvasChangeEvent } from '@foblex/flow'

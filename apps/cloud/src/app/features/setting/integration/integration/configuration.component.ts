@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, signal, viewChild } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { IsDirty } from '@xpert-ai/core'
+import { IsDirty } from '@xpert-ai/headless-ui'
 import type { IIntegration, TIntegrationProvider } from '@xpert-ai/contracts'
 import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'

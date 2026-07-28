@@ -31,7 +31,7 @@ import {
   KnowledgeFileUploader,
   XpertAgentService
 } from 'apps/cloud/src/app/@core'
-import { nonNullable } from '@xpert-ai/core'
+import { nonNullable } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { SelectionModel } from '@angular/cdk/collections'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'

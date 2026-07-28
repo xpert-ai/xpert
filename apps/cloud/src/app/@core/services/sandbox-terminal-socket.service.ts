@@ -1,16 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { Store } from '@xpert-ai/cloud/state'
-import { nonNullable } from '@xpert-ai/core'
+import { nonNullable } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Observable, Subject } from 'rxjs'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { Socket, io } from 'socket.io-client'
 import { environment } from '../../../environments/environment'
 import { AuthStrategy } from '../auth'
-import {
-  SANDBOX_TERMINAL_NAMESPACE,
-  SandboxTerminalClientEvent,
-  SandboxTerminalServerEvent,
-} from '../types'
+import { SANDBOX_TERMINAL_NAMESPACE, SandboxTerminalClientEvent, SandboxTerminalServerEvent } from '../types'
 import type {
   SandboxTerminalCloseRequest,
   SandboxTerminalClosedEvent,
