@@ -2,7 +2,12 @@ import { CommonModule } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
-import { IMembershipUsageBucket, IMembershipUsageOverview } from '@xpert-ai/contracts'
+import {
+  IMembershipUsageBucket,
+  IMembershipUsageOverview,
+  IUserMembershipPeriod,
+  MembershipPeriodStatusEnum
+} from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
@@ -39,6 +44,7 @@ export class PACAccountUsageComponent implements OnInit {
   readonly #translate = inject(TranslateService)
 
   readonly overview = signal<IMembershipUsageOverview | null>(null)
+  readonly periods = signal<IUserMembershipPeriod[]>([])
   readonly activityBuckets = signal<IMembershipUsageBucket[]>([])
   readonly loading = signal(false)
   readonly #language = toSignal(this.#translate.onLangChange.pipe(map(({ lang }) => lang)), {
@@ -51,6 +57,10 @@ export class PACAccountUsageComponent implements OnInit {
   readonly peakDailyPoints = computed(
     () => this.overview()?.buckets.reduce((peak, bucket) => Math.max(peak, bucket.pointsUsed), 0) ?? 0
   )
+  readonly topThreads = computed(() => this.overview()?.topThreads.slice(0, 5) ?? [])
+  readonly scheduledPeriods = computed(() =>
+    this.periods().filter(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)
+  )
 
   ngOnInit() {
     this.load()
@@ -61,13 +71,15 @@ export class PACAccountUsageComponent implements OnInit {
     const activityRange = getMembershipUsageHeatmapRange(new Date())
     forkJoin({
       overview: this.#membership.getOverview(),
+      periods: this.#membership.getMyPeriods(),
       activity: this.#membership.getOverview({
         start: activityRange.start.toISOString(),
         end: activityRange.end.toISOString()
       })
     }).subscribe({
-      next: ({ overview, activity }) => {
+      next: ({ overview, periods, activity }) => {
         this.overview.set(overview)
+        this.periods.set(periods)
         this.activityBuckets.set(activity?.buckets ?? [])
         this.loading.set(false)
       },
@@ -97,15 +109,12 @@ export class PACAccountUsageComponent implements OnInit {
       month: 'long',
       day: 'numeric'
     }).format(bucket.dateValue)
-    const tokenUsed = new Intl.NumberFormat(locale, {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(bucket.tokenUsed)
+    const pointsUsed = new Intl.NumberFormat(locale, { maximumFractionDigits: 10 }).format(bucket.pointsUsed)
 
-    return this.#translate.instant('PAC.Membership.HeatmapDailyTitle', {
+    return this.#translate.instant('PAC.Membership.HeatmapDailyPointsTitle', {
       date,
-      tokenUsed,
-      Default: `${date}: ${tokenUsed} tokens used`
+      pointsUsed,
+      Default: `${date}: ${pointsUsed} points used`
     })
   }
 }

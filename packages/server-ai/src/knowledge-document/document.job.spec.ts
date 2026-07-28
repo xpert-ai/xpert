@@ -1,6 +1,14 @@
 import { ForbiddenException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { IKnowledgebase, IKnowledgeDocument, KBDocumentStatusEnum } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    IKnowledgebase,
+    IKnowledgeDocument,
+    IModelAccessResolution,
+    KBDocumentStatusEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum
+} from '@xpert-ai/contracts'
 import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { UserService } from '@xpert-ai/server-core'
 import { Job } from 'bull'
@@ -364,8 +372,23 @@ describe('KnowledgeDocumentConsumer', () => {
             { id: 'chunk-updated', pageContent: 'updated content', metadata: { chunkId: 'chunk-updated' } }
         ]
         const embeddingChunks = [allChunks[1], allChunks[2]]
+        const modelAccess: IModelAccessResolution = {
+            allowed: true,
+            billableUserId: 'user-id',
+            copilotId: 'copilot-id',
+            copilotModelId: 'embedding-model',
+            provider: 'embedding-provider',
+            modelType: AiModelTypeEnum.TEXT_EMBEDDING,
+            model: 'embedding-model',
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-id',
+            multiplier: 1,
+            scope: ModelAccessOwnershipScopeEnum.Organization,
+            organizationId: 'organization-id'
+        }
         const vectorStore = {
             embeddingModel: 'embedding-model',
+            modelAccess,
             addKnowledgeDocument: jest.fn()
         }
         const knowledgebaseService = {
@@ -431,6 +454,10 @@ describe('KnowledgeDocumentConsumer', () => {
             .map(([command]) => command)
             .filter((command): command is CopilotTokenRecordCommand => command instanceof CopilotTokenRecordCommand)
             .reduce((total, command) => total + (command.input.tokenUsed ?? 0), 0)
+        const tokenRecordCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command): command is CopilotTokenRecordCommand => command instanceof CopilotTokenRecordCommand)
+        expect(tokenRecordCommand?.input.modelAccess).toBe(modelAccess)
         expect(documentService.update).toHaveBeenCalledWith(
             'doc-1',
             expect.objectContaining({

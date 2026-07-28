@@ -12,6 +12,12 @@ export const EventName_XpertPublished = 'xpert.published'
 export class XpertDraftValidateEvent {
   constructor(
     public readonly draft: TXpertTeamDraft,
+    public readonly context?: {
+      tenantId: string
+      organizationId?: string | null
+      xpertId: string
+      creatorId?: string | null
+    }
   ) {}
 }
 
@@ -29,9 +35,9 @@ export class XpertNameInvalidException extends HttpException {
 export async function createMemoryEmbeddings(
 	memory: TLongTermMemory,
 	queryBus: QueryBus,
-	params: { tenantId: string; organizationId: string }
+	params: { tenantId: string; organizationId: string; xpertId?: string }
 ) {
-	const { tenantId, organizationId } = params
+	const { tenantId, organizationId, xpertId } = params
 	let copilot: ICopilot = null
 	if (memory.copilotModel?.copilotId) {
 		copilot = await queryBus.execute(
@@ -55,6 +61,7 @@ export async function createMemoryEmbeddings(
 	if (copilotModel && copilot?.modelProvider) {
 		embeddings = await queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
 			new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
+				xpertId,
 				tokenCallback: (token) => {
 					// execution.embedTokens += token ?? 0
 				}

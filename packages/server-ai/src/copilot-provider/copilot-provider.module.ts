@@ -11,6 +11,7 @@ import { CopilotProviderModelService } from './models/copilot-provider-model.ser
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { AIModelModule } from '../ai-model'
+import { ModelAccessModule } from '../model-access'
 
 @Module({
 	imports: [
@@ -20,7 +21,8 @@ import { AIModelModule } from '../ai-model'
 		TenantModule,
 		CqrsModule,
 
-		AIModelModule
+		AIModelModule,
+		ModelAccessModule
 	],
 	controllers: [CopilotProviderController],
 	providers: [CopilotProviderService, CopilotProviderModelService, ...CommandHandlers, ...QueryHandlers],

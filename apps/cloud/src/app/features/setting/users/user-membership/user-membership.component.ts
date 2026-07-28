@@ -10,6 +10,7 @@ import {
   injectToastr
 } from '../../../../@core'
 import {
+  IMembershipPointLedger,
   IMembershipPlan,
   IUserMembership,
   IUserMembershipPeriod,
@@ -78,6 +79,7 @@ export class UserMembershipComponent implements OnChanges {
       )?.id ?? null
   )
   readonly personalPointsBalance = signal(0)
+  readonly auditEntries = signal<IMembershipPointLedger[]>([])
   readonly loading = signal(false)
 
   readonly MembershipRenewalModeEnum = MembershipRenewalModeEnum
@@ -104,7 +106,7 @@ export class UserMembershipComponent implements OnChanges {
   })
 
   get canManage() {
-    return this.#store.hasPermission(AIPermissionsEnum.COPILOT_EDIT as never)
+    return this.#store.hasPermission(AIPermissionsEnum.MEMBERSHIP_EDIT as never)
   }
 
   get canManagePersonalPoints() {
@@ -123,15 +125,17 @@ export class UserMembershipComponent implements OnChanges {
       plans: this.#membership.getPlans(),
       memberships: this.#membership.getAdminUsers({ userId: this.userId, take: 1 }),
       periods: this.#membership.getAdminUserPeriods(this.userId),
+      audit: this.#membership.getAdminUserAudit(this.userId, { take: 20 }),
       personalPoints: this.canManagePersonalPoints
         ? this.#membership.getPersonalPoints(this.userId)
         : of({ balance: 0 })
     }).subscribe({
-      next: ({ plans, memberships, periods, personalPoints }) => {
+      next: ({ plans, memberships, periods, audit, personalPoints }) => {
         this.plans.set(plans.filter((plan) => plan.status === 'active'))
         const membership = memberships.items?.[0] ?? null
         this.membership.set(membership)
         this.periods.set(periods)
+        this.auditEntries.set(audit.items ?? [])
         this.personalPointsBalance.set(personalPoints.balance)
         this.assignmentForm.patchValue({
           planId: membership?.planId ?? this.plans()[0]?.id ?? '',
@@ -261,9 +265,9 @@ export class UserMembershipComponent implements OnChanges {
     this.loading.set(true)
     this.#membership.adjustUserPoints(this.userId, { pointDelta, reason: reason || null }).subscribe({
       next: (membership) => {
-        this.membership.set(membership)
         this.cyclePointsForm.reset({ direction: 'increase', points: 0, reason: '' })
-        this.loading.set(false)
+        this.membership.set(membership)
+        this.load()
       },
       error: (error) => this.handleError(error)
     })
@@ -290,10 +294,9 @@ export class UserMembershipComponent implements OnChanges {
         reason: reason || null
       })
       .subscribe({
-        next: ({ balance }) => {
-          this.personalPointsBalance.set(balance)
+        next: () => {
           this.personalPointsForm.reset({ direction: 'increase', points: 0, reason: '' })
-          this.loading.set(false)
+          this.load()
         },
         error: (error) => this.handleError(error)
       })
@@ -318,6 +321,14 @@ export class UserMembershipComponent implements OnChanges {
   isUnlimited() {
     const membership = this.membership()
     return !!membership && membership.pointsGranted === null
+  }
+
+  auditActorLabel(entry: IMembershipPointLedger) {
+    const actor = entry.actor
+    if (!actor) {
+      return this.#translate.instant('PAC.Membership.SystemActor', { Default: 'System' })
+    }
+    return actor.email || actor.username || [actor.firstName, actor.lastName].filter(Boolean).join(' ') || entry.actorId
   }
 
   canAdjustCyclePoints() {

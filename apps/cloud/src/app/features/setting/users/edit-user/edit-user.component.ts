@@ -137,7 +137,7 @@ export class PACEditUserComponent {
 
   readonly canShowMembershipTab = computed(() => {
     this.activeScope()
-    return this.membershipPlanEnabled() && this.store.hasPermission(AIPermissionsEnum.COPILOT_EDIT as never)
+    return this.membershipPlanEnabled() && this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_EDIT as never)
   })
 
   userTypeLabelKey(type?: UserType) {

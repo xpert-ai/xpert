@@ -61,7 +61,8 @@ export class SpeechToTextService {
         const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
             new CopilotModelGetChatModelQuery(copilot, copilotModel, {
                 abortController: new AbortController(),
-                usageCallback: null
+                usageCallback: null,
+                xpertId
             })
         )
 

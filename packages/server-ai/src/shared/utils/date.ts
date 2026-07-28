@@ -13,6 +13,45 @@ export function formatInUTC0(date: Date, pattern: string): string {
 }
 
 /**
+ * Convert a calendar date to the final millisecond of that day in the requested timezone.
+ */
+export function endOfDayInTimeZone(date: string, timeZone: string): Date {
+	const [year, month, day] = date.split('-').map(Number)
+	const localEndAsUtc = Date.UTC(year, month - 1, day, 23, 59, 59, 999)
+	const firstGuess = new Date(localEndAsUtc)
+	const firstOffset = timeZoneOffset(firstGuess, timeZone)
+	const secondGuess = new Date(localEndAsUtc - firstOffset)
+	return new Date(localEndAsUtc - timeZoneOffset(secondGuess, timeZone))
+}
+
+function timeZoneOffset(value: Date, timeZone: string): number {
+	try {
+		const parts = new Intl.DateTimeFormat('en-US', {
+			timeZone,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hourCycle: 'h23'
+		}).formatToParts(value)
+		const fields = new Map(parts.map((part) => [part.type, part.value]))
+		const asUtc = Date.UTC(
+			Number(fields.get('year')),
+			Number(fields.get('month')) - 1,
+			Number(fields.get('day')),
+			Number(fields.get('hour')),
+			Number(fields.get('minute')),
+			Number(fields.get('second'))
+		)
+		return asUtc - Math.floor(value.getTime() / 1000) * 1000
+	} catch {
+		return 0
+	}
+}
+
+/**
  * Parse a single date query parameter (`start` or `end`) into a `Date`.
  * Returns `undefined` when the input is empty, so callers can keep optional filters.
  * Throws `BadRequestException` when the value cannot be parsed as a valid date.

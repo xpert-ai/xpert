@@ -7,6 +7,7 @@ import { Repository } from 'typeorm'
 import { CopilotProvider } from '../copilot-provider/copilot-provider.entity'
 import { CopilotProviderService } from '../copilot-provider/copilot-provider.service'
 import { MembershipService } from '../membership'
+import { ModelAccessService } from '../model-access'
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 
@@ -31,6 +32,7 @@ describe('CopilotService', () => {
             | 'isMembershipAccessEnabled'
         >
     >
+    let modelAccessService: jest.Mocked<Pick<ModelAccessService, 'handleCopilotStateChanged'>>
     let configService: jest.Mocked<Pick<ConfigService, 'get'>>
     let service: CopilotService
 
@@ -54,6 +56,9 @@ describe('CopilotService', () => {
                 membership: {}
             })
         }
+        modelAccessService = {
+            handleCopilotStateChanged: jest.fn().mockResolvedValue(undefined)
+        }
         configService = {
             get: jest.fn().mockReturnValue('http://localhost')
         }
@@ -76,6 +81,10 @@ describe('CopilotService', () => {
                 {
                     provide: MembershipService,
                     useValue: membershipService
+                },
+                {
+                    provide: ModelAccessService,
+                    useValue: modelAccessService
                 },
                 {
                     provide: ConfigService,

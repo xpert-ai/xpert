@@ -1,4 +1,4 @@
-import { ICopilot, ICopilotModel, ILLMUsage } from '@xpert-ai/contracts'
+import { ICopilot, ICopilotModel, ILLMUsage, IModelAccessResolution } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**
@@ -16,6 +16,7 @@ export class CopilotModelGetChatModelQuery implements IQuery {
 			abortController?: AbortController;
 			// tokenCallback?: (tokens: number) => void
 			usageCallback: (tokens: ILLMUsage) => void
+			modelAccessCallback?: (modelAccess: IModelAccessResolution) => void
 			xpertId?: string
 			threadId?: string
 		}

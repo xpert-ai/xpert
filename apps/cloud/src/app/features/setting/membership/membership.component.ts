@@ -1,17 +1,22 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import {
   ICopilotWithProvider,
+  IMembershipAdminUser,
   IMembershipAllowedModel,
   IMembershipModelMultiplier,
   IMembershipPlan,
   IMembershipRateLimit,
   IMembershipScopeStatus,
   IUserMembership,
+  MembershipAdminUserStatusEnum,
+  MembershipBulkActionEnum,
   MembershipPeriodEnum,
   MembershipPlanStatusEnum,
+  MembershipRenewalModeEnum,
   TMembershipRateLimitPeriod
 } from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -22,12 +27,16 @@ import {
   ZardButtonComponent,
   ZardCardImports,
   ZardCheckboxComponent,
+  ZardDatePickerComponent,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
+  type ZardPageEvent,
+  ZardPaginatorComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { userLabel } from '../../../@shared/pipes'
+import { format } from 'date-fns'
 
 type MembershipModelOption = {
   value: string
@@ -42,13 +51,17 @@ const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'da
   selector: 'pac-membership-admin',
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
+    RouterLink,
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardCheckboxComponent,
+    ZardDatePickerComponent,
     ZardIconComponent,
     ZardInputDirective,
+    ZardPaginatorComponent,
     ...ZardFormImports,
     ...ZardCardImports,
     ...ZardSelectImports
@@ -71,6 +84,16 @@ export class MembershipAdminComponent implements OnInit {
   readonly planMembers = signal<IUserMembership[]>([])
   readonly planMemberCount = signal(0)
   readonly planMembersLoading = signal(false)
+  readonly adminMembers = signal<IMembershipAdminUser[]>([])
+  readonly adminMemberCount = signal(0)
+  readonly adminMembersLoading = signal(false)
+  readonly adminMemberPageIndex = signal(0)
+  readonly adminMemberPageSize = signal(20)
+  readonly selectedUserIds = signal<Set<string>>(new Set())
+  readonly selectedUserCount = computed(() => this.selectedUserIds().size)
+  readonly allVisibleUsersSelected = computed(
+    () => !!this.adminMembers().length && this.adminMembers().every(({ user }) => this.selectedUserIds().has(user.id))
+  )
   readonly activePlanCount = computed(
     () => this.plans().filter((plan) => plan.status === MembershipPlanStatusEnum.Active).length
   )
@@ -96,6 +119,9 @@ export class MembershipAdminComponent implements OnInit {
 
   MembershipPlanStatusEnum = MembershipPlanStatusEnum
   MembershipPeriodEnum = MembershipPeriodEnum
+  MembershipAdminUserStatusEnum = MembershipAdminUserStatusEnum
+  MembershipBulkActionEnum = MembershipBulkActionEnum
+  MembershipRenewalModeEnum = MembershipRenewalModeEnum
 
   draft: Partial<IMembershipPlan> = {}
   readonly planForm = this.#formBuilder.group({
@@ -111,6 +137,18 @@ export class MembershipAdminComponent implements OnInit {
     priceAmount: new FormControl<number | null>(null, Validators.min(0)),
     description: this.#formBuilder.nonNullable.control(''),
     allowAllModels: this.#formBuilder.nonNullable.control(true)
+  })
+  readonly memberFilterForm = this.#formBuilder.nonNullable.group({
+    search: '',
+    status: this.#formBuilder.nonNullable.control<MembershipAdminUserStatusEnum | ''>(''),
+    planId: '',
+    expiringBefore: this.#formBuilder.control<Date | null>(null)
+  })
+  readonly bulkActionForm = this.#formBuilder.nonNullable.group({
+    action: this.#formBuilder.nonNullable.control<MembershipBulkActionEnum>(MembershipBulkActionEnum.Assign),
+    planId: '',
+    renewalMode: this.#formBuilder.nonNullable.control<MembershipRenewalModeEnum>(MembershipRenewalModeEnum.Auto),
+    note: ''
   })
   allowedModels: IMembershipAllowedModel[] = []
   modelMultipliers: IMembershipModelMultiplier[] = []
@@ -137,6 +175,7 @@ export class MembershipAdminComponent implements OnInit {
           this.selectedPlanId.set(plans.find((plan) => plan.isDefault)?.id ?? plans[0]?.id ?? null)
         }
         this.loadPlanMembers(this.selectedPlanId())
+        this.loadAdminMembers()
         this.loading.set(false)
       },
       error: (error) => {
@@ -364,6 +403,177 @@ export class MembershipAdminComponent implements OnInit {
         this.#toastr.error(getErrorMessage(error))
       }
     })
+  }
+
+  loadAdminMembers() {
+    const filters = this.memberFilterForm.getRawValue()
+    this.adminMembersLoading.set(true)
+    this.#membership
+      .getAdminMembers({
+        search: filters.search.trim() || undefined,
+        status: filters.status || undefined,
+        planId: filters.planId || undefined,
+        expiringBefore: filters.expiringBefore ? format(filters.expiringBefore, 'yyyy-MM-dd') : undefined,
+        take: this.adminMemberPageSize(),
+        skip: this.adminMemberPageIndex() * this.adminMemberPageSize()
+      })
+      .subscribe({
+        next: ({ items, total }) => {
+          this.adminMembers.set(items ?? [])
+          this.adminMemberCount.set(total ?? 0)
+          this.adminMembersLoading.set(false)
+          this.selectedUserIds.set(
+            new Set([...this.selectedUserIds()].filter((id) => (items ?? []).some(({ user }) => user.id === id)))
+          )
+        },
+        error: (error) => {
+          this.adminMembersLoading.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  applyMemberFilters() {
+    this.adminMemberPageIndex.set(0)
+    this.selectedUserIds.set(new Set())
+    this.loadAdminMembers()
+  }
+
+  resetMemberFilters() {
+    this.memberFilterForm.reset({
+      search: '',
+      status: '',
+      planId: '',
+      expiringBefore: null
+    })
+    this.applyMemberFilters()
+  }
+
+  onAdminMemberPage(event: ZardPageEvent) {
+    this.adminMemberPageIndex.set(event.pageIndex)
+    this.adminMemberPageSize.set(event.pageSize)
+    this.selectedUserIds.set(new Set())
+    this.loadAdminMembers()
+  }
+
+  toggleUserSelection(userId: string, selected: boolean) {
+    const userIds = new Set(this.selectedUserIds())
+    if (selected) {
+      userIds.add(userId)
+    } else {
+      userIds.delete(userId)
+    }
+    this.selectedUserIds.set(userIds)
+  }
+
+  toggleVisibleUsers(selected: boolean) {
+    const userIds = new Set(this.selectedUserIds())
+    for (const { user } of this.adminMembers()) {
+      if (selected) {
+        userIds.add(user.id)
+      } else {
+        userIds.delete(user.id)
+      }
+    }
+    this.selectedUserIds.set(userIds)
+  }
+
+  setMemberStatusFilter(value: string | number | Array<string | number>) {
+    const status = String(Array.isArray(value) ? (value[0] ?? '') : value)
+    const matched = Object.values(MembershipAdminUserStatusEnum).find((item) => item === status)
+    this.memberFilterForm.controls.status.setValue(matched ?? '')
+  }
+
+  setBulkAction(value: string | number | Array<string | number>) {
+    const action = String(Array.isArray(value) ? (value[0] ?? '') : value)
+    const matched = Object.values(MembershipBulkActionEnum).find((item) => item === action)
+    if (matched) {
+      this.bulkActionForm.controls.action.setValue(matched)
+    }
+  }
+
+  bulkActionRequiresPlan() {
+    return this.bulkActionForm.controls.action.value === MembershipBulkActionEnum.Assign
+  }
+
+  async applyBulkAction() {
+    const userIds = [...this.selectedUserIds()]
+    const input = this.bulkActionForm.getRawValue()
+    if (!userIds.length || (this.bulkActionRequiresPlan() && !input.planId)) {
+      this.bulkActionForm.markAllAsTouched()
+      return
+    }
+
+    const confirmed = await firstValueFrom(
+      this.#alertDialog.confirm({
+        title: this.#translate.instant('PAC.Membership.BulkActionConfirmTitle', {
+          Default: 'Apply membership action?'
+        }),
+        description: this.#translate.instant('PAC.Membership.BulkActionConfirmDescription', {
+          Default: 'Apply "{{action}}" to {{count}} selected users?',
+          action: input.action,
+          count: userIds.length
+        }),
+        actionText: this.#translate.instant('PAC.Membership.ApplyBulkAction', { Default: 'Apply action' }),
+        cancelText: this.#translate.instant('PAC.ACTIONS.Cancel', { Default: 'Cancel' }),
+        destructive: input.action === MembershipBulkActionEnum.Revoke
+      })
+    )
+    if (!confirmed) {
+      return
+    }
+
+    this.adminMembersLoading.set(true)
+    this.#membership
+      .applyBulkUserAction({
+        userIds,
+        action: input.action,
+        planId: input.action === MembershipBulkActionEnum.Assign ? input.planId : undefined,
+        renewalMode: input.action === MembershipBulkActionEnum.Assign ? input.renewalMode : undefined,
+        note: input.note.trim() || null
+      })
+      .subscribe({
+        next: ({ succeeded, failed }) => {
+          this.selectedUserIds.set(new Set())
+          if (failed.length) {
+            this.#toastr.error(
+              this.#translate.instant('PAC.Membership.BulkActionPartialFailure', {
+                Default: '{{succeeded}} succeeded and {{failed}} failed. {{message}}',
+                succeeded,
+                failed: failed.length,
+                message: failed[0].message
+              })
+            )
+          } else {
+            this.#toastr.success('PAC.Membership.BulkActionSuccess', {
+              Default: `${succeeded} users updated.`,
+              count: succeeded
+            })
+          }
+          this.loadAdminMembers()
+          this.loadPlanMembers(this.selectedPlanId())
+        },
+        error: (error) => {
+          this.adminMembersLoading.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  adminMemberLabel(member: IMembershipAdminUser) {
+    return userLabel(member.user)
+  }
+
+  adminMemberStatus(member: IMembershipAdminUser) {
+    return member.membership?.status ?? MembershipAdminUserStatusEnum.Unassigned
+  }
+
+  adminMemberRemainingPoints(member: IMembershipAdminUser) {
+    const membership = member.membership
+    if (!membership || membership.pointsGranted === null) {
+      return null
+    }
+    return Math.max(0, membership.pointsGranted - membership.pointsUsed)
   }
 
   setMigrationTarget(value: string | number | Array<string | number>) {

@@ -2,7 +2,12 @@ jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
-import { IMembershipPlan, MembershipPeriodEnum, MembershipPlanStatusEnum } from '@xpert-ai/contracts'
+import {
+  IMembershipPlan,
+  MembershipBulkActionEnum,
+  MembershipPeriodEnum,
+  MembershipPlanStatusEnum
+} from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { MembershipService, ToastrService } from '../../../@core'
@@ -33,6 +38,8 @@ describe('MembershipAdminComponent', () => {
     getPlans: jest.Mock
     getModelOptions: jest.Mock
     getAdminUsers: jest.Mock
+    getAdminMembers: jest.Mock
+    applyBulkUserAction: jest.Mock
   }
   let alertDialog: { confirm: jest.Mock }
   let component: MembershipAdminComponent
@@ -44,7 +51,9 @@ describe('MembershipAdminComponent', () => {
       getScopeStatus: jest.fn().mockReturnValue(of(null)),
       getPlans: jest.fn().mockReturnValue(of([sourcePlan, targetPlan])),
       getModelOptions: jest.fn().mockReturnValue(of([])),
-      getAdminUsers: jest.fn().mockReturnValue(of({ items: [], total: 0 }))
+      getAdminUsers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
+      getAdminMembers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
+      applyBulkUserAction: jest.fn().mockReturnValue(of({ succeeded: 1, failed: [] }))
     }
     alertDialog = {
       confirm: jest.fn().mockReturnValue(of(false))
@@ -99,5 +108,41 @@ describe('MembershipAdminComponent', () => {
     expect(membershipService.reassignPlanMembers).toHaveBeenCalledWith(sourcePlan.id, {
       targetPlanId: targetPlan.id
     })
+  })
+
+  it('applies the selected batch action only after confirmation', async () => {
+    component.selectedUserIds.set(new Set(['user-1']))
+    component.bulkActionForm.patchValue({
+      action: MembershipBulkActionEnum.Assign,
+      planId: targetPlan.id
+    })
+
+    await component.applyBulkAction()
+    expect(membershipService.applyBulkUserAction).not.toHaveBeenCalled()
+
+    alertDialog.confirm.mockReturnValue(of(true))
+    await component.applyBulkAction()
+
+    expect(membershipService.applyBulkUserAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userIds: ['user-1'],
+        action: MembershipBulkActionEnum.Assign,
+        planId: targetPlan.id
+      })
+    )
+  })
+
+  it('formats the member expiration filter for the API', () => {
+    component.memberFilterForm.patchValue({
+      expiringBefore: new Date(2027, 2, 14)
+    })
+
+    component.loadAdminMembers()
+
+    expect(membershipService.getAdminMembers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expiringBefore: '2027-03-14'
+      })
+    )
   })
 })

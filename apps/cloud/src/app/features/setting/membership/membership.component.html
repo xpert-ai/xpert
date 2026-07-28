@@ -18,7 +18,7 @@
   </div>
 </div>
 
-<div class="pac-page-body flex flex-1 flex-col gap-4 p-4">
+<div class="pac-page-body flex min-h-0 flex-1 flex-col gap-4 p-4">
   @if (scopeStatus(); as status) {
     <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
       <z-card-content class="flex flex-col gap-4 p-4 xl:flex-row xl:items-center xl:justify-between">
@@ -177,7 +177,7 @@
     </z-card>
   </div>
 
-  <div class="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-12">
+  <div class="grid shrink-0 grid-cols-1 items-start gap-4 xl:grid-cols-12">
     <z-card
       class="min-w-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-4"
     >
@@ -951,4 +951,271 @@
       }
     </div>
   </div>
+
+  <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+    <z-card-header class="border-b border-divider-regular py-4">
+      <div>
+        <z-card-title>{{ 'PAC.Membership.UserManagement' | translate: { Default: 'User memberships' } }}</z-card-title>
+        <div class="mt-1 text-sm text-text-tertiary">
+          {{
+            'PAC.Membership.UserManagementHint'
+              | translate
+                : {
+                    Default:
+                      'View every user in the current scope, including users without a membership, and apply common actions in batches.'
+                  }
+          }}
+        </div>
+      </div>
+    </z-card-header>
+
+    <z-card-content class="flex flex-col gap-4 p-4">
+      <form
+        [formGroup]="memberFilterForm"
+        class="grid gap-3 rounded-lg bg-components-panel-bg p-4 md:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_12rem_14rem_12rem_auto]"
+        (ngSubmit)="applyMemberFilters()"
+      >
+        <z-form-field class="w-full">
+          <z-form-label>{{ 'PAC.Membership.SearchUsers' | translate: { Default: 'Search users' } }}</z-form-label>
+          <input
+            z-input
+            formControlName="search"
+            [placeholder]="'PAC.Membership.SearchUsersPlaceholder' | translate: { Default: 'Name, username, or email' }"
+          />
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-form-label>{{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
+          <z-select class="w-full" formControlName="status" (zSelectionChange)="setMemberStatusFilter($event)">
+            <z-select-item zValue="">
+              {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
+            </z-select-item>
+            @for (
+              status of [
+                MembershipAdminUserStatusEnum.Active,
+                MembershipAdminUserStatusEnum.Paused,
+                MembershipAdminUserStatusEnum.Expired,
+                MembershipAdminUserStatusEnum.Unassigned
+              ];
+              track status
+            ) {
+              <z-select-item [zValue]="status">
+                {{ 'PAC.Membership.MemberStatuses.' + status | translate: { Default: status } }}
+              </z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-form-label>{{ 'PAC.Membership.Plan' | translate: { Default: 'Plan' } }}</z-form-label>
+          <z-select class="w-full" formControlName="planId">
+            <z-select-item zValue="">
+              {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
+            </z-select-item>
+            @for (plan of plans(); track plan.id) {
+              <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-form-label>
+            {{ 'PAC.Membership.ExpiringBefore' | translate: { Default: 'Expiring before' } }}
+          </z-form-label>
+          <z-date-picker class="w-full" zFormat="yyyy-MM-dd" formControlName="expiringBefore" />
+        </z-form-field>
+        <div class="flex items-end gap-2">
+          <button z-button zType="default" type="submit" [disabled]="adminMembersLoading()">
+            {{ 'PAC.ACTIONS.Search' | translate: { Default: 'Search' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            [disabled]="adminMembersLoading()"
+            (click)="resetMemberFilters()"
+          >
+            {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+          </button>
+        </div>
+      </form>
+
+      <form
+        [formGroup]="bulkActionForm"
+        class="flex flex-col gap-3 rounded-lg border border-divider-regular p-3 xl:flex-row xl:items-end"
+      >
+        <div class="flex min-w-36 items-center gap-2 self-start pb-2 xl:self-end">
+          <z-checkbox
+            displayDensity="cosy"
+            [ngModel]="allVisibleUsersSelected()"
+            [ngModelOptions]="{ standalone: true }"
+            [indeterminate]="selectedUserCount() > 0 && !allVisibleUsersSelected()"
+            (checkChange)="toggleVisibleUsers($event)"
+          >
+            {{
+              'PAC.Membership.SelectedUsers'
+                | translate: { count: selectedUserCount(), Default: selectedUserCount() + ' selected' }
+            }}
+          </z-checkbox>
+        </div>
+        <z-form-field class="w-full xl:w-44">
+          <z-form-label>{{ 'PAC.Membership.BulkAction' | translate: { Default: 'Batch action' } }}</z-form-label>
+          <z-select class="w-full" formControlName="action" (zSelectionChange)="setBulkAction($event)">
+            @for (
+              action of [
+                MembershipBulkActionEnum.Assign,
+                MembershipBulkActionEnum.Renew,
+                MembershipBulkActionEnum.Pause,
+                MembershipBulkActionEnum.Resume,
+                MembershipBulkActionEnum.Revoke
+              ];
+              track action
+            ) {
+              <z-select-item [zValue]="action">
+                {{ 'PAC.Membership.BulkActions.' + action | translate: { Default: action } }}
+              </z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        @if (bulkActionRequiresPlan()) {
+          <z-form-field class="w-full xl:w-56">
+            <z-form-label>{{ 'PAC.Membership.Plan' | translate: { Default: 'Plan' } }}</z-form-label>
+            <z-select class="w-full" formControlName="planId">
+              @for (plan of plans(); track plan.id) {
+                @if (plan.status === MembershipPlanStatusEnum.Active) {
+                  <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+                }
+              }
+            </z-select>
+          </z-form-field>
+          <z-form-field class="w-full xl:w-44">
+            <z-form-label>
+              {{ 'PAC.Membership.RenewalMode' | translate: { Default: 'Renewal mode' } }}
+            </z-form-label>
+            <z-select class="w-full" formControlName="renewalMode">
+              <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
+                {{ 'PAC.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
+              </z-select-item>
+              <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
+                {{ 'PAC.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
+              </z-select-item>
+            </z-select>
+          </z-form-field>
+          <z-form-field class="min-w-0 flex-1">
+            <z-form-label>{{ 'PAC.Membership.AssignNote' | translate: { Default: 'Assignment note' } }}</z-form-label>
+            <input z-input formControlName="note" />
+          </z-form-field>
+        }
+        <button
+          z-button
+          zType="secondary"
+          type="button"
+          class="shrink-0"
+          [disabled]="adminMembersLoading() || !selectedUserCount() || (bulkActionRequiresPlan() && !bulkActionForm.controls.planId.value)"
+          (click)="applyBulkAction()"
+        >
+          {{ 'PAC.Membership.ApplyBulkAction' | translate: { Default: 'Apply action' } }}
+        </button>
+      </form>
+
+      <div class="overflow-hidden rounded-lg border border-divider-regular">
+        <div
+          class="hidden grid-cols-[2rem_minmax(12rem,1.5fr)_minmax(8rem,1fr)_8rem_9rem_8rem_3rem] gap-3 border-b border-divider-regular bg-components-panel-bg px-4 py-3 text-xs font-medium text-text-tertiary lg:grid"
+        >
+          <span></span>
+          <span>{{ 'PAC.Membership.User' | translate: { Default: 'User' } }}</span>
+          <span>{{ 'PAC.Membership.Plan' | translate: { Default: 'Plan' } }}</span>
+          <span>{{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}</span>
+          <span>{{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}</span>
+          <span>{{ 'PAC.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}</span>
+          <span></span>
+        </div>
+
+        <div class="divide-y divide-divider-subtle">
+          @for (member of adminMembers(); track member.user.id) {
+            <div
+              class="grid gap-3 px-4 py-3 lg:grid-cols-[2rem_minmax(12rem,1.5fr)_minmax(8rem,1fr)_8rem_9rem_8rem_3rem] lg:items-center"
+            >
+              <z-checkbox
+                displayDensity="cosy"
+                [ngModel]="selectedUserIds().has(member.user.id)"
+                [ngModelOptions]="{ standalone: true }"
+                (checkChange)="toggleUserSelection(member.user.id, $event)"
+              ></z-checkbox>
+              <div class="min-w-0">
+                <div class="truncate text-sm font-medium text-text-primary" [title]="adminMemberLabel(member)">
+                  {{ adminMemberLabel(member) }}
+                </div>
+                <div class="truncate text-xs text-text-tertiary">{{ member.user.email || member.user.username }}</div>
+              </div>
+              <div class="min-w-0 text-sm text-text-secondary">
+                <div class="truncate">{{ member.membership?.plan?.name || '-' }}</div>
+                @if (member.scheduledPeriodCount) {
+                  <div class="mt-1 text-xs text-text-tertiary">
+                    {{
+                      'PAC.Membership.UpcomingPeriodCount'
+                        | translate
+                          : {
+                              count: member.scheduledPeriodCount,
+                              Default: member.scheduledPeriodCount + ' upcoming'
+                            }
+                    }}
+                  </div>
+                }
+              </div>
+              <div>
+                <z-badge zType="outline" zShape="pill">
+                  {{
+                    'PAC.Membership.MemberStatuses.' + adminMemberStatus(member)
+                      | translate: { Default: adminMemberStatus(member) }
+                  }}
+                </z-badge>
+              </div>
+              <div class="text-sm text-text-secondary">
+                @if (!member.membership) {
+                  -
+                } @else if (member.membership.pointsGranted === null) {
+                  {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                } @else {
+                  {{ adminMemberRemainingPoints(member) | number: '1.0-10' }}
+                }
+              </div>
+              <div class="text-sm text-text-secondary">
+                {{
+                  member.membership?.currentPeriodEnd
+                    ? (member.membership?.currentPeriodEnd | date: 'mediumDate')
+                    : '-'
+                }}
+              </div>
+              <a
+                z-button
+                zType="ghost"
+                zSize="sm"
+                [routerLink]="['/settings/users', member.user.id]"
+                [queryParams]="{ tab: 'membership' }"
+                [attr.aria-label]="'PAC.Membership.ManageUserMembership' | translate: { Default: 'Manage membership' }"
+                [title]="'PAC.Membership.ManageUserMembership' | translate: { Default: 'Manage membership' }"
+              >
+                <z-icon zType="chevron-right"></z-icon>
+              </a>
+            </div>
+          } @empty {
+            <div class="px-4 py-10 text-center text-sm text-text-tertiary">
+              @if (adminMembersLoading()) {
+                {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+              } @else {
+                {{ 'PAC.Membership.NoUsersFound' | translate: { Default: 'No users match these filters.' } }}
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <z-paginator
+        [length]="adminMemberCount()"
+        [pageIndex]="adminMemberPageIndex()"
+        [pageSize]="adminMemberPageSize()"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [showFirstLastButtons]="true"
+        (page)="onAdminMemberPage($event)"
+      />
+    </z-card-content>
+  </z-card>
 </div>

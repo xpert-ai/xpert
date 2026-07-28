@@ -1,16 +1,19 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, input, output } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { CopilotServerService } from '@cloud/app/@core'
 import { ICopilot } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotConfigFormComponent } from '@cloud/app/@shared/copilot'
 import { ZardButtonComponent, ZardSliderComponent } from '@xpert-ai/headless-ui'
+import { ManagementCopilotServerService } from './management-copilot-server.service'
 
 @Component({
   standalone: true,
   selector: 'pac-copilot-form',
   templateUrl: './copilot-form.component.html',
   styleUrls: ['./copilot-form.component.scss'],
+  providers: [{ provide: CopilotServerService, useClass: ManagementCopilotServerService }],
   imports: [
     DecimalPipe,
     TranslateModule,

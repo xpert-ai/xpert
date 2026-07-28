@@ -2,6 +2,8 @@ import {
     IMembershipAllowedModel,
     IMembershipModelMultiplier,
     IMembershipRateLimit,
+    MembershipAdminUserStatusEnum,
+    MembershipBulkActionEnum,
     MembershipPeriodEnum,
     MembershipPlanStatusEnum,
     MembershipRenewalModeEnum,
@@ -11,6 +13,8 @@ import {
 import { PartialType } from '@nestjs/swagger'
 import { Type } from 'class-transformer'
 import {
+    ArrayMaxSize,
+    ArrayMinSize,
     IsArray,
     IsBoolean,
     IsDateString,
@@ -20,6 +24,7 @@ import {
     IsNumber,
     IsOptional,
     IsString,
+    IsUUID,
     MaxLength,
     Min,
     ValidateNested
@@ -162,6 +167,7 @@ export class MembershipAssignDto {
 
     @IsOptional()
     @IsString()
+    @MaxLength(255)
     note?: string | null
 }
 
@@ -179,4 +185,47 @@ export class MembershipPlanReassignDto {
     @IsString()
     @IsNotEmpty()
     targetPlanId: string
+}
+
+export class MembershipAdminUsersQueryDto {
+    @IsOptional()
+    @IsString()
+    @MaxLength(255)
+    search?: string
+
+    @IsOptional()
+    @IsEnum(MembershipAdminUserStatusEnum)
+    status?: MembershipAdminUserStatusEnum
+
+    @IsOptional()
+    @IsUUID()
+    planId?: string
+
+    @IsOptional()
+    @IsDateString()
+    expiringBefore?: string
+}
+
+export class MembershipBulkActionDto {
+    @IsArray()
+    @ArrayMinSize(1)
+    @ArrayMaxSize(100)
+    @IsUUID(undefined, { each: true })
+    userIds: string[]
+
+    @IsEnum(MembershipBulkActionEnum)
+    action: MembershipBulkActionEnum
+
+    @IsOptional()
+    @IsUUID()
+    planId?: string
+
+    @IsOptional()
+    @IsEnum(MembershipRenewalModeEnum)
+    renewalMode?: MembershipRenewalModeEnum
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(255)
+    note?: string | null
 }

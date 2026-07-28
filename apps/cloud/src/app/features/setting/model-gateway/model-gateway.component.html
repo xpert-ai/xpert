@@ -1,0 +1,403 @@
+<div class="flex h-full w-full min-w-0 flex-col">
+  <div class="pac-page-header">
+    <div class="min-w-0">
+      <div class="pac-page-title">
+        {{ 'PAC.ModelGateway.AdminTitle' | translate: { Default: 'Model API gateway' } }}
+      </div>
+      <div class="mt-1 max-w-3xl text-sm text-text-tertiary">
+        {{
+          'PAC.ModelGateway.AdminDescription'
+            | translate
+              : {
+                  Default: 'Review external API usage, manage API keys, and configure gateway limits and retention.'
+                }
+        }}
+      </div>
+    </div>
+    <nav
+      z-tab-nav-bar
+      class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden"
+      color="accent"
+      alignTabs="start"
+      stretchTabs="false"
+      disableRipple
+    >
+      <button z-tab-link type="button" [active]="activeTab() === 'calls'" (click)="setTab('calls')">
+        {{ 'PAC.ModelGateway.Calls' | translate: { Default: 'API calls' } }}
+      </button>
+      <button z-tab-link type="button" [active]="activeTab() === 'keys'" (click)="setTab('keys')">
+        {{ 'PAC.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
+      </button>
+      @if (isTenantScope()) {
+        <button z-tab-link type="button" [active]="activeTab() === 'settings'" (click)="setTab('settings')">
+          {{ 'PAC.ModelGateway.Configuration' | translate: { Default: 'Configuration' } }}
+        </button>
+      }
+    </nav>
+  </div>
+
+  <div class="pac-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-auto p-4">
+    @if (loading()) {
+      <div class="flex min-h-52 items-center justify-center"><ngm-spin /></div>
+    } @else {
+      @switch (activeTab()) {
+        @case ('calls') {
+          <form
+            class="flex flex-wrap items-end gap-2"
+            [formGroup]="filterForm"
+            (ngSubmit)="applyActiveSearch()"
+          >
+            <z-form-field class="w-full max-w-md">
+              <z-form-label>
+                {{ 'PAC.ModelGateway.SearchCalls' | translate: { Default: 'Search calls' } }}
+              </z-form-label>
+              <input
+                z-input
+                formControlName="callsSearch"
+                [placeholder]="
+                  'PAC.ModelGateway.SearchCallsPlaceholder'
+                    | translate: { Default: 'Request ID, user ID, provider, or model' }
+                "
+              />
+            </z-form-field>
+            <button z-button zType="outline" type="submit">
+              {{ 'PAC.ACTIONS.Search' | translate: { Default: 'Search' } }}
+            </button>
+          </form>
+          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
+            <table z-table zSize="compact" class="min-w-[76rem]">
+              <thead z-table-header>
+                <tr z-table-row>
+                  <th z-table-head>{{ 'PAC.ModelGateway.RequestId' | translate: { Default: 'Request ID' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.User' | translate: { Default: 'User' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
+                  <th z-table-head class="text-right">
+                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody z-table-body>
+                @for (call of calls(); track call.id) {
+                  <tr z-table-row>
+                    <td z-table-cell>
+                      <code>{{ call.requestId }}</code>
+                    </td>
+                    <td z-table-cell>
+                      <div class="max-w-52">
+                        <div class="truncate font-medium text-text-primary" [title]="call.userName || call.userId">
+                          {{ call.userName || call.userId }}
+                        </div>
+                        @if (call.userName && call.userName !== call.userId) {
+                          <code class="block truncate text-xs text-text-tertiary" [title]="call.userId">
+                            {{ call.userId }}
+                          </code>
+                        }
+                      </div>
+                    </td>
+                    <td z-table-cell>{{ call.externalModelId }}</td>
+                    <td z-table-cell>
+                      {{ 'PAC.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
+                    </td>
+                    <td z-table-cell>{{ call.chargedPoints }}</td>
+                    <td z-table-cell>{{ formatDate(call.startedAt) }}</td>
+                    <td z-table-cell class="text-right">
+                      @if (call.bodyExpiresAt) {
+                        <button z-button zType="outline" zSize="sm" type="button" (click)="viewCallBody(call)">
+                          {{ 'PAC.ModelGateway.ViewBody' | translate: { Default: 'View body' } }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (callTotal()) {
+            <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+              <span>
+                {{
+                  'PAC.ModelGateway.PageSummary'
+                    | translate
+                      : {
+                          current: activePageNumber(),
+                          pages: activePageCount(),
+                          total: activeTotal(),
+                          Default: 'Page {{current}} of {{pages}} · {{total}} records'
+                        }
+                }}
+              </span>
+              <div class="flex gap-2">
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="activePageNumber() === 1"
+                  (click)="previousPage()"
+                >
+                  {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+                </button>
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="activePageNumber() === activePageCount()"
+                  (click)="nextPage()"
+                >
+                  {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+                </button>
+              </div>
+            </div>
+          }
+        }
+        @case ('keys') {
+          <form
+            class="flex flex-wrap items-end gap-2"
+            [formGroup]="filterForm"
+            (ngSubmit)="applyActiveSearch()"
+          >
+            <z-form-field class="w-full max-w-md">
+              <z-form-label>
+                {{ 'PAC.ModelGateway.SearchKeys' | translate: { Default: 'Search API keys' } }}
+              </z-form-label>
+              <input
+                z-input
+                formControlName="keysSearch"
+                [placeholder]="
+                  'PAC.ModelGateway.SearchKeysPlaceholder'
+                    | translate: { Default: 'Key name, prefix, or user ID' }
+                "
+              />
+            </z-form-field>
+            <button z-button zType="outline" type="submit">
+              {{ 'PAC.ACTIONS.Search' | translate: { Default: 'Search' } }}
+            </button>
+          </form>
+          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
+            <table z-table zSize="compact" class="min-w-[68rem]">
+              <thead z-table-header>
+                <tr z-table-row>
+                  <th z-table-head>{{ 'PAC.ModelGateway.User' | translate: { Default: 'User' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Prefix' | translate: { Default: 'Prefix' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.LastUsedAt' | translate: { Default: 'Last used' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
+                  <th z-table-head class="text-right">
+                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody z-table-body>
+                @for (key of keys(); track key.id) {
+                  <tr z-table-row>
+                    <td z-table-cell>
+                      <div class="max-w-52">
+                        <div class="truncate font-medium text-text-primary" [title]="key.userName || key.userId">
+                          {{ key.userName || key.userId }}
+                        </div>
+                        @if (key.userName && key.userName !== key.userId) {
+                          <code class="block truncate text-xs text-text-tertiary" [title]="key.userId">
+                            {{ key.userId }}
+                          </code>
+                        }
+                      </div>
+                    </td>
+                    <td z-table-cell>{{ key.name }}</td>
+                    <td z-table-cell>
+                      <code>{{ key.prefix }}…</code>
+                    </td>
+                    <td z-table-cell>
+                      <z-badge zType="outline">
+                        {{ 'PAC.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
+                      </z-badge>
+                    </td>
+                    <td z-table-cell>{{ formatDate(key.lastUsedAt) }}</td>
+                    <td z-table-cell>{{ formatDate(key.validUntil) }}</td>
+                    <td z-table-cell class="text-right">
+                      @if (key.status === keyStatus.Active) {
+                        <button z-button zType="destructive" zSize="sm" type="button" (click)="revokeKey(key)">
+                          {{ 'PAC.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (keyTotal()) {
+            <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+              <span>
+                {{
+                  'PAC.ModelGateway.PageSummary'
+                    | translate
+                      : {
+                          current: activePageNumber(),
+                          pages: activePageCount(),
+                          total: activeTotal(),
+                          Default: 'Page {{current}} of {{pages}} · {{total}} records'
+                        }
+                }}
+              </span>
+              <div class="flex gap-2">
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="activePageNumber() === 1"
+                  (click)="previousPage()"
+                >
+                  {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+                </button>
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="activePageNumber() === activePageCount()"
+                  (click)="nextPage()"
+                >
+                  {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+                </button>
+              </div>
+            </div>
+          }
+        }
+        @case ('settings') {
+          <form class="flex flex-col gap-4" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+            <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
+              <div>
+                <h2 class="font-semibold text-text-primary">
+                  {{ 'PAC.ModelGateway.RequestLimits' | translate: { Default: 'Request limits' } }}
+                </h2>
+                <p class="mt-1 text-sm text-text-tertiary">
+                  {{
+                    'PAC.ModelGateway.RequestLimitsHint'
+                      | translate
+                        : {
+                            Default:
+                              'Limits apply to all API keys owned by the same user. Requests over the limit receive 429 and are not queued.'
+                          }
+                  }}
+                </p>
+              </div>
+
+              <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <z-form-field appearance="fill" class="w-full">
+                  <z-form-label [zRequired]="true">
+                    {{ 'PAC.ModelGateway.RequestsPerMinute' | translate: { Default: 'Requests per minute' } }}
+                  </z-form-label>
+                  <input
+                    z-input
+                    type="number"
+                    [min]="minRequestsPerMinute"
+                    [max]="maxRequestsPerMinute"
+                    step="1"
+                    formControlName="requestsPerMinute"
+                    [zStatus]="requestsPerMinuteCtrl.invalid && requestsPerMinuteCtrl.touched ? 'error' : undefined"
+                  />
+                  @if (requestsPerMinuteCtrl.invalid && requestsPerMinuteCtrl.touched) {
+                    <z-form-message zType="error">
+                      {{
+                        'PAC.ModelGateway.RequestsPerMinuteError'
+                          | translate: { Default: requestsPerMinuteErrorDefault }
+                      }}
+                    </z-form-message>
+                  }
+                </z-form-field>
+
+                <z-form-field appearance="fill" class="w-full">
+                  <z-form-label [zRequired]="true">
+                    {{
+                      'PAC.ModelGateway.MaxConcurrentRequests' | translate: { Default: 'Maximum concurrent requests' }
+                    }}
+                  </z-form-label>
+                  <input
+                    z-input
+                    type="number"
+                    [min]="minConcurrentRequests"
+                    [max]="maxConcurrentRequests"
+                    step="1"
+                    formControlName="maxConcurrentRequests"
+                    [zStatus]="
+                      maxConcurrentRequestsCtrl.invalid && maxConcurrentRequestsCtrl.touched ? 'error' : undefined
+                    "
+                  />
+                  @if (maxConcurrentRequestsCtrl.invalid && maxConcurrentRequestsCtrl.touched) {
+                    <z-form-message zType="error">
+                      {{
+                        'PAC.ModelGateway.MaxConcurrentRequestsError'
+                          | translate: { Default: concurrentRequestsErrorDefault }
+                      }}
+                    </z-form-message>
+                  }
+                </z-form-field>
+              </div>
+            </section>
+
+            <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="font-semibold text-text-primary">
+                    {{ 'PAC.ModelGateway.Retention' | translate: { Default: 'Request and response retention' } }}
+                  </h2>
+                  <p class="mt-1 text-sm text-text-tertiary">
+                    {{
+                      'PAC.ModelGateway.RetentionHint'
+                        | translate
+                          : {
+                              Default:
+                                'Off by default. When enabled, encrypted request and response bodies are deleted after the configured number of days.'
+                            }
+                    }}
+                  </p>
+                </div>
+                <z-switch formControlName="storeBodies" zSize="sm">
+                  {{ 'PAC.ModelGateway.StoreBodies' | translate: { Default: 'Store bodies' } }}
+                </z-switch>
+              </div>
+              @if (settingsForm.controls.storeBodies.value) {
+                <div class="mt-4 max-w-64">
+                  <z-form-field appearance="fill" class="w-full">
+                    <z-form-label [zRequired]="true">
+                      {{ 'PAC.ModelGateway.RetentionDays' | translate: { Default: 'Retention days' } }}
+                    </z-form-label>
+                    <input
+                      z-input
+                      type="number"
+                      [min]="minBodyRetentionDays"
+                      [max]="maxBodyRetentionDays"
+                      step="1"
+                      formControlName="bodyRetentionDays"
+                      [zStatus]="bodyRetentionDaysCtrl.invalid && bodyRetentionDaysCtrl.touched ? 'error' : undefined"
+                    />
+                    @if (bodyRetentionDaysCtrl.invalid && bodyRetentionDaysCtrl.touched) {
+                      <z-form-message zType="error">
+                        {{
+                          'PAC.ModelGateway.RetentionDaysError'
+                            | translate: { Default: bodyRetentionDaysErrorDefault }
+                        }}
+                      </z-form-message>
+                    }
+                  </z-form-field>
+                </div>
+              }
+            </section>
+
+            <div class="flex justify-end">
+              <button z-button type="submit" [disabled]="settingsForm.pristine || settingsForm.invalid">
+                {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+              </button>
+            </div>
+          </form>
+        }
+      }
+    }
+  </div>
+</div>

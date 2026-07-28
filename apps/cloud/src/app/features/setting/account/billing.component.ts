@@ -5,7 +5,8 @@ import {
   IMembershipMe,
   IMembershipPointLedger,
   IMembershipUsageQuery,
-  IMembershipUsageSummary
+  IMembershipUsageSummary,
+  ModelGatewayUsageChannelEnum
 } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -85,6 +86,7 @@ export class PACAccountBillingComponent implements OnInit {
   summaryKey(summary: IMembershipUsageSummary) {
     return [
       summary.usageHour ?? '',
+      summary.usageChannel ?? '',
       summary.organizationId ?? '',
       summary.xpertId ?? '',
       summary.threadId ?? '',
@@ -143,6 +145,10 @@ export class PACAccountBillingComponent implements OnInit {
     return this.trimmed(summary.xpertTitle) || this.trimmed(summary.xpertName) || this.shortId(summary.xpertId)
   }
 
+  isExternalApi(summary: IMembershipUsageSummary) {
+    return summary.usageChannel === ModelGatewayUsageChannelEnum.ExternalApi
+  }
+
   private trimmed(value?: string | null) {
     return value?.trim() || null
   }
@@ -150,6 +156,7 @@ export class PACAccountBillingComponent implements OnInit {
   private toDetailsQuery(summary: IMembershipUsageSummary): IMembershipUsageQuery {
     return {
       usageHour: summary.usageHour ?? undefined,
+      usageChannel: summary.usageChannel ?? undefined,
       provider: summary.provider ?? undefined,
       model: summary.model ?? undefined,
       organizationId: summary.organizationId ?? undefined,

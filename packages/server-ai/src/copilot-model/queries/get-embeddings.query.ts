@@ -1,4 +1,4 @@
-import { ICopilot, ICopilotModel } from '@xpert-ai/contracts'
+import { ICopilot, ICopilotModel, IModelAccessResolution } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**
@@ -13,6 +13,9 @@ export class CopilotModelGetEmbeddingsQuery implements IQuery {
 		public readonly options: {
 			abortController?: AbortController;
 			tokenCallback?: (tokens: number) => void
+			modelAccessCallback?: (modelAccess: IModelAccessResolution) => void
+			xpertId?: string
+			threadId?: string
 		}
 	) {}
 }

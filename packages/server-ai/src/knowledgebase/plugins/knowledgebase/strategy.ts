@@ -1,5 +1,6 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import {
+    AiModelTypeEnum,
     channelName,
     IEnvironment,
     IKnowledgebase,
@@ -236,7 +237,9 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                                 xpertId,
                                                 copilotId: knowledgebase.copilotModel.copilot.id,
                                                 tokenUsed,
-                                                model: vectorStore.embeddingModel
+                                                model: vectorStore.embeddingModel,
+                                                modelType: AiModelTypeEnum.TEXT_EMBEDDING,
+                                                modelAccess: vectorStore.modelAccess
                                             })
                                         )
                                         await vectorStore.addKnowledgeDocument(document, batch)

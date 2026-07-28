@@ -188,6 +188,20 @@ describe('Store', () => {
     expect(store.hasFeatureEnabled(FeatureEnum.FEATURE_EMAIL_TEMPLATE)).toBe(true)
   })
 
+  it('requires an explicit organization toggle for personal model access', () => {
+    store.organizationId = 'org-1'
+    store.featureTenant = [createFeatureOrganization(AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST, true)]
+    store.featureOrganizations = []
+
+    expect(store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST)).toBe(false)
+
+    store.featureOrganizations = [
+      createFeatureOrganization(AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST, true, 'org-1')
+    ]
+
+    expect(store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST)).toBe(true)
+  })
+
   it('prefers child feature records when duplicate feature codes exist', () => {
     store.organizationId = 'org-1'
     store.featureTenant = [

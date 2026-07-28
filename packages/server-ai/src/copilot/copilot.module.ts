@@ -12,6 +12,7 @@ import { AIModelModule } from '../ai-model'
 import { CommandHandlers } from './commands/handlers'
 import { CopilotProviderModule } from '../copilot-provider'
 import { MembershipModule } from '../membership'
+import { ModelAccessModule } from '../model-access'
 
 @Module({
     imports: [
@@ -22,7 +23,8 @@ import { MembershipModule } from '../membership'
         UserModule,
         AIModelModule,
         CopilotProviderModule,
-        MembershipModule
+        MembershipModule,
+        ModelAccessModule
     ],
     controllers: [CopilotController],
     providers: [CopilotService, ...QueryHandlers, ...CommandHandlers],

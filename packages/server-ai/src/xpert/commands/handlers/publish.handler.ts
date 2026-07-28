@@ -112,6 +112,12 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                 )
             }
         }
+        await this.xpertService.validate(draft, {
+            tenantId: xpert.tenantId,
+            organizationId: xpert.organizationId,
+            xpertId: xpert.id,
+            creatorId: xpert.createdById
+        })
         this.check(draft)
 
         // Back up the current version
