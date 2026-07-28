@@ -7,11 +7,6 @@ jest.mock('../../../@core', () => ({
   agentLabel: jest.fn(
     (agent?: { title?: string; name?: string; key?: string }) => agent?.title ?? agent?.name ?? agent?.key ?? ''
   ),
-  BIInterruptMessageType: {
-    DeleteArtifact: 'delete_artifact',
-    SwitchProject: 'switch_project',
-    SwitchSemanticModel: 'switch_semantic_model'
-  },
   InterruptMessageType: {
     Select: 'select',
     SlidesTemplate: 'slides_template',

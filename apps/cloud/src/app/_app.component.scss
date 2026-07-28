@@ -1,7 +1,5 @@
-@use "sass:meta";
+@use 'sass:meta';
 @reference "tailwindcss";
-@include meta.load-css('features/home/_home');
-@include meta.load-css('features/project/_project.component');
 @include meta.load-css('features/_features.component');
 @include meta.load-css('@shared/components');
 

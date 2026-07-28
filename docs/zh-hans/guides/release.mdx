@@ -6,7 +6,6 @@
 
 - `ghcr.io/<owner>/xpert-api`
 - `ghcr.io/<owner>/xpert-webapp`
-- `ghcr.io/<owner>/xpert-olap`
 
 其中 `<owner>` 来自 `github.repository_owner`。在上游仓库里，这个值是 `xpert-ai`。
 
@@ -24,15 +23,6 @@ git push origin develop
 - `develop-candidate`
 - `sha-<full_commit_sha>`
 
-`olap` 使用单独的 workflow。只有当 `.deploy/olap/**` 或 `packages/olap/**` 有变更时，或者本次 push 的提交消息里包含 `[build olap]` 时，才会发布。
-
-强制构建示例：
-
-```bash
-git commit -m "ci: refresh olap image [build olap]"
-git push origin develop
-```
-
 ### Push `main`
 
 向 `main` push 时，会为 `api` 和 `webapp` 发布 production 镜像：
@@ -47,8 +37,6 @@ git push origin main
 - `main`
 - `latest`
 - `sha-<full_commit_sha>`
-
-`olap` 在被单独 workflow 触发构建时，也遵循同样的 tag 规则。
 
 ### 创建并 push git tag
 

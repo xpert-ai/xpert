@@ -53,6 +53,10 @@ export enum AuthenticationMethod {
  */
 export interface DataSourceSettings {
   dataSourceId?: string
+  /**
+   * Connection identifier used by XMLA and server-side model runners.
+   */
+  dataSourceInfo?: string
   // modelId?: string
   // catalog
   database?: string
@@ -129,7 +133,7 @@ export interface DataSource {
   /**
    * Discover catalogs or schemas from DataSource's Database: The data service catalog is used to distinguish different data entity categories, such as Catalog of ODataService, CATALOG_NAME of XMLA, etc.
    */
-  discoverDBCatalogs(options?: {throwError?: boolean}): Observable<Array<DBCatalog>>
+  discoverDBCatalogs(options?: { throwError?: boolean }): Observable<Array<DBCatalog>>
   /**
    * Discover tables from DataSource's Database
    */
@@ -154,7 +158,7 @@ export interface DataSource {
   getEntitySets(refresh?: boolean): Observable<Array<EntitySet>>
   /**
    * Observe entity sets from DataSource
-   * 
+   *
    * @param refresh Force refresh cache in browser
    */
   selectEntitySets(refresh?: boolean): Observable<Array<EntitySet>>
@@ -169,7 +173,7 @@ export interface DataSource {
   getMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
   /**
    * Observe members of dimension in entity (cube) from DataSource
-   * 
+   *
    * @param entity Cube name
    * @param dimension Dimension, include name and hierarchy
    */
@@ -197,8 +201,8 @@ export interface DataSource {
 
   /**
    * Update the schema
-   * 
-   * @param fn 
+   *
+   * @param fn
    */
   updateSchema(fn: (schema: Schema) => Schema): void
 
@@ -210,7 +214,7 @@ export interface DataSource {
   updateCube(cube: Cube): void
   /**
    * Update the value of parameters in cube
-   * 
+   *
    * @param cube Cube name
    * @param fn Update function
    */
@@ -272,8 +276,8 @@ export interface DataSource {
 
   /**
    * Drop DB Table
-   * 
-   * @param name 
+   *
+   * @param name
    */
   dropEntity(name: string): Promise<void>
 
@@ -282,18 +286,18 @@ export interface DataSource {
    *
    * @param statement
    */
-  query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
+  query(options: { statement: string; forceRefresh?: boolean; timeout?: number }): Observable<any>
 
   // /**
   //  * Observe to runtime calculated measures
-  //  * 
-  //  * @param cube 
+  //  *
+  //  * @param cube
   //  */
   // selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
 
   /**
    * Clear the browser cache
-   * 
+   *
    * @deprecated
    */
   clearCache(): Promise<void>
@@ -323,10 +327,13 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   readonly calculatedMeasures$ = this.options$.pipe(map((options) => options?.calculatedMeasures))
 
   protected _entitySets = {}
-  constructor(options: T, public agent: Agent, /*public cacheService: OcapCache*/) {
+  constructor(
+    options: T,
+    public agent: Agent /*public cacheService: OcapCache*/
+  ) {
     this.options$.next(options)
   }
-  
+
   readonly refresh$ = new BehaviorSubject<void>(null)
 
   abstract discoverDBCatalogs(): Observable<Array<DBCatalog>>
@@ -342,7 +349,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   abstract selectMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
   abstract createEntity(name: string, columns: any[], data?: any[]): Observable<string>
   abstract dropEntity(name: string): Promise<void>
-  abstract query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
+  abstract query(options: { statement: string; forceRefresh?: boolean; timeout?: number }): Observable<any>
 
   refresh() {
     this.refresh$.next()
@@ -392,7 +399,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
 
   updateParameters(cube: string, fn: (state: Record<string, any>) => Record<string, any>): void {
     this.updateOptions((options) => {
-      const parameters = options.parameters ? {...options.parameters} : ({} as Record<string, Record<string, any>>)
+      const parameters = options.parameters ? { ...options.parameters } : ({} as Record<string, Record<string, any>>)
       return {
         ...options,
         parameters: {
@@ -412,9 +419,9 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
         ...indicator
       }
     } else {
-      indicators.push({...indicator})
+      indicators.push({ ...indicator })
     }
-    const schema = this.options.schema ? {...this.options.schema} : {} as Schema
+    const schema = this.options.schema ? { ...this.options.schema } : ({} as Schema)
     schema.indicators = indicators
     this.setSchema(schema)
   }
@@ -456,72 +463,75 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   selectEntitySet(entity: string): Observable<EntitySet | Error> {
     if (!this._entitySets[entity]) {
       // Merge runtime types, temporary calculation measures, indicator lists, and type enhancement definitions in the schema: Can temporary calculated measures be merged with type enhancement definitions in the schema?
-      this._entitySets[entity] = combineLatest([this.getEntityType(entity), this.options$.pipe(map((options) => options?.calculatedMeasures?.[entity]))]).pipe(
+      this._entitySets[entity] = combineLatest([
+        this.getEntityType(entity),
+        this.options$.pipe(map((options) => options?.calculatedMeasures?.[entity]))
+      ]).pipe(
         switchMap(([rtEntityType, calculatedMeasures]) => {
           if (isEntityType(rtEntityType)) {
             return this.selectSchema().pipe(
-                distinctUntilChanged(),
-                map((schema) => {
-                  const properties = {...rtEntityType.properties}
-                  const parameters = {...(rtEntityType.parameters ?? {})}
-                  const cube = schema?.cubes?.find((c) => c.name === entity)
-                  // Custom indicators
-                  const indicators = schema?.indicators?.filter((indicator) => indicator.entity === entity)
-                  indicators?.forEach((indicator) => {
-                    mapIndicatorToMeasures(indicator).forEach((measure) => {
-                      properties[measure.name] = {
-                        ...measure,
-                        role: AggregationRole.measure
-                      }
-                    })
-                  })
-                  // Custom calculations
-                  cube?.calculations?.forEach((calculation) => {
-                    properties[calculation.name] = {
-                      ...calculation,
-                      role: AggregationRole.measure,
-                      visible: true,
+              distinctUntilChanged(),
+              map((schema) => {
+                const properties = { ...rtEntityType.properties }
+                const parameters = { ...(rtEntityType.parameters ?? {}) }
+                const cube = schema?.cubes?.find((c) => c.name === entity)
+                // Custom indicators
+                const indicators = schema?.indicators?.filter((indicator) => indicator.entity === entity)
+                indicators?.forEach((indicator) => {
+                  mapIndicatorToMeasures(indicator).forEach((measure) => {
+                    properties[measure.name] = {
+                      ...measure,
+                      role: AggregationRole.measure
                     }
                   })
-
-                  // Custom parameters
-                  cube?.parameters?.forEach((parameter) => {
-                    parameters[parameter.name] = {
-                      ...parameter,
-                    }
-                  })
-
-                  // Runtime calculated measures
-                  calculatedMeasures?.forEach((measure) => {
-                    properties[measure.name] = measure
-                  })
-                  rtEntityType.properties = properties
-                  rtEntityType.parameters = parameters
-
-                  let entityType = rtEntityType
-                  // User custom entity type
-                  const customEntityType = schema?.entitySets?.[entity]?.entityType
-                  if (!isNil(customEntityType)) {
-                    // TODO merge functions are risky
-                    entityType = mergeEntityType(assign({}, rtEntityType), customEntityType)
-                  }
-
-                  if (entityType) {
-                    // Synchronize Data Source and Dialect into EntityType
-                    entityType.dialect = this.options.dialect
-                    entityType.syntax = this.options.syntax
-                  }
-
-                  return {
-                    name: entityType.name,
-                    caption: entityType.caption,
-                    entityType,
-                    indicators
-                  } as EntitySet
                 })
-              )
+                // Custom calculations
+                cube?.calculations?.forEach((calculation) => {
+                  properties[calculation.name] = {
+                    ...calculation,
+                    role: AggregationRole.measure,
+                    visible: true
+                  }
+                })
+
+                // Custom parameters
+                cube?.parameters?.forEach((parameter) => {
+                  parameters[parameter.name] = {
+                    ...parameter
+                  }
+                })
+
+                // Runtime calculated measures
+                calculatedMeasures?.forEach((measure) => {
+                  properties[measure.name] = measure
+                })
+                rtEntityType.properties = properties
+                rtEntityType.parameters = parameters
+
+                let entityType = rtEntityType
+                // User custom entity type
+                const customEntityType = schema?.entitySets?.[entity]?.entityType
+                if (!isNil(customEntityType)) {
+                  // TODO merge functions are risky
+                  entityType = mergeEntityType(assign({}, rtEntityType), customEntityType)
+                }
+
+                if (entityType) {
+                  // Synchronize Data Source and Dialect into EntityType
+                  entityType.dialect = this.options.dialect
+                  entityType.syntax = this.options.syntax
+                }
+
+                return {
+                  name: entityType.name,
+                  caption: entityType.caption,
+                  entityType,
+                  indicators
+                } as EntitySet
+              })
+            )
           }
-            
+
           return of(rtEntityType)
         }),
         takeUntil(this.destroy$),
@@ -563,7 +573,10 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   }
 
   selectCalculatedMeasures(cube: string) {
-    return this.calculatedMeasures$.pipe(map((measures) => measures?.[cube]), distinctUntilChanged())
+    return this.calculatedMeasures$.pipe(
+      map((measures) => measures?.[cube]),
+      distinctUntilChanged()
+    )
   }
 
   async clearCache(key = ''): Promise<void> {
@@ -578,9 +591,9 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
 
 /**
  * Compile indicator to measures
- * 
- * @param indicator 
- * @returns 
+ *
+ * @param indicator
+ * @returns
  */
 export function mapIndicatorToMeasures(indicator: Indicator) {
   const measures = []

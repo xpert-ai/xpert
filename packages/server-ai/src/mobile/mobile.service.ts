@@ -97,9 +97,7 @@ export class MobileService {
 
     private async getAssistantBindings(): Promise<XpertMobileAssistantBindingSummary[]> {
         const bindings = await Promise.all(
-            [AssistantCode.CHAT_COMMON, AssistantCode.XPERT_SHARED, AssistantCode.CHATBI].map((code) =>
-                this.resolveAssistantBinding(code)
-            )
+            [AssistantCode.CHAT_COMMON, AssistantCode.XPERT_SHARED].map((code) => this.resolveAssistantBinding(code))
         )
 
         return bindings.filter((binding): binding is XpertMobileAssistantBindingSummary => !!binding)

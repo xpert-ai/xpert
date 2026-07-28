@@ -1,12 +1,6 @@
 import { EmbeddingStatusEnum } from '../ai'
-import { ITag } from '../tag-entity.model'
 import { ChecklistItem } from '../types'
-import { Visibility } from '../visibility.model'
-import { IBusinessArea } from './business-area'
-import { ICertification } from './certification.model'
-import { IComment } from './comment.model'
-import { IPermissionApproval } from './permission-approval.model'
-import { IBasePerProjectEntityModel } from './project.model'
+import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ISemanticModel } from './semantic-model'
 
 /**
@@ -26,23 +20,11 @@ export type TIndicator = {
    */
   visible?: boolean
 
-  /**
-   * Available in indicator market app
-   */
-  isApplication?: boolean
-
   modelId?: string
-  
+
   entity?: string
   unit?: string
   principal?: string
-  /**
-   * @deprecated use certificationId
-   */
-  authentication?: string
-  
-  certificationId?: string
-
   validity?: string
   business?: string
 
@@ -54,29 +36,23 @@ export type TIndicator = {
     aggregator?: string
     calendar?: string
   }
-
-  businessAreaId?: string
 }
 
 /**
  * Fields included in the draft of Indicator, please keep it in sync with TIndicator type
  */
 export const IndicatorDraftFields: Array<keyof IIndicator> = [
-  "code",
-  "name",
-  "type",
-  "visible",
-  "isApplication",
-  "modelId",
-  "entity",
-  "unit",
-  "principal",
-  "authentication",
-  "certificationId",
-  "validity",
-  "business",
-  "options",
-  "businessAreaId"
+  'code',
+  'name',
+  'type',
+  'visible',
+  'modelId',
+  'entity',
+  'unit',
+  'principal',
+  'validity',
+  'business',
+  'options'
 ]
 
 export type TIndicatorDraft = TIndicator & {
@@ -85,30 +61,14 @@ export type TIndicatorDraft = TIndicator & {
   savedAt?: Date
 }
 
-export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
+export interface IIndicator extends IBasePerTenantAndOrganizationEntityModel, TIndicator {
   draft?: TIndicatorDraft
-  
-  /**
-   * Visibilty in public or secret or private
-   */
-  visibility?: Visibility
 
   model?: ISemanticModel
-  /**
-   * Quality Certification
-   */
-  certification?: ICertification
-  
   status?: IndicatorStatusEnum
   embeddingStatus?: EmbeddingStatusEnum
   error?: string
   publishedAt?: Date
-  
-  businessArea?: IBusinessArea
-
-  permissionApprovals?: IPermissionApproval[]
-  tags?: ITag[]
-  comments?: IComment[]
 }
 
 export const IndicatorOptionFields = ['dimensions', 'filters', 'formula', 'measure', 'aggregator', 'calendar']

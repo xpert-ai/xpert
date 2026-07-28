@@ -1,4 +1,12 @@
-import { TQueryOptions } from './model-query-log.model'
+import { IIndicator } from './indicator'
+
+export type TQueryOptions = {
+  rows?: any
+  columns?: any
+  cube?: string
+  indicators?: IIndicator[]
+  calculatedMeasures?: any[]
+} & Record<string, any>
 
 export type TGatewayQueryEvent = {
   id: string

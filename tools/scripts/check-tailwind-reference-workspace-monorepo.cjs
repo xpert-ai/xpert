@@ -7,12 +7,9 @@ const roots = ['libs', 'packages', 'legacies'].map((dir) => path.join(repoRoot, 
 const globalChainReferenceOverride = '@reference "../../../tailwind-workspace-reference.css";'
 const globalChainReferenceFiles = new Set([
   'libs/apps/auth/src/lib/_auth-theme.scss',
-  'libs/apps/indicator-market/src/lib/_indicator-market-theme.scss',
   'libs/formly/_formly-theme.scss',
   'libs/formly/_formly.scss',
   'libs/formly/table/_table-theme.scss',
-  'libs/story-angular/src/lib/explorer/_explorer.component.scss',
-  'libs/story-angular/widgets/_widgets-theme.scss',
   'packages/angular/analytical-grid/_analytical-grid.component.scss',
   'packages/angular/common/input/_input.component.scss',
   'packages/angular/common/search/_search.component.scss',

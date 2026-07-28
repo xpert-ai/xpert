@@ -4,7 +4,6 @@
     "ORGANIZATION": "公司",
     "DASHBOARD": "仪表盘",
     "INDICATOR": "指标",
-    "INDICATOR_MARKET": "市场",
     "INDICATOR_APP": "指标应用",
     "INDICATOR_REGISTER": "注册",
     "INDICATOR_GROUPS": "组",
@@ -839,9 +838,7 @@
       "INDICATOR": {
         "REGISTER_INDICATOR": "注册指标",
         "BATCH_UPLOAD": "批量上传",
-        "DownloadAsTemplate": "下载为模板",
-        "INDICATOR_MARKET": "指标市场",
-        "INDICATOR_MARKET_DESC": "浏览指标，申请指标权限"
+        "DownloadAsTemplate": "下载为模板"
       },
       "GENERAL": {
         "TITLE": "通用",
@@ -1142,7 +1139,6 @@
       "DescriptionPlaceholder": "可选，语义模型的详细描述",
       "UploadModel": "上载模型",
       "SaveAsDefaultCube": "保存为默认数据集",
-
       "QUERY": {
         "TITLE": "查询",
         "SaveAsModel": "另存为模型",
@@ -2365,41 +2361,9 @@
           "Name": "监测",
           "Description": "查看模型提供商的用户使用量和监测信息"
         },
-        "FEATURE_MODEL": {
-          "Name": "语义模型",
-          "Description": "启用语义模型功能"
-        },
         "FEATURE_DATA_SOURCE": {
           "Name": "数据源",
           "Description": "启用数据源配置功能"
-        },
-        "FEATURE_PROJECT": {
-          "Name": "BI项目",
-          "Description": "启用BI项目工作空间功能"
-        },
-        "FEATURE_STORY": {
-          "Name": "故事",
-          "Description": "启用故事仪表板功能，制作，分享和浏览故事仪表板"
-        },
-        "FEATURE_INDICATOR": {
-          "Name": "指标",
-          "Description": "启用指标功能，注册，发布和申请查看业务指标数据"
-        },
-        "FEATURE_INDICATOR_REGISTER": {
-          "Name": "指标注册",
-          "Description": "启用指标注册功能，注册数据指标"
-        },
-        "FEATURE_INDICATOR_MARKET": {
-          "Name": "指标市场",
-          "Description": "启用指标市场功能，发布、浏览和申请指标"
-        },
-        "FEATURE_INDICATOR_APP": {
-          "Name": "指标应用",
-          "Description": "启用指标应用程序，浏览有权限的指标"
-        },
-        "FEATURE_BUSINESS_AREA": {
-          "Name": "业务域",
-          "Description": "启用业务域功能，创建和使用业务域"
         },
         "FEATURE_USER": {
           "Name": "用户",
@@ -2424,10 +2388,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "在主导航中显示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -2482,7 +2442,6 @@
         "connections": "系统连接"
       }
     },
-
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
         "ADMIN_DASHBOARD_VIEW": "查看 Admin 仪表盘",
@@ -2814,7 +2773,6 @@
         "Indicators": "明细指标",
         "LookBack": "回顾期间数"
       },
-
       "IFrame": {
         "SRC": "src"
       },
@@ -2911,11 +2869,9 @@
           "FontFamily_Song": "宋体"
         }
       },
-
       "CANVAS": {
         "TITLE": "画布"
       },
-
       "STORY_PAGE": {
         "PAGE_SIZE": "页面大小",
         "DefaultBackground": "预设背景",
@@ -2925,7 +2881,6 @@
         "PresetBackground": "预设背景",
         "PageType": "类型"
       },
-
       "ECHARTS": {
         "Common": {
           "Align": "对齐",
@@ -3287,7 +3242,6 @@
             "TITLE": "单个体样式",
             "OPACITY": "不透明度"
           },
-
           "LABEL": {
             "TITLE": "标签"
           },
@@ -3738,7 +3692,6 @@
       "Compare": "比",
       "To": "较",
       "BaseDimension": "基准维度",
-
       "SetNoDataasZero": "将无数据当作零",
       "CalculateasPercentage": "计算为百分比",
       "DirectDivide": "直接除",
@@ -4078,7 +4031,6 @@
       "ROLE": "选择角色"
     }
   },
-
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密码重置",

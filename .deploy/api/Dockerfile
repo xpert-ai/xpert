@@ -27,7 +27,6 @@ COPY --chown=node:node packages/config/package.json ./packages/config/
 COPY --chown=node:node packages/auth/package.json ./packages/auth/
 COPY --chown=node:node packages/server/package.json ./packages/server/
 COPY --chown=node:node packages/server-ai/package.json ./packages/server-ai/
-COPY --chown=node:node packages/analytics/package.json ./packages/analytics/
 COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
 COPY --chown=node:node packages/shadcn-ui/package.json ./packages/shadcn-ui/
 

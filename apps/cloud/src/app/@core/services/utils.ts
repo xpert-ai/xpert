@@ -2,26 +2,19 @@ import { IndicatorStatusEnum, NgmSemanticModel } from '@xpert-ai/cloud/state'
 import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
 import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { AgentType, DataSourceOptions, isNil, omit, PropertyMeasure, Syntax } from '@xpert-ai/ocap-core'
-import { getSemanticModelKey } from '@xpert-ai/story/core'
 
 /**
- * Register semantic model into data soruce.
- * Note: Keep the logic consistent with `registerSemanticModel` on the backend.
- *
- * @param model Semantic Model
- * @param dsCoreService
- * @param wasmAgent
- * @param indicators Runtime indicators
- * @returns
+ * Register a semantic model for the existing Xpert live-artifact renderer.
+ * Data/BI authoring and management are owned by Data Xpert.
  */
 export function registerModel(
   model: NgmSemanticModel & { isDraft?: boolean; isIndicatorsDraft?: boolean },
   isDraft: boolean,
   dsCoreService: NgmDSCoreService,
   wasmAgent: WasmAgentService,
-  calculatedMeasures?: Record<string, PropertyMeasure[]> // Runtime measures to be registered
+  calculatedMeasures?: Record<string, PropertyMeasure[]>
 ) {
-  const modelKey = getSemanticModelKey(model)
+  const modelKey = model.key ?? model.name
   const agentType = isNil(model.dataSource)
     ? AgentType.Wasm
     : model.dataSource.useLocalAgent
@@ -34,20 +27,21 @@ export function registerModel(
         ? 'duckdb'
         : model.dataSource?.type?.type
   const catalog = agentType === AgentType.Wasm ? model.catalog || 'main' : model.catalog
+  const dataSourceInfo = getDataSourceInfo(model)
   const semanticModel = {
     ...omit(model, 'indicators'),
     key: modelKey,
-    // name: modelKey,
     catalog,
     dialect,
     agentType,
     settings: {
-      dataSourceInfo: model.dataSource?.options?.data_source_info as string
-    } as any,
+      dataSourceInfo
+    },
     schema: {
       ...(model.schema ?? {}),
-      // Use only released indicators
-      indicators: model.indicators?.filter((_: any) => !_.status || _.status === IndicatorStatusEnum.RELEASED)
+      indicators: model.indicators?.filter(
+        (indicator) => !indicator.status || indicator.status === IndicatorStatusEnum.RELEASED
+      )
     },
     calculatedMeasures
   } as DataSourceOptions
@@ -74,22 +68,11 @@ export function registerModel(
 
       dsCoreService.registerModel({
         ...semanticModel,
-        /**
-         * Corresponding name of schema in olap engine:
-         * ```xml
-         * <root name="Semantic Model Name">
-         *    <Cube name="Sales">
-         * ...
-         * ```
-         */
         catalog: model.name,
         settings: {
           ...(semanticModel.settings ?? {}),
-          /**
-           * Corresponding id of XmlaConnection in olap engine:
-           */
           dataSourceInfo: isDraft ? `${model.id}/draft` : model.id
-        } as any,
+        },
         isDraft
       })
     } else {
@@ -98,9 +81,8 @@ export function registerModel(
         key: getXmlaSourceName(modelKey),
         settings: {
           ...semanticModel.settings,
-          dataSourceInfo: model.dataSource?.options?.data_source_info
-        } as any,
-        // Don't use schema for source XMLA system
+          dataSourceInfo
+        },
         schema: null,
         isDraft
       })
@@ -109,8 +91,8 @@ export function registerModel(
         ...semanticModel,
         settings: {
           ...semanticModel.settings,
-          dataSourceInfo: model.dataSource?.options?.data_source_info
-        } as any,
+          dataSourceInfo
+        },
         isDraft
       })
     }
@@ -120,17 +102,14 @@ export function registerModel(
       syntax: Syntax.SQL,
       settings: {
         ...semanticModel.settings,
-        dataSourceInfo: model.dataSource?.options?.data_source_info
-      } as any,
+        dataSourceInfo
+      },
       isDraft
     })
   }
 
   if (semanticModel.agentType === AgentType.Wasm) {
-    // Initialize the wasm service first
-    wasmAgent.registerModel({
-      ...semanticModel,
-    })
+    wasmAgent.registerModel(semanticModel)
   }
 
   return semanticModel
@@ -139,6 +118,7 @@ export function registerModel(
 export function getSQLSourceName(key: string) {
   return key + '_SQL_SOURCE'
 }
+
 export function getXmlaSourceName(key: string) {
   return key + '_XMLA_SOURCE'
 }
@@ -146,7 +126,12 @@ export function getXmlaSourceName(key: string) {
 export function registerWasmAgentModel(wasmAgent: WasmAgentService, model: NgmSemanticModel) {
   wasmAgent.registerModel({
     ...model,
-    name: getSemanticModelKey(model),
+    name: model.key ?? model.name,
     catalog: model.catalog ?? 'main'
   })
+}
+
+function getDataSourceInfo(model: NgmSemanticModel) {
+  const value = model.dataSource?.options?.data_source_info
+  return typeof value === 'string' ? value : undefined
 }

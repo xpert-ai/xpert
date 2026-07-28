@@ -1,7 +1,5 @@
 @use 'sass:meta';
 @include meta.load-css('libs/formly/_formly');
-@include meta.load-css('libs/story-angular/src/lib/_index');
-@include meta.load-css('libs/apps/indicator-market/index');
 
 body.mobile {
   .cdk-overlay-pane {

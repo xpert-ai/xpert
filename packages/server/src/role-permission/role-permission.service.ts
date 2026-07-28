@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException, NotAcceptableException } from '@nestjs/common'
+import { Injectable, BadRequestException, NotAcceptableException, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, UpdateResult } from 'typeorm'
+import { In, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import {
 	RolesEnum,
@@ -18,14 +18,41 @@ import { Role } from '../role/role.entity'
 import { DEFAULT_ROLE_PERMISSIONS } from './default-role-permissions'
 import { RoleService } from '../role/role.service'
 
+const RETIRED_ANALYTICS_PERMISSION_CODES = [
+	'CERTIFICATION_EDIT',
+	'NOTIFICATION_DESTINATION_VIEW',
+	'NOTIFICATION_DESTINATION_EDIT',
+	'SUBSCRIPTION_VIEW',
+	'SUBSCRIPTION_EDIT',
+	'MODELS_VIEW',
+	'MODELS_EDIT',
+	'STORIES_VIEW',
+	'STORIES_EDIT',
+	'BUSINESS_AREA_VIEW',
+	'BUSINESS_AREA_EDIT',
+	'INDICATOR_VIEW',
+	'INDICATOR_MARTKET_VIEW',
+	'INDICATOR_EDIT',
+	'DATA_FACTORY_VIEW',
+	'DATA_FACTORY_EDIT',
+	'PERMISSION_APPROVAL_VIEW',
+	'PERMISSION_APPROVAL_EDIT'
+] as const
+
 @Injectable()
-export class RolePermissionService extends TenantAwareCrudService<RolePermission> {
+export class RolePermissionService extends TenantAwareCrudService<RolePermission> implements OnApplicationBootstrap {
 	constructor(
 		@InjectRepository(RolePermission)
 		private readonly rolePermissionRepository: Repository<RolePermission>,
 		private readonly roleService: RoleService
 	) {
 		super(rolePermissionRepository)
+	}
+
+	async onApplicationBootstrap() {
+		await this.rolePermissionRepository.delete({
+			permission: In([...RETIRED_ANALYTICS_PERMISSION_CODES])
+		})
 	}
 
 	public async updatePermission(
@@ -80,6 +107,8 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		if (!tenants.length) {
 			return
 		}
+		await this.purgeRetiredAnalyticsPermissions(tenants.map(({ id }) => id))
+
 		// removed permissions for all users in DEMO mode
 		const deniedPermissions = new Set<string>([
 			PermissionsEnum.ACCESS_DELETE_ACCOUNT,
@@ -124,6 +153,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		if (!tenantId) {
 			throw new BadRequestException('Tenant context is required for role permission sync.')
 		}
+		await this.purgeRetiredAnalyticsPermissions([tenantId])
 
 		const deniedPermissions = new Set<string>([
 			PermissionsEnum.ACCESS_DELETE_ACCOUNT,
@@ -205,6 +235,18 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		}
 
 		return summary
+	}
+
+	private async purgeRetiredAnalyticsPermissions(tenantIds: string[]): Promise<void> {
+		const validTenantIds = tenantIds.filter(Boolean)
+		if (validTenantIds.length === 0) {
+			return
+		}
+
+		await this.rolePermissionRepository.delete({
+			tenantId: In(validTenantIds),
+			permission: In([...RETIRED_ANALYTICS_PERMISSION_CODES])
+		})
 	}
 
 	public async migratePermissions(): Promise<IRolePermissionMigrateInput[]> {

@@ -8,7 +8,6 @@ const scanRoots = [
   'apps/cloud/src',
   'libs/apps',
   'libs/component-angular',
-  'libs/story-angular',
   'libs/formly',
   'packages/angular',
   'packages/ui',

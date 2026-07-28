@@ -5,10 +5,12 @@ import localeZhExtra from '@angular/common/locales/extra/zh-Hans'
 import zh from '@angular/common/locales/zh'
 import localeZh from '@angular/common/locales/zh-Hans'
 import { ZhHans as AuthZhHans, ZhHant as AuthZhHant } from '@xpert-ai/cloud/auth'
-import { ZhHans as IAppZhHans, ZhHant as IAppZhHant } from '@xpert-ai/cloud/indicator-market/i18n'
 import { ZhHans, ZhHant } from '@xpert-ai/ocap-angular/i18n'
-import { registerLocaleData as nxRegisterLocaleData, zhHans as CoreZhHans, zhHant as CoreZhHant  } from '@xpert-ai/ocap-angular/core'
-import { ZhHans as StoryZhHans, ZhHant as StoryZhHant } from '@xpert-ai/story/i18n'
+import {
+  registerLocaleData as nxRegisterLocaleData,
+  zhHans as CoreZhHans,
+  zhHant as CoreZhHant
+} from '@xpert-ai/ocap-angular/core'
 import { TranslateHttpLoader } from '@ngx-translate/http-loader'
 import { enUS, zhCN, zhHK } from 'date-fns/locale'
 import { Observable, map } from 'rxjs'
@@ -30,18 +32,14 @@ class CustomTranslateHttpLoader extends TranslateHttpLoader {
         ocapTranslates = {
           ...ZhHans,
           ...CoreZhHans,
-          ...StoryZhHans,
-          ...AuthZhHans,
-          ...IAppZhHans,
+          ...AuthZhHans
         }
         break
       case LanguagesEnum.TraditionalChinese:
         ocapTranslates = {
           ...ZhHant,
           ...CoreZhHant,
-          ...StoryZhHant,
-          ...AuthZhHant,
-          ...IAppZhHant,
+          ...AuthZhHant
         }
         break
       default:

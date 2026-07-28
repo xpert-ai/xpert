@@ -1,11 +1,12 @@
 import { AiFeatureEnum, FeatureEnum, IFeature, IPagination } from '@xpert-ai/contracts'
-import { Injectable } from '@nestjs/common'
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'
-import { IsNull, Repository } from 'typeorm'
+import { In, IsNull, Repository } from 'typeorm'
 import { CrudService } from '../core/crud/crud.service'
 import { DEFAULT_FEATURES } from './default-features'
 import { Feature } from './feature.entity'
+import { FeatureOrganization } from './feature-organization.entity'
 import { createFeature } from './feature.seed'
 
 function isFeatureId(id: IFeature['id']): id is string {
@@ -24,7 +25,13 @@ function selectFeatureDefinition(features: IFeature[], parentId: string | null, 
 	)
 }
 
-const RETIRED_FEATURE_CODES = new Set<string>([
+/**
+ * Compatibility tombstones for features that may still exist in upgraded databases.
+ *
+ * Keep these codes after removing their public definitions so reads stay clean even
+ * before the feature seed has had a chance to purge the historical rows.
+ */
+export const RETIRED_FEATURE_CODES = new Set<string>([
 	FeatureEnum.FEATURE_HOME,
 	FeatureEnum.FEATURE_DASHBOARD,
 	'FEATURE_HOME_CATALOG',
@@ -33,13 +40,21 @@ const RETIRED_FEATURE_CODES = new Set<string>([
 	FeatureEnum.FEATURE_FILE_STORAGE,
 	AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE,
 	AiFeatureEnum.FEATURE_COPILOT_CHAT,
+	'FEATURE_COPILOT_CHATBI',
+	'FEATURE_XPERT_CHATBI',
 	'FEATURE_INDICATOR',
 	'FEATURE_INDICATOR_MARKET',
 	'FEATURE_INDICATOR_REGISTER',
 	'FEATURE_INDICATOR_APP',
 	'FEATURE_BUSINESS_AREA',
 	'FEATURE_STORY',
+	'FEATURE_STORY_CREATION',
+	'FEATURE_STORY_VIEWER',
+	'FEATURE_STORY_MARKET',
 	'FEATURE_MODEL',
+	'FEATURE_MODEL_CREATION',
+	'FEATURE_MODEL_VIEWER',
+	'FEATURE_SUBSCRIPTION',
 	'FEATURE_PROJECT',
 	'FEATURE_DATA_FACTORY'
 ])
@@ -63,12 +78,16 @@ const filterRetiredFeatures = (features: IFeature[]): IFeature[] =>
 	}, [])
 
 @Injectable()
-export class FeatureService extends CrudService<Feature> {
+export class FeatureService extends CrudService<Feature> implements OnApplicationBootstrap {
 	constructor(
 		@InjectRepository(Feature)
 		public readonly featureRepository: Repository<Feature>
 	) {
 		super(featureRepository)
+	}
+
+	async onApplicationBootstrap() {
+		await this.purgeRetiredFeatures()
 	}
 
 	/**
@@ -100,6 +119,8 @@ export class FeatureService extends CrudService<Feature> {
 	async seedDB() {
 		console.log(chalk.magenta(`Seed Features into DB`))
 		try {
+			await this.purgeRetiredFeatures()
+
 			for await (const item of DEFAULT_FEATURES) {
 				const parent = await this.syncFeatureDefinition(item)
 				const { children = [] } = item
@@ -118,6 +139,28 @@ export class FeatureService extends CrudService<Feature> {
 		} catch (err) {
 			console.error(err)
 		}
+	}
+
+	private async purgeRetiredFeatures(): Promise<void> {
+		const retiredFeatures = await this.repository.find({
+			select: ['id'],
+			where: {
+				code: In([...RETIRED_FEATURE_CODES])
+			}
+		})
+		const retiredFeatureIds = retiredFeatures.map(({ id }) => id).filter(isFeatureId)
+		if (retiredFeatureIds.length === 0) {
+			return
+		}
+
+		await this.repository.manager.transaction(async (manager) => {
+			await manager.delete(FeatureOrganization, {
+				featureId: In(retiredFeatureIds)
+			})
+			await manager.delete(Feature, {
+				id: In(retiredFeatureIds)
+			})
+		})
 	}
 
 	private async syncFeatureDefinition(item: IFeature, parent?: IFeature): Promise<IFeature> {

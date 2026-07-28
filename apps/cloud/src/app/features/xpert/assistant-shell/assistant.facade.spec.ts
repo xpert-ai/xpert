@@ -15,8 +15,7 @@ jest.mock('../../../@core', () => {
   return {
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
-      XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi'
+      XPERT_SHARED: 'xpert_shared'
     },
     AssistantBindingSourceScope: {
       NONE: 'none',
@@ -89,7 +88,6 @@ const { AssistantBindingSourceScope, AssistantCode, XpertAPIService } = jest.req
   AssistantCode: {
     CHAT_COMMON: string
     XPERT_SHARED: string
-    CHATBI: string
   }
   AssistantBindingSourceScope: {
     NONE: string

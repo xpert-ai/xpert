@@ -2,7 +2,6 @@
 @use 'sass:color';
 @use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @use './setting/settings-theme' as settings;
-@use './home/home-theme' as home;
 
 $shell-bar-height: 48px;
 $sidebar-width: 200px;
@@ -16,7 +15,6 @@ $sidebar-collapsed-width: 40px;
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
-  @include home.color($theme);
   @include settings.color($theme);
   .pac__shell-bar {
     // position: relative; // 使 z-index 生效的属性
@@ -232,12 +230,9 @@ $sidebar-collapsed-width: 40px;
 }
 
 @mixin typography($theme) {
-  @include home.typography($theme);
 }
 
 @mixin density($theme) {
-  @include home.density($theme);
-
   /**
    * @deprecated
    */

@@ -1,4 +1,4 @@
-import { inject, input, signal } from '@angular/core'
+import { inject, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -6,18 +6,17 @@ import { BehaviorSubject } from 'rxjs'
 import { ChatCommonAssistantComponent } from './common.component'
 import { ChatCommonService } from './common-chat.service'
 import { ChatHomeService } from '../home.service'
+import { ChatService } from '../../../xpert'
 
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi',
       CLAWXPERT: 'clawxpert'
     },
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
       FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
     },
     RolesEnum: {
@@ -32,9 +31,25 @@ jest.mock('../../../@core/providers/ocap', () => ({
   provideOcap: jest.fn(() => [])
 }))
 
-jest.mock('@xpert-ai/ocap-angular/core', () => ({
-  provideOcapCore: jest.fn(() => [])
-}))
+jest.mock('@xpert-ai/ocap-angular/core', () => {
+  const angularCore = jest.requireActual('@angular/core')
+
+  class NgmShortNumberPipe {
+    transform(value: unknown) {
+      return value
+    }
+  }
+
+  angularCore.Pipe({
+    name: 'shortNumber',
+    standalone: true
+  })(NgmShortNumberPipe)
+
+  return {
+    NgmShortNumberPipe,
+    provideOcapCore: jest.fn(() => [])
+  }
+})
 
 jest.mock('../../../xpert', () => {
   const angularCore = jest.requireActual('@angular/core')
@@ -43,17 +58,19 @@ jest.mock('../../../xpert', () => {
     readonly conversationId = signal<string | null>(null)
     readonly messages = signal<unknown[]>([])
   }
+  class XpertHomeService {}
   class XpertOcapService {}
   class XpertChatAppComponent {
-    readonly idleLayout = input<'xpert' | 'welcome'>('xpert')
+    idleLayout: 'xpert' | 'welcome' = 'xpert'
     readonly chatService = inject(ChatService)
   }
 
   angularCore.Component({
     selector: 'xpert-webapp',
     standalone: true,
+    inputs: ['idleLayout'],
     template: `
-      <div data-testid="xpert-webapp" [attr.data-idle-layout]="idleLayout()">
+      <div data-testid="xpert-webapp" [attr.data-idle-layout]="idleLayout">
         <div data-testid="xpert-webapp-content">
           @if (!chatService.conversationId() && !chatService.messages().length) {
             <ng-content></ng-content>
@@ -70,6 +87,7 @@ jest.mock('../../../xpert', () => {
 
   return {
     ChatService,
+    XpertHomeService,
     XpertChatAppComponent,
     XpertOcapService
   }
@@ -185,8 +203,22 @@ describe('ChatCommonAssistantComponent', () => {
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
     user$ = new BehaviorSubject(null)
+    service = new (ChatCommonService as any)() as typeof service
 
-    TestBed.resetTestingModule()
+    TestBed.overrideComponent(ChatCommonAssistantComponent, {
+      set: {
+        providers: [
+          {
+            provide: ChatCommonService,
+            useValue: service
+          },
+          {
+            provide: ChatService,
+            useExisting: ChatCommonService
+          }
+        ]
+      }
+    })
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ChatCommonAssistantComponent],
       providers: [
@@ -207,7 +239,6 @@ describe('ChatCommonAssistantComponent', () => {
     })
 
     router = TestBed.inject(Router)
-    service = TestBed.inject(ChatCommonService) as typeof service
     Object.defineProperty(router, 'url', {
       configurable: true,
       get: () => '/chat/x/common'

@@ -46,11 +46,11 @@ const legacyTopLevelXpertFeature: IFeature = {
   description: 'Legacy top-level Xpert feature'
 }
 
-const xpertChatbiFeature: IFeature = {
-  id: 'feature-xpert-chatbi',
-  code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
-  name: 'ChatBI',
-  description: 'ChatBI feature'
+const xpertClawxpertFeature: IFeature = {
+  id: 'feature-xpert-clawxpert',
+  code: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
+  name: 'ClawXpert',
+  description: 'ClawXpert feature'
 }
 
 const xpertFeatureGroup: IFeature = {
@@ -58,7 +58,7 @@ const xpertFeatureGroup: IFeature = {
   code: 'GROUP_XPERT',
   name: 'Xpert features',
   description: 'Xpert feature group',
-  children: [xpertLeafFeature, xpertChatbiFeature]
+  children: [xpertLeafFeature, xpertClawxpertFeature]
 }
 
 const homeFeature: IFeature = {
@@ -95,13 +95,6 @@ const rolePermissionFeature: IFeature = {
   code: FeatureEnum.FEATURE_ROLES_PERMISSION,
   name: 'Role permission',
   description: 'Role permission feature'
-}
-
-const businessAreaFeature: IFeature = {
-  id: 'feature-business-area',
-  code: 'FEATURE_BUSINESS_AREA',
-  name: 'Business area',
-  description: 'Business area feature'
 }
 
 const integrationFeature: IFeature = {
@@ -228,16 +221,15 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, parentFeature])
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
-    expect(groupIds).not.toContain('FEATURE_BUSINESS_AREA')
     expect(
       fixture.componentInstance
-        .summaryCards([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+        .summaryCards([rolePermissionFeature, integrationFeature, parentFeature])
         .find((summary) => summary.id === 'groups')?.value
     ).toBe(3)
   })
@@ -267,48 +259,12 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, parentFeature])
       .map((group) => group.id)
 
-    expect(groupIds).not.toContain('FEATURE_BUSINESS_AREA')
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(groupIds).not.toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
-  })
-
-  it('does not render removed Analytics feature cards returned by an older server', async () => {
-    const featureService = {
-      getParentFeatures: jest.fn(() => of({ items: [businessAreaFeature], total: 1 })),
-      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
-      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
-    }
-    const fixture = await TestBed.configureTestingModule({
-      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
-      providers: [
-        {
-          provide: FeatureService,
-          useValue: featureService
-        },
-        {
-          provide: Store,
-          useClass: MockStore
-        },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { data: { isOrganization: true } },
-            data: of({ isOrganization: true })
-          }
-        }
-      ]
-    }).createComponent(FeatureToggleComponent)
-
-    fixture.detectChanges()
-
-    const element = fixture.nativeElement as HTMLElement
-    const businessAreaCard = element.querySelector(`[data-feature-group-id="FEATURE_BUSINESS_AREA"]`)
-
-    expect(businessAreaCard).toBeNull()
   })
 
   it('renders feature toggles with z-checkbox and uses indeterminate state for partial groups', async () => {
@@ -327,9 +283,9 @@ describe('FeatureToggleComponent', () => {
           isEnabled: true
         },
         {
-          id: 'tenant-chatbi',
-          featureId: xpertChatbiFeature.id,
-          feature: xpertChatbiFeature,
+          id: 'tenant-clawxpert',
+          featureId: xpertClawxpertFeature.id,
+          feature: xpertClawxpertFeature,
           isEnabled: false
         }
       ]
@@ -421,9 +377,9 @@ describe('FeatureToggleComponent', () => {
           isEnabled: true
         },
         {
-          id: 'tenant-chatbi',
-          featureId: xpertChatbiFeature.id,
-          feature: xpertChatbiFeature,
+          id: 'tenant-clawxpert',
+          featureId: xpertClawxpertFeature.id,
+          feature: xpertClawxpertFeature,
           isEnabled: true
         }
       ]
@@ -497,9 +453,9 @@ describe('FeatureToggleComponent', () => {
           isEnabled: false
         },
         {
-          id: 'tenant-chatbi',
-          featureId: xpertChatbiFeature.id,
-          feature: xpertChatbiFeature,
+          id: 'tenant-clawxpert',
+          featureId: xpertClawxpertFeature.id,
+          feature: xpertClawxpertFeature,
           isEnabled: false
         }
       ]
@@ -551,9 +507,9 @@ describe('FeatureToggleComponent', () => {
           isEnabled: true
         },
         {
-          id: 'tenant-chatbi',
-          featureId: xpertChatbiFeature.id,
-          feature: xpertChatbiFeature,
+          id: 'tenant-clawxpert',
+          featureId: xpertClawxpertFeature.id,
+          feature: xpertClawxpertFeature,
           isEnabled: true
         }
       ]
@@ -614,9 +570,9 @@ describe('FeatureToggleComponent', () => {
           isEnabled: true
         },
         {
-          id: 'tenant-chatbi',
-          featureId: xpertChatbiFeature.id,
-          feature: xpertChatbiFeature,
+          id: 'tenant-clawxpert',
+          featureId: xpertClawxpertFeature.id,
+          feature: xpertClawxpertFeature,
           isEnabled: false
         }
       ]
@@ -663,7 +619,7 @@ describe('FeatureToggleComponent', () => {
         organizationId: 'org-1'
       }),
       expect.objectContaining({
-        featureId: xpertChatbiFeature.id,
+        featureId: xpertClawxpertFeature.id,
         isEnabled: false,
         organizationId: 'org-1'
       })
@@ -1065,40 +1021,16 @@ describe('FeatureToggleComponent', () => {
       childFeature,
       parentFeature,
       {
-        id: 'feature-chatbi',
-        code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
-        name: 'ChatBI',
-        description: 'ChatBI feature'
+        id: 'feature-clawxpert',
+        code: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
+        name: 'ClawXpert',
+        description: 'ClawXpert feature'
       },
       {
         id: 'feature-xpert-marketplace',
         code: AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
         name: 'Agent Marketplace',
         description: 'Agent marketplace feature'
-      },
-      {
-        id: 'feature-model',
-        code: 'FEATURE_MODEL',
-        name: 'Model',
-        description: 'Model feature'
-      },
-      {
-        id: 'feature-story',
-        code: 'FEATURE_STORY',
-        name: 'Story',
-        description: 'Story feature'
-      },
-      {
-        id: 'feature-indicator',
-        code: 'FEATURE_INDICATOR',
-        name: 'Indicator',
-        description: 'Indicator feature'
-      },
-      {
-        id: 'feature-project',
-        code: 'FEATURE_PROJECT',
-        name: 'Project',
-        description: 'Project feature'
       },
       customParentFeature
     ]

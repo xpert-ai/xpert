@@ -48,11 +48,7 @@ type LegacyAssistantUserPreferenceRow = {
     assistantId: string | null
 }
 
-const SYSTEM_ASSISTANT_CODES: AssistantCode[] = [
-    AssistantCode.CHAT_COMMON,
-    AssistantCode.XPERT_SHARED,
-    AssistantCode.CHATBI
-]
+const SYSTEM_ASSISTANT_CODES: AssistantCode[] = [AssistantCode.CHAT_COMMON, AssistantCode.XPERT_SHARED]
 
 @Injectable()
 export class AssistantBindingService

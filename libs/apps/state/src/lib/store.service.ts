@@ -8,8 +8,6 @@ import {
   IFeatureToggle,
   IFeatureOrganization,
   ISelectedEmployee,
-  PermissionsEnum,
-  IProject,
   FeatureEnum,
   OrganizationPermissionsEnum,
   ITenantSetting,
@@ -49,7 +47,6 @@ export interface AppState {
   userRolePermissions: IRolePermission[]
   selectedOrganization: IOrganization
   selectedEmployee: ISelectedEmployee
-  selectedProject: IProject
   selectedDate: Date
   selectedWorkspace: IXpertWorkspace
   systemLanguages: ILanguage[]
@@ -87,10 +84,6 @@ export interface PersistState {
    * The cache level for the ocap framework
    */
   cacheLevel: number
-  /**
-   * Pin the story toolbar on the left side of designer
-   */
-  pinStoryToolbar?: boolean
   /**
    * Business Role of the copilot
    */
@@ -199,7 +192,6 @@ export class Store {
 
   user$ = this.appQuery.select((state) => state.user)
   selectedOrganization$ = this.appQuery.select((state) => state.selectedOrganization)
-  selectedProject$ = this.appQuery.select((state) => state.selectedProject)
   selectedEmployee$ = this.appQuery.select((state) => state.selectedEmployee)
   selectedWorkspace$ = this.appQuery.select((state) => state.selectedWorkspace)
   workspaceId$ = this.persistQuery.select((state) => state.workspaceId)
@@ -235,7 +227,6 @@ export class Store {
   token$ = this.persistQuery.select((state) => state.token)
 
   // Signals
-  readonly pinStoryToolbar = toSignal(this.persistQuery.select((state) => state.pinStoryToolbar))
   readonly copilotRole = toSignal(this.persistQuery.select((state) => state.copilotRole))
   /**
    * @deprecated use xpert in preferences
@@ -258,17 +249,6 @@ export class Store {
   get selectedOrganization(): IOrganization {
     const { selectedOrganization } = this.appQuery.getValue()
     return selectedOrganization
-  }
-
-  set selectedProject(project: IProject) {
-    this.appStore.update({
-      selectedProject: project
-    })
-  }
-
-  get selectedProject() {
-    const { selectedProject } = this.appQuery.getValue()
-    return selectedProject
   }
 
   set selectedEmployee(employee: ISelectedEmployee) {
@@ -594,12 +574,6 @@ export class Store {
     })
   }
 
-  setPinStoryToolbar(value: boolean) {
-    this.persistStore.update({
-      pinStoryToolbar: value
-    })
-  }
-
   setCopilotRole(role: string) {
     this.persistStore.update({
       copilotRole: role
@@ -749,8 +723,7 @@ export class Store {
     this.clearWorkspace()
     this.appStore.update((state) => ({
       ...state,
-      selectedEmployee: null,
-      selectedProject: null
+      selectedEmployee: null
     }))
   }
 

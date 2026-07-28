@@ -3,12 +3,9 @@ import { ITag } from '../tag-entity.model'
 import { ChecklistItem, IPoint, ISize } from '../types'
 import { IUser } from '../user.model'
 import { Visibility } from '../visibility.model'
-import { IBusinessArea } from './business-area'
 import { IDataSource } from '../data-source.model'
 import { IIndicator } from './indicator'
-import { IModelQuery } from './model-query'
 import * as MDX from './schema'
-import { IStory } from './story'
 
 /**
  * Data agent types
@@ -57,7 +54,6 @@ export type TSemanticModel = {
   agentType?: AgentType
 
   dataSourceId?: string
-  businessAreaId?: string
 
   catalog?: string
   cube?: string
@@ -124,8 +120,6 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
 
   dataSource?: IDataSource
 
-  businessArea?: IBusinessArea
-
   // Storing model configuration
   preferences?: ISemanticModelPreferences
 
@@ -139,12 +133,8 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   ownerId?: string
 
   members?: IUser[]
-  // Stories
-  stories?: Array<IStory>
   // Indicators
   indicators?: Array<IIndicator>
-  // Query
-  queries?: Array<IModelQuery>
 
   version?: number
 }
@@ -225,7 +215,6 @@ export function extractSemanticModelDraft<S>(model: TSemanticModel): TSemanticMo
     agentType: model.agentType,
 
     dataSourceId: model.dataSourceId,
-    businessAreaId: model.businessAreaId,
 
     catalog: model.catalog,
     cube: model.cube,

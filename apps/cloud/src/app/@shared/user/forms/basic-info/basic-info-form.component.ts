@@ -17,7 +17,7 @@ import { AuthService } from '@xpert-ai/cloud/state'
 import { IRole, ITag, IUser } from '@xpert-ai/contracts'
 import { FORMLY_W_FULL } from '@xpert-ai/formly'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { timezones } from 'apps/cloud/src/app/@core/constants'
@@ -208,7 +208,8 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
                   const emailPattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
                   return emailPattern.test(control.value)
                 },
-                message: () => this.#translate.instant('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
+                message: () =>
+                  this.#translate.instant('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
               }
             }
           },
@@ -314,16 +315,16 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   }
 
   private syncRoleOptions() {
-    const nextOptions = this.roles
-      .map(({ id, name }) => ({
-        key: id,
-        caption: name
-      }))
+    const nextOptions = this.roles.map(({ id, name }) => ({
+      key: id,
+      caption: name
+    }))
 
     if (
       nextOptions.length === this.roleOptionsCache.length &&
-      nextOptions.every((option, index) =>
-        option.key === this.roleOptionsCache[index]?.key && option.caption === this.roleOptionsCache[index]?.caption
+      nextOptions.every(
+        (option, index) =>
+          option.key === this.roleOptionsCache[index]?.key && option.caption === this.roleOptionsCache[index]?.caption
       )
     ) {
       return
@@ -336,7 +337,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   async registerUser(organizationId?: string, createdById?: string) {
     // Mark all fields as touched to trigger validation display on save
     this.form.markAllAsTouched()
-    
+
     if (this.form.valid) {
       const { tenant } = this.#store.user
       const user: IUser = {

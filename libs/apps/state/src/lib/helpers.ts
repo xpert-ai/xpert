@@ -1,6 +1,16 @@
+import { HttpParams } from '@angular/common/http'
 import { RecursiveHierarchyType, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { assign, isEmpty } from 'lodash-es'
 
+export function timeRangeToParams(params: HttpParams, timeRange: string[]) {
+  if (timeRange[0]) {
+    params = params.set('start', timeRange[0])
+  }
+  if (timeRange[1]) {
+    params = params.set('end', timeRange[1])
+  }
+  return params
+}
 
 export function hierarchize<T>(
   items: Array<T>,
@@ -10,11 +20,12 @@ export function hierarchize<T>(
     valueProperty?: string
     startLevel?: number
   }
-): {treeNodes: Array<TreeNodeInterface<T>>, index?: any} {
+): { treeNodes: Array<TreeNodeInterface<T>>; index?: any } {
   const root = []
   const results = {} as Record<string, TreeNodeInterface<T>>
   items?.forEach((item) => {
-    const itemKey = item[recursiveHierarchy.valueProperty] + (options?.compositeKeys?.map((key) => item[key]).join('/') ?? '')
+    const itemKey =
+      item[recursiveHierarchy.valueProperty] + (options?.compositeKeys?.map((key) => item[key]).join('/') ?? '')
     if (!results[itemKey]) {
       results[itemKey] = {
         children: []
@@ -32,7 +43,8 @@ export function hierarchize<T>(
       results[itemKey].value = item[options.valueProperty]
     }
 
-    const parentKey = item[recursiveHierarchy.parentNodeProperty] + (options?.compositeKeys?.map((key) => item[key]).join('/') ?? '')
+    const parentKey =
+      item[recursiveHierarchy.parentNodeProperty] + (options?.compositeKeys?.map((key) => item[key]).join('/') ?? '')
     if (parentKey) {
       if (results[parentKey]) {
         results[parentKey].children.push(results[itemKey])
@@ -41,8 +53,8 @@ export function hierarchize<T>(
           children: [results[itemKey]]
         } as TreeNodeInterface<T>
       }
-      results[itemKey].parent = results[parentKey];
-      (results[itemKey].raw as any).parent = results[parentKey]
+      results[itemKey].parent = results[parentKey]
+      ;(results[itemKey].raw as any).parent = results[parentKey]
     } else {
       results[itemKey].level = 0
       root.push(results[itemKey])
@@ -66,9 +78,9 @@ export function hierarchize<T>(
     root.map((item) => {
       items.push(...getTreeLevel(item, options.startLevel))
     })
-    return {treeNodes: items}
+    return { treeNodes: items }
   }
-  return {treeNodes: root, index: results}
+  return { treeNodes: root, index: results }
 }
 
 function setLevel<T>(item: TreeNodeInterface<T>, level: number) {

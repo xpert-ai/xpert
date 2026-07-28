@@ -38,17 +38,6 @@ export const ASSISTANT_REGISTRY: AssistantRegistryItem[] = [
     defaultDescription: 'Shared assistant used in the Xpert workspace and studio shell.'
   },
   {
-    code: AssistantCode.CHATBI,
-    featureKeys: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CHATBI],
-    management: 'system',
-    labelKey: 'PAC.Assistant.ChatBI.Label',
-    defaultLabel: 'ChatBI Assistant',
-    titleKey: 'PAC.ChatBI.Title',
-    defaultTitle: 'Chat BI',
-    descriptionKey: 'PAC.Assistant.ChatBI.Description',
-    defaultDescription: 'Chat with your data analysis assistant from the ChatBI page.'
-  },
-  {
     code: AssistantCode.CLAWXPERT,
     featureKeys: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT],
     management: 'user',

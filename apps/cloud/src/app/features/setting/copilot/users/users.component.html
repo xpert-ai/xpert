@@ -179,7 +179,7 @@
                     zShape="circle"
                     class="text-text-quaternary"
                     [disabled]="loading()"
-                    [zTooltip]="'PAC.ChatBI.Save' | translate: { Default: 'Save' }"
+                    [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
                     (click)="save(item); $event.stopPropagation()"
                   >
                     <z-icon zType="save"></z-icon>
@@ -192,7 +192,7 @@
                     zShape="circle"
                     class="text-text-quaternary"
                     [disabled]="loading()"
-                    [zTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: { Default: 'Renew token limit' }"
+                    [zTooltip]="'PAC.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
                     (click)="renewToken(item); $event.stopPropagation()"
                   >
                     <z-icon zType="autorenew"></z-icon>

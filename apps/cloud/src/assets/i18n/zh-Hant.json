@@ -9,7 +9,6 @@
     "ORGANIZATION": "公司",
     "DASHBOARD": "儀表盤",
     "INDICATOR": "指標",
-    "INDICATOR_MARKET": "市場",
     "INDICATOR_APP": "指標應用",
     "INDICATOR_REGISTER": "註冊",
     "INDICATOR_GROUPS": "組",
@@ -873,7 +872,6 @@
       "IsLatest": "已是最新版本。",
       "Certification": "認證",
       "Chat": "聊天",
-      "ChatBI Assistant": "ChatBI 助手",
       "CodeXpert": "CodeXpert",
       "DeepResearch": "DeepResearch",
       "Data & Ontology": "Data & Ontology",
@@ -1046,9 +1044,7 @@
         "REGISTER_INDICATOR": "註冊指標",
         "BATCH_UPLOAD": "批量上傳",
         "Embedding": "嵌入",
-        "DownloadAsTemplate": "下載為模板",
-        "INDICATOR_MARKET": "指標市場",
-        "INDICATOR_MARKET_DESC": "瀏覽指標，申請指標權限"
+        "DownloadAsTemplate": "下載為模板"
       },
       "GENERAL": {
         "TITLE": "通用",
@@ -1542,7 +1538,6 @@
       "JoinConfig": "關聯配置",
       "OpenCubeSchema": "打開模型信息",
       "CubeSchema": "模型信息",
-
       "QUERY": {
         "TITLE": "查詢實驗室",
         "SaveAsModel": "另存為模型",
@@ -2139,10 +2134,6 @@
       "XpertShared": {
         "Label": "工作區助手",
         "Description": "用於 Xpert 工作區和 Studio Shell 的共享助手。"
-      },
-      "ChatBI": {
-        "Label": "ChatBI 助手",
-        "Description": "在 ChatBI 頁面與你的資料分析助手對話。"
       },
       "ClawXpert": {
         "Label": "ClawXpert",
@@ -2945,77 +2936,6 @@
       "NoPublishedXpert": "沒有已發布的數字專家，請在工作空間創建並點擊\"發布\"發布數字專家",
       "GotoWorkspace": "前往工作空間"
     },
-    "ChatBI": {
-      "DeprecationNotes": "ChatBI 功能請使用數字專家中的 ChatBI 工具集！",
-      "Title": "ChatBI-數據分析與洞察",
-      "ComputerTrace": "線程活動",
-      "TraceLoading": "正在載入線程活動...",
-      "TraceLoadFailed": "載入線程活動失敗",
-      "TraceEmpty": "暫無線程活動",
-      "TraceEmptyDesc": "當助手構建圖表、探索文件、運行程式並生成結構化操作時，此 ChatBI 線程中的儀表板輸出和電腦端步驟會顯示在這裡。",
-      "PinDashboard": "固定快照",
-      "UnpinDashboard": "取消固定快照",
-      "DataOntologyGuidePrefix": "建議直接使用",
-      "DataOntologySystem": "數據&本體",
-      "DataOntologyGuideSuffix": "系統的智能體來完成數據分析需求。",
-      "TransformData": "利用人工智能將數據轉化為洞察力。",
-      "InputPlaceholder": "針對數據集詢問問題，按 Enter 發送",
-      "NoSemanticModel": "無語義模型",
-      "NewConversation": "新建對話",
-      "Cubes": "多維數據集",
-      "Slicers": "過濾器",
-      "Empty": "空白",
-      "ShowChart": "顯示圖形",
-      "ShowTable": "顯示表格",
-      "AddtoStory": "添加到故事",
-      "SystemMessage_1": "您好，我是元數分析雲 BI 智能助手，當前數據為《{{value}}》，可點擊頂部切換。",
-      "SystemMessage_2": "你也可以嘗試點擊樣例",
-      "SystemMessage_3": "我能準確識別含時間、條件、維度和指標的問題哦。",
-      "SystemMessage_Samples": [
-        "2023年加拿大客戶每月的銷售額走勢",
-        "2024年所有用戶中消費金額前 10 的用戶",
-        "2023年各個月的消費金額分別是多少",
-        "2023年各渠道用戶的消費金額分布",
-        "2023年各渠道的用戶數分別是多少"
-      ],
-      "SystemMessage_eg": "如",
-      "SystemMessage_Year": "2023年",
-      "SystemMessage_Cloud": "元數分析雲 BI",
-      "SystemMessage_Month": "每個月",
-      "SystemMessage_Revenue": "收入",
-      "SystemMessage_HowMuch": "是多少",
-      "Chart_Line": "線圖",
-      "Chart_Column": "柱形圖",
-      "Chart_Bar": "條形圖",
-      "Chart_Pie": "餅圖",
-      "NewCalculatedMeasures": "新增計算指標",
-      "RenewTokenLimit": "重置 Token 限製",
-      "Save": "保存",
-      "SelectSemanticModel": "選擇語義模型",
-      "SelectCube": "選擇一個數據集",
-      "SelectACube": "選擇一個數據集",
-      "Model": "模型",
-      "Entity": "實體",
-      "Description": "描述",
-      "EditModel": "編輯模型",
-      "DeleteModel": "刪除模型",
-      "SemanticModel": "語義模型",
-      "Caption": "簡要描述",
-      "AddModel": "添加模型",
-      "AnotherBatch": "換一批",
-      "TryFollowing": "您還可以嘗試以下分析",
-      "RolesWithPermission": "有權限的角色",
-      "IntegrationsWithPermission": "有權限的集成",
-      "NewChatBIModel": "新建 ChatBI 模型",
-      "ModelExists": "模型已存在",
-      "EntityNotFound": "未找到模型實體",
-      "PleaseSelectSemanticModel": "請選擇語義模型",
-      "PleaseSelectEntity": "請選擇實體",
-      "NoSemanticModelsAvailable": "沒有可用的語義模型，請先創建語義模型",
-      "NoEntitiesAvailable": "沒有可用的實體，請先添加實體",
-      "AddEntity": "添加實體",
-      "CreateSemanticModel": "創建語義模型"
-    },
     "Home": {
       "Insight": {
         "Title": "💡智慧洞察",
@@ -3202,42 +3122,6 @@
           "Name": "數字專家",
           "Description": "利用人工智能技術提供個性化、實時且精準的咨詢、分析和決策支持的虛擬助手。"
         },
-        "FEATURE_COPILOT_CHATBI": {
-          "Name": "對話 BI",
-          "Description": "對話界面，通過自然語言交互來實現數據查詢、分析和可視化。"
-        },
-        "FEATURE_MODEL": {
-          "Name": "語義模型",
-          "Description": "啟用語義模型功能"
-        },
-        "FEATURE_PROJECT": {
-          "Name": "項目",
-          "Description": "啟用項目工作空間功能"
-        },
-        "FEATURE_STORY": {
-          "Name": "故事",
-          "Description": "啟用故事儀表板功能，製作，分享和瀏覽故事儀表板"
-        },
-        "FEATURE_INDICATOR": {
-          "Name": "指標",
-          "Description": "啟用指標功能，註冊，發布和申請查看業務指標數據"
-        },
-        "FEATURE_INDICATOR_REGISTER": {
-          "Name": "指標註冊",
-          "Description": "啟用指標註冊功能，註冊數據指標"
-        },
-        "FEATURE_INDICATOR_MARKET": {
-          "Name": "指標市場",
-          "Description": "啟用指標市場功能，發布、瀏覽和申請指標"
-        },
-        "FEATURE_INDICATOR_APP": {
-          "Name": "指標應用",
-          "Description": "啟用指標應用程序，瀏覽有權限的指標"
-        },
-        "FEATURE_BUSINESS_AREA": {
-          "Name": "業務域",
-          "Description": "啟用業務域功能，創建和使用業務域"
-        },
         "FEATURE_ORGANIZATION": {
           "Name": "組織",
           "Description": "管理租戶的組織"
@@ -3278,10 +3162,6 @@
           "Name": "集成",
           "Description": "管理組織內的集成連接"
         },
-        "FEATURE_DATA_FACTORY": {
-          "Name": "數據工廠",
-          "Description": "負責自動化、標準化和高效地處理、轉換和存儲數據，以支持數據分析、應用和決策"
-        },
         "GROUP_XPERT": {
           "Name": "數字專家功能",
           "Description": "管理數字專家及相關入口"
@@ -3293,10 +3173,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左側邊欄中顯示 ClawXpert 入口。"
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "在主導航中顯示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -4650,8 +4526,6 @@
         "DATA_SOURCE_VIEW": "查看數據源",
         "DATA_SOURCE_EDIT": "維護數據源",
         "CERTIFICATION_EDIT": "維護認證",
-        "CHATBI_VIEW": "使用 ChatBI",
-        "CHATBI_EDIT": "管理 ChatBI 配置",
         "COPILOT_VIEW": "使用智能助理",
         "COPILOT_EDIT": "管理模型提供商",
         "MEMBERSHIP_EDIT": "管理會員套餐",
@@ -4891,7 +4765,6 @@
         "Indicators": "明細指標",
         "LookBack": "回顧期間數"
       },
-
       "IFrame": {
         "SRC": "src"
       },
@@ -4988,11 +4861,9 @@
           "FontFamily_Song": "宋體"
         }
       },
-
       "CANVAS": {
         "TITLE": "畫布"
       },
-
       "STORY_PAGE": {
         "PAGE_SIZE": "頁面大小",
         "DefaultBackground": "預設背景",
@@ -5002,7 +4873,6 @@
         "PresetBackground": "預設背景",
         "PageType": "類型"
       },
-
       "ECHARTS": {
         "Common": {
           "Align": "對齊",
@@ -5364,7 +5234,6 @@
             "TITLE": "單個體樣式",
             "OPACITY": "不透明度"
           },
-
           "LABEL": {
             "TITLE": "標簽"
           },
@@ -5712,7 +5581,6 @@
     "ENTITY": {},
     "PROPERTY": {},
     "CALCULATION": {},
-
     "VALUE_HELP": {},
     "SELECTION": {},
     "COUNTDOWN_CONFIRMATION": {
@@ -5737,7 +5605,6 @@
     "EDITOR": {
       "EDIT": "編輯"
     },
-
     "Table": {}
   },
   "FORMLY": {
@@ -5903,7 +5770,6 @@
       "ROLE": "選擇角色"
     }
   },
-
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密碼重置",

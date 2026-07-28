@@ -1,7 +1,6 @@
 jest.mock('../../@core', () => ({
   AiFeatureEnum: {
     FEATURE_XPERT: 'FEATURE_XPERT',
-    FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
     FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
   },
   AssistantBindingScope: {
@@ -193,13 +192,6 @@ describe('chat routes', () => {
     expect(route?.children?.find((item) => item.path === '')?.component).toBe(ClawXpertOverviewComponent)
     expect(conversationRoute?.component).toBe(ClawXpertConversationDetailComponent)
     expect(matchedRoute?.posParams?.threadId?.path).toBe('thread-1')
-  })
-
-  it('redirects legacy /chat/chatbi urls to the top-level ChatBI feature', () => {
-    const route = children.find((item) => item.path === 'chatbi')
-
-    expect(route?.redirectTo).toBe('/chatbi')
-    expect(route?.pathMatch).toBe('full')
   })
 
   it('redirects /chat to the default ClawXpert conversation when a valid binding exists', async () => {

@@ -62,14 +62,6 @@ const FEATURE_SCOPE_BY_CODE: Record<string, FeatureToggleScope> = {
   [FeatureEnum.FEATURE_INTEGRATION]: 'dual-scope'
 }
 
-const REMOVED_ANALYTICS_FEATURE_CODES = new Set<string>([
-  'FEATURE_BUSINESS_AREA',
-  'FEATURE_MODEL',
-  'FEATURE_STORY',
-  'FEATURE_INDICATOR',
-  'FEATURE_PROJECT'
-])
-
 const DEPRECATED_FEATURE_CODES = new Set<string>()
 
 function isFeatureStatusFilter(value: unknown): value is FeatureStatusFilter {
@@ -531,8 +523,6 @@ export class FeatureToggleComponent {
         return 'sparkles'
       case AiFeatureEnum.FEATURE_XPERT_MARKETPLACE:
         return 'robot_2'
-      case AiFeatureEnum.FEATURE_XPERT_CHATBI:
-        return 'query_stats'
       default:
         return 'extension'
     }
@@ -543,10 +533,6 @@ export class FeatureToggleComponent {
   }
 
   private matchesCurrentFeatureScope(feature: IFeature) {
-    if (REMOVED_ANALYTICS_FEATURE_CODES.has(feature.code)) {
-      return false
-    }
-
     return matchesFeatureToggleScope(FEATURE_SCOPE_BY_CODE[feature.code] ?? 'dual-scope', !!this.isOrganization())
   }
 

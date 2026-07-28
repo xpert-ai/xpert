@@ -9,10 +9,9 @@ import { firstValueFrom } from 'rxjs'
 import { OrganizationsService, ToastrService } from '../../../../../@core'
 import { timezones } from '../../../../../@core/constants'
 import { EditOrganizationComponent } from '../edit-organization.component'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FORMLY_W_FULL } from '@xpert-ai/formly'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-
 
 @Component({
   standalone: true,
@@ -58,7 +57,7 @@ export class EditOrganizationMainComponent {
               type: 'input',
               props: {
                 label: Organization?.Name ?? 'Name',
-                placeholder: Organization?.OrganizationName ?? 'Organization Name',
+                placeholder: Organization?.OrganizationName ?? 'Organization Name'
               }
             },
             {
@@ -86,7 +85,7 @@ export class EditOrganizationMainComponent {
               key: 'profile_link',
               type: 'input',
               props: {
-                label: Organization?.ProfileLink ?? 'Profile Link',
+                label: Organization?.ProfileLink ?? 'Profile Link'
               }
             },
             {
@@ -94,7 +93,7 @@ export class EditOrganizationMainComponent {
               key: 'officialName',
               type: 'input',
               props: {
-                label: Organization?.OfficialName ?? 'Official Name',
+                label: Organization?.OfficialName ?? 'Official Name'
               }
             },
             {
@@ -111,7 +110,7 @@ export class EditOrganizationMainComponent {
               key: 'website',
               type: 'input',
               props: {
-                label: Organization?.Website ?? 'Website',
+                label: Organization?.Website ?? 'Website'
               }
             },
             {
@@ -131,7 +130,7 @@ export class EditOrganizationMainComponent {
               props: {
                 label: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period',
                 placeholder: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period (in Days)',
-                type: 'number',
+                type: 'number'
               }
             },
             {
@@ -141,7 +140,7 @@ export class EditOrganizationMainComponent {
               props: {
                 label: Organization?.Currency ?? 'Currency',
                 placeholder: Organization?.Currency ?? 'Currency',
-                type: 'text',
+                type: 'text'
               }
             },
             {

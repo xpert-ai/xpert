@@ -61,8 +61,7 @@ jest.mock('../../@core', () => {
   return {
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI'
+      FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
     },
     AIPermissionsEnum: {
       XPERT_EDIT: 'XPERT_EDIT'
@@ -75,7 +74,6 @@ jest.mock('../../@core', () => {
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi',
       CLAWXPERT: 'clawxpert'
     },
     RequestScopeLevel: {

@@ -1,8 +1,0 @@
-@reference "../../../../../styles/tailwind-reference.css";
-:host {
-  @apply space-y-0.5;
-}
-
-.line {
-  @apply w-full flex justify-start items-start cursor-pointer px-2 py-1 rounded-md text-sm border border-solid border-transparent hover:border-neutral-200;
-}

@@ -2,7 +2,8 @@ import { AiFeatureEnum, FeatureEnum, IFeature, IFeatureCreateInput } from '@xper
 import type { Repository } from 'typeorm'
 import { DEFAULT_FEATURES, setDefaultFeatures } from './default-features'
 import { Feature } from './feature.entity'
-import { FeatureService } from './feature.service'
+import { FeatureOrganization } from './feature-organization.entity'
+import { FeatureService, RETIRED_FEATURE_CODES } from './feature.service'
 
 const createFeature = (code: string, children: IFeature[] = []): IFeature => ({
 	id: code,
@@ -42,14 +43,17 @@ describe('FeatureService', () => {
 						]),
 						createFeature(FeatureEnum.FEATURE_SETTING, [createFeature(FeatureEnum.FEATURE_FILE_STORAGE)]),
 						copilotFeature,
+						createFeature('FEATURE_COPILOT_CHATBI'),
+						createFeature('FEATURE_XPERT_CHATBI'),
 						createFeature('FEATURE_INDICATOR', [
 							createFeature('FEATURE_INDICATOR_MARKET'),
 							createFeature('FEATURE_INDICATOR_REGISTER'),
 							createFeature('FEATURE_INDICATOR_APP')
 						]),
+						createFeature('FEATURE_STORY_CREATION'),
 						smtpFeature
 					],
-					5
+					8
 				])
 		}
 		const service = new FeatureService(repository as unknown as Repository<Feature>)
@@ -65,6 +69,71 @@ describe('FeatureService', () => {
 				smtpFeature
 			],
 			total: 2
+		})
+	})
+
+	it('purges retired feature and organization rows before syncing active definitions', async () => {
+		const retiredFeatureIds = ['legacy-indicator', 'legacy-story-viewer']
+		const manager = {
+			delete: jest.fn(),
+			transaction: jest.fn(async (callback: (transactionManager: any) => Promise<void>) => {
+				await callback(manager)
+			})
+		}
+		const repository = {
+			find: jest.fn().mockResolvedValue(retiredFeatureIds.map((id) => ({ id }))),
+			manager
+		}
+		const service = new FeatureService(repository as unknown as Repository<Feature>)
+		setDefaultFeatures([])
+
+		await service.seedDB()
+
+		expect([...RETIRED_FEATURE_CODES]).toEqual(
+			expect.arrayContaining([
+				'FEATURE_INDICATOR_MARKET',
+				'FEATURE_STORY_CREATION',
+				'FEATURE_STORY_VIEWER',
+				'FEATURE_STORY_MARKET',
+				'FEATURE_MODEL_CREATION',
+				'FEATURE_MODEL_VIEWER',
+				'FEATURE_SUBSCRIPTION',
+				'FEATURE_COPILOT_CHATBI',
+				'FEATURE_XPERT_CHATBI'
+			])
+		)
+		expect(manager.transaction).toHaveBeenCalledTimes(1)
+		expect(manager.delete).toHaveBeenNthCalledWith(1, FeatureOrganization, {
+			featureId: expect.anything()
+		})
+		expect(manager.delete).toHaveBeenNthCalledWith(2, Feature, {
+			id: expect.anything()
+		})
+		expect(manager.delete.mock.calls[0][1].featureId.value).toEqual(retiredFeatureIds)
+		expect(manager.delete.mock.calls[1][1].id.value).toEqual(retiredFeatureIds)
+	})
+
+	it('purges retired feature rows during application bootstrap', async () => {
+		const manager = {
+			delete: jest.fn(),
+			transaction: jest.fn(async (callback: (transactionManager: any) => Promise<void>) => {
+				await callback(manager)
+			})
+		}
+		const repository = {
+			find: jest.fn().mockResolvedValue([{ id: 'legacy-model' }]),
+			manager
+		}
+		const service = new FeatureService(repository as unknown as Repository<Feature>)
+
+		await service.onApplicationBootstrap()
+
+		expect(manager.transaction).toHaveBeenCalledTimes(1)
+		expect(manager.delete).toHaveBeenNthCalledWith(1, FeatureOrganization, {
+			featureId: expect.anything()
+		})
+		expect(manager.delete).toHaveBeenNthCalledWith(2, Feature, {
+			id: expect.anything()
 		})
 	})
 
