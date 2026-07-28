@@ -133,6 +133,8 @@ export class ManageUserComponent extends TranslationBaseComponent {
     initialValue: this.store.activeScope
   })
   readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
+  readonly canOpenUsers = this.usersComponent.canOpenUsers
+  readonly canEditUsers = this.usersComponent.canEditUsers
   private readonly scopeLevel$ = this.store.selectActiveScope().pipe(
     map((scope) => scope.level),
     distinctUntilChanged()

@@ -5,6 +5,7 @@ import {
     ICopilotModel,
     IChatConversation,
     IStorageFile,
+    IModelAccessResolution,
     IXpertAgentExecution,
     TChatConversationStatus,
     TChatRequest,
@@ -115,6 +116,11 @@ export type AgentMiddlewareRuntimeScope = {
     workspacePath?: string | null
 }
 
+export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
+    modelAccessOverride?: IModelAccessResolution
+    skipTokenRecord?: boolean
+}
+
 @Injectable()
 export class AgentMiddlewareRuntimeService {
     readonly #logger = new Logger(AgentMiddlewareRuntimeService.name)
@@ -122,12 +128,14 @@ export class AgentMiddlewareRuntimeService {
 
     async createModelClient<T = AgentMiddlewareModelClient>(
         copilotModel: ICopilotModel,
-        options: AgentMiddlewareCreateModelClientOptions
+        options: AgentMiddlewareRuntimeModelOptions,
+        scope: AgentMiddlewareRuntimeScope = {}
     ): Promise<T> {
-        const { abortController, usageCallback } = options ?? {}
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        const userId = RequestContext.currentUserId()
+        const { abortController, usageCallback, modelAccessOverride, skipTokenRecord } = options ?? {}
+        const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
+        const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
+        const userId = scope.userId ?? RequestContext.currentUserId()
+        const xpertId = scope.xpertId ?? undefined
 
         if (!copilotModel) {
             throw new CopilotModelNotFoundException(
@@ -142,15 +150,19 @@ export class AgentMiddlewareRuntimeService {
             new CopilotGetOneQuery(tenantId, copilotModel.copilotId, ['modelProvider'])
         )
 
-        await this.commandBus.execute(
-            new CopilotCheckLimitCommand({
-                tenantId,
-                organizationId,
-                userId,
-                copilot,
-                model: modelName
-            })
-        )
+        const modelAccess =
+            modelAccessOverride ??
+            (await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
+                new CopilotCheckLimitCommand({
+                    tenantId,
+                    organizationId,
+                    userId,
+                    xpertId,
+                    copilot,
+                    model: modelName,
+                    modelType: copilotModel.modelType
+                })
+            ))
 
         const customModels = await this.queryBus.execute(
             new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
@@ -182,6 +194,9 @@ export class AgentMiddlewareRuntimeService {
                         usageCallback(input.usage)
                     }
 
+                    if (skipTokenRecord) {
+                        return
+                    }
                     try {
                         await this.commandBus.execute(
                             new CopilotTokenRecordCommand({
@@ -189,8 +204,11 @@ export class AgentMiddlewareRuntimeService {
                                 tenantId,
                                 organizationId,
                                 userId,
+                                xpertId,
                                 copilot,
                                 model: input.model,
+                                modelType: copilotModel.modelType,
+                                modelAccess,
                                 tokenUsed: input.usage?.totalTokens,
                                 priceUsed: input.usage?.totalPrice,
                                 currency: input.usage?.currency
@@ -589,7 +607,7 @@ export class AgentMiddlewareRuntimeService {
         ])
 
         return {
-            createModelClient: (...args) => this.createModelClient(...args),
+            createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope),
             wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
             emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
             capabilities

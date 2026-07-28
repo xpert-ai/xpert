@@ -15,7 +15,7 @@
     disableRipple
     [tabPanel]="tabPanel"
   >
-    @if (membershipPlanEnabled()) {
+    @if (hasActiveMembership()) {
       <span
         z-tab-link
         [routerLink]="['usage']"
@@ -37,23 +37,47 @@
         {{ 'PAC.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
       </span>
     }
+    @if (!isTechnicalUser()) {
+      <span
+        z-tab-link
+        [routerLink]="['models']"
+        routerLinkActive
+        #rla3="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="rla3.isActive"
+      >
+        {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Available models' } }}
+      </span>
+    }
+    @if (canUseModelGateway()) {
+      <span
+        z-tab-link
+        [routerLink]="['api']"
+        routerLinkActive
+        #rlaApi="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="rlaApi.isActive"
+      >
+        {{ 'PAC.ModelGateway.ExternalApi' | translate: { Default: 'External API' } }}
+      </span>
+    }
     <span
       z-tab-link
       [routerLink]="['profile']"
       routerLinkActive
-      #rla3="routerLinkActive"
+      #rla4="routerLinkActive"
       [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla3.isActive"
+      [active]="rla4.isActive"
     >
-      {{ 'PAC.KEY_WORDS.Profile' | translate: { Default: 'Profile' } }}
+      {{ 'PAC.KEY_WORDS.PersonalInformation' | translate: { Default: 'Personal Information' } }}
     </span>
     <span
       z-tab-link
       [routerLink]="['password']"
       routerLinkActive
-      #rla4="routerLinkActive"
+      #rla5="routerLinkActive"
       [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla4.isActive"
+      [active]="rla5.isActive"
     >
       {{ 'PAC.KEY_WORDS.Password' | translate: { Default: 'Password' } }}
     </span>

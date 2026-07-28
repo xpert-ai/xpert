@@ -8,6 +8,7 @@ import { t } from 'i18next'
 import { AIModelGetProviderQuery, ModelProvider } from '../../ai-model'
 import { CopilotProviderModel } from './copilot-provider-model.entity'
 import { CopilotProviderService } from '../copilot-provider.service'
+import { ModelAccessService } from '../../model-access'
 
 @Injectable()
 export class CopilotProviderModelService extends TenantOrganizationAwareCrudService<CopilotProviderModel> {
@@ -15,7 +16,8 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
 		@InjectRepository(CopilotProviderModel)
 		repository: Repository<CopilotProviderModel>,
 		private readonly providerService: CopilotProviderService,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly modelAccessService: ModelAccessService
 	) {
 		super(repository)
 	}
@@ -32,6 +34,7 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
 	 * @throws {HttpException} If model properties are missing during creation.
 	 */
 	async upsertModel(entity: Partial<ICopilotProviderModel>) {
+		const previous = entity.id ? await this.findOne(entity.id) : null
 		const modelProperties = entity.modelProperties
 		const providerId = entity.providerId
 		// Must provide model credentials when create custom model
@@ -73,8 +76,36 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
 
 		if (entity.id) {
 			await this.update(entity.id, entity)
-			return await this.findOne(entity.id)
+			const saved = await this.findOne(entity.id)
+			if (
+				previous?.modelName &&
+				previous.modelType &&
+				(previous.modelName !== saved.modelName || previous.modelType !== saved.modelType)
+			) {
+				await this.closePreviousModelAccess(previous, copilotProvider.copilotId)
+			}
+			return saved
 		}
 		return await this.create(entity)
+	}
+
+	async deleteModel(id: string) {
+		const model = await this.findOne(id)
+		const provider = await this.providerService.findOne(model.providerId)
+		const result = await this.delete(id)
+		await this.closePreviousModelAccess(model, provider.copilotId)
+		return result
+	}
+
+	private async closePreviousModelAccess(model: CopilotProviderModel, copilotId?: string | null) {
+		if (!copilotId || !model.tenantId || !model.modelName || !model.modelType) {
+			return
+		}
+		await this.modelAccessService.handleConfiguredModelDeleted({
+			tenantId: model.tenantId,
+			copilotId,
+			copilotModelId: model.modelName,
+			modelType: model.modelType
+		})
 	}
 }

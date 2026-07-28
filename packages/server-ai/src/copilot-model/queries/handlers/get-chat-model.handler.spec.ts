@@ -3,26 +3,53 @@ jest.mock('../../utils/context-size', () => ({
 }))
 
 import { HumanMessage } from '@langchain/core/messages'
-import { AiModelTypeEnum, FetchFrom, ModelFeature } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    FetchFrom,
+    IModelAccessResolution,
+    ModelAccessChannelEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum,
+    ModelFeature
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
-import { CopilotCheckLimitCommand } from '../../../copilot-user'
+import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotModelGetChatModelHandler } from './get-chat-model.handler'
 import { prepareMessagesForModel } from '../../model-capabilities'
 
 describe('CopilotModelGetChatModelHandler', () => {
-    function createFixture(features: ModelFeature[] = []) {
+    function createFixture(features: ModelFeature[] = [], modelType = AiModelTypeEnum.LLM) {
+        const modelAccess: IModelAccessResolution = {
+            allowed: true,
+            channel: ModelAccessChannelEnum.Xpert,
+            billableUserId: 'creator-user',
+            copilotId: 'copilot-1',
+            copilotModelId: 'qwen3.6-plus',
+            provider: 'tongyi',
+            modelType,
+            model: 'qwen3.6-plus',
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-1',
+            multiplier: 1,
+            scope: ModelAccessOwnershipScopeEnum.Tenant
+        }
         const commandBus = {
-            execute: jest.fn().mockResolvedValue(undefined)
+            execute: jest.fn().mockImplementation(async (command) => {
+                if (command instanceof CopilotCheckLimitCommand) {
+                    return modelAccess
+                }
+                return undefined
+            })
         }
         const model = { invoke: jest.fn() }
         const getModelInstance = jest.fn().mockReturnValue(model)
         const getProviderModels = jest.fn().mockReturnValue([
             {
                 model: 'qwen3.6-plus',
-                model_type: AiModelTypeEnum.LLM,
+                model_type: modelType,
                 fetch_from: FetchFrom.PREDEFINED_MODEL,
                 model_properties: {},
                 features,
@@ -49,6 +76,7 @@ describe('CopilotModelGetChatModelHandler', () => {
             queryBus as never,
             { t: jest.fn().mockReturnValue('not found') } as never
         )
+        const modelAccessCallback = jest.fn()
         const query = new CopilotModelGetChatModelQuery(
             {
                 id: 'copilot-1',
@@ -60,16 +88,17 @@ describe('CopilotModelGetChatModelHandler', () => {
             {
                 copilotId: 'copilot-1',
                 model: 'qwen3.6-plus',
-                modelType: 'llm'
+                modelType
             } as never,
             {
                 usageCallback: jest.fn(),
+                modelAccessCallback,
                 xpertId: 'xpert-1',
                 threadId: 'thread-1'
             }
         )
 
-        return { commandBus, handler, model, query }
+        return { commandBus, getModelInstance, handler, model, modelAccess, modelAccessCallback, query }
     }
 
     beforeEach(() => {
@@ -94,8 +123,34 @@ describe('CopilotModelGetChatModelHandler', () => {
             organizationId: 'org-1',
             userId: 'assistant-tech-user',
             xpertId: 'xpert-1',
-            model: 'qwen3.6-plus'
+            model: 'qwen3.6-plus',
+            modelType: AiModelTypeEnum.LLM
         })
+    })
+
+    it('reuses the call-start authorization snapshot when recording usage', async () => {
+        const { commandBus, getModelInstance, handler, modelAccess, modelAccessCallback, query } = createFixture()
+
+        await handler.execute(query)
+        expect(modelAccessCallback).toHaveBeenCalledWith(modelAccess)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleLLMTokens({
+            model: 'qwen3.6-plus',
+            usage: { totalTokens: 120 }
+        })
+
+        const recordCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof CopilotTokenRecordCommand) as CopilotTokenRecordCommand
+        expect(recordCommand.input).toMatchObject({
+            model: 'qwen3.6-plus',
+            modelType: AiModelTypeEnum.LLM,
+            modelAccess,
+            tokenUsed: 120
+        })
+        expect(commandBus.execute.mock.calls.filter(([command]) => command instanceof CopilotCheckLimitCommand)).toHaveLength(
+            1
+        )
     })
 
     it('marks predefined vision models', async () => {

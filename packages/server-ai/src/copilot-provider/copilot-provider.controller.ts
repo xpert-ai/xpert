@@ -164,6 +164,6 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		@Param('providerId', UUIDValidationPipe) providerId: string,
 		@Param('id', UUIDValidationPipe) id: string,
 	): Promise<DeleteResult> {
-		return this.modelService.delete(id)
+		return this.modelService.deleteModel(id)
 	}
 }

@@ -49,6 +49,7 @@ import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import { JsonSchemaWidgetStrategyRegistry } from '@cloud/app/@shared/forms'
 import {
   AiModelTypeEnum,
+  CopilotServerService,
   findStartNodes,
   injectHelpWebsite,
   IWFNTrigger,
@@ -92,6 +93,7 @@ import { XpertAssistantFacade } from '../assistant-shell/assistant.facade'
 import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { calculateHash } from '../../../@shared/utils'
+import { XpertStudioCopilotServerService } from './xpert-studio-copilot-server.service'
 
 @Component({
   standalone: true,
@@ -134,6 +136,10 @@ import { calculateHash } from '../../../@shared/utils'
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     XpertStudioApiService,
+    {
+      provide: CopilotServerService,
+      useClass: XpertStudioCopilotServerService
+    },
     SelectionService,
     XpertExecutionService,
     JsonSchemaWidgetStrategyRegistry,

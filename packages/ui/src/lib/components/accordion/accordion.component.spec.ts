@@ -9,7 +9,7 @@ import { ZardAccordionItemComponent } from './accordion-item.component';
 @Component({
   imports: [...ZardAccordionImports],
   template: `
-    <z-accordion [multi]="multi" [togglePosition]="togglePosition">
+    <z-accordion [multi]="multi" [togglePosition]="togglePosition" zDefaultValue="default-open">
       <z-accordion-item
         [expanded]="firstExpanded"
         [disabled]="firstDisabled"
@@ -32,6 +32,14 @@ import { ZardAccordionItemComponent } from './accordion-item.component';
         </z-accordion-header>
 
         <div class="second-body">Second content</div>
+      </z-accordion-item>
+
+      <z-accordion-item zValue="default-open">
+        <z-accordion-header>
+          <z-accordion-title>Default open</z-accordion-title>
+        </z-accordion-header>
+
+        <div class="default-open-body">Default content</div>
       </z-accordion-item>
     </z-accordion>
   `,
@@ -145,5 +153,17 @@ describe('ZardAccordionComponent', () => {
     items[0].close();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.first-lazy-content')).not.toBeNull();
+  });
+
+  it('allows a default-open item to be collapsed from its header', async () => {
+    const { fixture, items } = await createHost();
+    const headers = fixture.nativeElement.querySelectorAll('[data-slot="accordion-header"]');
+
+    expect(items[2].expanded).toBe(true);
+
+    (headers[2] as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(items[2].expanded).toBe(false);
   });
 });

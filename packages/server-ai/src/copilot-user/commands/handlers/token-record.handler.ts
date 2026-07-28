@@ -4,9 +4,9 @@ import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
-import { usesOrganizationCredentials } from '../../../copilot/utils'
 import { ExceedingLimitException } from '../../../core/errors'
 import { MembershipService } from '../../../membership'
+import { ModelAccessService } from '../../../model-access'
 import { formatInUTC0 } from '../../../shared/utils'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotTokenRecordCommand } from '../token-record.command'
@@ -18,6 +18,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
         private readonly copilotUserService: CopilotUserService,
         private readonly copilotOrganizationService: CopilotOrganizationService,
         private readonly membershipService: MembershipService,
+        private readonly modelAccessService: ModelAccessService,
         private readonly i18nService: I18nService
     ) {}
 
@@ -39,11 +40,31 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
             const copilot = await this.queryBus.execute(
                 new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider'])
             )
+            const modelType = input.modelType ?? copilot.copilotModel?.modelType
+            if (!modelType) {
+                throw new InvalidConfigurationException(
+                    await this.i18nService.t('copilot.Error.TokenNoModel', {
+                        lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+                    })
+                )
+            }
+            const modelAccess =
+                input.modelAccess ??
+                (await this.modelAccessService.assertCanUseModel({
+                    tenantId: input.tenantId,
+                    organizationId,
+                    userId,
+                    xpertId,
+                    copilotId,
+                    copilotModelId: model,
+                    modelType
+                }))
+            const billableUserId = modelAccess.billableUserId
             // Record the token used by the organization or globally for the user
             const record = await this.copilotUserService.upsert({
                 copilotId,
                 organizationId,
-                userId,
+                userId: billableUserId,
                 xpertId,
                 threadId,
                 orgId: copilot.organizationId,
@@ -56,21 +77,20 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                 currency: input.currency
             })
 
-            if (!usesOrganizationCredentials(copilot, organizationId)) {
                 await this.membershipService.recordUsage({
                     tenantId: input.tenantId,
                     organizationId,
                     copilotOrganizationId: copilot.organizationId ?? null,
-                    userId,
+                    userId: billableUserId,
                     provider: copilot.modelProvider.providerName,
                     model,
                     tokenUsed,
                     usageHour,
                     xpertId,
                     threadId,
-                    copilotId
+                    copilotId,
+                    modelAccess
                 })
-            }
 
             if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {
                 throw new ExceedingLimitException(

@@ -1,0 +1,441 @@
+<div class="flex h-full w-full min-w-0 flex-col">
+  <div class="pac-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 overflow-auto p-4">
+    @if (loading()) {
+      <div class="flex min-h-52 items-center justify-center"><ngm-spin /></div>
+    } @else {
+      <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="font-semibold text-text-primary">
+              {{ 'PAC.ModelGateway.ExternalApi' | translate: { Default: 'External API' } }}
+              ·
+              {{ 'PAC.ModelGateway.Connection' | translate: { Default: 'Connection' } }}
+            </h2>
+            <p class="mt-1 text-sm text-text-secondary">
+              {{
+                'PAC.ModelGateway.AccountDescription'
+                  | translate
+                    : {
+                        Default:
+                          'Apply for external model access, create dedicated API keys, and use your own membership balance from other platforms.'
+                      }
+              }}
+            </p>
+            <p class="mt-2 text-sm text-text-tertiary">
+              {{
+                'PAC.ModelGateway.OpenAICompatible'
+                  | translate
+                    : {
+                        Default:
+                          'Use this base URL in OpenAI-compatible clients. Direct Claude Code support requires the Anthropic protocol planned for a later phase.'
+                      }
+              }}
+            </p>
+          </div>
+          <button z-button zType="outline" type="button" (click)="copy(apiBaseUrl)">
+            {{ 'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+          </button>
+        </div>
+        <code class="mt-3 block overflow-auto rounded-lg bg-components-panel-bg p-3 text-sm">{{ apiBaseUrl }}</code>
+        <div class="mt-4 border-t border-divider-regular pt-4">
+          <z-accordion displayDensity="compact">
+            <z-accordion-item>
+              <z-accordion-header class="px-0">
+                <z-accordion-title class="text-text-primary">
+                  {{ 'PAC.ModelGateway.QuickStart' | translate: { Default: 'Quick start' } }}
+                </z-accordion-title>
+                <z-accordion-description>
+                  <button
+                    z-button
+                    zType="outline"
+                    zSize="sm"
+                    type="button"
+                    (click)="$event.stopPropagation(); copy(curlExample())"
+                    (keydown)="$event.stopPropagation()"
+                  >
+                    {{ 'PAC.ModelGateway.CopyExample' | translate: { Default: 'Copy example' } }}
+                  </button>
+                </z-accordion-description>
+              </z-accordion-header>
+              <pre
+                class="overflow-auto whitespace-pre-wrap break-words rounded-lg bg-components-panel-bg p-3 text-xs text-text-secondary"
+              >{{ curlExample() }}</pre>
+            </z-accordion-item>
+          </z-accordion>
+        </div>
+      </section>
+
+      <section>
+        <z-accordion displayDensity="compact">
+          <z-accordion-item zValue="external-models" class="[&_[data-slot=accordion-body]>div]:px-0">
+            <z-accordion-header class="px-0">
+              <z-accordion-title class="items-start text-base">
+                <div>
+                  <h2 class="font-semibold text-text-primary">
+                    {{ 'PAC.ModelGateway.Models' | translate: { Default: 'External models' } }}
+                  </h2>
+                  <p class="mt-1 text-sm font-normal text-text-tertiary">
+                    {{
+                      'PAC.ModelGateway.ModelsHint'
+                        | translate: { Default: 'Every model needs its own approval, including models in your plan.' }
+                    }}
+                  </p>
+                </div>
+              </z-accordion-title>
+            </z-accordion-header>
+            <div class="mb-3 flex justify-end">
+              <z-form-field class="w-full sm:max-w-sm">
+                <z-form-label>
+                  {{ 'PAC.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
+                </z-form-label>
+                <input
+                  z-input
+                  [formControl]="modelSearchControl"
+                  [placeholder]="
+                    'PAC.ModelGateway.SearchModelsPlaceholder'
+                      | translate: { Default: 'Model ID, provider, or model name' }
+                  "
+                />
+              </z-form-field>
+            </div>
+            <div id="external-models-list">
+              @if (catalog()?.items?.length) {
+                @if (filteredCatalogItems().length) {
+                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    @for (item of filteredCatalogItems(); track item.id) {
+                      <div class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <div class="truncate font-medium text-text-primary" [title]="item.externalModelId">
+                              {{ item.externalModelId }}
+                            </div>
+                            <div class="mt-1 truncate text-xs text-text-tertiary">
+                              {{ item.provider }} / {{ item.model }}
+                            </div>
+                          </div>
+                          <div class="flex shrink-0 flex-wrap justify-end gap-1">
+                            @if (item.deprecated) {
+                              <z-badge zType="destructive">
+                                {{ 'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' } }}
+                              </z-badge>
+                            }
+                            @if (item.grant) {
+                              @if (item.allowed) {
+                                <z-badge zType="secondary">
+                                  {{ 'PAC.ModelGateway.Available' | translate: { Default: 'Available' } }}
+                                </z-badge>
+                              } @else {
+                                <z-badge zType="destructive">
+                                  {{
+                                    'PAC.ModelGateway.TemporarilyUnavailable'
+                                      | translate: { Default: 'Temporarily unavailable' }
+                                  }}
+                                </z-badge>
+                              }
+                            } @else if (item.pendingRequest) {
+                              <z-badge zType="outline">
+                                {{ 'PAC.ModelGateway.Pending' | translate: { Default: 'Pending' } }}
+                              </z-badge>
+                            }
+                          </div>
+                        </div>
+                        @if (item.grant && !item.allowed && item.unavailableReason) {
+                          <div class="mt-2 text-xs text-text-warning">
+                            {{ 'PAC.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                          </div>
+                        }
+                        <div class="mt-4 flex items-center justify-between gap-3 text-xs text-text-secondary">
+                          <span>
+                            {{
+                              item.planIncluded
+                                ? ('PAC.ModelGateway.PlanPricing' | translate: { Default: 'Plan pricing' })
+                                : ('PAC.ModelGateway.StandardPricing' | translate: { Default: '1× pricing' })
+                            }}
+                          </span>
+                          @if (item.requestable) {
+                            <button z-button zSize="sm" type="button" (click)="apply(item)">
+                              {{ 'PAC.ModelGateway.Apply' | translate: { Default: 'Apply' } }}
+                            </button>
+                          } @else if (item.pendingRequest) {
+                            <button
+                              z-button
+                              zType="outline"
+                              zSize="sm"
+                              type="button"
+                              (click)="withdraw(item.pendingRequest)"
+                            >
+                              {{ 'PAC.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <z-empty
+                    [zDescription]="
+                      'PAC.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
+                    "
+                  />
+                }
+              } @else {
+                <z-empty
+                  [zDescription]="
+                    'PAC.ModelGateway.NoAvailableApiModels'
+                      | translate: { Default: 'No tenant chat models are currently available for API access.' }
+                  "
+                />
+              }
+            </div>
+          </z-accordion-item>
+        </z-accordion>
+      </section>
+
+      <section>
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="font-semibold text-text-primary">
+              {{ 'PAC.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
+            </h2>
+            <p class="mt-1 text-sm text-text-tertiary">
+              {{ 'PAC.ModelGateway.KeysHint' | translate: { Default: 'Keys do not grant model permissions.' } }}
+            </p>
+          </div>
+          <button z-button type="button" (click)="createKey()">
+            <z-icon zType="plus" />
+            {{ 'PAC.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
+          </button>
+        </div>
+        @if (keys().length) {
+          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
+            <table z-table zSize="compact" class="min-w-[64rem]">
+              <thead z-table-header>
+                <tr z-table-row>
+                  <th z-table-head>{{ 'PAC.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.ApiKey' | translate: { Default: 'API key' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
+                  <th z-table-head class="text-right">
+                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody z-table-body>
+                @for (key of keys(); track key.id) {
+                  <tr z-table-row>
+                    <td z-table-cell class="font-medium text-text-primary">{{ key.name }}</td>
+                    <td z-table-cell>
+                      @if (key.secret; as secret) {
+                        <div class="flex min-w-0 items-center gap-2">
+                          <code class="block max-w-96 truncate" [title]="secret">{{ secret }}</code>
+                          <button z-button zType="outline" zSize="sm" type="button" (click)="copy(secret)">
+                            {{ 'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+                          </button>
+                        </div>
+                      } @else {
+                        <div>
+                          <code>{{ key.prefix }}…</code>
+                          <div class="mt-1 text-xs text-text-tertiary">
+                            {{
+                              'PAC.ModelGateway.LegacyKeyUnavailable'
+                                | translate: { Default: 'Create a new key to make it copyable.' }
+                            }}
+                          </div>
+                        </div>
+                      }
+                    </td>
+                    <td z-table-cell>
+                      <z-badge zType="outline">
+                        {{ 'PAC.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
+                      </z-badge>
+                    </td>
+                    <td z-table-cell>{{ formatDate(key.validUntil) }}</td>
+                    <td z-table-cell class="text-right">
+                      @if (key.status === keyStatus.Active) {
+                        <button z-button zType="destructive" zSize="sm" type="button" (click)="revokeKey(key)">
+                          {{ 'PAC.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <z-empty [zDescription]="'PAC.ModelGateway.NoKeys' | translate: { Default: 'No API keys yet.' }" />
+        }
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-semibold text-text-primary">
+          {{ 'PAC.ModelGateway.ApplicationStatus' | translate: { Default: 'Application status' } }}
+        </h2>
+        @if (requests().length) {
+          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
+            <table z-table zSize="compact" class="min-w-[64rem]">
+              <thead z-table-header>
+                <tr z-table-row>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.SubmittedAt' | translate: { Default: 'Submitted at' } }}</th>
+                  <th z-table-head class="text-right">
+                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody z-table-body>
+                @for (request of pagedRequests(); track request.id) {
+                  <tr z-table-row>
+                    <td z-table-cell>
+                      <div class="font-medium text-text-primary">
+                        {{ request.externalModelId || request.modelSnapshot.externalModelId || request.model }}
+                      </div>
+                      <div class="mt-1 text-xs text-text-tertiary">{{ request.provider }} / {{ request.model }}</div>
+                    </td>
+                    <td z-table-cell>
+                      <div class="max-w-96 line-clamp-2 text-text-secondary" [title]="request.reason">
+                        {{ request.reason }}
+                      </div>
+                    </td>
+                    <td z-table-cell>
+                      <z-badge zType="outline">
+                        {{
+                          'PAC.ModelAccess.StatusValue.' + currentRequestStatus(request)
+                            | translate: { Default: currentRequestStatus(request) }
+                        }}
+                      </z-badge>
+                    </td>
+                    <td z-table-cell class="whitespace-nowrap">{{ formatDate(request.createdAt) }}</td>
+                    <td z-table-cell class="text-right">
+                      @if (request.status === requestStatus.Requested) {
+                        <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
+                          {{ 'PAC.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
+                        </button>
+                      } @else {
+                        <span class="text-text-tertiary">—</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+            <span>
+              {{
+                'PAC.ModelGateway.PageSummary'
+                  | translate
+                    : {
+                        current: requestPageIndex() + 1,
+                        pages: requestPageCount(),
+                        total: requests().length,
+                        Default: 'Page {{current}} of {{pages}} · {{total}} records'
+                      }
+              }}
+            </span>
+            <div class="flex gap-2">
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                [disabled]="requestPageIndex() === 0"
+                (click)="previousRequestsPage()"
+              >
+                {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+              </button>
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                [disabled]="requestPageIndex() + 1 >= requestPageCount()"
+                (click)="nextRequestsPage()"
+              >
+                {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <z-empty
+            [zDescription]="
+              'PAC.ModelGateway.NoRequests' | translate: { Default: 'No external API model applications yet.' }
+            "
+          />
+        }
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-semibold text-text-primary">
+          {{ 'PAC.ModelGateway.RecentCalls' | translate: { Default: 'Recent API calls' } }}
+        </h2>
+        @if (calls().length) {
+          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
+            <table z-table zSize="compact" class="min-w-[48rem]">
+              <thead z-table-header>
+                <tr z-table-row>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
+                  <th z-table-head>{{ 'PAC.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
+                </tr>
+              </thead>
+              <tbody z-table-body>
+                @for (call of calls(); track call.id) {
+                  <tr z-table-row>
+                    <td z-table-cell class="font-medium text-text-primary">{{ call.externalModelId }}</td>
+                    <td z-table-cell>
+                      {{ 'PAC.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
+                    </td>
+                    <td z-table-cell>{{ call.chargedPoints }}</td>
+                    <td z-table-cell>{{ formatDate(call.startedAt) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+            <span>
+              {{
+                'PAC.ModelGateway.PageSummary'
+                  | translate
+                    : {
+                        current: callPageIndex() + 1,
+                        pages: callPageCount(),
+                        total: callTotal(),
+                        Default: 'Page {{current}} of {{pages}} · {{total}} records'
+                      }
+              }}
+            </span>
+            <div class="flex gap-2">
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                [disabled]="callPageIndex() === 0"
+                (click)="previousCallsPage()"
+              >
+                {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+              </button>
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                [disabled]="callPageIndex() + 1 === callPageCount()"
+                (click)="nextCallsPage()"
+              >
+                {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <z-empty [zDescription]="'PAC.ModelGateway.NoCalls' | translate: { Default: 'No external API calls yet.' }" />
+        }
+      </section>
+    }
+  </div>
+</div>

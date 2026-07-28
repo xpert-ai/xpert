@@ -269,6 +269,15 @@ export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
   knowledgebase?: IKnowledgebase
 }
 
+export interface IXpertPrincipalReference {
+  id: string
+  name: string
+  title?: string
+  organizationName?: string | null
+  tenantName?: string | null
+  workspaceName?: string | null
+}
+
 export type TXpertOptions = {
   bootstrap?: {
     source: 'template'

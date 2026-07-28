@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
 import { EventEmitter } from 'events'
 import type { Response } from 'express'
@@ -18,6 +18,7 @@ import type { XpertPrincipalService } from './xpert-principal.service'
 import type { XpertService } from './xpert.service'
 import type { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 import type { XpertDraftDslDTO } from './dto'
+import { FindCopilotModelsQuery } from '../copilot/queries'
 
 jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
@@ -44,6 +45,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     },
     SecretTokenService: class {},
     TenantBaseEntity: class {},
+    TenantPermissionGuard: class {},
     TenantOrganizationAwareCrudService: class {},
     TenantOrganizationBaseEntity: class {},
     TimeZone: () => () => undefined,
@@ -165,6 +167,7 @@ type RuntimeCapabilitiesControllerAccess = {
 describe('XpertController', () => {
     let controller: XpertController
     let xpertService: {
+        findByPrincipalUserId: jest.Mock
         findBySlug: jest.Mock
         findOne: jest.Mock
         update: jest.Mock
@@ -196,6 +199,7 @@ describe('XpertController', () => {
 
     beforeEach(() => {
         xpertService = {
+            findByPrincipalUserId: jest.fn(),
             findBySlug: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn()
@@ -265,6 +269,53 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('returns the xpert linked to a technical user', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            name: 'Pipeline',
+            tenantName: 'Xpert AI',
+            organizationName: 'Research',
+            workspaceName: 'Automation'
+        }
+        xpertService.findByPrincipalUserId.mockResolvedValue(xpert)
+
+        await expect(controller.getByPrincipalUser('technical-user')).resolves.toBe(xpert)
+        expect(xpertService.findByPrincipalUserId).toHaveBeenCalledWith('technical-user')
+    })
+
+    it('returns null when a technical user no longer has a linked xpert', async () => {
+        xpertService.findByPrincipalUserId.mockResolvedValue(null)
+
+        await expect(controller.getByPrincipalUser('technical-user')).resolves.toBeNull()
+    })
+
+    it('loads the studio model catalog with the xpert creator as access subject', async () => {
+        xpertService.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            createdById: 'creator-user'
+        })
+        queryBus.execute.mockResolvedValue([{ id: 'copilot-1' }])
+
+        await expect(controller.getModelCatalog('xpert-1', AiModelTypeEnum.RERANK)).resolves.toEqual([
+            { id: 'copilot-1' }
+        ])
+
+        const query = queryBus.execute.mock.calls[0][0] as FindCopilotModelsQuery
+        expect(query).toBeInstanceOf(FindCopilotModelsQuery)
+        expect(query.type).toBe(AiModelTypeEnum.RERANK)
+        expect(query.accessUserId).toBe('creator-user')
+    })
+
+    it('returns an empty studio model catalog when the xpert has no creator', async () => {
+        xpertService.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            createdById: null
+        })
+
+        await expect(controller.getModelCatalog('xpert-1', AiModelTypeEnum.LLM)).resolves.toEqual([])
+        expect(queryBus.execute).not.toHaveBeenCalled()
     })
 
     it('initializes workspace prompt workflows after importing a trusted template', async () => {

@@ -1,0 +1,67 @@
+<form class="w-full px-4 py-4" [formGroup]="form" (ngSubmit)="save()">
+  <section class="w-full">
+    <div class="mb-4">
+      <h2 class="text-lg font-semibold text-text-primary">
+        {{ 'PAC.MENU.TENANT.MEMBERSHIP_MANAGEMENT' | translate: { Default: 'Membership Management' } }}
+      </h2>
+      <p class="mt-1 text-sm text-text-tertiary">
+        {{
+          'PAC.MENU.TENANT.MEMBERSHIP_MANAGEMENT_HINT'
+            | translate
+              : {
+                  Default:
+                    'Configure tenant-wide membership parameters. These settings apply to every personal and organization plan.'
+                }
+        }}
+      </p>
+    </div>
+
+    <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
+      <div class="border-b border-divider-regular px-4 py-3">
+        <div class="font-medium text-text-primary">
+          {{ 'PAC.MENU.TENANT.POINT_CONVERSION' | translate: { Default: 'Point conversion' } }}
+        </div>
+        <div class="mt-1 text-xs text-text-tertiary">
+          {{
+            'PAC.MENU.TENANT.POINT_CONVERSION_HINT'
+              | translate
+                : {
+                    Default:
+                      'Defines how many model tokens consume one point. Model multipliers configured on a plan are applied afterward.'
+                  }
+          }}
+        </div>
+      </div>
+
+      <div class="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,20rem)_auto] md:items-start">
+        <z-form-field appearance="fill" class="w-full">
+          <z-form-label [zRequired]="true">
+            {{ 'PAC.MENU.TENANT.TOKENS_PER_POINT' | translate: { Default: 'Tokens per point' } }}
+          </z-form-label>
+          <z-select class="w-full" formControlName="tokensPerPoint">
+            @for (option of tokensPerPointOptions; track option) {
+              <z-select-item [zValue]="option">
+                {{
+                  'PAC.MENU.TENANT.TOKENS_PER_POINT_OPTION'
+                    | translate: { Default: '1 point = {{tokens}}
+                tokens', tokens: (option | number) } }}
+              </z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+
+        <button
+          z-button
+          class="justify-self-start md:self-end"
+          zType="default"
+          displayDensity="cosy"
+          type="submit"
+          [zLoading]="loading()"
+          [disabled]="loading() || form.pristine || form.invalid"
+        >
+          {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+        </button>
+      </div>
+    </div>
+  </section>
+</form>

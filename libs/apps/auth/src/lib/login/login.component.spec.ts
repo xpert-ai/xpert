@@ -117,6 +117,14 @@ describe('UserLoginComponent', () => {
     expect(component.errors).toEqual(['Feishu OAuth failed: User denied access.'])
   })
 
+  it('shows the tenant error returned from an OIDC interaction', async () => {
+    const { component } = await createFixture({
+      error: 'invalid_tenant'
+    })
+
+    expect(component.errors).toEqual(['The requested tenant is not available.'])
+  })
+
   it('falls back to a generic provider message when only the SSO error code is present', async () => {
     const { component, queryParamMap$, fixture } = await createFixture(
       {},

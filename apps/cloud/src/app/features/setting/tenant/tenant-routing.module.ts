@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { FeatureEnum, PermissionsEnum, RolesEnum } from '../../../@core'
+import { AiFeatureEnum, FeatureEnum, PermissionsEnum, RolesEnum } from '../../../@core'
 import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
 import { featureGate } from '../../feature-gate'
 import { SettingsComponent } from './settings/settings.component'
@@ -50,6 +50,14 @@ const routes: Routes = [
         loadComponent: () => import('./retention/retention.component').then((m) => m.TenantRetentionComponent),
         data: {
           title: 'settings/tenant/retention'
+        }
+      },
+      {
+        path: 'membership',
+        loadComponent: () => import('./membership/membership.component').then((m) => m.TenantMembershipComponent),
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN], ['/settings/tenant/settings'])],
+        data: {
+          title: 'settings/tenant/membership'
         }
       },
       {

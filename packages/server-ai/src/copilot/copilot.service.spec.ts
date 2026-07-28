@@ -7,6 +7,7 @@ import { Repository } from 'typeorm'
 import { CopilotProvider } from '../copilot-provider/copilot-provider.entity'
 import { CopilotProviderService } from '../copilot-provider/copilot-provider.service'
 import { MembershipService } from '../membership'
+import { ModelAccessService } from '../model-access'
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 
@@ -28,9 +29,10 @@ describe('CopilotService', () => {
             | 'findModelAccess'
             | 'countEnabledOrganizationCopilots'
             | 'ensureScopeInitialized'
-            | 'isMembershipPlanEnabled'
+            | 'isMembershipAccessEnabled'
         >
     >
+    let modelAccessService: jest.Mocked<Pick<ModelAccessService, 'handleCopilotStateChanged'>>
     let configService: jest.Mocked<Pick<ConfigService, 'get'>>
     let service: CopilotService
 
@@ -47,12 +49,15 @@ describe('CopilotService', () => {
         membershipService = {
             countEnabledOrganizationCopilots: jest.fn().mockResolvedValue(0),
             ensureScopeInitialized: jest.fn().mockResolvedValue({} as never),
-            isMembershipPlanEnabled: jest.fn().mockResolvedValue(true),
+            isMembershipAccessEnabled: jest.fn().mockResolvedValue(true),
             findModelAccess: jest.fn().mockResolvedValue({
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 membership: {}
             })
+        }
+        modelAccessService = {
+            handleCopilotStateChanged: jest.fn().mockResolvedValue(undefined)
         }
         configService = {
             get: jest.fn().mockReturnValue('http://localhost')
@@ -76,6 +81,10 @@ describe('CopilotService', () => {
                 {
                     provide: MembershipService,
                     useValue: membershipService
+                },
+                {
+                    provide: ModelAccessService,
+                    useValue: modelAccessService
                 },
                 {
                     provide: ConfigService,
@@ -261,7 +270,7 @@ describe('CopilotService', () => {
         expect(copilotProviderService.findVisibleByCopilotIds).not.toHaveBeenCalled()
     })
 
-    it('includes an organization copilot with configured credentials outside membership access scope', async () => {
+    it('keeps copilots outside the membership access scope unavailable even with configured credentials', async () => {
         membershipService.findModelAccess.mockResolvedValue({
             tenantId: 'tenant-1',
             organizationId: null,
@@ -301,10 +310,10 @@ describe('CopilotService', () => {
 
         const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
 
-        expect(result.map((copilot) => copilot.id)).toEqual(['tenant-copilot', 'organization-copilot'])
+        expect(result.map((copilot) => copilot.id)).toEqual(['tenant-copilot'])
     })
 
-    it('includes an organization copilot with configured credentials when membership access is missing', async () => {
+    it('returns no organization copilots with configured credentials when membership access is missing', async () => {
         membershipService.findModelAccess.mockResolvedValue(null)
         repository.find.mockResolvedValue([
             createCopilot({
@@ -328,10 +337,10 @@ describe('CopilotService', () => {
 
         const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
 
-        expect(result.map((copilot) => copilot.id)).toEqual(['organization-copilot'])
+        expect(result).toEqual([])
     })
 
-    it('keeps an organization copilot filtered when it has no configured credentials', async () => {
+    it('returns no organization copilots without configured credentials when membership access is missing', async () => {
         membershipService.findModelAccess.mockResolvedValue(null)
         repository.find.mockResolvedValue([
             createCopilot({
@@ -357,7 +366,7 @@ describe('CopilotService', () => {
     })
 
     it('lists organization and tenant enabled copilots without membership access when membership plans are disabled', async () => {
-        membershipService.isMembershipPlanEnabled.mockResolvedValue(false)
+        membershipService.isMembershipAccessEnabled.mockResolvedValue(false)
         repository.find.mockResolvedValue([
             createCopilot({
                 id: 'org-copilot',
@@ -403,7 +412,7 @@ describe('CopilotService', () => {
     })
 
     it('lists only tenant enabled copilots without membership access in tenant scope when membership plans are disabled', async () => {
-        membershipService.isMembershipPlanEnabled.mockResolvedValue(false)
+        membershipService.isMembershipAccessEnabled.mockResolvedValue(false)
         repository.find.mockResolvedValue([
             createCopilot({
                 id: 'tenant-copilot',

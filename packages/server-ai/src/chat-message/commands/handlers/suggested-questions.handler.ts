@@ -54,7 +54,8 @@ export class SuggestedQuestionsHandler implements ICommandHandler<SuggestedQuest
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
 			new CopilotModelGetChatModelQuery(copilotModel.copilot, copilotModel, {
 				abortController: new AbortController(),
-				usageCallback: null
+				usageCallback: null,
+				xpertId: xpert.id
 			})
 		)
 		const prompt = ChatPromptTemplate.fromMessages(

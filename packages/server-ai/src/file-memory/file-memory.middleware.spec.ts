@@ -179,7 +179,11 @@ describe('XpertFileMemoryMiddleware', () => {
         const results = await middleware.tools?.[0].invoke({ query: 'history' }, toolConfig())
 
         expect((context.runtime as any).createModelClient).toHaveBeenCalled()
-        expect(selectorInvoke).toHaveBeenCalled()
+        expect(selectorInvoke).toHaveBeenCalledWith(expect.any(Array), {
+            metadata: {
+                internal: true
+            }
+        })
         expect(fileMemoryService.recordRecallHits).toHaveBeenCalledWith(
             { tenantId: 'tenant-1', id: 'xpert-1' },
             expect.objectContaining({

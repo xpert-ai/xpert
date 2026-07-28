@@ -117,6 +117,46 @@ describe('XpertService command facade', () => {
         }
     }
 
+    it('finds the xpert linked to a principal user in the current tenant', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const { service, repository } = createService()
+        const xpert = {
+            id: 'xpert-1',
+            name: 'Pipeline',
+            title: 'Data Pipeline',
+            tenantId: 'tenant-1',
+            tenant: { name: 'Xpert AI' },
+            organization: { name: 'Research' },
+            workspace: { name: 'Automation' },
+            userId: 'technical-user'
+        }
+        repository.findOne.mockResolvedValue(xpert)
+
+        await expect(service.findByPrincipalUserId('technical-user')).resolves.toEqual({
+            id: 'xpert-1',
+            name: 'Pipeline',
+            title: 'Data Pipeline',
+            tenantName: 'Xpert AI',
+            organizationName: 'Research',
+            workspaceName: 'Automation'
+        })
+        expect(repository.findOne).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                userId: 'technical-user'
+            },
+            relations: {
+                organization: true,
+                tenant: true,
+                workspace: true
+            },
+            order: {
+                latest: 'DESC',
+                createdAt: 'DESC'
+            }
+        })
+    })
+
     it('publish forwards to XpertPublishCommand', async () => {
         const { service, commandBus } = createService()
 

@@ -1,4 +1,4 @@
-import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { IModelAccessResolution, mapTranslationLanguage } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
@@ -25,7 +25,13 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
     ) {}
 
     public async execute(command: CopilotModelGetChatModelQuery) {
-        const { abortController, usageCallback, xpertId, threadId } = command.options ?? {}
+        const {
+            abortController,
+            usageCallback,
+            modelAccessCallback,
+            xpertId,
+            threadId
+        } = command.options ?? {}
         let copilot = command.copilot
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
@@ -48,16 +54,18 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
         }
 
         // Check token limit
-        await this.commandBus.execute(
+        const modelAccess = await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
             new CopilotCheckLimitCommand({
                 tenantId,
                 organizationId,
                 userId,
                 xpertId,
                 copilot,
-                model: modelName
+                model: modelName,
+                modelType: copilotModel.modelType
             })
         )
+        modelAccessCallback?.(modelAccess)
 
         // Custom model
         const customModels = await this.queryBus.execute(
@@ -96,36 +104,22 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                         return
                     }
 
-                    // Record token usage and abort if error
-                    try {
-                        await this.commandBus.execute(
-                            new CopilotTokenRecordCommand({
-                                ...omit(input, 'usage'),
-                                tenantId,
-                                organizationId,
-                                userId,
-                                xpertId,
-                                threadId,
-                                copilot,
-                                model: input.model,
-                                tokenUsed: input.usage?.totalTokens,
-                                priceUsed: input.usage?.totalPrice,
-                                currency: input.usage?.currency
-                            })
-                        )
-                    } catch (err) {
-                        if (err instanceof ExceedingLimitException) {
-                            if (abortController && !abortController.signal.aborted) {
-                                try {
-                                    abortController.abort(err.message)
-                                } catch (err) {
-                                    //
-                                }
-                            }
-                        } else {
-                            this.#logger.error(err)
-                        }
-                    }
+                    await this.recordUsage({
+                        ...omit(input, 'usage'),
+                        tenantId,
+                        organizationId,
+                        userId,
+                        xpertId,
+                        threadId,
+                        copilot,
+                        model: input.model,
+                        modelType: copilotModel.modelType,
+                        modelAccess,
+                        tokenUsed: input.usage?.totalTokens,
+                        priceUsed: input.usage?.totalPrice,
+                        currency: input.usage?.currency,
+                        abortController
+                    })
                 }
             }
         )
@@ -134,5 +128,24 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             model,
             resolveModelVisionSupport(modelName, customModels, modelProvider.getProviderModels(copilotModel.modelType))
         )
+    }
+
+    private async recordUsage(
+        input: CopilotTokenRecordCommand['input'] & {
+            abortController?: AbortController
+        }
+    ) {
+        const { abortController, ...record } = input
+        try {
+            await this.commandBus.execute(new CopilotTokenRecordCommand(record))
+        } catch (error) {
+            if (error instanceof ExceedingLimitException) {
+                if (abortController && !abortController.signal.aborted) {
+                    abortController.abort(error.message)
+                }
+                return
+            }
+            this.#logger.error(error)
+        }
     }
 }

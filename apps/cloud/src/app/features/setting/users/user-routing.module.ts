@@ -61,11 +61,11 @@ const routes: Routes = [
         component: PACEditUserComponent,
         data: {
           title: 'Settings/User/Edit',
-          scopeContext: 'tenant-only'
-        },
+          scopeContext: 'dual-scope'
+        }
       }
     ]
-  },
+  }
 ]
 
 @NgModule({

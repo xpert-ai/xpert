@@ -1,10 +1,11 @@
-import { AiModelTypeEnum, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, IModelAccessResolution, mapTranslationLanguage } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { AIModelGetProviderQuery, ModelProvider } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
+import { CopilotCheckLimitCommand } from '../../../copilot-user'
 import { CopilotModelInvalidException } from '../../../core/errors'
 import { CopilotModelGetRerankQuery } from '../get-rerank.query'
 
@@ -28,6 +29,20 @@ export class CopilotModelGetRerankHandler implements IQueryHandler<CopilotModelG
 
 		const copilot = command.copilot
 		const modelName = copilotModel.model
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const userId = RequestContext.currentUserId()
+		await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
+			new CopilotCheckLimitCommand({
+				tenantId,
+				organizationId,
+				userId,
+				xpertId: command.options?.xpertId,
+				copilot,
+				model: modelName,
+				modelType: copilotModel.modelType
+			})
+		)
 		// Custom model
 		const customModels = await this.queryBus.execute(
 			new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
@@ -46,9 +61,7 @@ export class CopilotModelGetRerankHandler implements IQueryHandler<CopilotModelG
 			{
 				verbose: Logger.isLevelEnabled('verbose'),
 				modelProperties: customModels[0]?.modelProperties,
-				handleLLMTokens: (input) => {
-					//
-				}
+				handleLLMTokens: () => undefined
 			}
 		)
 	}

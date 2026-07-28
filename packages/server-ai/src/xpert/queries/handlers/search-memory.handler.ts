@@ -35,7 +35,11 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 			return
 		}
 
-		const embeddings = await createMemoryEmbeddings(memory, this.queryBus, { tenantId, organizationId })
+		const embeddings = await createMemoryEmbeddings(memory, this.queryBus, {
+			tenantId,
+			organizationId,
+			xpertId
+		})
 		if (!embeddings) {
 			throw new CopilotNotFoundException(`Not found the embeddings role copilot`)
 		}

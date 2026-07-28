@@ -1,20 +1,113 @@
-@if (quotaCopilots()?.length) {
+@if (membership(); as membership) {
+  <div
+    class="mb-4 flex flex-col gap-3 rounded-xl border-[0.5px] border-divider-regular bg-components-card-bg px-4 py-3"
+  >
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <div class="text-sm text-text-tertiary">
+        {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+      </div>
+        <div class="mt-1 flex flex-wrap items-center gap-2">
+          <div
+            class="truncate font-semibold text-text-primary"
+            [title]="membership.plan?.name || membership.membership.planId || '-'"
+          >
+            {{ membership.plan?.name || membership.membership.planId || '-' }}
+          </div>
+          @if (membership.membership.status === MembershipStatusEnum.Expired) {
+            <z-badge zType="destructive" zShape="pill">
+              {{ 'PAC.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
+            </z-badge>
+          }
+          @if (membership.membership.status === MembershipStatusEnum.Paused) {
+            <z-badge zType="secondary" zShape="pill">
+              {{ 'PAC.Membership.MemberStatuses.paused' | translate: { Default: 'Paused' } }}
+            </z-badge>
+          }
+      </div>
+    </div>
+
+      <div class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:text-right">
+        <div>
+      <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
+      </div>
+      <div class="mt-1 font-semibold text-text-primary">
+            @if (isUnlimitedMembership()) {
+              <span
+                [attr.aria-label]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                [title]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                >∞</span
+              >
+        } @else {
+              {{ membership.pointsRemaining | number: '1.0-10' }} /
+              {{ membership.pointsGranted | number: '1.0-10' }}
+        }
+      </div>
+      <div class="mt-1 text-xs text-text-tertiary">
+            @if (membership.membership.status === MembershipStatusEnum.Expired) {
+              {{ 'PAC.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
+            } @else if (isUnlimitedMembership()) {
+              {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+            } @else {
+        {{ membershipRemainingPercent() | number: '1.0-0' }}%
+        {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+            }
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+          </div>
+          <div class="mt-1 font-semibold text-text-primary">
+            {{ membership.personalPointsBalance | number: '1.0-10' }}
+          </div>
+          <div class="mt-1 text-xs text-text-tertiary">
+            {{ 'PAC.Membership.Permanent' | translate: { Default: 'Permanent' } }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t border-divider-subtle pt-3 text-xs text-text-tertiary">
+      @if (membership.personalPointsOnly) {
+        <div class="mb-1 font-medium text-text-secondary">
+          {{
+            'PAC.Membership.PersonalPointsOnlyHint'
+              | translate: { Default: 'The membership plan is unavailable. Only personal points are currently used.' }
+          }}
+        </div>
+      }
+      <div>
+        {{
+          'PAC.Membership.PersonalPointsHint'
+            | translate
+              : {
+                  Default:
+                    'Permanent. While the membership plan is active, cycle points are used first, then personal points.'
+                }
+        }}
+      </div>
+    </div>
+  </div>
+}
+
+@if (tenantCopilots()?.length) {
   <div class="text-lg px-2 py-2">
-    {{ 'PAC.Copilot.FreeQuota' | translate: { Default: 'Free Quota' } }}
+    {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Available models' } }}
   </div>
 
-  @for (copilot of quotaCopilots(); track copilot.id) {
+  @for (copilot of tenantCopilots(); track copilot.id) {
     <copilot-provider
       @disappear1
       readonly
       class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
       [providerId]="copilot.modelProvider.id"
-      [usage]="copilot.usage"
     />
   }
 }
 
-@if (quotaCopilots()?.length) {
+@if (tenantCopilots()?.length) {
   <div class="text-lg px-2 py-4">
     {{ 'PAC.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
   </div>
@@ -74,7 +167,12 @@
   </z-accordion-item>
 
   @for (copilot of copilots(); track copilot.id) {
-    <z-accordion-item #expansion="zAccordionItem" hideToggle class="shadow-sm rounded-[1rem]" [disabled]="!copilot.enabled">
+    <z-accordion-item
+      #expansion="zAccordionItem"
+      hideToggle
+      class="shadow-sm rounded-[1rem]"
+      [disabled]="!copilot.enabled"
+    >
       <z-accordion-header>
         <z-accordion-title>
           <div [zTooltip]="copilot.id" zPosition="left" class="flex">
@@ -107,7 +205,11 @@
                 [(ngModel)]="name"
                 (click)="$event.stopPropagation()"
               />
-              <button z-button zType="ghost" zSize="sm" class="ml-2 w-4 h-4 shrink-0 rounded-full"
+              <button
+                z-button
+                zType="ghost"
+                zSize="sm"
+                class="ml-2 w-4 h-4 shrink-0 rounded-full"
                 type="button"
                 (click)="$event.stopPropagation(); saveCopilotName(copilot)"
               >

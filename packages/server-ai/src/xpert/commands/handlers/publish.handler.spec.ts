@@ -69,6 +69,7 @@ describe('XpertPublishHandler', () => {
         const xpertService = {
             findOne: jest.fn().mockResolvedValue(xpert),
             findAll: jest.fn().mockResolvedValue({ items: [xpert] }),
+            validate: jest.fn().mockResolvedValue([]),
             save: jest.fn().mockImplementation(async (entity: Xpert) => entity)
         }
         const xpertPrincipalService = {

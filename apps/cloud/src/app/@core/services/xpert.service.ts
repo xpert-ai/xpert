@@ -28,6 +28,7 @@ import {
   IUserGroup,
   IXpert,
   IXpertAgentExecution,
+  IXpertPrincipalReference,
   OrderTypeEnum,
   TChatApi,
   TChatApp,
@@ -399,6 +400,10 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   ensurePrincipalUser(id: string) {
     return this.httpClient.post<{ userId: string }>(this.apiBaseUrl + `/${id}/principal-user`, {})
+  }
+
+  getByPrincipalUser(userId: string) {
+    return this.httpClient.get<IXpertPrincipalReference | null>(this.apiBaseUrl + `/principal-users/${userId}`)
   }
 
   // Conversations

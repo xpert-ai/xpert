@@ -1,30 +1,31 @@
 import { AiModelTypeEnum, FetchFrom, ICopilotProviderModel, ModelFeature, ProviderModel } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
+import { RequestContext } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { AIProvidersService } from '../../../ai-model/index'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotService } from '../../copilot.service'
 import { CopilotWithProviderDto, ProviderWithModelsDto } from '../../dto'
-import { FindCopilotModelsQuery } from '../copilot-model-find.query'
+import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { CopilotProviderPublicDto } from '../../../copilot-provider/dto'
+import { ModelAccessService } from '../../../model-access'
 
 /**
  * Builds the LLM/model catalog visible to the current tenant and organization.
  * It combines provider built-ins, provider custom model records, and the
- * copilot's already-selected model so custom selections remain importable even
- * when they are absent from the provider catalog query.
+ * copilot's already-selected model according to the requested catalog mode.
  */
 @QueryHandler(FindCopilotModelsQuery)
 export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModelsQuery> {
-
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
 
 	constructor(
 		private readonly queryBus: QueryBus,
 		private readonly service: CopilotService,
-		private readonly providersService: AIProvidersService
+		private readonly providersService: AIProvidersService,
+		private readonly modelAccessService: ModelAccessService
 	) {}
 
 	/**
@@ -32,7 +33,18 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 	 * for the requested model type.
 	 */
 	public async execute(command: FindCopilotModelsQuery): Promise<CopilotWithProviderDto[]> {
-		const copilots = await this.service.findAllAvailablesCopilots(null, null)
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const managementCopilots = await this.service.findAllEnabledCopilotsWithoutMembership(
+			tenantId,
+			organizationId
+		)
+		const copilots =
+			command.catalogMode === CopilotModelCatalogMode.MembershipManagement
+				? managementCopilots.filter(
+						(copilot) => (copilot.organizationId ?? null) === (organizationId ?? null)
+					)
+				: managementCopilots
 		const copilotSchemas: CopilotWithProviderDto[] = []
 		for (const copilot of copilots) {
 			if (copilot.modelProvider) {
@@ -58,7 +70,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 										features: customFeatures(model.modelProperties),
 										label: {
 											zh_Hans: model.modelName,
-											en_US: model.modelName,
+                                            en_US: model.modelName
 										}
 									}) as ProviderModel
 							)
@@ -75,17 +87,32 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 						models.push(selectedModel)
 					}
 
-					if (models.length) {
+                    const visibleModels =
+						command.catalogMode === CopilotModelCatalogMode.Available
+							? await this.filterAvailableModels(
+									models,
+										tenantId,
+										organizationId,
+										copilot.id,
+										command.type,
+										command.accessUserId
+									)
+							: models
+
+					if (visibleModels.length) {
 						const providerSchema = provider.getProviderSchema()
 						const baseUrl = this.configService.get('baseUrl') as string
 						copilotSchemas.push(
 							new CopilotWithProviderDto({
 								...copilot,
 								modelProvider: new CopilotProviderPublicDto(copilot.modelProvider, baseUrl),
-								providerWithModels: new ProviderWithModelsDto({
-									...providerSchema,
-									models
-								}, baseUrl)
+								providerWithModels: new ProviderWithModelsDto(
+									{
+										...providerSchema,
+										models: visibleModels
+									},
+									baseUrl
+								)
 							})
 						)
 					}
@@ -99,6 +126,33 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 		}
 
 		return copilotSchemas
+	}
+
+	private async filterAvailableModels(
+		models: ProviderModel[],
+		tenantId: string,
+			organizationId: string | null,
+			copilotId: string,
+			modelType: AiModelTypeEnum,
+			accessUserId?: string | null
+		) {
+			const userId = accessUserId ?? RequestContext.currentUserId()
+		if (!userId) {
+			return []
+		}
+		const availability = await Promise.all(
+			models.map((model) =>
+				this.modelAccessService.canUseCatalogModel({
+					tenantId,
+					organizationId,
+					userId,
+					copilotId,
+					copilotModelId: model.model,
+					modelType
+				})
+			)
+		)
+		return models.filter((_, index) => availability[index])
 	}
 }
 
@@ -135,7 +189,7 @@ function selectedCopilotModelAsProviderModel(
 	modelType: AiModelTypeEnum
 ): ProviderModel | null {
 	const model = readString(copilotModel?.model)
-	const selectedModelType = readString(copilotModel?.modelType) || AiModelTypeEnum.LLM
+	const selectedModelType = readString(copilotModel?.modelType)
 	if (!model || selectedModelType !== modelType) {
 		return null
 	}

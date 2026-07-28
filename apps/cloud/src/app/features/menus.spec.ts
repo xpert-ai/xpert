@@ -68,6 +68,43 @@ describe('getSettingsMenuItems', () => {
     expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
   })
 
+  it('gates model access approvals with both features and view-or-edit permission', () => {
+    const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
+    const modelAccess = menus.find((item) => item.path === 'model-access')
+
+    expect(modelAccess?.data?.featureKey).toEqual([
+      AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
+      AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST
+    ])
+    expect(modelAccess?.data?.permissionKeys).toEqual([
+      AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW,
+      AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT
+    ])
+  })
+
+  it('shows scope-isolated model gateway management in tenant and organization settings', () => {
+    const tenantGateway = getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'model-gateway')
+    const organizationGateway = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find(
+      (item) => item.path === 'model-gateway'
+    )
+
+    expect(tenantGateway).toMatchObject({
+      icon: 'code-xml',
+      scopeContext: 'dual-scope',
+      data: {
+        featureKey: AiFeatureEnum.FEATURE_MODEL_GATEWAY,
+        permissionKeys: [AIPermissionsEnum.MODEL_GATEWAY_MANAGE]
+      }
+    })
+    expect(organizationGateway).toMatchObject({
+      scopeContext: 'dual-scope',
+      data: {
+        featureKey: AiFeatureEnum.FEATURE_MODEL_GATEWAY,
+        permissionKeys: [AIPermissionsEnum.MODEL_GATEWAY_MANAGE]
+      }
+    })
+  })
+
   it('exposes system integrations in tenant and organization settings', () => {
     const tenantIntegration = getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'integration')
     const organizationIntegration = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find(

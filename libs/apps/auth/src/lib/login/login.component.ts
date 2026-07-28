@@ -75,6 +75,11 @@ export class UserLoginComponent implements OnDestroy {
   /**
    * Signals
    */
+  readonly #oidcErrorMap: Record<string, string> = {
+    invalid_credentials: 'Login/Email combination is not correct, please try again.',
+    invalid_tenant: 'The requested tenant is not available.',
+    interaction_expired: 'Session expired, please try again.'
+  }
   readonly ssoProviders = toSignal(
     this.#http.get<SSOProviderDiscoveryResponse>('/api/auth/sso/providers').pipe(
       map((result) => result.providers ?? []),
@@ -214,6 +219,11 @@ export class UserLoginComponent implements OnDestroy {
   }
 
   private resolveSsoErrors(params: ParamMap): string[] {
+    const oidcError = params.get('error')?.trim()
+    if (oidcError) {
+      return [this.#oidcErrorMap[oidcError] ?? oidcError]
+    }
+
     const ssoMessage = params.get('ssoMessage')?.trim()
     if (ssoMessage) {
       return [ssoMessage]

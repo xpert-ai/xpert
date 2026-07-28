@@ -1,44 +1,49 @@
-import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { IModelAccessResolution, mapTranslationLanguage } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
-import { MembershipService } from '../../../membership'
+import { ModelAccessService } from '../../../model-access'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotCheckLimitCommand } from '../check-limit.command'
-import { ExceedingLimitException } from '../../../core/errors'
-import { usesOrganizationCredentials } from '../../../copilot/utils'
+import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 
 @CommandHandler(CopilotCheckLimitCommand)
 export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLimitCommand> {
     constructor(
         private readonly copilotUserService: CopilotUserService,
         private readonly copilotOrganizationService: CopilotOrganizationService,
-        private readonly membershipService: MembershipService,
+        private readonly modelAccessService: ModelAccessService,
         private readonly i18nService: I18nService
     ) {}
 
-    public async execute(command: CopilotCheckLimitCommand): Promise<void> {
+    public async execute(command: CopilotCheckLimitCommand): Promise<IModelAccessResolution> {
         const { input } = command
         const { copilot, tenantId, organizationId, userId, xpertId } = input
 
-        if (!usesOrganizationCredentials(copilot, organizationId)) {
-            await this.membershipService.assertCanUse({
+        if (!copilot?.modelProvider) {
+            throw new CopilotModelNotFoundException(
+                await this.i18nService.t('copilot.Error.AIModelNotFound', {
+                    lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+                })
+            )
+        }
+
+        const modelAccess = await this.modelAccessService.assertCanUseModel({
                 tenantId,
                 organizationId,
-                copilotOrganizationId: copilot.organizationId ?? null,
                 userId,
                 xpertId,
-                provider: copilot.modelProvider.providerName,
-                model: input.model
-            })
-        }
+                copilotId: copilot.id,
+                copilotModelId: input.model,
+                modelType: input.modelType
+        })
 
         const usage = await this.copilotUserService.getUsageSummary({
             tenantId,
             organizationId,
             orgId: copilot.organizationId ?? null,
-            userId,
+            userId: modelAccess.billableUserId,
             provider: copilot.modelProvider.providerName,
             model: input.model
         })
@@ -66,5 +71,6 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
                 })
             )
         }
+        return modelAccess
     }
 }

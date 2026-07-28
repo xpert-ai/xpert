@@ -1,111 +1,132 @@
-<form [formGroup]="form" (ngSubmit)="submit()" role="form" class="flex flex-col justify-start items-stretch">
+<section class="pac-login" aria-labelledby="pac-login-title">
+  <header class="mb-7">
+    <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-accent">
+      {{ 'Auth.SecureWorkspaceAccess' | translate: { Default: 'Secure workspace access' } }}
+    </p>
+    <h1 id="pac-login-title" class="m-0 text-3xl font-semibold tracking-[-0.04em] text-text-primary">
+      {{ 'Auth.WelcomeBack' | translate: { Default: 'Welcome back' } }}
+    </h1>
+    <p class="mb-0 mt-2 text-sm leading-6 text-text-secondary">
+      {{ 'Auth.LoginDescription' | translate: { Default: 'Sign in to continue to your agent workspace.' } }}
+    </p>
+  </header>
 
-  <div class="w-full md:mt-0 sm:max-w-md xl:p-0">
-    <!-- Tab Navigation -->
-    <z-tab-group class="border-b border-gray-200 dark:border-gray-700">
-      <z-tab label="{{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}">
-        <!-- Tab Content -->
-        <div class="flex flex-col justify-start items-stretch p-2 mt-2 gap-2">
-          @if (showMessages.error && errors?.length && !loading) {
-            @for (error of errors; track $index) {
-              <div class="flex items-center gap-2 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
-                <span class="flex-1 text-sm text-yellow-800 dark:text-yellow-300">
-                  {{ 'Auth.' + error | translate: {Default: error} }}
-                </span>
-                <button
-                  z-button
-                  type="button"
-                  zType="ghost"
-                  zSize="icon-xs"
-                  (click)="errors.splice($index, 1)"
-                  class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200"
-                >
-                  <span class="sr-only">Close</span>
-                  ✕
-                </button>
-              </div>
-            }
-          }
-          <div>
-            <label for="email" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
-              {{ 'AUTH.LOGIN.ACCOUNT' | translate: {Default: 'Account'} }}
-            </label>
-            <input
-              z-input
-              type="email"
-              name="email"
-              id="email"
-              formControlName="userName"
-              [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
-              required
+  <form [formGroup]="form" (ngSubmit)="submit()" role="form" class="flex flex-col items-stretch">
+    @if (showMessages.error && errors?.length && !loading) {
+      <div class="mb-4 flex flex-col gap-2" role="alert" aria-live="polite">
+        @for (error of errors; track $index) {
+          <div
+            class="flex items-center gap-2 rounded-lg border border-[var(--color-status-warning-indicator-border)] bg-[var(--color-status-warning-bg)] p-3"
+          >
+            <span class="flex-1 text-sm text-[var(--color-status-warning-fg)]">
+              {{ 'Auth.' + error | translate: { Default: error } }}
+            </span>
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon-xs"
+              (click)="errors.splice($index, 1)"
+              class="text-[var(--color-status-warning-fg)] hover:opacity-70"
+              [attr.aria-label]="'Auth.DismissMessage' | translate: { Default: 'Dismiss message' }"
             >
+              ✕
+            </button>
           </div>
-          <div>
-            <label for="password" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
-              {{ 'AUTH.LOGIN.PASSWORD' | translate: {Default: 'Password'} }}
-            </label>
-            <input
-              z-input
-              type="password"
-              name="password"
-              id="password"
-              formControlName="password"
-              [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: {Default: 'Enter password'}"
-              required
-            >
-          </div>
-        </div>
-      </z-tab>
-    </z-tab-group>
-  </div>
+        }
+      </div>
+    }
 
-  <div class="pac-auth__login-remember flex justify-between items-center my-2">
-    <span z-checkbox formControlName="rememberMe">
-      {{ 'AUTH.LOGIN.REMEMBER' | translate: {Default: 'Remember'} }}
-    </span>
+    <div class="flex flex-col gap-4">
+      <div>
+        <label for="email" class="mb-2 block text-sm font-medium text-text-primary">
+          {{ 'AUTH.LOGIN.ACCOUNT' | translate: { Default: 'Account' } }}
+        </label>
+        <input
+          z-input
+          class="h-11 w-full"
+          type="email"
+          name="email"
+          id="email"
+          autocomplete="username"
+          formControlName="userName"
+          [placeholder]="'AUTH.LOGIN.USERNAME' | translate: { Default: 'Username / Email' }"
+          required
+        />
+      </div>
 
-    <a class="forgot text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" routerLink="/auth/request-password">
-      {{ 'AUTH.LOGIN.FORGOT-PASSWORD' | translate: {Default: 'Forgot Password'} }}
-    </a>
-  </div>
+      <div>
+        <label for="password" class="mb-2 block text-sm font-medium text-text-primary">
+          {{ 'AUTH.LOGIN.PASSWORD' | translate: { Default: 'Password' } }}
+        </label>
+        <input
+          z-input
+          class="h-11 w-full"
+          type="password"
+          name="password"
+          id="password"
+          autocomplete="current-password"
+          formControlName="password"
+          [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: { Default: 'Enter password' }"
+          required
+        />
+      </div>
+    </div>
 
-  <button
-    z-button
-    zFull
-    [zLoading]="loading"
-    class="mb-2 h-10 text-sm font-medium"
-    [disabled]="form.invalid || loading"
-    type="submit"
-  >
-    {{ 'AUTH.LOGIN.SUBMIT' | translate: {Default: 'Submit'} }}
-  </button>
+    <div class="my-4 flex items-center justify-between gap-4">
+      <span z-checkbox formControlName="rememberMe">
+        {{ 'AUTH.LOGIN.REMEMBER' | translate: { Default: 'Remember' } }}
+      </span>
 
-  @if (enablePublicSignup) {
-    <div class="pac-auth__login-remember flex justify-end items-center">
-      <a class="register text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300" routerLink="/auth/register">
-        {{ 'AUTH.LOGIN.SIGNUP' | translate: {Default: 'Signup'} }}
+      <a class="text-sm font-medium text-text-accent hover:opacity-80" routerLink="/auth/request-password">
+        {{ 'AUTH.LOGIN.FORGOT-PASSWORD' | translate: { Default: 'Forgot Password' } }}
       </a>
+    </div>
+
+    <button
+      z-button
+      zFull
+      [zLoading]="loading"
+      class="h-11 text-sm font-semibold shadow-sm"
+      [disabled]="form.invalid || loading"
+      type="submit"
+    >
+      {{ 'AUTH.LOGIN.SUBMIT' | translate: { Default: 'Sign in' } }}
+    </button>
+  </form>
+
+  @if (ssoProviders().length) {
+    <div class="my-6 flex items-center gap-3 text-xs text-text-tertiary">
+      <span class="h-px flex-1 bg-divider-regular"></span>
+      <span>{{ 'Auth.OtherSigninMethods' | translate: { Default: 'Other sign-in methods' } }}</span>
+      <span class="h-px flex-1 bg-divider-regular"></span>
+    </div>
+
+    <div class="pac-login__signins">
+      @for (provider of ssoProviders(); track provider.provider) {
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          (click)="openProvider(provider)"
+          class="pac-login__signin-button h-11 w-full rounded-lg border border-divider-regular px-3 text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+          [title]="provider.displayName"
+        >
+          <span class="flex items-center justify-center gap-2">
+            <img class="h-5 w-5" [src]="provider.icon" [alt]="provider.displayName" />
+            <span>{{ provider.displayName }}</span>
+          </span>
+        </button>
+      }
     </div>
   }
 
-</form>
-
-@if (ssoProviders().length) {
-  <div class="pac-login__signins flex flex-wrap justify-center items-center gap-2">
-    @for (provider of ssoProviders(); track provider.provider) {
-      <button
-        z-button
-        zType="outline"
-        type="button"
-        (click)="openProvider(provider)"
-        class="pac-login__signin-button rounded-lg border border-divider-regular px-3 py-2 text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
-        [title]="provider.displayName"
-      >
-        <span class="flex items-center gap-2">
-          <img class="w-5 h-5" [src]="provider.icon" [alt]="provider.displayName">
-          <span>{{ provider.displayName }}</span>
-        </span>
-      </button>
-    }
-  </div>
-}
+  @if (enablePublicSignup) {
+    <p class="mb-0 mt-6 text-center text-sm text-text-secondary">
+      {{ 'Auth.NewToXpert' | translate: { Default: 'New to XpertAI?' } }}
+      <a class="ml-1 font-semibold text-text-accent hover:opacity-80" routerLink="/auth/register">
+        {{ 'Auth.Signup' | translate: { Default: 'Create an account' } }}
+      </a>
+    </p>
+  }
+</section>

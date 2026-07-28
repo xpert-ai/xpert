@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FeatureEnum, PermissionsEnum, Store, routeAnimations } from '../../../@core'
+import { AiFeatureEnum, FeatureEnum, PermissionsEnum, Store, routeAnimations } from '../../../@core'
 
 @Component({
   standalone: false,
@@ -32,5 +32,8 @@ export class PACTenantComponent {
       this.store.hasPermission(PermissionsEnum.CUSTOM_SMTP_VIEW) &&
       (!featureContextHydrated || this.store.hasFeatureEnabled(FeatureEnum.FEATURE_SMTP))
     )
+  })
+  readonly canViewMembership = toSignal(this.store.selectHasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN), {
+    initialValue: this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
   })
 }

@@ -132,4 +132,41 @@ describe('CopilotServerService', () => {
 
     subscription.unsubscribe()
   })
+
+  it('should load unfiltered models from the management endpoint', () => {
+    const managementModels = [
+      {
+        id: 'copilot-org-1',
+        role: AiProviderRole.Primary,
+        providerWithModels: {
+          models: []
+        }
+      }
+    ]
+
+    const subscription = service.getManagementCopilotModels(AiModelTypeEnum.LLM).subscribe()
+
+    const request = httpMock.expectOne(
+      (item) =>
+        item.url.endsWith('/copilot/management-models') &&
+        item.params.get('type') === AiModelTypeEnum.LLM
+    )
+    request.flush(managementModels)
+
+    subscription.unsubscribe()
+  })
+
+  it('loads the xpert catalog from the creator-scoped endpoint', () => {
+    const subscription = service.getXpertCopilotModels('xpert-1', AiModelTypeEnum.LLM).subscribe()
+
+    const request = httpMock.expectOne(
+      (item) =>
+        item.url.endsWith('/xpert/xpert-1/model-catalog') &&
+        item.params.get('type') === AiModelTypeEnum.LLM
+    )
+    request.flush([])
+
+    subscription.unsubscribe()
+  })
+
 })

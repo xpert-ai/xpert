@@ -9,11 +9,38 @@
   />
 </div>
 
-@if (readOnly()) {
-  <div class="w-full max-w-[700px] px-2 pt-2 text-sm text-text-tertiary">
-    {{ 'PAC.Users.TechnicalUserReadonlyHint' | translate: { Default: 'Basic account fields are read-only for technical users.' } }}
+@if (showLinkedXpert()) {
+  <div class="mt-4 w-full max-w-[700px] rounded-lg border border-divider-deep bg-components-card-bg px-4 py-3">
+    <div class="text-sm text-text-tertiary">
+      {{ 'PAC.Users.LinkedXpert' | translate: { Default: 'Linked Xpert' } }}
+    </div>
+
+    @if (linkedXpert(); as xpert) {
+      <div class="mt-1 text-sm font-medium text-text-primary">
+        {{ xpert.organizationName || xpert.tenantName || '—' }} / {{ xpert.workspaceName || '—' }} /
+        {{ xpert.title || xpert.name }}
+      </div>
+    } @else if (linkedXpert() === null) {
+      <div class="mt-1 text-sm text-text-secondary">
+        {{
+          'PAC.Users.LinkedXpertMissing'
+            | translate: { Default: 'No linked Xpert was found. It may have been deleted.' }
+        }}
+      </div>
+    } @else {
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{ 'PAC.Users.LinkedXpertLoading' | translate: { Default: 'Loading linked Xpert...' } }}
+      </div>
+    }
   </div>
-} @else {
+
+  <div class="w-full max-w-[700px] px-2 pt-2 text-sm text-text-tertiary">
+    {{
+      'PAC.Users.TechnicalUserReadonlyHint'
+        | translate: { Default: 'Basic account fields are read-only for technical users.' }
+    }}
+  </div>
+} @else if (!readOnly()) {
   <div class="flex w-full max-w-[700px] justify-end p-2">
     <button z-button zType="default" (click)="save()">
       {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}

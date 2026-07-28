@@ -1,14 +1,22 @@
 import { AiModelTypeEnum, FetchFrom } from '@xpert-ai/contracts'
-import { FindCopilotModelsQuery } from '../copilot-model-find.query'
+import { RequestContext } from '@xpert-ai/server-core'
+import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { FindCopilotModelsHandler } from './copilot-model-find.handler'
 
 describe('FindCopilotModelsHandler', () => {
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
     it('includes the currently selected copilot model when the provider catalog does not list it', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         const queryBus = {
             execute: jest.fn().mockResolvedValue([])
         }
         const service = {
-            findAllAvailablesCopilots: jest.fn().mockResolvedValue([
+            findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
                 {
                     id: 'copilot-primary',
                     copilotModel: {
@@ -51,7 +59,15 @@ describe('FindCopilotModelsHandler', () => {
         const configService = {
             get: jest.fn().mockReturnValue('http://localhost:3000')
         }
-        const handler = new FindCopilotModelsHandler(queryBus as never, service as never, providersService as never)
+        const modelAccessService = {
+            canUseCatalogModel: jest.fn().mockResolvedValue(true)
+        }
+        const handler = new FindCopilotModelsHandler(
+            queryBus as never,
+            service as never,
+            providersService as never,
+            modelAccessService as never
+        )
         Object.defineProperty(handler, 'configService', {
             value: configService
         })
@@ -68,5 +84,334 @@ describe('FindCopilotModelsHandler', () => {
                 })
             ])
         )
+        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: 'user-1',
+            copilotId: 'copilot-primary',
+            copilotModelId: 'qwen3.6-plus',
+            modelType: AiModelTypeEnum.LLM
+        })
+    })
+
+    it('includes provider-selectable models in management catalogs', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const queryBus = {
+            execute: jest.fn().mockResolvedValue([
+                {
+                    modelName: 'custom-configured',
+                    modelType: AiModelTypeEnum.LLM,
+                    modelProperties: {}
+                }
+            ])
+        }
+        const service = {
+            findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
+                {
+                    id: 'copilot-primary',
+                    organizationId: null,
+                    copilotModel: {
+                        model: 'selected-configured',
+                        modelType: AiModelTypeEnum.LLM
+                    },
+                    modelProvider: {
+                        id: 'provider-1',
+                        providerName: 'openai-compatible'
+                    }
+                }
+            ])
+        }
+        const getProviderModels = jest.fn().mockReturnValue([
+            {
+                model: 'provider-capability-only',
+                model_type: AiModelTypeEnum.LLM,
+                fetch_from: FetchFrom.PREDEFINED_MODEL
+            }
+        ])
+        const providersService = {
+            getProvider: jest.fn().mockReturnValue({
+                getProviderModels,
+                getProviderSchema: jest.fn().mockReturnValue({
+                    provider: 'openai-compatible',
+                    label: {
+                        zh_Hans: 'OpenAI Compatible',
+                        en_US: 'OpenAI Compatible'
+                    },
+                    supported_model_types: [AiModelTypeEnum.LLM],
+                    models: []
+                })
+            })
+        }
+        const modelAccessService = {
+            canUseCatalogModel: jest.fn()
+        }
+        const handler = new FindCopilotModelsHandler(
+            queryBus as never,
+            service as never,
+            providersService as never,
+            modelAccessService as never
+        )
+        Object.defineProperty(handler, 'configService', {
+            value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
+        })
+
+        const result = await handler.execute(
+            new FindCopilotModelsQuery(AiModelTypeEnum.LLM, CopilotModelCatalogMode.Management)
+        )
+
+        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual([
+            'custom-configured',
+            'provider-capability-only',
+            'selected-configured'
+        ])
+        expect(getProviderModels).toHaveBeenCalledWith(AiModelTypeEnum.LLM)
+        expect(modelAccessService.canUseCatalogModel).not.toHaveBeenCalled()
+    })
+
+    it('does not infer LLM for a selected copilot model without an explicit model type', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const handler = new FindCopilotModelsHandler(
+            { execute: jest.fn().mockResolvedValue([]) } as never,
+            {
+                findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
+                    {
+                        id: 'copilot-primary',
+                        copilotModel: {
+                            model: 'legacy-selected-model'
+                        },
+                        modelProvider: {
+                            id: 'provider-1',
+                            providerName: 'openai-compatible'
+                        }
+                    }
+                ])
+            } as never,
+            {
+                getProvider: jest.fn().mockReturnValue({
+                    getProviderModels: jest.fn().mockReturnValue([]),
+                    getProviderSchema: jest.fn().mockReturnValue({
+                        provider: 'openai-compatible',
+                        supported_model_types: [AiModelTypeEnum.LLM],
+                        models: []
+                    })
+                })
+            } as never,
+            {
+                canUseCatalogModel: jest.fn().mockResolvedValue(true)
+            } as never
+        )
+        Object.defineProperty(handler, 'configService', {
+            value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
+        })
+
+        await expect(
+            handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
+        ).resolves.toEqual([])
+    })
+
+    it('shows models allowed by the unified plan-or-grant resolver', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const queryBus = {
+            execute: jest.fn().mockResolvedValue([])
+        }
+        const service = {
+            findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
+                {
+                    id: 'copilot-primary',
+                    modelProvider: {
+                        id: 'provider-1',
+                        providerName: 'openai-compatible'
+                    }
+                }
+            ])
+        }
+        const providersService = {
+            getProvider: jest.fn().mockReturnValue({
+                getProviderModels: jest.fn().mockReturnValue([
+                    {
+                        model: 'free-model',
+                        model_type: AiModelTypeEnum.LLM,
+                        fetch_from: FetchFrom.PREDEFINED_MODEL,
+                        model_properties: {},
+                        features: [],
+                        label: { zh_Hans: 'Free', en_US: 'Free' }
+                    },
+                    {
+                        model: 'paid-model',
+                        model_type: AiModelTypeEnum.LLM,
+                        fetch_from: FetchFrom.PREDEFINED_MODEL,
+                        model_properties: {},
+                        features: [],
+                        label: { zh_Hans: 'Paid', en_US: 'Paid' }
+                    }
+                ]),
+                getProviderSchema: jest.fn().mockReturnValue({
+                    provider: 'openai-compatible',
+                    label: { zh_Hans: 'OpenAI Compatible', en_US: 'OpenAI Compatible' },
+                    supported_model_types: [AiModelTypeEnum.LLM],
+                    models: []
+                })
+            })
+        }
+        const modelAccessService = {
+            canUseCatalogModel: jest.fn().mockImplementation(async ({ copilotModelId }) => copilotModelId === 'free-model')
+        }
+        const handler = new FindCopilotModelsHandler(
+            queryBus as never,
+            service as never,
+            providersService as never,
+            modelAccessService as never
+        )
+        Object.defineProperty(handler, 'configService', {
+            value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
+        })
+
+        const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
+
+        expect(result).toHaveLength(1)
+        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['free-model'])
+        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledTimes(2)
+        expect(service.findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
+        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                copilotId: 'copilot-primary',
+                copilotModelId: 'free-model',
+                modelType: AiModelTypeEnum.LLM
+            })
+        )
+    })
+
+    it('uses an explicit internal access user for Xpert creator catalogs', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('collaborator-user')
+        const service = {
+            findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
+                {
+                    id: 'copilot-primary',
+                    copilotModel: null,
+                    modelProvider: {
+                        id: 'provider-1',
+                        providerName: 'test-provider'
+                    }
+                }
+            ])
+        }
+        const providersService = {
+            getProvider: jest.fn().mockReturnValue({
+                getProviderModels: jest.fn().mockReturnValue([
+                    {
+                        model: 'creator-model',
+                        model_type: AiModelTypeEnum.LLM
+                    }
+                ]),
+                getProviderSchema: jest.fn().mockReturnValue({
+                    provider: 'test-provider'
+                })
+            })
+        }
+        const modelAccessService = {
+            canUseCatalogModel: jest.fn().mockResolvedValue(true)
+        }
+        const handler = new FindCopilotModelsHandler(
+            { execute: jest.fn().mockResolvedValue([]) } as never,
+            service as never,
+            providersService as never,
+            modelAccessService as never
+        )
+        Object.defineProperty(handler, 'configService', {
+            value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
+        })
+
+        await handler.execute(
+            new FindCopilotModelsQuery(
+                AiModelTypeEnum.LLM,
+                CopilotModelCatalogMode.Available,
+                'creator-user'
+            )
+        )
+
+        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'creator-user',
+                copilotModelId: 'creator-model'
+            })
+        )
+    })
+
+    it('loads only models from the current organization scope for membership management', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const service = {
+            findAllAvailablesCopilots: jest.fn(),
+            findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
+                {
+                    id: 'copilot-tenant',
+                    organizationId: null,
+                    modelProvider: {
+                        id: 'provider-tenant',
+                        providerName: 'openai-compatible'
+                    }
+                },
+                {
+                    id: 'copilot-organization',
+                    organizationId: 'org-1',
+                    modelProvider: {
+                        id: 'provider-organization',
+                        providerName: 'openai-compatible'
+                    }
+                }
+            ])
+        }
+        const providersService = {
+            getProvider: jest.fn().mockReturnValue({
+                getProviderModels: jest.fn().mockReturnValue([
+                    {
+                        model: 'paid-model',
+                        model_type: AiModelTypeEnum.LLM,
+                        fetch_from: FetchFrom.PREDEFINED_MODEL,
+                        model_properties: {},
+                        features: [],
+                        label: { zh_Hans: 'Paid', en_US: 'Paid' }
+                    }
+                ]),
+                getProviderSchema: jest.fn().mockReturnValue({
+                    provider: 'openai-compatible',
+                    label: { zh_Hans: 'OpenAI Compatible', en_US: 'OpenAI Compatible' },
+                    supported_model_types: [AiModelTypeEnum.LLM],
+                    models: []
+                })
+            })
+        }
+        const modelAccessService = {
+            canUseCatalogModel: jest.fn()
+        }
+        const handler = new FindCopilotModelsHandler(
+            { execute: jest.fn().mockResolvedValue([]) } as never,
+            service as never,
+            providersService as never,
+            modelAccessService as never
+        )
+        Object.defineProperty(handler, 'configService', {
+            value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
+        })
+
+        const result = await handler.execute(
+            new FindCopilotModelsQuery(AiModelTypeEnum.LLM, CopilotModelCatalogMode.MembershipManagement)
+        )
+
+        expect(result.map((copilot) => copilot.id)).toEqual(['copilot-organization'])
+        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['paid-model'])
+        expect(service.findAllAvailablesCopilots).not.toHaveBeenCalled()
+        expect(service.findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
+        expect(modelAccessService.canUseCatalogModel).not.toHaveBeenCalled()
     })
 })

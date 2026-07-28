@@ -1,4 +1,5 @@
 import {
+    AiModelTypeEnum,
     AIPermissionsEnum,
     IChatConversation,
     IIntegration,
@@ -6,6 +7,7 @@ import {
     LanguagesEnum,
     LanguagesMap,
     LongTermMemoryTypeEnum,
+    PermissionsEnum,
     TChatApi,
     TChatApp,
     TChatOptions,
@@ -33,6 +35,7 @@ import {
     Public,
     SecretTokenService,
     TimeZone,
+    TenantPermissionGuard,
     UserService,
     transformWhere
 } from '@xpert-ai/server-core'
@@ -132,6 +135,7 @@ import { XpertFrequentQuestionsService } from './xpert-frequent-questions.servic
 import { XpertPrincipalService } from './xpert-principal.service'
 import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
+import { FindCopilotModelsQuery } from '../copilot/queries'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -176,6 +180,13 @@ export class XpertController extends CrudController<Xpert> {
             ...result,
             items: result.items.map((item) => new XpertPublicDTO(item))
         }
+    }
+
+    @UseGuards(TenantPermissionGuard, PermissionGuard)
+    @Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
+    @Get('principal-users/:userId')
+    async getByPrincipalUser(@Param('userId', UUIDValidationPipe) userId: string) {
+        return this.service.findByPrincipalUserId(userId)
     }
 
     @UseGuards(WorkspaceAuthoringGuard)
@@ -326,6 +337,16 @@ export class XpertController extends CrudController<Xpert> {
         } catch (err) {
             throw new InternalServerErrorException(err.message)
         }
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/model-catalog')
+    async getModelCatalog(@Param('id') id: string, @Query('type') type: AiModelTypeEnum) {
+        const xpert = await this.service.findOne(id)
+        if (!xpert.createdById) {
+            return []
+        }
+        return this.queryBus.execute(new FindCopilotModelsQuery(type, undefined, xpert.createdById))
     }
 
     @UseGuards(XpertGuard)

@@ -2,7 +2,9 @@ import {
     IMembershipPlan,
     IMembershipPointLedger,
     IUserMembership,
-    MembershipLedgerSourceEnum
+    MembershipLedgerSourceEnum,
+    ModelAccessSourceEnum,
+    ModelGatewayUsageChannelEnum
 } from '@xpert-ai/contracts'
 import { TenantBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
@@ -20,6 +22,9 @@ const numericNumberTransformer = {
 @Index('IDX_membership_ledger_tenant_user_hour', ['tenantId', 'userId', 'usageHour'])
 @Index('IDX_membership_ledger_tenant_model_hour', ['tenantId', 'provider', 'model', 'usageHour'])
 @Index('IDX_membership_ledger_tenant_membership', ['tenantId', 'membershipId'])
+@Index('IDX_membership_ledger_source_reference', ['tenantId', 'sourceReference'], { unique: true })
+@Index('IDX_membership_ledger_model_grant', ['tenantId', 'modelGrantId'])
+@Index('IDX_membership_ledger_gateway_request', ['tenantId', 'gatewayRequestId'])
 export class MembershipPointLedger extends TenantBaseEntity implements IMembershipPointLedger {
     @ApiProperty({ type: () => User })
     @ManyToOne(() => User, {
@@ -35,19 +40,33 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
     @Column()
     userId: string
 
+    @ApiPropertyOptional({ type: () => User })
+    @ManyToOne(() => User, {
+        nullable: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+    })
+    @JoinColumn()
+    actor?: User
+
+    @ApiPropertyOptional({ type: () => String, readOnly: true })
+    @RelationId((it: MembershipPointLedger) => it.actor)
+    @Column({ type: 'uuid', nullable: true })
+    actorId?: string | null
+
     @ApiProperty({ type: () => UserMembership })
     @ManyToOne(() => UserMembership, {
-        nullable: false,
+        nullable: true,
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        onDelete: 'SET NULL'
     })
     @JoinColumn()
     membership?: IUserMembership
 
     @ApiProperty({ type: () => String, readOnly: true })
     @RelationId((it: MembershipPointLedger) => it.membership)
-    @Column()
-    membershipId: string
+    @Column({ type: 'uuid', nullable: true })
+    membershipId?: string | null
 
     @ApiProperty({ type: () => MembershipPlan })
     @ManyToOne(() => MembershipPlan, {
@@ -60,8 +79,8 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
 
     @ApiProperty({ type: () => String, readOnly: true })
     @RelationId((it: MembershipPointLedger) => it.plan)
-    @Column({ nullable: true })
-    planId?: string
+    @Column({ type: 'uuid', nullable: true })
+    planId?: string | null
 
     @ApiPropertyOptional({ enum: MembershipLedgerSourceEnum })
     @Column({ type: 'varchar', default: MembershipLedgerSourceEnum.Usage })
@@ -108,6 +127,38 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
     usageHour?: string
 
     @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', nullable: true, length: 191 })
+    sourceReference?: string | null
+
+    @ApiPropertyOptional({ type: () => String })
     @Column({ nullable: true })
     reason?: string
+
+    @ApiPropertyOptional({ enum: ModelAccessSourceEnum })
+    @Column({ type: 'varchar', nullable: true, length: 20 })
+    accessSource?: ModelAccessSourceEnum | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'uuid', nullable: true })
+    modelGrantId?: string | null
+
+    @ApiPropertyOptional({ enum: ModelGatewayUsageChannelEnum })
+    @Column({ type: 'varchar', length: 20, default: ModelGatewayUsageChannelEnum.Xpert })
+    usageChannel?: ModelGatewayUsageChannelEnum | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', nullable: true, length: 191 })
+    gatewayRequestId?: string | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'uuid', nullable: true })
+    gatewayApiKeyId?: string | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'numeric', precision: 28, scale: 10, nullable: true, transformer: numericNumberTransformer })
+    chargedPoints?: number | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'numeric', precision: 28, scale: 10, nullable: true, transformer: numericNumberTransformer })
+    excessPoints?: number | null
 }

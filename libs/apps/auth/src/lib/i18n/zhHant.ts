@@ -1,6 +1,18 @@
 export const ZhHant = {
   Auth: {
     Copyright: '版權',
+    PlatformTitle: '構建、編排並交付企業級智能體系統。',
+    PlatformDescription: '將模型、工具、業務上下文與人工審核匯聚到一個可觀測的智能工作空間。',
+    ObservableExecution: '可觀測執行',
+    EnterpriseReady: '開放平台 · 企業級就緒',
+    WorkspaceAccess: '工作空間訪問',
+    Language: '語言',
+    SecureWorkspaceAccess: '安全訪問工作空間',
+    WelcomeBack: '歡迎回來',
+    LoginDescription: '登錄並繼續進入你的智能體工作空間。',
+    DismissMessage: '關閉消息',
+    OtherSigninMethods: '其他登錄方式',
+    NewToXpert: '初次使用 XpertAI？',
     Login: '登錄',
     Signin: '登錄',
     Signup: '註冊',

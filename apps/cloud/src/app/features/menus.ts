@@ -140,6 +140,26 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
+      path: 'model-access',
+      label: 'Model Access',
+      icon: 'approval',
+      scopeContext: 'dual-scope',
+      data: {
+        featureKey: [AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN, AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST],
+        permissionKeys: [AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW, AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT]
+      }
+    },
+    {
+      path: 'model-gateway',
+      label: 'Model API Gateway',
+      icon: 'code-xml',
+      scopeContext: 'dual-scope',
+      data: {
+        featureKey: AiFeatureEnum.FEATURE_MODEL_GATEWAY,
+        permissionKeys: [AIPermissionsEnum.MODEL_GATEWAY_MANAGE]
+      }
+    },
+    {
       path: 'groups',
       label: 'Groups',
       icon: 'group',

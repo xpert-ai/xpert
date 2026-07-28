@@ -52,6 +52,8 @@ import { FileUnderstandingModule } from './file-understanding'
 import { MetricsModule } from './metrics'
 import { MobileModule } from './mobile'
 import { MembershipModule } from './membership'
+import { ModelAccessModule } from './model-access'
+import { ModelGatewayModule } from './model-gateway'
 import { ArtifactsModule } from './artifacts'
 import { CollaborationModule } from './collaboration'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
@@ -86,6 +88,8 @@ import { WorkspaceFileAccessModule } from './workspace-file-access'
         FileMemoryModule,
         FileUnderstandingModule,
         MembershipModule,
+        ModelAccessModule,
+        ModelGatewayModule,
         MobileModule,
         XpertModule,
         XpertAgentModule,

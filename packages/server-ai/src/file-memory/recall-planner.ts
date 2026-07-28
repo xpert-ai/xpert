@@ -91,10 +91,17 @@ export class FileMemoryRecallPlanner {
         const humanInput = `Query: ${query}\n\nAvailable memories:\n${manifest}\n\nRespond with JSON only.`
         const selector = Promise.resolve()
             .then(() =>
-                chatModel.withStructuredOutput(schema).invoke([
-                    { role: 'system', content: prompt },
-                    { role: 'human', content: humanInput }
-                ])
+                chatModel.withStructuredOutput(schema).invoke(
+                    [
+                        { role: 'system', content: prompt },
+                        { role: 'human', content: humanInput }
+                    ],
+                    {
+                        metadata: {
+                            internal: true
+                        }
+                    }
+                )
             )
             .then((value) => ({ status: 'fulfilled' as const, value }))
             .catch((error) => ({ status: 'rejected' as const, error }))

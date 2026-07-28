@@ -8,6 +8,8 @@ import { SkillRepositoryIndexModule, SkillRepositoryModule } from '../skill-repo
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { MembershipModule } from '../membership'
+import { ModelAccessModule } from '../model-access'
+import { ModelGatewayModule } from '../model-gateway'
 import { AI_BOOTSTRAP_QUEUE } from './constants'
 import { ServerAIBootstrapProcessor } from './bootstrap.processor'
 import { ServerAIBootstrapService } from './bootstrap.service'
@@ -27,7 +29,9 @@ import { ServerAIBootstrapService } from './bootstrap.service'
         SkillRepositoryIndexModule,
         XpertModule,
         XpertTemplateModule,
-        MembershipModule
+        MembershipModule,
+        ModelAccessModule,
+        ModelGatewayModule
     ],
     providers: [ServerAIBootstrapProcessor, ServerAIBootstrapService]
 })

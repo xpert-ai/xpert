@@ -16,9 +16,9 @@ import { ListModelProvidersQuery } from '../ai-model'
 import { GetCopilotOrgUsageQuery } from '../copilot-organization/queries'
 import { CopilotProviderService } from '../copilot-provider/copilot-provider.service'
 import { MembershipService } from '../membership'
+import { ModelAccessService } from '../model-access'
 import { Copilot } from './copilot.entity'
 import { CopilotDto } from './dto'
-import { usesOrganizationCredentials } from './utils'
 
 export const ProviderRolePriority = [
     AiProviderRole.Embedding,
@@ -42,7 +42,8 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 
         private readonly queryBus: QueryBus,
         private readonly copilotProviderService: CopilotProviderService,
-        private readonly membershipService: MembershipService
+        private readonly membershipService: MembershipService,
+        private readonly modelAccessService: ModelAccessService
     ) {
         super(repository)
     }
@@ -100,7 +101,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (!tenantId) {
             return []
         }
-        if (!(await this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId }))) {
+        if (!(await this.membershipService.isMembershipAccessEnabled({ tenantId, organizationId }))) {
             return this.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId, where, relations)
         }
         if (
@@ -135,14 +136,10 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         })
         const hydratedItems = await this.hydrateVisibleModelProviders(items, tenantId, organizationId ?? null)
 
-        return hydratedItems.filter(
-            (copilot) =>
-                (!!access && (copilot.organizationId ?? null) === access.organizationId) ||
-                usesOrganizationCredentials(copilot, organizationId)
-        )
+        return hydratedItems.filter((copilot) => !!access && (copilot.organizationId ?? null) === access.organizationId)
     }
 
-    private async findAllEnabledCopilotsWithoutMembership(
+    async findAllEnabledCopilotsWithoutMembership(
         tenantId: string,
         organizationId?: string | null,
         where?: FindOptionsWhere<Copilot>,
@@ -184,8 +181,13 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 
     async update(id: string, entity: DeepPartial<ICopilot>) {
         const copilot = await this.findOne(id)
+        const wasEnabled = copilot.enabled
         assign(copilot, entity)
-        return await this.repository.save(copilot)
+        const saved = await this.repository.save(copilot)
+        if (entity.enabled !== undefined && saved.enabled !== wasEnabled) {
+            await this.modelAccessService.handleCopilotStateChanged(saved)
+        }
+        return saved
     }
 
     /**

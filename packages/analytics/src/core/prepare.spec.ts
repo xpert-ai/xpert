@@ -79,7 +79,14 @@ describe('prepare default feature definitions', () => {
 
 		expect(topLevelCodes).not.toContain(AiFeatureEnum.FEATURE_COPILOT)
 		expect(copilotGroup?.children?.map((feature) => feature.code)).toEqual(
-			expect.arrayContaining([AiFeatureEnum.FEATURE_COPILOT, AiFeatureEnum.FEATURE_COPILOT_MONITORING])
+			expect.arrayContaining([
+				AiFeatureEnum.FEATURE_COPILOT,
+				AiFeatureEnum.FEATURE_COPILOT_MONITORING,
+				AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST
+			])
+		)
+		expect(findFeature(features, AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)?.children?.map((feature) => feature.code)).toContain(
+			AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE
 		)
 	})
 

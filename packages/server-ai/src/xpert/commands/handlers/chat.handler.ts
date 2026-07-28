@@ -385,6 +385,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 latestXpert.memory?.copilotModel,
                 {
                     abortController,
+                    xpertId,
                     tokenCallback: (tokens: number) => {
                         //
                     }

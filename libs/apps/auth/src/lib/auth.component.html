@@ -1,29 +1,100 @@
-<div class="pac-auth-card flex flex-col justify-start items-center pb-2 m-auto rounded-xl shadow-lg dark:border dark:border-neutral-800">
-  <div class="pac-auth__header my-8">
-    <img class="pac-auth__logo w-10 h-10 rounded-xl mr-2" [src]="appConfig()?.app_logo || 'assets/logo.png'" />
-    <span>
-      {{ title() || appConfig()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
-    </span>
-  </div>
-    
-  <router-outlet></router-outlet>
-
-  <div class="flex justify-between items-center gap-2">
-
-    <z-select class="w-32"
-      id="countries"
-      [ngModel]="language()"
-      (ngModelChange)="onLanguage($event)"
-    >
-      <z-select-item zValue="en">English</z-select-item>
-      <z-select-item zValue="zh-Hans">中文简体</z-select-item>
-      <z-select-item zValue="zh-Hant">中文繁体</z-select-item>
-    </z-select>
-
-    <div class="pac-auth__copyright flex-1 flex items-center whitespace-pre">
-      {{ 'Auth.Copyright' | translate: { Default: 'Copyright' } }}
-      <span class="text-text-primary">©</span>
-      2026 <a href="https://xpertai.cn" target="_blank">XpertAI</a> Inc.
+<div class="pac-auth-shell">
+  <section class="pac-auth-brand" aria-labelledby="pac-auth-platform-title">
+    <div class="pac-auth-brand__identity">
+      <span class="pac-auth-brand__logo-frame">
+        <img class="h-7 w-7 rounded-lg" [src]="appConfig()?.app_logo || 'assets/logo.png'" alt="" />
+      </span>
+      <span class="pac-auth-brand__name">
+        {{ title() || appConfig()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
+      </span>
     </div>
-  </div>
+
+    <div class="pac-auth-brand__copy">
+      <p class="pac-auth-brand__eyebrow">
+        <span aria-hidden="true"></span>
+        XPERTAI AGENT PLATFORM
+      </p>
+      <h1 id="pac-auth-platform-title">
+        {{ 'Auth.PlatformTitle' | translate: { Default: 'Build, orchestrate, and deliver enterprise agent systems.' } }}
+      </h1>
+      <p class="pac-auth-brand__description">
+        {{
+          'Auth.PlatformDescription'
+            | translate
+              : {
+                  Default:
+                    'Bring models, tools, business context, and human review together in one observable workspace.'
+                }
+        }}
+      </p>
+
+      <div class="pac-auth-signal" aria-hidden="true">
+        <div class="pac-auth-signal__line"></div>
+        <div class="pac-auth-signal__node pac-auth-signal__node--plugin">
+          <span>01</span>
+          <strong>PLUGIN</strong>
+        </div>
+        <div class="pac-auth-signal__node pac-auth-signal__node--agent">
+          <span>02</span>
+          <strong>AGENT</strong>
+        </div>
+        <div class="pac-auth-signal__node pac-auth-signal__node--workbench">
+          <span>03</span>
+          <strong>WORKBENCH</strong>
+        </div>
+        <div class="pac-auth-signal__node pac-auth-signal__node--outcome">
+          <span>04</span>
+          <strong>OUTCOME</strong>
+        </div>
+      </div>
+
+      <div class="pac-auth-brand__capabilities">
+        <span><i aria-hidden="true"></i>Agent + Workflow</span>
+        <span><i aria-hidden="true"></i>Knowledge + MCP</span>
+        <span>
+          <i aria-hidden="true"></i>
+          {{ 'Auth.ObservableExecution' | translate: { Default: 'Observable execution' } }}
+        </span>
+      </div>
+    </div>
+
+    <p class="pac-auth-brand__footer">
+      {{ 'Auth.EnterpriseReady' | translate: { Default: 'Open platform · Enterprise ready' } }}
+    </p>
+  </section>
+
+  <main class="pac-auth-panel">
+    <div class="pac-auth-panel__content">
+      <div class="pac-auth-card">
+        <header class="pac-auth__header">
+          <img class="h-9 w-9 rounded-xl" [src]="appConfig()?.app_logo || 'assets/logo.png'" alt="" />
+          <div>
+            <p>{{ title() || appConfig()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}</p>
+            <span>{{ 'Auth.WorkspaceAccess' | translate: { Default: 'Workspace access' } }}</span>
+          </div>
+        </header>
+
+        <router-outlet></router-outlet>
+      </div>
+
+      <footer class="pac-auth-panel__footer">
+        <z-select
+          class="w-32"
+          id="countries"
+          [ngModel]="language()"
+          (ngModelChange)="onLanguage($event)"
+          [attr.aria-label]="'Auth.Language' | translate: { Default: 'Language' }"
+        >
+          <z-select-item zValue="en">English</z-select-item>
+          <z-select-item zValue="zh-Hans">中文简体</z-select-item>
+          <z-select-item zValue="zh-Hant">中文繁体</z-select-item>
+        </z-select>
+
+        <div class="pac-auth__copyright">
+          <span>© 2026</span>
+          <a href="https://xpertai.cn" target="_blank" rel="noopener noreferrer">XpertAI Inc.</a>
+        </div>
+      </footer>
+    </div>
+  </main>
 </div>

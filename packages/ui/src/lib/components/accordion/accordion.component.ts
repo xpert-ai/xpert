@@ -6,6 +6,7 @@ import {
   contentChildren,
   effect,
   input,
+  untracked,
   ViewEncapsulation,
 } from '@angular/core';
 
@@ -65,7 +66,7 @@ export class ZardAccordionComponent {
       for (const item of this.items()) {
         item.accordion = this;
         if (!item.hasExpandedInput() && defaultValues.includes(item.value())) {
-          item.setExpandedState(true, { emit: true });
+          untracked(() => item.setExpandedState(true, { emit: true }));
         }
       }
     });

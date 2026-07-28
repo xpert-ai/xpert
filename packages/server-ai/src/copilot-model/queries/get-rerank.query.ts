@@ -13,6 +13,8 @@ export class CopilotModelGetRerankQuery implements IQuery {
 		public readonly options: {
 			abortController?: AbortController;
 			tokenCallback?: (tokens: number) => void
+			xpertId?: string
+			threadId?: string
 		}
 	) {}
 }
