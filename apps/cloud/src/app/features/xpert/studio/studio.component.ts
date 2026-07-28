@@ -37,9 +37,9 @@ import {
   FSelectionChangeEvent,
   FZoomDirective
 } from '@foblex/flow'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour, isEqual } from '@xpert-ai/ocap-core'
-import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
@@ -306,13 +306,11 @@ export class XpertStudioComponent {
       this.#assistantFacade?.clearStudioContext()
     })
 
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.xpertService.paramId.set(this.paramId())
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.xpertService.paramId.set(this.paramId())
       }
-    )
+    })
 
     effect(() => {
       if (!this.#assistantFacade) {
@@ -731,7 +729,9 @@ export class XpertStudioComponent {
   }
 
   private isCanvasGroupTarget(node: TXpertTeamNode | undefined): boolean {
-    return !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+    return (
+      !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+    )
   }
 
   private releaseInvalidParentNodes(): void {

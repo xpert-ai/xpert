@@ -1,4 +1,3 @@
-
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import {
   ChangeDetectionStrategy,
@@ -13,8 +12,8 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmDisplayBehaviourComponent } from '@xpert-ai/ocap-angular/common'
-import { ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { NgmDisplayBehaviourComponent } from '@xpert-ai/headless-ui'
+import { ISelectOption } from '@xpert-ai/headless-ui'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
@@ -99,26 +98,24 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
     })
   })
 
-  #validatorEffectRef = effect(
-    () => {
-      const fieldError = isSignal(this.props.error) ? this.props.error() : this.props.error
-      if (isString(fieldError)) {
-        this.error.set(fieldError)
-      } else if (this.loadError()) {
-        this.error.set(this.loadError())
-      } else if (
-        isNonNullable(this.value()) &&
-        isNonNullable(this.selectOptions()) &&
-        !this.selectOptions().find((option) => this.optionValue(option) === this.value())
-      ) {
-        this.error.set(
-          this.#translate.instant('FORMLY.COMMON.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
-        )
-      } else {
-        this.error.set(null)
-      }
+  #validatorEffectRef = effect(() => {
+    const fieldError = isSignal(this.props.error) ? this.props.error() : this.props.error
+    if (isString(fieldError)) {
+      this.error.set(fieldError)
+    } else if (this.loadError()) {
+      this.error.set(this.loadError())
+    } else if (
+      isNonNullable(this.value()) &&
+      isNonNullable(this.selectOptions()) &&
+      !this.selectOptions().find((option) => this.optionValue(option) === this.value())
+    ) {
+      this.error.set(
+        this.#translate.instant('FORMLY.COMMON.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
+      )
+    } else {
+      this.error.set(null)
     }
-  )
+  })
 
   ngOnInit(): void {
     this.valueFormControl.valueChanges

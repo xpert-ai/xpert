@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, IWFNDBInsert, IXpertTable, ModelFeature, injectXpertTableAPI } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -62,23 +62,21 @@ export class XpertWorkflowPanelDBInsertComponent extends XpertWorkflowBaseCompon
     super()
 
     // Drop column mappings that no longer exist on the selected table
-    effect(
-      () => {
-        const available = new Set(this.tableColumns().map((col) => col.name))
-        const data = this.columns()
-        if (!data || available.size === 0) {
-          return
-        }
-        const filteredEntries = Object.entries(data).filter(([key]) => available.has(key))
-        if (filteredEntries.length !== Object.keys(data).length) {
-          const filtered = filteredEntries.reduce((acc, [key, value]) => {
-            acc[key] = value
-            return acc
-          }, {} as InsertColumns)
-          this.columns.set(Object.keys(filtered).length ? filtered : null)
-        }
+    effect(() => {
+      const available = new Set(this.tableColumns().map((col) => col.name))
+      const data = this.columns()
+      if (!data || available.size === 0) {
+        return
       }
-    )
+      const filteredEntries = Object.entries(data).filter(([key]) => available.has(key))
+      if (filteredEntries.length !== Object.keys(data).length) {
+        const filtered = filteredEntries.reduce((acc, [key, value]) => {
+          acc[key] = value
+          return acc
+        }, {} as InsertColumns)
+        this.columns.set(Object.keys(filtered).length ? filtered : null)
+      }
+    })
   }
 
   toggleDBTableExpand() {

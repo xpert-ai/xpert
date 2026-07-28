@@ -21,7 +21,7 @@ import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { combineLatest } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/ocap-angular/core'
+import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/headless-ui'
 
 export type ActiveScope =
   | { level: RequestScopeLevel.TENANT }

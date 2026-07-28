@@ -23,8 +23,8 @@ import {
   XpertToolsetService
 } from '@cloud/app/@core'
 import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/core'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -62,7 +62,7 @@ export type TXpertMCPManageComponentRet =
     MCPToolsetToolTestComponent,
     XpertToolNameInputComponent,
     ZardSwitchComponent
-],
+  ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [ListSlideStaggerAnimation]

@@ -5,7 +5,7 @@ import { ChangeDetectorRef, Component, computed, inject, model, signal, Template
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
-import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   IWFNClassifier,
@@ -96,7 +96,7 @@ import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.c
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { FormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { groupAgentMiddlewares } from './middleware-groups'
 

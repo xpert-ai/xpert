@@ -9,7 +9,7 @@ import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
-import { NgmTooltipDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmTooltipDirective } from '@xpert-ai/headless-ui'
 import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory',

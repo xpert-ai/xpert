@@ -1,10 +1,19 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { ChangeDetectionStrategy, Component, HostBinding, inject, Inject, Input, OnInit, ViewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostBinding,
+  inject,
+  Inject,
+  Input,
+  OnInit,
+  ViewChild
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ITag, IUser } from '@xpert-ai/contracts'
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from '../../../@core'
 import { Store } from '../../../@core/services/store.service'
@@ -55,7 +64,7 @@ export class UserMutationComponent implements OnInit {
     this.isAdmin = this.data.isAdmin
     this.isSuperAdmin = this.data.isSuperAdmin
   }
-  
+
   selectedTagsEvent(ev) {
     this.tags = ev
   }

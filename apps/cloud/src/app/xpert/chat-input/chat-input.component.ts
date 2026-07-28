@@ -29,7 +29,7 @@ import {
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { AppService } from '@cloud/app/app.service'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { catchError, finalize, map, of, switchMap } from 'rxjs'
 import {
   buildSlashOptions,

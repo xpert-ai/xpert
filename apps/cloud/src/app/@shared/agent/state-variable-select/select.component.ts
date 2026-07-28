@@ -3,16 +3,11 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { booleanAttribute, Component, computed, effect, inject, input, model, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertAPIService } from '@cloud/app/@core'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
-import {
-  agentLabel,
-  getVariableSchema,
-  TWorkflowVarGroup,
-  XpertParameterTypeEnum
-} from '../../../@core/types'
+import { agentLabel, getVariableSchema, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 import { expandVariablesWithItems } from '../types'
 
@@ -57,7 +52,7 @@ export class StateVariableSelectComponent {
   // States
   readonly variables = model<TWorkflowVarGroup[]>()
   readonly value$ = this.cva.value$
-  
+
   readonly variableType = computed(() => this.variable()?.type)
 
   readonly #variables = myRxResource({
@@ -81,13 +76,11 @@ export class StateVariableSelectComponent {
   readonly variable = computed(() => this.selected().variable)
 
   constructor() {
-    effect(
-      () => {
-        if (this.#variables.value()) {
-          this.variables.set(this.#variables.value())
-        }
+    effect(() => {
+      if (this.#variables.value()) {
+        this.variables.set(this.#variables.value())
       }
-    )
+    })
   }
 
   setVariable(variable: string) {

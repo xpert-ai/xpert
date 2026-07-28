@@ -10,7 +10,13 @@
     "@angular/core": "^21.1.0",
     "@angular/forms": "^21.1.0",
     "@angular/platform-browser": "^21.1.0",
-    "i18next": "^23.14.0"
+    "@ngx-formly/core": "^6.0.0",
+    "@ngx-translate/core": "^17.0.0",
+    "date-fns": "^3.0.4",
+    "i18next": "^23.14.0",
+    "lodash-es": "^4.17.21",
+    "ngxtension": "^4.0.0",
+    "rxjs": "~7.8.0"
   },
   "dependencies": {
     "@ng-icons/core": "^33.2.0",
@@ -24,7 +30,8 @@
     "tslib": "^2.3.0"
   },
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "**/*.scss"
   ],
   "devDependencies": {
     "@angular/core": "^21.1.4",

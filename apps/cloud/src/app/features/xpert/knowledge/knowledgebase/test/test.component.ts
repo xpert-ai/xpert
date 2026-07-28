@@ -4,8 +4,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { RouterModule } from '@angular/router'
 import { KnowledgeChunkComponent, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

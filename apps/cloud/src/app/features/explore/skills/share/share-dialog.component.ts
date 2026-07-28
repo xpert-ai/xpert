@@ -6,8 +6,8 @@ import { firstValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, SkillPackageService, ToastrService } from '@cloud/app/@core'
 import type { IShareSkillPackageInput, ISkillPackage } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 type ExploreSkillShareDialogData = {
   skill: ISkillPackage

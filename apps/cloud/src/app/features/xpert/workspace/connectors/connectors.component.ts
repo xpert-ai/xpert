@@ -8,8 +8,8 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { getConnectorAuthMethods } from '@xpert-ai/plugin-sdk/connector'
 import type {

@@ -4,7 +4,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, HostBinding, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { ButtonGroupDirective, EditorThemeMap, NgmThemeService } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective, EditorThemeMap, NgmThemeService } from '@xpert-ai/headless-ui'
 import { isBlank } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'

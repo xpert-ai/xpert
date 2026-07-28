@@ -6,7 +6,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@xpert-ai/contracts'
 import { routeAnimations } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -14,14 +14,7 @@ export type EmbeddedType = 'iframe' | 'scripts' | 'chromeplugin'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    RouterModule,
-    ...ZardTooltipImports,
-    NgmI18nPipe
-],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, ...ZardTooltipImports, NgmI18nPipe],
   selector: 'xpert-develop-embedded',
   templateUrl: './embedded.component.html',
   styleUrl: 'embedded.component.scss',

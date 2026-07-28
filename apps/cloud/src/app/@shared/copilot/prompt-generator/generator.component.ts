@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -34,7 +34,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     CopilotModelSelectComponent,
     CopilotInstructionEditorComponent
-]
+  ]
 })
 export class CopilotPromptGeneratorComponent {
   eModelType = AiModelTypeEnum

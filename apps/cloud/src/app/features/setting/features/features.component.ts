@@ -5,7 +5,7 @@ import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { FeatureService, Store, injectToastr } from '../../../@core/services'
 import { getErrorMessage } from '../../../@core/types'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

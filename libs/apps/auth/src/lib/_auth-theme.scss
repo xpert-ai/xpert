@@ -1,7 +1,5 @@
-
-
 @use 'sass:map';
-@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
 @reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -25,7 +23,7 @@
       &.ngm-button-disabled {
         @apply opacity-50 cursor-not-allowed;
       }
-    
+
       &:not(.ngm-button-disabled) {
         @apply hover:from-green-400 hover:to-blue-600 hover:text-white;
       }

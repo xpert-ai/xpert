@@ -3,7 +3,7 @@ import { Component, effect, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertTableViewSchema, XpertViewActionDefinition } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import {
   ZardButtonComponent,
   ZardCardImports,

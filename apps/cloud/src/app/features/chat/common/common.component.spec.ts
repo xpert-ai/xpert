@@ -27,7 +27,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
   }
 })
 
-jest.mock('@xpert-ai/ocap-angular/core', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const angularCore = jest.requireActual('@angular/core')
 
   class NgmShortNumberPipe {

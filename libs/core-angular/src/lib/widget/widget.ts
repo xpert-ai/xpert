@@ -1,6 +1,19 @@
 import { FocusOrigin, FocusableOption } from '@angular/cdk/a11y'
-import { AfterViewInit, DestroyRef, Directive, EventEmitter, HostBinding, Input, Output, OutputEmitterRef, computed, inject, output, signal } from '@angular/core'
-import { DisplayDensity, NgmAppearance } from '@xpert-ai/ocap-angular/core'
+import {
+  AfterViewInit,
+  DestroyRef,
+  Directive,
+  EventEmitter,
+  HostBinding,
+  Input,
+  Output,
+  OutputEmitterRef,
+  computed,
+  inject,
+  output,
+  signal
+} from '@angular/core'
+import { DisplayDensity, NgmAppearance } from '@xpert-ai/headless-ui'
 import {
   DataSettings,
   Dimension,
@@ -11,7 +24,7 @@ import {
   OrderBy,
   PresentationVariant,
   SelectionVariant,
-  getPropertyName,
+  getPropertyName
 } from '@xpert-ai/ocap-core'
 import { ComponentStore } from '@xpert-ai/store'
 import { TranslateService } from '@ngx-translate/core'
@@ -115,12 +128,16 @@ export interface StoryWidgetStyling {
  *
  */
 @Directive()
-export class AbstractStoryWidget<T, S extends StoryWidgetState<T> = StoryWidgetState<T>, SY extends StoryWidgetStyling = StoryWidgetStyling>
+export class AbstractStoryWidget<
+  T,
+  S extends StoryWidgetState<T> = StoryWidgetState<T>,
+  SY extends StoryWidgetStyling = StoryWidgetStyling
+>
   extends ComponentStore<S>
   implements IStoryWidget<T>, FocusableOption, AfterViewInit
 {
-  protected readonly translateService? = inject(TranslateService, {optional: true})
-  protected readonly widgetService? = inject(WidgetService, {optional: true, skipSelf: true})
+  protected readonly translateService? = inject(TranslateService, { optional: true })
+  protected readonly widgetService? = inject(WidgetService, { optional: true, skipSelf: true })
   protected readonly coreService = inject(NxCoreService)
   protected readonly destroyRef = inject(DestroyRef)
 
@@ -167,7 +184,7 @@ export class AbstractStoryWidget<T, S extends StoryWidgetState<T> = StoryWidgetS
    * @deprecated use optionsSignal
    */
   public options$ = this.select((state) => state.options).pipe(filter(nonNullable))
-  public readonly optionsSignal = toSignal<T>(this.options$, {initialValue: null})
+  public readonly optionsSignal = toSignal<T>(this.options$, { initialValue: null })
 
   @Input() get styling(): SY {
     return this.styling$()
@@ -190,7 +207,7 @@ export class AbstractStoryWidget<T, S extends StoryWidgetState<T> = StoryWidgetS
 
   /**
    * @deprecated use editableSignal
-   * 
+   *
    * Editable
    */
   @HostBinding('class.editable')
@@ -294,9 +311,7 @@ export class AbstractStoryWidget<T, S extends StoryWidgetState<T> = StoryWidgetS
         return results
       })
     )
-  ).pipe(
-    distinctUntilChanged(isEqual),
-  )
+  ).pipe(distinctUntilChanged(isEqual))
 
   public readonly hasSlicers$ = this.selectOptions$.pipe(map((selectOptions) => !isEmpty(selectOptions)))
 

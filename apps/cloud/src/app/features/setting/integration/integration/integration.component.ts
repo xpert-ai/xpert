@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from 
 import { RouterModule } from '@angular/router'
 import { IsDirty } from '@xpert-ai/core'
 import type { I18nObject, IIntegration, IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'

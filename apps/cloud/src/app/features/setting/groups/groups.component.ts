@@ -4,7 +4,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectOrganization } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { combineLatest, firstValueFrom } from 'rxjs'
@@ -537,7 +537,9 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
 
     const selectedIds = new Set(this.selectedXpertIds())
     const initialIds = new Set(this.initialSelectedXpertIds())
-    const changedXperts = this.availableXperts().filter((xpert) => selectedIds.has(xpert.id) !== initialIds.has(xpert.id))
+    const changedXperts = this.availableXperts().filter(
+      (xpert) => selectedIds.has(xpert.id) !== initialIds.has(xpert.id)
+    )
 
     await Promise.all(
       changedXperts.map(async (xpert) => {

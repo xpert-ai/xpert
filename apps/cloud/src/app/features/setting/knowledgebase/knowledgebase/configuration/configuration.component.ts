@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, computed, effect, inject, signal } from '
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -16,7 +16,7 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
+import { EmojiAvatarComponent } from '../../../../../@shared/avatar/emoji-avatar/avatar.component'
 import { PACCopilotService } from '../../../../services'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
@@ -38,7 +38,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     NgmCommonModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent
-],
+  ],
   animations: [routeAnimations]
 })
 export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
@@ -76,7 +76,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
     similarityThreshold: new FormControl(null),
 
     copilotModel: new FormControl(null),
-    copilotModelId: new FormControl(null),
+    copilotModelId: new FormControl(null)
   })
 
   // readonly copilots = computed(() =>
@@ -136,31 +136,27 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
   constructor() {
     super()
 
-    effect(
-      () => {
-        const knowledgebase = this.knowledgebase()
-        if (knowledgebase && this.formGroup.pristine) {
-          this.formGroup.patchValue(knowledgebase)
-        }
+    effect(() => {
+      const knowledgebase = this.knowledgebase()
+      if (knowledgebase && this.formGroup.pristine) {
+        this.formGroup.patchValue(knowledgebase)
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.loading()) {
-          this.formGroup.disable()
-        } else {
-          this.formGroup.enable()
-        }
+    effect(() => {
+      if (this.loading()) {
+        this.formGroup.disable()
+      } else {
+        this.formGroup.enable()
       }
-    )
+    })
   }
 
   save() {
     this.loading.set(true)
     this.knowledgebaseService
       .update(this.knowledgebase().id, {
-        ...this.formGroup.value,
+        ...this.formGroup.value
       } as Partial<IKnowledgebase>)
       .subscribe({
         next: () => {

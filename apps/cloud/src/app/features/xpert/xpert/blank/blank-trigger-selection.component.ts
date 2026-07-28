@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import {
   WorkflowTriggerConfigCardComponent,
   WorkflowTriggerProviderOption,
@@ -62,7 +62,9 @@ import { BlankTriggerSelection } from './blank-draft.util'
             }
           </div>
         } @empty {
-          <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+          <div
+            class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+          >
             {{ emptyKey() | translate: { Default: emptyDefault() } }}
           </div>
         }
@@ -93,14 +95,19 @@ export class BlankTriggerSelectionComponent {
       const existing = this.selections().find((selection) => selection.provider === provider.name)
       const config =
         existing?.config ??
-        (this.shouldRenderConfig(provider) ? ((buildJsonSchemaDefaults(provider.configSchema) ?? {}) as Record<string, unknown>) : undefined)
+        (this.shouldRenderConfig(provider)
+          ? ((buildJsonSchemaDefaults(provider.configSchema) ?? {}) as Record<string, unknown>)
+          : undefined)
 
       this.selections.set(
         existing
           ? this.selections().map((selection) =>
               selection.provider === provider.name ? { ...selection, config } : selection
             )
-          : [...this.selections(), config === undefined ? { provider: provider.name } : { provider: provider.name, config }]
+          : [
+              ...this.selections(),
+              config === undefined ? { provider: provider.name } : { provider: provider.name, config }
+            ]
       )
       return
     }

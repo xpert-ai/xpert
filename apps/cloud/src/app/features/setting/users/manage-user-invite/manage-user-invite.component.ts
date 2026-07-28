@@ -11,7 +11,7 @@ import {
   InvitationTypeEnum,
   InviteStatusEnum
 } from '@xpert-ai/contracts'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { getErrorMessage } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'

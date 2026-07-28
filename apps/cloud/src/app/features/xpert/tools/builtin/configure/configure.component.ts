@@ -4,8 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, model, si
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
@@ -48,7 +48,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
-],
+  ],
   selector: 'xpert-tool-configure-builtin',
   templateUrl: './configure.component.html',
   styleUrl: 'configure.component.scss',
@@ -148,20 +148,18 @@ export class XpertToolConfigureBuiltinComponent {
     })
 
   constructor() {
-    effect(
-      () => {
-        if (this.builtinTools()) {
-          this.tools.update((tools) =>
-            tools?.map((tool) => {
-              if (!tool.schema) {
-                return { ...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name) }
-              }
-              return tool
-            })
-          )
-        }
+    effect(() => {
+      if (this.builtinTools()) {
+        this.tools.update((tools) =>
+          tools?.map((tool) => {
+            if (!tool.schema) {
+              return { ...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name) }
+            }
+            return tool
+          })
+        )
       }
-    )
+    })
   }
 
   openAuthorize(toolset?: IXpertToolset) {

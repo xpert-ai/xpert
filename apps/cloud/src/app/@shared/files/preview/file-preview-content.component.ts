@@ -12,7 +12,7 @@ import {
   viewChild
 } from '@angular/core'
 import { SafePipe } from '@xpert-ai/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/headless-ui'
 import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'

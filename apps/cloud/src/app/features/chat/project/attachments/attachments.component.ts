@@ -8,7 +8,7 @@ import { injectProjectService, injectToastr } from '@cloud/app/@core'
 import { ChatFileListComponent } from '@cloud/app/@shared/chat/'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { NgmDndDirective } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ChatProjectComponent } from '../project.component'
@@ -28,7 +28,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     NgmDndDirective,
     ChatFileListComponent
-],
+  ],
   selector: 'chat-project-attachments',
   templateUrl: './attachments.component.html',
   styleUrl: 'attachments.component.scss',

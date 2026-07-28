@@ -1,7 +1,7 @@
 import { Component, computed, effect, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgeDocument, KDocumentSourceType } from '../../../@core/types'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { resolveKnowledgeDocumentFileKind } from '../document-file-kind'
 
 @Component({

@@ -1,7 +1,6 @@
-
 import { Component } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from '../../@core'
 
@@ -14,5 +13,4 @@ import { injectHelpWebsite } from '../../@core'
 })
 export class OnboardingUnknownComponent {
   readonly helpWebsite = injectHelpWebsite()
-
 }

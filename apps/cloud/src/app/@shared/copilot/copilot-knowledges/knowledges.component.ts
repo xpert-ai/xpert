@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common'
 import {
   Component,
   computed,
@@ -23,7 +23,7 @@ import {
   CdkConfirmOptionsComponent,
   NgmCommonModule,
   TableColumn
-} from '@xpert-ai/ocap-angular/common'
+} from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -43,7 +43,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ...ZardTooltipImports,
     NgmCommonModule
-],
+  ],
   selector: 'copilot-knowledges',
   templateUrl: 'knowledges.component.html',
   styleUrls: ['knowledges.component.scss'],
@@ -164,13 +164,11 @@ export class CopilotKnowledgesComponent {
   )
 
   constructor() {
-    effect(
-      () => {
-        if (this.items()) {
-          this.loading.set(false)
-        }
+    effect(() => {
+      if (this.items()) {
+        this.loading.set(false)
       }
-    )
+    })
   }
 
   refresh() {

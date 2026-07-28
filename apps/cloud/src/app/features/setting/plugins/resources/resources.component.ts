@@ -21,8 +21,8 @@ import {
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PluginComponentType
 } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, map, of } from 'rxjs'
 import { TInstalledPlugin } from '../types'

@@ -1,6 +1,6 @@
 import { Component, inject, output, input, effect } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { TStateVariable, VariableOperationEnum, XpertParameterTypeEnum } from '../../../@core/types'

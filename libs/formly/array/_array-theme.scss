@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);

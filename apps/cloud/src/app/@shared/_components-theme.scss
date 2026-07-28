@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
 @reference "tailwindcss";
 
 @mixin color($theme) {
@@ -41,7 +41,8 @@
   // 公共样式, 需要抽取统一
   /* button */
   [z-button],
-  z-button {}
+  z-button {
+  }
 
   [z-button][data-icon-only],
   z-button[data-icon-only] {
@@ -146,12 +147,6 @@
       width: calc(var(--radio-size) / 2);
       height: calc(var(--radio-size) / 2);
     }
-  }
-
-  .ngm-tree-table td[z-table-cell],
-  .ngm-tree-table th[z-table-head] {
-    white-space: nowrap;
-    padding: 0 10px;
   }
 
   .ngm-entity-property {

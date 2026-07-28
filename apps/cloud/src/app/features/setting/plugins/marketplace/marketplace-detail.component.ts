@@ -4,8 +4,8 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectPluginAPI,

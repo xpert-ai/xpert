@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormGroup } from '@angular/forms'
 import { CommonModule } from '@angular/common'
@@ -9,14 +9,7 @@ import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    ZardDialogModule,
-    ZardButtonComponent,
-    DragDropModule,
-    TranslateModule,
-    ButtonGroupDirective
-],
+  imports: [CommonModule, ZardDialogModule, ZardButtonComponent, DragDropModule, TranslateModule, ButtonGroupDirective],
   selector: 'ngm-dialog',
   template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <span style="pointer-events: none;">{{ title }}</span>
@@ -29,10 +22,10 @@ import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
     <div xpDialogActions align="end">
       <div ngmButtonGroup>
         <button z-button zType="ghost" xpDialogClose cdkFocusInitial (click)="cancel.emit()">
-          {{ cancelLabel ?? ('COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'}) }}
+          {{ cancelLabel ?? ('COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' }) }}
         </button>
         <button z-button zType="default" [disabled]="form?.invalid" (click)="onApply()">
-          {{ applyLabel ?? ('COMPONENTS.COMMON.Apply' | translate: {Default: 'Apply'}) }}
+          {{ applyLabel ?? ('COMPONENTS.COMMON.Apply' | translate: { Default: 'Apply' }) }}
         </button>
       </div>
     </div>`,
@@ -51,7 +44,6 @@ import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
   ]
 })
 export class NgmDialogComponent {
-  
   @Input() title: string
   @Input() applyLabel: string
   @Input() cancelLabel: string

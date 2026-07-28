@@ -14,7 +14,7 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
 import { EChartsOption } from 'echarts'
 import { firstValueFrom } from 'rxjs'

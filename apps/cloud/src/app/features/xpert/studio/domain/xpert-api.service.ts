@@ -8,7 +8,7 @@ import { stateHistory } from '@ngneat/elf-state-history'
 import { FCanvasChangeEvent } from '@foblex/flow'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { Router } from '@angular/router'
-import { attrModel, effectAction, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, effectAction, linkedModel } from '@xpert-ai/headless-ui'
 import { calculateHash } from '@cloud/app/@shared/utils'
 import {
   EnvironmentService,

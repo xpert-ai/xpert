@@ -8,7 +8,7 @@ import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

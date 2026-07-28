@@ -1,24 +1,24 @@
 // tslint:disable: no-inferrable-types
-import { Injectable, Inject, LOCALE_ID } from '@angular/core';
-import { formatDate } from '@angular/common';
-import { CountdownFormatFn, CountdownConfig } from './interfaces';
+import { Injectable, Inject, LOCALE_ID } from '@angular/core'
+import { formatDate } from '@angular/common'
+import { CountdownFormatFn, CountdownConfig } from './interfaces'
 
 /**
- * @deprecated use `@xpert-ai/ocap-angular/common`
+ * @deprecated use `@xpert-ai/headless-ui`
  */
 @Injectable({ providedIn: 'root' })
 export class CountdownGlobalConfig implements CountdownConfig {
   constructor(@Inject(LOCALE_ID) private locale: string) {}
 
-  demand?: boolean = false;
+  demand?: boolean = false
 
-  leftTime?: number = 0;
+  leftTime?: number = 0
 
-  format?: string = 'HH:mm:ss';
+  format?: string = 'HH:mm:ss'
 
-  timezone?: string = '+0000';
+  timezone?: string = '+0000'
 
   formatDate?: CountdownFormatFn = ({ date, formatStr, timezone }) => {
-    return formatDate(new Date(date), formatStr, this.locale, timezone || this.timezone || '+0000');
+    return formatDate(new Date(date), formatStr, this.locale, timezone || this.timezone || '+0000')
   }
 }

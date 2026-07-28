@@ -1,4 +1,3 @@
-
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -13,8 +12,8 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -59,7 +58,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertToolNameInputComponent,
     MCPServerFormComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'pac-xpert-api-tool',
   templateUrl: './api-tool.component.html',
   styleUrl: 'api-tool.component.scss',

@@ -1,4 +1,3 @@
-
 import {
   afterNextRender,
   booleanAttribute,
@@ -13,7 +12,7 @@ import {
 } from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { JSON_SCHEMA_WIDGET_CONTEXT } from '@cloud/app/@shared/forms'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { catchError, combineLatest, distinctUntilChanged, map, of, tap } from 'rxjs'

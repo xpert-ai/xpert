@@ -1,0 +1,39 @@
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
+  <h4 class="text-xl pointer-events-none">
+    {{ title || ('COMPONENTS.CONFIRM.INPUT_UNIQUE_VALUE' | translate: { Default: 'Input Unique Value' }) }}
+  </h4>
+</header>
+
+<div class="py-4" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+  @if (data?.description) {
+    <p class="mb-4 font-body text-sm text-text-secondary">
+      {{ data.description }}
+    </p>
+  }
+  <form (ngSubmit)="onApply()" class="max-w-xs">
+    <z-form-field appearance="fill" class="w-full">
+      <z-form-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: { Default: 'Name' } }}</z-form-label>
+      <input cdkFocusInitial z-input name="value" [formControl]="value" />
+      @if (invalid) {
+        <z-form-message zType="error">
+          {{ error || 'Error' }}
+        </z-form-message>
+      }
+    </z-form-field>
+  </form>
+</div>
+
+<div class="w-full flex justify-between items-center">
+  <button z-button zType="ghost" (click)="reset()">
+    {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}
+  </button>
+
+  <div ngmButtonGroup class="ml-8">
+    <button z-button zType="secondary" (click)="onCancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button z-button zType="default" [disabled]="invalid" cdkFocusInitial (click)="onApply()">
+      {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
+    </button>
+  </div>
+</div>

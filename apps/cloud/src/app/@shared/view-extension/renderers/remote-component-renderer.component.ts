@@ -25,7 +25,7 @@ import {
 import { SafePipe } from '@xpert-ai/core'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
-import { NgmThemeService } from '@xpert-ai/ocap-angular/core'
+import { NgmThemeService } from '@xpert-ai/headless-ui'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 import {
   ViewHostEventBus,

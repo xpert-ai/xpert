@@ -4,7 +4,7 @@ import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { FileViewerComponent, inferMarkdownPreviewSelection } from './viewer.component'
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Component } = jest.requireActual('@angular/core')
 
   @Component({

@@ -1,13 +1,27 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, OnInit, TemplateRef, ViewChild, ViewContainerRef, inject } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
+  inject
+} from '@angular/core'
 import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { OcapCoreModule } from '@xpert-ai/headless-ui'
 import { cloneDeep } from '@xpert-ai/ocap-core'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardIconComponent, ZardTableImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogService,
+  ZardIconComponent,
+  ZardTableImports
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

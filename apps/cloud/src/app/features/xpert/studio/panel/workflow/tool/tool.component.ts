@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, injec
 import { FormsModule } from '@angular/forms'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -53,7 +53,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertWorkflowErrorHandlingComponent,
     XpToolParametersFormComponent,
     ZardSwitchComponent
-]
+  ]
 })
 export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -127,13 +127,11 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
 
   constructor() {
     super()
-    effect(
-      () => {
-        if (this.tool()) {
-          this.paramsSample.set({ loading: false, value: null })
-        }
+    effect(() => {
+      if (this.tool()) {
+        this.paramsSample.set({ loading: false, value: null })
       }
-    )
+    })
   }
 
   toggleOutput() {

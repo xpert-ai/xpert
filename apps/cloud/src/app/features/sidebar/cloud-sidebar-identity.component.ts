@@ -23,8 +23,8 @@ import {
   UsersService
 } from '@xpert-ai/cloud/state'
 import { nonNullable, OverlayAnimation1 } from '@xpert-ai/core'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
-import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
+import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/headless-ui'
+import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'

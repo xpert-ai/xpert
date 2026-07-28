@@ -13,8 +13,15 @@ import {
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { matchWithValidator } from '@xpert-ai/cloud/auth'
-import { DataSourceService, DataSourceTypesService, IFeatureOrganizationUpdateInput, injectOrganization, ITenant, Store } from '@xpert-ai/cloud/state'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import {
+  DataSourceService,
+  DataSourceTypesService,
+  IFeatureOrganizationUpdateInput,
+  injectOrganization,
+  ITenant,
+  Store
+} from '@xpert-ai/cloud/state'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { omit } from '@xpert-ai/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -49,7 +56,21 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule, CopilotConfigFormComponent, ZardButtonComponent],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    CdkListboxModule,
+    ...ZardStepperImports,
+    ...ZardFormImports,
+    ZardInputDirective,
+    ZardProgressBarComponent,
+    FormlyModule,
+    FeatureCategoryComponent,
+    NgmCommonModule,
+    CopilotConfigFormComponent,
+    ZardButtonComponent
+  ],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {
@@ -86,9 +107,13 @@ export class TenantDetailsComponent {
   })
 
   // Features
-  readonly features = model<{feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi'}[]>([])
-  readonly hasAiFeature = computed(() => this.features().some(({category, feature}) => category === 'ai' && feature.isEnabled))
-  readonly hasSemanticModel = computed(() => this.features().some(({category, feature}) => category === 'bi' && feature.isEnabled))
+  readonly features = model<{ feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi' }[]>([])
+  readonly hasAiFeature = computed(() =>
+    this.features().some(({ category, feature }) => category === 'ai' && feature.isEnabled)
+  )
+  readonly hasSemanticModel = computed(() =>
+    this.features().some(({ category, feature }) => category === 'bi' && feature.isEnabled)
+  )
   readonly orgCopilots = toSignal(
     combineLatest([this.#copilotServer.refresh$, toObservable(this.selectedOrganization)]).pipe(
       filter(([, organization]) => !!organization?.id),
@@ -97,7 +122,9 @@ export class TenantDetailsComponent {
     ),
     { initialValue: [] as ICopilot[] }
   )
-  readonly primaryCopilot = computed(() => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null)
+  readonly primaryCopilot = computed(
+    () => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null
+  )
   readonly showAiModelForm = computed(() => !!this.primaryCopilot()?.enabled)
 
   demoFormGroup: FormGroup = this._formBuilder.group({
@@ -272,7 +299,7 @@ export class TenantDetailsComponent {
 
   enableFeatures() {
     this.loading.set(true)
-    this.#featureAPI.featuresToggle(this.features().map(({feature}) => feature)).subscribe({
+    this.#featureAPI.featuresToggle(this.features().map(({ feature }) => feature)).subscribe({
       next: async () => {
         this.toastrService.success('PAC.Onboarding.EnableFeaturesSuccess', {
           Default: 'Features enabled successfully!'

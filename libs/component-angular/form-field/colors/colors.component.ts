@@ -1,4 +1,3 @@
-
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations'
 import { ChangeDetectionStrategy, Component, Input, computed, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -11,7 +10,7 @@ import {
   type ZardComboboxDeprecatedGroup,
   type ZardComboboxDeprecatedOption
 } from '@xpert-ai/headless-ui'
-import { DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 const listEnterAnimation = trigger('listEnterAnimation', [
@@ -34,7 +33,7 @@ const listEnterAnimation = trigger('listEnterAnimation', [
     ZardIconComponent,
     ZardButtonComponent,
     DensityDirective
-],
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-colors',
   templateUrl: './colors.component.html',
@@ -51,7 +50,7 @@ const listEnterAnimation = trigger('listEnterAnimation', [
 export class NgmColorsComponent implements ControlValueAccessor {
   @Input() label: string
   @Input() placeholder: string
-  @Input() options: { label: string; colors: Array<{colors: string[]; keywords?: string[]}> }[]
+  @Input() options: { label: string; colors: Array<{ colors: string[]; keywords?: string[] }> }[]
 
   @Input() disabled = false
 

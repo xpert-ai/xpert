@@ -108,7 +108,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   return { ZardBadgeComponent, ZardButtonComponent }
 })
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
 
   @Component({
@@ -123,7 +123,7 @@ jest.mock('@xpert-ai/ocap-angular/common', () => {
   return { NgmSpinComponent }
 })
 
-jest.mock('@xpert-ai/ocap-angular/core', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Pipe, signal } = jest.requireActual('@angular/core')
 
   @Pipe({

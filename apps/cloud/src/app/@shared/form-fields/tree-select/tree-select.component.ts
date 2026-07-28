@@ -1,4 +1,14 @@
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, forwardRef, input, numberAttribute, signal } from '@angular/core'
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  forwardRef,
+  input,
+  numberAttribute,
+  signal
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import {
@@ -15,7 +25,7 @@ import {
   ZardTreeFlattener,
   ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import { DisplayDensity, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@xpert-ai/ocap-angular/core'
+import { DisplayDensity, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {

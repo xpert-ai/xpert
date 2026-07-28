@@ -11,8 +11,8 @@ import {
   PluginAPIService
 } from '@xpert-ai/cloud/state'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { debouncedSignal, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { debouncedSignal, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import type { Observable } from 'rxjs'
 import { TPlugin } from '@cloud/app/@shared/plugins'

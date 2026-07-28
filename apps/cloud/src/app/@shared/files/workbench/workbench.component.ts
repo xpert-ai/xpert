@@ -17,7 +17,7 @@ import {
   untracked,
   viewChild
 } from '@angular/core'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'

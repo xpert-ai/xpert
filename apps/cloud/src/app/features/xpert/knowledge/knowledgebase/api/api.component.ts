@@ -6,7 +6,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -31,7 +31,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     NgmSpinComponent
-],
+  ],
   selector: 'xpert-knowledgebase-api',
   templateUrl: './api.component.html',
   styleUrl: 'api.component.scss',

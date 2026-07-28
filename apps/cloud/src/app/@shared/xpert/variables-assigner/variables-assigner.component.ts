@@ -1,7 +1,6 @@
-
 import { Component, computed, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   TAgentOutputVariable,

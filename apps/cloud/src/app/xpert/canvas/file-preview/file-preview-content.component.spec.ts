@@ -4,7 +4,7 @@ import { DomSanitizer } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatCanvasFilePreviewContentComponent } from './file-preview-content.component'
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
 
   @Component({
@@ -163,7 +163,6 @@ describe('ChatCanvasFilePreviewContentComponent', () => {
 
     const table = fixture.nativeElement.querySelector('.mock-table')
     expect(table?.getAttribute('data-rows')).toBe('200')
-
     ;(fixture.nativeElement.querySelectorAll('button')[1] as HTMLButtonElement).click()
     fixture.detectChanges()
 

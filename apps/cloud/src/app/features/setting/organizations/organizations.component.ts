@@ -5,7 +5,7 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { ActivatedRoute, Router } from '@angular/router'
 import { IFeatureOrganization, IOrganizationCreateInput, IUser, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
 import { CURRENT_USER_FULL_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'

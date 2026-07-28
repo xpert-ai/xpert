@@ -14,7 +14,7 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 
 import { ActivatedRoute } from '@angular/router'
 import { ICustomSmtp, ICustomSmtpFindInput, IOrganization, IUser, SMTPSecureEnum } from '@xpert-ai/contracts'
-import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'

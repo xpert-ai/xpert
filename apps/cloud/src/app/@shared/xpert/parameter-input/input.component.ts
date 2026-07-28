@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, effect, inject, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, write } from '@xpert-ai/core'
-import { linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { linkedModel, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { assign, cloneDeep } from 'lodash-es'
@@ -33,7 +33,7 @@ type TXpertParameterAttr = {
     NgmI18nPipe,
     XpertParameterIconComponent,
     XpertParameterFormComponent
-],
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParameterInputComponent {

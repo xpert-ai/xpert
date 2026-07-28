@@ -4,7 +4,7 @@ import { I18nObject, IconDefinition, injectHelpWebsite } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { PluginLevel } from '@xpert-ai/contracts'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type TPlugin = {

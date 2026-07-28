@@ -18,7 +18,7 @@ import {
   type ZardSelectValue,
   type ZardTableSortDirection
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent, injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent, injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 

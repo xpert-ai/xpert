@@ -1,7 +1,13 @@
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { IXpertTool, JsonSchemaObjectType, JsonSchemaUIExtensions, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import {
+  IXpertTool,
+  JsonSchemaObjectType,
+  JsonSchemaUIExtensions,
+  TToolParameter,
+  TWorkflowVarGroup
+} from '@cloud/app/@core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'

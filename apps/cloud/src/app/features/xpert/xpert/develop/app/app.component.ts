@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 
 import { TChatApp } from '@xpert-ai/contracts'
 import { SlideUpAnimation } from '@xpert-ai/core'
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
 import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -19,7 +19,7 @@ import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@x
     ZardButtonComponent,
     ButtonGroupDirective,
     ZardSwitchComponent
-],
+  ],
   selector: 'xpert-develop-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',

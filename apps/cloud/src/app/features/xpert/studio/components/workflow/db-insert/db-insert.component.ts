@@ -1,8 +1,7 @@
-
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectXpertTableAPI,

@@ -1,7 +1,6 @@
-
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
@@ -13,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
   hostDirectives: [
     {
       directive: NgmDensityDirective,
-      inputs: ['small', 'large'],
+      inputs: ['small', 'large']
     }
   ]
 })

@@ -30,7 +30,7 @@ jest.mock('@xpert-ai/core', () => ({
   OverlayAnimation1: []
 }))
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
   @Component({
@@ -55,7 +55,7 @@ jest.mock('@xpert-ai/ocap-angular/common', () => {
   }
 })
 
-jest.mock('@xpert-ai/ocap-angular/core', () => ({
+jest.mock('@xpert-ai/headless-ui', () => ({
   debouncedSignal: (value: unknown) => value
 }))
 

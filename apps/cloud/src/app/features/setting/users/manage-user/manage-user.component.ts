@@ -9,7 +9,7 @@ import {
   RolesEnum,
   UserType
 } from '@xpert-ai/contracts'
-import { NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
+import { NgmConfirmDeleteService } from '@xpert-ai/headless-ui'
 import {
   DateRelativePipe,
   getErrorMessage,

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/headless-ui'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNChunker,
@@ -23,14 +23,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./chunker.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FFlowModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    IconComponent,
-    PlusSvgComponent,
-    NgmI18nPipe
-],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, IconComponent, PlusSvgComponent, NgmI18nPipe],
   host: {
     tabindex: '-1'
   }

@@ -6,8 +6,8 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ToolProviderCardComponent, ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -44,7 +44,7 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     NgmCommonModule,
     ToolsetCardComponent,
     ToolProviderCardComponent
-],
+  ],
   selector: 'xpert-workspace-builtin-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',

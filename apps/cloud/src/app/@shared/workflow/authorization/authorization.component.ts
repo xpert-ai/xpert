@@ -5,7 +5,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { linkedModel } from '@xpert-ai/core'
-import { NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmRadioSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType, TSelectOption, TWorkflowAuthorization, TWorkflowVarGroup } from '../../../@core/types'
 import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
@@ -24,7 +24,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmRadioSelectComponent,
     XpertVariableInputComponent
-]
+  ]
 })
 export class XpertWorkflowAuthorizationComponent {
   eApiProviderAuthType = ApiAuthType

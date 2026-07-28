@@ -6,8 +6,8 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
@@ -49,7 +49,7 @@ import { MCPImportJsonComponent, MCPMarketplaceComponent, XpertMCPManageComponen
     CardCreateComponent,
     ToolsetCardComponent,
     MCPMarketplaceComponent
-],
+  ],
   selector: 'xpert-workspace-mcp-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
@@ -123,7 +123,7 @@ export class XpertWorkspaceMCPToolsComponent {
           : true
       )
   })
-  
+
   constructor() {
     //
   }
@@ -142,7 +142,7 @@ export class XpertWorkspaceMCPToolsComponent {
         description: template.description,
         category: XpertToolsetCategoryEnum.MCP,
         type: template.server.type,
-        schema: JSON.stringify({mcpServers: {'': mcpServer}}),
+        schema: JSON.stringify({ mcpServers: { '': mcpServer } })
       }
       if (typeof template.icon === 'string') {
         toolset.avatar = {
@@ -156,7 +156,7 @@ export class XpertWorkspaceMCPToolsComponent {
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
-          toolset,
+          toolset
         }
       })
       .closed.subscribe({

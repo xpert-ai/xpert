@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, model, si
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import {

@@ -25,7 +25,7 @@ import {
   buildJsonSchemaDefaults,
   jsonSchemaHasConfigFields
 } from '@cloud/app/@shared/workflow/trigger-config/trigger-config.util'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
@@ -47,7 +47,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     IconComponent,
     JSONSchemaFormComponent,
     KnowledgeChunkComponent
-]
+  ]
 })
 export class KnowledgeDocumentPipelineSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType
@@ -151,13 +151,11 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly taskError = computed(() => this.task()?.error)
 
   constructor() {
-    effect(
-      () => {
-        if (!this.previewDocName() && this.documents()?.length) {
-          this.previewDocName.set(this.documents()[0].name)
-        }
+    effect(() => {
+      if (!this.previewDocName() && this.documents()?.length) {
+        this.previewDocName.set(this.documents()[0].name)
       }
-    )
+    })
   }
 
   previewChunks() {

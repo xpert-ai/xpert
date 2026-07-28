@@ -5,7 +5,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorSelection } from '../editor/editor.component'
 import { FilePreviewContentComponent } from './file-preview-content.component'
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
 
   @Component({

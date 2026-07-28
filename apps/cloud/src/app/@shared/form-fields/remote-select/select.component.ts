@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
 import { rxResource, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
 import {
   buildListboxOptions,
   formatSelectOptionValue,
@@ -13,7 +13,7 @@ import {
   hasSelectOptionValue,
   NgmI18nPipe,
   TSelectOption
-} from '@xpert-ai/ocap-angular/core'
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { catchError, debounceTime, defer, of, startWith } from 'rxjs'

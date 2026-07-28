@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input } f
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { isNil } from '@xpert-ai/contracts'
 import { ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {

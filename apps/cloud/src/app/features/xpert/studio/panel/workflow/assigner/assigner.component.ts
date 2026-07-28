@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -25,13 +25,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./assigner.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FormsModule,
-    CdkMenuModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    XpertVariablesAssignerComponent
-]
+  imports: [FormsModule, CdkMenuModule, ...ZardTooltipImports, TranslateModule, XpertVariablesAssignerComponent]
 })
 export class XpertWorkflowAssignerComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

@@ -7,8 +7,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
 import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { OverlayAnimation1 } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmCopyComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, NgmCopyComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { AppService } from '@cloud/app/app.service'
@@ -69,15 +69,13 @@ export class KnowledgebaseComponent {
       id: this.paramId()
     }),
     loader: ({ request }) => {
-      return this.knowledgebaseAPI
-        .getDetail(request.id)
-        .pipe(
-          catchError((err) => {
-            this._toastrService.danger(err)
-            this.#router.navigate(['/xpert/w'])
-            return EMPTY
-          })
-        )
+      return this.knowledgebaseAPI.getDetail(request.id).pipe(
+        catchError((err) => {
+          this._toastrService.danger(err)
+          this.#router.navigate(['/xpert/w'])
+          return EMPTY
+        })
+      )
     }
   })
   readonly knowledgebase = this.#knowledgebase.value

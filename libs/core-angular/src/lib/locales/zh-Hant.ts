@@ -1,4 +1,4 @@
-import { DateVariableEnum } from "@xpert-ai/ocap-angular/core";
+import { DateVariableEnum } from '@xpert-ai/headless-ui'
 
 /**
  * 中文 shortNumber 基礎配置
@@ -40,7 +40,7 @@ export default {
   NgCore: {
     Widget: {
       Rank: '排名',
-      Top: '前',
+      Top: '前'
     }
   }
 }

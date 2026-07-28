@@ -1,0 +1,34 @@
+@use '../input/_input.component.scss';
+
+@reference "../../../tailwind-workspace-reference.css";
+
+.ngm-select-element {
+  @apply relative inline-block w-full rounded-md;
+}
+
+.ngm-select-label {
+  @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
+}
+
+.ngm-density__cosy {
+  .ngm-select-element [role='combobox'] {
+    @apply min-h-8 rounded-md px-2 py-1 text-sm;
+  }
+}
+
+.ngm-density__compact {
+  .ngm-select-label {
+    @apply text-sm;
+  }
+  .ngm-select-element [role='combobox'] {
+    @apply min-h-8 rounded-md px-2 py-1 text-xs;
+  }
+
+  .ngm-input-element__clear {
+    @apply w-5 h-5;
+    .z-icon,
+    i {
+      font-size: 16px;
+    }
+  }
+}

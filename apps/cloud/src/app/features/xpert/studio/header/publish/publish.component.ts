@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, signal } f
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { nonBlank, SlideUpAnimation } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiFeatureEnum,

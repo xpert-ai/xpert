@@ -5,12 +5,12 @@ import localeZhExtra from '@angular/common/locales/extra/zh-Hans'
 import zh from '@angular/common/locales/zh'
 import localeZh from '@angular/common/locales/zh-Hans'
 import { ZhHans as AuthZhHans, ZhHant as AuthZhHant } from '@xpert-ai/cloud/auth'
-import { ZhHans, ZhHant } from '@xpert-ai/ocap-angular/i18n'
+import { ZhHans, ZhHant } from '@xpert-ai/headless-ui'
 import {
   registerLocaleData as nxRegisterLocaleData,
   zhHans as CoreZhHans,
   zhHant as CoreZhHant
-} from '@xpert-ai/ocap-angular/core'
+} from '@xpert-ai/headless-ui'
 import { TranslateHttpLoader } from '@ngx-translate/http-loader'
 import { enUS, zhCN, zhHK } from 'date-fns/locale'
 import { Observable, map } from 'rxjs'

@@ -1,4 +1,3 @@
-
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -15,7 +14,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
@@ -47,7 +46,7 @@ type QuoteSelectionState = {
     ChatAiMessageComponent,
     ChatHumanMessageComponent,
     XpertParametersCardComponent
-],
+  ],
   selector: 'chat-conversation',
   templateUrl: './conversation.component.html',
   styleUrl: 'conversation.component.scss',
@@ -110,11 +109,9 @@ export class ChatConversationComponent {
   readonly task = computed(() => this.conversation()?.task)
 
   constructor() {
-    effect(
-      () => {
-        this.homeService.conversation.set(this.conversation() && { ...this.conversation(), messages: this.messages() })
-      }
-    )
+    effect(() => {
+      this.homeService.conversation.set(this.conversation() && { ...this.conversation(), messages: this.messages() })
+    })
 
     this.destroyRef.onDestroy(() => {
       this.homeService.canvasOpened.set(null)

@@ -9,8 +9,8 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { PAC_API_BASE_URL } from '@xpert-ai/cloud/auth'
 import { attrModel } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -39,7 +39,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     ChatProjectMembersComponent,
     IntegrationSelectComponent
-],
+  ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss'
 })

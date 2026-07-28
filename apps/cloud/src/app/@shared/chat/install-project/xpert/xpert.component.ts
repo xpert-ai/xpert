@@ -14,8 +14,8 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertBasicDialogComponent } from '@cloud/app/@shared/xpert'
-import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { EMPTY, pipe } from 'rxjs'
@@ -33,7 +33,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     NgmSearchComponent,
     EmojiAvatarComponent
-],
+  ],
   selector: 'project-install-xpert',
   templateUrl: 'xpert.component.html',
   styleUrl: 'xpert.component.scss',

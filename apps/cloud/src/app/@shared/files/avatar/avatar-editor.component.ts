@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, effect, forwardRef, inject, input, output, signal } from '@angular/core'
-import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ScreenshotService } from '../../../@core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
@@ -24,8 +24,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
     }
   ]
 })
-export class AvatarEditorComponent implements ControlValueAccessor  {
-
+export class AvatarEditorComponent implements ControlValueAccessor {
   private readonly screenshotService = inject(ScreenshotService)
 
   readonly imageUrl = input<string>()

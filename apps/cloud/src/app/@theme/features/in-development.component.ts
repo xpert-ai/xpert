@@ -1,5 +1,5 @@
 import { Component, input } from '@angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({

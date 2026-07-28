@@ -12,7 +12,7 @@ import {
   type PluginResourceComponentSelector
 } from '@xpert-ai/cloud/state'
 import { parseYAML } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
@@ -73,7 +73,7 @@ import {
 import { genAgentKey } from '../../utils'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 
 import {
   CHAT_WORKFLOW_TRIGGER_PROVIDER,

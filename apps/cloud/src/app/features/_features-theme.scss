@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
 @use './setting/settings-theme' as settings;
 
 $shell-bar-height: 48px;
@@ -117,34 +117,6 @@ $sidebar-collapsed-width: 40px;
     .pac-page__body {
       padding: 24px;
       overflow: auto;
-    }
-
-    ngm-tree-table {
-      .cdk-row {
-        .pac__table-actions {
-          margin: -5px 0;
-          opacity: 0;
-
-          & > * {
-            opacity: 0;
-          }
-
-          [z-button][data-icon-only][data-color='accent'],
-          z-button[data-icon-only][data-color='accent'] {
-            opacity: 1;
-          }
-        }
-
-        &:hover {
-          .pac__table-actions {
-            opacity: 1;
-          }
-
-          .pac__table-actions > * {
-            opacity: 1;
-          }
-        }
-      }
     }
   }
 

@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { derivedFrom } from 'ngxtension/derived-from'

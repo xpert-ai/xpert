@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { linkedModel, TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { linkedModel, TSelectOption } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -24,7 +24,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     XpertParameterMenuItemComponent,
     XpertParameterInputComponent
-],
+  ],
 
   hostDirectives: [NgxControlValueAccessor]
 })

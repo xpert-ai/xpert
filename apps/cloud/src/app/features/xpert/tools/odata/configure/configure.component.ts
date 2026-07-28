@@ -35,10 +35,10 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { Samples } from '../types'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
@@ -165,37 +165,33 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
   constructor() {
     super()
 
-    effect(
-      () => {
-        this.loading() ? this.formGroup.disable() : this.formGroup.enable()
-      }
-    )
+    effect(() => {
+      this.loading() ? this.formGroup.disable() : this.formGroup.enable()
+    })
 
-    effect(
-      () => {
-        if (this.toolset() && !this.formGroup.value.id) {
-          this.formGroup.patchValue({
-            ...pick(
-              this.toolset(),
-              'id',
-              'name',
-              'avatar',
-              'description',
-              'options',
-              'schema',
-              'type',
-              'category',
-              'tags',
-              'privacyPolicy',
-              'customDisclaimer'
-            ),
-            credentials: this.toolset().credentials ?? {},
-            tools: []
-          } as any)
-          this.#cdr.detectChanges()
-        }
+    effect(() => {
+      if (this.toolset() && !this.formGroup.value.id) {
+        this.formGroup.patchValue({
+          ...pick(
+            this.toolset(),
+            'id',
+            'name',
+            'avatar',
+            'description',
+            'options',
+            'schema',
+            'type',
+            'category',
+            'tags',
+            'privacyPolicy',
+            'customDisclaimer'
+          ),
+          credentials: this.toolset().credentials ?? {},
+          tools: []
+        } as any)
+        this.#cdr.detectChanges()
       }
-    )
+    })
   }
 
   addTool(toolSchema: TXpertToolEntity) {

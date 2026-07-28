@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { DisappearFadeOut, DynamicGridDirective } from '@xpert-ai/core'
-import { NgmSelectComponent, NgmTagsComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSelectComponent, NgmTagsComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'
 import { EmailTemplateNameEnum } from '../../../@core/types'
@@ -16,7 +16,7 @@ import { injectOrganization } from '@xpert-ai/cloud/state'
 import { LanguagesEnum } from '@xpert-ai/contracts'
 import { EmailTemplateComponent } from './template/template.component'
 
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
@@ -39,7 +39,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ButtonGroupDirective,
     LanguageSelectorComponent,
     EmailTemplateComponent
-],
+  ],
   templateUrl: './email-templates.component.html',
   styleUrls: ['./email-templates.component.scss'],
   animations: [DisappearFadeOut]
@@ -52,12 +52,12 @@ export class EmailTemplatesComponent {
   readonly organization = injectOrganization()
 
   // States
-  readonly refresh$ = new BehaviorSubject<void>(null) 
+  readonly refresh$ = new BehaviorSubject<void>(null)
   readonly emailTemplates = toSignal(
     this.refresh$.pipe(switchMap(() => this.emailTemplateService.getAllInOrg().pipe(map(({ items }) => items))))
   )
   readonly allLanguages = toSignal(
-    this.refresh$.pipe(switchMap(() => this.languagesService.getAll().pipe(map(({items}) => items))))
+    this.refresh$.pipe(switchMap(() => this.languagesService.getAll().pipe(map(({ items }) => items))))
   )
 
   readonly langGroup = computed(() => {
@@ -90,23 +90,28 @@ export class EmailTemplatesComponent {
     if (!items) {
       return null
     }
-    
-    const g = groupBy(items.map((item) => ({
-      ...item,
-      name: item.name.split('/')[0],
-      type: item.name.split('/')[1],
-    })), 'name')
+
+    const g = groupBy(
+      items.map((item) => ({
+        ...item,
+        name: item.name.split('/')[0],
+        type: item.name.split('/')[1]
+      })),
+      'name'
+    )
     return Object.keys(g).map((name) => ({
       name: name as EmailTemplateNameEnum,
       html: g[name].find((_) => _.type === 'html'),
-      subject: g[name].find((_) => _.type === 'subject'),
+      subject: g[name].find((_) => _.type === 'subject')
     }))
   })
 
-  readonly templateNames = signal(Object.values(EmailTemplateNameEnum).map((name) => ({
-    key: name,
-    caption: name
-  })))
+  readonly templateNames = signal(
+    Object.values(EmailTemplateNameEnum).map((name) => ({
+      key: name,
+      caption: name
+    }))
+  )
 
   readonly opened = signal(false)
 
@@ -119,7 +124,7 @@ export class EmailTemplatesComponent {
   }
 
   newEmailTemplate() {
-    this.dialogRef = this.#dialog.open(this.newTempl(),)
+    this.dialogRef = this.#dialog.open(this.newTempl())
 
     this.dialogRef.closed.subscribe({
       next: () => {
@@ -159,7 +164,7 @@ export class EmailTemplatesComponent {
   delete(item) {
     combineLatest([
       this.emailTemplateService.delete(item.subject.id),
-      this.emailTemplateService.delete(item.html.id),
+      this.emailTemplateService.delete(item.html.id)
     ]).subscribe({
       next: () => {
         //

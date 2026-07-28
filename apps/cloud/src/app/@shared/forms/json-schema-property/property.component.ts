@@ -6,7 +6,7 @@
  */
 import { booleanAttribute, Component, OnInit, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {
@@ -111,10 +111,11 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly enum = computed(() => this.enumSchema()?.enum)
   readonly enumOptions = computed(() => {
     const enumLabels = this.xUi()?.enumLabels
-    const items = this.enum()?.map((value) => ({
-      label: this.i18n.transform(enumLabels?.[`${value}`] ?? `${value}`),
-      value
-    })) ?? []
+    const items =
+      this.enum()?.map((value) => ({
+        label: this.i18n.transform(enumLabels?.[`${value}`] ?? `${value}`),
+        value
+      })) ?? []
     const values = Array.isArray(this.value$()) ? this.value$() : this.value$() != null ? [this.value$()] : []
     values.forEach((element) => {
       if (!items.some((_) => _.value === element)) {
@@ -252,11 +253,12 @@ export class JSONSchemaPropertyComponent implements OnInit {
   }
 }
 
-type JsonSchemaUIVisibilityCondition = NonNullable<JsonSchemaUIExtensions['visibleWhen']> extends infer Condition
-  ? Condition extends readonly (infer Item)[]
-    ? Item
-    : Condition
-  : never
+type JsonSchemaUIVisibilityCondition =
+  NonNullable<JsonSchemaUIExtensions['visibleWhen']> extends infer Condition
+    ? Condition extends readonly (infer Item)[]
+      ? Item
+      : Condition
+    : never
 
 function evaluateVisibilityCondition(condition: JsonSchemaUIVisibilityCondition, context?: JsonSchemaPropertyContext) {
   const value = condition.source === 'context' ? context?.[condition.name] : context?.model?.[condition.name]

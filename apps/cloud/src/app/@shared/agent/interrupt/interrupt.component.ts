@@ -12,7 +12,7 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { InterruptMessageType, isInterruptMessage, TInterruptMessage, TSensitiveOperation } from '../../../@core'
 import { AbstractInterruptComponent } from '../types'

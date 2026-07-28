@@ -15,7 +15,7 @@ import {
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'

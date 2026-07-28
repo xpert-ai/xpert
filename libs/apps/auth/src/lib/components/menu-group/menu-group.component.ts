@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
-import { DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { DensityDirective } from '@xpert-ai/headless-ui'
 import { isNil } from '@xpert-ai/ocap-core'
 import { PacMenuItem } from '../types'
 import { OverlayModule } from '@angular/cdk/overlay'

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, signal } f
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { DisappearSlideLeft, OverlayAnimations } from '@xpert-ai/core'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { routeAnimations, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'

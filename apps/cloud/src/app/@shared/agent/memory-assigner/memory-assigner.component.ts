@@ -1,8 +1,7 @@
-
 import { Component, computed, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TSelectOption, TVariableAssigner, TWorkflowVarGroup, TXpertParameter } from '@xpert-ai/contracts'
-import { attrModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { NgmSelectComponent } from '../../common'
@@ -20,7 +19,7 @@ import { TXpertVariablesOptions } from '@cloud/app/@core'
     NgmSelectComponent,
     StateVariableSelectComponent,
     CopilotPromptEditorComponent
-],
+  ],
   selector: 'xpert-memory-assigner',
   templateUrl: './memory-assigner.component.html',
   styleUrls: ['./memory-assigner.component.scss'],
@@ -57,7 +56,7 @@ export class XpertMemoryAssignerComponent {
         zh_Hans: '变量',
         en_US: 'Variable'
       }
-    },
+    }
     // {
     //   value: 'message',
     //   label: {

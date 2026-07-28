@@ -5,8 +5,8 @@ import { FormControl } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@xpert-ai/headless-ui'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {

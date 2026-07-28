@@ -1,9 +1,8 @@
-
 import { Component, computed, effect, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { injectIntegrationAPI } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -76,13 +75,11 @@ export class IntegrationSelectComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        if (this.integrations()) {
-          this.integrationList.set(this.integrations())
-        }
+    effect(() => {
+      if (this.integrations()) {
+        this.integrationList.set(this.integrations())
       }
-    )
+    })
   }
 
   openIntegrations() {

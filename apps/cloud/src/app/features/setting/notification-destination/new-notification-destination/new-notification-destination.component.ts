@@ -1,9 +1,14 @@
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms'
-import { mergeSelectedValues } from '@xpert-ai/ocap-angular/core'
+import { mergeSelectedValues } from '@xpert-ai/headless-ui'
 import { isEmpty } from 'lodash-es'
 import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs'
-import { convertConfigurationSchema, IMG_ROOT, PACNotificationDestinationsService, ToastrService } from '../../../../@core'
+import {
+  convertConfigurationSchema,
+  IMG_ROOT,
+  PACNotificationDestinationsService,
+  ToastrService
+} from '../../../../@core'
 
 import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({

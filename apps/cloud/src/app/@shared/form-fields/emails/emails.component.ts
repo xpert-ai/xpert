@@ -1,7 +1,6 @@
-
 import { Component, Input, forwardRef } from '@angular/core'
 import { ControlValueAccessor, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmFieldAppearance, NgmFieldColor } from "@xpert-ai/ocap-angular/core";
+import { NgmFieldAppearance, NgmFieldColor } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardFormImports, ZardTagSelectComponent } from '@xpert-ai/headless-ui'
 
@@ -14,12 +13,11 @@ import { ZardFormImports, ZardTagSelectComponent } from '@xpert-ai/headless-ui'
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => FormFieldEmailsComponent),
+      useExisting: forwardRef(() => FormFieldEmailsComponent)
     }
   ]
 })
 export class FormFieldEmailsComponent implements ControlValueAccessor {
-  
   @Input() appearance: NgmFieldAppearance
   @Input() label: string
   @Input() placeholder: string
@@ -35,10 +33,8 @@ export class FormFieldEmailsComponent implements ControlValueAccessor {
   registerOnChange(fn: any): void {
     this._onChange = fn
   }
-  registerOnTouched(fn: any): void {
-  }
-  setDisabledState?(isDisabled: boolean): void {
-  }
+  registerOnTouched(fn: any): void {}
+  setDisabledState?(isDisabled: boolean): void {}
 
   onValueChange(value: unknown[]) {
     this.keywords = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []

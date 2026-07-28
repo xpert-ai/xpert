@@ -6,8 +6,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@xpert-ai/core'
-import { CdkConfirmDeleteComponent, injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { AppearanceDirective, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { CdkConfirmDeleteComponent, injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { AppearanceDirective, myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -45,7 +45,7 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     NgmCommonModule,
     AppearanceDirective,
     XpertCardComponent
-],
+  ],
   selector: 'xpert-workspace-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
@@ -91,11 +91,13 @@ export class XpertWorkspaceXpertsComponent {
     },
     loader: ({ request }) => {
       return request
-        ? this.xpertService.getAllByWorkspace(request.workspaceId, {
-          where: omitBy(request.where, isNil),
-          order: { updatedAt: OrderTypeEnum.DESC },
-          relations: ['createdBy', 'tags', 'knowledgebase']
-        }).pipe(map(({ items }) => items.filter((item) => item.latest)))
+        ? this.xpertService
+            .getAllByWorkspace(request.workspaceId, {
+              where: omitBy(request.where, isNil),
+              order: { updatedAt: OrderTypeEnum.DESC },
+              relations: ['createdBy', 'tags', 'knowledgebase']
+            })
+            .pipe(map(({ items }) => items.filter((item) => item.latest)))
         : null
     }
   })
@@ -103,7 +105,8 @@ export class XpertWorkspaceXpertsComponent {
   readonly xperts = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     const tags = this.tags()
-    return this.#xperts.value()
+    return this.#xperts
+      .value()
       ?.filter((item) => (tags?.length ? tags.some((t) => item.tags.some((tt) => tt.name === t.name)) : true))
       .filter((item) =>
         searchText
@@ -159,13 +162,15 @@ export class XpertWorkspaceXpertsComponent {
           })
         }
       })
-      .closed.pipe(switchMap((confirm) => {
-        if (confirm) {
-          this.#loading.set(true)
-          return this.xpertService.delete(xpert.id)
-        }
-        return EMPTY
-      }))
+      .closed.pipe(
+        switchMap((confirm) => {
+          if (confirm) {
+            this.#loading.set(true)
+            return this.xpertService.delete(xpert.id)
+          }
+          return EMPTY
+        })
+      )
       .subscribe({
         next: () => {
           this.#loading.set(false)
@@ -226,13 +231,13 @@ export class XpertWorkspaceXpertsComponent {
           if (basic) {
             this.#loading.set(true)
             return this.xpertService.importDSL({
-                ...dsl,
-                team: {
-                  ...dsl.team,
-                  ...basic,
-                  workspaceId: this.workspace().id
-                }
-              })
+              ...dsl,
+              team: {
+                ...dsl.team,
+                ...basic,
+                workspaceId: this.workspace().id
+              }
+            })
           }
           return EMPTY
         })

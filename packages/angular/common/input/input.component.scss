@@ -1,8 +1,0 @@
-@reference "../../../../tailwind-workspace-reference.css";
-:host {
-  @apply flex flex-col items-stretch justify-start;
-}
-
-.ngm-input__message {
-  display: inline-flex;
-}

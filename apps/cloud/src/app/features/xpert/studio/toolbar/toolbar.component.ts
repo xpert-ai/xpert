@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { XpertStudioComponent } from '../studio.component'

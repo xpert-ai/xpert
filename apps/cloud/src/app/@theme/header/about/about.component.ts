@@ -1,10 +1,9 @@
-
 import { Component, inject } from '@angular/core'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { OverlayAnimation1 } from '@xpert-ai/core'
-import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
+import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, injectToastr, LANGUAGES, Store } from '../../../@core'
 import { AppService } from '../../../app.service'

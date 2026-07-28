@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, isNil } from 'lodash-es'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
@@ -26,7 +26,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     NgmSpinComponent
-],
+  ],
   selector: 'chat-component-schedule-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',

@@ -1,6 +1,5 @@
-
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
-import { CloseSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { CloseSvgComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IKnowledgebase,
@@ -30,7 +29,7 @@ import { XpertStudioComponent } from '../../studio.component'
 import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CapitalizePipe } from '@xpert-ai/core'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-knowledge',
@@ -51,7 +50,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertKnowledgeTestComponent,
     KnowledgeRecallParamsComponent,
     XpertKnowledgeCaseFormComponent
-],
+  ],
   host: {
     tabindex: '-1'
   }

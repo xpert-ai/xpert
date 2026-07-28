@@ -14,7 +14,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,

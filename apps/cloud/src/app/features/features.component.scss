@@ -1,19 +1,15 @@
-@use 'packages/angular/core/style/token-utils' as token-utils;
-@use 'packages/angular/core/style/sass-utils';
+@use 'packages/ui/src/lib/ui/compat/core/style/token-utils' as token-utils;
+@use 'packages/ui/src/lib/ui/compat/core/style/sass-utils';
 @reference "../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, shell);
 
 @function get-unthemable-tokens() {
-  @return (
-  );
+  @return ();
 }
 
 @function get-color-tokens() {
-  @return (
-    bg-color: var(--color-background-body),
-    primary-container-bg-color: var(--color-background-body)
-  );
+  @return (bg-color: var(--color-background-body), primary-container-bg-color: var(--color-background-body));
 }
 
 @function get-token-slots() {
@@ -75,7 +71,7 @@ z-button.pac-auth-button {
 
 .pac-home-title {
   background: linear-gradient(-45deg, #5d55f4, #00ff95, #5d55f4);
-	background-size: 200%;
+  background-size: 200%;
   background-position: 180% 50%;
 
   -webkit-mask-image: url('/assets/brand.png');

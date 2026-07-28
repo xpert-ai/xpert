@@ -1,13 +1,12 @@
-
 import { Component, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { TSandboxProvider } from '@cloud/app/@core'
 import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { attrModel } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { IconComponent } from "@cloud/app/@shared/avatar";
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import { of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'
@@ -16,11 +15,14 @@ import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 @Component({
   selector: 'xp-studio-features-sandbox',
   standalone: true,
-  imports: [TranslateModule,
+  imports: [
+    TranslateModule,
     FormsModule,
     NgmI18nPipe,
     ZardCheckboxComponent,
-    IconComponent, ExtensionHostOutletComponent],
+    IconComponent,
+    ExtensionHostOutletComponent
+  ],
   templateUrl: './sandbox.component.html',
   styleUrl: './sandbox.component.scss'
 })
@@ -42,18 +44,16 @@ export class XpertStudioFeaturesSandboxComponent {
   )
 
   constructor() {
-    effect(
-      () => {
-        if (!this.enabled()) {
-          return
-        }
-        const providers = this.providers()
-        const current = this.provider()
-        if (providers.length && (!current || !providers.some((item) => item.type === current))) {
-          this.provider.set(providers[0].type)
-        }
+    effect(() => {
+      if (!this.enabled()) {
+        return
       }
-    )
+      const providers = this.providers()
+      const current = this.provider()
+      if (providers.length && (!current || !providers.some((item) => item.type === current))) {
+        this.provider.set(providers[0].type)
+      }
+    })
   }
 
   selectProvider(type: string) {

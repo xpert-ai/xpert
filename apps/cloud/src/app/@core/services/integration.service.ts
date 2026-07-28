@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@xpert-ai/contracts'
-import { TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { TSelectOption } from '@xpert-ai/headless-ui'
 import { Observable } from 'rxjs'
 
 const API_INTEGRATION = API_PREFIX + '/integration'
@@ -109,7 +109,7 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
     return this.httpClient.post<IntegrationTestResponse>(API_INTEGRATION + '/test', integration)
   }
 
-  selectOptions(options: {provider?: string; features?: IntegrationFeatureEnum[]}) {
+  selectOptions(options: { provider?: string; features?: IntegrationFeatureEnum[] }) {
     const params = {}
     if (options.provider) {
       params['provider'] = options.provider

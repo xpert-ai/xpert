@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, input, output, signal } from '@ang
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { auditTime, distinctUntilChanged, firstValueFrom, startWith } from 'rxjs'
 import { CopilotAiProvidersComponent } from '../ai-providers/providers.component'
@@ -18,7 +18,13 @@ import { getErrorMessage, ICopilotProviderModel, injectCopilotServer, ToastrServ
   host: {
     class: 'block overflow-hidden'
   },
-  imports: [TranslateModule, ReactiveFormsModule, NgmSpinComponent, CopilotProviderComponent, CopilotModelSelectComponent]
+  imports: [
+    TranslateModule,
+    ReactiveFormsModule,
+    NgmSpinComponent,
+    CopilotProviderComponent,
+    CopilotModelSelectComponent
+  ]
 })
 export class CopilotConfigFormComponent {
   readonly #copilotServer = injectCopilotServer()

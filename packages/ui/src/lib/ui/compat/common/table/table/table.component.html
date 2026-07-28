@@ -1,0 +1,175 @@
+<div class="ngm-table__container flex-1 h-full flex flex-col overflow-auto">
+  <table
+    z-table
+    [zSize]="tableSize()"
+    [class.ngm-table-grid]="grid()"
+    class="min-w-full table-fixed text-sm"
+    [style.min-width.px]="tableMinWidth()"
+    [displayDensity]="displayDensity()"
+  >
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        @if (selectable()) {
+          <th z-table-head zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="6" class="w-14 min-w-14">
+            <z-checkbox
+              class="mx-2"
+              (checkChange)="$event ? toggleAllRows() : null"
+              [ngModel]="selection.hasValue() && isAllSelected()"
+              [indeterminate]="selection.hasValue() && !isAllSelected()"
+              [aria-label]="checkboxLabel()"
+            />
+          </th>
+        }
+
+        @for (column of columns(); track column.name) {
+          <th
+            #headerCell
+            z-table-head
+            class="group relative"
+            [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+            [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+            [zTableStickyZIndex]="stickyZIndex(column, true)"
+            [ngClass]="column.headerClass"
+            [style.width]="columnWidth(column)"
+            [style.min-width]="column.minWidth || null"
+            [style.max-width]="columnMaxWidth(column)"
+            [attr.aria-sort]="
+              sortDirection(column.name) === 'asc'
+                ? 'ascending'
+                : sortDirection(column.name) === 'desc'
+                  ? 'descending'
+                  : 'none'
+            "
+          >
+            <div class="flex min-w-0 flex-col gap-2 pr-2" [style.max-width]="columnMaxWidth(column)">
+              <div class="flex min-w-0 items-center gap-1">
+                <button
+                  z-table-sort-header
+                  class="min-w-0 flex-1"
+                  [zDirection]="sortDirection(column.name)"
+                  (zSortChange)="onSortChange(column.name, $event)"
+                >
+                  {{ column.caption || column.name }}
+                </button>
+
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon-sm"
+                  zShape="circle"
+                  [class]="
+                    searchingColumn() === column.name
+                      ? 'shrink-0 pointer-events-auto opacity-100 transition-opacity hover:opacity-100'
+                      : 'shrink-0 pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-60 hover:opacity-100'
+                  "
+                  [zTooltip]="'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' }"
+                  (click)="$event.stopPropagation(); toggleSearchingColumn(column.name)"
+                >
+                  <z-icon zType="search" />
+                </button>
+              </div>
+
+              @if (searchingColumn() === column.name) {
+                <input
+                  z-input
+                  zBorderless
+                  placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' } }}"
+                  type="text"
+                  class="h-6 w-full text-left text-sm"
+                  [formControl]="searchControl"
+                  (click)="$event.stopPropagation()"
+                  (keyup)="escapeSearching($event)"
+                />
+              }
+            </div>
+
+            @if (canResizeColumn(column)) {
+              <button
+                type="button"
+                data-ngm-table-resize-handle
+                class="absolute inset-y-0 right-0 z-10 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 select-none"
+                [ngClass]="resizingColumn() === column.name ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                tabindex="-1"
+                (mousedown)="startColumnResize($event, column, headerCell)"
+                (click)="$event.preventDefault(); $event.stopPropagation()"
+              >
+                <span class="pointer-events-none h-6 w-px bg-border/80"></span>
+              </button>
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody z-table-body>
+      @if (rows().length) {
+        @for (row of rows(); track row) {
+          <tr z-table-row>
+            @if (selectable()) {
+              <td z-table-cell zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="4" class="w-14 min-w-14">
+                <z-checkbox
+                  class="mx-2"
+                  (click)="$event.stopPropagation()"
+                  (checkChange)="$event ? selection.toggle(row) : null"
+                  [ngModel]="selection.isSelected(row)"
+                  [aria-label]="checkboxLabel(row)"
+                />
+              </td>
+            }
+
+            @for (column of columns(); track column.name) {
+              <td
+                z-table-cell
+                [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+                [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+                [zTableStickyZIndex]="stickyZIndex(column)"
+                [ngClass]="column.cellClass"
+                [style.width]="columnWidth(column)"
+                [style.min-width]="column.minWidth || null"
+                [style.max-width]="columnMaxWidth(column)"
+              >
+                <div
+                  [ngClass]="contentClass(column)"
+                  [style.max-width]="columnMaxWidth(column)"
+                  [attr.title]="cellTitle(row, column)"
+                >
+                  @if (isSignal(column.cellTemplate)) {
+                    <ng-container
+                      *ngTemplateOutlet="column.cellTemplate(); context: _context(row, column)"
+                    ></ng-container>
+                  } @else if (column.cellTemplate) {
+                    <ng-container
+                      *ngTemplateOutlet="column.cellTemplate; context: _context(row, column)"
+                    ></ng-container>
+                  } @else {
+                    {{ displayValue(row, column) }}
+                  }
+                </div>
+              </td>
+            }
+          </tr>
+        }
+      } @else {
+        <tr z-table-row>
+          <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="displayedColumns().length">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (paging()) {
+  <z-paginator
+    class="border-t border-border px-2 py-1"
+    [displayDensity]="displayDensity()"
+    [hidePageSizeLabel]="true"
+    [length]="processedRows().length"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="pageSizeOptions()"
+    showFirstLastButtons
+    (page)="onPage($event)"
+  />
+}

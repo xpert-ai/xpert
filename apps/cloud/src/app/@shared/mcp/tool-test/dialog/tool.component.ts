@@ -1,10 +1,9 @@
-
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from 'apps/cloud/src/app/@core'
 import { MCPToolsetToolTestComponent } from '../test/tool.component'
@@ -20,18 +19,18 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     NgmI18nPipe,
     MCPToolsetToolTestComponent
-],
+  ],
   selector: 'mcp-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MCPToolTestDialogComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ tool: IXpertTool; enableAuthorization: boolean; }>(DIALOG_DATA)
+  readonly #data = inject<{ tool: IXpertTool; enableAuthorization: boolean }>(DIALOG_DATA)
 
   readonly credentials = model(this.#data.tool.toolset?.credentials)
-  
+
   readonly tool = computed(() => ({
     ...this.#data.tool,
     toolset: {

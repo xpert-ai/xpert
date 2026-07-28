@@ -24,7 +24,7 @@ import { ChatAttachmentsComponent, isChatAgentFile, type ChatAgentFile } from '@
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'

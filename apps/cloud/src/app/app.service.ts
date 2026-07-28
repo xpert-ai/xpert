@@ -2,7 +2,7 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { normalizeTheme } from '@xpert-ai/ocap-angular/core'
+import { normalizeTheme } from '@xpert-ai/headless-ui'
 import { nonNullable } from '@xpert-ai/ocap-core'
 import { ComponentStore } from '@xpert-ai/store'
 import { TranslateService } from '@ngx-translate/core'

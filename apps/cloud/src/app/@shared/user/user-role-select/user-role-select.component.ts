@@ -9,7 +9,7 @@ import {
   ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
 import { UsersService } from '@xpert-ai/cloud/state'
-import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'
 import { IUser } from '../../../@core'
@@ -136,14 +136,12 @@ export class UserRoleSelectComponent {
     // todo
     // // 获取粘贴的文本内容
     // const pastedText = event.clipboardData.getData('text');
-
     // const pastedLines = pastedText.split('\n');
     // pastedLines.forEach(line => {
     //   // 查找与每行粘贴内容匹配的选项（忽略大小写）
     //   const matchingOption = this.options.find(option =>
     //     option.toLowerCase() === line.toLowerCase().trim()
     //   );
-
     //   if (matchingOption) {
     //     // 如果找到匹配项，插入选项
     //     this.insertOption(matchingOption);
@@ -152,7 +150,6 @@ export class UserRoleSelectComponent {
     //     console.log('未找到匹配的选项:', line);
     //   }
     // });
-
     // // 阻止默认粘贴行为（可选）
     // event.preventDefault();
   }

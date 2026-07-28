@@ -1,9 +1,20 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CdkMenu, CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, contentChild, inject, input, model, output, TemplateRef, ViewChild } from '@angular/core'
+import {
+  booleanAttribute,
+  Component,
+  computed,
+  contentChild,
+  inject,
+  input,
+  model,
+  output,
+  TemplateRef,
+  ViewChild
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { NgmHighlightDirective } from '@xpert-ai/headless-ui'
 import {
   buildListboxOptions,
   debouncedSignal,
@@ -11,7 +22,7 @@ import {
   hasSelectOptionValue,
   NgmI18nPipe,
   TSelectOption
-} from '@xpert-ai/ocap-angular/core'
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -33,7 +44,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
   selector: 'ngm-select-panel',
   templateUrl: 'panel.component.html',
   styleUrls: ['panel.component.scss'],
-  hostDirectives: [NgxControlValueAccessor],
+  hostDirectives: [NgxControlValueAccessor]
 })
 export class NgmSelectPanelComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
@@ -76,10 +87,12 @@ export class NgmSelectPanelComponent {
       const label = this.i18n.transform(option.label)
       const description = this.i18n.transform(option.description)
       const value = formatSelectOptionValue(option.value).toLowerCase()
-      return label?.toLowerCase().includes(searchTerm)
-        || description?.toLowerCase().includes(searchTerm)
-        || value.includes(searchTerm)
-        || hasSelectOptionValue(this.values(), option.value)
+      return (
+        label?.toLowerCase().includes(searchTerm) ||
+        description?.toLowerCase().includes(searchTerm) ||
+        value.includes(searchTerm) ||
+        hasSelectOptionValue(this.values(), option.value)
+      )
     })
   })
 

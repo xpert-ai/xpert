@@ -17,8 +17,8 @@ import {
 } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
-import { effectAction, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmCommonModule, NgmHighlightDirective } from '@xpert-ai/headless-ui'
+import { effectAction, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { IXpert, PaginationParams } from '@xpert-ai/cloud/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -121,15 +121,13 @@ export class ChatConversationsComponent {
   constructor() {
     this.onIntersection()
 
-    effect(
-      () => {
-        const cache = this.#cache()
-        if (cache) {
-          this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
-          this._filterXpert.set(cache.xpert ?? null)
-        }
+    effect(() => {
+      const cache = this.#cache()
+      if (cache) {
+        this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
+        this._filterXpert.set(cache.xpert ?? null)
       }
-    )
+    })
   }
 
   selectConversation(item: IChatConversation) {

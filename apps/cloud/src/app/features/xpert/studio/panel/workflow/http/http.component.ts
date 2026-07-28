@@ -8,7 +8,7 @@ import {
   XpertWorkflowRetryComponent
 } from '@cloud/app/@shared/workflow'
 import { linkedModel } from '@xpert-ai/core'
-import { NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmRadioSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BodyType,

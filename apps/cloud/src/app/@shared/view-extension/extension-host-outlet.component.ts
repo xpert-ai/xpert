@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs'
 import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { injectViewExtensionApi } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { ViewRendererComponent } from './view-renderer.component'
 import { getErrorMessage } from '@cloud/app/@core/types'
 

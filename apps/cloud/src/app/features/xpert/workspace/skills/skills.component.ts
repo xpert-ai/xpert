@@ -30,8 +30,8 @@ import {
 } from '@cloud/app/@shared/skills'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { OverlayAnimation1 } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
 import {

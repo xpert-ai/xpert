@@ -8,7 +8,7 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { linkedModel, TranslatePipe, uploadYamlFile } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, map, startWith, switchMap } from 'rxjs'
 
@@ -31,7 +31,7 @@ export class ChatProjectsComponent {
   readonly #dialog = inject(Dialog)
 
   readonly #projects = derivedAsync<{ projects?: IXpertProject[]; loading: boolean }>(() =>
-    this.projectSercice.getAllMy({order: {updatedAt: OrderTypeEnum.DESC}}).pipe(
+    this.projectSercice.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
       map(({ items }) => ({ projects: items, loading: false })),
       startWith({ loading: true })
     )
@@ -128,18 +128,20 @@ export class ChatProjectsComponent {
 
     input.click()
   }
-  
+
   handleImportedDSL(dsl: any) {
-    this.#dialog.open<IXpertProject>(XpertProjectInstallComponent, {
-      data: {
-        dsl
-      }
-    }).closed.subscribe({
-      next: (result) => {
-        if (result) {
-          this.#router.navigate(['/project', result.id])
+    this.#dialog
+      .open<IXpertProject>(XpertProjectInstallComponent, {
+        data: {
+          dsl
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.#router.navigate(['/project', result.id])
+          }
+        }
+      })
   }
 }

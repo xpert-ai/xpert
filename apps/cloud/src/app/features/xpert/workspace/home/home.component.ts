@@ -20,9 +20,9 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@xpert-ai/cloud/state'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
-import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
+import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import { concat } from 'lodash-es'
@@ -129,7 +129,8 @@ export class XpertWorkspaceHomeComponent {
   #defaultWorkspaceQueryVersion = 0
 
   // Xpert or tool type filter
-  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow' | 'connectors'>>(null)
+  readonly types =
+    model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow' | 'connectors'>>(null)
   readonly type = computed(() => this.types()?.[0])
 
   // TagFilter's state

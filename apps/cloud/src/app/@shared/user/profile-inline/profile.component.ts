@@ -1,6 +1,5 @@
-
 import { Component, input } from '@angular/core'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IUser } from '../../../@core'
 import { UserPipe } from '../../pipes'
@@ -19,7 +18,7 @@ import { UserPipe } from '../../pipes'
       directive: NgmDensityDirective,
       inputs: ['small', 'large']
     }
-  ],
+  ]
 })
 export class UserProfileInlineComponent {
   readonly user = input<IUser>()

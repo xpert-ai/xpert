@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent } from '../../forms'
 import { hasJsonSchemaRequiredErrors, jsonSchemaHasConfigFields } from './trigger-config.util'
@@ -32,7 +32,9 @@ import { WorkflowTriggerProviderOption } from './types'
             </div>
 
             @if (!shouldRenderConfig()) {
-              <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+              <span
+                class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+              >
                 {{ 'PAC.Chat.ClawXpert.TriggerNoExtraConfigShort' | translate: { Default: 'No extra config' } }}
               </span>
             }
@@ -75,7 +77,9 @@ import { WorkflowTriggerProviderOption } from './types'
           }
         </div>
       } @else if (showEmptyState()) {
-        <div class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-4 text-sm leading-6 text-text-secondary">
+        <div
+          class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-4 text-sm leading-6 text-text-secondary"
+        >
           {{ emptyStateKey() | translate: { Default: emptyStateDefault() } }}
         </div>
       }

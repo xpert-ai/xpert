@@ -1,7 +1,6 @@
-
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { ChecklistItem } from '@xpert-ai/cloud/state'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({

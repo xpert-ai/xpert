@@ -1,24 +1,12 @@
 import { CommonModule } from '@angular/common'
-import {
-  Component,
-  Input,
-  computed,
-  effect,
-  forwardRef,
-  inject,
-  input,
-  signal
-} from '@angular/core'
+import { Component, Input, computed, effect, forwardRef, inject, input, signal } from '@angular/core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardTagSelectComponent,
-  type ZardTagSelectOption
-} from '@xpert-ai/headless-ui'
+import { ZardTagSelectComponent, type ZardTagSelectOption } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
-import { NgmFieldColor } from '@xpert-ai/ocap-angular/core'
+import { NgmFieldColor } from '@xpert-ai/headless-ui'
 
 function isTag(value: unknown): value is ITag {
   return !!value && typeof value === 'object' && ('id' in value || 'name' in value || 'category' in value)
@@ -26,12 +14,7 @@ function isTag(value: unknown): value is ITag {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    SharedUiModule,
-    TranslateModule,
-    ZardTagSelectComponent
-  ],
+  imports: [CommonModule, SharedUiModule, TranslateModule, ZardTagSelectComponent],
   selector: 'pac-tag-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
@@ -70,14 +53,10 @@ export class TagEditorComponent implements ControlValueAccessor {
   )
 
   constructor() {
-    effect(
-      () => {
-        const allTags = this._tags()
-        this.tags.update((values) =>
-          (values ?? []).map((value) => allTags.find((item) => item.id === value.id) ?? value)
-        )
-      }
-    )
+    effect(() => {
+      const allTags = this._tags()
+      this.tags.update((values) => (values ?? []).map((value) => allTags.find((item) => item.id === value.id) ?? value))
+    })
   }
 
   writeValue(obj: any): void {
@@ -128,5 +107,5 @@ export class TagEditorComponent implements ControlValueAccessor {
     }
   }
 
-  readonly displayTag = (value: unknown) => (isTag(value) ? value.name ?? '' : '')
+  readonly displayTag = (value: unknown) => (isTag(value) ? (value.name ?? '') : '')
 }

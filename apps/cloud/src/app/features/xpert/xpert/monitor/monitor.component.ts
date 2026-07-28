@@ -6,8 +6,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmTooltipDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
+import { NgmTooltipDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../@core'
@@ -31,7 +31,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertAppComponent,
     XpertAPIComponent,
     XpertStatisticsComponent
-],
+  ],
   selector: 'xpert-monitor',
   templateUrl: './monitor.component.html',
   styleUrl: 'monitor.component.scss',

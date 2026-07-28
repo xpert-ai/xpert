@@ -1,17 +1,17 @@
-@use 'packages/angular/core/style/runtime-theme' as runtimeTheme;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as runtimeTheme;
 @use 'libs/formly/formly-theme' as formly;
 @use 'libs/apps/auth/src/lib/auth-theme' as auth;
-@use 'packages/angular/theming' as ocap;
+@use 'packages/ui/src/lib/ui/compat/theming' as uiCompat;
 @use '../../app/features/features-theme' as features;
 @use '../../app/@shared/components-theme' as shared;
 
 @import '@angular/cdk/overlay-prebuilt.css';
 
 @include formly.theme(runtimeTheme.$theme);
-@include ocap.core-theme(runtimeTheme.$theme);
-@include ocap.breadcrumb-theme(runtimeTheme.$theme);
-@include ocap.common-color(runtimeTheme.$theme);
-@include ocap.common-density(runtimeTheme.$theme);
+@include uiCompat.core-theme(runtimeTheme.$theme);
+@include uiCompat.breadcrumb-theme(runtimeTheme.$theme);
+@include uiCompat.common-color(runtimeTheme.$theme);
+@include uiCompat.common-density(runtimeTheme.$theme);
 @include auth.theme(runtimeTheme.$theme);
 @include features.theme(runtimeTheme.$theme);
 @include shared.theme(runtimeTheme.$theme);

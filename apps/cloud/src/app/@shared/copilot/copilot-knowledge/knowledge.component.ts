@@ -6,8 +6,8 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
+import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -32,7 +32,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
     ZardInputDirective,
     NgmCommonModule,
     ButtonGroupDirective
-],
+  ],
   selector: 'copilot-knowledge',
   templateUrl: 'knowledge.component.html',
   styleUrls: ['knowledge.component.scss'],
@@ -87,21 +87,19 @@ export class CopilotKnowledgeComponent {
   readonly loading = signal(true)
 
   constructor() {
-    effect(
-      () => {
-        if (this.example()) {
-          this.formGroup.patchValue(this.example())
-        } else {
-          this.formGroup.reset()
-          this.formGroup.patchValue({
-            // role: this.examplesComponent.roleFilter(),
-            // command: this.commandFilter()
-          })
-        }
-        this.formGroup.markAsPristine()
-        this.loading.set(false)
+    effect(() => {
+      if (this.example()) {
+        this.formGroup.patchValue(this.example())
+      } else {
+        this.formGroup.reset()
+        this.formGroup.patchValue({
+          // role: this.examplesComponent.roleFilter(),
+          // command: this.commandFilter()
+        })
       }
-    )
+      this.formGroup.markAsPristine()
+      this.loading.set(false)
+    })
   }
 
   close(refresh = false) {

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model } from '@an
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -26,7 +26,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSelectComponent,
     StatisticsChartComponent,
     StatisticsTokenUsageComponent
-],
+  ],
   selector: 'xpert-statistics',
   templateUrl: './statistics.component.html',
   styleUrl: 'statistics.component.scss',

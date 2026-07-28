@@ -6,8 +6,8 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/headless-ui'
+import { NgmI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
@@ -48,7 +48,7 @@ import { XpertMCPManageComponent } from '../manage/manage.component'
     NgmCommonModule,
     CardCreateComponent,
     ToolsetCardComponent
-],
+  ],
   selector: 'mcp-toolsets',
   templateUrl: './toolsets.component.html',
   styleUrl: 'toolsets.component.scss',
@@ -106,12 +106,12 @@ export class MCPToolsetsComponent {
   readonly toolsets = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     return this.#toolsets()?.filter((toolset) =>
-        searchText
-          ? toolset.name.toLowerCase().includes(searchText) || toolset.description?.toLowerCase().includes(searchText)
-          : true
-      )
+      searchText
+        ? toolset.name.toLowerCase().includes(searchText) || toolset.description?.toLowerCase().includes(searchText)
+        : true
+    )
   })
-  
+
   constructor() {
     //
   }
@@ -130,7 +130,7 @@ export class MCPToolsetsComponent {
         description: template.description,
         category: XpertToolsetCategoryEnum.MCP,
         type: template.server.type,
-        schema: JSON.stringify({mcpServers: {'': mcpServer}}),
+        schema: JSON.stringify({ mcpServers: { '': mcpServer } })
       }
       if (typeof template.icon === 'string') {
         toolset.avatar = {
@@ -144,7 +144,7 @@ export class MCPToolsetsComponent {
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
-          toolset,
+          toolset
         }
       })
       .closed.subscribe({

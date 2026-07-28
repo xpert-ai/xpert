@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectIntegrationAPI,
@@ -34,7 +34,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     JSONSchemaFormComponent,
     NgmSelectComponent,
     IntegrationSelectComponent
-]
+  ]
 })
 export class XpertWorkflowSourceComponent extends XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)

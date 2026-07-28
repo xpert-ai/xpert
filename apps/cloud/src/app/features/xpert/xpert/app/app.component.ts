@@ -6,7 +6,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { EMPTY, switchMap, tap } from 'rxjs'
@@ -35,7 +35,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmSpinComponent,
     QRCodeComponent
-],
+  ],
   selector: 'xpert-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',

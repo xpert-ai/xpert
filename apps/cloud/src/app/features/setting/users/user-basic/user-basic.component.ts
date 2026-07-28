@@ -1,11 +1,10 @@
-
 import { Component, effect, input, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute } from '@angular/router'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { IUserUpdateInput, LanguagesEnum } from '@xpert-ai/contracts'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { CreatedByPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { ToastrService, User } from '../../../../@core'

@@ -13,7 +13,7 @@ import {
   TSandboxProviderMeta,
   TWorkflowTriggerMeta
 } from '@xpert-ai/cloud/state'
-import { toParams } from '@xpert-ai/ocap-angular/core'
+import { toParams } from '@xpert-ai/headless-ui'
 import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { NGXLogger } from 'ngx-logger'
