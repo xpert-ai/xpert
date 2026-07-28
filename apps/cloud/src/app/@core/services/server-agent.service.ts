@@ -1,24 +1,25 @@
 import { HttpClient, HttpParams, HttpRequest, HttpResponse } from '@angular/common/http'
 import { Inject, Injectable, InjectionToken } from '@angular/core'
-import { AgentEvent, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@xpert-ai/contracts'
-import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@xpert-ai/ocap-core'
+import {
+  AgentEvent,
+  AuthenticationEnum,
+  IDataSource,
+  IDataSourceAuthentication,
+  ISemanticModel
+} from '@xpert-ai/contracts'
 import { API_DATA_SOURCE, C_URI_API_MODELS, DataSourceService } from '@xpert-ai/cloud/state'
 import { chunk, flatten, groupBy } from 'lodash-es'
-import {
-  bufferTime,
-  catchError,
-  EMPTY,
-  filter,
-  firstValueFrom,
-  from,
-  mergeMap,
-  Observable,
-  of,
-  Subject,
-} from 'rxjs'
+import { bufferTime, catchError, EMPTY, filter, firstValueFrom, from, mergeMap, Observable, of, Subject } from 'rxjs'
 import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { getErrorMessage, uuid } from '../types'
 import { AbstractAgent, AuthInfoType } from '../auth'
+import {
+  DataSourceAgent,
+  DataSourceAgentOptions,
+  DataSourceAgentStatus,
+  DataSourceAgentType,
+  UUID
+} from './data-source-agent.types'
 
 /**
  * @deprecated use PAC_SERVER_DEFAULT_OPTIONS
@@ -34,22 +35,21 @@ export const PAC_SERVER_AGENT_DEFAULT_OPTIONS = new InjectionToken<PacServerAgen
   'pac-server-agent-default-options',
   {
     providedIn: 'root',
-    factory: PAC_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY,
-  },
-);
+    factory: PAC_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY
+  }
+)
 
 /** @docs-private */
 export function PAC_SERVER_AGENT_DEFAULT_OPTIONS_FACTORY(): PacServerAgentDefaultOptions {
-  return {modelBaseUrl: C_URI_API_MODELS};
+  return { modelBaseUrl: C_URI_API_MODELS }
 }
 
 /**
  * @deprecated Only for http request, others to use {@link ServerSocketAgent} instead
  */
 @Injectable()
-export class ServerAgent extends AbstractAgent implements Agent {
-  
-  type = AgentType.Server
+export class ServerAgent extends AbstractAgent implements DataSourceAgent {
+  type = DataSourceAgentType.Server
 
   private error$ = new Subject()
   readonly queuePool = new Map<UUID, { resolve: (value) => void; reject: (reason?: any) => void }>()
@@ -61,7 +61,8 @@ export class ServerAgent extends AbstractAgent implements Agent {
     private options: PacServerAgentDefaultOptions,
     private httpClient: HttpClient,
     dataSourceService: DataSourceService,
-    _bottomSheet: ZardSheetService) {
+    _bottomSheet: ZardSheetService
+  ) {
     super(dataSourceService, _bottomSheet)
 
     this.request$
@@ -98,7 +99,7 @@ export class ServerAgent extends AbstractAgent implements Agent {
               )
             )
           ).pipe(
-            mergeMap((request: HttpRequest<{query: { id: string, body: string, forceRefresh: boolean }[]}>) => {
+            mergeMap((request: HttpRequest<{ query: { id: string; body: string; forceRefresh: boolean }[] }>) => {
               return this.httpClient.request(request).pipe(
                 filter(({ type }) => type === 4),
                 catchError((err) => {
@@ -142,7 +143,7 @@ export class ServerAgent extends AbstractAgent implements Agent {
       })
   }
 
-  selectStatus(): Observable<AgentStatus> {
+  selectStatus(): Observable<DataSourceAgentStatus> {
     throw new Error('Method not implemented.')
   }
 
@@ -154,11 +155,11 @@ export class ServerAgent extends AbstractAgent implements Agent {
     this.error$.next(err)
   }
 
-  _request?(semanticModel: ISemanticModel & DataSourceOptions, options: any): Observable<any> {
+  _request?(semanticModel: ISemanticModel & DataSourceAgentOptions, options: any): Observable<any> {
     return from(this.request(semanticModel, options))
   }
 
-  async request(semanticModel: ISemanticModel & DataSourceOptions, options: any): Promise<any> {
+  async request(semanticModel: ISemanticModel & DataSourceAgentOptions, options: any): Promise<any> {
     options.headers = options.headers || {}
     const modelId = semanticModel.id
     const id = uuid()
@@ -170,13 +171,15 @@ export class ServerAgent extends AbstractAgent implements Agent {
 
     // Require auth info if authType is Basic
     if (semanticModel?.dataSource?.authType === AuthenticationEnum.BASIC) {
-      const auth = await this.authenticate({data: {
-        dataSource: semanticModel?.dataSource,
-        request: {
-          url,
-          body
+      const auth = await this.authenticate({
+        data: {
+          dataSource: semanticModel?.dataSource,
+          request: {
+            url,
+            body
+          }
         }
-      }} as any)
+      } as any)
 
       if (!semanticModel?.dataSource?.id && auth) {
         body.authentications = [auth]
@@ -184,12 +187,14 @@ export class ServerAgent extends AbstractAgent implements Agent {
     }
 
     if (options.url === 'ping') {
-      url = semanticModel.dataSource?.id ? `${API_DATA_SOURCE}/${semanticModel.dataSource.id}/ping` : `${API_DATA_SOURCE}/ping`
+      url = semanticModel.dataSource?.id
+        ? `${API_DATA_SOURCE}/${semanticModel.dataSource.id}/ping`
+        : `${API_DATA_SOURCE}/ping`
       method = 'POST'
 
       try {
-        return await firstValueFrom(this.httpClient.post(url, body, {params}))
-      } catch(err) {
+        return await firstValueFrom(this.httpClient.post(url, body, { params }))
+      } catch (err) {
         const message = getErrorMessage(err)
         this.error$.next(message)
         throw new Error(message)
@@ -200,9 +205,9 @@ export class ServerAgent extends AbstractAgent implements Agent {
         /**
          * @todo 使用更好的办法判断 (用类型判断?)
          */
-        url =
-          (<ISemanticModel>semanticModel).dataSourceId ? `${this.options.modelBaseUrl}/${modelId}/olap`
-            : `${API_DATA_SOURCE}/${semanticModel.dataSource?.id}/olap`
+        url = (<ISemanticModel>semanticModel).dataSourceId
+          ? `${this.options.modelBaseUrl}/${modelId}/olap`
+          : `${API_DATA_SOURCE}/${semanticModel.dataSource?.id}/olap`
         method = 'POST'
 
         return new Promise((resolve, reject) => {
@@ -265,11 +270,13 @@ export class ServerAgent extends AbstractAgent implements Agent {
         }
 
         try {
-          return await firstValueFrom(this.httpClient.request(method, url, {
-            body,
-            params
-          }))
-        } catch(err) {
+          return await firstValueFrom(
+            this.httpClient.request(method, url, {
+              body,
+              params
+            })
+          )
+        } catch (err) {
           const message = getErrorMessage(err)
           this.error$.next(message)
           throw new Error(message)
@@ -286,14 +293,12 @@ export class ServerAgent extends AbstractAgent implements Agent {
         ...dataSource,
         authentications: [
           {
-            ...auth as IDataSourceAuthentication,
+            ...(auth as IDataSourceAuthentication)
           }
         ]
       }
       return await firstValueFrom(
-        dataSource.id ? 
-        this.dataSourceService.ping(dataSource.id, dataSource) :
-        this.dataSourceService.ping(dataSource)
+        dataSource.id ? this.dataSourceService.ping(dataSource.id, dataSource) : this.dataSourceService.ping(dataSource)
       )
     }
   }

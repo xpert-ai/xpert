@@ -16,7 +16,7 @@ import {
 import { environment } from '@cloud/environments/environment'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
 import { myRxResource } from '@xpert-ai/headless-ui'
-import { cloneDeep } from '@xpert-ai/ocap-core'
+import { cloneDeep } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { assign, isEqual, isNil, omitBy } from 'lodash-es'
@@ -137,7 +137,10 @@ export class PACDataSourceEditComponent {
   }
 
   onReset() {
-    const dataSource = cloneDeep(this.data)
+    const dataSource = cloneDeep(this.dataSource())
+    if (!dataSource) {
+      return
+    }
     this.formGroup.clearValidators()
     this.formGroup.reset(dataSource)
     this.model = dataSource.options

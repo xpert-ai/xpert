@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
 import { CdkConfirmDeleteComponent } from '@xpert-ai/headless-ui'
-import { isNil } from '@xpert-ai/ocap-core'
+import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'

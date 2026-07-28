@@ -24,7 +24,7 @@ import {
   NgmCommonModule,
   TableColumn
 } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedFrom } from 'ngxtension/derived-from'

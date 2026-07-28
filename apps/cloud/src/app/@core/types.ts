@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { IUser } from '@xpert-ai/contracts'
-import { TableColumnType } from '@xpert-ai/ocap-core'
 import { enUS, zhCN } from 'date-fns/locale'
 import ShortUniqueId from 'short-unique-id'
 export * from '@xpert-ai/contracts'
@@ -123,6 +122,8 @@ export const DefaultCollection = {
   id: '__default__',
   name: 'Default'
 }
+
+export type TableColumnType = 'String' | 'Integer' | 'Numeric' | 'Boolean' | 'Datetime' | 'Date' | 'Time'
 
 // 对应 Adapter 中的类型
 export interface CreationTable {

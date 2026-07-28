@@ -1,18 +1,18 @@
 import { DecimalPipe } from '@angular/common'
-import { Inject, LOCALE_ID, Pipe, PipeTransform, Type } from '@angular/core'
-import { findLocaleData } from '../i18n/locale_data_api'
+import { inject, LOCALE_ID, Pipe, PipeTransform, Type } from '@angular/core'
+import { findLocaleData } from '@xpert-ai/headless-ui'
 
 export enum NxFormatNumberStyle {
   short = 'short',
   standard = 'standard',
-  long = 'long',
+  long = 'long'
 }
 
 export enum NxRoundingMode {
   none = 'none', // 无舍入行为,按照 decimals 或者 shortDecimals 进行 toFixed()
   ceil = 'ceil', // 对数进行上舍入。（向上取整；大于等于x的最小整数）
   floor = 'floor', // 对数进行下舍入。（小于等于x的最大整数）
-  round = 'round', // 把数四舍五入为最接近的整数。（对x四舍五入）
+  round = 'round' // 把数四舍五入为最接近的整数。（对x四舍五入）
 }
 
 export const FORMATOPTIONS: NxFormatOprions = {
@@ -24,7 +24,7 @@ export const FORMATOPTIONS: NxFormatOprions = {
   // roundingMode: NxRoundingMode.none, // 舍入行为
   // Delimiter: ',', // 分隔符
   // showDelimiter: true, // 是否启用分隔符
-  isformatNumber: true,
+  isformatNumber: true
 }
 
 export interface NxFormatOprions {
@@ -46,10 +46,10 @@ export interface NxFormatOprions {
  * Ref to [CurrencyPipe](https://github.com/angular/angular/blob/11.2.13/packages/common/src/pipes/number_pipe.ts#L163-L287)
  */
 @Pipe({
-  name: 'shortNumber',
+  name: 'shortNumber'
 })
 export class ShortNumberPipe implements PipeTransform {
-  constructor(@Inject(LOCALE_ID) private _locale: string) {}
+  private readonly locale = inject(LOCALE_ID)
 
   /**
    * shortNumber pipe
@@ -58,12 +58,17 @@ export class ShortNumberPipe implements PipeTransform {
    *
    * @returns null 或者 short结果 (例如: 4.53K 5.62万)
    */
-  transform(value: number|string, locale?: string, factor?: string, shortUnits?: string): [number, string];
-  transform(value: number|string|null|undefined, locale?: string, factor?: string, shortUnits?: string): [number, string] {
+  transform(value: number | string, locale?: string, factor?: string, shortUnits?: string): [number, string]
+  transform(
+    value: number | string | null | undefined,
+    locale?: string,
+    factor?: string,
+    shortUnits?: string
+  ): [number, string] {
     if (value === null || value === undefined) {
       return null
     }
-    return formatShortNumber(value, locale || this._locale, Number(factor), shortUnits)
+    return formatShortNumber(value, locale || this.locale, Number(factor), shortUnits)
   }
 
   // transform(number: number, args?: any): any {
@@ -114,10 +119,14 @@ export class ShortNumberPipe implements PipeTransform {
  *
  * @returns null 或者 short结果数组 (例如: ['4.53', 'K'] ['5.62', '万'])
  */
-export function formatShortNumber(value: number|string, locale: string, factor?: number , shortUnits?: string): [number, string] {
-
+export function formatShortNumber(
+  value: number | string,
+  locale: string,
+  factor?: number,
+  shortUnits?: string
+): [number, string] {
   try {
-    const num = strToNumber(value);
+    const num = strToNumber(value)
     const localeData = findLocaleData(locale)
     factor = factor || localeData?.shortNumberFactor
     shortUnits = shortUnits || localeData?.shortNumberUnits
@@ -138,27 +147,26 @@ export function formatShortNumber(value: number|string, locale: string, factor?:
 
     return [Number(resultValue), resultName]
   } catch (error: any) {
-    throw invalidPipeArgumentError(DecimalPipe, error.message);
+    throw invalidPipeArgumentError(DecimalPipe, error.message)
   }
-
 }
 
 /**
  * Transforms a string into a number (if needed).
  */
- function strToNumber(value: number|string): number {
+function strToNumber(value: number | string): number {
   // Convert strings to numbers
   if (typeof value === 'string' && !isNaN(Number(value) - parseFloat(value))) {
-    return Number(value);
+    return Number(value)
   }
   if (typeof value !== 'number') {
-    throw new Error(`${value} is not a number`);
+    throw new Error(`${value} is not a number`)
   }
-  return value;
+  return value
 }
 
-export function invalidPipeArgumentError(type: Type<any>, value: Object) {
-  return Error(`InvalidPipeArgument: '${value}' for pipe '${stringify(type)}'`);
+export function invalidPipeArgumentError(type: Type<any>, value: unknown) {
+  return Error(`InvalidPipeArgument: '${value}' for pipe '${stringify(type)}'`)
 }
 
 /**
@@ -169,35 +177,35 @@ export function invalidPipeArgumentError(type: Type<any>, value: Object) {
  * found in the LICENSE file at https://angular.io/license
  */
 
- export function stringify(token: any): string {
+export function stringify(token: any): string {
   if (typeof token === 'string') {
-    return token;
+    return token
   }
 
   if (Array.isArray(token)) {
-    return '[' + token.map(stringify).join(', ') + ']';
+    return '[' + token.map(stringify).join(', ') + ']'
   }
 
   if (token == null) {
-    return '' + token;
+    return '' + token
   }
 
   if (token.overriddenName) {
-    return `${token.overriddenName}`;
+    return `${token.overriddenName}`
   }
 
   if (token.name) {
-    return `${token.name}`;
+    return `${token.name}`
   }
 
-  const res = token.toString();
+  const res = token.toString()
 
   if (res == null) {
-    return '' + res;
+    return '' + res
   }
 
-  const newLineIndex = res.indexOf('\n');
-  return newLineIndex === -1 ? res : res.substring(0, newLineIndex);
+  const newLineIndex = res.indexOf('\n')
+  return newLineIndex === -1 ? res : res.substring(0, newLineIndex)
 }
 
 /**
@@ -208,8 +216,12 @@ export function invalidPipeArgumentError(type: Type<any>, value: Object) {
  * @param after after string.
  * @returns concatenated string.
  */
-export function concatStringsWithSpace(before: string|null, after: string|null): string {
-  return (before == null || before === '') ?
-      (after === null ? '' : after) :
-      ((after == null || after === '') ? before : before + ' ' + after);
+export function concatStringsWithSpace(before: string | null, after: string | null): string {
+  return before == null || before === ''
+    ? after === null
+      ? ''
+      : after
+    : after == null || after === ''
+      ? before
+      : before + ' ' + after
 }

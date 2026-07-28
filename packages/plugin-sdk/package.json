@@ -26,7 +26,6 @@
     "@nestjs/common": "*",
     "@nestjs/core": "*",
     "@nestjs/cqrs": "*",
-    "@xpert-ai/ocap-core": "workspace:*",
     "ajv": "*",
     "i18next": "*",
     "i18next-fs-backend": "*",

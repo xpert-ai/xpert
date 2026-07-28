@@ -1,9 +1,7 @@
 import { Inject, Injectable, InjectionToken } from '@angular/core'
-import { TimeGranularity } from '@xpert-ai/ocap-core'
 import { ComponentStore } from '@xpert-ai/store'
-import { combineLatest, Observable, Subject } from 'rxjs'
+import { Observable } from 'rxjs'
 import { map, pairwise, shareReplay } from 'rxjs/operators'
-import { Intent, QuerySettings } from '../models/index'
 
 export const NX_THEME_DEFAULT = 'default'
 
@@ -24,14 +22,10 @@ export function NX_THEME_OPTIONS_FACTORY() {
 
 export interface NxCoreState {
   themeName: string
-  today: Date
-  timeGranularity: TimeGranularity
 }
 
 @Injectable()
 export class NxCoreService extends ComponentStore<NxCoreState> {
-  private _intent$ = new Subject<Intent>()
-
   /**
    * Theme name for charts
    */
@@ -50,12 +44,6 @@ export class NxCoreService extends ComponentStore<NxCoreState> {
   //   registerTheme: (name, theme) => void
   // }>(null)
 
-  public readonly store: ComponentStore<{ query?: QuerySettings }> = new ComponentStore({})
-
-  readonly query$ = this.store.select((state) => state.query)
-
-  readonly updateQuery = this.store.updater((state, query: QuerySettings) => ({ ...state, query }))
-
   // /**
   //  * 接收各组件创建修改计算字段的事件, 发给如 Story 组件进行实际更新
   //  * 暂时使用这种间接的方式
@@ -67,10 +55,6 @@ export class NxCoreService extends ComponentStore<NxCoreState> {
   //   property?: CalculationProperty
   // }>()
 
-  public readonly timeGranularity$ = this.select((state) => state.timeGranularity)
-  public readonly currentTime$ = combineLatest([this.select((state) => state.today), this.timeGranularity$]).pipe(
-    map(([today, timeGranularity]) => ({ today, timeGranularity }))
-  )
   constructor(
     @Inject(NX_THEME_OPTIONS) protected options: NxThemeOptions
     // @Inject(NX_DATE_VARIABLES) protected dateVariables: DateVariable[]
@@ -78,17 +62,9 @@ export class NxCoreService extends ComponentStore<NxCoreState> {
     // @Optional() @Inject(NX_COLOR_CHROMATIC) private chromatics?: Array<ColorScheme>,
     // @Optional()
     // private _logger?: NGXLogger
-    super({ themeName: NX_THEME_DEFAULT, timeGranularity: TimeGranularity.Month } as NxCoreState)
+    super({ themeName: NX_THEME_DEFAULT })
 
     this.changeTheme(options?.name || NX_THEME_DEFAULT)
-  }
-
-  public sendIntent(intent: Intent) {
-    this._intent$.next(intent)
-  }
-
-  public onIntent() {
-    return this._intent$
   }
 
   /**

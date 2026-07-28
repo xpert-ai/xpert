@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { isNil } from '@xpert-ai/ocap-core'
+import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'

@@ -121,17 +121,17 @@ Xpert follows an **Agent-Workflow Hybrid Architecture**: agents provide flexible
 
 This repository is an Nx monorepo. Important areas include:
 
-| Path                           | Purpose                                                                                                     |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `apps/api`                     | Main NestJS API application and platform bootstrap.                                                         |
-| `apps/cloud`                   | Angular web application for the Xpert Cloud UI, Agent Studio, workspaces, settings, and workbench surfaces. |
-| `packages/server-ai`           | Agent execution, chat, model providers, toolsets, MCP, knowledge, handoff, and AI runtime services.         |
-| `packages/server`              | Core server modules shared by the platform.                                                                 |
-| `packages/contracts`           | Shared TypeScript contracts used by frontend, backend, SDKs, and plugins.                                   |
-| `packages/plugin-sdk`          | SDK for building Xpert plugins, view extensions, configuration forms, permissions, and remote components.   |
-| `packages/plugins`             | Built-in plugin packages shipped with the host.                                                             |
-| `packages/core`, `packages/ui` | Core shared utilities and reusable UI packages.                                                             |
-| `docker`                       | Docker Compose deployment files and environment templates.                                                  |
+| Path                  | Purpose                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `apps/api`            | Main NestJS API application and platform bootstrap.                                                         |
+| `apps/cloud`          | Angular web application for the Xpert Cloud UI, Agent Studio, workspaces, settings, and workbench surfaces. |
+| `packages/server-ai`  | Agent execution, chat, model providers, toolsets, MCP, knowledge, handoff, and AI runtime services.         |
+| `packages/server`     | Core server modules shared by the platform.                                                                 |
+| `packages/contracts`  | Shared TypeScript contracts used by frontend, backend, SDKs, and plugins.                                   |
+| `packages/plugin-sdk` | SDK for building Xpert plugins, view extensions, configuration forms, permissions, and remote components.   |
+| `packages/plugins`    | Built-in plugin packages shipped with the host.                                                             |
+| `packages/ui`         | Shared UI primitives, compatibility controls, and reusable design tokens.                                   |
+| `docker`              | Docker Compose deployment files and environment templates.                                                  |
 
 Related repositories:
 

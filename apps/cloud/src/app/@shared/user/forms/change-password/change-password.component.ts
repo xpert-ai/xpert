@@ -2,7 +2,7 @@ import { Component, ElementRef, forwardRef, inject, ViewChild } from '@angular/c
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { AuthService } from '@xpert-ai/cloud/state'
 import { IUser } from '@xpert-ai/contracts'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

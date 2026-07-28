@@ -16,7 +16,7 @@ import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/for
 import { AuthService } from '@xpert-ai/cloud/state'
 import { IRole, ITag, IUser } from '@xpert-ai/contracts'
 import { FORMLY_W_FULL } from '@xpert-ai/formly'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'

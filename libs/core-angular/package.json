@@ -4,10 +4,11 @@
   "private": true,
   "peerDependencies": {
     "@angular/common": "^21.0.0",
-    "@angular/core": "^21.0.0"
+    "@angular/core": "^21.0.0",
+    "@xpert-ai/headless-ui": "workspace:*",
+    "@xpert-ai/store": "^3.9.1"
   },
   "dependencies": {
-    "@xpert-ai/store": "3.9.1",
     "tslib": "^2.3.0"
   },
   "sideEffects": false

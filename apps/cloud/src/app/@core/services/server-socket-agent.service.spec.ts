@@ -1,7 +1,6 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
 import { DataSourceService, Store } from '@xpert-ai/cloud/state'
-import { DataSourceOptions } from '@xpert-ai/ocap-core'
 import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { I18nService } from '../../@shared/i18n'
@@ -9,6 +8,7 @@ import { ISemanticModel } from '../types'
 import { PAC_SERVER_DEFAULT_OPTIONS } from '../providers'
 import { ToastrService } from './toastr.service'
 import { AgentService } from './agent.service'
+import { DataSourceAgentOptions } from './data-source-agent.types'
 import { PAC_SERVER_AGENT_DEFAULT_OPTIONS } from './server-agent.service'
 import { ServerSocketAgent } from './server-socket-agent.service'
 
@@ -90,7 +90,7 @@ describe('ServerSocketAgent', () => {
   })
 
   it('posts new data source ping requests through the data-source API', async () => {
-    const semanticModel: ISemanticModel & DataSourceOptions = {
+    const semanticModel: ISemanticModel & DataSourceAgentOptions = {
       id: 'model-1',
       type: 'SQL',
       dataSource: {
@@ -116,7 +116,7 @@ describe('ServerSocketAgent', () => {
   })
 
   it('posts existing data source ping requests through the data-source API', async () => {
-    const semanticModel: ISemanticModel & DataSourceOptions = {
+    const semanticModel: ISemanticModel & DataSourceAgentOptions = {
       id: 'model-1',
       type: 'SQL',
       dataSource: {

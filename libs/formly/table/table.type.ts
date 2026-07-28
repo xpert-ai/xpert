@@ -12,7 +12,7 @@ import {
 import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { OcapCoreModule } from '@xpert-ai/headless-ui'
-import { cloneDeep } from '@xpert-ai/ocap-core'
+import { cloneDeep } from 'lodash-es'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {

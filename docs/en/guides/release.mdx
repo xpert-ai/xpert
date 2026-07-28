@@ -71,7 +71,7 @@ This repository now uses Changesets for npm releases.
 
 Current automation scope:
 
-- CI only publishes `@xpert-ai/ocap-core`
+- CI publishes the managed public packages selected by Changesets
 - stable releases use the `latest` dist-tag
 - prerelease versions such as `3.9.0-beta.0` automatically use the prerelease identifier as the npm dist-tag, for example `beta`
 
@@ -81,7 +81,7 @@ Current automation scope:
 pnpm changeset
 ```
 
-Use `@xpert-ai/ocap-core` as the package while CI is still limited to the core release flow.
+Select only the public packages whose source or public API changed.
 
 ## Push the changeset to `main`
 
@@ -92,7 +92,7 @@ When a changeset reaches `main`, GitHub Actions opens or updates a release PR na
 After the release PR is merged:
 
 - `pnpm changeset:version` updates the package version and changelog
-- the workflow builds `dist/packages/core`
+- the workflow builds each changed package into its configured publish directory
 - npm publishing runs from the built output through trusted publishing
 
 ## Local verification commands

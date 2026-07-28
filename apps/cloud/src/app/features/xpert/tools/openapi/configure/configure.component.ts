@@ -21,7 +21,7 @@ import {
   Validators
 } from '@angular/forms'
 import { EntriesPipe, routeAnimations } from '@xpert-ai/core'
-import { pick } from '@xpert-ai/ocap-core'
+import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiAuthType,

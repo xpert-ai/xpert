@@ -32,7 +32,6 @@
           "@langchain/openai",
           "@langchain/langgraph",
           "@xpert-ai/contracts",
-          "@xpert-ai/ocap-core",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/cqrs",

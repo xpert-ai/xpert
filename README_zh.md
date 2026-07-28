@@ -121,17 +121,17 @@ Xpert 采用**智能体与工作流混合架构**：Agent 负责灵活推理和�
 
 当前仓库是一个 Nx monorepo。关键目录包括：
 
-| 路径                           | 用途                                                                              |
-| ------------------------------ | --------------------------------------------------------------------------------- |
-| `apps/api`                     | 主 NestJS API 应用和平台启动入口。                                                |
-| `apps/cloud`                   | Angular Web 应用，包含 Xpert Cloud UI、Agent Studio、工作空间、设置和工作台界面。 |
-| `packages/server-ai`           | Agent 执行、聊天、模型供应商、工具集、MCP、知识、handoff 和 AI runtime 服务。     |
-| `packages/server`              | 平台共享的核心服务端模块。                                                        |
-| `packages/contracts`           | 前端、后端、SDK 和插件共享的 TypeScript 契约。                                    |
-| `packages/plugin-sdk`          | 用于开发 Xpert 插件、View Extension、配置表单、权限和 Remote Component 的 SDK。   |
-| `packages/plugins`             | 随宿主交付的内置插件包。                                                          |
-| `packages/core`, `packages/ui` | 核心共享工具和可复用 UI 包。                                                      |
-| `docker`                       | Docker Compose 部署文件和环境变量模板。                                           |
+| 路径                  | 用途                                                                              |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `apps/api`            | 主 NestJS API 应用和平台启动入口。                                                |
+| `apps/cloud`          | Angular Web 应用，包含 Xpert Cloud UI、Agent Studio、工作空间、设置和工作台界面。 |
+| `packages/server-ai`  | Agent 执行、聊天、模型供应商、工具集、MCP、知识、handoff 和 AI runtime 服务。     |
+| `packages/server`     | 平台共享的核心服务端模块。                                                        |
+| `packages/contracts`  | 前端、后端、SDK 和插件共享的 TypeScript 契约。                                    |
+| `packages/plugin-sdk` | 用于开发 Xpert 插件、View Extension、配置表单、权限和 Remote Component 的 SDK。   |
+| `packages/plugins`    | 随宿主交付的内置插件包。                                                          |
+| `packages/ui`         | 共享 UI 原语、兼容控件和可复用设计令牌。                                          |
+| `docker`              | Docker Compose 部署文件和环境变量模板。                                           |
 
 相关仓库：
 

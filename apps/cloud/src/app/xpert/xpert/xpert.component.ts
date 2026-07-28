@@ -21,7 +21,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@xpert-ai/core'
-import { isNil } from '@xpert-ai/ocap-core'
+import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'

@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core'
 import { AgentEvent, AgentEventType, AuthenticationEnum } from '@xpert-ai/contracts'
 import {
-  Agent,
-  AgentRequestOptions,
-  AgentStatus,
-  AgentStatusEnum,
-  AgentType,
-  DataSourceOptions,
-  pick,
+  DataSourceAgent,
+  DataSourceAgentOptions,
+  DataSourceAgentRequestOptions,
+  DataSourceAgentStatus,
+  DataSourceAgentStatusEnum,
+  DataSourceAgentType,
   UUID
-} from '@xpert-ai/ocap-core'
+} from './data-source-agent.types'
 import { TranslateService } from '@ngx-translate/core'
 import { DataSourceService, UsersService } from '@xpert-ai/cloud/state'
+import { pick } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom, Observable, of, Subject, Subscription, throwError, timer } from 'rxjs'
 import { filter, finalize, mergeMap, retryWhen, switchMap, tap, timeout } from 'rxjs/operators'
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket'
@@ -22,11 +22,11 @@ import { Store } from './store.service'
 import { AbstractAgent } from '../auth'
 
 @Injectable()
-export class LocalAgent extends AbstractAgent implements Agent {
-  type = AgentType.Local
+export class LocalAgent extends AbstractAgent implements DataSourceAgent {
+  type = DataSourceAgentType.Local
   socket: WebSocketSubject<any>
   queuePool = new Map<UUID, { subject: Subject<any>; request: any }>()
-  status$ = new BehaviorSubject<AgentStatus>({ status: AgentStatusEnum.OFFLINE })
+  status$ = new BehaviorSubject<DataSourceAgentStatus>({ status: DataSourceAgentStatusEnum.OFFLINE })
   private error$ = new Subject()
 
   get _agentOfflineMessage() {
@@ -73,7 +73,7 @@ export class LocalAgent extends AbstractAgent implements Agent {
         retryWhen((attempts: Observable<any>) => {
           return attempts.pipe(
             tap((val) => {
-              this.status$.next({ status: AgentStatusEnum.OFFLINE })
+              this.status$.next({ status: DataSourceAgentStatusEnum.OFFLINE })
             }),
             mergeMap((error, i) => {
               const retryAttempt = i + 1
@@ -92,12 +92,12 @@ export class LocalAgent extends AbstractAgent implements Agent {
       )
       .subscribe({
         next: (result: AgentEvent) => {
-          this.status$.next({ status: AgentStatusEnum.ONLINE })
+          this.status$.next({ status: DataSourceAgentStatusEnum.ONLINE })
           this.response(result)
         },
         error: (err) => {
           console.error(err)
-          this.status$.next({ status: AgentStatusEnum.OFFLINE })
+          this.status$.next({ status: DataSourceAgentStatusEnum.OFFLINE })
         }
       })
   }
@@ -119,11 +119,11 @@ export class LocalAgent extends AbstractAgent implements Agent {
     this.error$.next(err)
   }
 
-  async request(semanticModel: any | DataSourceOptions, options: AgentRequestOptions): Promise<any> {
+  async request(semanticModel: DataSourceAgentOptions, options: DataSourceAgentRequestOptions): Promise<any> {
     return firstValueFrom(this._request(semanticModel, options))
   }
 
-  _request(semanticModel: any | DataSourceOptions, options: AgentRequestOptions): Observable<any> {
+  _request(semanticModel: DataSourceAgentOptions, options: DataSourceAgentRequestOptions): Observable<any> {
     const req = new Subject()
     const organization = this.store.selectedOrganization
     // Request info
@@ -154,7 +154,7 @@ export class LocalAgent extends AbstractAgent implements Agent {
       switchMap(async () => {
         await firstValueFrom(
           this.status$.pipe(
-            filter(({ status }) => status !== AgentStatusEnum.OFFLINE),
+            filter(({ status }) => status !== DataSourceAgentStatusEnum.OFFLINE),
             timeout({ first: 1000, with: () => throwError(() => new Error(this._agentOfflineMessage)) })
           )
         )
@@ -174,14 +174,14 @@ export class LocalAgent extends AbstractAgent implements Agent {
           //   request.data.request.body.authentications = [auth]
           // }
         }
-    
-        if (this.status$.value.status === AgentStatusEnum.OFFLINE) {
+
+        if (this.status$.value.status === DataSourceAgentStatusEnum.OFFLINE) {
           const error = this._agentOfflineMessage
           req.error(error)
           this.error(error)
         } else {
           this.queuePool.set(id, { subject: req, request })
-    
+
           this.send(request)
           this.updateStatus()
         }
@@ -262,9 +262,9 @@ export class LocalAgent extends AbstractAgent implements Agent {
 
   private updateStatus() {
     if (this.queuePool.size === 0) {
-      this.status$.next({ status: AgentStatusEnum.ONLINE })
+      this.status$.next({ status: DataSourceAgentStatusEnum.ONLINE })
     } else {
-      this.status$.next({ status: AgentStatusEnum.LOADING })
+      this.status$.next({ status: DataSourceAgentStatusEnum.LOADING })
     }
   }
 

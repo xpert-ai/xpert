@@ -2,8 +2,6 @@ import { HttpClientModule } from '@angular/common/http'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { FormlyModule } from '@ngx-formly/core'
 import { C_FORMLY_INITIAL_VALUE } from '@xpert-ai/core'
-import { NxDSCoreModule, Sales } from '@xpert-ai/ds-core'
-import { NxDSMockModule } from '@xpert-ai/ds-mock'
 import { Meta, moduleMetadata, Story } from '@storybook/angular'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { NxFormlyExpansionWrapperModule, NxFormlyExpansionWrapperComponent } from '../expansion-wrapper'
@@ -13,7 +11,7 @@ export default {
   title: 'Components/Formly/Expansion Wrapper',
   component: NxFormlyExpansionWrapperComponent,
   argTypes: {
-    selectedChange: { action: 'clicked' },
+    selectedChange: { action: 'clicked' }
   },
   decorators: [
     moduleMetadata({
@@ -22,34 +20,19 @@ export default {
         BrowserAnimationsModule,
         HttpClientModule,
         LoggerModule.forRoot({
-          level: NgxLoggerLevel.DEBUG,
+          level: NgxLoggerLevel.DEBUG
         }),
         NxFormlyFormModule,
         FormlyModule.forRoot(),
-        NxFormlyExpansionWrapperModule,
-        NxDSCoreModule.forRoot(),
-        NxDSMockModule.forRoot({
-          '': {
-            id: '',
-            type: 'Mock',
-            uri: '',
-            settings: {
-              entityTypes: {
-                MyEntity: {
-                  entityType: Sales.SALES_ENTITY_TYPE,
-                },
-              },
-            },
-          },
-        }),
-      ],
-    }),
-  ],
+        NxFormlyExpansionWrapperModule
+      ]
+    })
+  ]
 } as Meta
 
 const Template: Story<NxFormlyFormPannelComponent> = (args: NxFormlyFormPannelComponent) => ({
   component: NxFormlyFormPannelComponent,
-  props: args,
+  props: args
 })
 
 const SCHEMA = [
@@ -58,7 +41,7 @@ const SCHEMA = [
     wrappers: ['expansion'],
     templateOptions: {
       label: '可折叠可选择组件',
-      enableSelectFields: true,
+      enableSelectFields: true
     },
     fieldGroup: [
       {
@@ -66,8 +49,8 @@ const SCHEMA = [
         type: 'input',
         templateOptions: {
           label: '标题',
-          icon: 'title',
-        },
+          icon: 'title'
+        }
       },
       {
         key: 'type',
@@ -78,18 +61,18 @@ const SCHEMA = [
           options: [
             {
               value: 1,
-              label: 'Option A',
+              label: 'Option A'
             },
             {
               value: 2,
-              label: 'Option B',
+              label: 'Option B'
             },
             {
               value: 3,
-              label: 'Option C',
-            },
-          ],
-        },
+              label: 'Option C'
+            }
+          ]
+        }
       },
       {
         key: 'chartAnnotation',
@@ -98,7 +81,7 @@ const SCHEMA = [
         defaultValue: C_FORMLY_INITIAL_VALUE,
         templateOptions: {
           label: '图形',
-          icon: 'add_chart',
+          icon: 'add_chart'
         },
         fieldGroup: [
           {
@@ -109,29 +92,29 @@ const SCHEMA = [
               options: [
                 {
                   value: 1,
-                  label: 'Option A',
+                  label: 'Option A'
                 },
                 {
                   value: 2,
-                  label: 'Option B',
+                  label: 'Option B'
                 },
                 {
                   value: 3,
-                  label: 'Option C',
-                },
-              ],
-            },
-          },
-        ],
-      },
-    ],
+                  label: 'Option C'
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
   },
   {
     key: 'toggleable',
     wrappers: ['expansion'],
     templateOptions: {
       label: '可折叠关闭组件',
-      toggleable: true,
+      toggleable: true
     },
     fieldGroup: [
       {
@@ -139,8 +122,8 @@ const SCHEMA = [
         type: 'input',
         templateOptions: {
           label: '标题',
-          icon: 'title',
-        },
+          icon: 'title'
+        }
       },
       {
         key: 'type',
@@ -151,18 +134,18 @@ const SCHEMA = [
           options: [
             {
               value: 1,
-              label: 'Option A',
+              label: 'Option A'
             },
             {
               value: 2,
-              label: 'Option B',
+              label: 'Option B'
             },
             {
               value: 3,
-              label: 'Option C',
-            },
-          ],
-        },
+              label: 'Option C'
+            }
+          ]
+        }
       },
       {
         key: 'chartAnnotation',
@@ -171,7 +154,7 @@ const SCHEMA = [
         defaultValue: C_FORMLY_INITIAL_VALUE,
         templateOptions: {
           label: '图形',
-          icon: 'add_chart',
+          icon: 'add_chart'
         },
         fieldGroup: [
           {
@@ -182,22 +165,22 @@ const SCHEMA = [
               options: [
                 {
                   value: 1,
-                  label: 'Option A',
+                  label: 'Option A'
                 },
                 {
                   value: 2,
-                  label: 'Option B',
+                  label: 'Option B'
                 },
                 {
                   value: 3,
-                  label: 'Option C',
-                },
-              ],
-            },
-          },
-        ],
-      },
-    ],
+                  label: 'Option C'
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
   },
   {
     key: 'toggleable-selectable',
@@ -205,7 +188,7 @@ const SCHEMA = [
     templateOptions: {
       label: '可折叠可关闭可选择组件',
       toggleable: true,
-      enableSelectFields: true,
+      enableSelectFields: true
     },
     fieldGroup: [
       {
@@ -213,8 +196,8 @@ const SCHEMA = [
         type: 'input',
         templateOptions: {
           label: '标题',
-          icon: 'title',
-        },
+          icon: 'title'
+        }
       },
       {
         key: 'type',
@@ -225,18 +208,18 @@ const SCHEMA = [
           options: [
             {
               value: 1,
-              label: 'Option A',
+              label: 'Option A'
             },
             {
               value: 2,
-              label: 'Option B',
+              label: 'Option B'
             },
             {
               value: 3,
-              label: 'Option C',
-            },
-          ],
-        },
+              label: 'Option C'
+            }
+          ]
+        }
       },
       {
         key: 'chartAnnotation',
@@ -245,7 +228,7 @@ const SCHEMA = [
         defaultValue: C_FORMLY_INITIAL_VALUE,
         templateOptions: {
           label: '图形',
-          icon: 'add_chart',
+          icon: 'add_chart'
         },
         fieldGroup: [
           {
@@ -256,25 +239,25 @@ const SCHEMA = [
               options: [
                 {
                   value: 1,
-                  label: 'Option A',
+                  label: 'Option A'
                 },
                 {
                   value: 2,
-                  label: 'Option B',
+                  label: 'Option B'
                 },
                 {
                   value: 3,
-                  label: 'Option C',
-                },
-              ],
-            },
+                  label: 'Option C'
+                }
+              ]
+            }
           },
           {
             key: 'dimensions',
             type: 'array',
             templateOptions: {
               label: 'Dimensions',
-              addText: 'Add Dimension',
+              addText: 'Add Dimension'
             },
             fieldArray: {
               fieldGroup: [
@@ -285,16 +268,15 @@ const SCHEMA = [
                     label: 'Dimension Path',
                     placeholder: 'Select Dimension',
                     options: [
-                      {value: 1, label: 'A1'},
-                      {value: 2, label: 'A2'}
+                      { value: 1, label: 'A1' },
+                      { value: 2, label: 'A2' }
                     ]
-                  },
-                  
+                  }
                 }
               ]
-            },
-          },
-        ],
+            }
+          }
+        ]
       },
       {
         key: 'selectionPresentationVariant',
@@ -303,7 +285,7 @@ const SCHEMA = [
         templateOptions: {
           label: 'Selection Presentation Variant',
           matIcon: 'perm_data_setting',
-          addText: 'Add SelectionPresentationVariant',
+          addText: 'Add SelectionPresentationVariant'
         },
         fieldArray: {
           fieldGroup: [
@@ -313,22 +295,20 @@ const SCHEMA = [
               templateOptions: {
                 label: 'id',
                 placeholder: 'input id',
-                required: true,
-              },
-            },
+                required: true
+              }
+            }
           ]
         }
       }
-    ],
-  },
+    ]
+  }
 ]
 
 export const Primary = (args: NxFormlyFormPannelComponent) => ({
   component: NxFormlyFormPannelComponent,
   props: {
     fields: SCHEMA,
-    model: {
-
-    },
-  },
+    model: {}
+  }
 })

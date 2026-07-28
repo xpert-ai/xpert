@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
-import { isNil } from '@xpert-ai/ocap-core'
+import { isNil } from '@xpert-ai/contracts'
 import { DataSourceTypesService } from '@xpert-ai/cloud/state'
 import { TenantService, ToastrService } from '../../../../@core'
 
@@ -16,7 +16,6 @@ interface ItemData {
   styles: [':host {display: block; width: 100%; padding: 1rem;}']
 })
 export class SettingsComponent implements OnInit {
-
   readonly dataSourceTypeAPI = inject(DataSourceTypesService)
   readonly #toastr = inject(ToastrService)
 
@@ -24,7 +23,10 @@ export class SettingsComponent implements OnInit {
   editCache: { [key: string]: { edit: boolean; data: ItemData } } = {}
 
   listOfData: ItemData[] = []
-  constructor(private readonly tenantService: TenantService, private readonly _cdr: ChangeDetectorRef) {}
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly _cdr: ChangeDetectorRef
+  ) {}
 
   async ngOnInit() {
     const settings = await this.tenantService.getSettings()
@@ -86,7 +88,7 @@ export class SettingsComponent implements OnInit {
   updateEditCache(): void {
     this.listOfData.forEach((item) => {
       this.editCache[item.id] = {
-        ...(this.editCache[item.id] ?? {edit: false}),
+        ...(this.editCache[item.id] ?? { edit: false }),
         data: { ...item }
       }
     })
@@ -99,11 +101,15 @@ export class SettingsComponent implements OnInit {
     this.dataSourceTypeAPI.sync().subscribe({
       next: () => {
         this.syncing.set(false)
-        this.#toastr.success('PAC.MESSAGE.DataSourceTypesSyncSuccess', {Default: 'DataSource Types synchronized successfully'})
+        this.#toastr.success('PAC.MESSAGE.DataSourceTypesSyncSuccess', {
+          Default: 'DataSource Types synchronized successfully'
+        })
       },
       error: (error) => {
         this.syncing.set(false)
-        this.#toastr.error('PAC.MESSAGE.DataSourceTypesSyncError', error.message, {Default: 'DataSource Types synchronization failed'})
+        this.#toastr.error('PAC.MESSAGE.DataSourceTypesSyncError', error.message, {
+          Default: 'DataSource Types synchronization failed'
+        })
       }
     })
   }

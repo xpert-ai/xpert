@@ -1,20 +1,23 @@
 import { HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { IDataSource, IIndicator, ISemanticModel, TSemanticModelDraft } from '@xpert-ai/contracts'
-import { Indicator as OcapIndicator, omit, SemanticModel as OcapSemanticModel } from '@xpert-ai/ocap-core'
+import { omit } from 'lodash-es'
 import { Observable } from 'rxjs'
 import { C_URI_API_MODELS } from './constants'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 
-export interface RuntimeIndicator extends Partial<OcapIndicator>, Omit<IIndicator, 'type'> {}
-
-export interface NgmSemanticModel extends OcapSemanticModel, Pick<ISemanticModel, 'cube' | 'roles'> {
-  key?: string
-  preferences?: ISemanticModel['preferences']
-  dataSource?: IDataSource
-  indicators?: RuntimeIndicator[]
-  draft?: TSemanticModelDraft
+export type RuntimeIndicator = Omit<IIndicator, 'type'> & {
+  type?: string
+  [key: string]: unknown
 }
+
+export type NgmSemanticModel = Partial<TSemanticModelDraft> &
+  Pick<ISemanticModel, 'cube' | 'roles'> & {
+    key?: string
+    preferences?: ISemanticModel['preferences']
+    dataSource?: IDataSource
+    indicators?: RuntimeIndicator[]
+  }
 
 /**
  * Minimal compatibility adapter for the existing Xpert live-artifact renderer.

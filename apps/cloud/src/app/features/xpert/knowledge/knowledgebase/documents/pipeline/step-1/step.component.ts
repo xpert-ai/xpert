@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { myRxResource, NgmI18nPipe, omitBlank } from '@xpert-ai/headless-ui'
-import { nonNullable } from '@xpert-ai/ocap-core'
+import { nonNullable } from '@xpert-ai/contracts'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import {

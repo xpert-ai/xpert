@@ -1,11 +1,10 @@
-
 import { Component, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IUser, UsersService } from '@xpert-ai/cloud/state'
 import { linkedModel } from '@xpert-ai/core'
-import { isNil, omitBy } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { isNil, omitBy } from 'lodash-es'
 import { IUserUpdateInput, LanguagesEnum, Store, ToastrService } from '../../../@core'
 import { CreatedByPipe } from '../../../@shared/pipes'
 import { UserFormsModule } from '../../../@shared/user'
@@ -51,7 +50,7 @@ export class PACAccountProfileComponent {
   constructor(
     private readonly store: Store,
     private readonly userService: UsersService,
-    private readonly _toastrService: ToastrService,
+    private readonly _toastrService: ToastrService
   ) {}
 
   reset() {

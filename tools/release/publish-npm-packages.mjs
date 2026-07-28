@@ -18,12 +18,7 @@ import { getPackages } from '@manypkg/get-packages'
 const workspaceRoot = process.cwd()
 const dependencySections = ['dependencies', 'peerDependencies', 'optionalDependencies']
 const publishDependencySections = [...dependencySections, 'devDependencies']
-const releaseManagedPackageNames = new Set([
-  '@xpert-ai/plugin-sdk',
-  '@xpert-ai/contracts',
-  '@xpert-ai/ocap-core',
-  '@xpert-ai/store'
-])
+const releaseManagedPackageNames = new Set(['@xpert-ai/plugin-sdk', '@xpert-ai/contracts', '@xpert-ai/store'])
 const args = parseArgs(process.argv.slice(2))
 
 async function main() {

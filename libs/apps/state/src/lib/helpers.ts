@@ -1,6 +1,24 @@
 import { HttpParams } from '@angular/common/http'
-import { RecursiveHierarchyType, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { assign, isEmpty } from 'lodash-es'
+
+export interface RecursiveHierarchyType {
+  valueProperty: string
+  parentNodeProperty: string
+  labelProperty: string
+}
+
+export interface TreeNodeInterface<T = unknown> {
+  key?: string
+  label?: string
+  title?: string
+  name?: string
+  value?: unknown
+  level?: number
+  isLeaf?: boolean
+  raw?: T
+  children?: TreeNodeInterface<T>[]
+  parent?: TreeNodeInterface<T>
+}
 
 export function timeRangeToParams(params: HttpParams, timeRange: string[]) {
   if (timeRange[0]) {

@@ -25,15 +25,21 @@ import {
   ZardTreeFlattener,
   ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import { DisplayDensity, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour, TreeNodeInterface } from '@xpert-ai/ocap-core'
+import {
+  DisplayBehaviour,
+  DisplayDensity,
+  NgmFieldAppearance,
+  NgmFieldColor,
+  NgmFloatLabel
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   displayTreeSelectText,
   findTreeSelectNode,
   filterTreeSelectNodes,
   getInitialExpandedKeys,
-  normalizeTreeSelectValue
+  normalizeTreeSelectValue,
+  TreeNodeInterface
 } from './tree-select.utils'
 
 type TreeSelectFlatNode<T = unknown> = {

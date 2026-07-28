@@ -96,8 +96,8 @@
    - `.changeset/config.json`
    - 根脚本：`changeset`、`changeset:version`。
 2. 发布策略固定为“核心包”：
-   - CI 发布目标保持 `dist/packages/core`。
-   - 增加校验脚本 `tools/release/verify-core-only-changeset.mjs`，只允许 `@metad/ocap-core` 的 changeset 进入发布流程。
+   - CI 发布目标由各公共包的 publish directory 配置决定。
+   - 通过 Changesets 管理需要发布的公共包。
 3. 文档改造：
    - `docs/release.md` 从 `nx release` 全量改为 `changeset` 流程（创建 changeset、版本落盘、打 tag、触发发布）。
 4. `tools/scripts/publish.mjs` 去 Nx：
@@ -147,5 +147,5 @@
 1. 保持严格兼容：脚本名、核心产物目录、Docker/CI 入口不变。
 2. 第 1 阶段核心链路禁止任何 Nx 运行时依赖。
 3. 不引入新编排器，仅使用 pnpm workspace/脚本。
-4. 发布采用 Changesets，但 CI 仅发布核心包 `@metad/ocap-core`。
+4. 发布采用 Changesets，并由变更集选择需要发布的公共包。
 5. 若 `mjml/cheerio/domhandler` 运行时冲突仍存在，作为独立依赖修复（`pnpm.overrides`）并行处理，不改变本计划的去 Nx 路径。

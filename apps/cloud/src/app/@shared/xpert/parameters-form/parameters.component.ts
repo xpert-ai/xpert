@@ -2,7 +2,7 @@ import { booleanAttribute, Component, computed, inject, input } from '@angular/c
 import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent, VariableSvgComponent } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'

@@ -22,7 +22,7 @@ import {
   Store
 } from '@xpert-ai/cloud/state'
 import { NgmCommonModule } from '@xpert-ai/headless-ui'
-import { omit } from '@xpert-ai/ocap-core'
+import { omit } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, startWith, switchMap } from 'rxjs'

@@ -37,12 +37,12 @@ import {
   FSelectionChangeEvent,
   FZoomDirective
 } from '@foblex/flow'
-import { NgmCommonModule } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour, isEqual } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour, NgmCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
+import { isEqual } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { Observable, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'

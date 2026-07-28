@@ -58,11 +58,6 @@
           },
           {
             "glob": "**/*.json",
-            "input": "packages/core/src/i18n/",
-            "output": "./assets/locales/core/"
-          },
-          {
-            "glob": "**/*.json",
             "input": "packages/ui/src/i18n/",
             "output": "./assets/locales/xp-ui/"
           },

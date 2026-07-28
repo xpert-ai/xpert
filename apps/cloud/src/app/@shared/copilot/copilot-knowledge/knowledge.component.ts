@@ -8,7 +8,7 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { ActivatedRoute, Router } from '@angular/router'
 import { NgmCommonModule } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedFrom } from 'ngxtension/derived-from'

@@ -5,7 +5,7 @@ import { Component, HostBinding, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ButtonGroupDirective, EditorThemeMap, NgmThemeService } from '@xpert-ai/headless-ui'
-import { isBlank } from '@xpert-ai/ocap-core'
+import { isBlank } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { BehaviorSubject } from 'rxjs'

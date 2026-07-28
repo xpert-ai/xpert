@@ -2,7 +2,7 @@ import { Location } from '@angular/common'
 import { DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { CopilotBaseMessage, CopilotChatMessage, CopilotMessageGroup } from '../../@core/types'
-import { nonNullable } from '@xpert-ai/ocap-core'
+import { nonNullable } from '@xpert-ai/contracts'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import {
@@ -28,7 +28,7 @@ import {
   IXpertToolset,
   IKnowledgebase,
   LanguagesEnum,
-  XpertTypeEnum,
+  XpertTypeEnum
 } from '../../@core'
 import { ChatConversationService, XpertAPIService, ToastrService } from '../../@core/services'
 import { AppService } from '../../app.service'
@@ -67,7 +67,12 @@ export class ChatWebsocketService {
 
   readonly lang = this.appService.lang
   readonly roles = derivedFrom(
-    [this.xpertService.getAllInOrg({ where: { type: XpertTypeEnum.Agent, latest: true }, relations: ['knowledgebases', 'toolsets'] }).pipe(map(({ items }) => items)), this.lang],
+    [
+      this.xpertService
+        .getAllInOrg({ where: { type: XpertTypeEnum.Agent, latest: true }, relations: ['knowledgebases', 'toolsets'] })
+        .pipe(map(({ items }) => items)),
+      this.lang
+    ],
     pipe(
       map(([roles, lang]) => {
         if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
@@ -79,7 +84,7 @@ export class ChatWebsocketService {
     ),
     { initialValue: [] }
   )
-  
+
   readonly role = derivedFrom(
     [this.role$, this.lang],
     pipe(
@@ -87,7 +92,10 @@ export class ChatWebsocketService {
         if (!role) {
           role = {
             ...COMMON_COPILOT_ROLE,
-            description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {Default: 'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'})
+            description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {
+              Default:
+                'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'
+            })
           }
         }
         if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
@@ -131,18 +139,24 @@ export class ChatWebsocketService {
       skip(1),
       filter((id) => !this.conversation() || this.conversation().id !== id),
       switchMap((id) =>
-        id ? this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets'] }).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of(null)
-          }), 
-        ) : of(null)
+        id
+          ? this.conversationService
+              .getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets'] })
+              .pipe(
+                catchError((error) => {
+                  this.#toastr.error(getErrorMessage(error))
+                  return of(null)
+                })
+              )
+          : of(null)
       ),
       tap((data) => {
         if (data) {
           this.conversation.set(data)
           this.knowledgebases.set(
-            data.options?.knowledgebases?.map((id) => data.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
+            data.options?.knowledgebases
+              ?.map((id) => data.xpert?.knowledgebases?.find((item) => item.id === id))
+              .filter(nonNullable)
           )
           this.toolsets.set(data.options?.toolsets?.map((id) => data.xpert?.toolsets?.find((item) => item.id === id)))
         } else {
@@ -259,7 +273,7 @@ export class ChatWebsocketService {
       case ChatGatewayEvent.Error: {
         this.answering.set(false)
         this.updateMessage(result.data.id, {
-          status: 'error',                                
+          status: 'error',
           content: result.data.error
         })
         break
@@ -283,31 +297,30 @@ export class ChatWebsocketService {
   //   })
   // ))
 
-  private onMessageSub = this.chatService.onMessage().pipe(takeUntilDestroyed()).subscribe((data) => {
-    this.chatListener(data)
-  })
+  private onMessageSub = this.chatService
+    .onMessage()
+    .pipe(takeUntilDestroyed())
+    .subscribe((data) => {
+      this.chatListener(data)
+    })
 
   constructor() {
     this.chatService.connect()
     // this.chatService.on('message', this.chatListener)
 
-    effect(
-      () => {
-        if (this.conversation()) {
-          this.messages.set(this.conversation().messages)
-        } else {
-          this.messages.set([])
-        }
+    effect(() => {
+      if (this.conversation()) {
+        this.messages.set(this.conversation().messages)
+      } else {
+        this.messages.set([])
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.conversationId.set(this.paramId())
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.conversationId.set(this.paramId())
       }
-    )
+    })
 
     this.#destroyRef.onDestroy(() => {
       if (this.answering() && this.conversation()?.id) {
@@ -337,10 +350,13 @@ export class ChatWebsocketService {
     this.answering.set(false)
 
     // Immediately update conversation status and abort running messages (don't wait for server response)
-    this.conversation.update((state) => ({
-      ...(state ?? {}),
-      status: 'idle'
-    }) as IChatConversation)
+    this.conversation.update(
+      (state) =>
+        ({
+          ...(state ?? {}),
+          status: 'idle'
+        }) as IChatConversation
+    )
 
     // Abort the latest message and its sub-messages
     this.updateLatestMessage((lastMessage) => {
@@ -430,7 +446,7 @@ export class ChatWebsocketService {
         // (<CopilotMessageGroup>lastMessage.messages[index]).messages ??= [];
         // (<CopilotMessageGroup>lastMessage.messages[index]).messages.push(subStep)
       }
-      return {...lastMessage, messages: [...lastMessage.messages]}
+      return { ...lastMessage, messages: [...lastMessage.messages] }
     })
   }
 
@@ -445,7 +461,7 @@ export class ChatWebsocketService {
         }
         lastMessage.messages = _steps.reverse()
       }
-      return {...lastMessage}
+      return { ...lastMessage }
     })
   }
 
@@ -471,9 +487,6 @@ export class ChatWebsocketService {
   }
 
   appendMessage(message: CopilotBaseMessage) {
-    this.messages.update((messages) => [
-      ...(messages ?? []),
-      message
-    ])
+    this.messages.update((messages) => [...(messages ?? []), message])
   }
 }

@@ -8,7 +8,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { uploadYamlFile } from '@xpert-ai/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/headless-ui'
-import { pick } from '@xpert-ai/ocap-core'
+import { pick } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   getErrorMessage,

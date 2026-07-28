@@ -4,30 +4,55 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@xpert-ai/cloud/state'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { nonNullable } from '@xpert-ai/core'
-import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@xpert-ai/ocap-core'
-import { Observable, Subject, bufferToggle, filter, firstValueFrom, from, merge, mergeMap, startWith, windowToggle } from 'rxjs'
+import {
+  Observable,
+  Subject,
+  bufferToggle,
+  filter,
+  firstValueFrom,
+  from,
+  merge,
+  mergeMap,
+  startWith,
+  windowToggle
+} from 'rxjs'
 import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { AbstractAgent, AuthInfoType } from '../auth'
-import { getErrorMessage, uuid, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel, TGatewayQueryEvent } from '../types'
+import {
+  getErrorMessage,
+  uuid,
+  AuthenticationEnum,
+  IDataSource,
+  IDataSourceAuthentication,
+  ISemanticModel,
+  TGatewayQueryEvent
+} from '../types'
 import { AgentService } from './agent.service'
 import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from './server-agent.service'
 import { injectToastr } from './toastr.service'
 import { PAC_SERVER_DEFAULT_OPTIONS, PacServerDefaultOptions } from '../providers'
+import {
+  DataSourceAgent,
+  DataSourceAgentOptions,
+  DataSourceAgentStatus,
+  DataSourceAgentType,
+  UUID
+} from './data-source-agent.types'
 
 /**
  * Responsible for proxying the olap data requests of page components to the server through the websocket interface
  */
 @Injectable({
-   providedIn: 'root'
+  providedIn: 'root'
 })
-export class ServerSocketAgent extends AbstractAgent implements Agent {
+export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent {
   readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)
   readonly #organizationId = injectOrganizationId()
-  protected readonly serverOptions = inject<PacServerDefaultOptions>(PAC_SERVER_DEFAULT_OPTIONS, {optional: true})
+  protected readonly serverOptions = inject<PacServerDefaultOptions>(PAC_SERVER_DEFAULT_OPTIONS, { optional: true })
   readonly #toastr = injectToastr()
 
-  type = AgentType.Server
+  type = DataSourceAgentType.Server
 
   private error$ = new Subject()
 
@@ -142,7 +167,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
     this.#agentService.connect()
   }
 
-  selectStatus(): Observable<AgentStatus> {
+  selectStatus(): Observable<DataSourceAgentStatus> {
     throw new Error('Method not implemented.')
   }
 
@@ -154,7 +179,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
     this.error$.next(err)
   }
 
-  async request(semanticModel: ISemanticModel & DataSourceOptions, options: any): Promise<any> {
+  async request(semanticModel: ISemanticModel & DataSourceAgentOptions, options: any): Promise<any> {
     options.headers = options.headers || {}
     const modelId = semanticModel.id
     const dataSourceId = semanticModel.dataSource?.id
@@ -287,7 +312,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
     return Promise.reject(`未找到相应 Agent 响应方法`)
   }
 
-  _request?(semanticModel: ISemanticModel & DataSourceOptions, options: any): Observable<any> {
+  _request?(semanticModel: ISemanticModel & DataSourceAgentOptions, options: any): Observable<any> {
     return from(this.request(semanticModel, options))
   }
 

@@ -1,14 +1,27 @@
 import { isPlatformBrowser } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
-import { Inject, Injectable, PLATFORM_ID, DebugElement, EventEmitter } from '@angular/core'
-import { compact, PivotColumn, uniqBy } from '@xpert-ai/ocap-core'
-import { includes, isNil, negate, isEqual, isEmpty, camelCase } from 'lodash-es'
+import { Injectable, PLATFORM_ID, DebugElement, EventEmitter, inject } from '@angular/core'
+import { camelCase, compact, includes, isEmpty, isEqual, isNil, negate, uniqBy } from 'lodash-es'
 import { Observable } from 'rxjs'
 import { filter, takeUntil, tap } from 'rxjs/operators'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { isObject } from './utils/shared-utils'
-export { nonBlank, nonNullable } from '@xpert-ai/ocap-core'
+
+export function nonNullable<T>(value: T): value is NonNullable<T> {
+  return value != null
+}
+
+export function nonBlank<T>(value: T): value is NonNullable<T> {
+  return !isNil(value) && !(typeof value === 'string' && !value.trim())
+}
+
+export interface PivotColumn {
+  name: string
+  caption?: string
+  columns?: PivotColumn[]
+  [key: string]: unknown
+}
 
 export const filterNil = filter(negate(isNil))
 export const isNotEqual = negate(isEqual)
@@ -56,7 +69,7 @@ export function cloneHierarchicalArray(array: any[], childDataKey: any): any[] {
  * @returns Obj1 with merged cloned keys from Obj2
  * @hidden
  */
-export function mergeObjects(obj1: {}, obj2: {}): any {
+export function mergeObjects(obj1: Record<string, any>, obj2: Record<string, any>): any {
   if (!isObject(obj1)) {
     throw new Error(`Cannot merge into ${obj1}. First param must be an object.`)
   }
@@ -132,7 +145,7 @@ export const enum KEYCODES {
   X = 88,
   BACKSPACE = 8,
   DELETE = 46,
-  INPUT_METHOD = 229,
+  INPUT_METHOD = 229
 }
 
 /**
@@ -218,13 +231,11 @@ export function isFirefox(): boolean {
  */
 @Injectable({ providedIn: 'root' })
 export class PlatformUtil {
+  private readonly platformId = inject(PLATFORM_ID)
+
   public isBrowser: boolean = isPlatformBrowser(this.platformId)
 
-  public isIOS =
-    this.isBrowser && /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window)
-
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  public isIOS = this.isBrowser && /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window)
 }
 
 /**
@@ -250,7 +261,7 @@ export function isNavigationKey(key: string): boolean {
       'end',
       'space',
       'spacebar',
-      ' ',
+      ' '
     ].indexOf(key) !== -1
   )
 }
@@ -268,18 +279,11 @@ export const NAVIGATION_KEYS = new Set([
   'end',
   'space',
   'spacebar',
-  ' ',
+  ' '
 ])
 export const ROW_EXPAND_KEYS = new Set('right down arrowright arrowdown'.split(' '))
 export const ROW_COLLAPSE_KEYS = new Set('left up arrowleft arrowup'.split(' '))
-export const SUPPORTED_KEYS = new Set([
-  ...Array.from(NAVIGATION_KEYS),
-  'tab',
-  'enter',
-  'f2',
-  'escape',
-  'esc',
-])
+export const SUPPORTED_KEYS = new Set([...Array.from(NAVIGATION_KEYS), 'tab', 'enter', 'f2', 'escape', 'esc'])
 
 /**
  * @hidden
@@ -316,14 +320,11 @@ export function convertToBoolProperty(val: any): boolean {
 /** Button events to pass to `DebugElement.triggerEventHandler` for RouterLink event handler */
 export const ButtonClickEvents = {
   left: { button: 0 },
-  right: { button: 2 },
+  right: { button: 2 }
 }
 
 /** Simulate element click. Defaults to mouse left-button click event. */
-export function click(
-  el: DebugElement | HTMLElement,
-  eventObj: any = ButtonClickEvents.left
-): void {
+export function click(el: DebugElement | HTMLElement, eventObj: any = ButtonClickEvents.left): void {
   if (el instanceof HTMLElement) {
     el.click()
   } else {
@@ -343,7 +344,7 @@ export function makeid(length) {
   return result
 }
 
-export const mkenum = <T extends { [index: string]: U }, U extends string>(x: T) => x;
+export const mkenum = <T extends { [index: string]: U }, U extends string>(x: T) => x
 
 // Search options
 export function includeIgnoreCase(text, target) {
@@ -354,44 +355,44 @@ export function includeIgnoreCase(text, target) {
 
 /**
  * 分解高亮字符串
- * 
- * @param text 
- * @param highlight 
- * @returns 
+ *
+ * @param text
+ * @param highlight
+ * @returns
  */
-export function splitByHighlight(text, highlight): Array<{value: string, match?: boolean}> {
+export function splitByHighlight(text, highlight): Array<{ value: string; match?: boolean }> {
   if (highlight && text) {
     const keywords: Array<string> = highlight.split(/\s+/g)
     const matchs = String(text).match(new RegExp(`(${keywords.join('|')})`, 'ig'))
     const results = String(text).split(new RegExp(`(${keywords.join('|')})`, 'i'))
     if (results?.length > 1) {
-      return results.map(value => includes(matchs, value) ? {match: true, value} : {value})
+      return results.map((value) => (includes(matchs, value) ? { match: true, value } : { value }))
     }
   }
 
-  return [{value: text}]
+  return [{ value: text }]
 }
 
 export function createEventEmitter<T>(
   observable: Observable<T>,
   options?: {
-    unsubscribe?: Observable<any>;
-    isAsync?: boolean;
-  },
+    unsubscribe?: Observable<any>
+    isAsync?: boolean
+  }
 ): EventEmitter<T> {
-  const { unsubscribe, isAsync } = options || {};
+  const { unsubscribe, isAsync } = options || {}
 
-  const emitter = new EventEmitter<T>(isAsync === true);
+  const emitter = new EventEmitter<T>(isAsync === true)
 
-  let obs = observable.pipe(tap(val => emitter.next(val)));
+  let obs = observable.pipe(tap((val) => emitter.next(val)))
 
   if (unsubscribe != null) {
-    obs = obs.pipe(takeUntil(unsubscribe));
+    obs = obs.pipe(takeUntil(unsubscribe))
   }
 
-  obs.subscribe();
+  obs.subscribe()
 
-  return emitter;
+  return emitter
 }
 
 // export function omitBlank(obj) {
@@ -409,8 +410,11 @@ export function createEventEmitter<T>(
 
 // Table to csv format
 export function convertTableToCSV(columns, data) {
-  return columns.map((column) => column.caption || column.name).join(',') + `\n` + 
-          data.map((row) => columns.map((column) => row[column.name]).join(',')).join('\n')
+  return (
+    columns.map((column) => column.caption || column.name).join(',') +
+    `\n` +
+    data.map((row) => columns.map((column) => row[column.name]).join(',')).join('\n')
+  )
 }
 
 export function flatPivotColumns(columns: PivotColumn[]) {
@@ -467,15 +471,15 @@ export function getErrorMessage(err: any): string {
 /**
  * Copilot
  */
-export function zodToProperties(obj: ZodType<any, ZodTypeDef, any>,) {
+export function zodToProperties(obj: ZodType<any, ZodTypeDef, any>) {
   return (<{ properties: any }>zodToJsonSchema(obj)).properties
 }
 
 /**
  * Convert snake case object to camel case
- * 
- * @param obj 
- * @returns 
+ *
+ * @param obj
+ * @returns
  */
 export function camelCaseObject(obj: Record<string, any>) {
   const newObj: Record<string, any> = {}
@@ -498,23 +502,23 @@ function detectAndRemoveBOM(data: ArrayBuffer): { encoding: string; data: ArrayB
   const bytes = new Uint8Array(data.slice(0, 4))
   let encoding = 'utf-8'
   let offset = 0
-  
+
   // UTF-8 BOM: EF BB BF
-  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
     encoding = 'utf-8'
     offset = 3
   }
   // UTF-16 LE BOM: FF FE
-  else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+  else if (bytes[0] === 0xff && bytes[1] === 0xfe) {
     encoding = 'utf-16le'
     offset = 2
   }
   // UTF-16 BE BOM: FE FF
-  else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+  else if (bytes[0] === 0xfe && bytes[1] === 0xff) {
     encoding = 'utf-16be'
     offset = 2
   }
-  
+
   // Remove BOM if present
   if (offset > 0) {
     return {
@@ -522,76 +526,79 @@ function detectAndRemoveBOM(data: ArrayBuffer): { encoding: string; data: ArrayB
       data: data.slice(offset)
     }
   }
-  
+
   return { encoding, data }
 }
 
 export async function readExcelWorkSheets<T = unknown>(file: File) {
   const XLSX = await import('xlsx')
-  return new Promise<{fileName: string; name: string; columns: any[]; data: T[]}[]>((resolve, reject) => {
+  return new Promise<{ fileName: string; name: string; columns: any[]; data: T[] }[]>((resolve, reject) => {
     // For CSV files, use FileReader.readAsText with UTF-8 encoding
     // This is more reliable for handling encoding in browsers
     if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
       const reader: FileReader = new FileReader()
-      
+
       reader.onload = async (e: any) => {
         try {
           // FileReader.readAsText with 'utf-8' should handle UTF-8 BOM automatically
           let text = e.target.result as string
-          
+
           // Remove UTF-8 BOM if present (FileReader might not remove it)
-          if (text.charCodeAt(0) === 0xFEFF) {
+          if (text.charCodeAt(0) === 0xfeff) {
             text = text.slice(1)
           }
-          
+
           // Read CSV with XLSX
-          const wBook = XLSX.read(text, { 
+          const wBook = XLSX.read(text, {
             type: 'string',
             codepage: 65001 // UTF-8 codepage for better Chinese support
           })
-          
+
           resolve(await readExcelJson(wBook, file.name))
         } catch (err) {
           reject(err)
         }
       }
-      
+
       reader.onerror = () => {
         reject(new Error('Failed to read CSV file. Please ensure the file is saved in UTF-8 encoding.'))
       }
-      
+
       // Use readAsText with UTF-8 encoding for better encoding handling
       reader.readAsText(file, 'UTF-8')
     } else {
       // For Excel files (.xlsx, .xls), use ArrayBuffer
       const reader: FileReader = new FileReader()
-      
+
       reader.onload = async (e: any) => {
         const data: ArrayBuffer = e.target.result
         try {
-          const wBook = XLSX.read(data, { 
+          const wBook = XLSX.read(data, {
             type: 'array',
             codepage: 65001, // UTF-8 codepage for better Chinese support
             cellDates: true,
             cellNF: false
           })
-          
+
           resolve(await readExcelJson(wBook, file.name))
         } catch (err) {
           reject(err)
         }
       }
-      
+
       reader.onerror = () => {
         reject(new Error('Failed to read Excel file'))
       }
-      
+
       reader.readAsArrayBuffer(file)
     }
   })
 }
 
-export async function readExcelJson<T = unknown>(wSheet: WorkBook, fileName = ''): Promise<{fileName: string; name: string; columns: any[]; data: T[]}[]> {
+export async function readExcelJson<T = unknown>(
+  wSheet: WorkBook,
+  fileName = ''
+): Promise<{ fileName: string; name: string; columns: any[]; data: T[] }[]> {
   const XLSX = await import('xlsx')
 
   const name = fileName
@@ -630,7 +637,7 @@ export async function readExcelJson<T = unknown>(wSheet: WorkBook, fileName = ''
       const item = excelDataEncodeToJson.find((item) => typeof item[column] !== 'undefined')
       return {
         name: column,
-        fieldName: column,
+        fieldName: column
       }
     })
 
@@ -638,7 +645,7 @@ export async function readExcelJson<T = unknown>(wSheet: WorkBook, fileName = ''
       fileName,
       name: wSheet.SheetNames.length > 1 ? sheetName : name,
       columns: columns.filter((col) => !!col),
-      data: excelDataEncodeToJson,
+      data: excelDataEncodeToJson
     }
   })
 }
