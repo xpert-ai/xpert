@@ -1970,6 +1970,66 @@ describe('MembershipService', () => {
         expect(memberships).toHaveLength(0)
     })
 
+    it('creates one default tenant plan before backfilling an empty tenant scope', async () => {
+        const { plans, service, userRepository } = createScopeInitializationHarness()
+        userRepository.find.mockResolvedValue([])
+
+        const [firstResult, secondResult] = await Promise.all([
+            service.backfillTenantDefaultMembershipBatch({
+                tenantId: 'tenant-1'
+            }),
+            service.backfillTenantDefaultMembershipBatch({
+                tenantId: 'tenant-1'
+            })
+        ])
+
+        expect(plans).toEqual([
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: null,
+                code: 'default',
+                name: 'Default',
+                status: MembershipPlanStatusEnum.Active,
+                isDefault: true,
+                period: MembershipPeriodEnum.Monthly,
+                includedPoints: 1000,
+                tokensPerPoint: DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
+                allowedModels: [],
+                modelMultipliers: [],
+                rateLimits: []
+            })
+        ])
+        expect(firstResult).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
+        expect(secondResult).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
+    })
+
+    it('does not replace an existing tenant plan when the scope has no default plan', async () => {
+        const { memberships, plans, service } = createScopeInitializationHarness()
+        plans.push(
+            createPlan({
+                id: 'plan-custom',
+                code: 'custom',
+                name: 'Custom',
+                isDefault: false
+            })
+        )
+
+        const result = await service.backfillTenantDefaultMembershipBatch({
+            tenantId: 'tenant-1'
+        })
+
+        expect(plans).toEqual([
+            expect.objectContaining({
+                id: 'plan-custom',
+                code: 'custom',
+                name: 'Custom',
+                isDefault: false
+            })
+        ])
+        expect(memberships).toHaveLength(0)
+        expect(result).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
+    })
+
     it('backfills one tenant batch without replacing existing memberships or repeating eligibility queries', async () => {
         const { memberships, membershipRepository, plans, service, userRepository } = createScopeInitializationHarness()
         plans.push(createPlan({ id: 'plan-tenant-default' }))

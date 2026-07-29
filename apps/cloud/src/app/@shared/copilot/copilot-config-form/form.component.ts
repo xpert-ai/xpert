@@ -120,13 +120,17 @@ export class CopilotConfigFormComponent {
       }
     })
 
-    dialogRef.closed.subscribe(() => {
+    dialogRef.closed.subscribe((copilotProvider) => {
       this.#copilotServer.refresh()
+      if (copilotProvider) {
+        this.saved.emit()
+      }
     })
   }
 
   removedModelProvider() {
     this.#copilotServer.refresh()
+    this.saved.emit()
   }
 
   onAddedModel(model: ICopilotProviderModel) {
