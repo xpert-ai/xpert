@@ -13,7 +13,7 @@
               | translate
                 : {
                     Default:
-                      'Your available models combine plan access with active personal grants in the tenant and current organization.'
+                      'Your available models combine direct access, plan access, and active personal grants in the tenant and current organization.'
                   }
           }}
         </p>
@@ -28,16 +28,16 @@
 
     <section>
       <z-accordion displayDensity="compact">
-        <z-accordion-item zValue="plan-models" class="[&_[data-slot=accordion-body]>div]:px-0">
+        <z-accordion-item zValue="available-models" class="[&_[data-slot=accordion-body]>div]:px-0">
           <z-accordion-header class="px-0">
             <z-accordion-title class="text-base font-semibold text-text-primary">
-              {{ 'PAC.ModelAccess.PlanModels' | translate: { Default: 'Plan models' } }}
+              {{ 'PAC.ModelAccess.AvailableModels' | translate: { Default: 'Available models' } }}
             </z-accordion-title>
             <z-accordion-description class="!flex-none">
-              <z-badge zType="secondary" zShape="pill">{{ planModels().length }}</z-badge>
+              <z-badge zType="secondary" zShape="pill">{{ availableModels().length }}</z-badge>
             </z-accordion-description>
           </z-accordion-header>
-          @if (planModels().length) {
+          @if (availableModels().length) {
             <div class="mb-3 flex justify-end">
               <z-form-field class="w-full sm:max-w-sm">
                 <z-form-label>
@@ -45,7 +45,7 @@
                 </z-form-label>
                 <input
                   z-input
-                  [formControl]="planModelSearchControl"
+                  [formControl]="availableModelSearchControl"
                   [placeholder]="
                     'PAC.ModelGateway.SearchModelsPlaceholder'
                       | translate: { Default: 'Model ID, provider, or model name' }
@@ -53,9 +53,9 @@
                 />
               </z-form-field>
             </div>
-            @if (filteredPlanModels().length) {
+            @if (filteredAvailableModels().length) {
               <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                @for (item of filteredPlanModels(); track item.key) {
+                @for (item of filteredAvailableModels(); track item.key) {
                   <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
                     <z-card-content class="space-y-3 p-4">
                       <div class="flex items-start justify-between gap-3">
@@ -71,7 +71,10 @@
                       </div>
                       <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.Source.plan' | translate: { Default: 'Plan included' } }}
+                          {{
+                            'PAC.ModelAccess.Source.' + item.accessSource
+                              | translate: { Default: item.accessSource ?? 'Plan included' }
+                          }}
                         </z-badge>
                         <span>{{ 'PAC.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
                       </div>
@@ -95,10 +98,10 @@
           } @else {
             <z-empty
               zIcon="inbox"
-              [zTitle]="'PAC.ModelAccess.NoPlanModels' | translate: { Default: 'No plan models' }"
+              [zTitle]="'PAC.ModelAccess.NoAvailableModels' | translate: { Default: 'No available models' }"
               [zDescription]="
-                'PAC.ModelAccess.NoPlanModelsDescription'
-                  | translate: { Default: 'The current membership plan does not include any models.' }
+                'PAC.ModelAccess.NoAvailableModelsDescription'
+                  | translate: { Default: 'No models are directly available or included in your current plan.' }
               "
             />
           }
