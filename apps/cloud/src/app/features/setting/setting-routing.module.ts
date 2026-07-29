@@ -1,7 +1,13 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import {
+  AiFeatureEnum,
+  AIPermissionsEnum,
+  AnalyticsPermissionsEnum,
+  PermissionsEnum,
+  RolesEnum
+} from '../../@core'
 import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
 import { PACAccountComponent } from './account/account.component'
@@ -132,6 +138,10 @@ export const routes: Routes = [
             redirectTo
           }
         }
+      },
+      {
+        path: 'referrals',
+        loadChildren: () => import('./referrals/routing').then((m) => m.routes)
       },
       {
         path: 'membership',

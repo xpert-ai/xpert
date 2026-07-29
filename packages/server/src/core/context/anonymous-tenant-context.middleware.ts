@@ -49,7 +49,11 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
       path === '/api/tenant/onboard' ||
       path === '/tenant/onboard' ||
       path === '/api/auth/sso/providers' ||
-      path === '/auth/sso/providers'
+			path === '/auth/sso/providers' ||
+			path === '/api/referral/availability' ||
+			path === '/referral/availability' ||
+			path === '/api/referral/validate' ||
+			path === '/referral/validate'
     ) {
       return true
     }

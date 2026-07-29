@@ -47,6 +47,14 @@ jest.mock('../organization/organization.service', () => ({
 	OrganizationService: class OrganizationService {}
 }))
 
+jest.mock('../organization/organization.entity', () => ({
+	Organization: class Organization {}
+}))
+
+jest.mock('../referral', () => ({
+	ReferralService: class ReferralService {}
+}))
+
 const { AuthService } = require('./auth.service')
 
 describe('AuthService', () => {
@@ -67,27 +75,83 @@ describe('AuthService', () => {
 		welcomeUser: jest.fn()
 	}
 	const userOrganizationService = {
-		addUserToOrganization: jest.fn()
+		addUserToOrganization: jest.fn(),
+		ensureMembershipInTransaction: jest.fn(),
+		completeMembershipCreation: jest.fn()
 	}
 	const i18n = {
 		translate: jest.fn()
 	}
 	const configService = {}
 	const commandBus = {}
+	const userRepository = {
+		create: jest.fn((entity) => entity),
+		save: jest.fn(),
+		findOne: jest.fn()
+	}
+	const organizationRepository = {
+		findOne: jest.fn()
+	}
+	const manager = {
+		getRepository: jest.fn((entity) => {
+			switch (entity?.name) {
+				case 'User':
+					return userRepository
+				case 'Organization':
+					return organizationRepository
+				default:
+					throw new Error(`Unexpected repository: ${entity?.name}`)
+			}
+		})
+	}
+	const dataSource = {
+		transaction: jest.fn((callback) => callback(manager))
+	}
+	const referralService = {
+		bindRegistration: jest.fn()
+	}
 
 	beforeEach(() => {
 		jest.clearAllMocks()
 
 		service = new AuthService(
-			userService as any,
-			roleService as any,
-			organizationService as any,
-			emailService as any,
-			userOrganizationService as any,
-			i18n as any,
-			configService as any,
-			commandBus as any
+			userService as never,
+			roleService as never,
+			organizationService as never,
+			emailService as never,
+			userOrganizationService as never,
+			i18n as never,
+			configService as never,
+			commandBus as never,
+			dataSource as never,
+			referralService as never
 		)
+
+		userRepository.save.mockImplementation(async (entity) => ({
+			...entity,
+			id: entity.id ?? 'user-1'
+		}))
+		userRepository.findOne.mockResolvedValueOnce(null).mockResolvedValue({
+			id: 'user-1',
+			email: 'new.user@example.com',
+			tenantId: 'tenant-1',
+			tenant: {
+				id: 'tenant-1'
+			},
+			role: {
+				name: 'ADMIN'
+			}
+		})
+		organizationRepository.findOne.mockResolvedValue({ id: 'org-default' })
+		userOrganizationService.ensureMembershipInTransaction.mockResolvedValue({
+			membership: {
+				id: 'membership-1'
+			},
+			created: true
+		})
+		userOrganizationService.completeMembershipCreation.mockResolvedValue(undefined)
+		referralService.bindRegistration.mockResolvedValue(undefined)
+		organizationService.findOneByOptions.mockResolvedValue({ id: 'org-default' })
 
 		userService.findOneOrFailByOptions.mockResolvedValue({ success: false })
 		userService.create.mockResolvedValue({
@@ -106,8 +170,6 @@ describe('AuthService', () => {
 	})
 
 	it('assigns the tenant default organization when organizationId is not provided', async () => {
-		organizationService.findOneByOptions.mockResolvedValue({ id: 'org-default' })
-
 		await service.register(
 			{
 				user: {
@@ -116,22 +178,30 @@ describe('AuthService', () => {
 						id: 'tenant-1'
 					}
 				}
-			} as any,
+			} as never,
 			'en-US'
 		)
 
-		expect(organizationService.findOneByOptions).toHaveBeenCalledWith({
-			select: ['id'],
+		expect(organizationRepository.findOne).toHaveBeenCalledWith({
+			select: {
+				id: true
+			},
 			where: {
 				tenantId: 'tenant-1',
 				isDefault: true,
 				isActive: true
 			}
 		})
-		expect(userOrganizationService.addUserToOrganization).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'user-1' }),
-			'org-default'
-		)
+		expect(userOrganizationService.ensureMembershipInTransaction).toHaveBeenCalledWith(manager, {
+			organizationId: 'org-default',
+			tenantId: 'tenant-1',
+			userId: 'user-1'
+		})
+		expect(userOrganizationService.completeMembershipCreation).toHaveBeenCalledWith({
+			organizationId: 'org-default',
+			tenantId: 'tenant-1',
+			userId: 'user-1'
+		})
 		expect(emailService.welcomeUser).toHaveBeenCalledWith(
 			expect.objectContaining({ id: 'user-1' }),
 			'en-US',
@@ -150,21 +220,70 @@ describe('AuthService', () => {
 					}
 				},
 				organizationId: 'org-explicit'
-			} as any,
+			} as never,
 			'en-US'
 		)
 
-		expect(organizationService.findOneByOptions).not.toHaveBeenCalled()
-		expect(userOrganizationService.addUserToOrganization).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'user-1' }),
-			'org-explicit'
-		)
+		expect(organizationRepository.findOne).not.toHaveBeenCalled()
+		expect(userOrganizationService.ensureMembershipInTransaction).toHaveBeenCalledWith(manager, {
+			organizationId: 'org-explicit',
+			tenantId: 'tenant-1',
+			userId: 'user-1'
+		})
 		expect(emailService.welcomeUser).toHaveBeenCalledWith(
 			expect.objectContaining({ id: 'user-1' }),
 			'en-US',
 			'org-explicit',
 			undefined
 		)
+	})
+
+	it('publishes organization membership side effects only after referral binding succeeds', async () => {
+		await service.register(
+			{
+				user: {
+					email: 'New.User@example.com',
+					tenant: {
+						id: 'tenant-1'
+					}
+				},
+				organizationId: 'org-explicit',
+				referralCode: 'ABC234DEFG'
+			} as never,
+			'en-US'
+		)
+
+		expect(referralService.bindRegistration).toHaveBeenCalledWith(manager, {
+			tenantId: 'tenant-1',
+			referredUserId: 'user-1',
+			referralCode: 'ABC234DEFG'
+		})
+		expect(referralService.bindRegistration.mock.invocationCallOrder[0]).toBeLessThan(
+			userOrganizationService.completeMembershipCreation.mock.invocationCallOrder[0]
+		)
+	})
+
+	it('does not publish organization membership side effects when referral binding fails', async () => {
+		referralService.bindRegistration.mockRejectedValueOnce(new Error('invalid referral'))
+
+		await expect(
+			service.register(
+				{
+					user: {
+						email: 'New.User@example.com',
+						tenant: {
+							id: 'tenant-1'
+						}
+					},
+					organizationId: 'org-explicit',
+					referralCode: 'INVALID'
+				} as never,
+				'en-US'
+			)
+		).rejects.toThrow('invalid referral')
+
+		expect(userOrganizationService.completeMembershipCreation).not.toHaveBeenCalled()
+		expect(emailService.welcomeUser).not.toHaveBeenCalled()
 	})
 
 	it('issues tokens for an existing user and updates the refresh token', async () => {

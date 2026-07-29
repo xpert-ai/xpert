@@ -1,5 +1,15 @@
 {
     "Error": {
+        "ReferralInvalidCode": "The invitation code is invalid.",
+        "ReferralCodeNotFound": "The invitation code was not found.",
+        "ReferralTenantScopeRequired": "Tenant scope is required.",
+        "ReferralTenantContextRequired": "Tenant context is required.",
+        "ReferralAuthenticatedUserRequired": "Authenticated user is required.",
+        "ReferralValidationRateLimited": "Too many invitation code validation attempts.",
+        "ReferralValidationRateLimitUnavailable": "Invitation code validation rate limiting is unavailable.",
+        "ReferralCodeGenerationFailed": "Unable to generate a unique invitation code.",
+        "RegistrationTenantRequired": "Tenant is required for registration.",
+        "RegisteredUserLoadFailed": "Registered user could not be loaded.",
         "AgentNotFound": "Agent '{{key}}' not found.",
         "PrimaryAgentNotFound": "Primary agent node not found",
         "GitIntegrationNotProvided": "Git integration not provided",

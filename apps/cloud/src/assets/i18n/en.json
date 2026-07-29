@@ -24,6 +24,28 @@
   },
   "PAC": {
     "Title": "Metad Analytics Cloud",
+    "Referral": {
+      "CopyCode": "Copy invitation code",
+      "Copied": "Copied",
+      "ReferralCode": "Invitation code (optional)",
+      "ReferralCodePlaceholder": "Enter invitation code",
+      "ValidatingReferralCode": "Validating...",
+      "InvalidReferralCode": "The invitation code is invalid.",
+      "ValidReferralCode": "Invitation code is valid.",
+      "Relationships": "Invitation relationships",
+      "RelationshipsDescription": "Read-only direct account invitation relationships in this tenant.",
+      "SearchPlaceholder": "Search user or code",
+      "Referrer": "Inviter",
+      "Referred": "Invitee",
+      "UsedCode": "Used code",
+      "BoundAt": "Bound at",
+      "DeletedAccount": "Deleted account",
+      "Empty": "No invitation relationships found.",
+      "LoadError": "Invitation relationships could not be loaded.",
+      "Previous": "Previous",
+      "Next": "Next",
+      "PageSummary": "Page {{page}} of {{pages}} · {{total}} total"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime Operations",
       "SuperAdminOnly": "Super Admin",
@@ -411,6 +433,10 @@
           "Name": "Model API Gateway",
           "Description": "Publish approved tenant or organization models through an OpenAI-compatible API."
         },
+        "FEATURE_REFERRAL": {
+          "Name": "Invitation Codes",
+          "Description": "Enable account invitation codes and tenant referral relationships."
+        },
         "GROUP_XPERT": {
           "Name": "Xpert features",
           "Description": "Manage digital expert and related entry points."
@@ -451,6 +477,7 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "MENU": {
+      "ReferralRelationships": "Invitation Relationships",
       "Tasks": "Tasks",
       "Scheduled": "Scheduled",
       "Plugins": "Plugins",
@@ -2322,6 +2349,7 @@
         "PAYMENT_GATEWAY_VIEW": "View Payment Gateway",
         "SMS_GATEWAY_VIEW": "View SMS Gateway",
         "CUSTOM_SMTP_VIEW": "View Custom SMTP",
+        "REFERRAL_VIEW": "View Invitation Relationships",
         "IMPORT_EXPORT_VIEW": "View Import/Export",
         "ORG_JOB_EMPLOYEE_VIEW": "View Job Employees",
         "ORG_JOB_MATCHING_VIEW": "View Job Matching",

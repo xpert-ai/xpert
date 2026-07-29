@@ -140,6 +140,16 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
+      path: 'referrals',
+      label: 'ReferralRelationships',
+      icon: 'share',
+      scopeContext: 'tenant-only',
+      data: {
+        featureKey: FeatureEnum.FEATURE_REFERRAL,
+        permissionKeys: [PermissionsEnum.REFERRAL_VIEW]
+      }
+    },
+    {
       path: 'model-access',
       label: 'Model Access',
       icon: 'approval',

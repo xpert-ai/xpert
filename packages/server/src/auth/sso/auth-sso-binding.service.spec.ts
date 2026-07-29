@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common'
+import { LanguagesEnum } from '@xpert-ai/contracts'
 import { AuthSsoBindingService } from './auth-sso-binding.service'
 
 jest.mock('bcryptjs', () => ({
@@ -8,7 +9,8 @@ jest.mock('bcryptjs', () => ({
 jest.mock('../../core/context', () => ({
   RequestContext: {
     currentUserId: jest.fn(),
-    getScope: jest.fn()
+		getScope: jest.fn(),
+		currentRequest: jest.fn()
   }
 }))
 
@@ -177,6 +179,51 @@ describe('AuthSsoBindingService', () => {
     ).rejects.toBeInstanceOf(ConflictException)
   })
 
+	it('forwards the invitation code when an SSO user creates a new account', async () => {
+		pendingSsoBindingChallengeService.get.mockResolvedValue({
+			ticket: 'ticket-1',
+			flow: 'anonymous_bind',
+			provider: 'lark',
+			subjectId: 'union-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+		accountBindingService.resolveUser.mockResolvedValue(null)
+		accountBindingService.getUserBinding.mockResolvedValue(null)
+		accountBindingService.bindUser.mockResolvedValue({
+			provider: 'lark',
+			subjectId: 'union-1'
+		})
+		authService.register.mockResolvedValue({
+			id: 'user-1'
+		})
+		authService.issueTokensForUser.mockResolvedValue({
+			jwt: 'jwt-token',
+			refreshToken: 'refresh-token',
+			userId: 'user-1'
+		})
+
+		await service.registerAndBind(
+			{
+				ticket: 'ticket-1',
+				email: 'new.user@example.com',
+				password: 'secret',
+				confirmPassword: 'secret',
+				referralCode: 'ABC234DEFG'
+			},
+			LanguagesEnum.English
+		)
+
+		expect(authService.register).toHaveBeenCalledWith(
+			expect.objectContaining({
+				referralCode: 'ABC234DEFG',
+				organizationId: 'org-1'
+			}),
+			LanguagesEnum.English
+		)
+	})
+
   it('returns a minimal current-user challenge view for the authenticated tenant', async () => {
     pendingSsoBindingChallengeService.get.mockResolvedValue({
       ticket: 'ticket-1',
@@ -248,8 +295,6 @@ describe('AuthSsoBindingService', () => {
       expiresAt: '2099-01-01T00:00:00.000Z'
     })
 
-    await expect(service.getCurrentUserChallenge('ticket-1')).rejects.toBeInstanceOf(
-      BadRequestException
-    )
+		await expect(service.getCurrentUserChallenge('ticket-1')).rejects.toBeInstanceOf(BadRequestException)
   })
 })

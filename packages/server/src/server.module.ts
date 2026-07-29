@@ -44,6 +44,7 @@ import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { ManagedConnectionModule } from './managed-connection'
 import { ManagedQueueModule } from './managed-queue'
 import { RuntimeControlModule } from './runtime-control'
+import { ReferralModule } from './referral'
 
 @Module({
 	imports: [
@@ -62,6 +63,7 @@ import { RuntimeControlModule } from './runtime-control'
 			}
 		]),
 		RuntimeControlModule,
+		ReferralModule,
 		HealthModule,
 		CqrsModule,
 		CoreModule,

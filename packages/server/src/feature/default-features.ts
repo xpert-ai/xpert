@@ -1,7 +1,7 @@
-import { toggleFeatures } from '@xpert-ai/server-config';
-import { FeatureEnum, IFeatureCreateInput } from '@xpert-ai/contracts';
+import { toggleFeatures } from '@xpert-ai/server-config'
+import { FeatureEnum, IFeatureCreateInput } from '@xpert-ai/contracts'
 
-const features = toggleFeatures;
+const features = toggleFeatures
 
 export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 	{
@@ -57,6 +57,16 @@ export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 				status: 'primary'
 			}
 		]
+	},
+	{
+		name: 'Referral',
+		code: FeatureEnum.FEATURE_REFERRAL,
+		description: 'Enable account invitation codes and tenant referral relationships',
+		image: 'user.png',
+		link: 'settings/referrals',
+		isEnabled: false,
+		icon: 'share',
+		status: 'primary'
 	},
 
 	// {
@@ -131,9 +141,9 @@ export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 		link: 'settings/integration',
 		isEnabled: features.FEATURE_INTEGRATION,
 		icon: 'assistant',
-		status: 'accent',
+		status: 'accent'
 	}
-];
+]
 
 export function setDefaultFeatures(features: IFeatureCreateInput[]) {
 	DEFAULT_FEATURES = features

@@ -23,6 +23,7 @@ import { AuthSsoDiscoveryService } from './sso/auth-sso-discovery.service'
 import { PendingSsoBindingChallengeService } from './sso/pending-sso-binding-challenge.service'
 import { CommandHandlers } from './commands/handlers'
 import { BasicStrategy, JwtStrategy, WsJwtStrategy, RefreshTokenStrategy } from './strategies'
+import { ReferralModule } from '../referral'
 
 const providers = [AuthService, UserService, UserOrganizationService, EmailService]
 
@@ -49,7 +50,8 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 		UserModule,
 		PasswordResetModule,
 		CqrsModule,
-		DiscoveryModule
+		DiscoveryModule,
+		ReferralModule
 	],
 	controllers: [AuthController, AuthSsoController],
 	providers: [
@@ -62,7 +64,7 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 		BasicStrategy,
 		JwtStrategy,
 		RefreshTokenStrategy,
-		WsJwtStrategy,
+		WsJwtStrategy
 	],
 	exports: [...providers, PendingSsoBindingChallengeService]
 })

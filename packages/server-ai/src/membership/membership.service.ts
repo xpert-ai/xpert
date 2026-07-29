@@ -846,6 +846,7 @@ export class MembershipService {
             .where('membership.tenantId = :tenantId', { tenantId })
             .andWhere('user.type = :userType', { userType: UserType.USER })
             .orderBy('membership.updatedAt', 'DESC')
+            .addOrderBy('membership.id', 'DESC')
             .take(take)
             .skip(skip)
 

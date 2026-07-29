@@ -4,6 +4,23 @@
     <!-- <img class="avatar w-16 h-16 rounded-full flex"
       [src]="user?.imageUrl || '/assets/images/avatar-default.svg'" alt="{{user | user}}" /> -->
     <div class="text-sm font-medium text-text-primary">{{ user()?.email }}</div>
+    @if (canUseReferral() && referralCode()) {
+      <button
+        data-referral-copy
+        z-button
+        zType="link"
+        zSize="sm"
+        type="button"
+        class="h-auto px-0 py-0 text-xs"
+        (click)="copyReferralCode()"
+      >
+        @if (referralCodeCopied()) {
+          {{ 'PAC.Referral.Copied' | translate: { Default: 'Copied' } }}
+        } @else {
+          {{ 'PAC.Referral.CopyCode' | translate: { Default: 'Copy invitation code' } }}
+        }
+      </button>
+    }
   </div>
 
   <nav
