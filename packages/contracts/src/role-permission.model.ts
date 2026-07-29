@@ -59,7 +59,8 @@ export enum PermissionsEnum {
   CUSTOM_SMTP_VIEW = 'CUSTOM_SMTP_VIEW',
   VIEW_ALL_ACCOUNTING_TEMPLATES = 'VIEW_ALL_ACCOUNTING_TEMPLATES',
   ACCESS_DELETE_ACCOUNT = 'ACCESS_DELETE_ACCOUNT',
-  ACCESS_DELETE_ALL_DATA = 'ACCESS_DELETE_ALL_DATA'
+  ACCESS_DELETE_ALL_DATA = 'ACCESS_DELETE_ALL_DATA',
+  REFERRAL_VIEW = 'REFERRAL_VIEW'
 }
 
 export const PermissionGroups = {
@@ -110,6 +111,7 @@ export const PermissionGroups = {
     PermissionsEnum.SUPER_ADMIN_EDIT,
     PermissionsEnum.INTEGRATION_VIEW,
     PermissionsEnum.ACCESS_DELETE_ACCOUNT,
-    PermissionsEnum.ACCESS_DELETE_ALL_DATA
+    PermissionsEnum.ACCESS_DELETE_ALL_DATA,
+    PermissionsEnum.REFERRAL_VIEW
   ]
 }

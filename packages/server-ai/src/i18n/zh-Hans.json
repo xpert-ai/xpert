@@ -1,5 +1,15 @@
 {
     "Error": {
+        "ReferralInvalidCode": "邀请码无效。",
+        "ReferralCodeNotFound": "未找到邀请码。",
+        "ReferralTenantScopeRequired": "必须在租户范围内访问。",
+        "ReferralTenantContextRequired": "缺少租户上下文。",
+        "ReferralAuthenticatedUserRequired": "需要登录用户。",
+        "ReferralValidationRateLimited": "邀请码验证请求过于频繁。",
+        "ReferralValidationRateLimitUnavailable": "邀请码验证限流服务不可用。",
+        "ReferralCodeGenerationFailed": "无法生成唯一邀请码。",
+        "RegistrationTenantRequired": "注册必须指定租户。",
+        "RegisteredUserLoadFailed": "无法加载已注册用户。",
         "AgentNotFound": "Agent‘{{key}}’未找到。",
         "PrimaryAgentNotFound": "主智能体节点未找到",
         "GitIntegrationNotProvided": "未提供 Git 集成",

@@ -258,10 +258,39 @@ describe('MembershipService', () => {
             where: { tenantId: 'tenant-1', isDefault: true },
             select: { id: true, timeZone: true }
         })
-        expect(userQueryBuilder.andWhere).toHaveBeenCalledWith(
-            'membership.currentPeriodEnd <= :expiringBefore',
-            { expiringBefore: new Date('2027-03-14T15:59:59.999Z') }
+        expect(userQueryBuilder.andWhere).toHaveBeenCalledWith('membership.currentPeriodEnd <= :expiringBefore', {
+            expiringBefore: new Date('2027-03-14T15:59:59.999Z')
+        })
+    })
+
+    it('uses a unique tie-breaker when paginating assigned plan members', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const queryBuilder = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+        }
+        const membershipRepository = {
+            createQueryBuilder: jest.fn(() => queryBuilder)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
         )
+
+        await service.findAdminUsers({ planId: 'plan-1', take: 20, skip: 20 })
+
+        expect(queryBuilder.orderBy).toHaveBeenCalledWith('membership.updatedAt', 'DESC')
+        expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('membership.id', 'DESC')
     })
 
     it('calculates fractional points directly from token usage without rounding per call', () => {

@@ -104,6 +104,13 @@ const integrationFeature: IFeature = {
   description: 'Integration feature'
 }
 
+const referralFeature: IFeature = {
+  id: 'feature-referral',
+  code: FeatureEnum.FEATURE_REFERRAL,
+  name: 'Invitation codes',
+  description: 'Invitation code feature'
+}
+
 const customChildFeature: IFeature = {
   id: 'feature-custom-child',
   code: 'FEATURE_CUSTOM_CHILD',
@@ -221,10 +228,11 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, parentFeature])
+      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, referralFeature, parentFeature])
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+    expect(groupIds).toContain(FeatureEnum.FEATURE_REFERRAL)
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(
@@ -259,7 +267,7 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, parentFeature])
+      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, referralFeature, parentFeature])
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)

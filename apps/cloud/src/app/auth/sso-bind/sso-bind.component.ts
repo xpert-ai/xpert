@@ -5,6 +5,7 @@ import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/fo
 import { TranslateService } from '@ngx-translate/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
+import { clearRegistrationReferralCode, getRegistrationReferralCode } from '../referral-registration-session'
 
 type SsoBindChallengeView = {
   provider: string
@@ -85,6 +86,7 @@ export class SsoBindComponent {
         })
       )
 
+      clearRegistrationReferralCode()
       window.location.assign(result.location)
       return
     } catch (error) {
@@ -106,9 +108,11 @@ export class SsoBindComponent {
   }
 
   openRegister(): void {
+    const referralCode = getRegistrationReferralCode()
     void this.#router.navigate(['/auth/register'], {
       queryParams: {
-        ticket: this.ticket
+        ticket: this.ticket,
+        ...(referralCode ? { ref: referralCode } : {})
       }
     })
   }

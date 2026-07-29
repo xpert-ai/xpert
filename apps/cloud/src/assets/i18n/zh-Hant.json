@@ -22,6 +22,28 @@
   },
   "XP": {
     "Title": "元數分析雲",
+    "Referral": {
+      "CopyCode": "複製邀請碼",
+      "Copied": "已複製",
+      "ReferralCode": "邀請碼（選填）",
+      "ReferralCodePlaceholder": "請輸入邀請碼",
+      "ValidatingReferralCode": "正在驗證...",
+      "InvalidReferralCode": "邀請碼無效。",
+      "ValidReferralCode": "邀請碼有效。",
+      "Relationships": "邀請關係",
+      "RelationshipsDescription": "查看目前租戶內唯讀的帳號直接邀請關係。",
+      "SearchPlaceholder": "搜尋帳號或邀請碼",
+      "Referrer": "邀請人",
+      "Referred": "受邀人",
+      "UsedCode": "使用的邀請碼",
+      "BoundAt": "綁定時間",
+      "DeletedAccount": "已刪除帳號",
+      "Empty": "暫無邀請關係。",
+      "LoadError": "邀請關係載入失敗。",
+      "Previous": "上一頁",
+      "Next": "下一頁",
+      "PageSummary": "第 {{page}} / {{pages}} 頁，共 {{total}} 筆"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime 運維",
       "SuperAdminOnly": "超級管理員",
@@ -864,6 +886,7 @@
       "Category_agent": "智能體"
     },
     "MENU": {
+      "ReferralRelationships": "邀請關係",
       "Tasks": "任務",
       "Scheduled": "定時",
       "Plugins": "插件",
@@ -3511,6 +3534,10 @@
           "Name": "模型 API 網關",
           "Description": "將已核准的租戶或組織模型發布為 OpenAI 相容 API"
         },
+        "FEATURE_REFERRAL": {
+          "Name": "邀請碼",
+          "Description": "啟用帳號邀請碼及租戶內邀請關係管理"
+        },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知識庫",
           "Description": "高效地存儲、檢索和生成與特定領域相關的知識內容。"
@@ -4917,6 +4944,7 @@
         "PAYMENT_GATEWAY_VIEW": "查看支付網關",
         "SMS_GATEWAY_VIEW": "查看短信網關",
         "CUSTOM_SMTP_VIEW": "查看自定義SMTP",
+        "REFERRAL_VIEW": "查看邀請關係",
         "IMPORT_EXPORT_VIEW": "查看導入/導出",
         "ORG_JOB_EMPLOYEE_VIEW": "查看任務員工",
         "ORG_JOB_MATCHING_VIEW": "查看任務匹配",

@@ -75,6 +75,7 @@ export class MembershipAdminComponent implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #formBuilder = inject(FormBuilder)
+  #planMemberLoadSequence = 0
 
   readonly plans = signal<IMembershipPlan[]>([])
   readonly scopeStatus = signal<IMembershipScopeStatus | null>(null)
@@ -84,6 +85,8 @@ export class MembershipAdminComponent implements OnInit {
   readonly planMembers = signal<IUserMembership[]>([])
   readonly planMemberCount = signal(0)
   readonly planMembersLoading = signal(false)
+  readonly planMemberPageIndex = signal(0)
+  readonly planMemberPageSize = signal(10)
   readonly adminMembers = signal<IMembershipAdminUser[]>([])
   readonly adminMemberCount = signal(0)
   readonly adminMembersLoading = signal(false)
@@ -379,30 +382,61 @@ export class MembershipAdminComponent implements OnInit {
   selectPlan(plan: IMembershipPlan) {
     this.selectedPlanId.set(plan.id)
     this.migrationTargetPlanId = ''
-    this.loadPlanMembers(plan.id)
+    this.loadPlanMembers(plan.id, 0)
     if (this.editing()) {
       this.edit(plan)
     }
   }
 
-  loadPlanMembers(planId?: string | null) {
+  loadPlanMembers(
+    planId?: string | null,
+    pageIndex = this.planMemberPageIndex(),
+    pageSize = this.planMemberPageSize()
+  ) {
+    const loadSequence = ++this.#planMemberLoadSequence
     if (!planId) {
       this.planMembers.set([])
       this.planMemberCount.set(0)
+      this.planMemberPageIndex.set(0)
+      this.planMembersLoading.set(false)
       return
     }
     this.planMembersLoading.set(true)
-    this.#membership.getAdminUsers({ planId, take: 100 }).subscribe({
-      next: ({ items, total }) => {
-        this.planMembers.set(items ?? [])
-        this.planMemberCount.set(total ?? 0)
-        this.planMembersLoading.set(false)
-      },
-      error: (error) => {
-        this.planMembersLoading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+    this.#membership
+      .getAdminUsers({
+        planId,
+        take: pageSize,
+        skip: pageIndex * pageSize
+      })
+      .subscribe({
+        next: ({ items, total }) => {
+          if (loadSequence !== this.#planMemberLoadSequence) {
+            return
+          }
+          const memberCount = total ?? 0
+          const lastPageIndex = Math.max(0, Math.ceil(memberCount / pageSize) - 1)
+          if (memberCount > 0 && pageIndex > lastPageIndex) {
+            this.loadPlanMembers(planId, lastPageIndex, pageSize)
+            return
+          }
+          this.planMembers.set(items ?? [])
+          this.planMemberCount.set(memberCount)
+          this.planMemberPageIndex.set(memberCount ? pageIndex : 0)
+          this.planMemberPageSize.set(pageSize)
+          this.planMembersLoading.set(false)
+        },
+        error: (error) => {
+          if (loadSequence !== this.#planMemberLoadSequence) {
+            return
+          }
+          this.planMembersLoading.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  onPlanMemberPage(event: ZardPageEvent) {
+    this.loadPlanMembers(this.selectedPlanId(), event.pageIndex, event.pageSize)
   }
 
   loadAdminMembers() {

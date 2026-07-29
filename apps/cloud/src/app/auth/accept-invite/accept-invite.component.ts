@@ -78,7 +78,7 @@ export class AcceptInvitePageComponent implements OnInit {
 
   submitForm = async (input: IUserRegistrationInput) => {
     try {
-      const { user, password } = input
+      const { user, password, referralCode } = input
       const { id: inviteId, role, organization } = this.invitation
       // if (role.name === RolesEnum.EMPLOYEE) {
       // 	await this.inviteService.acceptEmployeeInvite({
@@ -91,6 +91,7 @@ export class AcceptInvitePageComponent implements OnInit {
       await this.inviteService.acceptUserInvite({
         user,
         password,
+        referralCode,
         organization,
         inviteId
       })

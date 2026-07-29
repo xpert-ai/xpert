@@ -108,8 +108,9 @@ export class AuthStrategy extends XpAuthStrategy {
     terms: boolean
     tenant: ITenant
     tags: ITag[]
+    referralCode?: string
   }): Observable<XpAuthResult> {
-    const { email, fullName, password, confirm, tenant, tags } = args
+    const { email, fullName, password, confirm, tenant, tags, referralCode } = args
 
     if (password !== confirm) {
       return of(new XpAuthResult(false, null, null, ["The passwords don't match."]))
@@ -124,7 +125,8 @@ export class AuthStrategy extends XpAuthStrategy {
         tags
       },
       password,
-      confirmPassword: confirm
+      confirmPassword: confirm,
+      referralCode: referralCode?.trim() || undefined
     }
 
     return this.authService.signup(registerInput).pipe(

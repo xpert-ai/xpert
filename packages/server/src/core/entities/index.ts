@@ -33,6 +33,8 @@ import {
 	PluginMarketplaceSource,
 	ExternalIdentityBinding,
 	ManagedConnectionEntity,
+	ReferralCode,
+	ReferralRelation,
 	DataSource,
 	DataSourceAuthentication,
 	DataSourceType
@@ -73,6 +75,8 @@ export const coreEntities = [
 	PluginMarketplaceSource,
 	ExternalIdentityBinding,
 	ManagedConnectionEntity,
+	ReferralCode,
+	ReferralRelation,
 	DataSource,
 	DataSourceAuthentication,
 	DataSourceType

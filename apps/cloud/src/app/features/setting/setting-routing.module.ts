@@ -134,6 +134,10 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'referrals',
+        loadChildren: () => import('./referrals/routing').then((m) => m.routes)
+      },
+      {
         path: 'membership',
         loadComponent: () => import('./membership/membership.component').then((m) => m.MembershipAdminComponent),
         canActivate: [NgxPermissionsGuard, membershipPlanSettingsGate],

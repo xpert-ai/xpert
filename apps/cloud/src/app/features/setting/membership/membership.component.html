@@ -924,6 +924,20 @@
                   </div>
                 }
               </div>
+              @if (planMemberCount() > planMemberPageSize()) {
+                <z-paginator
+                  class="border-t border-divider-subtle px-2 py-1"
+                  displayDensity="compact"
+                  [disabled]="planMembersLoading()"
+                  [hidePageSizeLabel]="true"
+                  [length]="planMemberCount()"
+                  [pageIndex]="planMemberPageIndex()"
+                  [pageSize]="planMemberPageSize()"
+                  [pageSizeOptions]="[10, 20, 50, 100]"
+                  [showFirstLastButtons]="true"
+                  (page)="onPlanMemberPage($event)"
+                />
+              }
             </section>
           </z-card-content>
         </z-card>

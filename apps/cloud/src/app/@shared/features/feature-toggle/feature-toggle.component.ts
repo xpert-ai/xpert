@@ -59,6 +59,7 @@ const STATUS_FILTERS: Array<{ value: FeatureStatusFilter; labelKey: string; labe
 
 const FEATURE_SCOPE_BY_CODE: Record<string, FeatureToggleScope> = {
   [FeatureEnum.FEATURE_ROLES_PERMISSION]: 'tenant-only',
+  [FeatureEnum.FEATURE_REFERRAL]: 'tenant-only',
   [FeatureEnum.FEATURE_INTEGRATION]: 'dual-scope'
 }
 

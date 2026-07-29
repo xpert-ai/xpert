@@ -3,14 +3,32 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnDestro
 import { AbstractControl, FormControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
+import { ReferralService } from '@cloud/app/@core/state'
 import { firstValueFrom } from 'rxjs'
 import { take } from 'rxjs'
 import { NbAuthSocialLink, XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { matchValidator, XpAuthResult, XpAuthService, passwordStrength, PasswordStrengthEnum } from '../services'
+import {
+  clearRegistrationReferralCode,
+  getRegistrationReferralCode,
+  saveRegistrationReferralCode
+} from '../referral-registration-session'
 
 type CompleteSsoBindingResponse = {
   location: string
+}
+
+type SSOProviderDescriptor = {
+  provider: string
+  displayName: string
+  icon: string
+  order: number
+  startUrl: string
+}
+
+type SSOProviderDiscoveryResponse = {
+  providers: SSOProviderDescriptor[]
 }
 
 @Component({
@@ -31,12 +49,18 @@ export class UserRegisterComponent implements OnDestroy {
   socialLinks: NbAuthSocialLink[] = []
   ssoTicket = ''
   enablePublicSignup = true
+  referralEnabled = false
+  referralAvailabilityLoading = true
+  referralValidationLoading = false
+  referralValid: boolean | null = null
+  ssoProviders: SSOProviderDescriptor[] = []
 
   constructor(
     protected service: XpAuthService,
     @Inject(XP_AUTH_OPTIONS) protected options = {},
     fb: UntypedFormBuilder,
     private http: HttpClient,
+    private referralService: ReferralService,
     private translateService: TranslateService,
     private route: ActivatedRoute,
     private router: Router,
@@ -49,7 +73,8 @@ export class UserRegisterComponent implements OnDestroy {
           null,
           [Validators.required, Validators.minLength(6), UserRegisterComponent.checkPassword.bind(this)]
         ],
-        confirm: [null, [Validators.required, Validators.minLength(6)]]
+        confirm: [null, [Validators.required, Validators.minLength(6)]],
+        referralCode: [{ value: '', disabled: true }]
         // mobilePrefix: ['+86'],
         // mobile: [null, [Validators.required, Validators.pattern(/^1\d{10}$/)]],
         // captcha: [null, [Validators.required]]
@@ -64,7 +89,14 @@ export class UserRegisterComponent implements OnDestroy {
     this.strategy = this.getConfigValue('forms.register.strategy')
     this.socialLinks = this.getConfigValue('forms.login.socialLinks')
     this.ssoTicket = this.route.snapshot.queryParamMap.get('ticket')?.trim() ?? ''
+    const queryReferralCode = this.route.snapshot.queryParamMap.get('ref')?.trim() ?? ''
+    if (queryReferralCode) {
+      saveRegistrationReferralCode(queryReferralCode)
+    }
+    this.form.controls.referralCode.setValue(queryReferralCode || getRegistrationReferralCode())
     this.enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
+    void this.loadReferralAvailability()
+    void this.loadSsoProviders()
 
     if (!this.ssoTicket && !this.enablePublicSignup) {
       void this.router.navigate(['/auth/login'])
@@ -81,6 +113,9 @@ export class UserRegisterComponent implements OnDestroy {
   }
   get confirm(): AbstractControl {
     return this.form.controls.confirm
+  }
+  get referralCode(): AbstractControl {
+    return this.form.controls.referralCode
   }
   get mobile(): AbstractControl {
     return this.form.controls.mobile
@@ -156,7 +191,12 @@ export class UserRegisterComponent implements OnDestroy {
   async register(): Promise<void> {
     this.errors = this.messages = []
     this.submitted = true
-    const data = this.form.value
+    if (!(await this.validateReferralCode())) {
+      this.submitted = false
+      this.cdr.detectChanges()
+      return
+    }
+    const data = this.form.getRawValue()
 
     if (this.ssoTicket) {
       try {
@@ -165,10 +205,12 @@ export class UserRegisterComponent implements OnDestroy {
             ticket: this.ssoTicket,
             email: data.email?.trim(),
             password: data.password,
-            confirmPassword: data.confirm
+            confirmPassword: data.confirm,
+            referralCode: this.referralEnabled ? data.referralCode?.trim() || undefined : undefined
           })
         )
 
+        clearRegistrationReferralCode()
         window.location.assign(result.location)
         return
       } catch (error) {
@@ -181,6 +223,7 @@ export class UserRegisterComponent implements OnDestroy {
 
     this.service.register(this.strategy, data).subscribe((result: XpAuthResult) => {
       if (result.isSuccess()) {
+        clearRegistrationReferralCode()
         this.messages = [
           this.getTranslation('Auth.SignupSuccess', {
             Default: '🎉 Signup success, please active the link in your email'
@@ -219,6 +262,79 @@ export class UserRegisterComponent implements OnDestroy {
   ngOnDestroy(): void {
     if (this.interval$) {
       clearInterval(this.interval$)
+    }
+  }
+
+  async validateReferralCode(): Promise<boolean> {
+    const code = this.referralCode.value?.trim().toUpperCase()
+    if (!this.referralEnabled || !code) {
+      this.referralValid = null
+      this.referralCode.setErrors(null)
+      return true
+    }
+
+    this.referralValidationLoading = true
+    this.referralValid = null
+    this.cdr.markForCheck()
+    try {
+      const valid = await this.referralService.validateCode(code)
+      if (this.referralCode.value?.trim().toUpperCase() !== code) {
+        return false
+      }
+      this.referralValid = valid
+      this.referralCode.setErrors(valid ? null : { invalidReferralCode: true })
+      if (valid) {
+        saveRegistrationReferralCode(code)
+      }
+      return valid
+    } catch {
+      this.referralValid = false
+      this.referralCode.setErrors({ invalidReferralCode: true })
+      return false
+    } finally {
+      this.referralValidationLoading = false
+      this.cdr.markForCheck()
+    }
+  }
+
+  openProvider(provider: SSOProviderDescriptor): void {
+    if (!provider.startUrl) {
+      return
+    }
+    const code = this.referralCode.value?.trim()
+    saveRegistrationReferralCode(this.referralEnabled ? code : '')
+    window.location.assign(new URL(provider.startUrl, window.location.origin).toString())
+  }
+
+  private async loadReferralAvailability() {
+    try {
+      this.referralEnabled = await this.referralService.getAvailability()
+      if (this.referralEnabled) {
+        this.referralCode.enable({ emitEvent: false })
+        if (this.referralCode.value) {
+          await this.validateReferralCode()
+        }
+      } else {
+        this.referralCode.reset('', { emitEvent: false })
+        clearRegistrationReferralCode()
+      }
+    } catch {
+      this.referralEnabled = false
+      this.referralCode.reset('', { emitEvent: false })
+    } finally {
+      this.referralAvailabilityLoading = false
+      this.cdr.markForCheck()
+    }
+  }
+
+  private async loadSsoProviders() {
+    try {
+      const result = await firstValueFrom(this.http.get<SSOProviderDiscoveryResponse>('/api/auth/sso/providers'))
+      this.ssoProviders = result.providers ?? []
+    } catch {
+      this.ssoProviders = []
+    } finally {
+      this.cdr.markForCheck()
     }
   }
 

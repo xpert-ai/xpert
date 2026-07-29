@@ -58,6 +58,16 @@ export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 			}
 		]
 	},
+	{
+		name: 'Referral',
+		code: FeatureEnum.FEATURE_REFERRAL,
+		description: 'Enable account invitation codes and tenant referral relationships',
+		image: 'user.png',
+		link: 'settings/referrals',
+		isEnabled: false,
+		icon: 'share',
+		status: 'primary'
+	},
 
 	// {
 	// 	name: 'Apps & Integrations',
