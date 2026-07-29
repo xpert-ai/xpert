@@ -18,7 +18,6 @@
     "@metad/contracts": "workspace:@xpert-ai/contracts@*",
     "@nestjs/bullmq": "^11.0.4",
     "@swc/helpers": "0.5.3",
-    "@xpert-ai/store": "workspace:*",
     "@xpert-ai/plugin-sdk": "workspace:*",
     "bullmq": "^5.78.1",
     "glob": "^11.0.3",

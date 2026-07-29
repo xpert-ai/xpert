@@ -132,6 +132,9 @@ describe('assistant chatkit runtime helpers', () => {
     const layout = {
       maxWidth: '960px'
     }
+    const workbench = {
+      enabled: true
+    }
 
     TestBed.configureTestingModule({
       providers: [
@@ -180,6 +183,7 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        workbench,
         titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
       })
@@ -191,6 +195,7 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        workbench,
         messageNavigation: {
           enabled: true
         },
@@ -223,6 +228,7 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        workbench,
         messageNavigation: {
           enabled: true
         },

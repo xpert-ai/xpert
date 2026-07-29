@@ -97,6 +97,12 @@ export class PublicChatkitComponent {
     titleKey: 'XP.Xpert.ChatApp',
     titleDefault: 'Chat App',
     startScreen: this.startScreen,
+    layout: {
+      maxWidth: '960px'
+    },
+    workbench: {
+      enabled: true
+    },
     onThreadChange: ({ threadId }) => {
       this.syncThreadUrl(threadId)
     }
