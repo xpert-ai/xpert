@@ -264,6 +264,36 @@ describe('MembershipService', () => {
         )
     })
 
+    it('uses a unique tie-breaker when paginating assigned plan members', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const queryBuilder = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+        }
+        const membershipRepository = {
+            createQueryBuilder: jest.fn(() => queryBuilder)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+
+        await service.findAdminUsers({ planId: 'plan-1', take: 20, skip: 20 })
+
+        expect(queryBuilder.orderBy).toHaveBeenCalledWith('membership.updatedAt', 'DESC')
+        expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('membership.id', 'DESC')
+    })
+
     it('calculates fractional points directly from token usage without rounding per call', () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const plan = createPlan({ tokensPerPoint: 100000 })
