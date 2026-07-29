@@ -4,7 +4,6 @@
     "ORGANIZATION": "Organization",
     "DASHBOARD": "Dashboard",
     "INDICATOR": "Indicator",
-    "INDICATOR_MARKET": "Market",
     "INDICATOR_REGISTER": "Register",
     "INDICATOR_GROUPS": "Groups",
     "INDICATOR_MY": "My Indicators",
@@ -22,7 +21,7 @@
     "EmailTemplates": "Email Templates",
     "CustomSMTP": "Custom SMTP"
   },
-  "PAC": {
+  "XP": {
     "Title": "Metad Analytics Cloud",
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime Operations",
@@ -423,10 +422,6 @@
           "Name": "ClawXpert",
           "Description": "Show the ClawXpert entry in the chat sidebar."
         },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "Show the ChatBI entry in the main navigation."
-        },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
           "Description": "Show the CodeXpert entry in the main navigation."
@@ -461,7 +456,6 @@
       "Model Providers": "Model Providers",
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
-      "LOCAL_AGENT_STATUS": "Local Agent Status",
       "MANAGE_FEATURES": "Manage Feature Modules",
       "MANAGE_USERS": "Manage Users",
       "ManageUsers": "Manage Users",
@@ -474,7 +468,6 @@
         "CONFIGURATION": "Configuration",
         "NAME": "Name",
         "NAME_REQUIRED": "Name is required",
-        "USE_LOCAL_AGENT": "Use Local Agent",
         "DONE": "Done",
         "AuthType": "Auth Type",
         "AuthType_None": "None",
@@ -491,7 +484,6 @@
       "Xpert Access Requests": "Xpert Access Requests",
       "FEATURES": "Features",
       "Data": "Data",
-      "ChatBI Assistant": "ChatBI Assistant",
       "CodeXpert": "CodeXpert",
       "DeepResearch": "DeepResearch",
       "Data & Ontology": "Data & Ontology",
@@ -1082,10 +1074,6 @@
       }
     },
     "Onboarding": {
-      "FeatureCategory_ai": "AI Platform Features",
-      "FeatureCategory_bi": "BI Platform Features",
-      "FeatureCategoryDesc_ai": "Features related to AI, including workflows, digital expert agents, knowledge bases, project spaces, etc.",
-      "FeatureCategoryDesc_bi": "Features related to BI data analysis, including semantic models, indicators, story dashboards, etc.",
       "ConfigureAiModel": "Configure AI Model",
       "ConfigureAiModelDesc": "Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings."
     },
@@ -2124,10 +2112,6 @@
         "Label": "Workspace Assistant",
         "Description": "Shared assistant used in the Xpert workspace and studio shell."
       },
-      "ChatBI": {
-        "Label": "ChatBI Assistant",
-        "Description": "Chat with your data analysis assistant from the ChatBI page."
-      },
       "ClawXpert": {
         "Label": "ClawXpert",
         "Description": "Embedded assistant experience for the ClawXpert page."
@@ -2330,8 +2314,6 @@
         "ACCESS_DELETE_ALL_DATA": "Access Delete All Data",
         "ORG_DEMO_EDIT": "Edit Organization Demo",
         "CERTIFICATION_EDIT": "Maintain Certifications",
-        "CHATBI_VIEW": "Use ChatBI",
-        "CHATBI_EDIT": "Manage ChatBI Configuration",
         "COPILOT_VIEW": "Use Copilots",
         "COPILOT_EDIT": "Manage Model Providers",
         "MEMBERSHIP_EDIT": "Manage Membership Plans",
@@ -2366,35 +2348,6 @@
         "FileUrl": "File URL",
         "SelectTimeZone": "Select a time zone"
       }
-    },
-    "ChatBI": {
-      "ComputerTrace": "Thread Activity",
-      "TraceLoading": "Loading thread activity...",
-      "TraceLoadFailed": "Failed to load thread activity",
-      "TraceEmpty": "No thread activity yet",
-      "TraceEmptyDesc": "Dashboard outputs and computer-side steps from this ChatBI thread will appear here as the assistant builds charts, explores files, runs programs, and emits structured actions.",
-      "PinDashboard": "Pin snapshot",
-      "UnpinDashboard": "Unpin snapshot",
-      "DataOntologyGuidePrefix": "Use",
-      "DataOntologySystem": "Data & Ontology",
-      "DataOntologyGuideSuffix": "agents directly to complete your data analysis tasks.",
-      "NewChatBIModel": "New ChatBI Model",
-      "ModelExists": "Model already exists",
-      "EntityNotFound": "Entity not found",
-      "PleaseSelectSemanticModel": "Please select a semantic model",
-      "PleaseSelectEntity": "Please select an entity",
-      "NoSemanticModelsAvailable": "No semantic models available, please create a semantic model first",
-      "NoEntitiesAvailable": "No entities available, please add an entity first",
-      "AddEntity": "Add Entity",
-      "CreateSemanticModel": "Create Semantic Model",
-      "SemanticModel": "Semantic Model",
-      "Entity": "Entity",
-      "Description": "Description",
-      "Caption": "Caption",
-      "Model": "Model",
-      "EditModel": "Edit Model",
-      "DeleteModel": "Delete Model",
-      "AddModel": "Add Model"
     },
     "XProject": {
       "NoExperts": "No experts found"
@@ -2941,10 +2894,6 @@
         "Name": "Monitoring",
         "Description": "Show model provider user usage and monitoring."
       },
-      "FEATURE_COPILOT_CHATBI": {
-        "Name": "Chat BI",
-        "Description": "A conversational interface that enables data querying, analysis, and visualization through natural language interaction."
-      },
       "FEATURE_DATA_SOURCE": {
         "Name": "Data Source",
         "Description": "Enable data source configuration."
@@ -2956,10 +2905,6 @@
       "FEATURE_XPERT_CLAWXPERT": {
         "Name": "ClawXpert",
         "Description": "Show the ClawXpert entry in the chat sidebar."
-      },
-      "FEATURE_XPERT_CHATBI": {
-        "Name": "ChatBI",
-        "Description": "Show the ChatBI entry in the main navigation."
       },
       "FEATURE_XPERT_CODEXPERT": {
         "Name": "CodeXpert",

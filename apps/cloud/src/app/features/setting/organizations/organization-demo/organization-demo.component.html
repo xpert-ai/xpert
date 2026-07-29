@@ -1,5 +1,7 @@
 <div class="flex flex-col mb-8">
-  <label for="demo-network-source">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.SelectDataNetwork' | translate: {Default: 'Select Data Network'} }}</label>
+  <label for="demo-network-source">{{
+    'XP.ORGANIZATIONS_PAGE.Organization.SelectDataNetwork' | translate: { Default: 'Select Data Network' }
+  }}</label>
   <z-radio-group id="demo-network-source" [formControl]="source">
     <z-radio [value]="OrganizationDemoNetworkEnum.github">GitHub</z-radio>
     <z-radio [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun oss</z-radio>
@@ -9,34 +11,45 @@
   @if (source.value === null) {
     <div class="flex items-center gap-2">
       <z-form-field appearance="fill" class="w-full">
-        <z-form-label>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: {Default: 'File Url'} }}</z-form-label>
+        <z-form-label>{{
+          'XP.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: { Default: 'File Url' }
+        }}</z-form-label>
         <input z-input [formControl]="fileUrl" />
       </z-form-field>
     </div>
   }
 
   <div class="text-sm opacity-50">
-    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription' | translate: {Default: "The server will download the corresponding data files from this network storage for the import of demonstration data."} }}
+    {{
+      'XP.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription'
+        | translate
+          : {
+              Default:
+                'The server will download the corresponding data files from this network storage for the import of demonstration data.'
+            }
+    }}
   </div>
 </div>
 
 <div class="flex items-center gap-2">
-  <button z-button zType="default" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
+  <button z-button zType="default" [disabled]="loading() || (!source.value && !fileUrl.value)" (click)="generate()">
     <div class="flex justify-center items-center">
       @if (loading()) {
         <z-loader diameter="18" />
       }
-      
+
       @if (organization$()?.createdDemo || generated()) {
-        <span>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.RegenerateDemo' | translate: {Default: "Re-Generate Demo"} }}</span>
+        <span>{{
+          'XP.ORGANIZATIONS_PAGE.Organization.RegenerateDemo' | translate: { Default: 'Re-Generate Demo' }
+        }}</span>
       } @else {
-        <span>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.GENERATE_DEMO' | translate: {Default: "Generate Demo"} }}</span>
+        <span>{{ 'XP.ORGANIZATIONS_PAGE.Organization.GENERATE_DEMO' | translate: { Default: 'Generate Demo' } }}</span>
       }
     </div>
   </button>
   @if (loading()) {
     <button z-button zType="secondary" (click)="cancel()">
-      {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+      {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
   }
 </div>

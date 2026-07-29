@@ -1,6 +1,10 @@
-<div class="relative bg-background-default-subtle flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+<div
+  class="relative bg-background-default-subtle flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder"
+>
   <div class="flex items-center gap-1">
-    <div class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-components-input-bg-normal">
+    <div
+      class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-components-input-bg-normal"
+    >
       @if (sourceProvider(); as sourceProvider) {
         <xp-icon class="!block w-5 h-5 shrink-0" [icon]="sourceProvider.meta.icon" />
       }
@@ -9,15 +13,21 @@
       @if (provider(); as provider) {
         {{ provider | i18n }}
       } @else {
-        {{'PAC.Workflow.Source' | translate: {Default: 'Source'} }}
+        {{ 'XP.Workflow.Source' | translate: { Default: 'Source' } }}
       }
     </div>
   </div>
 
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
-    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/edge'"
+    fOutputConnectableSide="right"
+    class="right group"
+    [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  >
     <div class="inner-dot cursor-crosshair">
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
 </div>

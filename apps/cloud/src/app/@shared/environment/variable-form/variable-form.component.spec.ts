@@ -19,6 +19,6 @@ describe('XpertEnvVariableFormComponent', () => {
     const nativeElement = fixture.nativeElement as HTMLElement
 
     expect(nativeElement.querySelectorAll('z-select')).toHaveLength(1)
-    expect(nativeElement.querySelector('ngm-select')).toBeNull()
+    expect(nativeElement.querySelector('xp-select')).toBeNull()
   })
 })

@@ -3,7 +3,7 @@ import { ExtensionHostOutletComponent } from 'apps/cloud/src/app/@shared/view-ex
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-integration-extension-view',
+  selector: 'xp-settings-integration-extension-view',
   imports: [ExtensionHostOutletComponent],
   template: `
     <xp-extension-host-outlet

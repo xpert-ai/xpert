@@ -44,6 +44,8 @@ import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { ManagedConnectionModule } from './managed-connection'
 import { ManagedQueueModule } from './managed-queue'
 import { RuntimeControlModule } from './runtime-control'
+import { DataSourceModule } from './data-source'
+import { DataSourceTypeModule } from './data-source-type'
 
 @Module({
 	imports: [
@@ -94,7 +96,9 @@ import { RuntimeControlModule } from './runtime-control'
 		StorageFileModule,
 		IntegrationModule,
 		ManagedConnectionModule,
-		ManagedQueueModule
+		ManagedQueueModule,
+		DataSourceTypeModule,
+		DataSourceModule
 	],
 	controllers: [AppController],
 	providers: [

@@ -7,7 +7,10 @@ import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { firstValueFrom, startWith } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import { IXpert, Store, XpertAPIService } from '../../@core'
-import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '../../features/assistant/assistant-chatkit.runtime'
+import {
+  injectHostedAssistantChatkitControl,
+  sanitizeAssistantFrameUrl
+} from '../../features/assistant/assistant-chatkit.runtime'
 
 @Component({
   standalone: true,
@@ -21,7 +24,7 @@ import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '
       <xpert-chatkit class="block h-full min-h-0 w-full" [control]="chatkitControl" />
     } @else {
       <div class="flex h-full min-h-0 items-center justify-center px-6 text-sm text-text-secondary">
-        {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant...' } }}
+        {{ 'XP.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant...' } }}
       </div>
     }
   `,
@@ -91,7 +94,7 @@ export class PublicChatkitComponent {
     initialThread: this.threadId,
     getClientSecret: (currentClientSecret) => this.getClientSecret(currentClientSecret),
     title: this.title,
-    titleKey: 'PAC.Xpert.ChatApp',
+    titleKey: 'XP.Xpert.ChatApp',
     titleDefault: 'Chat App',
     startScreen: this.startScreen,
     onThreadChange: ({ threadId }) => {
@@ -107,7 +110,9 @@ export class PublicChatkitComponent {
 
     if (xpert.app?.public) {
       const identifier = this.identifier() || xpert.slug || xpert.id
-      const session = await firstValueFrom(this.#xpertService.createPublicChatkitSession(identifier, currentClientSecret))
+      const session = await firstValueFrom(
+        this.#xpertService.createPublicChatkitSession(identifier, currentClientSecret)
+      )
 
       if (!session.client_secret) {
         throw new Error('Missing client_secret in public ChatKit session response.')

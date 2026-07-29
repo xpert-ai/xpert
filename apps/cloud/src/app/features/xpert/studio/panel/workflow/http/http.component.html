@@ -3,11 +3,14 @@
     <div class="flex h-6 items-center"><div class="system-sm-semibold-uppercase text-text-secondary">API</div></div>
     <div class="flex">
       <div class="flex">
-        <div class="cursor-pointer hover:bg-hover-bg flex h-7 items-center space-x-1 rounded-md px-2 text-text-tertiary"
-          (click)="openAuth()">
+        <div
+          class="cursor-pointer hover:bg-hover-bg flex h-7 items-center space-x-1 rounded-md px-2 text-text-tertiary"
+          (click)="openAuth()"
+        >
           <i class="ri-settings-3-line"></i>
           <div class="text-sm font-medium text-text-tertiary">
-            {{'PAC.KEY_WORDS.Authorization' | translate: {Default: 'Authorization'} }}<span class="uppercase ml-1 text-text-secondary">{{authType()}}</span>
+            {{ 'XP.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' }
+            }}<span class="uppercase ml-1 text-text-secondary">{{ authType() }}</span>
           </div>
         </div>
       </div>
@@ -15,19 +18,22 @@
   </div>
   <div class="mt-1">
     <div class="flex items-start space-x-1">
-      <ngm-select [selectOptions]="HttpOptions" class="shrink-0 w-24" 
-        [placeholder]="'PAC.Workflow.HttpMethod' | translate: {Default: 'Http Method'}"
-        [(ngModel)]="method" 
+      <xp-select
+        [selectOptions]="HttpOptions"
+        class="shrink-0 w-24"
+        [placeholder]="'XP.Workflow.HttpMethod' | translate: { Default: 'Http Method' }"
+        [(ngModel)]="method"
       />
       <div class="border-divider-regular bg-components-input-bg-normal w-0 grow rounded-lg border relative">
-        <xpert-variable-input class="relative w-full min-h-[24px] text-sm px-2 py-1.5" 
+        <xpert-variable-input
+          class="relative w-full min-h-[24px] text-sm px-2 py-1.5"
           [variables]="variables()"
-          [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-          [(ngModel)]="url" />
+          [placeholder]="'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }"
+          [(ngModel)]="url"
+        />
       </div>
     </div>
   </div>
-
 </div>
 
 <div class="p-4">
@@ -41,37 +47,42 @@
     <div class="overflow-hidden rounded-lg border border-divider-regular">
       <div class="text-sm font-semibold uppercase flex h-7 items-center leading-7 text-text-tertiary">
         <div class="h-full border-r border-divider-regular pl-3 w-1/2">
-          {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+          {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
         </div>
         <div class="h-full items-center justify-between pl-3 pr-1 w-1/2">
-          {{ 'PAC.KEY_WORDS.Value' | translate: {Default: 'Value'} }}
+          {{ 'XP.KEY_WORDS.Value' | translate: { Default: 'Value' } }}
         </div>
       </div>
       @for (header of headers(); track i; let i = $index) {
         <div class="h-min-7 group flex border-t border-divider-deep">
           <div class="shrink-0 border-r border-divider-regular w-1/2">
             <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
-              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
-                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+              <xpert-variable-input
+                class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                [placeholder]="'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }"
                 [variables]="variables()"
                 [ngModel]="header.name"
-                (ngModelChange)="updateHeader(i, {name: $event})"
+                (ngModelChange)="updateHeader(i, { name: $event })"
               />
             </div>
           </div>
           <div class="w-1/2">
             <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
-              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
-                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+              <xpert-variable-input
+                class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                [placeholder]="'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }"
                 [variables]="variables()"
-                [ngModel]="header.value" 
+                [ngModel]="header.value"
                 (ngModelChange)="updateHeaderVal(i, $event)"
               />
             </div>
           </div>
 
-          <button type="button" class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
-            (click)="removeHeader(i)">
+          <button
+            type="button"
+            class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
+            (click)="removeHeader(i)"
+          >
             <i class="ri-delete-bin-line"></i>
           </button>
         </div>
@@ -84,7 +95,7 @@
   <div class="flex items-center justify-between">
     <div class="flex h-6 items-center">
       <div class="text-sm font-semibold uppercase text-text-secondary">
-        {{ 'PAC.KEY_WORDS.Params' | translate: {Default: 'Params'} }}
+        {{ 'XP.KEY_WORDS.Params' | translate: { Default: 'Params' } }}
       </div>
     </div>
     <div class="flex"></div>
@@ -93,37 +104,42 @@
     <div class="overflow-hidden rounded-lg border border-divider-regular">
       <div class="text-sm font-semibold uppercase flex h-7 items-center leading-7 text-text-tertiary">
         <div class="h-full border-r border-divider-regular pl-3 w-1/2">
-          {{ 'PAC.KEY_WORDS.Key' | translate: {Default: 'Key'} }}
+          {{ 'XP.KEY_WORDS.Key' | translate: { Default: 'Key' } }}
         </div>
         <div class="h-full items-center justify-between pl-3 pr-1 w-1/2">
-          {{ 'PAC.KEY_WORDS.Value' | translate: {Default: 'Value'} }}
+          {{ 'XP.KEY_WORDS.Value' | translate: { Default: 'Value' } }}
         </div>
       </div>
       @for (param of params(); track i; let i = $index) {
         <div class="h-min-7 group flex border-t border-divider-deep">
           <div class="shrink-0 border-r border-divider-regular w-1/2">
             <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
-              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
-                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                [variables]="variables()"  
+              <xpert-variable-input
+                class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                [placeholder]="'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }"
+                [variables]="variables()"
                 [ngModel]="param.key"
-                (ngModelChange)="updateParam(i, {key: $event})"
+                (ngModelChange)="updateParam(i, { key: $event })"
               />
             </div>
           </div>
           <div class="w-1/2">
             <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
-              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
-                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                [variables]="variables()"  
-                [ngModel]="param.value" 
+              <xpert-variable-input
+                class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                [placeholder]="'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }"
+                [variables]="variables()"
+                [ngModel]="param.value"
                 (ngModelChange)="updateParamVal(i, $event)"
               />
             </div>
           </div>
 
-          <button type="button" class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
-            (click)="removeParam(i)">
+          <button
+            type="button"
+            class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
+            (click)="removeParam(i)"
+          >
             <i class="ri-delete-bin-line"></i>
           </button>
         </div>
@@ -140,8 +156,7 @@
     <div class="flex"></div>
   </div>
   <div class="mt-1">
-    <ngm-radio-select simple [selectOptions]="BodyTypeOptions" 
-      [(ngModel)]="bodyType"/>
+    <xp-radio-select simple [selectOptions]="BodyTypeOptions" [(ngModel)]="bodyType" />
   </div>
 
   @switch (bodyType()) {
@@ -150,37 +165,46 @@
         <div class="overflow-hidden rounded-lg border border-divider-regular">
           <div class="text-sm font-semibold uppercase flex h-7 items-center leading-7 text-text-tertiary">
             <div class="h-full border-r border-divider-regular pl-3 w-1/2">
-              {{ 'PAC.KEY_WORDS.Key' | translate: {Default: 'Key'} }}
+              {{ 'XP.KEY_WORDS.Key' | translate: { Default: 'Key' } }}
             </div>
             <div class="h-full items-center justify-between pl-3 pr-1 w-1/2">
-              {{ 'PAC.KEY_WORDS.Value' | translate: {Default: 'Value'} }}
+              {{ 'XP.KEY_WORDS.Value' | translate: { Default: 'Value' } }}
             </div>
           </div>
           @for (param of encodedForm(); track i; let i = $index) {
             <div class="h-min-7 group flex border-t border-divider-deep">
               <div class="shrink-0 border-r border-divider-regular w-1/2">
                 <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
-                  <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
-                    [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                    [variables]="variables()"  
+                  <xpert-variable-input
+                    class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                    [placeholder]="
+                      'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }
+                    "
+                    [variables]="variables()"
                     [ngModel]="param.key"
-                    (ngModelChange)="updateEncodedForm(i, {key: $event})"
+                    (ngModelChange)="updateEncodedForm(i, { key: $event })"
                   />
                 </div>
               </div>
               <div class="w-1/2">
                 <div class="hover:cursor-text hover:bg-hover-bg relative flex h-full">
-                  <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
-                    [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                    [variables]="variables()"  
-                    [ngModel]="param.value" 
+                  <xpert-variable-input
+                    class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                    [placeholder]="
+                      'XP.Workflow.TypeInsertVariable' | translate: { Default: 'type / to insert variable' }
+                    "
+                    [variables]="variables()"
+                    [ngModel]="param.value"
                     (ngModelChange)="updateEncodedFormVal(i, $event)"
                   />
                 </div>
               </div>
-    
-              <button type="button" class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
-                (click)="removeEncodedForm(i)">
+
+              <button
+                type="button"
+                class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
+                (click)="removeEncodedForm(i)"
+              >
                 <i class="ri-delete-bin-line"></i>
               </button>
             </div>
@@ -189,7 +213,8 @@
       </div>
     }
     @case ('json') {
-      <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
+      <copilot-prompt-editor
+        class="relative shadow-md xp-card-border-gradient self-stretch"
         [role]="'json'"
         language="json"
         [variables]="variables()"
@@ -198,7 +223,8 @@
       />
     }
     @case ('raw') {
-      <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
+      <copilot-prompt-editor
+        class="relative shadow-md xp-card-border-gradient self-stretch"
         [role]="'raw text'"
         language="text"
         [variables]="variables()"
@@ -216,9 +242,11 @@
     <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
       <i class="ri-arrow-right-s-line" [class.rotate-90]="expandTimeout()"></i>
     </div>
-    <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
-      (click)="toggleTimeout()">
-      {{ 'PAC.Workflow.Timeout' | translate: {Default: 'Timeout'} }}
+    <div
+      class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+      (click)="toggleTimeout()"
+    >
+      {{ 'XP.Workflow.Timeout' | translate: { Default: 'Timeout' } }}
     </div>
   </div>
   @if (expandTimeout()) {
@@ -228,58 +256,67 @@
           <div class="space-y-1">
             <div class="flex h-[18px] items-center space-x-2">
               <span class="text-[13px] font-medium text-text-primary">
-                {{ 'PAC.Workflow.ConnectionTimeout' | translate: {Default: 'Connection Timeout'} }}
+                {{ 'XP.Workflow.ConnectionTimeout' | translate: { Default: 'Connection Timeout' } }}
               </span>
               <span class="text-xs font-normal text-text-tertiary">
-                {{ 'PAC.Workflow.ConnectionTimeoutDesc' | translate: {Default: 'Enter connection timeout in seconds'} }}
+                {{
+                  'XP.Workflow.ConnectionTimeoutDesc' | translate: { Default: 'Enter connection timeout in seconds' }
+                }}
               </span>
             </div>
             <div class="relative w-full">
               <input
                 class="xp-input w-full"
-                [placeholder]="'PAC.Workflow.ConnectionTimeoutDesc' | translate: {Default: 'Enter connection timeout in seconds'}" 
-                min="1" max="300"
+                [placeholder]="
+                  'XP.Workflow.ConnectionTimeoutDesc' | translate: { Default: 'Enter connection timeout in seconds' }
+                "
+                min="1"
+                max="300"
                 type="number"
                 [(ngModel)]="connectionTimeout"
-              >
+              />
             </div>
           </div>
           <div class="space-y-1">
             <div class="flex h-[18px] items-center space-x-2">
               <span class="text-[13px] font-medium text-text-primary">
-                {{ 'PAC.Workflow.ReadTimeout' | translate: {Default: 'Read Timeout'} }}
+                {{ 'XP.Workflow.ReadTimeout' | translate: { Default: 'Read Timeout' } }}
               </span>
               <span class="text-xs font-normal text-text-tertiary">
-                {{ 'PAC.Workflow.ReadTimeoutDesc' | translate: {Default: 'Enter read timeout in seconds'} }}
+                {{ 'XP.Workflow.ReadTimeoutDesc' | translate: { Default: 'Enter read timeout in seconds' } }}
               </span>
             </div>
             <div class="relative w-full">
               <input
                 class="xp-input w-full"
-                [placeholder]="'PAC.Workflow.ReadTimeoutDesc' | translate: {Default: 'Enter read timeout in seconds'}" 
-                min="1" max="600"
+                [placeholder]="'XP.Workflow.ReadTimeoutDesc' | translate: { Default: 'Enter read timeout in seconds' }"
+                min="1"
+                max="600"
                 type="number"
                 [(ngModel)]="readTimeout"
-                >
+              />
             </div>
           </div>
           <div class="space-y-1">
             <div class="flex h-[18px] items-center space-x-2">
               <span class="text-[13px] font-medium text-text-primary">
-                {{ 'PAC.Workflow.WriteTimeout' | translate: {Default: 'Write Timeout'} }}
+                {{ 'XP.Workflow.WriteTimeout' | translate: { Default: 'Write Timeout' } }}
               </span>
               <span class="text-xs font-normal text-text-tertiary">
-                {{ 'PAC.Workflow.WriteTimeoutDesc' | translate: {Default: 'Enter write timeout in seconds'} }}
+                {{ 'XP.Workflow.WriteTimeoutDesc' | translate: { Default: 'Enter write timeout in seconds' } }}
               </span>
             </div>
             <div class="relative w-full">
               <input
                 class="xp-input w-full"
-                [placeholder]="'PAC.Workflow.WriteTimeoutDesc' | translate: {Default: 'Enter write timeout in seconds'}"
-                min="1" max="600"
+                [placeholder]="
+                  'XP.Workflow.WriteTimeoutDesc' | translate: { Default: 'Enter write timeout in seconds' }
+                "
+                min="1"
+                max="600"
                 type="number"
                 [(ngModel)]="writeTimeout"
-                  >
+              />
             </div>
           </div>
         </div>
@@ -292,15 +329,17 @@
 
 <div class="p-4">
   <div class="py-4">
-      <div class="flex items-center">
-        <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
-          <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
-        </div>
-        <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
-          (click)="toggleOutput()"
-        >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
-        </div>
+    <div class="flex items-center">
+      <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+        <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
       </div>
+      <div
+        class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+        (click)="toggleOutput()"
+      >
+        {{ 'XP.Workflow.OutputVariables' | translate: { Default: 'Output Variables' } }}
+      </div>
+    </div>
     @if (expandOutputVariables()) {
       <div class="px-4">
         <div class="py-1">
@@ -309,7 +348,7 @@
             <div class="system-xs-regular ml-2 capitalize text-text-tertiary">string</div>
           </div>
           <div class="system-xs-regular mt-0.5 text-text-tertiary">
-            {{ 'PAC.Workflow.ResponseContent' | translate: {Default: 'Response Content'} }}
+            {{ 'XP.Workflow.ResponseContent' | translate: { Default: 'Response Content' } }}
           </div>
         </div>
         <div class="py-1">
@@ -318,7 +357,7 @@
             <div class="system-xs-regular ml-2 capitalize text-text-tertiary">object</div>
           </div>
           <div class="system-xs-regular mt-0.5 text-text-tertiary">
-            {{ 'PAC.Workflow.ResponseObject' | translate: {Default: 'Response Object'} }}
+            {{ 'XP.Workflow.ResponseObject' | translate: { Default: 'Response Object' } }}
           </div>
         </div>
         <div class="py-1">
@@ -327,7 +366,7 @@
             <div class="system-xs-regular ml-2 capitalize text-text-tertiary">number</div>
           </div>
           <div class="system-xs-regular mt-0.5 text-text-tertiary">
-            {{ 'PAC.Workflow.ResponseStatusCode' | translate: {Default: 'Response Status Code'} }}
+            {{ 'XP.Workflow.ResponseStatusCode' | translate: { Default: 'Response Status Code' } }}
           </div>
         </div>
         <div class="py-1">
@@ -336,10 +375,10 @@
             <div class="system-xs-regular ml-2 capitalize text-text-tertiary">object</div>
           </div>
           <div class="system-xs-regular mt-0.5 text-text-tertiary">
-            {{ 'PAC.Workflow.ResponseHeaderJson' | translate: {Default: 'Response Header (JSON)'} }}
+            {{ 'XP.Workflow.ResponseHeaderJson' | translate: { Default: 'Response Header (JSON)' } }}
           </div>
         </div>
-          <!-- <div class="py-1">
+        <!-- <div class="py-1">
               <div class="flex items-center leading-[18px]">
                   <div class="code-sm-semibold text-text-secondary">files</div>
                   <div class="system-xs-regular ml-2 capitalize text-text-tertiary">Array[File]</div>
@@ -353,11 +392,8 @@
 
 <div class="h-[0.5px] bg-divider-subtle"></div>
 
-<xpert-workflow-retry [(ngModel)]="retry" class="py-4"/>
+<xpert-workflow-retry [(ngModel)]="retry" class="py-4" />
 
 <div class="h-[0.5px] bg-divider-subtle"></div>
 
-<xpert-workflow-error-handling class="p-4" 
-  [defaultValueSchema]="outputs()"
-  [(ngModel)]="errorHandling"
-/>
+<xpert-workflow-error-handling class="p-4" [defaultValueSchema]="outputs()" [(ngModel)]="errorHandling" />

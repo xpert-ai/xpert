@@ -1,33 +1,42 @@
-<div class="flex justify-between items-center mb-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <div class="text-2xl font-semibold text-text-primary">{{'PAC.Copilot.Setup' | translate: {Default: 'Setup'} }} {{provider().label | i18n}}</div>
-  <img
-    alt="provider-icon"
-    [src]="icon()"
-    class="w-auto h-8"
-  />
+<div
+  class="flex justify-between items-center mb-2 cursor-move"
+  cdkDrag
+  cdkDragRootElement=".cdk-overlay-pane"
+  cdkDragHandle
+>
+  <div class="text-2xl font-semibold text-text-primary">
+    {{ 'XP.Copilot.Setup' | translate: { Default: 'Setup' } }} {{ provider().label | i18n }}
+  </div>
+  <img alt="provider-icon" [src]="icon()" class="w-auto h-8" />
 </div>
 
 <div class="relative">
-  <copilot-credential-form #credentialsForm [credentialFormSchemas]="credential_form_schemas()" [(ngModel)]="credentials" />
+  <copilot-credential-form
+    #credentialsForm
+    [credentialFormSchemas]="credential_form_schemas()"
+    [(ngModel)]="credentials"
+  />
   @if (loading()) {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    <xp-spin class="absolute top-0 left-0 w-full h-full" />
   }
 </div>
 
 <div class="mt-1 mb-4 border-t-[0.5px] border-t-gray-100"></div>
 
 @if (error()) {
-  <div class="p-2 text-sm text-text-destructive">{{error()}}</div>
+  <div class="p-2 text-sm text-text-destructive">{{ error() }}</div>
 }
 
-<div class="sticky bottom-0 flex justify-between items-center mt-2 -mx-2 pt-4 px-2 pb-6 flex-wrap gap-y-2 bg-components-card-bg">
+<div
+  class="sticky bottom-0 flex justify-between items-center mt-2 -mx-2 pt-4 px-2 pb-6 flex-wrap gap-y-2 bg-components-card-bg"
+>
   @if (help()) {
     <a
       [href]="help().url | i18n"
       target="_blank"
       rel="noopener noreferrer"
       class="inline-flex items-center text-xs text-primary-600"
-      >
+    >
       {{ help().title | i18n }}
       <svg
         width="12"
@@ -51,14 +60,16 @@
   }
 
   <div class="flex items-center gap-1">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large mr-2" (click)="cancel()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+    </button>
     <button
       type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
-      (click)="cancel()"
-    >{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+      class="btn disabled:btn-disabled btn-primary btn-large"
       [disabled]="credentialsForm.invalid || loading() || !dirty()"
       (click)="apply()"
-    >{{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
+    >
+      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+    </button>
   </div>
 </div>

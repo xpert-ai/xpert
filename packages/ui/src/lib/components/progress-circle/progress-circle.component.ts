@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, numberAttribute, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, numberAttribute, ViewEncapsulation } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { progressCircleVariants, type ZardProgressCircleTypeVariants } from './progress-circle.variants';
+import { progressCircleVariants, type ZardProgressCircleTypeVariants } from './progress-circle.variants'
 
 @Component({
   selector: 'z-progress-circle',
@@ -40,25 +40,25 @@ import { progressCircleVariants, type ZardProgressCircleTypeVariants } from './p
     role: 'progressbar',
     '[attr.aria-valuenow]': 'clampedValue()',
     '[attr.aria-valuemin]': '0',
-    '[attr.aria-valuemax]': '100',
+    '[attr.aria-valuemax]': '100'
   },
-  exportAs: 'zProgressCircle',
+  exportAs: 'zProgressCircle'
 })
 export class ZardProgressCircleComponent {
-  readonly class = input<ClassValue>('');
-  readonly zType = input<ZardProgressCircleTypeVariants>('default');
-  readonly value = input(0, { transform: numberAttribute });
-  readonly diameter = input(24, { transform: numberAttribute });
-  readonly strokeWidth = input(2, { transform: numberAttribute });
+  readonly class = input<ClassValue>('')
+  readonly zType = input<ZardProgressCircleTypeVariants>('default')
+  readonly value = input(0, { transform: numberAttribute })
+  readonly diameter = input(24, { transform: numberAttribute })
+  readonly strokeWidth = input(2, { transform: numberAttribute })
 
-  protected readonly clampedValue = computed(() => Math.max(0, Math.min(100, this.value())));
-  protected readonly center = computed(() => this.diameter() / 2);
-  protected readonly radius = computed(() => (this.diameter() - this.strokeWidth()) / 2);
-  protected readonly circumference = computed(() => 2 * Math.PI * this.radius());
-  protected readonly dashOffset = computed(() => this.circumference() * (1 - this.clampedValue() / 100));
-  protected readonly viewBox = computed(() => `0 0 ${this.diameter()} ${this.diameter()}`);
+  protected readonly clampedValue = computed(() => Math.max(0, Math.min(100, this.value())))
+  protected readonly center = computed(() => this.diameter() / 2)
+  protected readonly radius = computed(() => (this.diameter() - this.strokeWidth()) / 2)
+  protected readonly circumference = computed(() => 2 * Math.PI * this.radius())
+  protected readonly dashOffset = computed(() => this.circumference() * (1 - this.clampedValue() / 100))
+  protected readonly viewBox = computed(() => `0 0 ${this.diameter()} ${this.diameter()}`)
 
   protected readonly classes = computed(() =>
-    mergeClasses(progressCircleVariants({ zType: this.zType() }), this.class()),
-  );
+    mergeClasses(progressCircleVariants({ zType: this.zType() }), this.class())
+  )
 }

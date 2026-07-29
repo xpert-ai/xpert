@@ -1,6 +1,0 @@
-export * from './core.module'
-export * from './directives/highlight.directive'
-export * from './directives/semantic-color.directive'
-export * from './i18n/resources'
-export * from './i18n/value-help-resources'
-export * from './types'

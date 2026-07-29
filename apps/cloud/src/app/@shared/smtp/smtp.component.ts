@@ -14,7 +14,7 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 
 import { ActivatedRoute } from '@angular/router'
 import { ICustomSmtp, ICustomSmtpFindInput, IOrganization, IUser, SMTPSecureEnum } from '@xpert-ai/contracts'
-import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { XpButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'
@@ -34,11 +34,11 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
     FormlyModule,
     ZardButtonComponent,
-    ButtonGroupDirective,
+    XpButtonGroupDirective,
 
     OcapCoreModule
   ],
-  selector: 'pac-smtp',
+  selector: 'xp-smtp',
   templateUrl: './smtp.component.html',
   styleUrls: ['./smtp.component.scss']
 })
@@ -119,7 +119,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
 
   ngOnInit(): void {
     this.translateService
-      .get('PAC.SHARED.SMTP', {
+      .get('XP.SHARED.SMTP', {
         Default: {
           Host: 'Host',
           Port: 'Port',
@@ -134,10 +134,10 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       .subscribe((SMTP) => {
         this.schema = [
           {
-            fieldGroupClassName: 'ngm-formly__row',
+            fieldGroupClassName: 'xp-formly__row',
             fieldGroup: [
               {
-                className: 'ngm-formly__col ngm-formly__col-2',
+                className: 'xp-formly__col xp-formly__col-2',
                 key: 'host',
                 type: 'input',
                 props: {
@@ -146,7 +146,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
                 }
               },
               {
-                className: 'ngm-formly__col ngm-formly__col-2',
+                className: 'xp-formly__col xp-formly__col-2',
                 key: 'port',
                 type: 'input',
                 props: {
@@ -155,7 +155,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
                 }
               },
               {
-                className: 'ngm-formly__col ngm-formly__col-2',
+                className: 'xp-formly__col xp-formly__col-2',
                 key: 'secure',
                 type: 'select',
                 props: {
@@ -173,7 +173,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
                 }
               },
               {
-                className: 'ngm-formly__col ngm-formly__col-2',
+                className: 'xp-formly__col xp-formly__col-2',
                 key: 'fromAddress',
                 type: 'input',
                 props: {
@@ -181,7 +181,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
                 }
               },
               {
-                className: 'ngm-formly__col ngm-formly__col-2',
+                className: 'xp-formly__col xp-formly__col-2',
                 key: 'username',
                 type: 'input',
                 props: {
@@ -190,7 +190,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
               },
 
               {
-                className: 'ngm-formly__col ngm-formly__col-2',
+                className: 'xp-formly__col xp-formly__col-2',
                 key: 'password',
                 type: 'input',
                 props: {
@@ -374,11 +374,11 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       if (isValidated) {
         this.toastrService.success(this.getTranslation('TOASTR.TITLE.SUCCESS', { Default: 'Success' }))
       } else {
-        this.toastrService.error('PAC.SHARED.SMTP.VerifyFailed', '', { Default: 'Verify failed' })
+        this.toastrService.error('XP.SHARED.SMTP.VerifyFailed', '', { Default: 'Verify failed' })
       }
     } catch (error) {
       this.isValidated.set(false)
-      this.toastrService.error('PAC.SHARED.SMTP.VerifyFailed', '', { Default: 'Verify failed' })
+      this.toastrService.error('XP.SHARED.SMTP.VerifyFailed', '', { Default: 'Verify failed' })
     }
   }
 }

@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNSource,
@@ -22,7 +22,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./source.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent, NgmI18nPipe, IconComponent]
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent, XpI18nPipe, IconComponent]
 })
 export class XpertWorkflowNodeSourceComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

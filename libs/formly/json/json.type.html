@@ -1,6 +1,10 @@
 <label class="p-1 text-sm text-ellipsis whitespace-nowrap overflow-hidden">{{to?.label}}</label>
 
-<textarea z-input class="ngm-input-element" [formControl]="fControl" [placeholder]="to?.placeholder"
+<textarea
+  z-input
+  class="xp-input-element"
+  [formControl]="fControl"
+  [placeholder]="to?.placeholder"
   [formlyAttributes]="field"
   [id]="id"
   [readonly]="to.readonly"
@@ -15,9 +19,7 @@
 ></textarea>
 
 <z-form-message zType="error" class="text-xs h-4">
-  @if (fControl.invalid) {
-    @for (item of fControl.errors | keyvalue; track item) {
-      <span>{{item.value.message}}</span>
-    }
-  }
+  @if (fControl.invalid) { @for (item of fControl.errors | keyvalue; track item) {
+  <span>{{item.value.message}}</span>
+  } }
 </z-form-message>

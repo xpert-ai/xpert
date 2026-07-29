@@ -4,7 +4,7 @@ import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR, ReactiveFormsModule
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 
-import { NgmFormlyCheckboxComponent } from './checkbox.type'
+import { XpFormlyCheckboxComponent } from './checkbox.type'
 
 const { TestBed } = require('@angular/core/testing')
 const { NoopAnimationsModule } = require('@angular/platform-browser/animations')
@@ -79,7 +79,7 @@ class HostComponent {
 }
 
 @NgModule({
-  declarations: [HostComponent, NgmFormlyCheckboxComponent, ZCheckboxStubComponent],
+  declarations: [HostComponent, XpFormlyCheckboxComponent, ZCheckboxStubComponent],
   imports: [
     ReactiveFormsModule,
     TranslateModule.forRoot(),
@@ -87,7 +87,7 @@ class HostComponent {
       types: [
         {
           name: 'checkbox',
-          component: NgmFormlyCheckboxComponent
+          component: XpFormlyCheckboxComponent
         },
         {
           name: 'boolean',

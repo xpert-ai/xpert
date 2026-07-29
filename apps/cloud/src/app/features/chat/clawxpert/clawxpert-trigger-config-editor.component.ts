@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { ZardButtonComponent, ZardCardImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
@@ -16,11 +16,11 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-trigger-config-editor',
+  selector: 'xp-clawxpert-trigger-config-editor',
   imports: [
     CommonModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     WorkflowTriggerConfigCardComponent,
     ZardButtonComponent,
     ZardIconComponent,
@@ -42,14 +42,14 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
           </div>
         } @else if (facade.loadingTriggerDraft()) {
           <div class="flex min-h-[18rem] flex-1 items-center justify-center px-6 text-sm text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.LoadingTriggerDraft' | translate: { Default: 'Loading trigger draft…' } }}
+            {{ 'XP.Chat.ClawXpert.LoadingTriggerDraft' | translate: { Default: 'Loading trigger draft…' } }}
           </div>
         } @else if (facade.triggerDraftErrorMessage()) {
           <div class="flex min-h-[18rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
             <div class="mt-4 text-lg font-semibold text-text-primary">
               {{
-                'PAC.Chat.ClawXpert.TriggerDraftLoadFailed'
+                'XP.Chat.ClawXpert.TriggerDraftLoadFailed'
                   | translate: { Default: 'Failed to load trigger configuration.' }
               }}
             </div>
@@ -62,11 +62,11 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div class="text-sm font-medium text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.TriggerConfigTitle' | translate: { Default: 'Trigger configuration draft' } }}
+                  {{ 'XP.Chat.ClawXpert.TriggerConfigTitle' | translate: { Default: 'Trigger configuration draft' } }}
                 </div>
                 <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                   {{
-                    'PAC.Chat.ClawXpert.TriggerConfigDesc'
+                    'XP.Chat.ClawXpert.TriggerConfigDesc'
                       | translate
                         : {
                             Default:
@@ -81,7 +81,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
                   class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
                 >
                   {{
-                    'PAC.Chat.ClawXpert.TriggerCount'
+                    'XP.Chat.ClawXpert.TriggerCount'
                       | translate
                         : {
                             Default: '{count} triggers',
@@ -102,7 +102,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
                 >
                   <span class="flex items-center gap-2">
                     <z-icon zType="add"></z-icon>
-                    <span>{{ 'PAC.Chat.ClawXpert.AddTrigger' | translate: { Default: 'Add trigger' } }}</span>
+                    <span>{{ 'XP.Chat.ClawXpert.AddTrigger' | translate: { Default: 'Add trigger' } }}</span>
                   </span>
                 </button>
               </div>
@@ -130,11 +130,11 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
             <div class="flex min-h-[18rem] flex-1 flex-col items-center justify-center px-6 text-center">
               <z-icon zType="notifications_off" class="text-3xl text-text-tertiary"></z-icon>
               <div class="mt-4 text-lg font-semibold text-text-primary">
-                {{ 'PAC.Chat.ClawXpert.NoTriggerCardsTitle' | translate: { Default: 'No triggers to configure' } }}
+                {{ 'XP.Chat.ClawXpert.NoTriggerCardsTitle' | translate: { Default: 'No triggers to configure' } }}
               </div>
               <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
                 {{
-                  'PAC.Chat.ClawXpert.NoTriggerCardsDesc'
+                  'XP.Chat.ClawXpert.NoTriggerCardsDesc'
                     | translate
                       : {
                           Default: 'Use Add trigger to add a non-chat trigger to the bound xpert draft.'
@@ -158,7 +158,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
           <div class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-regular px-5 py-4">
             <div class="text-xs text-text-tertiary">
               {{
-                'PAC.Chat.ClawXpert.TriggerDraftHint'
+                'XP.Chat.ClawXpert.TriggerDraftHint'
                   | translate
                     : {
                         Default:
@@ -176,18 +176,17 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
                 [disabled]="facade.savingTriggerDraft() || !dirty()"
                 (click)="reset()"
               >
-                {{ 'PAC.Common.Reset' | translate: { Default: 'Reset' } }}
+                {{ 'XP.Common.Reset' | translate: { Default: 'Reset' } }}
               </button>
               <button
                 z-button
                 zType="default"
-
                 type="button"
                 displayDensity="cosy"
                 [disabled]="facade.savingTriggerDraft() || !dirty() || invalid()"
                 (click)="save()"
               >
-                {{ 'PAC.Chat.ClawXpert.SaveTriggerDraft' | translate: { Default: 'Save draft' } }}
+                {{ 'XP.Chat.ClawXpert.SaveTriggerDraft' | translate: { Default: 'Save draft' } }}
               </button>
             </div>
           </div>
@@ -221,26 +220,26 @@ export class ClawXpertTriggerConfigEditorComponent {
   readonly blockedState = computed(() => {
     if (!this.facade.organizationId()) {
       return {
-        titleKey: 'PAC.Chat.ClawXpert.TriggerOrganizationRequiredTitle',
+        titleKey: 'XP.Chat.ClawXpert.TriggerOrganizationRequiredTitle',
         defaultTitle: 'Choose an organization first',
-        descKey: 'PAC.Chat.ClawXpert.TriggerOrganizationRequiredDesc',
+        descKey: 'XP.Chat.ClawXpert.TriggerOrganizationRequiredDesc',
         defaultDesc: 'Select an organization and finish the ClawXpert setup before editing draft trigger configuration.'
       }
     }
 
     if (!this.facade.resolvedPreference()) {
       return {
-        titleKey: 'PAC.Chat.ClawXpert.TriggerBindingRequiredTitle',
+        titleKey: 'XP.Chat.ClawXpert.TriggerBindingRequiredTitle',
         defaultTitle: 'Bind ClawXpert before editing triggers',
-        descKey: 'PAC.Chat.ClawXpert.TriggerBindingRequiredDesc',
+        descKey: 'XP.Chat.ClawXpert.TriggerBindingRequiredDesc',
         defaultDesc: 'Once a ClawXpert binding is ready, this panel will load the bound xpert trigger draft.'
       }
     }
 
     return {
-      titleKey: 'PAC.Chat.ClawXpert.TriggerEditorUnavailableTitle',
+      titleKey: 'XP.Chat.ClawXpert.TriggerEditorUnavailableTitle',
       defaultTitle: 'Trigger draft editor is temporarily unavailable',
-      descKey: 'PAC.Chat.ClawXpert.TriggerEditorUnavailableDesc',
+      descKey: 'XP.Chat.ClawXpert.TriggerEditorUnavailableDesc',
       defaultDesc: 'The ClawXpert shell must be in the ready state before trigger draft configuration can be edited.'
     }
   })

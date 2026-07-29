@@ -1,6 +1,6 @@
-import type { AiFeatureEnum, AnalyticsFeatures, FeatureEnum } from '../../@core/types'
+import type { AiFeatureEnum, FeatureEnum } from '../../@core/types'
 
-type CloudMenuFeatureKey = AiFeatureEnum | AnalyticsFeatures | FeatureEnum
+type CloudMenuFeatureKey = AiFeatureEnum | FeatureEnum
 
 export interface CloudMenuData {
   translationKey?: string

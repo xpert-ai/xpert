@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getVariableSchema,
@@ -44,16 +44,14 @@ export class XpertWorkflowVariableAggregatorComponent extends XpertWorkflowBaseC
   constructor() {
     super()
 
-    effect(
-      () => {
-        if (
-          (!this.outputType() && this.firstVariableType()) ||
-          (this.firstVariableType() && this.outputType() !== this.firstVariableType())
-        ) {
-          this.outputType.set(this.firstVariableType())
-        }
+    effect(() => {
+      if (
+        (!this.outputType() && this.firstVariableType()) ||
+        (this.firstVariableType() && this.outputType() !== this.firstVariableType())
+      ) {
+        this.outputType.set(this.firstVariableType())
       }
-    )
+    })
   }
 
   addInput() {

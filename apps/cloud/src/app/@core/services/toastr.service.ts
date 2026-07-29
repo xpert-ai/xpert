@@ -26,7 +26,7 @@ export class ToastrService {
     const normalizedTitle = typeof translationParams === 'string' && !title ? translationParams : title
 
     return this.toast.success(this.getTranslation(displayMessage, this.toTranslationParams(translationParams)), {
-      description: this.getTranslation(normalizedTitle || 'PAC.TOASTR.TITLE.SUCCESS'),
+      description: this.getTranslation(normalizedTitle || 'XP.TOASTR.TITLE.SUCCESS'),
       duration: 2000
     })
   }
@@ -36,35 +36,40 @@ export class ToastrService {
     const normalizedTitle = typeof translationParams === 'string' && !title ? translationParams : title
 
     this.toast.warning(this.getTranslation(displayMessage, this.toTranslationParams(translationParams)), {
-      description: this.getTranslation(normalizedTitle || 'PAC.TOASTR.TITLE.WARNING', { Default: 'Warning' }),
+      description: this.getTranslation(normalizedTitle || 'XP.TOASTR.TITLE.WARNING', { Default: 'Warning' }),
       duration: config?.duration ?? 3000,
       position: this.toPosition(config)
     })
   }
 
-  danger(error: any, title: string = 'PAC.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}, config?: ToastrConfig) {
+  danger(
+    error: any,
+    title: string = 'XP.TOASTR.TITLE.ERROR',
+    translationParams: TranslationParams = {},
+    config?: ToastrConfig
+  ) {
     let displayMessage = getErrorMessage(error)
     if (!displayMessage) {
-      displayMessage = 'PAC.TOASTR.SystemError'
+      displayMessage = 'XP.TOASTR.SystemError'
       translationParams = { ...this.toTranslationParams(translationParams), Default: 'System Error!' }
     }
 
     this.toast.error(this.getTranslation(displayMessage, this.toTranslationParams(translationParams)), {
-      description: this.getTranslation(title || 'PAC.TOASTR.TITLE.ERROR'),
+      description: this.getTranslation(title || 'XP.TOASTR.TITLE.ERROR'),
       duration: config?.duration ?? 5 * 1000,
       position: this.toPosition(config)
     })
   }
 
-  error(message: any, title: string = 'PAC.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}) {
+  error(message: any, title: string = 'XP.TOASTR.TITLE.ERROR', translationParams: TranslationParams = {}) {
     this.danger(message, title, translationParams)
   }
 
   info(
-    message: {code: string, default: string},
-    action?: {code: string, default: string},
+    message: { code: string; default: string },
+    action?: { code: string; default: string },
     options?: {
-      duration?: number,
+      duration?: number
     }
   ) {
     return this.toast.info(this.getTranslation(message.code, { Default: message.default }), {
@@ -78,9 +83,9 @@ export class ToastrService {
     })
   }
 
-  update({code, params}: { code: string; params?: TranslationParams }, fun: () => Observable<any>) {
+  update({ code, params }: { code: string; params?: TranslationParams }, fun: () => Observable<any>) {
     const title = this.getTranslation(code, this.toTranslationParams(params))
-    const message = this.getTranslation('PAC.TOASTR.Updating', { value: title, Default: `${title} Updating...` })
+    const message = this.getTranslation('XP.TOASTR.Updating', { value: title, Default: `${title} Updating...` })
     const cancel$ = new Subject<void>()
     let processing = this.toast.loading(message, {
       duration: Number.POSITIVE_INFINITY,
@@ -108,23 +113,25 @@ export class ToastrService {
         return EMPTY
       }),
       tap(() => {
-        const doneMessage = this.getTranslation('PAC.TOASTR.UpdateDone', { value: title, Default: `${title} Updated!` })
+        const doneMessage = this.getTranslation('XP.TOASTR.UpdateDone', { value: title, Default: `${title} Updated!` })
         processing.success(doneMessage, { duration: 2000 })
       })
     )
   }
 
-  confirm({code, params}: { code: string; params?: TranslationParams }, _config?: ToastrConfig) {
+  confirm({ code, params }: { code: string; params?: TranslationParams }, _config?: ToastrConfig) {
     const message = this.getTranslation(code, this.toTranslationParams(params))
-    const confirm = this.getTranslation('PAC.KEY_WORDS.Confirm', {Default: 'Confirm'})
+    const confirm = this.getTranslation('XP.KEY_WORDS.Confirm', { Default: 'Confirm' })
     const cancel = this.getTranslation('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' })
 
-    return this.alertDialog.confirm({
-      description: message,
-      actionText: confirm,
-      cancelText: cancel,
-      destructive: false
-    }).pipe(take(1))
+    return this.alertDialog
+      .confirm({
+        description: message,
+        actionText: confirm,
+        cancelText: cancel,
+        destructive: false
+      })
+      .pipe(take(1))
   }
 
   private getTranslation(prefix: string, params?: Record<string, unknown>) {

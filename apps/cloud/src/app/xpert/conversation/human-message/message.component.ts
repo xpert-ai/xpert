@@ -3,8 +3,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { ListHeightStaggerAnimation } from '@xpert-ai/core'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { ListHeightStaggerAnimation } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { TCopilotChatMessage } from '../../types'
@@ -20,9 +20,9 @@ import { getReferenceKey, getReferenceLabel, getReferenceSource } from '../../..
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmCommonModule,
+    XpCommonModule,
     ChatAttachmentsComponent
-],
+  ],
   selector: 'chat-human-message',
   templateUrl: './message.component.html',
   styleUrl: 'message.component.css',

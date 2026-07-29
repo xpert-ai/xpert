@@ -122,12 +122,12 @@ description: 基于当前仓库实现，系统梳理 Xpert 主线 SSO、Lark SSO
 
 当前主线可以分成四层：
 
-| 层 | 当前职责 |
-| --- | --- |
-| SDK | 定义 provider 策略接口、binding contract、permission token |
+| 层   | 当前职责                                                                          |
+| ---- | --------------------------------------------------------------------------------- |
+| SDK  | 定义 provider 策略接口、binding contract、permission token                        |
 | 宿主 | 发现 provider、解析 tenant / organization、保存 challenge、持久化绑定、签发 token |
-| 插件 | 跑外部 OAuth、规范化外部 profile、调用宿主 permission service |
-| 前端 | 展示 provider、承接绑定/注册/确认页面、完成最终 token 落地和跳转 |
+| 插件 | 跑外部 OAuth、规范化外部 profile、调用宿主 permission service                     |
+| 前端 | 展示 provider、承接绑定/注册/确认页面、完成最终 token 落地和跳转                  |
 
 整个设计最重要的原则是：
 
@@ -278,14 +278,14 @@ SDK 只是接口，真正让插件用起来的是宿主的 permission injection 
 
 当前主线宿主提供这些接口：
 
-| 接口 | 当前职责 |
-| --- | --- |
-| `GET /auth/sso/providers` | 匿名登录页发现可用 SSO provider |
-| `GET /auth/sso/bind/challenge` | 获取匿名绑定 challenge 元数据 |
+| 接口                                        | 当前职责                              |
+| ------------------------------------------- | ------------------------------------- |
+| `GET /auth/sso/providers`                   | 匿名登录页发现可用 SSO provider       |
+| `GET /auth/sso/bind/challenge`              | 获取匿名绑定 challenge 元数据         |
 | `GET /auth/sso/bind/current-user/challenge` | 获取当前用户确认绑定 challenge 元数据 |
-| `POST /auth/sso/bind/complete` | 绑定已有本地账号 |
-| `POST /auth/sso/bind/current-user/complete` | 当前已登录用户确认绑定 |
-| `POST /auth/sso/bind/register` | 注册新用户并绑定 |
+| `POST /auth/sso/bind/complete`              | 绑定已有本地账号                      |
+| `POST /auth/sso/bind/current-user/complete` | 当前已登录用户确认绑定                |
+| `POST /auth/sso/bind/register`              | 注册新用户并绑定                      |
 
 它们共同组成了“插件 OAuth 回调之后，宿主如何接管本地账号决策”的那层控制面。
 
@@ -617,10 +617,10 @@ Lark 插件做了这件事，但这是“插件责任”，不是“宿主统一
 
 主线前端入口主要在：
 
-- `libs/apps/auth/src/lib/login/login.component.ts`
-- `libs/apps/auth/src/lib/sso-bind/sso-bind.component.ts`
-- `libs/apps/auth/src/lib/current-user-sso-confirm/current-user-sso-confirm.component.ts`
-- `libs/apps/auth/src/lib/register/register.component.ts`
+- `apps/cloud/src/app/auth/login/login.component.ts`
+- `apps/cloud/src/app/auth/sso-bind/sso-bind.component.ts`
+- `apps/cloud/src/app/auth/current-user-sso-confirm/current-user-sso-confirm.component.ts`
+- `apps/cloud/src/app/auth/register/register.component.ts`
 - `apps/cloud/src/app/@core/auth/signin-success/sign-in-success.component.ts`
 
 ### 14.1 登录页
@@ -864,11 +864,11 @@ Lark 插件当前接受的 `returnTo` 只有两类：
 
 `lark-sso.controller.ts` 当前提供：
 
-| 路由 | 是否公开 | 当前用途 |
-| --- | --- | --- |
-| `GET /lark-identity/login/start` | 公开 | 匿名登录起点 |
-| `GET /lark-identity/bind/start` | 需要登录 | 当前用户主动绑定起点 |
-| `GET /lark-identity/callback` | 公开 | OAuth 回调入口 |
+| 路由                             | 是否公开 | 当前用途             |
+| -------------------------------- | -------- | -------------------- |
+| `GET /lark-identity/login/start` | 公开     | 匿名登录起点         |
+| `GET /lark-identity/bind/start`  | 需要登录 | 当前用户主动绑定起点 |
+| `GET /lark-identity/callback`    | 公开     | OAuth 回调入口       |
 
 tenant / organization 的来源也不完全一样：
 
@@ -1123,13 +1123,13 @@ tenant / organization 的来源也不完全一样：
 
 它和当前插件式 Lark SSO 的设计完全不是一路：
 
-| 遗留 Feishu social auth | 当前主线 Lark 插件式 SSO |
-| --- | --- |
-| social login 风格 | 插件驱动 OAuth |
-| `thirdPartyId` 为主键 | `external_identity_binding + union_id` 为主 |
-| auto-register 倾向 | binding-first 倾向 |
-| 没有 pending challenge | 明确的 Redis challenge 模型 |
-| 旧模块接入 | 新 permission-driven plugin 接入 |
+| 遗留 Feishu social auth | 当前主线 Lark 插件式 SSO                    |
+| ----------------------- | ------------------------------------------- |
+| social login 风格       | 插件驱动 OAuth                              |
+| `thirdPartyId` 为主键   | `external_identity_binding + union_id` 为主 |
+| auto-register 倾向      | binding-first 倾向                          |
+| 没有 pending challenge  | 明确的 Redis challenge 模型                 |
+| 旧模块接入              | 新 permission-driven plugin 接入            |
 
 所以当前最合理的归类方式是：
 

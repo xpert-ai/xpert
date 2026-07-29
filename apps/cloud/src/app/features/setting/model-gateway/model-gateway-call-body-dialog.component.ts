@@ -6,51 +6,53 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef } from '@xpert-ai/head
 
 @Component({
   standalone: true,
-  selector: 'pac-model-gateway-call-body-dialog',
+  selector: 'xp-model-gateway-call-body-dialog',
   imports: [CommonModule, TranslateModule, ZardButtonComponent],
   template: `
     <section class="flex max-h-[80vh] min-h-0 flex-col">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <h2 class="text-lg font-semibold text-text-primary">
-            {{ 'PAC.ModelGateway.CallDetails' | translate: { Default: 'Call details' } }}
+            {{ 'XP.ModelGateway.CallDetails' | translate: { Default: 'Call details' } }}
           </h2>
           <code class="mt-1 block truncate text-xs text-text-tertiary" [title]="data.call.requestId">
             {{ data.call.requestId }}
           </code>
         </div>
         <button z-button zType="outline" type="button" (click)="close()">
-          {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
+          {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
         </button>
       </div>
 
       <div class="mt-4 min-h-0 space-y-4 overflow-auto">
         <section>
           <h3 class="mb-2 text-sm font-medium text-text-primary">
-            {{ 'PAC.ModelGateway.RequestBody' | translate: { Default: 'Request body' } }}
+            {{ 'XP.ModelGateway.RequestBody' | translate: { Default: 'Request body' } }}
           </h3>
           <pre
             class="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-components-panel-bg p-3 text-xs text-text-secondary"
-          >{{ format(data.body.request) }}</pre>
+            >{{ format(data.body.request) }}</pre
+          >
         </section>
         <section>
           <h3 class="mb-2 text-sm font-medium text-text-primary">
-            {{ 'PAC.ModelGateway.ResponseBody' | translate: { Default: 'Response body' } }}
+            {{ 'XP.ModelGateway.ResponseBody' | translate: { Default: 'Response body' } }}
           </h3>
           <pre
             class="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-components-panel-bg p-3 text-xs text-text-secondary"
-          >{{ format(data.body.response) }}</pre>
+            >{{ format(data.body.response) }}</pre
+          >
         </section>
         @if (data.body.expiresAt) {
           <p class="text-xs text-text-tertiary">
             {{
-              'PAC.ModelGateway.BodyExpiresAt'
+              'XP.ModelGateway.BodyExpiresAt'
                 | translate
                   : {
-                      Default: 'Retained until {{value}}',
-                      value: formatDate(data.body.expiresAt)
-                    }
-            }}
+                      Default: 'Retained until {{value
+
+
+            }}', value: formatDate(data.body.expiresAt) } }}
           </p>
         }
       </div>

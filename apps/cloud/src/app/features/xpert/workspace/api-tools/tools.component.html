@@ -1,28 +1,29 @@
-<div class="flex items-center px-12 py-4 text-lg font-semibold text-text-tertiary uppercase
-  sticky top-0 pb-3 pt-5 bg-background-body z-30">
-  <div class="mr-3">{{ 'PAC.Xpert.APIToolset' | translate: { Default: 'API Toolset' } }}</div>
+<div
+  class="flex items-center px-12 py-4 text-lg font-semibold text-text-tertiary uppercase sticky top-0 pb-3 pt-5 bg-background-body z-30"
+>
+  <div class="mr-3">{{ 'XP.Xpert.APIToolset' | translate: { Default: 'API Toolset' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
-<div class="xpert-card-container"
-  ngmDynamicGrid colWidth="280"
-  box="content-box">
-
-  <ngm-card-create
+<div class="xpert-card-container" xpDynamicGrid colWidth="280" box="content-box">
+  <xp-card-create
     class="workspace-create-card"
-    [title]="'PAC.Xpert.CreateToolset' | translate: {Default: 'Create Toolset'}"
-    [helpTitle]="'PAC.Xpert.LearnCreateAPITool' | translate: {Default: 'Learn more about API toolset'}"
+    [title]="'XP.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' }"
+    [helpTitle]="'XP.Xpert.LearnCreateAPITool' | translate: { Default: 'Learn more about API toolset' }"
     helpUrl="/docs/ai/tool/custom/"
     (create)="createTool()"
   >
-    <div class="mb-1 flex items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600">
+    <div
+      class="mb-1 flex items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+    >
       <i class="ri-add-line mr-2 shrink-0 text-base"></i>
-      {{ 'PAC.Xpert.CreateAPITool' | translate: {Default: 'Create API Toolset'} }}
+      {{ 'XP.Xpert.CreateAPITool' | translate: { Default: 'Create API Toolset' } }}
     </div>
-  </ngm-card-create>
+  </xp-card-create>
 
   @for (toolset of apiToolsets(); track toolset.id) {
-    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
+    <xpert-toolset-card
+      class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
       [toolset]="toolset"
       (click)="navigateTo(toolset)"
     />

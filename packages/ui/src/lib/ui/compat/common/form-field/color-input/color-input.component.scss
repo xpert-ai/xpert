@@ -1,0 +1,17 @@
+@reference "../../../../../../../../../tailwind-workspace-reference.css";
+
+:host {
+  @apply flex flex-col items-stretch justify-start;
+
+  &.disabled .xp-color-input__trigger {
+    @apply opacity-50;
+  }
+}
+
+.xp-color-input__trigger {
+  @apply inline-flex size-7 items-center justify-center rounded-full border border-dashed border-divider-regular bg-components-input-bg-normal shadow-sm;
+}
+
+.xp-color-input__swatch {
+  @apply block size-4 rounded-full border border-divider-subtle shadow-inner;
+}

@@ -1,4 +1,18 @@
-import { DisplayBehaviour, filterTreeNodes, TreeNodeInterface } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
+
+export interface TreeNodeInterface<T = unknown> {
+  key?: string
+  label?: string
+  caption?: string
+  title?: string
+  name?: string
+  value?: unknown
+  level?: number
+  isLeaf?: boolean
+  raw?: T
+  children?: TreeNodeInterface<T>[]
+  parent?: TreeNodeInterface<T>
+}
 
 export type TreeSelectTextNode = {
   key?: string | null
@@ -52,7 +66,7 @@ export function displayTreeSelectText(node: TreeSelectTextNode | null | undefine
   }
 
   const text = node.caption || node.label
-  return text ? String(text) : (node.key ? String(node.key) : '')
+  return text ? String(text) : node.key ? String(node.key) : ''
 }
 
 export function normalizeTreeSelectValue(value: unknown): string | null {
@@ -68,11 +82,47 @@ export function filterTreeSelectNodes<T>(
   searchTerm: string | null | undefined,
   displayBehaviour: DisplayBehaviour | string
 ) {
-  return (
-    filterTreeNodes(treeNodes ?? [], searchTerm ?? '', {
-      considerKey: displayBehaviour !== DisplayBehaviour.descriptionOnly
-    }) ?? []
-  )
+  const normalizedSearchTerm = searchTerm?.trim().toLowerCase()
+  if (!normalizedSearchTerm) {
+    return treeNodes ?? []
+  }
+
+  const keywords = normalizedSearchTerm.split(/\s+/).filter(Boolean)
+  const match = (value: unknown) => {
+    if (value === null || value === undefined) {
+      return false
+    }
+
+    const candidate = String(value).toLowerCase()
+    return keywords.some((keyword) => {
+      if (!keyword.includes('*')) {
+        return candidate.includes(keyword)
+      }
+
+      const pattern = keyword.replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&').replace(/\*/g, '.*')
+      return new RegExp(`^${pattern}$`).test(candidate)
+    })
+  }
+
+  const visit = (nodes: TreeNodeInterface<T>[]): TreeNodeInterface<T>[] =>
+    nodes.reduce<TreeNodeInterface<T>[]>((result, node) => {
+      const children = visit(node.children ?? [])
+      const matches =
+        match(node.label) ||
+        match(node.caption) ||
+        (displayBehaviour !== DisplayBehaviour.descriptionOnly && match(node.key))
+
+      if (children.length) {
+        result.push({ ...node, children })
+      } else if (matches) {
+        const { children: _children, ...leaf } = node
+        result.push(leaf)
+      }
+
+      return result
+    }, [])
+
+  return visit(treeNodes ?? [])
 }
 
 export function getInitialExpandedKeys(

@@ -4,9 +4,9 @@ import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors, Va
 import { getErrorMessage, ISkillPackage, SkillPackageService, ToastrService } from '@cloud/app/@core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { parseGithubSkillInstallCommand } from '@xpert-ai/contracts'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui/components/button'
-import { ZardIconComponent } from '@xpert-ai/headless-ui/components/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui/components/input'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 
 @Component({
@@ -31,11 +31,11 @@ import { firstValueFrom } from 'rxjs'
           </div>
           <div class="min-w-0">
             <div class="text-sm font-semibold text-text-primary">
-              {{ 'PAC.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
+              {{ 'XP.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
             </div>
             <div class="mt-0.5 text-xs leading-5 text-text-secondary">
               {{
-                'PAC.Skill.GithubSkillInstallCaption'
+                'XP.Skill.GithubSkillInstallCaption'
                   | translate
                     : { Default: 'Install all skills from a GitHub repository, or target one skill by command.' }
               }}
@@ -47,23 +47,23 @@ import { firstValueFrom } from 'rxjs'
       <div class="flex flex-col gap-3" [class.mt-4]="showTitle()">
         <label class="block min-w-0">
           <span class="mb-1 block text-xs font-medium text-text-secondary">
-            {{ 'PAC.Skill.GithubSkillInstallInput' | translate: { Default: 'GitHub command or repository' } }}
+            {{ 'XP.Skill.GithubSkillInstallInput' | translate: { Default: 'GitHub command or repository' } }}
           </span>
           <input
             z-input
             type="text"
             class="h-11 w-full text-sm"
             [formControl]="commandControl"
-            [placeholder]="'PAC.Skill.GithubSkillInstallInputPlaceholder' | translate: { Default: exampleCommand }"
+            [placeholder]="'XP.Skill.GithubSkillInstallInputPlaceholder' | translate: { Default: exampleCommand }"
           />
           @if (commandControl.touched && commandControl.hasError('required')) {
             <div class="mt-1 text-xs text-text-destructive">
-              {{ 'PAC.Skill.GithubSkillInstallInputRequired' | translate: { Default: 'GitHub source is required.' } }}
+              {{ 'XP.Skill.GithubSkillInstallInputRequired' | translate: { Default: 'GitHub source is required.' } }}
             </div>
           } @else if (commandControl.touched && commandControl.hasError('githubSkillInstallCommand')) {
             <div class="mt-1 text-xs text-text-destructive">
               {{
-                'PAC.Skill.GithubSkillInstallInputInvalid'
+                'XP.Skill.GithubSkillInstallInputInvalid'
                   | translate: { Default: 'Paste a valid GitHub repository or npx skills add command.' }
               }}
             </div>
@@ -79,8 +79,8 @@ import { firstValueFrom } from 'rxjs'
             }
             {{
               installing()
-                ? ('PAC.Skill.InstallingGithubSkills' | translate: { Default: 'Installing...' })
-                : ('PAC.Skill.InstallGithubSkills' | translate: { Default: 'Install skills' })
+                ? ('XP.Skill.InstallingGithubSkills' | translate: { Default: 'Installing...' })
+                : ('XP.Skill.InstallGithubSkills' | translate: { Default: 'Install skills' })
             }}
           </button>
         </div>
@@ -119,7 +119,7 @@ export class XpertGithubSkillInstallComponent {
 
     if (!workspaceId) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Skill.WorkspaceRequiredForGithubInstall', {
+        this.#translate.instant('XP.Skill.WorkspaceRequiredForGithubInstall', {
           Default: 'Workspace is required before installing GitHub skills.'
         })
       )
@@ -130,7 +130,7 @@ export class XpertGithubSkillInstallComponent {
     try {
       const packages = await firstValueFrom(this.#skillPackageService.installGithubPackages(workspaceId, { command }))
       this.#toastr.success(
-        this.#translate.instant('PAC.Skill.GithubSkillInstallSuccess', {
+        this.#translate.instant('XP.Skill.GithubSkillInstallSuccess', {
           Default: 'Installed {{count}} skill(s) from GitHub.',
           count: packages.length
         })

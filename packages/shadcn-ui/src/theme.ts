@@ -40,6 +40,9 @@ export function installShadcnThemeVars(options: InstallShadcnThemeVarsOptions = 
       --accent-foreground: var(--xui-color-accent-foreground, oklch(0.985 0 0));
       --destructive: var(--xui-color-destructive, #dc2626);
       --destructive-foreground: var(--xui-color-destructive-foreground, #ffffff);
+      --success: var(--xui-color-success, #047857);
+      --warning: var(--xui-color-warning, #b45309);
+      --info: var(--xui-color-info, #2563eb);
       --border: var(--xui-color-border, #e4e4e7);
       --input: var(--xui-color-input, var(--border));
       --ring: var(--xui-color-ring, var(--primary));
@@ -66,6 +69,11 @@ export function installShadcnThemeVars(options: InstallShadcnThemeVarsOptions = 
       --muted-foreground: var(--xui-color-muted-foreground, #a1a1aa);
       --accent: var(--xui-color-accent, oklch(0.58 0.18 255));
       --accent-foreground: var(--xui-color-accent-foreground, oklch(0.985 0 0));
+      --destructive: var(--xui-color-destructive, #f87171);
+      --destructive-foreground: var(--xui-color-destructive-foreground, #ffffff);
+      --success: var(--xui-color-success, #34d399);
+      --warning: var(--xui-color-warning, #fbbf24);
+      --info: var(--xui-color-info, #60a5fa);
       --border: var(--xui-color-border, #27272a);
       --input: var(--xui-color-input, var(--border));
     }

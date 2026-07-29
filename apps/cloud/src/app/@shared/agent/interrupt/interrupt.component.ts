@@ -1,4 +1,3 @@
-
 import {
   ChangeDetectorRef,
   Component,
@@ -13,15 +12,9 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  BIInterruptMessageType,
-  InterruptMessageType,
-  isInterruptMessage,
-  TInterruptMessage,
-  TSensitiveOperation
-} from '../../../@core'
+import { InterruptMessageType, isInterruptMessage, TInterruptMessage, TSensitiveOperation } from '../../../@core'
 import { AbstractInterruptComponent } from '../types'
 import { XpAgentInterruptSelectComponent } from './select/select.component'
 import { XpAgentInterruptHitlComponent } from './hitl/hitl.component'
@@ -30,7 +23,7 @@ import { XpAgentInterruptHitlComponent } from './hitl/hitl.component'
  */
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [FormsModule, TranslateModule, XpI18nPipe],
   selector: 'xp-xpert-agent-interrupt',
   templateUrl: 'interrupt.component.html',
   styleUrls: ['interrupt.component.scss']
@@ -53,21 +46,20 @@ export class XpertAgentInterruptComponent {
   readonly interruptValue = computed(() => this.interrupt()?.value)
   readonly message = computed(() => {
     const value = this.interruptValue()
-    return isInterruptMessage(value) ? value as TInterruptMessage : null
+    return isInterruptMessage(value) ? (value as TInterruptMessage) : null
   })
 
   private componentRef!: ComponentRef<AbstractInterruptComponent>
 
   constructor() {
     effect(() => {
-        const message = this.interruptValue() as TInterruptMessage
-        if (message) {
-          this.loadComponent(message).catch((error) => {
-            console.error('Error loading component:', error)
-          })
-        }
+      const message = this.interruptValue() as TInterruptMessage
+      if (message) {
+        this.loadComponent(message).catch((error) => {
+          console.error('Error loading component:', error)
+        })
       }
-    )
+    })
   }
 
   async loadComponent(message: TInterruptMessage) {
@@ -87,21 +79,12 @@ export class XpertAgentInterruptComponent {
 
     this.#cdr.detectChanges()
   }
-
 }
 
-async function importComponent(type: BIInterruptMessageType | InterruptMessageType | string) {
+async function importComponent(type: InterruptMessageType | string) {
   switch (type) {
     case InterruptMessageType.Select:
       return XpAgentInterruptSelectComponent
-    case BIInterruptMessageType.SwitchProject: {
-      const { ProjectInterruptSwitchComponent } = await import('../../project/index')
-      return ProjectInterruptSwitchComponent
-    }
-    case BIInterruptMessageType.SwitchSemanticModel: {
-      const { InitModelComponent } = await import('../../model/index')
-      return InitModelComponent
-    }
     case InterruptMessageType.SlidesTemplate: {
       const { InterruptSlideComponent } = await import('../../files/interrupt-slide/interrupt-slide.component')
       return InterruptSlideComponent

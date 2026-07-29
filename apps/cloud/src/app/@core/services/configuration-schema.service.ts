@@ -1,5 +1,5 @@
 import { I18nObject } from '@xpert-ai/contracts'
-import { NgmI18nPipe, TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
 import { includes, upperFirst } from 'lodash-es'
 
 export function convertConfigurationSchema(schema: any, i18n?: any) {
@@ -23,10 +23,9 @@ export function convertConfigurationSchema(schema: any, i18n?: any) {
 function convertFormlyField(
   schema: any,
   name: string,
-  property: { type: string; extendedEnum: any[]; title: string; default: string, depend: string },
+  property: { type: string; extendedEnum: any[]; title: string; default: string; depend: string },
   i18n?: any
 ) {
-
   const label = property.title || upperFirst(name)
   let type = ''
   let inputType = null
@@ -85,12 +84,12 @@ function convertFormlyField(
 /**
  * Convert config schema to formly schema
  * Use i18n pipe to transform label
- * 
- * @param schema 
- * @param i18n 
- * @returns 
+ *
+ * @param schema
+ * @param i18n
+ * @returns
  */
-export function toFormlySchema(schema: any, i18n: NgmI18nPipe) {
+export function toFormlySchema(schema: any, i18n: XpI18nPipe) {
   const fields = []
   schema.order
     ?.map((name) => ({ name, property: schema.properties[name] }))
@@ -112,27 +111,31 @@ export function toFormlyField(
   schema: any,
   name: string,
   property: {
-    type: string;
-    extendedEnum: any[];
-    title: I18nObject;
-    placeholder: I18nObject;
-    default: string,
-    depend: string;
-    selectUrl: string;
-    params: any;
-    multi?: boolean;
+    type: string
+    extendedEnum: any[]
+    title: I18nObject
+    placeholder: I18nObject
+    default: string
+    depend: string
+    selectUrl: string
+    params: any
+    multi?: boolean
     options?: {
       value: string | number
       label: I18nObject
     }[]
   },
-  i18n?: NgmI18nPipe
+  i18n?: XpI18nPipe
 ) {
   const label = property.title || upperFirst(name)
   let type = ''
   let inputType = null
   const props = {} as any
-  let options: TSelectOption[] = property.extendedEnum?.map((item) => ({ value: item.value, label: item.name, icon: item.icon }))
+  let options: TSelectOption[] = property.extendedEnum?.map((item) => ({
+    value: item.value,
+    label: item.name,
+    icon: item.icon
+  }))
   switch (property.type) {
     case 'string':
       if (property.extendedEnum) {
@@ -157,7 +160,7 @@ export function toFormlyField(
       break
     case 'select':
       type = 'select'
-      options = property.options?.map((option) => ({...option, label: i18n.transform(option.label)}))
+      options = property.options?.map((option) => ({ ...option, label: i18n.transform(option.label) }))
       break
     case 'remote-select':
       type = 'remote-select'

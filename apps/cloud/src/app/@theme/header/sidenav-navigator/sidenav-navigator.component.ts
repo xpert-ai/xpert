@@ -5,7 +5,7 @@ import type { ZardDrawerMode } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [CommonModule],
-  selector: 'pac-sidenav-navigator',
+  selector: 'xp-sidenav-navigator',
   templateUrl: 'sidenav-navigator.component.svg'
 })
 export class SidenavNavigatorComponent {

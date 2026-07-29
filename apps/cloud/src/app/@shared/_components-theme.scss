@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
 @reference "tailwindcss";
 
 @mixin color($theme) {
@@ -17,8 +17,8 @@
   //   }
   // }
 
-  .ngm-density__compact z-checkbox,
-  .ngm-density__compact .z-checkbox {
+  .xp-density__compact z-checkbox,
+  .xp-density__compact .z-checkbox {
     font-size: 12px;
     line-height: 12px;
 
@@ -27,8 +27,8 @@
       width: 12px;
     }
   }
-  .ngm-density__cosy z-checkbox,
-  .ngm-density__cosy .z-checkbox {
+  .xp-density__cosy z-checkbox,
+  .xp-density__cosy .z-checkbox {
     font-size: 14px;
     line-height: 14px;
 
@@ -41,7 +41,8 @@
   // 公共样式, 需要抽取统一
   /* button */
   [z-button],
-  z-button {}
+  z-button {
+  }
 
   [z-button][data-icon-only],
   z-button[data-icon-only] {
@@ -51,7 +52,7 @@
     }
   }
 
-  pac-features {
+  xp-features {
     .ant-page-header-footer {
       margin-top: 0;
     }
@@ -64,7 +65,7 @@
       font-weight: 600;
     }
 
-    &.ngm-menu-accent {
+    &.xp-menu-accent {
       .selected.cdk-menu-item,
       .selected[z-menu-item] {
         color: themeCompat.m2-get-color-from-palette($accent);
@@ -72,7 +73,7 @@
     }
   }
 
-  ngm-component-settings {
+  xp-component-settings {
     .metad-formly-array {
       .metad-formly__array-row {
         border: unset;
@@ -89,8 +90,8 @@
   //   @apply bg-gray-400/20;
   // }
 
-  [data-slot='accordion'].ngm-density__compact,
-  .ngm-density__compact [data-slot='accordion'] {
+  [data-slot='accordion'].xp-density__compact,
+  .xp-density__compact [data-slot='accordion'] {
     [data-slot='accordion-header'][data-state='closed'] {
       min-height: 38px;
     }
@@ -100,7 +101,7 @@
     }
   }
 
-  .pac-result {
+  .xp-result {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -130,12 +131,12 @@
     }
   }
 
-  .pac-user-chips {
+  .xp-user-chips {
     position: relative;
     display: block;
   }
 
-  z-radio-group.ngm-density__compact,
+  z-radio-group.xp-density__compact,
   z-radio-group[data-density='compact'] {
     --radio-size: 15px;
     .z-radio__control {
@@ -148,13 +149,7 @@
     }
   }
 
-  .ngm-tree-table td[z-table-cell],
-  .ngm-tree-table th[z-table-head] {
-    white-space: nowrap;
-    padding: 0 10px;
-  }
-
-  .ngm-entity-property {
+  .xp-entity-property {
     --icon-size: 16px;
   }
 
@@ -162,15 +157,15 @@
     background-color: themeCompat.m2-get-color-from-palette($background, card);
   }
 
-  .ngm-selection-list {
+  .xp-selection-list {
     > li,
-    .ngm-cdk-option {
+    .xp-cdk-option {
       @apply rounded-md;
     }
   }
   // @deprecated
-  .ngm-rounded-full[z-button],
-  z-button.ngm-rounded-full {
+  .xp-rounded-full[z-button],
+  z-button.xp-rounded-full {
     @apply rounded-full;
   }
 
@@ -232,7 +227,7 @@
     }
   }
 
-  .pac-copilot-chat {
+  .xp-copilot-chat {
     p {
       margin: 0;
     }
@@ -263,7 +258,7 @@
 
   .cdk-menu {
     .cdk-menu-item {
-      &.ngm-appearance-danger:hover {
+      &.xp-appearance-danger:hover {
         @apply bg-red-400 text-white;
       }
     }
@@ -273,7 +268,7 @@
   [z-menu-content] {
     .cdk-menu-item,
     [z-menu-item] {
-      &.ngm-appearance-danger:hover {
+      &.xp-appearance-danger:hover {
         @apply bg-red-400 text-white;
       }
 
@@ -284,15 +279,6 @@
           flex: 1;
         }
       }
-    }
-  }
-
-  // Status bar
-  .pac-status-bar__local-agent .z-tab-group__content {
-    @apply flex-1;
-
-    .z-tab-group__panel {
-      @apply p-4 flex flex-col;
     }
   }
 }

@@ -1,0 +1,131 @@
+<section class="xp-login" aria-labelledby="xp-login-title">
+  <header class="mb-7">
+    <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-accent">
+      {{ 'Auth.SecureWorkspaceAccess' | translate: { Default: 'Secure workspace access' } }}
+    </p>
+    <h1 id="xp-login-title" class="m-0 text-3xl font-semibold tracking-[-0.04em] text-text-primary">
+      {{ 'Auth.WelcomeBack' | translate: { Default: 'Welcome back' } }}
+    </h1>
+    <p class="mb-0 mt-2 text-sm leading-6 text-text-secondary">
+      {{ 'Auth.LoginDescription' | translate: { Default: 'Sign in to continue to your agent workspace.' } }}
+    </p>
+  </header>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" role="form" class="flex flex-col items-stretch">
+    @if (showMessages.error && errors?.length && !loading) {
+      <div class="mb-4 flex flex-col gap-2" role="alert" aria-live="polite">
+        @for (error of errors; track $index) {
+          <div
+            class="flex items-center gap-2 rounded-lg border border-[var(--color-status-warning-indicator-border)] bg-[var(--color-status-warning-bg)] p-3"
+          >
+            <span class="flex-1 text-sm text-[var(--color-status-warning-fg)]">
+              {{ 'Auth.' + error | translate: { Default: error } }}
+            </span>
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon-xs"
+              (click)="errors.splice($index, 1)"
+              class="text-[var(--color-status-warning-fg)] hover:opacity-70"
+              [attr.aria-label]="'Auth.DismissMessage' | translate: { Default: 'Dismiss message' }"
+            >
+              ✕
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="flex flex-col gap-4">
+      <div>
+        <label for="email" class="mb-2 block text-sm font-medium text-text-primary">
+          {{ 'AUTH.LOGIN.ACCOUNT' | translate: { Default: 'Account' } }}
+        </label>
+        <input
+          z-input
+          class="h-11 w-full"
+          type="email"
+          name="email"
+          id="email"
+          autocomplete="username"
+          formControlName="userName"
+          [placeholder]="'AUTH.LOGIN.USERNAME' | translate: { Default: 'Username / Email' }"
+          required
+        />
+      </div>
+
+      <div>
+        <label for="password" class="mb-2 block text-sm font-medium text-text-primary">
+          {{ 'AUTH.LOGIN.PASSWORD' | translate: { Default: 'Password' } }}
+        </label>
+        <input
+          z-input
+          class="h-11 w-full"
+          type="password"
+          name="password"
+          id="password"
+          autocomplete="current-password"
+          formControlName="password"
+          [placeholder]="'XP.KEY_WORDS.EnterPassword' | translate: { Default: 'Enter password' }"
+          required
+        />
+      </div>
+    </div>
+
+    <div class="my-4 flex items-center justify-between gap-4">
+      <span z-checkbox formControlName="rememberMe">
+        {{ 'AUTH.LOGIN.REMEMBER' | translate: { Default: 'Remember' } }}
+      </span>
+
+      <a class="text-sm font-medium text-text-accent hover:opacity-80" routerLink="/auth/request-password">
+        {{ 'AUTH.LOGIN.FORGOT-PASSWORD' | translate: { Default: 'Forgot Password' } }}
+      </a>
+    </div>
+
+    <button
+      z-button
+      zFull
+      [zLoading]="loading"
+      class="h-11 text-sm font-semibold shadow-sm"
+      [disabled]="form.invalid || loading"
+      type="submit"
+    >
+      {{ 'AUTH.LOGIN.SUBMIT' | translate: { Default: 'Sign in' } }}
+    </button>
+  </form>
+
+  @if (ssoProviders().length) {
+    <div class="my-6 flex items-center gap-3 text-xs text-text-tertiary">
+      <span class="h-px flex-1 bg-divider-regular"></span>
+      <span>{{ 'Auth.OtherSigninMethods' | translate: { Default: 'Other sign-in methods' } }}</span>
+      <span class="h-px flex-1 bg-divider-regular"></span>
+    </div>
+
+    <div class="xp-login__signins">
+      @for (provider of ssoProviders(); track provider.provider) {
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          (click)="openProvider(provider)"
+          class="xp-login__signin-button h-11 w-full rounded-lg border border-divider-regular px-3 text-text-primary transition-colors hover:border-divider-deep hover:bg-hover-bg"
+          [title]="provider.displayName"
+        >
+          <span class="flex items-center justify-center gap-2">
+            <img class="h-5 w-5" [src]="provider.icon" [alt]="provider.displayName" />
+            <span>{{ provider.displayName }}</span>
+          </span>
+        </button>
+      }
+    </div>
+  }
+  @if (enablePublicSignup) {
+    <p class="mb-0 mt-6 text-center text-sm text-text-secondary">
+      {{ 'Auth.NewToXpert' | translate: { Default: 'New to XpertAI?' } }}
+      <a class="ml-1 font-semibold text-text-accent hover:opacity-80" routerLink="/auth/register">
+        {{ 'Auth.Signup' | translate: { Default: 'Create an account' } }}
+      </a>
+    </p>
+  }
+</section>

@@ -1,11 +1,11 @@
-import { readExcelWorkSheets } from '@xpert-ai/core'
+import { readExcelWorkSheets } from '@xpert-ai/headless-ui'
 import {
   loadCanvasSpreadsheetPreview,
   resolveCanvasFilePreviewKind,
   toCanvasFilePreviewSource
 } from './file-preview.utils'
 
-jest.mock('@xpert-ai/core', () => ({
+jest.mock('@xpert-ai/headless-ui', () => ({
   readExcelWorkSheets: jest.fn()
 }))
 

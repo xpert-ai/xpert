@@ -8,7 +8,7 @@
   @if (activePlazaTab() !== 'favorites' && loadingRepositories()) {
     <div class="flex min-h-40 items-center justify-center rounded-lg border border-border bg-card">
       <span class="text-sm text-muted-foreground">
-        {{ 'PAC.Explore.LoadingRepositories' | translate: { Default: 'Loading skill repositories...' } }}
+        {{ 'XP.Explore.LoadingRepositories' | translate: { Default: 'Loading skill repositories...' } }}
       </span>
     </div>
   } @else if (activePlazaTab() !== 'favorites' && !repositories().length) {
@@ -19,13 +19,13 @@
         <z-icon zType="folder-open" class="mx-auto size-10 text-muted-foreground" />
         <h3 class="mt-4 text-xl font-semibold text-foreground">
           {{
-            'PAC.Explore.NoSkillRepositories'
+            'XP.Explore.NoSkillRepositories'
               | translate: { Default: 'No skill repositories are available for this organization yet' }
           }}
         </h3>
         <p class="mt-2 text-sm leading-6 text-muted-foreground">
           {{
-            'PAC.Explore.NoSkillRepositoriesHint'
+            'XP.Explore.NoSkillRepositoriesHint'
               | translate
                 : {
                     Default:
@@ -35,7 +35,7 @@
         </p>
         <div class="mt-6">
           <a z-button routerLink="/settings/tenant/skills">
-            {{ 'PAC.Explore.OpenSkillRepositorySettings' | translate: { Default: 'Open skill repository settings' } }}
+            {{ 'XP.Explore.OpenSkillRepositorySettings' | translate: { Default: 'Open skill repository settings' } }}
           </a>
         </div>
       </div>
@@ -58,11 +58,11 @@
             <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <h3 class="text-lg font-semibold text-foreground">
-                  {{ 'PAC.Explore.MyFavoritesTitle' | translate: { Default: 'My Favorites' } }}
+                  {{ 'XP.Explore.MyFavoritesTitle' | translate: { Default: 'My Favorites' } }}
                 </h3>
                 <p class="mt-1 text-sm text-muted-foreground">
                   {{
-                    'PAC.Explore.MyFavoritesHint'
+                    'XP.Explore.MyFavoritesHint'
                       | translate
                         : {
                             Default:
@@ -74,14 +74,14 @@
 
               <button z-button zType="outline" type="button" (click)="openWorkspaceSkills()">
                 <z-icon zType="settings" zSize="sm" />
-                {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open workspace skills' } }}
+                {{ 'XP.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open workspace skills' } }}
               </button>
             </div>
 
             @if (loadingInstalledSkills()) {
               <div class="flex min-h-64 items-center justify-center rounded-lg border border-border bg-card">
                 <span class="text-sm text-muted-foreground">
-                  {{ 'PAC.Explore.LoadingMySkills' | translate: { Default: 'Loading my skills...' } }}
+                  {{ 'XP.Explore.LoadingMySkills' | translate: { Default: 'Loading my skills...' } }}
                 </span>
               </div>
             } @else if (!mineSkills().length) {
@@ -91,11 +91,11 @@
                 <div class="max-w-lg">
                   <z-icon zType="heart" class="mx-auto size-9 text-muted-foreground" />
                   <h4 class="mt-3 text-base font-medium text-foreground">
-                    {{ 'PAC.Explore.NoMySkills' | translate: { Default: 'No skills in the default workspace yet' } }}
+                    {{ 'XP.Explore.NoMySkills' | translate: { Default: 'No skills in the default workspace yet' } }}
                   </h4>
                   <p class="mt-2 text-sm text-muted-foreground">
                     {{
-                      'PAC.Explore.NoMySkillsHint'
+                      'XP.Explore.NoMySkillsHint'
                         | translate
                           : {
                               Default:
@@ -145,8 +145,8 @@
                           <button z-button zSize="sm" type="button" (click)="openShareDialog(skill, $event)">
                             {{
                               skill.publishAt
-                                ? ('PAC.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
-                                : ('PAC.Explore.ShareSkill' | translate: { Default: 'Share' })
+                                ? ('XP.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
+                                : ('XP.Explore.ShareSkill' | translate: { Default: 'Share' })
                             }}
                           </button>
                         }
@@ -163,11 +163,11 @@
           <section class="space-y-6">
             <div class="flex flex-col gap-1">
               <h3 class="text-lg font-semibold text-foreground">
-                {{ 'PAC.Explore.EnterpriseAreaTitle' | translate: { Default: 'Enterprise Area' } }}
+                {{ 'XP.Explore.EnterpriseAreaTitle' | translate: { Default: 'Enterprise Area' } }}
               </h3>
               <p class="text-sm text-muted-foreground">
                 {{
-                  'PAC.Explore.EnterpriseAreaHint'
+                  'XP.Explore.EnterpriseAreaHint'
                     | translate
                       : {
                           Default:
@@ -224,11 +224,11 @@
               <div class="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h3 class="text-lg font-semibold text-foreground">
-                    {{ 'PAC.Explore.AllSkillsTitle' | translate: { Default: 'All Skills' } }}
+                    {{ 'XP.Explore.AllSkillsTitle' | translate: { Default: 'All Skills' } }}
                   </h3>
                   <p class="text-sm text-muted-foreground">
                     {{
-                      'PAC.Explore.AllSkillsHint'
+                      'XP.Explore.AllSkillsHint'
                         | translate
                           : {
                               Default:
@@ -239,7 +239,7 @@
                 </div>
                 <button z-button zType="ghost" zSize="sm" type="button" (click)="showEnterpriseSkills()">
                   <z-icon zType="filter_alt" zSize="sm" />
-                  {{ 'PAC.KEY_WORDS.Filter' | translate: { Default: 'Filter' } }}
+                  {{ 'XP.KEY_WORDS.Filter' | translate: { Default: 'Filter' } }}
                 </button>
               </div>
 

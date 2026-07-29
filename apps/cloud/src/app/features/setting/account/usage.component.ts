@@ -25,7 +25,7 @@ import {
 
 @Component({
   standalone: true,
-  selector: 'pac-account-usage',
+  selector: 'xp-account-usage',
   imports: [
     CommonModule,
     TranslateModule,
@@ -38,7 +38,7 @@ import {
   templateUrl: './usage.component.html',
   styleUrls: ['./usage.component.scss']
 })
-export class PACAccountUsageComponent implements OnInit {
+export class XpAccountUsageComponent implements OnInit {
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
@@ -111,7 +111,7 @@ export class PACAccountUsageComponent implements OnInit {
     }).format(bucket.dateValue)
     const pointsUsed = new Intl.NumberFormat(locale, { maximumFractionDigits: 10 }).format(bucket.pointsUsed)
 
-    return this.#translate.instant('PAC.Membership.HeatmapDailyPointsTitle', {
+    return this.#translate.instant('XP.Membership.HeatmapDailyPointsTitle', {
       date,
       pointsUsed,
       Default: `${date}: ${pointsUsed} points used`

@@ -32,7 +32,10 @@ import {
 	PluginMarketplaceRegistryItem,
 	PluginMarketplaceSource,
 	ExternalIdentityBinding,
-	ManagedConnectionEntity
+	ManagedConnectionEntity,
+	DataSource,
+	DataSourceAuthentication,
+	DataSourceType
 } from './internal'
 
 export const coreEntities = [
@@ -69,5 +72,8 @@ export const coreEntities = [
 	PluginMarketplaceRegistryItem,
 	PluginMarketplaceSource,
 	ExternalIdentityBinding,
-	ManagedConnectionEntity
+	ManagedConnectionEntity,
+	DataSource,
+	DataSourceAuthentication,
+	DataSourceType
 ]

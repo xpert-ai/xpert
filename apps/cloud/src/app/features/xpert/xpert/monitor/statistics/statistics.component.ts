@@ -3,10 +3,10 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { injectApiBaseUrl, injectToastr, XpertAPIService } from '../../../../../@core'
@@ -22,11 +22,11 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmSelectComponent,
+    XpI18nPipe,
+    XpSelectComponent,
     StatisticsChartComponent,
     StatisticsTokenUsageComponent
-],
+  ],
   selector: 'xpert-statistics',
   templateUrl: './statistics.component.html',
   styleUrl: 'statistics.component.scss',

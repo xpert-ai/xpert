@@ -61,9 +61,9 @@ import { XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, finalize, map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
-import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { effectAction } from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
@@ -1039,7 +1039,7 @@ export class ChatConversationPreviewComponent {
     }
   ) {
     if (msg.event === 'error') {
-      options?.onError?.(msg.data || this.#translate.instant('PAC.Xpert.Failure', { Default: 'Failure' }))
+      options?.onError?.(msg.data || this.#translate.instant('XP.Xpert.Failure', { Default: 'Failure' }))
       return
     }
 
@@ -1143,7 +1143,7 @@ export class ChatConversationPreviewComponent {
         this.conversation.update((state) => ({
           ...(state ?? {}),
           status: XpertAgentExecutionStatusEnum.ERROR,
-          error: errorMessage ?? this.#translate.instant('PAC.Xpert.Failure', { Default: 'Failure' })
+          error: errorMessage ?? this.#translate.instant('XP.Xpert.Failure', { Default: 'Failure' })
         }))
         break
       }
@@ -1245,7 +1245,7 @@ export class ChatConversationPreviewComponent {
     origin$.pipe(
       tap((message) => {
         this.#clipboard.copy(stringifyMessageContent(message.content))
-        this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+        this.#toastr.info({ code: 'XP.Xpert.Copied', default: 'Copied' })
         this.copiedMessages.update((state) => ({ ...state, [message.id]: true }))
       }),
       switchMap((message) =>
@@ -1352,7 +1352,7 @@ export class ChatConversationPreviewComponent {
     this.addReferences([
       {
         type: 'quote',
-        source: this.#translate.instant('PAC.Chat.PastedText', { Default: 'Pasted text' }),
+        source: this.#translate.instant('XP.Chat.PastedText', { Default: 'Pasted text' }),
         text: pastedText
       }
     ])
@@ -1842,7 +1842,7 @@ export class ChatConversationPreviewComponent {
             ...(state ?? {}),
             [message.id]: feedback
           }))
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         },
         error: (error) => {
           this.#toastr.error(getErrorMessage(error))
@@ -1857,7 +1857,7 @@ export class ChatConversationPreviewComponent {
           ...(state ?? {}),
           [message.id]: null
         }))
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
@@ -1872,8 +1872,8 @@ export class ChatConversationPreviewComponent {
   onRestart() {
     if (this.loading()) {
       this.confirmDel({
-        title: this.#translate.instant('PAC.Chat.StopGenerate', { Default: 'Stop generate' }),
-        information: this.#translate.instant('PAC.Chat.StopGenerateOnRestart', {
+        title: this.#translate.instant('XP.Chat.StopGenerate', { Default: 'Stop generate' }),
+        information: this.#translate.instant('XP.Chat.StopGenerateOnRestart', {
           Default: 'Restarting the conversation will stop current generating content'
         })
       }).subscribe((confirm) => {
@@ -1937,8 +1937,8 @@ export class ChatConversationPreviewComponent {
   onClose() {
     if (this.loading()) {
       this.confirmDel({
-        title: this.#translate.instant('PAC.Chat.StopGenerate', { Default: 'Stop generate' }),
-        information: this.#translate.instant('PAC.Chat.PreviewStopGenerate', {
+        title: this.#translate.instant('XP.Chat.StopGenerate', { Default: 'Stop generate' }),
+        information: this.#translate.instant('XP.Chat.PreviewStopGenerate', {
           Default: 'Closing the panel will stop generating content'
         })
       }).subscribe((confirm) => {
@@ -1978,13 +1978,13 @@ export class ChatConversationPreviewComponent {
 
   getMessageSourceLabel(role: string | undefined): string {
     if (role === 'user' || role === 'human') {
-      return this.#translate.instant('PAC.KEY_WORDS.You', { Default: 'You' })
+      return this.#translate.instant('XP.KEY_WORDS.You', { Default: 'You' })
     }
 
     return (
       this.xpert()?.title ||
       this.xpert()?.name ||
-      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+      this.#translate.instant('XP.Xpert.Assistant', { Default: 'Assistant' })
     )
   }
 
@@ -2032,7 +2032,7 @@ export class ChatConversationPreviewComponent {
       anchorMessage.dataset.messageSource?.trim() ||
       this.xpert()?.title ||
       this.xpert()?.name ||
-      this.#translate.instant('PAC.Xpert.Assistant', { Default: 'Assistant' })
+      this.#translate.instant('XP.Xpert.Assistant', { Default: 'Assistant' })
     const messageId = anchorMessage.dataset.messageId?.trim() || undefined
     const left = clamp(rect.left + rect.width / 2, 88, window.innerWidth - 88)
     const top = Math.max(16, rect.top - 48)
@@ -2115,7 +2115,7 @@ export class ChatConversationPreviewComponent {
       const attachments = [...(state ?? [])]
       while (attachments.length <= this.attachment_maxNum() && filesArray.length > 0) {
         if (attachments.length >= this.attachment_maxNum()) {
-          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
+          this.#toastr.error('XP.Chat.AttachmentsMaxNumExceeded', '', {
             Default: 'Attachments exceed the maximum number allowed.'
           })
           return attachments
@@ -2129,7 +2129,7 @@ export class ChatConversationPreviewComponent {
             (attachment) => attachment.file?.name === file.name || attachment.storageFile?.originalName === file.name
           )
         ) {
-          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
+          this.#toastr.error('XP.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
           continue
         }
         attachments.push({ file })

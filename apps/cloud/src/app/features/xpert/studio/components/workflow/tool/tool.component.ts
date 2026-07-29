@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { getToolLabel, IWFNTool } from 'apps/cloud/src/app/@core'
 import { of } from 'rxjs'
@@ -21,7 +21,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     TranslateModule,
     PlusSvgComponent,
-    NgmI18nPipe,
+    XpI18nPipe,
     EmojiAvatarComponent,
     XpertNodeErrorHandlingComponent
   ]

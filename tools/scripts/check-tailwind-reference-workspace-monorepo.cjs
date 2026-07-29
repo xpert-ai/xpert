@@ -6,27 +6,23 @@ const referenceTarget = path.join(repoRoot, 'tailwind-workspace-reference.css')
 const roots = ['libs', 'packages', 'legacies'].map((dir) => path.join(repoRoot, dir))
 const globalChainReferenceOverride = '@reference "../../../tailwind-workspace-reference.css";'
 const globalChainReferenceFiles = new Set([
-  'libs/apps/auth/src/lib/_auth-theme.scss',
-  'libs/apps/indicator-market/src/lib/_indicator-market-theme.scss',
   'libs/formly/_formly-theme.scss',
   'libs/formly/_formly.scss',
   'libs/formly/table/_table-theme.scss',
-  'libs/story-angular/src/lib/explorer/_explorer.component.scss',
-  'libs/story-angular/widgets/_widgets-theme.scss',
-  'packages/angular/analytical-grid/_analytical-grid.component.scss',
-  'packages/angular/common/input/_input.component.scss',
-  'packages/angular/common/search/_search.component.scss',
-  'packages/angular/common/select/_select.component.scss',
-  'packages/angular/common/table/_table-theme.scss',
-  'packages/angular/controls/member-list/_member-list-theme.scss',
-  'packages/angular/core/directives/_appearance.scss',
-  'packages/angular/core/style/card.scss',
-  'packages/angular/core/style/cdk-dialog.scss',
-  'packages/angular/core/style/common.scss',
-  'packages/angular/core/style/input.scss',
-  'packages/angular/core/style/list.scss',
-  'packages/angular/core/style/mat-radio-group.scss',
-  'packages/angular/core/style/menu.scss'
+  'packages/ui/src/lib/ui/compat/common/input/_input.component.scss',
+  'packages/ui/src/lib/ui/compat/common/search/_search.component.scss',
+  'packages/ui/src/lib/ui/compat/common/select/_select.component.scss',
+  'packages/ui/src/lib/ui/compat/common/table/_table-theme.scss',
+  'packages/ui/src/lib/ui/compat/common/tree-select/_tree-select-theme.scss',
+  'packages/ui/src/lib/ui/compat/core/directives/_appearance.scss',
+  'packages/ui/src/lib/ui/compat/core/directives/_appearance-theme.scss',
+  'packages/ui/src/lib/ui/compat/core/style/card.scss',
+  'packages/ui/src/lib/ui/compat/core/style/cdk-dialog.scss',
+  'packages/ui/src/lib/ui/compat/core/style/common.scss',
+  'packages/ui/src/lib/ui/compat/core/style/input.scss',
+  'packages/ui/src/lib/ui/compat/core/style/list.scss',
+  'packages/ui/src/lib/ui/compat/core/style/menu.scss',
+  'packages/ui/src/lib/ui/compat/core/style/z-radio-group.scss'
 ])
 
 function walkScss(dir, acc = []) {

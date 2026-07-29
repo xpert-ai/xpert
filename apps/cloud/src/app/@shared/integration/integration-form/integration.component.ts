@@ -5,8 +5,8 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,17 +28,17 @@ import { EmojiAvatarComponent } from '../../avatar'
     FormlyModule,
     ZardInputDirective,
     EmojiAvatarComponent,
-    NgmInputComponent,
-    NgmSpinComponent
-],
-  selector: 'pac-integration-form',
+    XpInputComponent,
+    XpSpinComponent
+  ],
+  selector: 'xp-integration-form',
   templateUrl: 'integration.component.html',
   styleUrls: ['integration.component.scss']
 })
 export class IntegrationFormComponent {
   readonly integrationService = inject(IntegrationService)
   readonly #toastr = injectToastr()
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   readonly integration = model<IIntegration>()
   readonly #providers = toSignal(this.integrationService.getProviders(), { initialValue: [] })
@@ -62,9 +62,7 @@ export class IntegrationFormComponent {
 
   readonly provider = this.formGroup.get('provider')
   readonly providerName = toSignal(this.provider.valueChanges.pipe(startWith(this.provider.value)))
-  readonly integrationProvider = computed(() =>
-    this.#providers().find((item) => item.name === this.providerName())
-  )
+  readonly integrationProvider = computed(() => this.#providers().find((item) => item.name === this.providerName()))
 
   readonly schema = computed(() => {
     const schema = this.integrationProvider()?.schema
@@ -92,19 +90,17 @@ export class IntegrationFormComponent {
   readonly loading = signal(false)
 
   constructor() {
-    effect(
-      () => {
-        if (this.integration()) {
-          this.formGroup.patchValue(this.integration())
-          assign(this.optionsModel, this.integration().options)
-          if (this.integration().id) {
-            this.formGroup.markAsPristine()
-          } else {
-            this.formGroup.markAsDirty()
-          }
+    effect(() => {
+      if (this.integration()) {
+        this.formGroup.patchValue(this.integration())
+        assign(this.optionsModel, this.integration().options)
+        if (this.integration().id) {
+          this.formGroup.markAsPristine()
+        } else {
+          this.formGroup.markAsDirty()
         }
       }
-    )
+    })
   }
 
   onModelChange(model) {
@@ -119,7 +115,7 @@ export class IntegrationFormComponent {
         this.formGroup.patchValue(result)
         this.formGroup.markAsDirty()
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.Successfully', { Default: 'Successfully!' })
+        this.#toastr.success('XP.Messages.Successfully', { Default: 'Successfully!' })
       },
       error: (error) => {
         this.#toastr.danger(getErrorMessage(error))

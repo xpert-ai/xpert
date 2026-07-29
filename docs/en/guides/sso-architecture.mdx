@@ -91,12 +91,12 @@ The current mainline architecture is split cleanly across SDK, host, plugin, and
 
 ### High-Level Responsibilities
 
-| Layer | Responsibility |
-| --- | --- |
-| SDK | Define provider strategy interfaces and permission service contracts |
-| Host | Discover providers, resolve tenant/org, store binding challenges, persist bindings, issue local tokens |
-| Plugin | Execute external OAuth, normalize provider profile, ask host to log in or create pending binding |
-| Frontend | Show provider buttons, collect bind/register choices, finalize redirect into logged-in app state |
+| Layer    | Responsibility                                                                                         |
+| -------- | ------------------------------------------------------------------------------------------------------ |
+| SDK      | Define provider strategy interfaces and permission service contracts                                   |
+| Host     | Discover providers, resolve tenant/org, store binding challenges, persist bindings, issue local tokens |
+| Plugin   | Execute external OAuth, normalize provider profile, ask host to log in or create pending binding       |
+| Frontend | Show provider buttons, collect bind/register choices, finalize redirect into logged-in app state       |
 
 The core design principle is:
 
@@ -234,14 +234,14 @@ Main host-side SSO entrypoints live under `packages/server/src/auth/sso/`.
 
 `auth-sso.controller.ts` defines:
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /auth/sso/providers` | discover available SSO providers for anonymous login |
-| `GET /auth/sso/bind/challenge` | fetch anonymous bind challenge metadata |
-| `GET /auth/sso/bind/current-user/challenge` | fetch current-user confirmation challenge metadata |
-| `POST /auth/sso/bind/complete` | bind an external identity to an existing local account after password verification |
-| `POST /auth/sso/bind/current-user/complete` | confirm binding for the currently logged-in user |
-| `POST /auth/sso/bind/register` | create a new local user and bind the external identity |
+| Endpoint                                    | Purpose                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `GET /auth/sso/providers`                   | discover available SSO providers for anonymous login                               |
+| `GET /auth/sso/bind/challenge`              | fetch anonymous bind challenge metadata                                            |
+| `GET /auth/sso/bind/current-user/challenge` | fetch current-user confirmation challenge metadata                                 |
+| `POST /auth/sso/bind/complete`              | bind an external identity to an existing local account after password verification |
+| `POST /auth/sso/bind/current-user/complete` | confirm binding for the currently logged-in user                                   |
+| `POST /auth/sso/bind/register`              | create a new local user and bind the external identity                             |
 
 This controller is the bridge between plugin OAuth callbacks and host-owned account flows.
 
@@ -541,11 +541,11 @@ The current Lark plugin does this correctly, but this is still a plugin responsi
 
 ## Frontend Flow In Mainline `xpert`
 
-The frontend side of the mainline SSO flow lives in `libs/apps/auth` and `apps/cloud`.
+The frontend side of the mainline SSO flow lives in `apps/cloud/src/app/auth` and `apps/cloud`.
 
 ### Login Page
 
-`libs/apps/auth/src/lib/login/login.component.ts`:
+`apps/cloud/src/app/auth/login/login.component.ts`:
 
 - requests `/api/auth/sso/providers`
 - renders discovered providers
@@ -553,7 +553,7 @@ The frontend side of the mainline SSO flow lives in `libs/apps/auth` and `apps/c
 
 ### Anonymous Bind Page
 
-`libs/apps/auth/src/lib/sso-bind/sso-bind.component.ts`:
+`apps/cloud/src/app/auth/sso-bind/sso-bind.component.ts`:
 
 - loads challenge metadata from `/api/auth/sso/bind/challenge?ticket=...`
 - lets the user choose:
@@ -564,7 +564,7 @@ Submitting existing-account bind posts to `/api/auth/sso/bind/complete`.
 
 ### Current User Confirmation Page
 
-`libs/apps/auth/src/lib/current-user-sso-confirm/current-user-sso-confirm.component.ts`:
+`apps/cloud/src/app/auth/current-user-sso-confirm/current-user-sso-confirm.component.ts`:
 
 - loads `/api/auth/sso/bind/current-user/challenge`
 - posts `/api/auth/sso/bind/current-user/complete`
@@ -573,7 +573,7 @@ This page is only meaningful for already authenticated local users.
 
 ### Register Page
 
-`libs/apps/auth/src/lib/register/register.component.ts`:
+`apps/cloud/src/app/auth/register/register.component.ts`:
 
 - if `ticket` is present, registration submits to `/api/auth/sso/bind/register`
 - otherwise it follows the ordinary registration path
@@ -799,11 +799,11 @@ This prevents open redirects in the current provider implementation.
 
 `lark-sso.controller.ts` exposes:
 
-| Endpoint | Visibility | Purpose |
-| --- | --- | --- |
-| `GET /lark-identity/login/start` | public | start anonymous login |
-| `GET /lark-identity/bind/start` | authenticated | start current-user bind |
-| `GET /lark-identity/callback` | public | complete OAuth and redirect into host flow |
+| Endpoint                         | Visibility    | Purpose                                    |
+| -------------------------------- | ------------- | ------------------------------------------ |
+| `GET /lark-identity/login/start` | public        | start anonymous login                      |
+| `GET /lark-identity/bind/start`  | authenticated | start current-user bind                    |
+| `GET /lark-identity/callback`    | public        | complete OAuth and redirect into host flow |
 
 Tenant and organization resolution in the controller follows two different models:
 
@@ -1043,13 +1043,13 @@ Behavior:
 
 This flow differs from the plugin-driven Lark SSO system in almost every architectural choice:
 
-| Legacy Feishu Social Auth | Current Plugin-Driven Lark SSO |
-| --- | --- |
-| social-auth style callback | plugin-managed OAuth callback |
-| `thirdPartyId` is the main key | `external_identity_binding` is the main binding table |
-| auto-registration style | binding-first style |
-| no pending binding challenge model | explicit Redis-backed challenge model |
-| old module path | new plugin permission architecture |
+| Legacy Feishu Social Auth          | Current Plugin-Driven Lark SSO                        |
+| ---------------------------------- | ----------------------------------------------------- |
+| social-auth style callback         | plugin-managed OAuth callback                         |
+| `thirdPartyId` is the main key     | `external_identity_binding` is the main binding table |
+| auto-registration style            | binding-first style                                   |
+| no pending binding challenge model | explicit Redis-backed challenge model                 |
+| old module path                    | new plugin permission architecture                    |
 
 It is still present and still relevant for migration and compatibility, but it should not be described as the primary current architecture.
 

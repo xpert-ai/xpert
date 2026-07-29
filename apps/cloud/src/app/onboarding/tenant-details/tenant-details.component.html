@@ -14,48 +14,48 @@
   <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4" (ngSubmit)="onboard()">
       <ng-template zStepLabel>
-        {{ 'PAC.Onboarding.WhatCallYou' | translate: { Default: 'What should we call you' } }}?</ng-template
+        {{ 'XP.Onboarding.WhatCallYou' | translate: { Default: 'What should we call you' } }}?</ng-template
       >
 
       <div class="description mb-4">
         {{
-          'PAC.Onboarding.CreateAdminAndOrg'
+          'XP.Onboarding.CreateAdminAndOrg'
             | translate: { Default: 'Create your super admin account and default organization.' }
         }}
       </div>
 
       <div class="relative grid grid-cols-2 gap-2">
         <z-form-field>
-          <z-form-label>{{ 'PAC.Onboarding.FirstName' | translate: { Default: 'First name' } }}</z-form-label>
+          <z-form-label>{{ 'XP.Onboarding.FirstName' | translate: { Default: 'First name' } }}</z-form-label>
           <input z-input formControlName="firstName" />
         </z-form-field>
 
         <z-form-field>
-          <z-form-label>{{ 'PAC.Onboarding.LastName' | translate: { Default: 'Last name' } }}</z-form-label>
+          <z-form-label>{{ 'XP.Onboarding.LastName' | translate: { Default: 'Last name' } }}</z-form-label>
           <input z-input formControlName="lastName" />
         </z-form-field>
 
         <z-form-field class="col-span-2">
-          <z-form-label>{{ 'PAC.Onboarding.Email' | translate: { Default: 'Email' } }}</z-form-label>
+          <z-form-label>{{ 'XP.Onboarding.Email' | translate: { Default: 'Email' } }}</z-form-label>
           <input z-input placeholder="email" formControlName="email" autocomplete="email" />
         </z-form-field>
 
         <z-form-field class="col-span-2">
           <z-form-label>{{
-            'PAC.Onboarding.CompanyTeamName' | translate: { Default: 'Company or team name' }
+            'XP.Onboarding.CompanyTeamName' | translate: { Default: 'Company or team name' }
           }}</z-form-label>
           <input z-input formControlName="organizationName" />
         </z-form-field>
 
         <z-form-field class="col-span-2">
           <z-form-label>{{
-            'PAC.Onboarding.CreateAPassword' | translate: { Default: 'Create a password' }
+            'XP.Onboarding.CreateAPassword' | translate: { Default: 'Create a password' }
           }}</z-form-label>
           <input z-input type="password" placeholder="*******" formControlName="password" autocomplete="password" />
           @if (minlengthError(); as error) {
             <z-form-message zType="error">
-              {{ 'PAC.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
-              {{ 'PAC.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
+              {{ 'XP.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
+              {{ 'XP.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
               {{ error.actualLength }}</z-form-message
             >
           }
@@ -63,7 +63,7 @@
 
         <z-form-field class="col-span-2">
           <z-form-label>{{
-            'PAC.Onboarding.ConfirmYourPassword' | translate: { Default: 'Confirm your password' }
+            'XP.Onboarding.ConfirmYourPassword' | translate: { Default: 'Confirm your password' }
           }}</z-form-label>
           <input
             z-input
@@ -74,19 +74,19 @@
           />
           @if (mustMatchError()) {
             <z-form-message zType="error">{{
-              'PAC.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
+              'XP.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
             }}</z-form-message>
           }
         </z-form-field>
 
         @if (loading()) {
-          <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+          <xp-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
         }
       </div>
 
       <div class="flex items-center gap-4">
         <button type="submit" class="btn btn-primary btn-large" [disabled]="userFormGroup.invalid || loading()">
-          {{ 'PAC.Onboarding.Next' | translate: { Default: 'Next' } }}
+          {{ 'XP.Onboarding.Next' | translate: { Default: 'Next' } }}
         </button>
       </div>
     </form>
@@ -94,305 +94,58 @@
 
   <z-step [editable]="selectedOrganization() && !loading() && step1.completed">
     <ng-template zStepLabel>{{
-      'PAC.Onboarding.EnableFeatures' | translate: { Default: 'Enable Features' }
+      'XP.Onboarding.ConfigureAiModel' | translate: { Default: 'Configure AI Model' }
     }}</ng-template>
 
-    <div class="description">
-      {{
-        'PAC.Onboarding.EnableFeaturesDesc'
-          | translate
-            : {
-                Default:
-                  'Select the feature modules you want to enable, which can also be configured later in the system settings.'
-              }
-      }}
-    </div>
-
-    <div class="relative my-8">
-      @if (selectedOrganization()) {
-        <xp-feature-category [(ngModel)]="features" />
-      }
-      @if (loading()) {
-        <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
-      }
-    </div>
-
-    <div class="flex items-center gap-4">
-      <button type="button" class="btn btn-primary btn-large" (click)="enableFeatures()">
-        {{ 'PAC.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
-      </button>
-    </div>
-  </z-step>
-
-  @if (hasSemanticModel()) {
-    <z-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()">
-      <ng-template zStepLabel
-        >{{
-          'PAC.Onboarding.WantGenerateDemo' | translate: { Default: 'Do you want to generate samples' }
-        }}?</ng-template
-      >
-
-      <div class="description my-4">
+    <div class="w-full flex flex-col gap-4 relative">
+      <div class="description">
         {{
-          'PAC.Onboarding.GenerateDemoDescription'
+          'XP.Onboarding.ConfigureAiModelDesc'
             | translate
               : {
                   Default:
-                    'The system will download the demo data file from the server link, import the data into the system database, and create the corresponding samples'
+                    'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'
                 }
-        }}.
+        }}
       </div>
 
-      <form [formGroup]="demoFormGroup" class="flex flex-col">
-        <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: { Default: 'Select Network' } }}</label>
-        <z-radio-group formControlName="source" [disabled]="loading()" displayDensity="cosy">
-          <z-radio [value]="OrganizationDemoNetworkEnum.github" displayDensity="cosy">GitHub</z-radio>
-          <z-radio [value]="OrganizationDemoNetworkEnum.aliyun" displayDensity="cosy">Aliyun OSS</z-radio>
-        </z-radio-group>
-      </form>
-
-      <div class="flex justify-center items-center w-full h-24">
-        @if (loading()) {
-          <z-progress-bar zIndeterminate zShape="square" />
-        }
-        @if (demoError()) {
-          <z-form-message zType="error" class="max-h-full max-w-full overflow-auto">{{ demoError() }}</z-form-message>
-        }
-      </div>
-
+      <xp-copilot-config-form
+        #onboardingCopilotForm
+        class="w-full"
+        [copilot]="primaryCopilot()"
+        (saved)="onAiModelSaved()"
+      />
       <div class="flex items-center gap-4">
-        <button type="button" class="btn btn-secondary btn-large" zStepperNext>
-          {{ 'PAC.Onboarding.Skip' | translate: { Default: 'Skip' } }}
+        <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="skipAiModelSetup()">
+          {{ 'XP.Onboarding.Skip' | translate: { Default: 'Skip' } }}
         </button>
         <button
+          z-button
+          zType="default"
           type="button"
-          class="btn btn-primary btn-large"
-          [disabled]="demoFormGroup.invalid || loading()"
-          (click)="generateDemo()"
+          [disabled]="
+            loading() ||
+            !showAiModelForm() ||
+            !onboardingCopilotForm.canSubmit() ||
+            !onboardingCopilotForm.hasSelectedModel()
+          "
+          (click)="onboardingCopilotForm.submit()"
         >
-          @if (demoError()) {
-            <span>{{ 'PAC.Onboarding.Retry' | translate: { Default: 'Retry' } }}</span>
-          } @else {
-            <span>{{ 'PAC.Onboarding.Generate' | translate: { Default: 'Generate' } }}</span>
-          }
+          {{ 'XP.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
         </button>
       </div>
-    </z-step>
 
-    <z-step [editable]="!loading() && !connectionCompleted()">
-      <ng-template zStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: { Default: 'Add your data' } }}</ng-template>
-
-      <div class="w-full flex flex-col gap-3">
-        <div class="description space-y-1">
-          <p>
-            {{
-              'PAC.Onboarding.ReadyExploringYourData'
-                | translate: { Default: 'Are you ready to start exploring your data? Add it below.' }
-            }}
-          </p>
-          <p>
-            {{
-              'PAC.Onboarding.NotReadySample'
-                | translate: { Default: 'Not ready? Skip and play around with our Samples.' }
-            }}
-          </p>
-        </div>
-
-        <form [formGroup]="dataSourceTypeFormGroup" class="grid w-full gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div
-            class="flex min-h-[24rem] flex-col gap-3 rounded-2xl border border-divider-regular bg-background-default-subtle p-3"
-          >
-            <div class="w-full relative">
-              <i class="ri-search-2-line absolute left-2 top-2 text-text-tertiary"></i>
-              <input
-                class="xp-input w-full pr-3 pl-8"
-                [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
-                tabindex="0"
-                [formControl]="searchControl"
-              />
-            </div>
-
-            <div class="min-h-0 flex-1 overflow-auto pr-1">
-              @if (dataSourceTypesLoading()) {
-                <div class="flex min-h-40 items-center justify-center">
-                  <ngm-spin />
-                </div>
-              } @else if (filteredDataSourceTypes()?.length) {
-                <ul
-                  class="flex flex-col gap-1"
-                  cdkListbox
-                  formControlName="type"
-                  [cdkListboxMultiple]="false"
-                  [cdkListboxCompareWith]="compareTypeFn"
-                >
-                  @for (item of filteredDataSourceTypes(); track item.id) {
-                    <li
-                      [cdkOption]="item"
-                      class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-hover-bg"
-                    >
-                      <span class="flex min-w-0 items-center gap-2.5">
-                        <img
-                          src="assets/images/db-logos/{{ item.type }}.png"
-                          width="28"
-                          height="28"
-                          class="m-0 inline-block shrink-0"
-                        />
-                        <span class="truncate">{{ item.name }}</span>
-                      </span>
-                    </li>
-                  }
-                </ul>
-              } @else {
-                <div class="rounded-xl border border-divider-regular bg-background-default p-4">
-                  <div class="text-sm text-text-secondary">
-                    {{
-                      'PAC.Onboarding.NoDataSourceTypes'
-                        | translate: { Default: 'No data source types are available yet.' }
-                    }}
-                  </div>
-                  @if (dataSourceTypesError()) {
-                    <z-form-message zType="error" class="mt-3">
-                      {{ dataSourceTypesError() }}
-                    </z-form-message>
-                  }
-                </div>
-              }
-            </div>
-          </div>
-
-          <div class="min-h-[24rem] rounded-2xl border border-divider-regular bg-background-default-subtle">
-            @if (type; as selectedType) {
-              <div class="flex h-full flex-col">
-                <div class="flex items-center gap-3 border-b border-divider-regular px-4 py-3">
-                  <img
-                    src="assets/images/db-logos/{{ selectedType.type }}.png"
-                    width="40"
-                    height="40"
-                    class="m-0 inline-block shrink-0"
-                  />
-                  <div class="min-w-0">
-                    <div class="truncate text-sm font-medium text-text-primary">{{ selectedType.name }}</div>
-                    <div class="text-xs text-text-tertiary">
-                      {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: { Default: 'Configuration' } }}
-                    </div>
-                  </div>
-                </div>
-
-                <div class="min-h-0 flex-1 overflow-auto px-4 py-3">
-                  <div class="flex flex-col gap-3">
-                    <z-form-field appearance="fill">
-                      <z-form-label>
-                        {{ 'PAC.Onboarding.DisplayName' | translate: { Default: 'Display Name' } }}
-                      </z-form-label>
-                      <input z-input formControlName="name" />
-                      @if (dataSourceNameError()) {
-                        <z-form-message zType="error">
-                          {{ 'PAC.Onboarding.NameRequired' | translate: { Default: 'Name Required' } }}
-                        </z-form-message>
-                      }
-                    </z-form-field>
-
-                    <formly-form
-                      class="block [&_.formly-field]:mb-3 [&_.formly-field:last-child]:mb-0"
-                      [form]="dataSourceTypeFormGroup"
-                      [fields]="formlyFields()"
-                      [model]="model"
-                      (modelChange)="onModelChange($event)"
-                    />
-                  </div>
-                </div>
-              </div>
-            } @else {
-              <div class="flex h-full min-h-[24rem] flex-col items-center justify-center gap-3 p-6 text-center">
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-background-default">
-                  <i class="ri-database-2-line text-xl text-text-secondary"></i>
-                </div>
-                <div class="text-sm font-medium text-text-primary">
-                  {{
-                    'PAC.MENU.DATA_SOURCES.SelectTypeToCreate'
-                      | translate: { Default: 'Select a data source type to create' }
-                  }}
-                </div>
-              </div>
-            }
-          </div>
-        </form>
-
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <button z-button zType="secondary" zStepperNext>
-            {{ 'PAC.Onboarding.AddDataLater' | translate: { Default: "I'll add my data later" } }}
-          </button>
-          @if (type) {
-            <button
-              z-button
-              zType="default"
-              [disabled]="dataSourceTypeFormGroup.invalid || loading()"
-              (click)="connectDatabase()"
-            >
-              {{ 'PAC.Onboarding.ConnectDatabase' | translate: { Default: 'Connect database' } }}
-            </button>
-          }
-        </div>
-      </div>
-    </z-step>
-  }
-
-  @if (hasAiFeature()) {
-    <z-step [editable]="!loading()">
-      <ng-template zStepLabel>{{
-        'PAC.Onboarding.ConfigureAiModel' | translate: { Default: 'Configure AI Model' }
-      }}</ng-template>
-
-      <div class="w-full flex flex-col gap-4 relative">
-        <div class="description">
-          {{
-            'PAC.Onboarding.ConfigureAiModelDesc'
-              | translate
-                : {
-                    Default:
-                      'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'
-                  }
-          }}
-        </div>
-
-        <pac-copilot-config-form
-          #onboardingCopilotForm
-          class="w-full"
-          [copilot]="primaryCopilot()"
-          (saved)="onAiModelSaved()"
-        />
-        <div class="flex items-center gap-4">
-          <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="skipAiModelSetup()">
-            {{ 'PAC.Onboarding.Skip' | translate: { Default: 'Skip' } }}
-          </button>
-          <button
-            z-button
-            zType="default"
-            type="button"
-            [disabled]="
-              loading() ||
-              !showAiModelForm() ||
-              !onboardingCopilotForm.canSubmit() ||
-              !onboardingCopilotForm.hasSelectedModel()
-            "
-            (click)="onboardingCopilotForm.submit()"
-          >
-            {{ 'PAC.Onboarding.SaveAndNext' | translate: { Default: 'Save and Next' } }}
-          </button>
-        </div>
-
-        @if (loading()) {
-          <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
-        }
-      </div>
-    </z-step>
-  }
+      @if (loading()) {
+        <xp-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+      }
+    </div>
+  </z-step>
 
   <z-step [editable]="!loading()">
-    <ng-template zStepLabel>{{ 'PAC.Onboarding.Done' | translate: { Default: 'Done' } }}</ng-template>
+    <ng-template zStepLabel>{{ 'XP.Onboarding.Done' | translate: { Default: 'Done' } }}</ng-template>
     <div class="flex flex-col justify-start items-center gap-4">
       <div class="text-3xl text-primary-500 p-8">
-        {{ 'PAC.Onboarding.AllSetup' | translate: { Default: "You're all set up!" } }}
+        {{ 'XP.Onboarding.AllSetup' | translate: { Default: "You're all set up!" } }}
       </div>
 
       <div class="w-full border-b border-solid border-divider-regular"></div>
@@ -404,7 +157,7 @@
           [disabled]="navigating()"
           (click)="navigateHome()"
         >
-          {{ 'PAC.Onboarding.TakeMetoXpertAiPlatform' | translate: { Default: 'Take me to Xpert AI Platform' } }}
+          {{ 'XP.Onboarding.TakeMetoXpertAiPlatform' | translate: { Default: 'Take me to Xpert AI Platform' } }}
         </button>
       </div>
     </div>
@@ -412,10 +165,10 @@
 </z-stepper>
 
 <div class="p-4 my-8">
-  {{ 'PAC.Onboarding.FeelStuck' | translate: { Default: 'If you feel stuck' } }}
+  {{ 'XP.Onboarding.FeelStuck' | translate: { Default: 'If you feel stuck' } }}
   ,
   <a [href]="helpWebsite() + '/ai/getting-started/onboarding'" class="text-primary-500 italic">
-    {{ 'PAC.Onboarding.OurGuide' | translate: { Default: 'our getting started guide' } }}
+    {{ 'XP.Onboarding.OurGuide' | translate: { Default: 'our getting started guide' } }}
   </a>
-  {{ 'PAC.Onboarding.ClickAway' | translate: { Default: 'is just a click away' } }}.
+  {{ 'XP.Onboarding.ClickAway' | translate: { Default: 'is just a click away' } }}.
 </div>

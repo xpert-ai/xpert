@@ -5,9 +5,9 @@ import {
   ZardPaginationEllipsisComponent,
   ZardPaginationItemComponent,
   ZardPaginationNextComponent,
-  ZardPaginationPreviousComponent,
-} from '@/src/lib/components/pagination/pagination.component';
-import { ZardPaginatorComponent } from '@/src/lib/components/pagination/paginator.component';
+  ZardPaginationPreviousComponent
+} from './pagination.component'
+import { ZardPaginatorComponent } from './paginator.component'
 
 export const ZardPaginationImports = [
   ZardPaginationContentComponent,
@@ -17,5 +17,5 @@ export const ZardPaginationImports = [
   ZardPaginationNextComponent,
   ZardPaginationEllipsisComponent,
   ZardPaginationComponent,
-  ZardPaginatorComponent,
-] as const;
+  ZardPaginatorComponent
+] as const

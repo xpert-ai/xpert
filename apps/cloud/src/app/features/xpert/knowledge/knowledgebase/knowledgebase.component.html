@@ -44,7 +44,7 @@
       >
         <z-icon zType="file-text" zSize="xl" class="mr-2" />
         @if (sideMenuOpened()) {
-          {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
+          {{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
         }
       </a>
 
@@ -59,7 +59,7 @@
       >
         <z-icon zType="robot_2" zSize="xl" class="mr-2" />
         @if (sideMenuOpened()) {
-          {{ 'PAC.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}
+          {{ 'XP.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}
         }
       </a>
 
@@ -72,7 +72,7 @@
       >
         <z-icon zType="hub" zSize="xl" class="mr-2" />
         @if (sideMenuOpened()) {
-          {{ 'PAC.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
+          {{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
         }
       </a>
     }
@@ -87,7 +87,7 @@
     >
       <z-icon zType="center_focus_strong" zSize="xl" class="mr-2" />
       @if (sideMenuOpened()) {
-        {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
+        {{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}
       }
     </a>
 
@@ -102,7 +102,7 @@
     >
       <z-icon zType="tune" zSize="xl" class="mr-2" />
       @if (sideMenuOpened()) {
-        {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
+        {{ 'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
       }
     </a>
   </nav>
@@ -125,7 +125,7 @@
       <div class="flex grow flex-col px-2 pb-1.5 pt-1">
         <div class="system-md-semibold-uppercase text-text-secondary">{{ documentNum() }}</div>
         <div class="text-xs font-medium uppercase text-text-tertiary">
-          {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
+          {{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
         </div>
       </div>
       <div class="py-2 pl-0.5 pr-1.5">
@@ -137,7 +137,7 @@
           class="text-xs font-medium uppercase flex cursor-pointer items-center gap-x-0.5 text-text-tertiary"
           [cdkMenuTriggerFor]="xpertsMenu"
         >
-          <span>{{ 'PAC.Knowledgebase.LinkedExperts' | translate: { Default: 'Linked Experts' } }}</span>
+          <span>{{ 'XP.Knowledgebase.LinkedExperts' | translate: { Default: 'Linked Experts' } }}</span>
           <i class="ri-information-line"></i>
         </div>
       </div>
@@ -164,7 +164,7 @@
       </svg>
       @if (sideMenuOpened()) {
         <div class="system-sm-medium grow text-text-secondary">
-          {{ 'PAC.KEY_WORDS.Service' | translate: { Default: 'Service' } }}
+          {{ 'XP.KEY_WORDS.Service' | translate: { Default: 'Service' } }}
           API
         </div>
       }
@@ -184,7 +184,7 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full z-10" />
+  <xp-spin class="absolute left-0 top-0 w-full h-full z-10" />
 }
 
 <div
@@ -199,13 +199,13 @@
     @if (pipelineId(); as pipelineId) {
       <button cdkMenuItem type="button" (click)="downloadPipeline(pipelineId)">
         <i class="ri-download-2-line mr-1"></i>
-        <span> {{ 'PAC.Knowledgebase.DownloadPipeline' | translate: { Default: 'Download Pipeline' } }}</span>
+        <span> {{ 'XP.Knowledgebase.DownloadPipeline' | translate: { Default: 'Download Pipeline' } }}</span>
       </button>
     }
 
     <button cdkMenuItem type="button" class="danger" (click)="deleteKnowledgebase()">
       <i class="ri-delete-bin-6-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>
@@ -237,7 +237,7 @@
             </svg>
           </div>
           <div class="system-sm-semibold grow truncate text-text-secondary">
-            {{ 'PAC.Knowledgebase.ServiceAPI' | translate: { Default: 'Backend Service API' } }}
+            {{ 'XP.Knowledgebase.ServiceAPI' | translate: { Default: 'Backend Service API' } }}
           </div>
         </div>
         <div class="flex items-center gap-x-1">
@@ -246,14 +246,14 @@
               class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--success"
             ></div>
             <div class="system-xs-semibold-uppercase text-text-success">
-              {{ 'PAC.Knowledgebase.InService' | translate: { Default: 'In Service' } }}
+              {{ 'XP.Knowledgebase.InService' | translate: { Default: 'In Service' } }}
             </div>
           } @else {
             <div
               class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--neutral"
             ></div>
             <div class="system-xs-semibold-uppercase text-text-secondary">
-              {{ 'PAC.Knowledgebase.OutofService' | translate: { Default: 'Out of Service' } }}
+              {{ 'XP.Knowledgebase.OutofService' | translate: { Default: 'Out of Service' } }}
             </div>
           }
         </div>
@@ -261,13 +261,13 @@
       </div>
       <div class="flex flex-col">
         <div class="system-xs-regular leading-6 text-text-tertiary">
-          {{ 'PAC.Knowledgebase.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
+          {{ 'XP.Knowledgebase.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
         </div>
         <div class="flex h-8 items-center gap-0.5 rounded-lg bg-components-input-bg-normal p-1 pl-2">
           <div class="flex h-4 min-w-0 flex-1 items-start justify-start gap-2 px-1">
             <div class="system-xs-medium truncate text-text-secondary">{{ apiUrl() }}</div>
           </div>
-          <ngm-copy [content]="apiUrl()" />
+          <xp-copy [content]="apiUrl()" />
         </div>
       </div>
     </div>
@@ -278,7 +278,7 @@
         (click)="openApiKey()"
       >
         <i class="ri-key-2-line"></i>
-        <span class="system-xs-medium px-[3px]">{{ 'PAC.Xpert.APIKey' | translate: { Default: 'API Key' } }}</span>
+        <span class="system-xs-medium px-[3px]">{{ 'XP.Xpert.APIKey' | translate: { Default: 'API Key' } }}</span>
       </button>
       <button
         type="button"
@@ -287,7 +287,7 @@
       >
         <i class="ri-book-open-line"></i>
         <span class="system-xs-medium px-[3px]">{{
-          'PAC.Xpert.APIReference' | translate: { Default: 'API Reference' }
+          'XP.Xpert.APIReference' | translate: { Default: 'API Reference' }
         }}</span>
       </button>
     </div>
@@ -297,7 +297,7 @@
 <ng-template #xpertsMenu>
   <div cdkMenu @overlayAnimation1 class="cdk-menu__large">
     <div class="p-2">
-      {{ xperts()?.length ?? 0 }} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: { Default: 'related experts' } }}
+      {{ xperts()?.length ?? 0 }} {{ 'XP.Knowledgebase.RelatedExperts' | translate: { Default: 'related experts' } }}
     </div>
     @for (item of xperts(); track item.id) {
       <div cdkMenuItem class="group" (click)="openXpert(item)">

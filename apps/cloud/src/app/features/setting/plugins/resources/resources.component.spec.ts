@@ -33,7 +33,7 @@ import {
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PLUGIN_RESOURCE_RUNTIME_TYPE,
   PluginAPIService
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { PLUGIN_LEVEL } from '@xpert-ai/contracts'
 import { TInstalledPlugin } from '../types'
 import { PluginResourcesComponent } from './resources.component'

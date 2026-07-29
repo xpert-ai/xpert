@@ -1,5 +1,5 @@
 import { Component, computed } from '@angular/core'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import {
   injectXpertTableAPI,
   IWFNDBInsert,

@@ -5,7 +5,7 @@
   cdkDragHandle
 >
   <div class="text-xl font-semibold">
-    {{ 'PAC.Copilot.ModelProviders' | translate: { Default: 'Model Providers' } }}
+    {{ 'XP.Copilot.ModelProviders' | translate: { Default: 'Model Providers' } }}
   </div>
 
   <div class="flex flex-wrap items-center justify-end gap-3">
@@ -16,19 +16,19 @@
       (click)="refreshProviders()"
     >
       <i class="ri-refresh-line mr-1" [class.animate-spin]="refreshing()"></i>
-      {{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+      {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
     </button>
 
     <div class="flex items-center">
       <span class="system-sm-regular pr-1 text-text-tertiary">
-        {{ 'PAC.Copilot.DiscoverMoreAt' | translate: { Default: 'Discover more at' } }}
+        {{ 'XP.Copilot.DiscoverMoreAt' | translate: { Default: 'Discover more at' } }}
       </span>
       <a
         target="_blank"
         class="system-sm-medium inline-flex items-center text-text-accent hover:underline"
         href="/settings/plugins?category=marketplace"
       >
-        Xpert {{ 'PAC.Copilot.PluginMarketplace' | translate: { Default: 'Plugin Marketplace' } }}
+        Xpert {{ 'XP.Copilot.PluginMarketplace' | translate: { Default: 'Plugin Marketplace' } }}
         <i class="ri-corner-right-up-line"></i>
       </a>
     </div>
@@ -37,7 +37,7 @@
 
 <div class="w-full px-8 text-base text-text-secondary">
   {{
-    'PAC.Copilot.ModelProvidersDesc'
+    'XP.Copilot.ModelProvidersDesc'
       | translate
         : {
             Default:
@@ -83,7 +83,7 @@
               type="button"
               class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
               [zTooltip]="
-                'PAC.Copilot.HowToContribute'
+                'XP.Copilot.HowToContribute'
                   | translate: { Default: 'In just a few steps, contribute code and create a better future together' }
               "
               zPosition="top"
@@ -92,20 +92,20 @@
             >
               <i class="ri-code-ai-line text-lg mr-1"></i>
               <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                {{ 'PAC.Copilot.Contribute' | translate: { Default: 'Contribute' } }}
+                {{ 'XP.Copilot.Contribute' | translate: { Default: 'Contribute' } }}
               </span>
             </a>
             <a
               type="button"
               class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
-              [zTooltip]="'PAC.Copilot.OurSupport' | translate: { Default: 'Contact us for priority support' }"
+              [zTooltip]="'XP.Copilot.OurSupport' | translate: { Default: 'Contact us for priority support' }"
               zPosition="top"
               href="{{ helpBaseUrl() + '/#connect' }}"
               target="_blank"
             >
               <i class="ri-hand-heart-line text-lg mr-1"></i>
               <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                {{ 'PAC.Copilot.Support' | translate: { Default: 'Support' } }}
+                {{ 'XP.Copilot.Support' | translate: { Default: 'Support' } }}
               </span>
             </a>
           } @else {
@@ -117,7 +117,7 @@
               >
                 <i class="ri-settings-5-line text-lg mr-1"></i>
                 <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                  {{ 'PAC.Copilot.Setup' | translate: { Default: 'Setup' } }}
+                  {{ 'XP.Copilot.Setup' | translate: { Default: 'Setup' } }}
                 </span>
               </button>
             } @else {
@@ -128,7 +128,7 @@
               >
                 <i class="ri-add-circle-line text-lg mr-1"></i>
                 <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                  {{ 'PAC.Copilot.Add' | translate: { Default: 'Add' } }}
+                  {{ 'XP.Copilot.Add' | translate: { Default: 'Add' } }}
                 </span>
               </button>
             }

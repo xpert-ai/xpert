@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeSuiteVersion": "1.1.0",
+  "runtimeSuiteVersion": "1.2.0",
   "resources": [
     {
       "key": "onnxruntime-web-1.26.0-dev.20260416-b7804b056c",

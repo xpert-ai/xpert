@@ -23,7 +23,7 @@ import {
   WorkflowLogicalOperator,
   XpertAPIService
 } from 'apps/cloud/src/app/@core'
-import { NgmSelectPanelComponent } from '../../common'
+import { XpSelectPanelComponent } from '../../common'
 import { XpertKnowledgeConditionFormComponent } from '../condition-form/condition.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -38,9 +38,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmSelectPanelComponent,
+    XpSelectPanelComponent,
     XpertKnowledgeConditionFormComponent
-]
+  ]
 })
 export class XpertKnowledgeCaseFormComponent {
   eWorkflowLogicalOperator = WorkflowLogicalOperator

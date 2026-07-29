@@ -3,13 +3,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  IWFNKnowledgeBase,
-  IWorkflowNode,
-  KnowledgeStructureEnum
-} from 'apps/cloud/src/app/@core'
+import { IWFNKnowledgeBase, IWorkflowNode, KnowledgeStructureEnum } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'

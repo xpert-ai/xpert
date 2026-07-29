@@ -8,7 +8,7 @@
           @for (text of frozenBlocks(); track text) {
             <markdown
               clipboard
-              class="ngm-copilot-markdown flex-1"
+              class="xp-copilot-markdown flex-1"
               [class.answering]="answering()"
               [class.text-sm]="agentOutput()"
               [clipboardButtonTemplate]="buttonTemplate"
@@ -22,7 +22,7 @@
           @if (streaming(); as text) {
             <markdown
               clipboard
-              class="ngm-copilot-markdown flex-1"
+              class="xp-copilot-markdown flex-1"
               [class.answering]="answering()"
               [class.text-sm]="agentOutput()"
               [clipboardButtonTemplate]="buttonTemplate"

@@ -1,0 +1,6 @@
+// Forwards all public API mixins so they can be imported from a single entry point.
+// Note that we have to forward the `.import` files for backwards-compatibility with
+// projects that don't use Sass modules and include the `mat-`-prefixed mixins.
+
+@forward './core/core-theme' as core-*;
+@forward './common/common-theme';

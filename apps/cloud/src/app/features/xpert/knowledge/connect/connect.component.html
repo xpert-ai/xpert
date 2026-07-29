@@ -4,22 +4,22 @@
       <div class="relative flex flex-col items-center gap-[2px] self-stretch py-2">
         <div class="system-xl-semibold grow self-stretch text-text-primary">
           {{
-            'PAC.Knowledgebase.ConnectingToExternalKB' | translate: { Default: 'Connecting to external knowledgebase' }
+            'XP.Knowledgebase.ConnectingToExternalKB' | translate: { Default: 'Connecting to external knowledgebase' }
           }}
         </div>
         <p class="system-sm-regular text-text-tertiary font-body">
           <span>
             {{
-              'PAC.Knowledgebase.ConnectToExternalKB_1'
+              'XP.Knowledgebase.ConnectToExternalKB_1'
                 | translate: { Default: 'Connect to external knowledgebase via API and knowledgebase ID. Currently,' }
             }}
           </span>
           <span class="system-sm-medium text-text-secondary">
-            {{ 'PAC.Knowledgebase.ConnectToExternalKB_2' | translate: { Default: 'only supports search function.' } }}
+            {{ 'XP.Knowledgebase.ConnectToExternalKB_2' | translate: { Default: 'only supports search function.' } }}
           </span>
           <span>
             {{
-              'PAC.Knowledgebase.ConnectToExternalKB_3'
+              'XP.Knowledgebase.ConnectToExternalKB_3'
                 | translate: { Default: 'We strongly recommend that you use this feature before' }
             }}
           </span>
@@ -30,7 +30,7 @@
             [href]="helpUrl()"
           >
             {{
-              'PAC.Knowledgebase.ConnectToExternalKB_4'
+              'XP.Knowledgebase.ConnectToExternalKB_4'
                 | translate: { Default: 'Read the help documentation carefully.' }
             }}
           </a>
@@ -49,7 +49,7 @@
             <div class="flex flex-col justify-center self-stretch">
               <label class="system-sm-semibold text-text-secondary">
                 {{
-                  'PAC.Knowledgebase.ExternalKnowledgebaseName' | translate: { Default: 'External knowledgebase name' }
+                  'XP.Knowledgebase.ExternalKnowledgebaseName' | translate: { Default: 'External knowledgebase name' }
                 }}
               </label>
             </div>
@@ -57,7 +57,7 @@
               <input
                 class="xp-input w-full"
                 [placeholder]="
-                  'PAC.Knowledgebase.EnterExternalKnowledgebaseName'
+                  'XP.Knowledgebase.EnterExternalKnowledgebaseName'
                     | translate: { Default: 'Please enter external knowledgebase name' }
                 "
                 [(ngModel)]="name"
@@ -67,13 +67,13 @@
           <div class="flex flex-col gap-1 self-stretch">
             <div class="flex flex-col justify-center self-stretch">
               <label class="system-sm-semibold text-text-secondary">
-                {{ 'PAC.Knowledgebase.KnowledgebaseDescription' | translate: { Default: 'Knowledgebase description' } }}
+                {{ 'XP.Knowledgebase.KnowledgebaseDescription' | translate: { Default: 'Knowledgebase description' } }}
               </label>
             </div>
             <div class="flex flex-col gap-1 self-stretch">
               <textarea
                 [placeholder]="
-                  'PAC.Knowledgebase.DescribeKBContentOptional'
+                  'XP.Knowledgebase.DescribeKBContentOptional'
                     | translate: { Default: 'Describe the knowledge base content (optional)' }
                 "
                 class="xp-input flex h-20 items-start self-stretch"
@@ -89,7 +89,7 @@
           <div class="flex flex-col self-stretch">
             <label class="system-sm-semibold text-text-secondary">
               {{
-                'PAC.Knowledgebase.ExtKnowledgebaseIntegration'
+                'XP.Knowledgebase.ExtKnowledgebaseIntegration'
                   | translate: { Default: 'External knowledgebase integration' }
               }}
             </label>
@@ -97,7 +97,7 @@
 
           <xp-integration-select
             [placeholder]="
-              'PAC.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder'
+              'XP.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder'
                 | translate
                   : {
                       Default: 'There is no external knowledge base integration yet, click here to select or create one'
@@ -116,7 +116,7 @@
             } @else {
               <i class="ri-add-line"></i>
               <span class="system-sm-regular text-text-tertiary">
-                {{ 'PAC.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder' | translate: {Default: 'There is no external knowledge base integration yet, click here to select or create one'} }}
+                {{ 'XP.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder' | translate: {Default: 'There is no external knowledge base integration yet, click here to select or create one'} }}
               </span>
             }
           </button>
@@ -137,13 +137,13 @@
                 </div>
               } @empty {
                 <div class="p-4 text-center text-text-tertiary">
-                  {{ 'PAC.Knowledgebase.NoIntegrationYet' | translate: {Default: 'No knowledge base integration yet!'} }}
+                  {{ 'XP.Knowledgebase.NoIntegrationYet' | translate: {Default: 'No knowledge base integration yet!'} }}
                 </div>
               }
               <div class="border-t border-solid border-divider-regular my-1"></div>
               <div cdkMenuItem (click)="openIntegrations()">
                 <i class="ri-add-line mr-1"></i>
-                {{ 'PAC.Knowledgebase.CreateKBIntegration' | translate: {Default: 'Create knowledgebase integration'} }}
+                {{ 'XP.Knowledgebase.CreateKBIntegration' | translate: {Default: 'Create knowledgebase integration'} }}
               </div>
             </div>
           </ng-template> -->
@@ -151,14 +151,14 @@
         <div class="flex flex-col gap-1 self-stretch">
           <div class="flex flex-col self-stretch">
             <label class="system-sm-semibold text-text-secondary">
-              {{ 'PAC.Knowledgebase.ExtKBId' | translate: { Default: 'External knowledgebase ID' } }}
+              {{ 'XP.Knowledgebase.ExtKBId' | translate: { Default: 'External knowledgebase ID' } }}
             </label>
           </div>
           <div class="relative w-full">
             <input
               class="xp-input w-full"
               [placeholder]="
-                'PAC.Knowledgebase.EnterExtKBId' | translate: { Default: 'Please enter external knowledgebase ID' }
+                'XP.Knowledgebase.EnterExtKBId' | translate: { Default: 'Please enter external knowledgebase ID' }
               "
               [(ngModel)]="extKnowledgebaseId"
             />
@@ -168,7 +168,7 @@
       <div class="flex flex-col gap-2 self-stretch">
         <div class="flex h-7 flex-col gap-2 self-stretch pt-1">
           <label class="system-sm-semibold text-text-secondary">
-            {{ 'PAC.Knowledgebase.RecallSettings' | translate: { Default: 'Recall settings' } }}
+            {{ 'XP.Knowledgebase.RecallSettings' | translate: { Default: 'Recall settings' } }}
           </label>
         </div>
         <div class="flex gap-4 self-stretch flex-col sm:flex-row">
@@ -207,7 +207,7 @@
                 <div class="flex h-6 items-center">
                   <z-switch [(ngModel)]="enabledScore" class="mr-1" />
                   <span class="system-sm-semibold mr-1 text-text-secondary">
-                    {{ 'PAC.Knowledgebase.ScoreThreshold' | translate: { Default: 'Score Threshold' } }}
+                    {{ 'XP.Knowledgebase.ScoreThreshold' | translate: { Default: 'Score Threshold' } }}
                   </span>
                   <!-- <div class="w-4 h-4 shrink-0 flex justify-center items-center text-text-tertiary hover:text-text-primary">
                     <i class="ri-question-line"></i>
@@ -242,7 +242,7 @@
       <div class="flex items-center justify-end gap-2 self-stretch py-2">
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="goBack()">
           <div class="system-sm-medium text-text-secondary">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </div>
         </button>
         <button
@@ -252,7 +252,7 @@
           (click)="create()"
         >
           <div class="system-sm-medium text-components-button-primary-text">
-            {{ 'PAC.Knowledgebase.Connect' | translate: { Default: 'Connect' } }}
+            {{ 'XP.Knowledgebase.Connect' | translate: { Default: 'Connect' } }}
           </div>
           <i class="ri-corner-up-right-line"></i>
         </button>
@@ -260,11 +260,13 @@
     </div>
 
     @if (loading()) {
-      <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+      <xp-spin class="absolute left-0 top-0 w-full h-full" />
     }
   </div>
   <div class="flex w-[360px] flex-col items-start pb-2 pr-8 pt-[108px]">
-    <div class="flex w-full min-w-[240px] flex-col items-start gap-3 self-stretch rounded-xl bg-components-input-bg-normal p-6">
+    <div
+      class="flex w-full min-w-[240px] flex-col items-start gap-3 self-stretch rounded-xl bg-components-input-bg-normal p-6"
+    >
       <div
         class="flex h-10 w-10 grow items-center justify-center gap-2 self-stretch rounded-lg border-[0.5px] border-divider-subtle bg-components-card-bg p-1"
       >
@@ -273,12 +275,12 @@
       <p class="flex flex-col items-start gap-2 self-stretch">
         <span class="system-xl-semibold self-stretch text-text-secondary">
           {{
-            'PAC.Knowledgebase.HowConnectExtKB' | translate: { Default: 'How to connect to an external knowledge base' }
+            'XP.Knowledgebase.HowConnectExtKB' | translate: { Default: 'How to connect to an external knowledge base' }
           }}
         </span>
         <span class="system-sm-regular text-text-tertiary">
           {{
-            'PAC.Knowledgebase.HowConnectExtKB_1'
+            'XP.Knowledgebase.HowConnectExtKB_1'
               | translate
                 : {
                     Default:
@@ -291,11 +293,11 @@
             rel="noopener noreferrer"
             [href]="helpUrl()"
             >{{
-              'PAC.Knowledgebase.HowConnectExtKB_2' | translate: { Default: 'Learn how to create an external API.' }
+              'XP.Knowledgebase.HowConnectExtKB_2' | translate: { Default: 'Learn how to create an external API.' }
             }}</a
           >
           {{
-            'PAC.Knowledgebase.HowConnectExtKB_3'
+            'XP.Knowledgebase.HowConnectExtKB_3'
               | translate
                 : {
                     Default:
@@ -308,7 +310,7 @@
           target="_blank"
           rel="noopener noreferrer"
           [href]="learnMoreUrl()"
-          >{{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</a
+          >{{ 'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</a
         >
       </p>
     </div>

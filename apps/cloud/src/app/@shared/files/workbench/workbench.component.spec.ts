@@ -43,7 +43,7 @@ jest.mock('../../../@core', () => ({
   injectToastr: () => mockToastr
 }))
 
-jest.mock('@xpert-ai/ocap-angular/common', () => ({
+jest.mock('@xpert-ai/headless-ui', () => ({
   injectConfirmDelete: () => (_config: unknown, action: () => ReturnType<typeof of>) => action()
 }))
 
@@ -51,7 +51,7 @@ var MockFileTreeComponent: any
 jest.mock('../tree/tree.component', () => {
   @Component({
     standalone: true,
-    selector: 'pac-file-tree',
+    selector: 'xp-file-tree',
     template: ''
   })
   class MockFileTreeComponentImpl {
@@ -93,7 +93,7 @@ var MockFileViewerComponent: any
 jest.mock('../viewer/viewer.component', () => {
   @Component({
     standalone: true,
-    selector: 'pac-file-viewer',
+    selector: 'xp-file-viewer',
     template: ''
   })
   class MockFileViewerComponentImpl {
@@ -141,23 +141,21 @@ async function setup(options?: {
   fileDownloader?: jest.Mock
   referenceable?: boolean
 }) {
-  const rootFiles =
-    options?.rootFiles ??
-    [
-      {
-        filePath: 'SKILL.md',
-        fullPath: 'SKILL.md',
-        fileType: 'md',
-        hasChildren: false
-      },
-      {
-        filePath: 'docs',
-        fullPath: 'docs',
-        fileType: 'directory',
-        hasChildren: true,
-        children: null
-      }
-    ]
+  const rootFiles = options?.rootFiles ?? [
+    {
+      filePath: 'SKILL.md',
+      fullPath: 'SKILL.md',
+      fileType: 'md',
+      hasChildren: false
+    },
+    {
+      filePath: 'docs',
+      fullPath: 'docs',
+      fileType: 'directory',
+      hasChildren: true,
+      children: null
+    }
+  ]
   const nestedFiles = options?.nestedFiles ?? {
     docs: [
       {
@@ -192,7 +190,7 @@ async function setup(options?: {
     danger: mockToastr.danger,
     warning: mockToastr.warning
   }
-  const filesLoader = jest.fn((path?: string) => of(path ? nestedFiles[path] ?? [] : rootFiles))
+  const filesLoader = jest.fn((path?: string) => of(path ? (nestedFiles[path] ?? []) : rootFiles))
   const fileLoader = jest.fn((path: string) => of(fileContents[path]))
   const fileSaver = jest.fn((path: string, content: string) =>
     of({
@@ -279,9 +277,9 @@ describe('FileWorkbenchComponent', () => {
     await component.toggleDirectory(docsNode)
 
     expect(filesLoader).toHaveBeenCalledWith('docs')
-    expect((component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.[0]?.fullPath).toBe(
-      'docs/guide.md'
-    )
+    expect(
+      (component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.[0]?.fullPath
+    ).toBe('docs/guide.md')
   })
 
   it('downloads folder nodes through the configured downloader', async () => {
@@ -570,9 +568,11 @@ describe('FileWorkbenchComponent', () => {
     }
     await component.toggleDirectory(childNode)
     expect(
-      ((component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.find(
-        (item) => item.fullPath === 'docs/child'
-      ) as FileTreeNode | undefined)?.expanded
+      (
+        (component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.find(
+          (item) => item.fullPath === 'docs/child'
+        ) as FileTreeNode | undefined
+      )?.expanded
     ).toBe(true)
     expect(collectExpandedDirectoryPaths(component.fileTree())).toEqual(['docs', 'docs/child'])
 

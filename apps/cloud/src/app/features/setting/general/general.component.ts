@@ -1,14 +1,14 @@
 // import { Component, OnInit, inject } from '@angular/core'
 // import { LANGUAGES, ROUTE_ANIMATIONS_ELEMENTS, Store } from '../../../@core/index'
 // import { toSignal } from '@angular/core/rxjs-interop'
-// import { ThemesEnum } from '@xpert-ai/core'
+// import { ThemesEnum } from '@xpert-ai/headless-ui'
 
 // @Component({
-//   selector: 'pac-general',
+//   selector: 'xp-general',
 //   templateUrl: './general.component.html',
 //   styleUrls: ['./general.component.scss']
 // })
-// export class PACGeneralComponent {
+// export class XpGeneralComponent {
 //   readonly store = inject(Store)
 
 //   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS

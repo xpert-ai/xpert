@@ -15,17 +15,17 @@
       </span>
       <div class="min-w-0">
         <div class="truncate text-sm font-medium text-text-primary">
-          {{ 'PAC.Feature.Features.' + feature.code + '.Name' | translate: { Default: feature.name } }}
+          {{ 'XP.Feature.Features.' + feature.code + '.Name' | translate: { Default: feature.name } }}
         </div>
         <div
           data-feature-description
           class="mt-0.5 truncate text-xs text-text-tertiary md:hidden"
           [zTooltip]="
-            'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description }
+            'XP.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description }
           "
           zTooltipClass="max-w-lg max-h-80 whitespace-pre-wrap overflow-auto text-left"
         >
-          {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
+          {{ 'XP.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
         </div>
       </div>
     </div>
@@ -35,11 +35,11 @@
         data-feature-description
         class="truncate"
         [zTooltip]="
-          'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description }
+          'XP.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description }
         "
         zTooltipClass="max-w-lg max-h-80 whitespace-pre-wrap overflow-auto text-left"
       >
-        {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
+        {{ 'XP.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
       </div>
     </div>
 
@@ -54,9 +54,9 @@
       "
     >
       @if (enabledFeature(feature)) {
-        {{ 'PAC.Feature.Enabled' | translate: { Default: 'Enabled' } }}
+        {{ 'XP.Feature.Enabled' | translate: { Default: 'Enabled' } }}
       } @else {
-        {{ 'PAC.Feature.Disabled' | translate: { Default: 'Disabled' } }}
+        {{ 'XP.Feature.Disabled' | translate: { Default: 'Disabled' } }}
       }
     </z-badge>
 
@@ -82,7 +82,7 @@
             type="search"
             [ngModel]="searchText()"
             (ngModelChange)="searchText.set($event)"
-            [placeholder]="'PAC.Feature.SearchPlaceholder' | translate: { Default: 'Search modules...' }"
+            [placeholder]="'XP.Feature.SearchPlaceholder' | translate: { Default: 'Search modules...' }"
           />
         </z-input-group>
 
@@ -90,7 +90,7 @@
           class="w-full sm:w-[180px]"
           zSize="sm"
           [zValue]="statusFilter()"
-          [zPlaceholder]="'PAC.Feature.Filters.Status' | translate: { Default: 'Status' }"
+          [zPlaceholder]="'XP.Feature.Filters.Status' | translate: { Default: 'Status' }"
           (zSelectionChange)="setStatusFilter($event)"
         >
           @for (option of statusFilters; track $index) {
@@ -104,7 +104,7 @@
           class="w-full sm:w-[220px]"
           zSize="sm"
           [zValue]="groupFilter()"
-          [zPlaceholder]="'PAC.Feature.Filters.Category' | translate: { Default: 'Category' }"
+          [zPlaceholder]="'XP.Feature.Filters.Category' | translate: { Default: 'Category' }"
           (zSelectionChange)="setGroupFilter($event)"
         >
           @for (option of groupFilterOptions(features); track option.value) {
@@ -123,7 +123,7 @@
         (click)="searchText.set(''); statusFilter.set('all'); groupFilter.set('all')"
       >
         <z-icon zType="restart_alt" />
-        {{ 'PAC.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
+        {{ 'XP.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
       </button>
     </div>
 
@@ -172,7 +172,7 @@
                   >
                     {{ group.titleKey | translate: { Default: group.titleDefault } }}
                     @if (group.deprecated) {
-                      {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                      {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
                     }
                   </span>
                   @if (group.deprecated) {
@@ -180,7 +180,7 @@
                       data-feature-deprecated-icon
                       zType="triangle-alert"
                       class="ml-1 size-4 shrink-0 text-text-warning"
-                      [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                      [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
                       zPosition="top"
                     />
                   }
@@ -200,20 +200,20 @@
                 @if (hasChildFeatures(group.feature)) {
                   @switch (featureGroupStatus(group.feature)) {
                     @case ('enabled') {
-                      {{ 'PAC.Feature.AllEnabled' | translate: { Default: 'All enabled' } }}
+                      {{ 'XP.Feature.AllEnabled' | translate: { Default: 'All enabled' } }}
                     }
                     @case ('partial') {
-                      {{ 'PAC.Feature.PartiallyEnabled' | translate: { Default: 'Partially enabled' } }}
+                      {{ 'XP.Feature.PartiallyEnabled' | translate: { Default: 'Partially enabled' } }}
                     }
                     @case ('disabled') {
-                      {{ 'PAC.Feature.AllDisabled' | translate: { Default: 'All disabled' } }}
+                      {{ 'XP.Feature.AllDisabled' | translate: { Default: 'All disabled' } }}
                     }
                   }
                 } @else {
                   @if (enabledFeature(group.feature)) {
-                    {{ 'PAC.Feature.Enabled' | translate: { Default: 'Enabled' } }}
+                    {{ 'XP.Feature.Enabled' | translate: { Default: 'Enabled' } }}
                   } @else {
-                    {{ 'PAC.Feature.Disabled' | translate: { Default: 'Disabled' } }}
+                    {{ 'XP.Feature.Disabled' | translate: { Default: 'Disabled' } }}
                   }
                 }
               </z-badge>
@@ -247,11 +247,11 @@
         <z-card-content class="flex min-h-[180px] flex-col items-center justify-center gap-2 p-8 text-center">
           <z-icon zType="search_off" class="text-3xl text-text-tertiary" />
           <div class="text-sm font-medium text-text-primary">
-            {{ 'PAC.Feature.EmptyTitle' | translate: { Default: 'No matching modules' } }}
+            {{ 'XP.Feature.EmptyTitle' | translate: { Default: 'No matching modules' } }}
           </div>
           <div class="max-w-md text-sm text-text-tertiary">
             {{
-              'PAC.Feature.EmptyDescription' | translate: { Default: 'Adjust the keyword, status, or category filter.' }
+              'XP.Feature.EmptyDescription' | translate: { Default: 'Adjust the keyword, status, or category filter.' }
             }}
           </div>
         </z-card-content>

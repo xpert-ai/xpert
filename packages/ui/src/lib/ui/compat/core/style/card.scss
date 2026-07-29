@@ -1,0 +1,17 @@
+@reference "../../../tailwind-workspace-reference.css";
+.xp-card {
+  --card-menu-edge: 5px;
+
+  @apply relative flex shadow-sm border border-gray-100 rounded-xl 
+    hover:shadow-lg dark:border-neutral-700 dark:bg-white/10 dark:hover:bg-white/20;
+
+  .xp-card__menu {
+    @apply absolute;
+    right: var(--card-menu-edge);
+    top: var(--card-menu-edge);
+
+    &.active {
+      opacity: 1;
+    }
+  }
+}

@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TChatConversationOptions } from '@cloud/app/@core'
-import { ListHeightStaggerAnimation } from '@xpert-ai/core'
+import { ListHeightStaggerAnimation } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import { ChatConversationFilesComponent } from '../../../@shared/chat/conversation-files/conversation-files.component'

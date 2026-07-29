@@ -1,8 +1,7 @@
-
 import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@xpert-ai/core'
+import { FileTypePipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { CopyComponent } from '@cloud/app/@shared/common'
@@ -50,12 +49,10 @@ export class ChatCanvasFileViewerComponent {
   readonly canExportToPdf = this.previewState.canExportToPdf
 
   constructor() {
-    effect(
-      () => {
-        this.file()
-        this.preview.set(true)
-      }
-    )
+    effect(() => {
+      this.file()
+      this.preview.set(true)
+    })
   }
 
   exportToPdf() {

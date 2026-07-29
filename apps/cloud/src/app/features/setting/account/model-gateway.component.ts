@@ -25,9 +25,9 @@ import {
   ZardInputDirective,
   ZardTableImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom, startWith } from 'rxjs'
-import { API_PREFIX, Store } from '@xpert-ai/cloud/state'
+import { API_PREFIX, Store } from '@cloud/app/@core/state'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
 import { injectToastr } from '../../../@core/services/toastr.service'
 import { getErrorMessage } from '../../../@core/types'
@@ -48,7 +48,7 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
 
 @Component({
   standalone: true,
-  selector: 'pac-account-model-gateway',
+  selector: 'xp-account-model-gateway',
   templateUrl: './model-gateway.component.html',
   host: {
     class: 'flex min-w-0 w-full max-w-full flex-1'
@@ -57,7 +57,7 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     ...ZardAccordionImports,
     ZardBadgeComponent,
     ZardButtonComponent,
@@ -70,7 +70,7 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PACAccountModelGatewayComponent implements OnInit {
+export class XpAccountModelGatewayComponent implements OnInit {
   readonly #service = inject(ModelGatewayService)
   readonly #dialog = inject(ZardDialogService)
   readonly #toastr = injectToastr()
@@ -184,7 +184,7 @@ export class PACAccountModelGatewayComponent implements OnInit {
         })
       )
       this.#toastr.success(
-        this.#translate.instant('PAC.ModelGateway.RequestSubmitted', {
+        this.#translate.instant('XP.ModelGateway.RequestSubmitted', {
           Default: 'External API model request submitted.'
         })
       )
@@ -281,7 +281,7 @@ export class PACAccountModelGatewayComponent implements OnInit {
   async copy(value: string) {
     try {
       await this.#document.defaultView?.navigator.clipboard.writeText(value)
-      this.#toastr.success(this.#translate.instant('PAC.ACTIONS.Copied', { Default: 'Copied' }))
+      this.#toastr.success(this.#translate.instant('XP.ACTIONS.Copied', { Default: 'Copied' }))
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     }

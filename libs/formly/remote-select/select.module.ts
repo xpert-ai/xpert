@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { NgmFormlyRemoteSelectComponent } from './select.type'
+import { XpFormlyRemoteSelectComponent } from './select.type'
 
 @NgModule({
   declarations: [],
@@ -12,10 +12,10 @@ import { NgmFormlyRemoteSelectComponent } from './select.type'
       types: [
         {
           name: 'remote-select',
-          component: NgmFormlyRemoteSelectComponent
+          component: XpFormlyRemoteSelectComponent
         }
       ]
     })
   ]
 })
-export class NgmFormlyRemoteSelectModule {}
+export class XpFormlyRemoteSelectModule {}

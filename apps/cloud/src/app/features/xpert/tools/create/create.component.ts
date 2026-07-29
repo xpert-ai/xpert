@@ -4,7 +4,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -28,9 +28,9 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
     DragDropModule,
     CdkListboxModule,
     XpertStudioConfigureToolComponent,
-    XpertStudioConfigureODataComponent,
+    XpertStudioConfigureODataComponent
   ],
-  selector: 'pac-xpert-tool-create',
+  selector: 'xp-xpert-tool-create',
   templateUrl: './create.component.html',
   styleUrl: 'create.component.scss',
   animations: [routeAnimations],
@@ -64,7 +64,7 @@ export class XpertStudioCreateToolComponent {
       })
       .subscribe({
         next: (result) => {
-          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' }, result.name)
+          this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' }, result.name)
           this.#dialogRef.close(result)
         },
         error: (error) => {

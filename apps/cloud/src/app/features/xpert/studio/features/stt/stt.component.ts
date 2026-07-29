@@ -1,7 +1,6 @@
-
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, OverlayAnimations } from '@xpert-ai/core'
+import { attrModel, OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
@@ -18,7 +17,7 @@ import { linkedXpertFeaturesModel } from '../types'
 })
 export class XpertStudioFeaturesSTTComponent {
   eAiModelType = AiModelTypeEnum
-  
+
   readonly apiService = inject(XpertStudioApiService)
 
   readonly features = linkedXpertFeaturesModel(this.apiService)

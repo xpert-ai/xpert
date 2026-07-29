@@ -1,5 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core'
-import { injectXpertPreferences } from '@xpert-ai/cloud/state'
+import { injectXpertPreferences } from '@cloud/app/@core/state'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, Observable, pipe, shareReplay } from 'rxjs'
 import { IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
@@ -59,12 +59,5 @@ export class ChatHomeService extends XpertHomeService {
       this.#xperts[slug] = this.xpertService.getBySlug(slug).pipe(shareReplay(1))
     }
     return this.#xperts[slug]
-  }
-
-  /**
-   * 
-   */
-  selectPublicSemanticModel(id: string) {
-    return this.selectSemanticModel(id)
   }
 }

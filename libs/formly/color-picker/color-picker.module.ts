@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { PACFormlyColorPickerComponent } from './color-picker.component'
+import { XpFormlyColorPickerComponent } from './color-picker.component'
 
 @NgModule({
   declarations: [],
@@ -9,7 +9,7 @@ import { PACFormlyColorPickerComponent } from './color-picker.component'
       types: [
         {
           name: 'color',
-          component: PACFormlyColorPickerComponent,
+          component: XpFormlyColorPickerComponent,
           defaultOptions: {
             defaultValue: ''
           }
@@ -18,4 +18,4 @@ import { PACFormlyColorPickerComponent } from './color-picker.component'
     })
   ]
 })
-export class PACFormlyColorPickerModule {}
+export class XpFormlyColorPickerModule {}

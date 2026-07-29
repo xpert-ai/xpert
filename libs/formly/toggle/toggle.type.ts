@@ -8,11 +8,11 @@ interface ToggleProps extends FormlyFieldProps {
 }
 
 export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> {
-  type: 'toggle' | Type<NgmFormlyToggleComponent>
+  type: 'toggle' | Type<XpFormlyToggleComponent>
 }
 
 @Component({
-  selector: 'ngm-formly-toggle',
+  selector: 'xp-formly-toggle',
   standalone: false,
   template: `
     <z-switch
@@ -32,7 +32,7 @@ export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> 
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['toggle.type.scss']
 })
-export class NgmFormlyToggleComponent extends FieldType<FieldTypeConfig<ToggleProps>> {
+export class XpFormlyToggleComponent extends FieldType<FieldTypeConfig<ToggleProps>> {
   @ViewChild(ZardSwitchComponent, { static: true }) slideToggle!: ZardSwitchComponent
 
   onContainerClick(): void {

@@ -6,6 +6,7 @@ Shared UI package for Angular applications.
 
 - Default design tokens and theme CSS in `src/styles.css`
 - Reusable standalone components in `src/lib/components`
+- Remaining compatibility UI primitives in `src/lib/ui/compat`
 - Shared utilities in `src/lib/utils`
 - Public exports from `src/public-api.ts`
 

@@ -2,10 +2,10 @@ jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
 import { signal } from '@angular/core'
 import { fakeAsync, TestBed, tick } from '@angular/core/testing'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { UsersService } from '@cloud/app/@core/state'
 import { BehaviorSubject, of } from 'rxjs'
 import { ToastrService, XpertAPIService } from '../../../../@core'
-import { PACEditUserComponent } from '../edit-user/edit-user.component'
+import { XpEditUserComponent } from '../edit-user/edit-user.component'
 import { UserBasicComponent } from './user-basic.component'
 
 describe('UserBasicComponent', () => {
@@ -24,7 +24,7 @@ describe('UserBasicComponent', () => {
       imports: [UserBasicComponent],
       providers: [
         {
-          provide: PACEditUserComponent,
+          provide: XpEditUserComponent,
           useValue: {
             userId$,
             user: signal({ id: 'user-1' })
@@ -71,7 +71,7 @@ describe('UserBasicComponent', () => {
       imports: [UserBasicComponent],
       providers: [
         {
-          provide: PACEditUserComponent,
+          provide: XpEditUserComponent,
           useValue: {
             userId$,
             user: currentUser

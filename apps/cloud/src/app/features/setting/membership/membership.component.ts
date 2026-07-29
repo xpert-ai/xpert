@@ -48,7 +48,7 @@ const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'da
 
 @Component({
   standalone: true,
-  selector: 'pac-membership-admin',
+  selector: 'xp-membership-admin',
   imports: [
     CommonModule,
     FormsModule,
@@ -191,7 +191,7 @@ export class MembershipAdminComponent implements OnInit {
       next: (status) => {
         this.scopeStatus.set(status)
         this.#toastr.success(
-          this.#translate.instant('PAC.Membership.InitializeSuccess', {
+          this.#translate.instant('XP.Membership.InitializeSuccess', {
             Default: 'Organization membership is ready.'
           })
         )
@@ -282,15 +282,15 @@ export class MembershipAdminComponent implements OnInit {
 
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
-        title: this.#translate.instant('PAC.Membership.ArchivePlanConfirmTitle', {
+        title: this.#translate.instant('XP.Membership.ArchivePlanConfirmTitle', {
           Default: 'Archive membership plan?'
         }),
-        description: this.#translate.instant('PAC.Membership.ArchivePlanConfirmDescription', {
+        description: this.#translate.instant('XP.Membership.ArchivePlanConfirmDescription', {
           Default: 'Archive plan "{{name}}"? It will no longer be available for new assignments.',
           name: plan.name
         }),
-        actionText: this.#translate.instant('PAC.Membership.ArchivePlan', { Default: 'Archive' }),
-        cancelText: this.#translate.instant('PAC.ACTIONS.Cancel', { Default: 'Cancel' }),
+        actionText: this.#translate.instant('XP.Membership.ArchivePlan', { Default: 'Archive' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
         destructive: true
       })
     )
@@ -318,13 +318,13 @@ export class MembershipAdminComponent implements OnInit {
 
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
-        title: this.#translate.instant('PAC.Membership.DeletePlan', { Default: 'Delete plan' }),
-        description: this.#translate.instant('PAC.Membership.DeletePlanConfirm', {
+        title: this.#translate.instant('XP.Membership.DeletePlan', { Default: 'Delete plan' }),
+        description: this.#translate.instant('XP.Membership.DeletePlanConfirm', {
           Default: 'Delete archived plan "{{name}}"? This cannot be undone.',
           name: plan.name
         }),
-        actionText: this.#translate.instant('PAC.ACTIONS.Delete', { Default: 'Delete' }),
-        cancelText: this.#translate.instant('PAC.ACTIONS.Cancel', { Default: 'Cancel' }),
+        actionText: this.#translate.instant('XP.ACTIONS.Delete', { Default: 'Delete' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
         destructive: true
       })
     )
@@ -335,7 +335,7 @@ export class MembershipAdminComponent implements OnInit {
     this.loading.set(true)
     try {
       await firstValueFrom(this.#membership.deletePlan(plan.id))
-      this.#toastr.success('PAC.Membership.DeletePlanSuccess', { Default: 'Plan deleted.' })
+      this.#toastr.success('XP.Membership.DeletePlanSuccess', { Default: 'Plan deleted.' })
       this.load()
     } catch (error) {
       this.loading.set(false)
@@ -345,28 +345,28 @@ export class MembershipAdminComponent implements OnInit {
 
   pointsLabel(points?: number | null) {
     return points === null
-      ? this.#translate.instant('PAC.Membership.Unlimited', { Default: 'Unlimited' })
+      ? this.#translate.instant('XP.Membership.Unlimited', { Default: 'Unlimited' })
       : String(points ?? 0)
   }
 
   scopeDefaultPlanLabel(status: IMembershipScopeStatus | null) {
     if (!status?.defaultPlan) {
-      return this.#translate.instant('PAC.Membership.NoDefaultPlan', { Default: 'No default plan' })
+      return this.#translate.instant('XP.Membership.NoDefaultPlan', { Default: 'No default plan' })
     }
     return `${status.defaultPlan.name} · ${this.pointsLabel(status.defaultPlan.includedPoints)}`
   }
 
   scopeStatusLabel(status: IMembershipScopeStatus | null) {
     if (!status) {
-      return this.#translate.instant('PAC.KEY_WORDS.Loading', { Default: 'Loading...' })
+      return this.#translate.instant('XP.KEY_WORDS.Loading', { Default: 'Loading...' })
     }
     if (status.initialized) {
-      return this.#translate.instant('PAC.Membership.ScopeInitialized', { Default: 'Initialized' })
+      return this.#translate.instant('XP.Membership.ScopeInitialized', { Default: 'Initialized' })
     }
     if (status.needsRepair) {
-      return this.#translate.instant('PAC.Membership.ScopeNeedsRepair', { Default: 'Needs repair' })
+      return this.#translate.instant('XP.Membership.ScopeNeedsRepair', { Default: 'Needs repair' })
     }
-    return this.#translate.instant('PAC.Membership.ScopeNotInitialized', { Default: 'Not initialized' })
+    return this.#translate.instant('XP.Membership.ScopeNotInitialized', { Default: 'Not initialized' })
   }
 
   setDraftUnlimited(enabled: boolean) {
@@ -506,16 +506,16 @@ export class MembershipAdminComponent implements OnInit {
 
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
-        title: this.#translate.instant('PAC.Membership.BulkActionConfirmTitle', {
+        title: this.#translate.instant('XP.Membership.BulkActionConfirmTitle', {
           Default: 'Apply membership action?'
         }),
-        description: this.#translate.instant('PAC.Membership.BulkActionConfirmDescription', {
+        description: this.#translate.instant('XP.Membership.BulkActionConfirmDescription', {
           Default: 'Apply "{{action}}" to {{count}} selected users?',
           action: input.action,
           count: userIds.length
         }),
-        actionText: this.#translate.instant('PAC.Membership.ApplyBulkAction', { Default: 'Apply action' }),
-        cancelText: this.#translate.instant('PAC.ACTIONS.Cancel', { Default: 'Cancel' }),
+        actionText: this.#translate.instant('XP.Membership.ApplyBulkAction', { Default: 'Apply action' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
         destructive: input.action === MembershipBulkActionEnum.Revoke
       })
     )
@@ -537,7 +537,7 @@ export class MembershipAdminComponent implements OnInit {
           this.selectedUserIds.set(new Set())
           if (failed.length) {
             this.#toastr.error(
-              this.#translate.instant('PAC.Membership.BulkActionPartialFailure', {
+              this.#translate.instant('XP.Membership.BulkActionPartialFailure', {
                 Default: '{{succeeded}} succeeded and {{failed}} failed. {{message}}',
                 succeeded,
                 failed: failed.length,
@@ -545,7 +545,7 @@ export class MembershipAdminComponent implements OnInit {
               })
             )
           } else {
-            this.#toastr.success('PAC.Membership.BulkActionSuccess', {
+            this.#toastr.success('XP.Membership.BulkActionSuccess', {
               Default: `${succeeded} users updated.`,
               count: succeeded
             })
@@ -591,18 +591,18 @@ export class MembershipAdminComponent implements OnInit {
 
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
-        title: this.#translate.instant('PAC.Membership.ReassignConfirmTitle', {
+        title: this.#translate.instant('XP.Membership.ReassignConfirmTitle', {
           Default: 'Reassign plan members?'
         }),
-        description: this.#translate.instant('PAC.Membership.ReassignConfirmDescription', {
+        description: this.#translate.instant('XP.Membership.ReassignConfirmDescription', {
           Default:
             'Move {{count}} members from "{{source}}" to "{{target}}"? Their current cycle and used cycle points will be reset.',
           count: this.planMemberCount(),
           source: plan.name,
           target: targetPlan.name
         }),
-        actionText: this.#translate.instant('PAC.Membership.ReassignMembers', { Default: 'Reassign members' }),
-        cancelText: this.#translate.instant('PAC.ACTIONS.Cancel', { Default: 'Cancel' }),
+        actionText: this.#translate.instant('XP.Membership.ReassignMembers', { Default: 'Reassign members' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
         destructive: true
       })
     )
@@ -613,7 +613,7 @@ export class MembershipAdminComponent implements OnInit {
     this.loading.set(true)
     this.#membership.reassignPlanMembers(plan.id, { targetPlanId: this.migrationTargetPlanId }).subscribe({
       next: ({ updated }) => {
-        this.#toastr.success('PAC.Membership.ReassignSuccess', {
+        this.#toastr.success('XP.Membership.ReassignSuccess', {
           Default: `${updated} members reassigned.`,
           count: updated
         })
@@ -745,10 +745,10 @@ export class MembershipAdminComponent implements OnInit {
 
   modelTargetLabel(option: MembershipModelOption) {
     if (!option.provider) {
-      return this.#translate.instant('PAC.Membership.AllModels', { Default: 'All models' })
+      return this.#translate.instant('XP.Membership.AllModels', { Default: 'All models' })
     }
     if (option.model === '*') {
-      return `${option.provider} · ${this.#translate.instant('PAC.Membership.AllProviderModels', {
+      return `${option.provider} · ${this.#translate.instant('XP.Membership.AllProviderModels', {
         Default: 'All provider models'
       })}`
     }
@@ -760,7 +760,7 @@ export class MembershipAdminComponent implements OnInit {
     const allowAllModels = form.allowAllModels
     if (!form.unlimited && form.includedPoints === null) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Membership.InvalidPoints', {
+        this.#translate.instant('XP.Membership.InvalidPoints', {
           Default: 'Points per period must be zero or greater.'
         })
       )
@@ -768,7 +768,7 @@ export class MembershipAdminComponent implements OnInit {
     }
     if (!allowAllModels && !this.allowedModels.length) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Membership.SelectAtLeastOneModel', {
+        this.#translate.instant('XP.Membership.SelectAtLeastOneModel', {
           Default: 'Select at least one model or allow all models.'
         })
       )
@@ -779,7 +779,7 @@ export class MembershipAdminComponent implements OnInit {
       this.modelMultipliers.some((rule) => !Number.isFinite(Number(rule.multiplier)) || Number(rule.multiplier) < 0)
     ) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Membership.InvalidMultiplier', {
+        this.#translate.instant('XP.Membership.InvalidMultiplier', {
           Default: 'Model multipliers must be zero or greater.'
         })
       )
@@ -788,7 +788,7 @@ export class MembershipAdminComponent implements OnInit {
 
     if (this.rateLimits.some((rule) => !Number.isFinite(Number(rule.pointLimit)) || Number(rule.pointLimit) <= 0)) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Membership.InvalidRateLimit', {
+        this.#translate.instant('XP.Membership.InvalidRateLimit', {
           Default: 'Usage limits must be greater than zero.'
         })
       )

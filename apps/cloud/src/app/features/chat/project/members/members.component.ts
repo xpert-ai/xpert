@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { nonNullable } from '@xpert-ai/copilot'
+import { nonNullable } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectUser, IUser, IXpertProject, XpertProjectService } from 'apps/cloud/src/app/@core'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'

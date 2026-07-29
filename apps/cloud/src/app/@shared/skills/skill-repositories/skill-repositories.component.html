@@ -1,5 +1,5 @@
 <div class="mb-2 text-lg font-semibold text-foreground">
-  {{ 'Pro.Repositories' | translate: {Default: 'Repositories'} }}
+  {{ 'Pro.Repositories' | translate: { Default: 'Repositories' } }}
 </div>
 <div class="mt-2 flex flex-wrap gap-3">
   @for (repo of repositories(); track repo.id) {
@@ -16,26 +16,30 @@
         ></span>
         {{ repo.name }}
         @if (isSystemManaged(repo)) {
-          <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary">
-            {{ 'PAC.Skill.SystemManagedRepository' | translate: { Default: 'System' } }}
+          <span
+            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary"
+          >
+            {{ 'XP.Skill.SystemManagedRepository' | translate: { Default: 'System' } }}
           </span>
         }
       </div>
       <div class="mt-1 flex flex-1 items-center gap-2 text-xs text-muted-foreground">
         @if (repo.lastSyncAt) {
           <span class="text-muted-foreground">•</span>
-          <span>{{'Pro.Synced' | translate: {Default: 'Synced'} }} {{ repo.lastSyncAt | date: 'short' }}</span>
+          <span>{{ 'Pro.Synced' | translate: { Default: 'Synced' } }} {{ repo.lastSyncAt | date: 'short' }}</span>
         }
       </div>
 
       @if (!readonlyMode()) {
-        <div class="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-card p-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div
+          class="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-card p-1 opacity-0 transition-opacity group-hover:opacity-100"
+        >
           @if (!isSystemManaged(repo)) {
             <button
               type="button"
               class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
               (click)="editRepository(repo, $event)"
-              [title]="'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'}"
+              [title]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
             >
               <i class="ri-pencil-line"></i>
             </button>
@@ -45,7 +49,7 @@
               class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
               [disabled]="savingRepo()"
               (click)="deleteRepository(repo, $event)"
-              [title]="'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'}"
+              [title]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
             >
               <i class="ri-delete-bin-line"></i>
             </button>
@@ -55,7 +59,7 @@
             type="button"
             class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
             (click)="openRepository(repo, $event)"
-            [title]="'PAC.ACTIONS.Setting' | translate: {Default: 'Setting'}"
+            [title]="'XP.ACTIONS.Setting' | translate: { Default: 'Setting' }"
           >
             <i class="ri-settings-3-line"></i>
           </button>
@@ -63,4 +67,4 @@
       }
     </div>
   }
-  </div>
+</div>

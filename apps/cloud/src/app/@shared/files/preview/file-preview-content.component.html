@@ -1,6 +1,6 @@
 <div class="h-full flex flex-1 flex-col overflow-hidden">
   @if (loading()) {
-    <ngm-spin class="flex flex-1 items-center justify-center" />
+    <xp-spin class="flex flex-1 items-center justify-center" />
   } @else if (showUnsupportedState()) {
     <div class="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
       <div class="flex w-[280px] items-center gap-3 rounded-[10px] bg-background-default-subtle px-3 py-3">
@@ -15,9 +15,9 @@
       </div>
 
       <div class="text-center text-base text-text-tertiary">
-        {{ 'PAC.Chat.FormatCannotPreviewed' | translate: { Default: 'This format cannot be previewed.' } }}
+        {{ 'XP.Chat.FormatCannotPreviewed' | translate: { Default: 'This format cannot be previewed.' } }}
         <br />{{
-          'PAC.Chat.DownloadFiletoView' | translate: { Default: 'Please download the file to view its contents.' }
+          'XP.Chat.DownloadFiletoView' | translate: { Default: 'Please download the file to view its contents.' }
         }}
       </div>
 
@@ -28,7 +28,7 @@
           (click)="download.emit()"
         >
           <i class="ri-download-2-line"></i>
-          <span class="text-sm text-current">{{ 'PAC.Chat.Download' | translate: { Default: 'Download' } }}</span>
+          <span class="text-sm text-current">{{ 'XP.Chat.Download' | translate: { Default: 'Download' } }}</span>
         </button>
       }
     </div>
@@ -37,7 +37,7 @@
       @case ('text') {
         <markdown
           clipboard
-          class="ngm-copilot-markdown flex-1 overflow-auto px-8 py-4"
+          class="xp-copilot-markdown flex-1 overflow-auto px-8 py-4"
           lineNumbers
           [start]="5"
           [data]="content() ?? ''"
@@ -47,7 +47,7 @@
         <pre class="flex-1 overflow-auto p-4 text-sm whitespace-pre-wrap"><code>{{ content() ?? '' }}</code></pre>
       }
       @case ('html') {
-        <pac-file-html-preview
+        <xp-file-html-preview
           class="h-full"
           [content]="content()"
           [filePath]="filePath()"
@@ -68,7 +68,7 @@
         >
           @if (hasDocumentBlob()) {
             <div #documentPreviewBody data-file-preview-document-body="true" class="min-h-full">
-              <pac-file-docx-preview class="block min-h-full" [documentBlob]="documentBlob()" [fileName]="fileName()" />
+              <xp-file-docx-preview class="block min-h-full" [documentBlob]="documentBlob()" [fileName]="fileName()" />
             </div>
           } @else {
             <pre
@@ -91,7 +91,7 @@
               (click)="emitDocumentReferenceSelection()"
             >
               <i class="ri-code-box-line mr-1"></i>
-              {{ 'PAC.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
+              {{ 'XP.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
             </button>
           }
         </div>
@@ -112,7 +112,7 @@
                 <div class="truncate text-sm font-semibold text-text-primary">{{ fileName() }}</div>
                 <div class="text-xs text-text-tertiary">
                   {{
-                    'PAC.Files.PresentationTextPreview'
+                    'XP.Files.PresentationTextPreview'
                       | translate: { Default: 'Extracted text preview from the slides.' }
                   }}
                 </div>
@@ -145,7 +145,7 @@
       }
       @case ('spreadsheet') {
         <div class="flex h-full min-h-0 flex-col">
-          @let previewTopRowsText = 'PAC.Chat.PreviewTopRows' | translate: { count: spreadsheet()?.rowLimit };
+          @let previewTopRowsText = 'XP.Chat.PreviewTopRows' | translate: { count: spreadsheet()?.rowLimit };
           @if (spreadsheet()?.sheets?.length > 1) {
             <div class="flex gap-2 overflow-x-auto border-b border-divider-regular px-4 py-3">
               @for (sheet of spreadsheet()?.sheets; track sheet.name; let index = $index) {
@@ -167,13 +167,13 @@
 
           <div class="border-b border-divider-regular px-4 py-2 text-xs text-text-tertiary">
             {{
-              previewTopRowsText === 'PAC.Chat.PreviewTopRows'
+              previewTopRowsText === 'XP.Chat.PreviewTopRows'
                 ? 'Previewing the first ' + (spreadsheet()?.rowLimit ?? 0) + ' rows per sheet.'
                 : previewTopRowsText
             }}
           </div>
 
-          <ngm-table
+          <xp-table
             class="h-full max-w-full striped min-h-0 flex-1 overflow-auto"
             [columns]="activeSheet()?.columns ?? []"
             [data]="activeSheet()?.rows ?? []"

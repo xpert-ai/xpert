@@ -1,11 +1,11 @@
 <xpert-webapp class="w-full h-full overflow-y-auto">
   @if (!xpert()) {
-    <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
+    <xp-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
   }
 
-  <button action class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary
-    hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0
-    hover:text-text-primary"
+  <button
+    action
+    class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0 hover:text-text-primary"
     type="button"
     [attr.active]="cmt.isOpen()"
     #cmt="cdkMenuTriggerFor"
@@ -14,7 +14,7 @@
     @if (xpert()) {
       <div class="truncate">{{ xpert()?.title || xpert()?.name }}</div>
     } @else {
-      <div class="truncate">{{ 'PAC.Chat.Common' | translate: { Default: 'Common' } }}</div>
+      <div class="truncate">{{ 'XP.Chat.Common' | translate: { Default: 'Common' } }}</div>
     }
     <i class="ri-arrow-down-s-line transition-transform text-text-primary" [class.rotate-180]="cmt.isOpen()"></i>
   </button>
@@ -22,8 +22,11 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary overflow-visible">
-    <button class="flex justify-start items-center p-2 rounded-lg shadow-sm hover:shadow-md !bg-components-card-bg hover:!bg-background-default-subtle sticky top-0 z-10"
-      cdkMenuItem (click)="newConv()">
+    <button
+      class="flex justify-start items-center p-2 rounded-lg shadow-sm hover:shadow-md !bg-components-card-bg hover:!bg-background-default-subtle sticky top-0 z-10"
+      cdkMenuItem
+      (click)="newConv()"
+    >
       <svg
         width="20"
         height="20"
@@ -44,14 +47,14 @@
           stroke-linecap="square"
         ></path>
       </svg>
-      {{ 'PAC.Xpert.NewChat' | translate: { Default: 'New Chat' } }}
+      {{ 'XP.Xpert.NewChat' | translate: { Default: 'New Chat' } }}
     </button>
 
     <!-- Search digital experts -->
     <div class="bg-components-card-bg border-b border-border px-2 py-2 mb-2" (click)="$event.stopPropagation()">
       <div class="relative">
         <input
-          [placeholder]="('PAC.Chat.SearchXpert' | translate: { Default: 'Search digital experts' }) + '...'"
+          [placeholder]="('XP.Chat.SearchXpert' | translate: { Default: 'Search digital experts' }) + '...'"
           class="xp-input w-full border-input-border text-sm focus:ring-1 focus:ring-primary"
           type="text"
           [formControl]="searchControl"
@@ -62,14 +65,14 @@
     <!-- Agents list -->
     @if (filteredXperts().length > 0) {
       @for (item of filteredXperts(); track item.id) {
-        <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
+        <button class="xp-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
           <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
           <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{ item.title || item.name }}</p>
         </button>
       }
     } @else if (searchControl.value) {
       <div class="p-4 text-center text-text-secondary">
-        {{ 'PAC.Chat.NoXpertFound' | translate: { Default: 'No matching digital experts found' } }}
+        {{ 'XP.Chat.NoXpertFound' | translate: { Default: 'No matching digital experts found' } }}
       </div>
     }
 
@@ -80,7 +83,7 @@
           <i class="ri-robot-line text-4xl text-text-tertiary"></i>
           <div class="text-sm text-text-secondary max-w-xs">
             {{
-              'PAC.Chat.NoPublishedXpert'
+              'XP.Chat.NoPublishedXpert'
                 | translate: { Default: 'No published agents yet. Create one in your workspace and click Publish' }
             }}
           </div>
@@ -89,7 +92,7 @@
             class="text-sm text-primary hover:underline flex items-center gap-1"
             (click)="$event.stopPropagation()"
           >
-            {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+            {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
             <i class="ri-arrow-right-line"></i>
           </a>
         </div>
@@ -97,22 +100,22 @@
     }
 
     <!--
-    <label class="px-2 pb-2">{{'PAC.KEY_WORDS.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</label>
+    <label class="px-2 pb-2">{{'XP.KEY_WORDS.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</label>
     <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
       @if (knowledgebaseList()?.length) {
-        <pac-knowledgebase-list class="w-full" [disabled]="disabled()" [knowledgebaseList]="knowledgebaseList()" [(knowledgebases)]="knowledgebases" />
+        <xp-knowledgebase-list class="w-full" [disabled]="disabled()" [knowledgebaseList]="knowledgebaseList()" [(knowledgebases)]="knowledgebases" />
       } @else {
         <div class="flex justify-center p-4 text-text-secondary">
           <i class="ri-battery-line mr-1"></i>
-          {{ 'PAC.KEY_WORDS.Empty' | translate: {Default: 'Empty'} }}
+          {{ 'XP.KEY_WORDS.Empty' | translate: {Default: 'Empty'} }}
         </div>
       }
     </div>
 
     @if (xpert()?.id) {
-      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="openAbout()">
+      <button class="xp-cdk-menu-item p-1" cdkMenuItem (click)="openAbout()">
         <i class="ri-information-2-line mr-2"></i>
-        {{'PAC.KEY_WORDS.About'  | translate: {Default: 'About'} }}
+        {{'XP.KEY_WORDS.About'  | translate: {Default: 'About'} }}
       </button>
     } -->
   </div>

@@ -4,8 +4,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { isEqual } from 'lodash-es'
@@ -25,19 +25,19 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     TranslateModule,
     CdkMenuModule,
     DragDropModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     CopilotCredentialFormComponent
-]
+  ]
 })
 export class CopilotAiProviderAuthComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ provider: IAiProviderEntity; copilot: ICopilot; providerId: string; }>(DIALOG_DATA)
+  readonly #data = inject<{ provider: IAiProviderEntity; copilot: ICopilot; providerId: string }>(DIALOG_DATA)
   readonly #copilotProviderService = inject(CopilotProviderService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
   readonly #fb = inject(FormBuilder)
-  readonly #i18n = new NgmI18nPipe()
+  readonly #i18n = new XpI18nPipe()
 
   readonly providerId = computed(() => this.#data.providerId)
   readonly provider = computed(() => this.#data.provider)
@@ -93,7 +93,7 @@ export class CopilotAiProviderAuthComponent {
       .subscribe({
         next: (copilotProvider) => {
           this.loading.set(false)
-          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
+          this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
           this.#dialogRef.close(copilotProvider)
         },
         error: (err) => {
@@ -118,7 +118,7 @@ export class CopilotAiProviderAuthComponent {
       .subscribe({
         next: (copilotProvider) => {
           this.loading.set(false)
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
           this.#dialogRef.close(copilotProvider)
         },
         error: (err) => {

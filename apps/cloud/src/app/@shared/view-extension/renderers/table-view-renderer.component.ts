@@ -3,7 +3,7 @@ import { Component, effect, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertTableViewSchema, XpertViewActionDefinition } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
   ZardButtonComponent,
   ZardCardImports,
@@ -21,7 +21,7 @@ import {
     CommonModule,
     FormsModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardButtonComponent,
     ...ZardCardImports,
     ZardEmptyComponent,
@@ -39,12 +39,12 @@ import {
             class="flex-1"
             [(ngModel)]="searchText"
             [placeholder]="
-              (schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })
+              (schema().search?.placeholder | i18n) || ('XP.ViewExtension.Search' | translate: { Default: 'Search' })
             "
             (keyup.enter)="applySearch.emit(searchText.trim())"
           />
           <button z-button type="button" zType="default" zSize="sm" (click)="applySearch.emit(searchText.trim())">
-            {{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
+            {{ 'XP.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
           </button>
         </div>
       }
@@ -71,7 +71,7 @@ import {
                 }
                 @if (rowActions().length) {
                   <th z-table-head class="px-4 py-3 text-right font-medium">
-                    {{ 'PAC.KEY_WORDS.Action' | translate: { Default: 'Action' } }}
+                    {{ 'XP.KEY_WORDS.Action' | translate: { Default: 'Action' } }}
                   </th>
                 }
               </tr>
@@ -87,7 +87,7 @@ import {
                   >
                     <div class="flex items-center gap-2 text-text-tertiary">
                       <z-loader zSize="sm" />
-                      <span>{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
+                      <span>{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
                     </div>
                   </td>
                 </tr>
@@ -98,7 +98,7 @@ import {
                     class="px-4 py-8"
                     [attr.colspan]="schema().columns.length + (rowActions().length ? 1 : 0)"
                   >
-                    <z-empty zIcon="inbox" [zTitle]="'PAC.ViewExtension.NoData' | translate: { Default: 'No data' }" />
+                    <z-empty zIcon="inbox" [zTitle]="'XP.ViewExtension.NoData' | translate: { Default: 'No data' }" />
                   </td>
                 </tr>
               } @else {
@@ -140,7 +140,7 @@ import {
 
       @if (schema().pagination?.enabled) {
         <div class="flex items-center justify-between gap-3 text-sm text-text-secondary">
-          <div>{{ 'PAC.ViewExtension.Total' | translate: { Default: 'Total' } }}: {{ total() }}</div>
+          <div>{{ 'XP.ViewExtension.Total' | translate: { Default: 'Total' } }}: {{ total() }}</div>
           <div class="flex items-center gap-2">
             <button
               z-button
@@ -150,7 +150,7 @@ import {
               [zDisabled]="page() <= 1"
               (click)="changePage.emit(page() - 1)"
             >
-              {{ 'PAC.KEY_WORDS.Previous' | translate: { Default: 'Previous' } }}
+              {{ 'XP.KEY_WORDS.Previous' | translate: { Default: 'Previous' } }}
             </button>
             <span>{{ page() }}</span>
             <button
@@ -161,7 +161,7 @@ import {
               [zDisabled]="page() * pageSize() >= total()"
               (click)="changePage.emit(page() + 1)"
             >
-              {{ 'PAC.KEY_WORDS.Next' | translate: { Default: 'Next' } }}
+              {{ 'XP.KEY_WORDS.Next' | translate: { Default: 'Next' } }}
             </button>
           </div>
         </div>

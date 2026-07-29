@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http'
 import { EventSourceMessage } from '@microsoft/fetch-event-source'
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { omit, uniq } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -137,7 +137,7 @@ export abstract class ChatService {
           this.fetchConversation(id).pipe(
             catchError((httpError: HttpErrorResponse) => {
               if (httpError.status === 404) {
-                this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {
+                this.#toastr.error('XP.Messages.NoPermissionOrNotExist', 'XP.KEY_WORDS.Conversation', {
                   Default: 'No permission or does not exist'
                 })
               } else {

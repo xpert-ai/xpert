@@ -7,10 +7,10 @@ import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 
 @Component({
   standalone: false,
-  selector: 'pac-tenant-custom-smtp',
+  selector: 'xp-tenant-custom-smtp',
   templateUrl: './custom-smtp.component.html',
   styleUrls: ['./custom-smtp.component.scss'],
-  animations: [routeAnimations],
+  animations: [routeAnimations]
 })
 export class CustomSmtpComponent extends TranslationBaseComponent {
   private readonly route = inject(ActivatedRoute)

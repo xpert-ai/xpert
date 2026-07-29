@@ -4,7 +4,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectProjectService } from '@cloud/app/@core'
-import { linkedModel } from '@xpert-ai/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { AbstractInterruptComponent } from '../../agent'
@@ -22,7 +22,7 @@ import { XpProjectGitHubRepositoriesComponent } from '../github-repositories/rep
     XpProjectGitHubLoginComponent,
     XpProjectGitHubInstallationComponent,
     XpProjectGitHubRepositoriesComponent
-],
+  ],
   selector: 'xp-project-switch-repository',
   templateUrl: 'switch-repository.component.html',
   styleUrls: ['switch-repository.component.scss']

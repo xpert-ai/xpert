@@ -103,15 +103,6 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 status: 'info'
             },
             {
-                name: 'ChatBI',
-                code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
-                description: 'Show the ChatBI entry in main navigation',
-                link: 'chatbi',
-                isEnabled: true,
-                icon: 'chat',
-                status: 'info'
-            },
-            {
                 name: 'CodeXpert',
                 code: AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
                 description: 'Show the CodeXpert entry in main navigation',

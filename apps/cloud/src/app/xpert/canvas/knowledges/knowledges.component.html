@@ -1,20 +1,24 @@
 <div class="flex flex-col overflow-auto h-full px-4 py-3">
   @for (item of knowledges(); track item; let first = $first) {
     <div class="py-3 border-b border-divider-deep" [class.pt-0]="first">
-      <a target="_blank" [href]="item.document?.fileUrl" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
-        {{item.document?.name || item.id}}:
+      <a
+        target="_blank"
+        [href]="item.document?.fileUrl"
+        class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer"
+      >
+        {{ item.document?.name || item.id }}:
         @if (item.metadata.loc?.lines) {
-          [{{item.metadata.loc.lines.from}}-{{item.metadata.loc.lines.to}}]
+          [{{ item.metadata.loc.lines.from }}-{{ item.metadata.loc.lines.to }}]
         }
       </a>
       <div class="text-zinc-500 text-sm my-2 mt-0.5 line-clamp-3">
-        {{item.pageContent}}
+        {{ item.pageContent }}
       </div>
       <div class="flex flex-wrap">
         @for (item of item.metadata | keyvalue; track item.key; let last = $last) {
           <div class="text-xs leading-3 text-zinc-500 mb-1 p-1 bg-neutral-50 rounded-md">
-            <span class="font-semibold mr-1">{{item.key}}:</span>
-            <span class="font-mono">{{item.value}}</span>
+            <span class="font-semibold mr-1">{{ item.key }}:</span>
+            <span class="font-mono">{{ item.value }}</span>
           </div>
           @if (!last) {
             <div class="h-4 mt-0.5 border-r border-solid border-divider-deep mx-1"></div>
@@ -25,7 +29,7 @@
   } @empty {
     <div class="h-full p-4 flex flex-col justify-center items-center text-text-secondary">
       <div><i class="ri-shopping-cart-line text-xl"></i></div>
-      <div>{{'PAC.Chat.NoResults' | translate: {Default: 'No results found'} }}</div>
+      <div>{{ 'XP.Chat.NoResults' | translate: { Default: 'No results found' } }}</div>
     </div>
   }
 </div>

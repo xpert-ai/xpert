@@ -372,15 +372,15 @@ export class ExploreAgentSquareComponent {
   }
 
   businessLabelKey(category: TXpertMarketplaceBusinessCategory) {
-    return `PAC.Plugin.MarketplaceCategory_${category}`
+    return `XP.Plugin.MarketplaceCategory_${category}`
   }
 
   collaborationLabelKey(mode: TXpertMarketplaceCollaborationMode) {
-    return `PAC.Explore.AgentSquare.Collaboration.${mode}`
+    return `XP.Explore.AgentSquare.Collaboration.${mode}`
   }
 
   technicalLabelKey(category: TXpertMarketplaceTechnicalCategory) {
-    return `PAC.Explore.AgentSquare.Technical.${category}`
+    return `XP.Explore.AgentSquare.Technical.${category}`
   }
 
   capabilityTags(item: AgentSquareDisplayItem) {

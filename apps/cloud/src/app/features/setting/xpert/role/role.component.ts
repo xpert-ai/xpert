@@ -1,18 +1,18 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { Component, effect, inject, signal } from '@angular/core'
+import { Component, effect, Inject, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { DisplayBehaviour, nonBlank } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour, XpCommonModule } from '@xpert-ai/headless-ui'
+import { nonBlank } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
-import {
 import { ZardDialogService } from '@xpert-ai/headless-ui'
+import {
   getErrorMessage,
   IKnowledgebase,
-  IXpertRole,
+  IXpert,
   KnowledgebaseService,
   OrderTypeEnum,
   TAvatar,
@@ -29,7 +29,7 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-xpert-role',
+  selector: 'xp-settings-xpert-role',
   templateUrl: './role.component.html',
   styleUrls: ['./role.component.scss'],
   imports: [
@@ -39,14 +39,14 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     FormsModule,
     ReactiveFormsModule,
-    NgmCommonModule,
+    XpCommonModule,
     ZardLoaderComponent,
     AvatarEditorComponent,
     KnowledgebaseListComponent,
     ToolsetListComponent
   ]
 })
-export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
+export class XpertRoleComponent extends UpsertEntityComponent<IXpert> {
   DisplayBehaviour = DisplayBehaviour
 
   readonly roleService = inject(XpertAPIService)
@@ -62,7 +62,7 @@ export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
 
   readonly loading = signal(true)
 
-  readonly xpertRole = signal<IXpertRole>(null)
+  readonly xpertRole = signal<IXpert>(null)
 
   readonly formGroup = this.fb.group({
     id: new FormControl<string>(null),
@@ -127,21 +127,19 @@ export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
   constructor(roleService: XpertAPIService) {
     super(roleService)
 
-    effect(
-      () => {
-        if (this.xpertRole()) {
-          this.formGroup.patchValue({
-            ...this.xpertRole(),
-            options: this.xpertRole().options ? JSON.stringify(this.xpertRole().options, null, 2) : null
-          })
-          // this.knowledgebases.set([...(this.xpertRole().knowledgebases ?? [])])
-        } else {
-          this.formGroup.reset()
-        }
-        this.formGroup.markAsPristine()
-        this.loading.set(false)
+    effect(() => {
+      if (this.xpertRole()) {
+        this.formGroup.patchValue({
+          ...this.xpertRole(),
+          options: this.xpertRole().options ? JSON.stringify(this.xpertRole().options, null, 2) : null
+        })
+        // this.knowledgebases.set([...(this.xpertRole().knowledgebases ?? [])])
+      } else {
+        this.formGroup.reset()
       }
-    )
+      this.formGroup.markAsPristine()
+      this.loading.set(false)
+    })
   }
 
   close(refresh = false) {

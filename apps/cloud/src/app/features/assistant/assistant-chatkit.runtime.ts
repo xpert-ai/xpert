@@ -171,7 +171,7 @@ export function injectAssistantBindingRuntimeState(input: AssistantBindingRuntim
           catchError((error) => {
             toastr.error(
               getErrorMessage(error) ||
-                translate.instant('PAC.Assistant.LoadFailed', { Default: 'Failed to load assistant configuration.' })
+                translate.instant('XP.Assistant.LoadFailed', { Default: 'Failed to load assistant configuration.' })
             )
             return of({
               loading: false,
@@ -338,7 +338,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       onThreadLoadStart: input.onThreadLoadStart,
       onThreadLoadEnd: input.onThreadLoadEnd,
       onError: (event: { error?: { message?: string } }) => {
-        toastr.error(event?.error?.message || translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' }))
+        toastr.error(event?.error?.message || translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
       }
     } satisfies AssistantHostedChatKitOptions
 

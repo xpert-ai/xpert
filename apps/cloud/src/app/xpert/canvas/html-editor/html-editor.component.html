@@ -9,32 +9,31 @@
     <button
       type="button"
       role="radio"
-      class="type-radio inline-flex items-center justify-center rounded-md px-3 py-1 text-xs transition-colors text-text-tertiary
-        hover:cursor-pointer hover:bg-hover-bg"
+      class="type-radio inline-flex items-center justify-center rounded-md px-3 py-1 text-xs transition-colors text-text-tertiary hover:cursor-pointer hover:bg-hover-bg"
       tabindex="-1"
       [class.active]="!preview()"
       (click)="preview.set(false)"
     >
-      {{ 'PAC.Chat.Code' | translate: {Default: 'Code'} }}
+      {{ 'XP.Chat.Code' | translate: { Default: 'Code' } }}
     </button>
     <button
       type="button"
       role="radio"
-      class="type-radio inline-flex items-center justify-center rounded-md px-3 py-1 text-xs transition-colors text-text-tertiary
-        hover:cursor-pointer hover:bg-hover-bg"
+      class="type-radio inline-flex items-center justify-center rounded-md px-3 py-1 text-xs transition-colors text-text-tertiary hover:cursor-pointer hover:bg-hover-bg"
       tabindex="-1"
       [class.active]="preview()"
       (click)="preview.set(true)"
     >
-      {{ 'PAC.Chat.Preview' | translate: {Default: 'Preview'} }}
+      {{ 'XP.Chat.Preview' | translate: { Default: 'Preview' } }}
     </button>
   </div>
 </div>
 
-<pac-file-editor class="h-full" [fileName]="url()" 
-  [content]="content()"
-/>
+<xp-file-editor class="h-full" [fileName]="url()" [content]="content()" />
 
 @if (preview()) {
-  <iframe [src]="url() | safe:'resourceUrl'" class="absolute top-0 left-0 w-full h-full border-none bg-components-panel-bg"></iframe>
+  <iframe
+    [src]="url() | safe: 'resourceUrl'"
+    class="absolute top-0 left-0 w-full h-full border-none bg-components-panel-bg"
+  ></iframe>
 }

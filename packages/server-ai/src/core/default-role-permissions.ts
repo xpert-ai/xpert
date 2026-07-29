@@ -28,13 +28,6 @@ const VIEWER_AI_PERMISSIONS = [
     ...MEMBER_PURCHASE_PERMISSIONS
 ]
 
-const ANALYTICS_BUILDER_AI_PERMISSIONS = [
-    AIPermissionsEnum.COPILOT_VIEW,
-    AIPermissionsEnum.XPERT_EDIT,
-    AIPermissionsEnum.CHAT_VIEW,
-    ...MEMBER_PURCHASE_PERMISSIONS
-]
-
 export const DEFAULT_ROLE_PERMISSIONS = [
     {
         role: RolesEnum.SUPER_ADMIN,
@@ -67,10 +60,6 @@ export const DEFAULT_ROLE_PERMISSIONS = [
     {
         role: RolesEnum.AI_BUILDER,
         defaultEnabledPermissions: [...FULL_AI_PERMISSIONS, ...MEMBER_PURCHASE_PERMISSIONS]
-    },
-    {
-        role: RolesEnum.ANALYTICS_BUILDER,
-        defaultEnabledPermissions: [...ANALYTICS_BUILDER_AI_PERMISSIONS]
     },
     {
         role: RolesEnum.VIEWER,

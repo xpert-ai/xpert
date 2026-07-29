@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent } from '../../forms'
 import { hasJsonSchemaRequiredErrors, jsonSchemaHasConfigFields } from './trigger-config.util'
@@ -10,7 +10,7 @@ import { WorkflowTriggerProviderOption } from './types'
 @Component({
   standalone: true,
   selector: 'xp-workflow-trigger-config-card',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, JSONSchemaFormComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, XpI18nPipe, JSONSchemaFormComponent],
   template: `
     @if (appearance() === 'card') {
       <div class="rounded-3xl border-[0.5px] border-divider-deep bg-components-card-bg">
@@ -20,7 +20,7 @@ import { WorkflowTriggerProviderOption } from './types'
               <div class="font-medium text-text-primary">
                 {{
                   provider().name === 'chat'
-                    ? ('PAC.Workflow.Chat' | translate: { Default: 'Chat' })
+                    ? ('XP.Workflow.Chat' | translate: { Default: 'Chat' })
                     : provider().label
                       ? (provider().label | i18n)
                       : provider().name
@@ -32,8 +32,10 @@ import { WorkflowTriggerProviderOption } from './types'
             </div>
 
             @if (!shouldRenderConfig()) {
-              <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
-                {{ 'PAC.Chat.ClawXpert.TriggerNoExtraConfigShort' | translate: { Default: 'No extra config' } }}
+              <span
+                class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+              >
+                {{ 'XP.Chat.ClawXpert.TriggerNoExtraConfigShort' | translate: { Default: 'No extra config' } }}
               </span>
             }
           </div>
@@ -75,7 +77,9 @@ import { WorkflowTriggerProviderOption } from './types'
           }
         </div>
       } @else if (showEmptyState()) {
-        <div class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-4 text-sm leading-6 text-text-secondary">
+        <div
+          class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-4 text-sm leading-6 text-text-secondary"
+        >
           {{ emptyStateKey() | translate: { Default: emptyStateDefault() } }}
         </div>
       }
@@ -89,11 +93,11 @@ export class WorkflowTriggerConfigCardComponent {
   readonly showHeader = input(true)
   readonly showEmptyState = input(true)
   readonly showValidation = input(true)
-  readonly configTitleKey = input('PAC.KEY_WORDS.Configuration')
+  readonly configTitleKey = input('XP.KEY_WORDS.Configuration')
   readonly configTitleDefault = input('Configuration')
-  readonly invalidMessageKey = input('PAC.Workflow.RequiredTriggerConfig')
+  readonly invalidMessageKey = input('XP.Workflow.RequiredTriggerConfig')
   readonly invalidMessageDefault = input('Complete the required trigger configuration before continuing.')
-  readonly emptyStateKey = input('PAC.Chat.ClawXpert.TriggerNoExtraConfig')
+  readonly emptyStateKey = input('XP.Chat.ClawXpert.TriggerNoExtraConfig')
   readonly emptyStateDefault = input('No additional configuration is available for this trigger here.')
 
   readonly shouldRenderConfig = computed(() => {

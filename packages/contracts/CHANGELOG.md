@@ -1,5 +1,17 @@
 # @xpert-ai/contracts
 
+## 3.15.18
+
+### Patch Changes
+
+- 2f6bf18: Support localized plugin display names and descriptions across plugin metadata, the platform registry, and marketplace dialogs.
+
+## 3.15.17
+
+### Patch Changes
+
+- 0a90701: release 3.15.17
+
 ## 3.15.16
 
 ### Patch Changes

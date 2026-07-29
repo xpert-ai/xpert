@@ -1,5 +1,5 @@
 import type { TXpertSandboxFeature } from '@xpert-ai/contracts'
-import { linkedModel } from '@xpert-ai/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import type { TSandboxProvider } from '@cloud/app/@core'
 import { XpertStudioApiService } from '../domain'
 

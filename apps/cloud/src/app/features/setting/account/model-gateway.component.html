@@ -1,19 +1,19 @@
 <div class="flex h-full w-full min-w-0 flex-col">
-  <div class="pac-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 overflow-auto p-4">
+  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 overflow-auto p-4">
     @if (loading()) {
-      <div class="flex min-h-52 items-center justify-center"><ngm-spin /></div>
+      <div class="flex min-h-52 items-center justify-center"><xp-spin /></div>
     } @else {
       <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 class="font-semibold text-text-primary">
-              {{ 'PAC.ModelGateway.ExternalApi' | translate: { Default: 'External API' } }}
+              {{ 'XP.ModelGateway.ExternalApi' | translate: { Default: 'External API' } }}
               ·
-              {{ 'PAC.ModelGateway.Connection' | translate: { Default: 'Connection' } }}
+              {{ 'XP.ModelGateway.Connection' | translate: { Default: 'Connection' } }}
             </h2>
             <p class="mt-1 text-sm text-text-secondary">
               {{
-                'PAC.ModelGateway.AccountDescription'
+                'XP.ModelGateway.AccountDescription'
                   | translate
                     : {
                         Default:
@@ -23,7 +23,7 @@
             </p>
             <p class="mt-2 text-sm text-text-tertiary">
               {{
-                'PAC.ModelGateway.OpenAICompatible'
+                'XP.ModelGateway.OpenAICompatible'
                   | translate
                     : {
                         Default:
@@ -33,7 +33,7 @@
             </p>
           </div>
           <button z-button zType="outline" type="button" (click)="copy(apiBaseUrl)">
-            {{ 'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+            {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
           </button>
         </div>
         <code class="mt-3 block overflow-auto rounded-lg bg-components-panel-bg p-3 text-sm">{{ apiBaseUrl }}</code>
@@ -42,7 +42,7 @@
             <z-accordion-item>
               <z-accordion-header class="px-0">
                 <z-accordion-title class="text-text-primary">
-                  {{ 'PAC.ModelGateway.QuickStart' | translate: { Default: 'Quick start' } }}
+                  {{ 'XP.ModelGateway.QuickStart' | translate: { Default: 'Quick start' } }}
                 </z-accordion-title>
                 <z-accordion-description>
                   <button
@@ -53,13 +53,14 @@
                     (click)="$event.stopPropagation(); copy(curlExample())"
                     (keydown)="$event.stopPropagation()"
                   >
-                    {{ 'PAC.ModelGateway.CopyExample' | translate: { Default: 'Copy example' } }}
+                    {{ 'XP.ModelGateway.CopyExample' | translate: { Default: 'Copy example' } }}
                   </button>
                 </z-accordion-description>
               </z-accordion-header>
               <pre
                 class="overflow-auto whitespace-pre-wrap break-words rounded-lg bg-components-panel-bg p-3 text-xs text-text-secondary"
-              >{{ curlExample() }}</pre>
+                >{{ curlExample() }}</pre
+              >
             </z-accordion-item>
           </z-accordion>
         </div>
@@ -72,11 +73,11 @@
               <z-accordion-title class="items-start text-base">
                 <div>
                   <h2 class="font-semibold text-text-primary">
-                    {{ 'PAC.ModelGateway.Models' | translate: { Default: 'External models' } }}
+                    {{ 'XP.ModelGateway.Models' | translate: { Default: 'External models' } }}
                   </h2>
                   <p class="mt-1 text-sm font-normal text-text-tertiary">
                     {{
-                      'PAC.ModelGateway.ModelsHint'
+                      'XP.ModelGateway.ModelsHint'
                         | translate: { Default: 'Every model needs its own approval, including models in your plan.' }
                     }}
                   </p>
@@ -86,13 +87,13 @@
             <div class="mb-3 flex justify-end">
               <z-form-field class="w-full sm:max-w-sm">
                 <z-form-label>
-                  {{ 'PAC.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
+                  {{ 'XP.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
                 </z-form-label>
                 <input
                   z-input
                   [formControl]="modelSearchControl"
                   [placeholder]="
-                    'PAC.ModelGateway.SearchModelsPlaceholder'
+                    'XP.ModelGateway.SearchModelsPlaceholder'
                       | translate: { Default: 'Model ID, provider, or model name' }
                   "
                 />
@@ -116,45 +117,45 @@
                           <div class="flex shrink-0 flex-wrap justify-end gap-1">
                             @if (item.deprecated) {
                               <z-badge zType="destructive">
-                                {{ 'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' } }}
+                                {{ 'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' } }}
                               </z-badge>
                             }
                             @if (item.grant) {
                               @if (item.allowed) {
                                 <z-badge zType="secondary">
-                                  {{ 'PAC.ModelGateway.Available' | translate: { Default: 'Available' } }}
+                                  {{ 'XP.ModelGateway.Available' | translate: { Default: 'Available' } }}
                                 </z-badge>
                               } @else {
                                 <z-badge zType="destructive">
                                   {{
-                                    'PAC.ModelGateway.TemporarilyUnavailable'
+                                    'XP.ModelGateway.TemporarilyUnavailable'
                                       | translate: { Default: 'Temporarily unavailable' }
                                   }}
                                 </z-badge>
                               }
                             } @else if (item.pendingRequest) {
                               <z-badge zType="outline">
-                                {{ 'PAC.ModelGateway.Pending' | translate: { Default: 'Pending' } }}
+                                {{ 'XP.ModelGateway.Pending' | translate: { Default: 'Pending' } }}
                               </z-badge>
                             }
                           </div>
                         </div>
                         @if (item.grant && !item.allowed && item.unavailableReason) {
                           <div class="mt-2 text-xs text-text-warning">
-                            {{ 'PAC.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                            {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
                           </div>
                         }
                         <div class="mt-4 flex items-center justify-between gap-3 text-xs text-text-secondary">
                           <span>
                             {{
                               item.planIncluded
-                                ? ('PAC.ModelGateway.PlanPricing' | translate: { Default: 'Plan pricing' })
-                                : ('PAC.ModelGateway.StandardPricing' | translate: { Default: '1× pricing' })
+                                ? ('XP.ModelGateway.PlanPricing' | translate: { Default: 'Plan pricing' })
+                                : ('XP.ModelGateway.StandardPricing' | translate: { Default: '1× pricing' })
                             }}
                           </span>
                           @if (item.requestable) {
                             <button z-button zSize="sm" type="button" (click)="apply(item)">
-                              {{ 'PAC.ModelGateway.Apply' | translate: { Default: 'Apply' } }}
+                              {{ 'XP.ModelGateway.Apply' | translate: { Default: 'Apply' } }}
                             </button>
                           } @else if (item.pendingRequest) {
                             <button
@@ -164,7 +165,7 @@
                               type="button"
                               (click)="withdraw(item.pendingRequest)"
                             >
-                              {{ 'PAC.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
+                              {{ 'XP.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
                             </button>
                           }
                         </div>
@@ -174,14 +175,14 @@
                 } @else {
                   <z-empty
                     [zDescription]="
-                      'PAC.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
+                      'XP.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
                     "
                   />
                 }
               } @else {
                 <z-empty
                   [zDescription]="
-                    'PAC.ModelGateway.NoAvailableApiModels'
+                    'XP.ModelGateway.NoAvailableApiModels'
                       | translate: { Default: 'No tenant chat models are currently available for API access.' }
                   "
                 />
@@ -195,15 +196,15 @@
         <div class="mb-3 flex items-center justify-between gap-3">
           <div>
             <h2 class="font-semibold text-text-primary">
-              {{ 'PAC.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
+              {{ 'XP.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
             </h2>
             <p class="mt-1 text-sm text-text-tertiary">
-              {{ 'PAC.ModelGateway.KeysHint' | translate: { Default: 'Keys do not grant model permissions.' } }}
+              {{ 'XP.ModelGateway.KeysHint' | translate: { Default: 'Keys do not grant model permissions.' } }}
             </p>
           </div>
           <button z-button type="button" (click)="createKey()">
             <z-icon zType="plus" />
-            {{ 'PAC.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
+            {{ 'XP.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
           </button>
         </div>
         @if (keys().length) {
@@ -211,12 +212,12 @@
             <table z-table zSize="compact" class="min-w-[64rem]">
               <thead z-table-header>
                 <tr z-table-row>
-                  <th z-table-head>{{ 'PAC.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.ApiKey' | translate: { Default: 'API key' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.ApiKey' | translate: { Default: 'API key' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
                   <th z-table-head class="text-right">
-                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                    {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
                   </th>
                 </tr>
               </thead>
@@ -229,7 +230,7 @@
                         <div class="flex min-w-0 items-center gap-2">
                           <code class="block max-w-96 truncate" [title]="secret">{{ secret }}</code>
                           <button z-button zType="outline" zSize="sm" type="button" (click)="copy(secret)">
-                            {{ 'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+                            {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
                           </button>
                         </div>
                       } @else {
@@ -237,7 +238,7 @@
                           <code>{{ key.prefix }}…</code>
                           <div class="mt-1 text-xs text-text-tertiary">
                             {{
-                              'PAC.ModelGateway.LegacyKeyUnavailable'
+                              'XP.ModelGateway.LegacyKeyUnavailable'
                                 | translate: { Default: 'Create a new key to make it copyable.' }
                             }}
                           </div>
@@ -246,14 +247,14 @@
                     </td>
                     <td z-table-cell>
                       <z-badge zType="outline">
-                        {{ 'PAC.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
+                        {{ 'XP.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
                       </z-badge>
                     </td>
                     <td z-table-cell>{{ formatDate(key.validUntil) }}</td>
                     <td z-table-cell class="text-right">
                       @if (key.status === keyStatus.Active) {
                         <button z-button zType="destructive" zSize="sm" type="button" (click)="revokeKey(key)">
-                          {{ 'PAC.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
+                          {{ 'XP.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
                         </button>
                       }
                     </td>
@@ -263,25 +264,25 @@
             </table>
           </div>
         } @else {
-          <z-empty [zDescription]="'PAC.ModelGateway.NoKeys' | translate: { Default: 'No API keys yet.' }" />
+          <z-empty [zDescription]="'XP.ModelGateway.NoKeys' | translate: { Default: 'No API keys yet.' }" />
         }
       </section>
 
       <section>
         <h2 class="mb-3 font-semibold text-text-primary">
-          {{ 'PAC.ModelGateway.ApplicationStatus' | translate: { Default: 'Application status' } }}
+          {{ 'XP.ModelGateway.ApplicationStatus' | translate: { Default: 'Application status' } }}
         </h2>
         @if (requests().length) {
           <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
             <table z-table zSize="compact" class="min-w-[64rem]">
               <thead z-table-header>
                 <tr z-table-row>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.SubmittedAt' | translate: { Default: 'Submitted at' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.SubmittedAt' | translate: { Default: 'Submitted at' } }}</th>
                   <th z-table-head class="text-right">
-                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                    {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
                   </th>
                 </tr>
               </thead>
@@ -302,7 +303,7 @@
                     <td z-table-cell>
                       <z-badge zType="outline">
                         {{
-                          'PAC.ModelAccess.StatusValue.' + currentRequestStatus(request)
+                          'XP.ModelAccess.StatusValue.' + currentRequestStatus(request)
                             | translate: { Default: currentRequestStatus(request) }
                         }}
                       </z-badge>
@@ -311,7 +312,7 @@
                     <td z-table-cell class="text-right">
                       @if (request.status === requestStatus.Requested) {
                         <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
-                          {{ 'PAC.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
+                          {{ 'XP.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
                         </button>
                       } @else {
                         <span class="text-text-tertiary">—</span>
@@ -325,15 +326,14 @@
           <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
             <span>
               {{
-                'PAC.ModelGateway.PageSummary'
+                'XP.ModelGateway.PageSummary'
                   | translate
                     : {
                         current: requestPageIndex() + 1,
                         pages: requestPageCount(),
                         total: requests().length,
-                        Default: 'Page {{current}} of {{pages}} · {{total}} records'
-                      }
-              }}
+                        Default: 'Page {{current}}
+              of {{ pages }} · {{ total }} records' } }}
             </span>
             <div class="flex gap-2">
               <button
@@ -344,7 +344,7 @@
                 [disabled]="requestPageIndex() === 0"
                 (click)="previousRequestsPage()"
               >
-                {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+                {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
               </button>
               <button
                 z-button
@@ -354,14 +354,14 @@
                 [disabled]="requestPageIndex() + 1 >= requestPageCount()"
                 (click)="nextRequestsPage()"
               >
-                {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+                {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
               </button>
             </div>
           </div>
         } @else {
           <z-empty
             [zDescription]="
-              'PAC.ModelGateway.NoRequests' | translate: { Default: 'No external API model applications yet.' }
+              'XP.ModelGateway.NoRequests' | translate: { Default: 'No external API model applications yet.' }
             "
           />
         }
@@ -369,17 +369,17 @@
 
       <section>
         <h2 class="mb-3 font-semibold text-text-primary">
-          {{ 'PAC.ModelGateway.RecentCalls' | translate: { Default: 'Recent API calls' } }}
+          {{ 'XP.ModelGateway.RecentCalls' | translate: { Default: 'Recent API calls' } }}
         </h2>
         @if (calls().length) {
           <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
             <table z-table zSize="compact" class="min-w-[48rem]">
               <thead z-table-header>
                 <tr z-table-row>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
                 </tr>
               </thead>
               <tbody z-table-body>
@@ -387,7 +387,7 @@
                   <tr z-table-row>
                     <td z-table-cell class="font-medium text-text-primary">{{ call.externalModelId }}</td>
                     <td z-table-cell>
-                      {{ 'PAC.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
+                      {{ 'XP.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
                     </td>
                     <td z-table-cell>{{ call.chargedPoints }}</td>
                     <td z-table-cell>{{ formatDate(call.startedAt) }}</td>
@@ -399,15 +399,14 @@
           <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
             <span>
               {{
-                'PAC.ModelGateway.PageSummary'
+                'XP.ModelGateway.PageSummary'
                   | translate
                     : {
                         current: callPageIndex() + 1,
                         pages: callPageCount(),
                         total: callTotal(),
-                        Default: 'Page {{current}} of {{pages}} · {{total}} records'
-                      }
-              }}
+                        Default: 'Page {{current}}
+              of {{ pages }} · {{ total }} records' } }}
             </span>
             <div class="flex gap-2">
               <button
@@ -418,7 +417,7 @@
                 [disabled]="callPageIndex() === 0"
                 (click)="previousCallsPage()"
               >
-                {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+                {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
               </button>
               <button
                 z-button
@@ -428,12 +427,12 @@
                 [disabled]="callPageIndex() + 1 === callPageCount()"
                 (click)="nextCallsPage()"
               >
-                {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+                {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
               </button>
             </div>
           </div>
         } @else {
-          <z-empty [zDescription]="'PAC.ModelGateway.NoCalls' | translate: { Default: 'No external API calls yet.' }" />
+          <z-empty [zDescription]="'XP.ModelGateway.NoCalls' | translate: { Default: 'No external API calls yet.' }" />
         }
       </section>
     }

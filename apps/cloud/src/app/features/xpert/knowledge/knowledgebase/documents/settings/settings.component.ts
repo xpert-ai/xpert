@@ -11,8 +11,8 @@ import {
   KnowledgebaseService,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
@@ -31,10 +31,10 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent
-]
+  ]
 })
 export class KnowledgeDocumentSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType

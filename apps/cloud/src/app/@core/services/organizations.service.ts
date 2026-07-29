@@ -7,7 +7,7 @@ import {
   OrgGenerateDemoOptions,
   OrganizationSelectInput
 } from '@xpert-ai/contracts'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { API_PREFIX } from '@cloud/app/@core/state'
 import { Observable } from 'rxjs'
 
 @Injectable({

@@ -10,31 +10,31 @@
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]" (click)="openBasic()">
       <i class="ri-edit-line text-lg mr-1"></i>
       <span class="text-sm font-medium">
-        {{ 'PAC.Xpert.BasicInfo' | translate: { Default: 'Basic Info' } }}
+        {{ 'XP.Xpert.BasicInfo' | translate: { Default: 'Basic Info' } }}
       </span>
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]" (click)="duplicate()">
       <i class="ri-file-copy-2-line text-lg mr-1"></i>
       <span class="text-sm font-medium">
-        {{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}
+        {{ 'XP.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}
       </span>
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]" (click)="export(true)">
       <i class="ri-file-download-line text-lg mr-1"></i>
       <span class="text-sm font-medium">
-        {{ 'PAC.Xpert.ExportDSLDraft' | translate: { Default: 'Export (draft)' } }}
+        {{ 'XP.Xpert.ExportDSLDraft' | translate: { Default: 'Export (draft)' } }}
       </span>
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]" (click)="export()">
       <i class="ri-download-2-line text-lg mr-1"></i>
       <span class="text-sm font-medium">
-        {{ 'PAC.Xpert.ExportDSLVersion' | translate: { Default: 'Export' } }}
+        {{ 'XP.Xpert.ExportDSLVersion' | translate: { Default: 'Export' } }}
       </span>
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]" (click)="importDsl()">
       <i class="ri-file-upload-line text-lg mr-1"></i>
       <span class="text-sm font-medium">
-        {{ 'PAC.Xpert.ImportDSL' | translate: { Default: 'Import DSL file' } }}
+        {{ 'XP.Xpert.ImportDSL' | translate: { Default: 'Import DSL file' } }}
       </span>
     </button>
   </div>
@@ -46,11 +46,13 @@
     <xpert-api class="w-full max-w-full rounded-xl bg-components-card-bg" small />
 
     @if (exportedTemplate(); as template) {
-      <div class="flex w-full items-start gap-3 rounded-lg border border-components-panel-border bg-components-card-bg p-3">
+      <div
+        class="flex w-full items-start gap-3 rounded-lg border border-components-panel-border bg-components-card-bg p-3"
+      >
         <i class="ri-file-list-3-line mt-0.5 shrink-0 text-lg text-text-secondary"></i>
         <div class="min-w-0 flex-1">
           <div class="system-xs-semibold-uppercase text-text-tertiary">
-            {{ 'PAC.Xpert.ExportedTemplate' | translate: { Default: 'Exported template' } }}
+            {{ 'XP.Xpert.ExportedTemplate' | translate: { Default: 'Exported template' } }}
           </div>
           <div class="mt-1 truncate text-sm font-medium text-text-primary" [title]="template.filePath">
             {{ template.filePath }}
@@ -64,7 +66,7 @@
         <button
           type="button"
           class="btn disabled:btn-disabled btn-ghost btn-small danger shrink-0"
-          [title]="'PAC.Xpert.DeleteExportedTemplate' | translate: { Default: 'Delete template' }"
+          [title]="'XP.Xpert.DeleteExportedTemplate' | translate: { Default: 'Delete template' }"
           (click)="deleteExportedTemplate()"
         >
           <i class="ri-delete-bin-line text-lg"></i>
@@ -83,10 +85,10 @@
     (click)="delete()"
   >
     <i class="ri-delete-bin-line text-lg mr-1"></i>
-    <span class="system-sm-medium">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+    <span class="system-sm-medium">{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
   </button>
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

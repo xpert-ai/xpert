@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -23,10 +23,10 @@ const DEFAULT_EXTENSION_VIEW_ICON = {
  */
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebase',
+  selector: 'xp-settings-knowledgebase',
   templateUrl: './knowledgebase.component.html',
   styleUrls: ['./knowledgebase.component.scss'],
-  imports: [RouterModule, TranslateModule, SharedUiModule, EmojiAvatarComponent, IconComponent, NgmI18nPipe],
+  imports: [RouterModule, TranslateModule, SharedUiModule, EmojiAvatarComponent, IconComponent, XpI18nPipe],
   animations: [routeAnimations]
 })
 export class KnowledgebaseComponent extends TranslationBaseComponent {

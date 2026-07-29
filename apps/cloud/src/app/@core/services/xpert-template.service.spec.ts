@@ -2,7 +2,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { TestBed } from '@angular/core/testing'
 import { NGXLogger } from 'ngx-logger'
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   API_PREFIX: '/api',
   toHttpParams: jest.fn()
 }))

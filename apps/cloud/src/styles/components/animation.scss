@@ -1,14 +1,14 @@
 @reference "tailwindcss";
 @layer components {
-  .ngm-background-animate {
+  .xp-background-animate {
     background-size: 400%;
 
-    -webkit-animation: ngm-background-animation 3s ease infinite;
-    -moz-animation: ngm-background-animation 3s ease infinite;
-    animation: ngm-background-animation 3s ease infinite;
+    -webkit-animation: xp-background-animation 3s ease infinite;
+    -moz-animation: xp-background-animation 3s ease infinite;
+    animation: xp-background-animation 3s ease infinite;
   }
 
-  @keyframes ngm-background-animation {
+  @keyframes xp-background-animation {
     0%,
     100% {
       background-position: 0% 50%;

@@ -113,9 +113,9 @@
     @for (node of nodes(); track node.key) {
       <div
         class="w-[240px] group relative pb-1 shadow-sm border border-transparent rounded-[15px] bg-workflow-block-bg hover:shadow-lg hover:z-10"
-        [class.ngm-selected]="selectedNodeKey() === node.key"
+        [class.xp-selected]="selectedNodeKey() === node.key"
         [class.f-hover]="hoverNode() === node.key"
-        [class.ngm-executor-agent]="node.parentId"
+        [class.xp-executor-agent]="node.parentId"
         [ngClass]="selectAgentStatus(node.key) || ''"
         fNode
         [fNodeId]="node.key"
@@ -192,7 +192,7 @@
             </div>
           }
           @if (selectAgentStatus(node.key) === eXpertAgentExecutionEnum.RUNNING) {
-            <ngm-spin />
+            <xp-spin />
           }
         </div>
 
@@ -241,7 +241,7 @@
             <i
               class="ri-volume-mute-fill mr-1 text-lg text-sky-500"
               [zTooltip]="
-                'PAC.Xpert.DisableOutputTip'
+                'XP.Xpert.DisableOutputTip'
                   | translate: { Default: 'Disable returning the agent\'s output to the user' }
               "
               zPosition="top"
@@ -507,10 +507,10 @@
   <div cdkMenu class="cdk-menu__medium">
     @if (node.type === 'agent' || node.type === 'workflow') {
       <div cdkMenuItem (click)="copyNode(node)">
-        <i class="ri-clipboard-line mr-1"></i> {{ 'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+        <i class="ri-clipboard-line mr-1"></i> {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
       </div>
       <div cdkMenuItem (click)="duplicateNode(node)">
-        <i class="ri-file-copy-2-line mr-1"></i> {{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}
+        <i class="ri-file-copy-2-line mr-1"></i> {{ 'XP.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}
       </div>
     }
 
@@ -519,7 +519,7 @@
 
       <div cdkMenuItem class="danger" (click)="deleteNode(node)">
         <i class="ri-delete-bin-3-line mr-1"></i>
-        <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+        <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
       </div>
     }
 
@@ -530,7 +530,7 @@
       [href]="helpUrl() + '/docs/ai/workflow/' + (node.type === 'workflow' ? node.entity.type : node.type)"
       target="_blank"
     >
-      <i class="ri-question-line mr-1"></i> {{ 'PAC.ACTIONS.HelpLink' | translate: { Default: 'Help Link' } }}
+      <i class="ri-question-line mr-1"></i> {{ 'XP.ACTIONS.HelpLink' | translate: { Default: 'Help Link' } }}
     </a>
   </div>
 </ng-template>
@@ -540,10 +540,10 @@
     <div cdkMenuItem (click)="expandXpertTeam(node)">
       @if (node.expanded) {
         <i class="ri-collapse-vertical-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' } }}
+        {{ 'XP.ACTIONS.Collapse' | translate: { Default: 'Collapse' } }}
       } @else {
         <i class="ri-expand-vertical-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Expand' | translate: { Default: 'Expand' } }}
+        {{ 'XP.ACTIONS.Expand' | translate: { Default: 'Expand' } }}
       }
     </div>
 
@@ -551,7 +551,7 @@
 
     <div cdkMenuItem class="danger" (click)="removeNode(node.key)">
       <i class="ri-delete-bin-3-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Remove' | translate: { Default: 'Remove' } }}</span>
+      <span>{{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}</span>
     </div>
   </div>
 </ng-template>

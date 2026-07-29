@@ -3,7 +3,7 @@ const mockPluginAPI = {
   install: jest.fn()
 }
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   injectPluginAPI: () => mockPluginAPI
 }))
 
@@ -291,7 +291,7 @@ describe('ClawXpertBootstrapService', () => {
     })
 
     expect(xpertTemplateService.installTemplate).toHaveBeenCalled()
-    expect(toastrService.warning).toHaveBeenCalledWith('PAC.Chat.ClawXpert.PluginPrepareFailed', {
+    expect(toastrService.warning).toHaveBeenCalledWith('XP.Chat.ClawXpert.PluginPrepareFailed', {
       Default:
         'Digital expert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
     })

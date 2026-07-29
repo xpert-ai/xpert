@@ -2,8 +2,8 @@ import { ChangeDetectorRef, Component, computed, effect, inject, signal } from '
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IKnowledgebase,
@@ -16,8 +16,8 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
-import { PACCopilotService } from '../../../../services'
+import { EmojiAvatarComponent } from '../../../../../@shared/avatar/emoji-avatar/avatar.component'
+import { XpCopilotService } from '../../../../services'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -27,7 +27,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
  */
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebase-configuration',
+  selector: 'xp-settings-knowledgebase-configuration',
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss'],
   imports: [
@@ -35,10 +35,10 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     ReactiveFormsModule,
     TranslateModule,
     SharedUiModule,
-    NgmCommonModule,
+    XpCommonModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent
-],
+  ],
   animations: [routeAnimations]
 })
 export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
@@ -52,7 +52,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
-  readonly copilotService = inject(PACCopilotService)
+  readonly copilotService = inject(XpCopilotService)
   readonly #cdr = inject(ChangeDetectorRef)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
@@ -76,7 +76,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
     similarityThreshold: new FormControl(null),
 
     copilotModel: new FormControl(null),
-    copilotModelId: new FormControl(null),
+    copilotModelId: new FormControl(null)
   })
 
   // readonly copilots = computed(() =>
@@ -89,8 +89,8 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
   //     return {
   //       key: copilot.id,
   //       caption:
-  //         this.getTranslation('PAC.Copilot.Provider_' + provider?.caption, { Default: provider?.caption }) +
-  //         `(${this.getTranslation('PAC.KEY_WORDS.' + roleName, { Default: roleName })})`
+  //         this.getTranslation('XP.Copilot.Provider_' + provider?.caption, { Default: provider?.caption }) +
+  //         `(${this.getTranslation('XP.KEY_WORDS.' + roleName, { Default: roleName })})`
   //     }
   //   })
   // )
@@ -136,37 +136,33 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
   constructor() {
     super()
 
-    effect(
-      () => {
-        const knowledgebase = this.knowledgebase()
-        if (knowledgebase && this.formGroup.pristine) {
-          this.formGroup.patchValue(knowledgebase)
-        }
+    effect(() => {
+      const knowledgebase = this.knowledgebase()
+      if (knowledgebase && this.formGroup.pristine) {
+        this.formGroup.patchValue(knowledgebase)
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.loading()) {
-          this.formGroup.disable()
-        } else {
-          this.formGroup.enable()
-        }
+    effect(() => {
+      if (this.loading()) {
+        this.formGroup.disable()
+      } else {
+        this.formGroup.enable()
       }
-    )
+    })
   }
 
   save() {
     this.loading.set(true)
     this.knowledgebaseService
       .update(this.knowledgebase().id, {
-        ...this.formGroup.value,
+        ...this.formGroup.value
       } as Partial<IKnowledgebase>)
       .subscribe({
         next: () => {
           this.formGroup.markAsPristine()
           this.loading.set(false)
-          this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+          this._toastrService.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
           this.knowledgebaseComponent.refresh()
         },
         error: (error) => {

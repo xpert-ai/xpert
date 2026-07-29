@@ -1,6 +1,6 @@
 <div class="shrink-0 flex items-center justify-between p-4 pb-0">
   <div class="text-text-primary system-xl-semibold">
-    {{ 'PAC.Environment.Environment' | translate: { Default: 'Environment' } }}
+    {{ 'XP.Environment.Environment' | translate: { Default: 'Environment' } }}
   </div>
 
   <div class="flex items-center gap-2 text-text-secondary">
@@ -10,7 +10,7 @@
       [cdkMenuTriggerFor]="envsMenu"
     >
       <div class="max-w-[180px] truncate">
-        {{ environment()?.name || ('PAC.Environment.SelectEnv' | translate: { Default: 'Select an environment' }) }}
+        {{ environment()?.name || ('XP.Environment.SelectEnv' | translate: { Default: 'Select an environment' }) }}
       </div>
       <i class="ri-arrow-down-s-line"></i>
     </button>
@@ -19,7 +19,7 @@
       [href]="helpUrl() + '/docs/ai/xpert/env/'"
       target="_blank"
       class="flex items-center justify-center mr-1 w-6 h-6"
-      [zTooltip]="'PAC.Xpert.HelpDocs' | translate: { Default: 'Help docs' }"
+      [zTooltip]="'XP.Xpert.HelpDocs' | translate: { Default: 'Help docs' }"
       zPosition="top"
     >
       <i class="ri-book-open-line text-text-tertiary"></i>
@@ -45,7 +45,7 @@
     >
       <i class="ri-add-line mr-1"></i>
       <span class="system-sm-medium">
-        {{ 'PAC.Xpert.AddVariable' | translate: { Default: 'Add Variable' } }}
+        {{ 'XP.Xpert.AddVariable' | translate: { Default: 'Add Variable' } }}
       </span>
     </button>
   </div>
@@ -134,7 +134,7 @@
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="openManageEnvs()">
         <i class="ri-add-line mr-1"></i>
         <span class="system-sm-medium">
-          {{ 'PAC.Environment.NewEnvironment' | translate: { Default: 'New Environment' } }}
+          {{ 'XP.Environment.NewEnvironment' | translate: { Default: 'New Environment' } }}
         </span>
       </button>
     </div>
@@ -142,7 +142,7 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+  <xp-spin class="absolute left-0 top-0 w-full h-full" />
 }
 
 <ng-template #variableMenu let-trigger="trigger" let-index="index">
@@ -168,7 +168,7 @@
 
     <button cdkMenuItem class="flex items-center" (click)="openManageEnvs()">
       <i class="ri-mail-settings-line mr-1"></i>
-      {{ 'PAC.Environment.Manage' | translate: { Default: 'Manage' } }}
+      {{ 'XP.Environment.Manage' | translate: { Default: 'Manage' } }}
     </button>
   </div>
 </ng-template>

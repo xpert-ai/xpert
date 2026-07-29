@@ -2,7 +2,7 @@ import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { nonNullable } from '@xpert-ai/ocap-core'
+import { nonNullable } from '@xpert-ai/contracts'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
 import { IXpert } from '../../@core'
@@ -69,15 +69,13 @@ export class ChatPlatformService extends ChatService {
 
   constructor() {
     super()
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.conversationId.set(this.paramId())
-        } else {
-          this.conversationId.set(null)
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.conversationId.set(this.paramId())
+      } else {
+        this.conversationId.set(null)
       }
-    )
+    })
   }
 
   newConv(xpert?: IXpert) {

@@ -10,7 +10,7 @@ export type ModelAccessWithdrawDialogResult = {
 
 @Component({
   standalone: true,
-  selector: 'pac-model-access-withdraw-dialog',
+  selector: 'xp-model-access-withdraw-dialog',
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -22,11 +22,11 @@ export type ModelAccessWithdrawDialogResult = {
   template: `
     <section>
       <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.ModelAccess.WithdrawTitle' | translate: { Default: 'Withdraw this request?' } }}
+        {{ 'XP.ModelAccess.WithdrawTitle' | translate: { Default: 'Withdraw this request?' } }}
       </h2>
       <p class="mt-2 text-sm leading-6 text-text-secondary">
         {{
-          'PAC.ModelAccess.WithdrawDescription'
+          'XP.ModelAccess.WithdrawDescription'
             | translate: { Default: 'The pending request will be closed and cannot be approved.' }
         }}
       </p>
@@ -34,17 +34,17 @@ export type ModelAccessWithdrawDialogResult = {
       <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         <z-form-field class="w-full">
           <z-form-label>
-            {{ 'PAC.ModelAccess.OptionalReason' | translate: { Default: 'Reason (optional)' } }}
+            {{ 'XP.ModelAccess.OptionalReason' | translate: { Default: 'Reason (optional)' } }}
           </z-form-label>
           <textarea z-input class="min-h-24 resize-y" formControlName="reason" maxlength="1000"></textarea>
         </z-form-field>
 
         <footer class="flex justify-end gap-2">
           <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button z-button zType="destructive" type="submit" [disabled]="form.invalid">
-            {{ 'PAC.ModelAccess.Withdraw' | translate: { Default: 'Withdraw' } }}
+            {{ 'XP.ModelAccess.Withdraw' | translate: { Default: 'Withdraw' } }}
           </button>
         </footer>
       </form>
@@ -53,9 +53,8 @@ export type ModelAccessWithdrawDialogResult = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelAccessWithdrawDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<ModelAccessWithdrawDialogComponent, ModelAccessWithdrawDialogResult | null>>(
-    ZardDialogRef
-  )
+  readonly #dialogRef =
+    inject<ZardDialogRef<ModelAccessWithdrawDialogComponent, ModelAccessWithdrawDialogResult | null>>(ZardDialogRef)
   readonly #formBuilder = inject(FormBuilder)
 
   readonly form = this.#formBuilder.nonNullable.group({

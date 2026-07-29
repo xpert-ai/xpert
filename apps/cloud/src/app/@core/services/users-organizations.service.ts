@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX, Store } from '@xpert-ai/cloud/state'
+import { API_PREFIX, Store } from '@cloud/app/@core/state'
 import type { IUserOrganizationEntryGuideKey } from '@xpert-ai/contracts'
 import { firstValueFrom, Observable } from 'rxjs'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'

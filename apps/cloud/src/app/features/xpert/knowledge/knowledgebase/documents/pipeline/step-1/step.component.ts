@@ -5,8 +5,8 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { myRxResource, NgmI18nPipe, omitBlank } from '@xpert-ai/ocap-angular/core'
-import { nonNullable } from '@xpert-ai/ocap-core'
+import { myRxResource, XpI18nPipe, omitBlank } from '@xpert-ai/headless-ui'
+import { nonNullable } from '@xpert-ai/contracts'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -35,7 +35,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -52,14 +52,14 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     ContentLoaderModule,
     MarkdownModule,
-    NgmI18nPipe,
-    NgmCheckboxComponent,
+    XpI18nPipe,
+    XpCheckboxComponent,
     IconComponent,
     KnowledgeFilePreviewComponent,
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent,
     KnowledgeDocumentPreviewComponent
-]
+  ]
 })
 export class KnowledgeDocumentPipelineStep1Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -142,14 +142,12 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly error = signal<string>(null)
 
   constructor() {
-    effect(
-      () => {
-        if (this.createFileTask.value()) {
-          this.taskId.set(this.createFileTask.value().id)
-          this.setSelection(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
-        }
+    effect(() => {
+      if (this.createFileTask.value()) {
+        this.taskId.set(this.createFileTask.value().id)
+        this.setSelection(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
       }
-    )
+    })
   }
 
   closePreview() {

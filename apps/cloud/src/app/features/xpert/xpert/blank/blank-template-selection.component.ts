@@ -40,7 +40,7 @@ export type BlankTemplateChoice = {
               [class.text-text-secondary]="activeCategory() !== 'all'"
               (click)="selectedCategory.set('all')"
             >
-              {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
+              {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
             </button>
 
             @for (item of categories(); track item) {
@@ -67,7 +67,7 @@ export type BlankTemplateChoice = {
           <input
             [(ngModel)]="search"
             class="xp-input w-full border-input-border pl-9 pr-9 text-sm transition-colors"
-            [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search templates' }"
+            [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search templates' }"
           />
 
           @if (search()) {
@@ -92,7 +92,7 @@ export type BlankTemplateChoice = {
         <div
           class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
         >
-          {{ 'PAC.Xpert.LoadingTemplates' | translate: { Default: 'Loading templates...' } }}
+          {{ 'XP.Xpert.LoadingTemplates' | translate: { Default: 'Loading templates...' } }}
         </div>
       } @else if (!filteredTemplates().length) {
         <div
@@ -130,13 +130,13 @@ export type BlankTemplateChoice = {
                     {{ template.title || template.name }}
                   </div>
                   <div class="mt-1 text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                    {{ template.category || ('PAC.Xpert.Template' | translate: { Default: 'Template' }) }}
+                    {{ template.category || ('XP.Xpert.Template' | translate: { Default: 'Template' }) }}
                   </div>
                 </div>
 
                 @if (selectedId() === template.id) {
                   <div class="rounded-full border border-primary-500 px-2 py-0.5 text-xs font-medium text-primary-500">
-                    {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
+                    {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
                   </div>
                 }
               </div>
@@ -144,7 +144,7 @@ export type BlankTemplateChoice = {
               <div class="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">
                 {{
                   template.description ||
-                    ('PAC.Xpert.NoTemplateDescription' | translate: { Default: 'No description yet.' })
+                    ('XP.Xpert.NoTemplateDescription' | translate: { Default: 'No description yet.' })
                 }}
               </div>
             </button>
@@ -160,7 +160,7 @@ export class BlankTemplateSelectionComponent {
   readonly fixedCategory = input<string | null>(null, { alias: 'category' })
   readonly loading = input(false)
   readonly error = input<string | null>(null)
-  readonly emptyKey = input('PAC.Xpert.NoTemplatesFound')
+  readonly emptyKey = input('XP.Xpert.NoTemplatesFound')
   readonly emptyDefault = input('No templates found')
   readonly selectedId = model<string | null>(null)
   readonly selectedCategory = model('all')

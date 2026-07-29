@@ -4,7 +4,6 @@
     "ORGANIZATION": "公司",
     "DASHBOARD": "仪表盘",
     "INDICATOR": "指标",
-    "INDICATOR_MARKET": "市场",
     "INDICATOR_APP": "指标应用",
     "INDICATOR_REGISTER": "注册",
     "INDICATOR_GROUPS": "组",
@@ -16,7 +15,7 @@
     "STORY": "故事",
     "USERS": "用户"
   },
-  "PAC": {
+  "XP": {
     "Title": "元数分析云",
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime 运维",
@@ -706,8 +705,6 @@
       "Email Template": "邮件模板",
       "Custom SMTP": "自定义 SMTP",
       "AGENT": "代理",
-      "LOCAL_AGENT": "本地代理",
-      "WASM_DB": "WASM 数据库",
       "Attributes": "属性",
       "CALCULATION": "计算",
       "CALCULATED_MEMBERS": "计算成员",
@@ -821,8 +818,7 @@
         "SELECT_DATASOURCE_COLUMNS": {
           "Name": "名称",
           "Type": "类型",
-          "Protocol": "协议",
-          "UseLocalAgent": "使用本地代理"
+          "Protocol": "协议"
         },
         "CATALOG_COLUMNS": {
           "Name": "名称",
@@ -852,9 +848,7 @@
       "INDICATOR": {
         "REGISTER_INDICATOR": "注册指标",
         "BATCH_UPLOAD": "批量上传",
-        "DownloadAsTemplate": "下载为模板",
-        "INDICATOR_MARKET": "指标市场",
-        "INDICATOR_MARKET_DESC": "浏览指标，申请指标权限"
+        "DownloadAsTemplate": "下载为模板"
       },
       "GENERAL": {
         "TITLE": "通用",
@@ -868,7 +862,6 @@
         "CONFIGURATION": "配置",
         "NAME": "名称",
         "NAME_REQUIRED": "名称必输",
-        "USE_LOCAL_AGENT": "使用本地代理",
         "DONE": "完成",
         "AuthType": "授权方式",
         "AuthType_None": "无",
@@ -961,7 +954,6 @@
       "USER_ORGANIZATION_ADDED": "用户组织添加成功",
       "USER_ORGANIZATION_REMOVED": "用户组织删除成功",
       "UpdateSuccess": "更新成功",
-      "LocalAgentOffline": "本地代理离线",
       "NameAlreadyExist": "名称已存在",
       "Required": "必输",
       "Update": "更新",
@@ -1155,7 +1147,6 @@
       "DescriptionPlaceholder": "可选，语义模型的详细描述",
       "UploadModel": "上载模型",
       "SaveAsDefaultCube": "保存为默认数据集",
-
       "QUERY": {
         "TITLE": "查询",
         "SaveAsModel": "另存为模型",
@@ -2497,25 +2488,12 @@
       "Actuallength": "实际长度",
       "ConfirmYourPassword": "确认密码",
       "PasswordMustMatch": "密码不一致",
-      "WantGenerateDemo": "是否想要生成演示数据",
-      "GenerateDemoDescription": "系统将从服务器链接上下载演示数据文件，并将数据导入至系统数据库中，然后创建相应的演示样例",
       "Skip": "跳过",
-      "Generate": "生成",
-      "Retry": "重试",
-      "AddYourData": "添加您的数据",
-      "ReadyExploringYourData": "准备好开始探索您的数据了吗？在下面添加它吧。",
-      "NotReadySample": "还没有准备好？跳过并玩玩我们的示例吧。",
-      "DisplayName": "显示名称",
-      "NameRequired": "名称不能为空",
-      "AddDataLater": "我稍后添加我的数据",
-      "ConnectDatabase": "连接数据库",
       "ConfigureAiModel": "配置 AI 模型",
       "ConfigureAiModelDesc": "为模型提供商配置主提供商并选择默认模型。稍后您仍可以在系统设置中继续完善。",
       "Done": "完成",
       "AllSetup": "您已经设置好了！",
-      "TakeMetoMetadAnalyticsPlatform": "带我去 Metad 分析平台",
-      "SelectNetwork": "选择所需网络",
-      "GenerateDemoSuccess": "演示数据和样例生成成功！"
+      "TakeMetoXpertAiPlatform": "带我去 Xpert AI 平台"
     },
     "Languages": {
       "en": "英文",
@@ -2801,34 +2779,6 @@
           "Name": "数据源",
           "Description": "启用数据源配置功能"
         },
-        "FEATURE_PROJECT": {
-          "Name": "BI项目",
-          "Description": "启用BI项目工作空间功能"
-        },
-        "FEATURE_STORY": {
-          "Name": "故事",
-          "Description": "启用故事仪表板功能，制作，分享和浏览故事仪表板"
-        },
-        "FEATURE_INDICATOR": {
-          "Name": "指标",
-          "Description": "启用指标功能，注册，发布和申请查看业务指标数据"
-        },
-        "FEATURE_INDICATOR_REGISTER": {
-          "Name": "指标注册",
-          "Description": "启用指标注册功能，注册数据指标"
-        },
-        "FEATURE_INDICATOR_MARKET": {
-          "Name": "指标市场",
-          "Description": "启用指标市场功能，发布、浏览和申请指标"
-        },
-        "FEATURE_INDICATOR_APP": {
-          "Name": "指标应用",
-          "Description": "启用指标应用程序，浏览有权限的指标"
-        },
-        "FEATURE_BUSINESS_AREA": {
-          "Name": "业务域",
-          "Description": "启用业务域功能，创建和使用业务域"
-        },
         "FEATURE_USER": {
           "Name": "用户",
           "Description": "管理租户的用户和用户组"
@@ -2852,10 +2802,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "在主导航中显示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -2910,7 +2856,6 @@
         "connections": "系统连接"
       }
     },
-
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
         "ADMIN_DASHBOARD_VIEW": "查看 Admin 仪表盘",
@@ -3250,7 +3195,6 @@
         "Indicators": "明细指标",
         "LookBack": "回顾期间数"
       },
-
       "IFrame": {
         "SRC": "src"
       },
@@ -3347,11 +3291,9 @@
           "FontFamily_Song": "宋体"
         }
       },
-
       "CANVAS": {
         "TITLE": "画布"
       },
-
       "STORY_PAGE": {
         "PAGE_SIZE": "页面大小",
         "DefaultBackground": "预设背景",
@@ -3361,7 +3303,6 @@
         "PresetBackground": "预设背景",
         "PageType": "类型"
       },
-
       "ECHARTS": {
         "Common": {
           "Align": "对齐",
@@ -3723,7 +3664,6 @@
             "TITLE": "单个体样式",
             "OPACITY": "不透明度"
           },
-
           "LABEL": {
             "TITLE": "标签"
           },
@@ -4174,7 +4114,6 @@
       "Compare": "比",
       "To": "较",
       "BaseDimension": "基准维度",
-
       "SetNoDataasZero": "将无数据当作零",
       "CalculateasPercentage": "计算为百分比",
       "DirectDivide": "直接除",
@@ -4514,7 +4453,6 @@
       "ROLE": "选择角色"
     }
   },
-
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密码重置",

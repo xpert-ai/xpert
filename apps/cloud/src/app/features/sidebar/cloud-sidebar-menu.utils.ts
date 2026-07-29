@@ -36,7 +36,7 @@ export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[]): CloudSideba
   const groups: CloudSidebarMenuGroup[] = [
     {
       key: 'work',
-      titleKey: 'PAC.MenuGroup.WorkEntries',
+      titleKey: 'XP.MenuGroup.WorkEntries',
       titleDefault: 'Work',
       items: [...workMenus, ...assistantTrailingWorkMenus],
       entries: [
@@ -47,14 +47,14 @@ export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[]): CloudSideba
     },
     {
       key: 'modules',
-      titleKey: 'PAC.MenuGroup.FeatureModules',
+      titleKey: 'XP.MenuGroup.FeatureModules',
       titleDefault: 'Features',
       items: moduleMenus,
       entries: moduleMenus.map(createMenuEntry)
     },
     {
       key: 'management',
-      titleKey: 'PAC.MenuGroup.Management',
+      titleKey: 'XP.MenuGroup.Management',
       titleDefault: 'Management',
       items: managementMenus,
       entries: managementMenus.map(createMenuEntry)

@@ -6,9 +6,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { IsDirty } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { IsDirty } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -44,12 +44,12 @@ import { XpertService } from '../xpert.service'
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
-    NgmDensityDirective,
+    XpDensityDirective,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
-    NgmSpinComponent
-],
+    XpSpinComponent
+  ],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
   animations: [IfAnimation]
@@ -103,7 +103,7 @@ export class XpertBasicComponent implements IsDirty {
     description: this.#fb.control(null),
     avatar: this.#fb.control(null),
     tags: this.#fb.control(null),
-    copilotModel: this.#fb.control(null),
+    copilotModel: this.#fb.control(null)
     // starters: this.#fb.array([
     //   this.#fb.control(null),
     //   this.#fb.control(null),
@@ -134,14 +134,12 @@ export class XpertBasicComponent implements IsDirty {
   // }
 
   constructor() {
-    effect(
-      () => {
-        if (this.team()) {
-          this.form.patchValue(this.team())
-          this.form.markAsPristine()
-        }
+    effect(() => {
+      if (this.team()) {
+        this.form.patchValue(this.team())
+        this.form.markAsPristine()
       }
-    )
+    })
   }
 
   isDirty(): boolean {
@@ -165,7 +163,7 @@ export class XpertBasicComponent implements IsDirty {
         } as TXpertTeamDraft)
         .subscribe({
           next: (value) => {
-            this.#toastr.success('PAC.Messages.SavedDraft', { Default: 'Saved draft!' })
+            this.#toastr.success('XP.Messages.SavedDraft', { Default: 'Saved draft!' })
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertService.refresh()
@@ -184,7 +182,7 @@ export class XpertBasicComponent implements IsDirty {
         })
         .subscribe({
           next: (value) => {
-            this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
+            this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertService.refresh()

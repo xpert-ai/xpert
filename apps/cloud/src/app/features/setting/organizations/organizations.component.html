@@ -13,9 +13,9 @@
         >
           <div class="space-y-1">
             @if (!isTenantScope() && selectedOrganization(); as organization) {
-              <div class="pac-page-title text-text-primary">{{ organization.name }}</div>
+              <div class="xp-page-title text-text-primary">{{ organization.name }}</div>
             } @else if (isTenantScope()) {
-              <div class="pac-page-title relative text-text-primary">{{ registrySectionTitle() }}</div>
+              <div class="xp-page-title relative text-text-primary">{{ registrySectionTitle() }}</div>
             } @else {
               <div class="text-lg font-semibold text-text-primary">{{ registrySectionTitle() }}</div>
             }
@@ -29,14 +29,14 @@
                   type="text"
                   [ngModel]="searchText()"
                   (ngModelChange)="searchText.set($event)"
-                  [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search organizations' }"
+                  [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search organizations' }"
                 />
               </z-input-group>
               <ng-template #search><i class="ri-search-line text-text-tertiary"></i></ng-template>
 
               @if (canCreateOrganizations()) {
                 <button z-button zType="default" displayDensity="cosy" (click)="addOrganization()">
-                  <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+                  <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
                 </button>
               }
             </div>
@@ -45,13 +45,13 @@
 
         @if (loading()) {
           <div class="flex min-h-[220px] items-center justify-center px-6 py-10 text-sm text-text-tertiary">
-            {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading organizations...' } }}
+            {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading organizations...' } }}
           </div>
         } @else if (error()) {
           <div class="flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
             <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
             <div class="text-base font-semibold text-text-primary">
-              {{ 'PAC.Organization.LoadFailed' | translate: { Default: 'Unable to load organizations' } }}
+              {{ 'XP.Organization.LoadFailed' | translate: { Default: 'Unable to load organizations' } }}
             </div>
             <div class="max-w-2xl text-sm text-text-tertiary">{{ error() }}</div>
           </div>
@@ -59,11 +59,11 @@
           <div class="flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
             <i class="ri-inbox-line text-2xl text-text-tertiary"></i>
             <div class="text-base font-semibold text-text-primary">
-              {{ 'PAC.Organization.EmptyStateTitle' | translate: { Default: 'No organizations available' } }}
+              {{ 'XP.Organization.EmptyStateTitle' | translate: { Default: 'No organizations available' } }}
             </div>
             <div class="max-w-xl text-sm text-text-tertiary">
               {{
-                'PAC.Organization.EmptyStateDescription'
+                'XP.Organization.EmptyStateDescription'
                   | translate
                     : {
                         Default:
@@ -79,30 +79,30 @@
                 <thead class="bg-background-default-subtle text-text-secondary">
                   <tr>
                     <th class="w-20 px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
+                      {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
                     </th>
                     <th class="w-24 px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
+                      {{ 'XP.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
                     </th>
                     <th class="min-w-[280px] px-4 py-3 font-semibold">
                       {{
-                        'PAC.ORGANIZATIONS_PAGE.Organization.OrganizationId' | translate: { Default: 'Organization ID' }
+                        'XP.ORGANIZATIONS_PAGE.Organization.OrganizationId' | translate: { Default: 'Organization ID' }
                       }}
                     </th>
                     <th class="px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
+                      {{ 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
                     </th>
                     <th class="px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}
+                      {{ 'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}
                     </th>
                     <th class="px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}
+                      {{ 'XP.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}
                     </th>
                     <th class="px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+                      {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
                     </th>
                     <th class="px-4 py-3 font-semibold">
-                      {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+                      {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
                     </th>
                   </tr>
                 </thead>
@@ -122,7 +122,7 @@
                         }
                       </td>
                       <td class="px-4 py-4 align-middle">
-                        <pac-org-avatar
+                        <xp-org-avatar
                           [organization]="organization"
                           class="block h-10 w-10 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
                         />
@@ -143,10 +143,10 @@
                         </div>
                       </td>
                       <td class="px-4 py-4 align-middle text-text-secondary">
-                        {{ organization.currency || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                        {{ organization.currency || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
                       </td>
                       <td class="px-4 py-4 align-middle text-text-secondary">
-                        {{ organization.timeZone || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                        {{ organization.timeZone || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
                       </td>
                       <td class="px-4 py-4 align-middle">
                         <span
@@ -193,7 +193,7 @@
                     class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
                   >
                     <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}:
+                      {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}:
                     </dt>
                     <dd class="min-w-0">
                       <span class="inline-flex items-center gap-2 text-base font-semibold leading-8 text-text-primary">
@@ -202,8 +202,8 @@
                         }
                         {{
                           organization.isDefault
-                            ? ('PAC.KEY_WORDS.Yes' | translate: { Default: 'Yes' })
-                            : ('PAC.KEY_WORDS.No' | translate: { Default: 'No' })
+                            ? ('XP.KEY_WORDS.Yes' | translate: { Default: 'Yes' })
+                            : ('XP.KEY_WORDS.No' | translate: { Default: 'No' })
                         }}
                       </span>
                     </dd>
@@ -213,10 +213,10 @@
                     class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
                   >
                     <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'PAC.Organization.LogoLabel' | translate: { Default: 'Logo' } }}:
+                      {{ 'XP.Organization.LogoLabel' | translate: { Default: 'Logo' } }}:
                     </dt>
                     <dd class="min-w-0">
-                      <pac-org-avatar
+                      <xp-org-avatar
                         [organization]="organization"
                         class="block h-12 w-12 overflow-hidden rounded-2xl bg-components-input-bg-normal"
                       />
@@ -227,10 +227,10 @@
                     class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
                   >
                     <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}:
+                      {{ 'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}:
                     </dt>
                     <dd class="min-w-0 text-base font-semibold leading-8 text-text-primary">
-                      {{ organization.currency || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                      {{ organization.currency || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
                     </dd>
                   </div>
 
@@ -238,10 +238,10 @@
                     class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
                   >
                     <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}:
+                      {{ 'XP.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}:
                     </dt>
                     <dd class="min-w-0 text-base font-semibold leading-8 text-text-primary">
-                      {{ organization.timeZone || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                      {{ organization.timeZone || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
                     </dd>
                   </div>
 
@@ -249,7 +249,7 @@
                     class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
                   >
                     <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}:
+                      {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}:
                     </dt>
                     <dd class="min-w-0">
                       <span
@@ -271,7 +271,7 @@
     @if (showDetailsSection()) {
       <section class="w-full bg-transparent">
         @if (selectedOrganization()) {
-          <div class="w-full" [ngClass]="isTenantDetailView() ? 'pac-page-header px-0 pt-0' : ''">
+          <div class="w-full" [ngClass]="isTenantDetailView() ? 'xp-page-header px-0 pt-0' : ''">
             @if (isTenantDetailView()) {
               <div class="min-w-0 flex flex-col gap-4">
                 <div class="min-w-0 flex flex-col">
@@ -281,11 +281,11 @@
                     (click)="backToRegistry()"
                   >
                     <i class="ri-arrow-left-line text-base"></i>
-                    <span>{{ 'PAC.Organization.BackToList' | translate: { Default: 'Back to list' } }}</span>
+                    <span>{{ 'XP.Organization.BackToList' | translate: { Default: 'Back to list' } }}</span>
                   </button>
-                  <div class="pac-page-title">{{ selectedOrganization()?.name }}</div>
+                  <div class="xp-page-title">{{ selectedOrganization()?.name }}</div>
                   @if (selectedOrganizationSubtitle()) {
-                    <div class="pac-page-subtitle max-w-3xl text-text-secondary">
+                    <div class="xp-page-subtitle max-w-3xl text-text-secondary">
                       {{ selectedOrganizationSubtitle() }}
                     </div>
                   }
@@ -295,7 +295,7 @@
 
             <nav
               z-tab-nav-bar
-              class="pac-tab-nav-bar w-full max-w-full"
+              class="xp-tab-nav-bar w-full max-w-full"
               color="accent"
               alignTabs="start"
               stretchTabs="false"
@@ -309,7 +309,7 @@
                 [active]="selectedTab() === 'general'"
                 (click)="selectedTab.set('general')"
               >
-                {{ 'PAC.Organization.TabGeneral' | translate: { Default: 'General' } }}
+                {{ 'XP.Organization.TabGeneral' | translate: { Default: 'General' } }}
               </button>
               <button
                 z-tab-link
@@ -317,7 +317,7 @@
                 [active]="selectedTab() === 'members'"
                 (click)="selectedTab.set('members')"
               >
-                {{ 'PAC.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
+                {{ 'XP.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
               </button>
               <button
                 z-tab-link
@@ -325,7 +325,7 @@
                 [active]="selectedTab() === 'user-groups'"
                 (click)="selectedTab.set('user-groups')"
               >
-                {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+                {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
               </button>
               <button
                 z-tab-link
@@ -333,14 +333,14 @@
                 [active]="selectedTab() === 'controls'"
                 (click)="selectedTab.set('controls')"
               >
-                {{ 'PAC.Organization.TabControls' | translate: { Default: 'Controls' } }}
+                {{ 'XP.Organization.TabControls' | translate: { Default: 'Controls' } }}
               </button>
               @if (!isTenantScope()) {
                 <button z-tab-link type="button" [active]="selectedTab() === 'tags'" (click)="selectedTab.set('tags')">
-                  {{ 'PAC.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
+                  {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
                 </button>
                 <button z-tab-link type="button" [active]="selectedTab() === 'demo'" (click)="selectedTab.set('demo')">
-                  {{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
+                  {{ 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
                 </button>
                 @if (canViewCustomSmtp()) {
                   <button
@@ -349,14 +349,14 @@
                     [active]="selectedTab() === 'smtp'"
                     (click)="selectedTab.set('smtp')"
                   >
-                    {{ 'PAC.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}
+                    {{ 'XP.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}
                   </button>
                 }
               }
             </nav>
           </div>
 
-          <z-tab-nav-panel #detailTabPanel class="pac-page-body flex w-full flex-col">
+          <z-tab-nav-panel #detailTabPanel class="xp-page-body flex w-full flex-col">
             <div class="w-full min-w-0" [ngClass]="isTenantDetailView() ? 'px-0 pb-0 pt-6' : 'p-6'">
               @switch (selectedTab()) {
                 @case ('general') {
@@ -368,7 +368,7 @@
                       <div class="form-field md:col-span-2">
                         <span class="form-label">
                           {{
-                            'PAC.ORGANIZATIONS_PAGE.Organization.OrganizationId'
+                            'XP.ORGANIZATIONS_PAGE.Organization.OrganizationId'
                               | translate: { Default: 'Organization ID' }
                           }}
                         </span>
@@ -378,34 +378,34 @@
                       </div>
 
                       <label class="form-field md:col-span-2">
-                        <span class="form-label">{{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</span>
+                        <span class="form-label">{{ 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</span>
                         <input z-input formControlName="name" />
                       </label>
 
                       <label class="form-field">
                         <span class="form-label">{{
-                          'PAC.ORGANIZATIONS_PAGE.Organization.OfficialName' | translate: { Default: 'Official Name' }
+                          'XP.ORGANIZATIONS_PAGE.Organization.OfficialName' | translate: { Default: 'Official Name' }
                         }}</span>
                         <input z-input formControlName="officialName" />
                       </label>
 
                       <label class="form-field">
                         <span class="form-label">{{
-                          'PAC.ORGANIZATIONS_PAGE.Organization.ProfileLink' | translate: { Default: 'Profile Link' }
+                          'XP.ORGANIZATIONS_PAGE.Organization.ProfileLink' | translate: { Default: 'Profile Link' }
                         }}</span>
                         <input z-input formControlName="profile_link" />
                       </label>
 
                       <label class="form-field md:col-span-2">
                         <span class="form-label">{{
-                          'PAC.ORGANIZATIONS_PAGE.Organization.Website' | translate: { Default: 'Website' }
+                          'XP.ORGANIZATIONS_PAGE.Organization.Website' | translate: { Default: 'Website' }
                         }}</span>
                         <input z-input formControlName="website" />
                       </label>
 
                       <label class="form-field md:col-span-2">
                         <span class="form-label">{{
-                          'PAC.ORGANIZATIONS_PAGE.Organization.ShortDescription'
+                          'XP.ORGANIZATIONS_PAGE.Organization.ShortDescription'
                             | translate: { Default: 'Short Description' }
                         }}</span>
                         <textarea z-input class="form-textarea" formControlName="short_description"></textarea>
@@ -422,7 +422,7 @@
                           (change)="onAvatarSelected($event)"
                         />
                         <div class="info-title">
-                          {{ 'PAC.Organization.LogoLabel' | translate: { Default: 'Logo' } }}
+                          {{ 'XP.Organization.LogoLabel' | translate: { Default: 'Logo' } }}
                         </div>
                         @if (canEditSelectedOrganization()) {
                           <button
@@ -430,7 +430,7 @@
                             class="group relative block rounded-2xl border-0 bg-transparent p-0"
                             (click)="avatarInput.click()"
                           >
-                            <pac-org-avatar
+                            <xp-org-avatar
                               [organization]="selectedOrganization()!"
                               class="block h-20 w-20 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
                             />
@@ -439,7 +439,7 @@
                               <div
                                 class="absolute inset-0 flex items-center justify-center rounded-2xl bg-components-panel-bg/80 text-xs font-medium text-text-primary"
                               >
-                                {{ 'PAC.KEY_WORDS.Uploading' | translate: { Default: 'Uploading' } }}
+                                {{ 'XP.KEY_WORDS.Uploading' | translate: { Default: 'Uploading' } }}
                               </div>
                             } @else {
                               <div class="logo-edit-overlay" aria-hidden="true">
@@ -449,7 +449,7 @@
                           </button>
                         } @else {
                           <div class="relative">
-                            <pac-org-avatar
+                            <xp-org-avatar
                               [organization]="selectedOrganization()!"
                               class="block h-20 w-20 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
                             />
@@ -459,12 +459,12 @@
 
                       <div class="info-panel">
                         <div class="info-title">
-                          {{ 'PAC.Organization.RecordSummary' | translate: { Default: 'Record summary' } }}
+                          {{ 'XP.Organization.RecordSummary' | translate: { Default: 'Record summary' } }}
                         </div>
                         <dl class="space-y-3 text-sm">
                           <div class="flex items-center justify-between gap-4">
                             <dt class="text-text-tertiary">
-                              {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+                              {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
                             </dt>
                             <dd class="font-medium text-text-primary">
                               {{ organizationStatusLabel(selectedOrganization()!) }}
@@ -472,13 +472,13 @@
                           </div>
                           <div class="flex items-center justify-between gap-4">
                             <dt class="text-text-tertiary">
-                              {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
+                              {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
                             </dt>
                             <dd class="font-medium text-text-primary">
                               {{
                                 selectedOrganization()?.isDefault
-                                  ? ('PAC.KEY_WORDS.Yes' | translate: { Default: 'Yes' })
-                                  : ('PAC.KEY_WORDS.No' | translate: { Default: 'No' })
+                                  ? ('XP.KEY_WORDS.Yes' | translate: { Default: 'Yes' })
+                                  : ('XP.KEY_WORDS.No' | translate: { Default: 'No' })
                               }}
                             </dd>
                           </div>
@@ -487,12 +487,12 @@
 
                       <div class="info-panel">
                         <div class="info-title">
-                          {{ 'PAC.Organization.ScopeRules' | translate: { Default: 'Scope rules' } }}
+                          {{ 'XP.Organization.ScopeRules' | translate: { Default: 'Scope rules' } }}
                         </div>
                         <p class="text-sm text-text-tertiary">
                           @if (isTenantScope()) {
                             {{
-                              'PAC.Organization.ScopeRulesTenant'
+                              'XP.Organization.ScopeRulesTenant'
                                 | translate
                                   : {
                                       Default:
@@ -501,7 +501,7 @@
                             }}
                           } @else {
                             {{
-                              'PAC.Organization.ScopeRulesOrganization'
+                              'XP.Organization.ScopeRulesOrganization'
                                 | translate
                                   : {
                                       Default:
@@ -520,7 +520,7 @@
                         (click)="resetForm()"
                         [disabled]="form.pristine || !canEditSelectedOrganization()"
                       >
-                        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Reset' } }}
+                        {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Reset' } }}
                       </button>
 
                       @if (canEditSelectedOrganization()) {
@@ -531,9 +531,9 @@
                           [disabled]="form.pristine || form.invalid || saving()"
                         >
                           @if (saving()) {
-                            {{ 'PAC.KEY_WORDS.Saving' | translate: { Default: 'Saving...' } }}
+                            {{ 'XP.KEY_WORDS.Saving' | translate: { Default: 'Saving...' } }}
                           } @else {
-                            {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+                            {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
                           }
                         </button>
                       }
@@ -542,7 +542,7 @@
                 }
 
                 @case ('members') {
-                  <pac-organization-members
+                  <xp-organization-members
                     class="w-full"
                     [organizationId]="selectedOrganizationId()"
                     [canEdit]="canManageSelectedMembers()"
@@ -550,7 +550,7 @@
                 }
 
                 @case ('user-groups') {
-                  <pac-organization-user-groups class="w-full" [organizationId]="selectedOrganizationId()" />
+                  <xp-organization-user-groups class="w-full" [organizationId]="selectedOrganizationId()" />
                 }
 
                 @case ('controls') {
@@ -558,25 +558,25 @@
                     <div class="grid gap-7">
                       <label class="form-field">
                         <span class="form-label">{{
-                          'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' }
+                          'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' }
                         }}</span>
                         <input z-input formControlName="currency" />
                       </label>
 
                       <div class="form-field">
                         <span class="form-label">{{
-                          'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' }
+                          'XP.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' }
                         }}</span>
                         <z-select
                           formControlName="timeZone"
                           class="w-full"
                           [zPlaceholder]="
-                            'PAC.ORGANIZATIONS_PAGE.Organization.SelectTimeZone'
+                            'XP.ORGANIZATIONS_PAGE.Organization.SelectTimeZone'
                               | translate: { Default: 'Select a time zone' }
                           "
                         >
                           <z-select-item [zValue]="noTimeZoneValue">
-                            {{ 'PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                            {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
                           </z-select-item>
                           @for (timezone of timezones; track timezone.value) {
                             <z-select-item [zValue]="timezone.value">{{ timezone.name }}</z-select-item>
@@ -587,19 +587,19 @@
                       <div class="form-field">
                         <span class="form-label">
                           {{
-                            'PAC.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType'
+                            'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType'
                               | translate: { Default: 'Default Value Date Type' }
                           }}
                         </span>
                         <z-select formControlName="defaultValueDateType" class="w-full">
                           <z-select-item zValue="TODAY">
-                            {{ 'PAC.Organization.Today' | translate: { Default: 'Today' } }}
+                            {{ 'XP.Organization.Today' | translate: { Default: 'Today' } }}
                           </z-select-item>
                           <z-select-item zValue="START_OF_MONTH">
-                            {{ 'PAC.Organization.StartOfMonth' | translate: { Default: 'Start of month' } }}
+                            {{ 'XP.Organization.StartOfMonth' | translate: { Default: 'Start of month' } }}
                           </z-select-item>
                           <z-select-item zValue="END_OF_MONTH">
-                            {{ 'PAC.Organization.EndOfMonth' | translate: { Default: 'End of month' } }}
+                            {{ 'XP.Organization.EndOfMonth' | translate: { Default: 'End of month' } }}
                           </z-select-item>
                         </z-select>
                       </div>
@@ -607,7 +607,7 @@
                       <label class="form-field">
                         <span class="form-label">
                           {{
-                            'PAC.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod'
+                            'XP.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod'
                               | translate: { Default: 'Invite Expiry Period (in Days)' }
                           }}
                         </span>
@@ -618,20 +618,20 @@
                     <div class="grid gap-7">
                       <div class="toggle-group">
                         <div class="info-title">
-                          {{ 'PAC.Organization.Collaboration' | translate: { Default: 'Collaboration' } }}
+                          {{ 'XP.Organization.Collaboration' | translate: { Default: 'Collaboration' } }}
                         </div>
                         <div class="toggle-group-panel">
                           <div class="toggle-setting">
                             <div class="min-w-0">
                               <div class="text-base font-semibold text-text-primary">
                                 {{
-                                  'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed'
+                                  'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed'
                                     | translate: { Default: 'Invites Allowed' }
                                 }}
                               </div>
                               <div class="mt-1 text-sm text-text-tertiary">
                                 {{
-                                  'PAC.Organization.InvitesAllowedHelp'
+                                  'XP.Organization.InvitesAllowedHelp'
                                     | translate
                                       : { Default: 'Allow this organization to accept and manage invitation links.' }
                                 }}
@@ -640,7 +640,7 @@
                             <z-switch formControlName="invitesAllowed" class="shrink-0" zSize="sm">
                               <span class="sr-only">
                                 {{
-                                  'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed'
+                                  'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed'
                                     | translate: { Default: 'Invites Allowed' }
                                 }}
                               </span>
@@ -652,19 +652,17 @@
                       @if (isTenantScope()) {
                         <div class="toggle-group">
                           <div class="info-title">
-                            {{ 'PAC.Organization.Governance' | translate: { Default: 'Governance' } }}
+                            {{ 'XP.Organization.Governance' | translate: { Default: 'Governance' } }}
                           </div>
                           <div class="toggle-group-panel">
                             <div class="toggle-setting">
                               <div class="min-w-0">
                                 <div class="text-base font-semibold text-text-primary">
-                                  {{
-                                    'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' }
-                                  }}
+                                  {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
                                 </div>
                                 <div class="mt-1 text-sm text-text-tertiary">
                                   {{
-                                    'PAC.Organization.DefaultHelp'
+                                    'XP.Organization.DefaultHelp'
                                       | translate
                                         : {
                                             Default:
@@ -675,9 +673,7 @@
                               </div>
                               <z-switch formControlName="isDefault" class="shrink-0" zSize="sm">
                                 <span class="sr-only">
-                                  {{
-                                    'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' }
-                                  }}
+                                  {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
                                 </span>
                               </z-switch>
                             </div>
@@ -685,11 +681,11 @@
                             <div class="toggle-setting">
                               <div class="min-w-0">
                                 <div class="text-base font-semibold text-text-primary">
-                                  {{ 'PAC.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
+                                  {{ 'XP.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
                                 </div>
                                 <div class="mt-1 text-sm text-text-tertiary">
                                   {{
-                                    'PAC.Organization.ActiveHelp'
+                                    'XP.Organization.ActiveHelp'
                                       | translate
                                         : {
                                             Default:
@@ -700,7 +696,7 @@
                               </div>
                               <z-switch formControlName="isActive" class="shrink-0" zSize="sm">
                                 <span class="sr-only">
-                                  {{ 'PAC.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
+                                  {{ 'XP.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
                                 </span>
                               </z-switch>
                             </div>
@@ -716,7 +712,7 @@
                         (click)="resetForm()"
                         [disabled]="form.pristine || !canEditSelectedOrganization()"
                       >
-                        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Reset' } }}
+                        {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Reset' } }}
                       </button>
 
                       @if (canEditSelectedOrganization()) {
@@ -727,9 +723,9 @@
                           [disabled]="form.pristine || form.invalid || saving()"
                         >
                           @if (saving()) {
-                            {{ 'PAC.KEY_WORDS.Saving' | translate: { Default: 'Saving...' } }}
+                            {{ 'XP.KEY_WORDS.Saving' | translate: { Default: 'Saving...' } }}
                           } @else {
-                            {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+                            {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
                           }
                         </button>
                       }
@@ -751,11 +747,11 @@
                       <div class="space-y-5">
                         <div class="space-y-2">
                           <div class="info-title !mb-0">
-                            {{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
+                            {{ 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
                           </div>
                           <p class="text-sm text-text-tertiary">
                             {{
-                              'PAC.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription'
+                              'XP.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription'
                                 | translate
                                   : {
                                       Default:
@@ -771,7 +767,7 @@
                               <span class="demo-source-title">GitHub</span>
                               <span class="demo-source-description">
                                 {{
-                                  'PAC.Organization.GitHubSourceHelp'
+                                  'XP.Organization.GitHubSourceHelp'
                                     | translate: { Default: 'Use the maintained GitHub demo source.' }
                                 }}
                               </span>
@@ -783,7 +779,7 @@
                               <span class="demo-source-title">Aliyun OSS</span>
                               <span class="demo-source-description">
                                 {{
-                                  'PAC.Organization.AliyunSourceHelp'
+                                  'XP.Organization.AliyunSourceHelp'
                                     | translate: { Default: 'Use the mirrored Aliyun OSS source.' }
                                 }}
                               </span>
@@ -793,11 +789,11 @@
                           <z-radio class="demo-source-option" [value]="null">
                             <span class="demo-source-copy">
                               <span class="demo-source-title">
-                                {{ 'PAC.KEY_WORDS.Custom' | translate: { Default: 'Custom' } }}
+                                {{ 'XP.KEY_WORDS.Custom' | translate: { Default: 'Custom' } }}
                               </span>
                               <span class="demo-source-description">
                                 {{
-                                  'PAC.Organization.CustomSourceHelp'
+                                  'XP.Organization.CustomSourceHelp'
                                     | translate: { Default: 'Provide your own file URL.' }
                                 }}
                               </span>
@@ -808,7 +804,7 @@
                         @if (source.value === null) {
                           <label class="form-field max-w-2xl">
                             <span class="form-label">{{
-                              'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: { Default: 'File URL' }
+                              'XP.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: { Default: 'File URL' }
                             }}</span>
                             <input z-input class="form-input" [formControl]="fileUrl" />
                           </label>
@@ -824,15 +820,15 @@
                             "
                           >
                             @if (generatingDemo()) {
-                              {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Generating...' } }}
+                              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Generating...' } }}
                             } @else if (selectedOrganization()?.createdDemo) {
                               {{
-                                'PAC.ORGANIZATIONS_PAGE.Organization.RegenerateDemo'
+                                'XP.ORGANIZATIONS_PAGE.Organization.RegenerateDemo'
                                   | translate: { Default: 'Re-generate Demo' }
                               }}
                             } @else {
                               {{
-                                'PAC.ORGANIZATIONS_PAGE.Organization.GENERATE_DEMO'
+                                'XP.ORGANIZATIONS_PAGE.Organization.GENERATE_DEMO'
                                   | translate: { Default: 'Generate Demo' }
                               }}
                             }
@@ -841,7 +837,7 @@
                           @if (!canEditSelectedOrganization()) {
                             <span class="text-sm text-text-tertiary">
                               {{
-                                'PAC.Organization.ReadonlyActionHint'
+                                'XP.Organization.ReadonlyActionHint'
                                   | translate: { Default: 'You need edit permission to run demo generation.' }
                               }}
                             </span>
@@ -855,7 +851,7 @@
                 @case ('smtp') {
                   @if (!isTenantScope() && canViewCustomSmtp()) {
                     <div class="grid w-full min-w-0 gap-6">
-                      <pac-smtp
+                      <xp-smtp
                         class="flex w-full min-w-0 flex-col gap-4"
                         [isOrganization]="true"
                         [organization]="selectedOrganization() || undefined"
@@ -870,11 +866,11 @@
           <div class="flex min-h-[320px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
             <i class="ri-layout-grid-line text-2xl text-text-tertiary"></i>
             <div class="text-base font-semibold text-text-primary">
-              {{ 'PAC.Organization.SelectPromptTitle' | translate: { Default: 'Choose an organization' } }}
+              {{ 'XP.Organization.SelectPromptTitle' | translate: { Default: 'Choose an organization' } }}
             </div>
             <div class="max-w-xl text-sm text-text-tertiary">
               {{
-                'PAC.Organization.SelectPromptDescription'
+                'XP.Organization.SelectPromptDescription'
                   | translate: { Default: 'Select a row from the registry above to open the details workspace.' }
               }}
             </div>

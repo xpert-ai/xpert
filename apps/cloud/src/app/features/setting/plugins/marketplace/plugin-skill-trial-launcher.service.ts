@@ -12,7 +12,7 @@ import {
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PLUGIN_RESOURCE_RUNTIME_TYPE,
   type PluginComponentType
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { type I18nObject, type PluginMeta } from '@xpert-ai/contracts'
 import { ClawXpertBindingTargetService } from '../../../chat/clawxpert/clawxpert-binding-target.service'
 import { ClawXpertSkillTrialIntentService } from '../../../chat/clawxpert/clawxpert-skill-trial-intent.service'

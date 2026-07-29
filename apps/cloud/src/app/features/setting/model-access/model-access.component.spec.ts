@@ -5,7 +5,7 @@ import {
   ModelAccessRequestStatusEnum,
   RequestScopeLevel
 } from '@xpert-ai/contracts'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, of } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'

@@ -1,33 +1,13 @@
-import { CdkMenuModule } from '@angular/cdk/menu'
-
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '@cloud/app/xpert/'
-import { ChatDashboardMessageType, TMessageComponent, TMessageContentComponent } from '@cloud/app/@core'
-import { uniq } from 'lodash-es'
-import { ModelCubeComponent, ModelMembersComponent, ModelVirtualCubeComponent } from '@cloud/app/@shared/model'
-import { XpIndicatorFormComponent, XpListIndicatorsComponent } from '@cloud/app/@shared/indicator'
+import { TMessageComponent, TMessageContentComponent } from '@cloud/app/@core'
 import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    RouterModule,
-    CdkMenuModule,
-    RouterModule,
-    TranslateModule,
-    ...ZardTooltipImports,
-    ChatMessageDashboardComponent,
-    ModelCubeComponent,
-    ModelMembersComponent,
-    ModelVirtualCubeComponent,
-    XpListIndicatorsComponent,
-    XpIndicatorFormComponent
-],
+  imports: [TranslateModule, ...ZardTooltipImports, ChatMessageDashboardComponent],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrl: 'dashboard.component.scss',
@@ -37,8 +17,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   }
 })
 export class ChatCanvasDashboardComponent {
-  eChatDashboardMessageType = ChatDashboardMessageType
-
   readonly homeService = inject(XpertHomeService)
 
   // Inputs
@@ -47,22 +25,12 @@ export class ChatCanvasDashboardComponent {
   // States
   readonly expand = signal(false)
 
-  readonly messages = this.homeService.messages
   /**
    * @deprecated Use `componentId` to locate step message
    */
   readonly messageId = computed(
     () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.messageId
   )
-
-  readonly #messages = computed(() => {
-    const conversation = this.homeService.conversation()
-    const id = this.messageId()
-    if (conversation?.messages) {
-      return id ? conversation.messages.filter((m) => m.id === id) : conversation.messages
-    }
-    return null
-  })
 
   readonly _contents = computed(() => {
     const messages = this.homeService.conversation()?.messages
@@ -86,10 +54,6 @@ export class ChatCanvasDashboardComponent {
 
   readonly contents = computed(() => {
     return this._contents().filter((_) => (this.componentId() ? _.id === this.componentId() : true))
-  })
-
-  readonly types = computed(() => {
-    return uniq(this._contents()?.map((content) => content.data.type) || [])
   })
 
   toggleExpand() {

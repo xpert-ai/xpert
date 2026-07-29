@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { attrModel } from '@xpert-ai/core'
+import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ProjectService } from './project.service'
 import { routeAnimations } from '@cloud/app/@core'
@@ -16,7 +16,7 @@ import { XpertHomeService } from '../../../xpert'
 @Component({
   standalone: true,
   imports: [RouterModule, FormsModule, CdkMenuModule, TranslateModule],
-  selector: 'pac-chat-project',
+  selector: 'xp-chat-project',
   templateUrl: './project.component.html',
   styleUrl: 'project.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

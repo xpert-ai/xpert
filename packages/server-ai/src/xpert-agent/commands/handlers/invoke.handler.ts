@@ -5,6 +5,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     IKnowledgebaseTask,
+    isNil,
     KnowledgebaseChannel,
     KnowledgeTask,
     LanguagesEnum,
@@ -28,7 +29,6 @@ import {
     getXpertAgentRecursionLimit,
     IXpert
 } from '@xpert-ai/contracts'
-import { isNil } from '@xpert-ai/copilot'
 import { RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'

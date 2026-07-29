@@ -1,6 +1,6 @@
-import { type ConnectedPosition, Overlay, OverlayPositionBuilder, type OverlayRef } from '@angular/cdk/overlay';
-import { TemplatePortal } from '@angular/cdk/portal';
-import { isPlatformBrowser } from '@angular/common';
+import { type ConnectedPosition, Overlay, OverlayPositionBuilder, type OverlayRef } from '@angular/cdk/overlay'
+import { TemplatePortal } from '@angular/cdk/portal'
+import { isPlatformBrowser } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,18 +17,18 @@ import {
   Renderer2,
   signal,
   type TemplateRef,
-  ViewContainerRef,
-} from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+  ViewContainerRef
+} from '@angular/core'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 
-import { filter, type Subscription } from 'rxjs';
+import { filter, type Subscription } from 'rxjs'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { popoverVariants } from './popover.variants';
+import { popoverVariants } from './popover.variants'
 
-export type ZardPopoverTrigger = 'click' | 'hover' | null;
-export type ZardPopoverPlacement = 'top' | 'bottom' | 'left' | 'right';
+export type ZardPopoverTrigger = 'click' | 'hover' | null
+export type ZardPopoverPlacement = 'top' | 'bottom' | 'left' | 'right'
 
 const POPOVER_POSITIONS_MAP: { [key: string]: ConnectedPosition } = {
   top: {
@@ -37,7 +37,7 @@ const POPOVER_POSITIONS_MAP: { [key: string]: ConnectedPosition } = {
     overlayX: 'center',
     overlayY: 'bottom',
     offsetX: 0,
-    offsetY: -8,
+    offsetY: -8
   },
   bottom: {
     originX: 'center',
@@ -45,7 +45,7 @@ const POPOVER_POSITIONS_MAP: { [key: string]: ConnectedPosition } = {
     overlayX: 'center',
     overlayY: 'top',
     offsetX: 0,
-    offsetY: 8,
+    offsetY: 8
   },
   left: {
     originX: 'start',
@@ -53,7 +53,7 @@ const POPOVER_POSITIONS_MAP: { [key: string]: ConnectedPosition } = {
     overlayX: 'end',
     overlayY: 'center',
     offsetX: -8,
-    offsetY: 0,
+    offsetY: 0
   },
   right: {
     originX: 'end',
@@ -61,109 +61,109 @@ const POPOVER_POSITIONS_MAP: { [key: string]: ConnectedPosition } = {
     overlayX: 'start',
     overlayY: 'center',
     offsetX: 8,
-    offsetY: 0,
-  },
-} as const;
+    offsetY: 0
+  }
+} as const
 
 @Directive({
   selector: '[zPopover]',
   standalone: true,
-  exportAs: 'zPopover',
+  exportAs: 'zPopover'
 })
 export class ZardPopoverDirective implements OnInit, OnDestroy {
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly overlay = inject(Overlay);
-  private readonly overlayPositionBuilder = inject(OverlayPositionBuilder);
-  private readonly elementRef = inject(ElementRef);
-  private readonly renderer = inject(Renderer2);
-  private readonly viewContainerRef = inject(ViewContainerRef);
-  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef)
+  private readonly overlay = inject(Overlay)
+  private readonly overlayPositionBuilder = inject(OverlayPositionBuilder)
+  private readonly elementRef = inject(ElementRef)
+  private readonly renderer = inject(Renderer2)
+  private readonly viewContainerRef = inject(ViewContainerRef)
+  private readonly platformId = inject(PLATFORM_ID)
 
-  private overlayRef?: OverlayRef;
-  private overlayRefSubscription?: Subscription;
-  private listeners: (() => void)[] = [];
+  private overlayRef?: OverlayRef
+  private overlayRefSubscription?: Subscription
+  private listeners: (() => void)[] = []
 
-  readonly zTrigger = input<ZardPopoverTrigger>('click');
-  readonly zContent = input.required<TemplateRef<unknown>>();
-  readonly zPlacement = input<ZardPopoverPlacement>('bottom');
-  readonly zOrigin = input<ElementRef>();
-  readonly zVisible = input<boolean>(false);
-  readonly zOverlayClickable = input<boolean>(true);
-  readonly zVisibleChange = output<boolean>();
+  readonly zTrigger = input<ZardPopoverTrigger>('click')
+  readonly zContent = input.required<TemplateRef<unknown>>()
+  readonly zPlacement = input<ZardPopoverPlacement>('bottom')
+  readonly zOrigin = input<ElementRef>()
+  readonly zVisible = input<boolean>(false)
+  readonly zOverlayClickable = input<boolean>(true)
+  readonly zVisibleChange = output<boolean>()
 
-  private readonly isVisible = signal(false);
+  private readonly isVisible = signal(false)
 
   get nativeElement() {
-    return this.zOrigin()?.nativeElement ?? this.elementRef.nativeElement;
+    return this.zOrigin()?.nativeElement ?? this.elementRef.nativeElement
   }
 
   constructor() {
     toObservable(this.zVisible)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(visible => {
-        const currentlyVisible = this.isVisible();
+      .subscribe((visible) => {
+        const currentlyVisible = this.isVisible()
         if (visible && !currentlyVisible) {
-          this.show();
+          this.show()
         } else if (!visible && currentlyVisible) {
-          this.hide();
+          this.hide()
         }
-      });
+      })
 
     toObservable(this.zTrigger)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(trigger => {
+      .subscribe((trigger) => {
         if (this.listeners.length) {
-          this.unlistenAll();
+          this.unlistenAll()
         }
-        this.setupTriggers();
-        this.overlayRefSubscription?.unsubscribe();
-        this.overlayRefSubscription = undefined;
+        this.setupTriggers()
+        this.overlayRefSubscription?.unsubscribe()
+        this.overlayRefSubscription = undefined
         if (trigger === 'click') {
-          this.subscribeToOverlayRef();
+          this.subscribeToOverlayRef()
         }
-      });
+      })
   }
 
   ngOnInit() {
-    this.createOverlay();
+    this.createOverlay()
   }
 
   ngOnDestroy() {
-    this.unlistenAll();
-    this.overlayRefSubscription?.unsubscribe();
-    this.overlayRef?.dispose();
+    this.unlistenAll()
+    this.overlayRefSubscription?.unsubscribe()
+    this.overlayRef?.dispose()
   }
 
   show() {
     if (this.isVisible()) {
-      return;
+      return
     }
 
     if (!this.overlayRef) {
-      this.createOverlay();
+      this.createOverlay()
     }
 
-    const templatePortal = new TemplatePortal(this.zContent(), this.viewContainerRef);
-    this.overlayRef?.attach(templatePortal);
-    this.isVisible.set(true);
-    this.zVisibleChange.emit(true);
+    const templatePortal = new TemplatePortal(this.zContent(), this.viewContainerRef)
+    this.overlayRef?.attach(templatePortal)
+    this.isVisible.set(true)
+    this.zVisibleChange.emit(true)
   }
 
   hide() {
     if (!this.isVisible()) {
-      return;
+      return
     }
 
-    this.overlayRef?.detach();
-    this.isVisible.set(false);
-    this.zVisibleChange.emit(false);
+    this.overlayRef?.detach()
+    this.isVisible.set(false)
+    this.zVisibleChange.emit(false)
   }
 
   toggle() {
     if (this.isVisible()) {
-      this.hide();
+      this.hide()
     } else {
-      this.show();
+      this.show()
     }
   }
 
@@ -174,13 +174,13 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
         .withPositions(this.getPositions())
         .withPush(false)
         .withFlexibleDimensions(false)
-        .withViewportMargin(8);
+        .withViewportMargin(8)
 
       this.overlayRef = this.overlay.create({
         positionStrategy,
         hasBackdrop: false,
-        scrollStrategy: this.overlay.scrollStrategies.reposition(),
-      });
+        scrollStrategy: this.overlay.scrollStrategies.reposition()
+      })
     }
   }
 
@@ -193,47 +193,47 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
     ) {
       this.overlayRefSubscription = this.overlayRef
         .outsidePointerEvents()
-        .pipe(filter(event => !this.nativeElement.contains(event.target)))
-        .subscribe(() => this.hide());
+        .pipe(filter((event) => !this.nativeElement.contains(event.target)))
+        .subscribe(() => this.hide())
     }
   }
 
   private setupTriggers() {
-    const trigger = this.zTrigger();
+    const trigger = this.zTrigger()
     if (!trigger) {
-      return;
+      return
     }
 
     if (trigger === 'click') {
-      this.listeners.push(this.renderer.listen(this.nativeElement, 'click.stop', () => this.toggle()));
+      this.listeners.push(this.renderer.listen(this.nativeElement, 'click.stop', () => this.toggle()))
     } else if (trigger === 'hover') {
-      this.listeners.push(this.renderer.listen(this.nativeElement, 'mouseenter', () => this.show()));
+      this.listeners.push(this.renderer.listen(this.nativeElement, 'mouseenter', () => this.show()))
 
-      this.listeners.push(this.renderer.listen(this.nativeElement, 'mouseleave', () => this.hide()));
+      this.listeners.push(this.renderer.listen(this.nativeElement, 'mouseleave', () => this.hide()))
     }
   }
 
   private unlistenAll(): void {
     for (const listener of this.listeners) {
-      listener();
+      listener()
     }
-    this.listeners = [];
+    this.listeners = []
   }
 
   private getPositions(): ConnectedPosition[] {
-    const placement = this.zPlacement();
-    const positions: ConnectedPosition[] = [];
+    const placement = this.zPlacement()
+    const positions: ConnectedPosition[] = []
 
     // Primary position
-    const primaryConfig = POPOVER_POSITIONS_MAP[placement];
+    const primaryConfig = POPOVER_POSITIONS_MAP[placement]
     positions.push({
       originX: primaryConfig.originX,
       originY: primaryConfig.originY,
       overlayX: primaryConfig.overlayX,
       overlayY: primaryConfig.overlayY,
       offsetX: primaryConfig.offsetX ?? 0,
-      offsetY: primaryConfig.offsetY ?? 0,
-    });
+      offsetY: primaryConfig.offsetY ?? 0
+    })
 
     // Fallback positions for better positioning when primary doesn't fit
     switch (placement) {
@@ -245,8 +245,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'center',
           overlayY: 'bottom',
           offsetX: 0,
-          offsetY: -8,
-        });
+          offsetY: -8
+        })
         // If neither top nor bottom work, try right
         positions.push({
           originX: 'end',
@@ -254,8 +254,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'start',
           overlayY: 'center',
           offsetX: 8,
-          offsetY: 0,
-        });
+          offsetY: 0
+        })
         // Finally try left
         positions.push({
           originX: 'start',
@@ -263,9 +263,9 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'end',
           overlayY: 'center',
           offsetX: -8,
-          offsetY: 0,
-        });
-        break;
+          offsetY: 0
+        })
+        break
       case 'top':
         // Try bottom if top doesn't fit
         positions.push({
@@ -274,8 +274,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'center',
           overlayY: 'top',
           offsetX: 0,
-          offsetY: 8,
-        });
+          offsetY: 8
+        })
         // If neither top nor bottom work, try right
         positions.push({
           originX: 'end',
@@ -283,8 +283,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'start',
           overlayY: 'center',
           offsetX: 8,
-          offsetY: 0,
-        });
+          offsetY: 0
+        })
         // Finally try left
         positions.push({
           originX: 'start',
@@ -292,9 +292,9 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'end',
           overlayY: 'center',
           offsetX: -8,
-          offsetY: 0,
-        });
-        break;
+          offsetY: 0
+        })
+        break
       case 'right':
         // Try left if right doesn't fit
         positions.push({
@@ -303,8 +303,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'end',
           overlayY: 'center',
           offsetX: -8,
-          offsetY: 0,
-        });
+          offsetY: 0
+        })
         // If neither left nor right work, try bottom
         positions.push({
           originX: 'center',
@@ -312,8 +312,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'center',
           overlayY: 'top',
           offsetX: 0,
-          offsetY: 8,
-        });
+          offsetY: 8
+        })
         // Finally try top
         positions.push({
           originX: 'center',
@@ -321,9 +321,9 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'center',
           overlayY: 'bottom',
           offsetX: 0,
-          offsetY: -8,
-        });
-        break;
+          offsetY: -8
+        })
+        break
       case 'left':
         // Try right if left doesn't fit
         positions.push({
@@ -332,8 +332,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'start',
           overlayY: 'center',
           offsetX: 8,
-          offsetY: 0,
-        });
+          offsetY: 0
+        })
         // If neither left nor right work, try bottom
         positions.push({
           originX: 'center',
@@ -341,8 +341,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'center',
           overlayY: 'top',
           offsetX: 0,
-          offsetY: 8,
-        });
+          offsetY: 8
+        })
         // Finally try top
         positions.push({
           originX: 'center',
@@ -350,12 +350,12 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
           overlayX: 'center',
           overlayY: 'bottom',
           offsetX: 0,
-          offsetY: -8,
-        });
-        break;
+          offsetY: -8
+        })
+        break
     }
 
-    return positions;
+    return positions
   }
 }
 
@@ -363,16 +363,14 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
   selector: 'z-popover',
   imports: [],
   standalone: true,
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '[class]': 'classes()',
-  },
+    '[class]': 'classes()'
+  }
 })
 export class ZardPopoverComponent {
-  readonly class = input<string>('');
+  readonly class = input<string>('')
 
-  protected readonly classes = computed(() => mergeClasses(popoverVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(popoverVariants(), this.class()))
 }

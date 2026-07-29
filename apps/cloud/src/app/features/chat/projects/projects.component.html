@@ -2,21 +2,19 @@
   <div class="flex justify-between align-center py-6 min-h-[42px] sticky top-0 z-10">
     <h1 class="text-2xl flex gap-2 items-center">
       <i class="ri-building-line text-2xl mr-2"></i>
-      {{ 'PAC.XProject.AllProjects' | translate: {Default: 'All Projects'} }}
+      {{ 'XP.XProject.AllProjects' | translate: { Default: 'All Projects' } }}
     </h1>
     <div class="flex justify-end gap-2">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large font-normal"
-        (click)="importDsl()">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large font-normal" (click)="importDsl()">
         <i class="ri-import-line mr-1"></i>
         <span class="system-sm-medium">
-          {{'PAC.XProject.ImportDSL' | translate: {Default: 'Import DSL'} }}
+          {{ 'XP.XProject.ImportDSL' | translate: { Default: 'Import DSL' } }}
         </span>
       </button>
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
-        (click)="addProject()">
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="addProject()">
         <i class="ri-add-line mr-1"></i>
         <span class="system-sm-medium">
-          {{'PAC.XProject.AddProject' | translate: {Default: 'Add Project'} }}
+          {{ 'XP.XProject.AddProject' | translate: { Default: 'Add Project' } }}
         </span>
       </button>
     </div>
@@ -27,17 +25,18 @@
         <div class="group">
           <div class="relative max-w-4/5">
             <a class="block w-full" [routerLink]="['/project', project.id]">
-              <div class="border border-components-panel-border text-card-foreground flex flex-row items-center @sm:flex-col @sm:items-stretch gap-2 px-5 py-4 pe-12 @sm:pe-5 w-full rounded-3xl hover:bg-components-card-bg shadow-none h-full overflow-hidden
-              bg-none bg-transparent hover:bg-components-card-bg">
+              <div
+                class="border border-components-panel-border text-card-foreground flex flex-row items-center @sm:flex-col @sm:items-stretch gap-2 px-5 py-4 pe-12 @sm:pe-5 w-full rounded-3xl hover:bg-components-card-bg shadow-none h-full overflow-hidden bg-none bg-transparent hover:bg-components-card-bg"
+              >
                 <emoji-avatar class="shrink-0 rounded-xl overflow-hidden" [avatar]="project.avatar" />
-                <div class="text-sm font-medium truncate">{{project.name}}</div>
+                <div class="text-sm font-medium truncate">{{ project.name }}</div>
               </div>
             </a>
             <button
               class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-text-secondary hover:text-s hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl absolute right-3 top-1/2 -translate-y-1/2"
               type="button"
               [cdkMenuTriggerFor]="editMenu"
-              [cdkMenuTriggerData]="{project: project}"
+              [cdkMenuTriggerData]="{ project: project }"
             >
               <i class="ri-more-line"></i>
             </button>
@@ -49,19 +48,19 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 <ng-template #editMenu let-project="project">
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="duplicateProject(project)">
       <i class="ri-file-copy-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: 'Duplicate'} }}</span>
+      <span>{{ 'XP.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
     </div>
     <!-- <div class="border-b border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem class="danger" (click)="removeProject(project)">
       <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
+      <span>{{ 'XP.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
     </div> -->
   </div>
 </ng-template>

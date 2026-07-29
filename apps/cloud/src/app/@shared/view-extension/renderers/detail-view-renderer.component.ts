@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input } from '@angular/core'
 import { XpertDetailViewSchema } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardCardImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'xp-detail-view-renderer',
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, ...ZardCardImports],
+  imports: [CommonModule, TranslateModule, XpI18nPipe, ...ZardCardImports],
   template: `
     <div class="p-4">
       <z-card class="gap-0 rounded-lg border border-divider-regular bg-components-card-bg py-0 shadow-none">

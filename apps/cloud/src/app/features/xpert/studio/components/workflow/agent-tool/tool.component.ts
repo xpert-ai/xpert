@@ -11,7 +11,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertExecutionService } from '../../../services/execution.service'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -20,7 +20,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./tool.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, NgmSpinComponent]
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, XpSpinComponent]
 })
 export class XpertWorkflowNodeAgentToolComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

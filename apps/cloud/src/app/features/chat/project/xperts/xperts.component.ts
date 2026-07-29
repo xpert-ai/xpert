@@ -22,8 +22,8 @@ import { Router, RouterModule } from '@angular/router'
 import { AIPermissionsEnum, getErrorMessage, injectProjectService, injectToastr, IXpert } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertCardComponent } from '@cloud/app/@shared/xpert'
-import { linkedModel, OverlayAnimations } from '@xpert-ai/core'
-import { NgmSearchComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, OverlayAnimations } from '@xpert-ai/headless-ui'
+import { XpSearchComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -44,12 +44,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     DragDropModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     EmojiAvatarComponent,
-    NgmSearchComponent,
+    XpSearchComponent,
     XpertCardComponent
-],
-  selector: 'pac-chat-project-xperts',
+  ],
+  selector: 'xp-chat-project-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -183,14 +183,12 @@ export class ChatProjectXpertsComponent {
       }
     })
 
-    effect(
-      () => {
-        if (!this.hoverTooltip()) {
-          this.overlayRef()?.detach()
-          this.element.set(null)
-        }
+    effect(() => {
+      if (!this.hoverTooltip()) {
+        this.overlayRef()?.detach()
+        this.element.set(null)
       }
-    )
+    })
   }
 
   showMore() {

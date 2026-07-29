@@ -4,24 +4,16 @@ import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { FileViewerComponent, inferMarkdownPreviewSelection } from './viewer.component'
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
-  const { Component } = jest.requireActual('@angular/core')
-
-  @Component({
-    standalone: true,
-    selector: 'ngm-spin',
-    template: ''
-  })
-  class NgmSpinComponent {}
-
-  return {
-    NgmSpinComponent
-  }
-})
-
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, EventEmitter, forwardRef, Input, Output } = jest.requireActual('@angular/core')
   const { NG_VALUE_ACCESSOR } = jest.requireActual('@angular/forms')
+
+  @Component({
+    standalone: true,
+    selector: 'xp-spin',
+    template: ''
+  })
+  class XpSpinComponent {}
 
   @Directive({
     standalone: true,
@@ -89,6 +81,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
+    XpSpinComponent,
     ZardButtonComponent,
     ZardSegmentedComponent,
     ZardSegmentedItemComponent,
@@ -125,7 +118,7 @@ jest.mock('../editor/editor.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-file-editor',
+    selector: 'xp-file-editor',
     template: ''
   })
   class FileEditorComponent {
@@ -150,7 +143,7 @@ jest.mock('../preview/file-preview-content.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-file-preview-content',
+    selector: 'xp-file-preview-content',
     template: ''
   })
   class FilePreviewContentComponent {
@@ -366,7 +359,7 @@ describe('FileViewerComponent', () => {
 
     const component = fixture.componentInstance
     const button = fixture.debugElement.query(By.css('[data-html-inspect-button="viewer"]'))
-    const preview = fixture.debugElement.query(By.css('pac-file-preview-content'))
+    const preview = fixture.debugElement.query(By.css('xp-file-preview-content'))
     expect(component.canInspectHtmlPreview()).toBe(true)
     expect(button).not.toBeNull()
     expect((button.componentInstance as { zType?: unknown }).zType).toBe('secondary')

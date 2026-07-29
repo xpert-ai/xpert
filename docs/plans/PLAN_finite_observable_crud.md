@@ -12,7 +12,7 @@
 ## 问题定义
 
 - 典型根因已确认：
-  - [organization-base-crud.service.ts](/Users/xpertai03/.xpertai/worktrees/8e62/xpert/libs/apps/state/src/lib/organization-base-crud.service.ts) 中的 `getOneById()` 当前实现为：
+  - [organization-base-crud.service.ts](/Users/xpertai03/.xpertai/worktrees/8e62/xpert/apps/cloud/src/app/@core/state/organization-base-crud.service.ts) 中的 `getOneById()` 当前实现为：
     - 先订阅 `selectOrganizationId()`
     - 再 `switchMap` 到一次 HTTP 请求
   - 由于外层 organization stream 默认不会完成，整个返回值会“发出一次结果但不 completion”
@@ -61,7 +61,7 @@
 
 ### A. 重构基础类的默认语义
 
-- 改造 [organization-base-crud.service.ts](/Users/xpertai03/.xpertai/worktrees/8e62/xpert/libs/apps/state/src/lib/organization-base-crud.service.ts)
+- 改造 [organization-base-crud.service.ts](/Users/xpertai03/.xpertai/worktrees/8e62/xpert/apps/cloud/src/app/@core/state/organization-base-crud.service.ts)
 - 当前：
   - `selectOrganizationId().pipe(switchMap(() => http.get(...)))`
 - 目标：
@@ -153,7 +153,7 @@ watchOneById(id: string, options?: PaginationParams<T>) {
 
 ### Phase 1：基础类修正
 
-1. 修改 [organization-base-crud.service.ts](/Users/xpertai03/.xpertai/worktrees/8e62/xpert/libs/apps/state/src/lib/organization-base-crud.service.ts)
+1. 修改 [organization-base-crud.service.ts](/Users/xpertai03/.xpertai/worktrees/8e62/xpert/apps/cloud/src/app/@core/state/organization-base-crud.service.ts)
    - 为 one-shot CRUD 方法统一加 `take(1)`
    - 提取 `withOrganizationContextOnce()` 之类的公共 helper
 2. 补充显式 reactive 方法

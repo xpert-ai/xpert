@@ -81,16 +81,16 @@ export class ChatContextCompressionChunkComponent {
 
   readonly labelKey = computed(() => {
     if (this.isSkipped()) {
-      return 'PAC.Chat.ContextCompressionSkipped'
+      return 'XP.Chat.ContextCompressionSkipped'
     }
 
     switch (this.status()) {
       case 'success':
-        return 'PAC.Chat.ContextCompressed'
+        return 'XP.Chat.ContextCompressed'
       case 'fail':
-        return 'PAC.Chat.ContextCompressionFailed'
+        return 'XP.Chat.ContextCompressionFailed'
       default:
-        return 'PAC.Chat.ContextCompression'
+        return 'XP.Chat.ContextCompression'
     }
   })
 

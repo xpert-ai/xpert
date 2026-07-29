@@ -6,7 +6,7 @@ const baselinePath = path.join(repoRoot, 'tools/baselines/legacy-color-usage.jso
 const scanRoots = [
   path.join(repoRoot, 'apps/cloud/src/app'),
   path.join(repoRoot, 'apps/cloud/src/styles'),
-  path.join(repoRoot, 'packages/angular')
+  path.join(repoRoot, 'packages/ui/src/lib/ui/compat')
 ]
 const fileExtensions = new Set(['.html', '.scss', '.css', '.ts', '.sass'])
 
@@ -80,11 +80,7 @@ function toMap(entries) {
 
 function writeBaseline(entries) {
   fs.mkdirSync(path.dirname(baselinePath), { recursive: true })
-  fs.writeFileSync(
-    baselinePath,
-    `${JSON.stringify({ version: 1, entries }, null, 2)}\n`,
-    'utf8'
-  )
+  fs.writeFileSync(baselinePath, `${JSON.stringify({ version: 1, entries }, null, 2)}\n`, 'utf8')
 }
 
 const writeMode = process.argv.includes('--write-baseline')

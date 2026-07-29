@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { isNil } from '@xpert-ai/ocap-core'
+import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
@@ -19,7 +19,7 @@ import {
 
 @Component({
   standalone: true,
-  selector: 'pac-cloud-sidebar-menu',
+  selector: 'xp-cloud-sidebar-menu',
   templateUrl: './cloud-sidebar-menu.component.html',
   styleUrl: './cloud-sidebar-menu.component.scss',
   imports: [
@@ -153,7 +153,7 @@ export class CloudSidebarMenuComponent {
   }
 
   menuTitleKey(item: CloudMenuItem) {
-    return item.data?.translationKey ? `PAC.MENU.${item.data.translationKey}` : ''
+    return item.data?.translationKey ? `XP.MENU.${item.data.translationKey}` : ''
   }
 
   menuTitleDefault(item: CloudMenuItem) {

@@ -7,23 +7,23 @@ import {
   inject,
   input,
   linkedSignal,
-  signal,
-} from '@angular/core';
+  signal
+} from '@angular/core'
 
-import { ZardIconComponent } from '@/src/lib/components/icon';
+import { ZardIconComponent } from '../icon'
 import {
   selectItemIconVariants,
   selectItemVariants,
   type ZardSelectItemModeVariants,
-  type ZardSelectSizeVariants,
-} from '@/src/lib/components/select/select.variants';
-import { mergeClasses, noopFn } from '@/shared/utils/merge-classes';
+  type ZardSelectSizeVariants
+} from './select.variants'
+import { mergeClasses, noopFn } from '../../utils/merge-classes'
 
 // Interface to avoid circular dependency
 interface SelectHost {
-  selectedValue(): Array<string | number>;
-  selectItem(value: string | number, label: string): void;
-  navigateTo(): void;
+  selectedValue(): Array<string | number>
+  selectItem(value: string | number, label: string): void
+  navigateTo(): void
 }
 
 @Component({
@@ -51,64 +51,64 @@ interface SelectHost {
     '(mousedown)': 'onMouseDown($event)',
     '(click)': 'onClick()',
     '(mouseenter)': 'onMouseEnter()',
-    '(keydown.{tab}.prevent)': 'noopFn',
-  },
+    '(keydown.{tab}.prevent)': 'noopFn'
+  }
 })
 export class ZardSelectItemComponent {
-  readonly elementRef = inject(ElementRef<HTMLElement>);
+  readonly elementRef = inject(ElementRef<HTMLElement>)
 
-  readonly zValue = input.required<string | number>();
-  readonly zDisabled = input(false, { transform: booleanAttribute });
-  readonly class = input<string>('');
+  readonly zValue = input.required<string | number>()
+  readonly zDisabled = input(false, { transform: booleanAttribute })
+  readonly class = input<string>('')
 
-  private readonly select = signal<SelectHost | null>(null);
-  noopFn = noopFn;
+  private readonly select = signal<SelectHost | null>(null)
+  noopFn = noopFn
 
   readonly label = linkedSignal<string>(() => {
-    const element = this.elementRef.nativeElement;
-    return (element.textContent ?? element.innerText)?.trim() ?? '';
-  });
+    const element = this.elementRef.nativeElement
+    return (element.textContent ?? element.innerText)?.trim() ?? ''
+  })
 
-  readonly zMode = signal<ZardSelectItemModeVariants>('normal');
-  readonly zSize = signal<ZardSelectSizeVariants>('default');
+  readonly zMode = signal<ZardSelectItemModeVariants>('normal')
+  readonly zSize = signal<ZardSelectSizeVariants>('default')
 
   protected readonly classes = computed(() =>
-    mergeClasses(selectItemVariants({ zMode: this.zMode(), zSize: this.zSize() }), this.class()),
-  );
+    mergeClasses(selectItemVariants({ zMode: this.zMode(), zSize: this.zSize() }), this.class())
+  )
 
   protected readonly iconClasses = computed(() =>
-    mergeClasses(selectItemIconVariants({ zMode: this.zMode(), zSize: this.zSize() })),
-  );
+    mergeClasses(selectItemIconVariants({ zMode: this.zMode(), zSize: this.zSize() }))
+  )
 
-  protected readonly strokeWidth = computed(() => (this.zMode() === 'compact' ? 3 : 2));
+  protected readonly strokeWidth = computed(() => (this.zMode() === 'compact' ? 3 : 2))
 
-  protected readonly isSelected = computed(() => this.select()?.selectedValue().includes(this.zValue()) ?? false);
+  protected readonly isSelected = computed(() => this.select()?.selectedValue().includes(this.zValue()) ?? false)
 
   setSelectHost(selectHost: SelectHost) {
-    this.select.set(selectHost);
+    this.select.set(selectHost)
   }
 
   onMouseEnter() {
     if (this.zDisabled()) {
-      return;
+      return
     }
-    this.select()?.navigateTo();
+    this.select()?.navigateTo()
   }
 
   onMouseDown(event: MouseEvent) {
     if (this.zDisabled()) {
-      return;
+      return
     }
 
     // Keep the pending click selection from being interrupted by focus/outside-click handling.
-    event.preventDefault();
-    event.stopPropagation();
+    event.preventDefault()
+    event.stopPropagation()
   }
 
   onClick() {
     if (this.zDisabled()) {
-      return;
+      return
     }
-    this.select()?.selectItem(this.zValue(), this.label());
+    this.select()?.selectItem(this.zValue(), this.label())
   }
 }

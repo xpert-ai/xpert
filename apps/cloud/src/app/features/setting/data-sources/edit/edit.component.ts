@@ -13,10 +13,9 @@ import {
   ZardLoaderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { environment } from '@cloud/environments/environment'
-import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
-import { cloneDeep } from '@xpert-ai/ocap-core'
+import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@cloud/app/@core/state'
+import { myRxResource } from '@xpert-ai/headless-ui'
+import { cloneDeep } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { assign, isEqual, isNil, omitBy } from 'lodash-es'
@@ -24,8 +23,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { firstValueFrom, map, of, startWith } from 'rxjs'
 import { AuthenticationEnum, getErrorMessage, IDataSource } from '../../../../@core/types'
 import { convertConfigurationSchema } from '../../../../@core/services/configuration-schema.service'
-import { LocalAgent } from '../../../../@core/services/local-agent.service'
-import { ServerAgent } from '../../../../@core/services/server-agent.service'
+import { DataSourceConnectionService } from '../../../../@core/services/data-source-connection.service'
 import { ToastrService } from '../../../../@core/services/toastr.service'
 
 @Component({
@@ -43,23 +41,21 @@ import { ToastrService } from '../../../../@core/services/toastr.service'
     ZardLoaderComponent,
     FormlyModule
   ],
-  selector: 'pac-data-source-edit',
+  selector: 'xp-data-source-edit',
   templateUrl: 'edit.component.html',
   styleUrls: ['edit.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PACDataSourceEditComponent {
+export class XpDataSourceEditComponent {
   AuthenticationEnum = AuthenticationEnum
-  enableLocalAgent = environment.enableLocalAgent
 
   readonly dataSourceTypesAPI = inject(DataSourceTypesService)
   readonly dataSourceService = inject(DataSourceService)
   private translateService = inject(TranslateService)
-  public dialogRef = inject<ZardDialogRef<PACDataSourceEditComponent, boolean>>(ZardDialogRef)
+  public dialogRef = inject<ZardDialogRef<XpDataSourceEditComponent, boolean>>(ZardDialogRef)
   public data = inject<Pick<IDataSource, 'id'>>(Z_MODAL_DATA)
   private toastrService = inject(ToastrService)
-  private serverAgent = inject(ServerAgent)
-  private localAgent = inject(LocalAgent, { optional: true }) ?? undefined
+  private dataSourceConnection = inject(DataSourceConnectionService)
 
   readonly dataSourceId = signal(this.data?.id)
   readonly _loading = signal(false)
@@ -67,7 +63,6 @@ export class PACDataSourceEditComponent {
   model = {}
   formGroup = new FormGroup({
     name: new FormControl(),
-    useLocalAgent: new FormControl(),
     authType: new FormControl<AuthenticationEnum>(null)
   })
   readonly optionsFormGroup = new FormGroup({})
@@ -83,7 +78,7 @@ export class PACDataSourceEditComponent {
     const dataSourceType = this.dataSourceType()
     return dataSourceType?.configuration
       ? this.translateService
-          .stream('PAC.DataSources.Schema')
+          .stream('XP.DataSources.Schema')
           .pipe(map((i18n) => convertConfigurationSchema(dataSourceType.configuration, i18n)))
       : of(null)
   })
@@ -129,44 +124,34 @@ export class PACDataSourceEditComponent {
           options: this.model
         })
       )
-      this.toastrService.success('PAC.MESSAGE.Update', { Default: 'Update' })
+      this.toastrService.success('XP.MESSAGE.Update', { Default: 'Update' })
       this.dialogRef.close(true)
     } catch {
-      this.toastrService.error('', 'PAC.MESSAGE.Update', { Default: 'Update' })
+      this.toastrService.error('', 'XP.MESSAGE.Update', { Default: 'Update' })
     }
   }
 
   onReset() {
-    const dataSource = cloneDeep(this.data)
+    const dataSource = cloneDeep(this.dataSource())
+    if (!dataSource) {
+      return
+    }
     this.formGroup.clearValidators()
     this.formGroup.reset(dataSource)
     this.model = dataSource.options
   }
 
   async ping() {
-    const agent = this.formGroup.value.useLocalAgent ? this.localAgent : this.serverAgent
     this._loading.set(true)
     try {
-      await agent.request(
-        {
-          type: this.dataSource().type.protocol.toUpperCase(),
-          dataSource: {
-            ...this.dataSource(),
-            ...this.formGroup.value
-          }
-        },
-        {
-          method: 'get',
-          url: 'ping',
-          body: {
-            ...this.formGroup.value,
-            type: this.dataSource().type
-          }
-        }
-      )
+      await this.dataSourceConnection.ping({
+        ...this.dataSource(),
+        ...this.formGroup.value,
+        type: this.dataSource().type
+      })
 
       this._loading.set(false)
-      this.toastrService.success('PAC.ACTIONS.PING', { Default: 'Ping' })
+      this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })
     } catch (err) {
       const message = getErrorMessage(err)
       this._loading.set(false)

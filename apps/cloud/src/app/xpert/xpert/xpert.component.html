@@ -6,7 +6,7 @@
         <a
           class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-10 w-10 rounded-full text-text-secondary hover:text-text-primary"
           type="button"
-          [zTooltip]="('PAC.Chat.NewChat' | translate: { Default: 'New Chat' }) + ' ⌘J'"
+          [zTooltip]="('XP.Chat.NewChat' | translate: { Default: 'New Chat' }) + ' ⌘J'"
           (click)="newXpertConv()"
         >
           <svg
@@ -87,9 +87,9 @@
             <h1
               class="w-full text-2xl flex-col tracking-tight sm:text-3xl !leading-normal text-text-primary flex items-center justify-center text-center"
             >
-              {{ 'PAC.Chat.Greeting_' + greeting() | translate: { Default: greeting() } }}, {{ userSignal() | user }}.
+              {{ 'XP.Chat.Greeting_' + greeting() | translate: { Default: greeting() } }}, {{ userSignal() | user }}.
               <span class="text-text-secondary">
-                {{ 'PAC.Chat.HowCanHelpYouToday' | translate: { Default: 'How can I help you today?' } }}
+                {{ 'XP.Chat.HowCanHelpYouToday' | translate: { Default: 'How can I help you today?' } }}
               </span>
             </h1>
 
@@ -149,7 +149,7 @@
       [disabled]="parameterInvalid()"
       [zTooltip]="
         parameterInvalid()
-          ? ('PAC.Xpert.EnterParameters' | translate: { Default: 'Please enter the required parameters' })
+          ? ('XP.Xpert.EnterParameters' | translate: { Default: 'Please enter the required parameters' })
           : null
       "
       (asked)="onAsked($event)"
@@ -162,7 +162,7 @@
     @bl
     class="shrink-1 flex max-w-full h-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2"
   >
-    <pac-chat-canvas
+    <xp-chat-canvas
       class="max-w-full h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8"
     />
   </div>

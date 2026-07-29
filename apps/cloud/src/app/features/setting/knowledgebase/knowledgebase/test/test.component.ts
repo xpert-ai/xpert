@@ -2,7 +2,7 @@ import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { DocumentInterface } from '@langchain/core/documents'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgebaseService, Store, ToastrService, getErrorMessage, routeAnimations } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
@@ -15,10 +15,10 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
  */
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebase-test',
+  selector: 'xp-settings-knowledgebase-test',
   templateUrl: './test.component.html',
   styleUrls: ['./test.component.scss'],
-  imports: [RouterModule, FormsModule, TranslateModule, SharedUiModule, NgmCommonModule, ZardLoaderComponent],
+  imports: [RouterModule, FormsModule, TranslateModule, SharedUiModule, XpCommonModule, ZardLoaderComponent],
   animations: [routeAnimations]
 })
 export class KnowledgeTestComponent extends TranslationBaseComponent {

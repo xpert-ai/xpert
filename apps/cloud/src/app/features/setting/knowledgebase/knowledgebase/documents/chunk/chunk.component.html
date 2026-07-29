@@ -1,8 +1,8 @@
 <div class="flex justify-between items-center p-4">
-  <div>{{ 'PAC.Knowledgebase.Chunks' | translate: { Default: 'Chunks' } }}: {{ total() }}</div>
-  <div ngmButtonGroup>
+  <div>{{ 'XP.Knowledgebase.Chunks' | translate: { Default: 'Chunks' } }}: {{ total() }}</div>
+  <div xpButtonGroup>
     <button z-button zType="ghost" (click)="close()">
-      {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
   </div>
 </div>
@@ -17,9 +17,9 @@
             zType="ghost"
             zSize="icon"
             zShape="circle"
-            ngmAppearance="danger"
+            xpAppearance="danger"
             displayDensity="compact"
-            [zTooltip]="'PAC.Knowledgebase.DeleteChunk' | translate: { Default: 'Delete Chunk' }"
+            [zTooltip]="'XP.Knowledgebase.DeleteChunk' | translate: { Default: 'Delete Chunk' }"
             (click)="deleteChunk(chunk)"
           >
             <z-icon zType="delete"></z-icon>

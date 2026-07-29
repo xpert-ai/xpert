@@ -1,14 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { DataSourceService } from '@xpert-ai/cloud/state'
+import { DataSourceService } from '@cloud/app/@core/state'
 import { TranslateService } from '@ngx-translate/core'
 import { IDataSource } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
 import { ZardAlertDialogService, ZardDialogService } from '@xpert-ai/headless-ui'
-import { PACDataSourcesComponent } from './data-sources.component'
-import { PACDataSourceCreationComponent } from './creation/creation.component'
-import { PACDataSourceEditComponent } from './edit/edit.component'
+import { XpDataSourcesComponent } from './data-sources.component'
+import { XpDataSourceCreationComponent } from './creation/creation.component'
+import { XpDataSourceEditComponent } from './edit/edit.component'
 
-describe('PACDataSourcesComponent', () => {
+describe('XpDataSourcesComponent', () => {
   const dataSource = {
     id: 'data-source-1',
     name: 'Main source',
@@ -17,8 +17,8 @@ describe('PACDataSourcesComponent', () => {
     }
   } as IDataSource
 
-  let fixture: ComponentFixture<PACDataSourcesComponent>
-  let component: PACDataSourcesComponent
+  let fixture: ComponentFixture<XpDataSourcesComponent>
+  let component: XpDataSourcesComponent
   let getAll: jest.Mock
   let open: jest.Mock
 
@@ -27,7 +27,7 @@ describe('PACDataSourcesComponent', () => {
     open = jest.fn(() => ({ closed: of(true) }))
 
     await TestBed.configureTestingModule({
-      imports: [PACDataSourcesComponent],
+      imports: [XpDataSourcesComponent],
       providers: [
         {
           provide: DataSourceService,
@@ -58,14 +58,14 @@ describe('PACDataSourcesComponent', () => {
         }
       ]
     })
-      .overrideComponent(PACDataSourcesComponent, {
+      .overrideComponent(XpDataSourcesComponent, {
         set: {
           template: ''
         }
       })
       .compileComponents()
 
-    fixture = TestBed.createComponent(PACDataSourcesComponent)
+    fixture = TestBed.createComponent(XpDataSourcesComponent)
     component = fixture.componentInstance
     fixture.detectChanges()
   })
@@ -76,7 +76,7 @@ describe('PACDataSourcesComponent', () => {
     component.create()
 
     expect(open).toHaveBeenCalledWith(
-      PACDataSourceCreationComponent,
+      XpDataSourceCreationComponent,
       expect.objectContaining({
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: ['xp-overlay-pane-share-sheet', '!p-0'],
@@ -93,7 +93,7 @@ describe('PACDataSourcesComponent', () => {
     component.edit(dataSource)
 
     expect(open).toHaveBeenCalledWith(
-      PACDataSourceEditComponent,
+      XpDataSourceEditComponent,
       expect.objectContaining({
         data: {
           id: dataSource.id
@@ -113,7 +113,7 @@ describe('PACDataSourcesComponent', () => {
     component.copy(dataSource)
 
     expect(open).toHaveBeenCalledWith(
-      PACDataSourceCreationComponent,
+      XpDataSourceCreationComponent,
       expect.objectContaining({
         data: dataSource,
         backdropClass: 'xp-overlay-share-sheet',

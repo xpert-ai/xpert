@@ -1,26 +1,30 @@
 <nav class="shrink-0 border-b border-divider-subtle flex space-x-6 pt-4 px-4">
-  <div class="tab relative pb-2.5 cursor-pointer system-xl-semibold"
+  <div
+    class="tab relative pb-2.5 cursor-pointer system-xl-semibold"
     [routerLink]="['./', 'store']"
     [routerLinkActiveOptions]="{ exact: false }"
     routerLinkActive
     #rla1="routerLinkActive"
-    [class.active]="rla1.isActive">
+    [class.active]="rla1.isActive"
+  >
     <div class="text-text-tertiary">
-      {{ 'PAC.Xpert.LongTermMemory' | translate: {Default: 'Long-term Memory'} }}
+      {{ 'XP.Xpert.LongTermMemory' | translate: { Default: 'Long-term Memory' } }}
     </div>
     @if (rla1.isActive) {
       <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
     }
   </div>
 
-  <div class="tab relative pb-2.5 cursor-pointer system-xl-semibold"
+  <div
+    class="tab relative pb-2.5 cursor-pointer system-xl-semibold"
     [routerLink]="['./', 'files']"
     [routerLinkActiveOptions]="{ exact: false }"
     routerLinkActive
     #rla2="routerLinkActive"
-    [class.active]="rla2.isActive">
+    [class.active]="rla2.isActive"
+  >
     <div class="text-text-tertiary">
-      {{ 'PAC.Xpert.MemoryFiles' | translate: {Default: 'Files'} }}
+      {{ 'XP.Xpert.MemoryFiles' | translate: { Default: 'Files' } }}
     </div>
     @if (rla2.isActive) {
       <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>

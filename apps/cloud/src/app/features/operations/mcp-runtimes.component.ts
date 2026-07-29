@@ -18,7 +18,7 @@ import {
   type ZardSelectValue,
   type ZardTableSortDirection
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent, injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent, injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 
@@ -52,7 +52,7 @@ const COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: 'bas
   imports: [
     CommonModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
     ...ZardCardImports,
@@ -230,15 +230,11 @@ export class McpRuntimesComponent implements OnInit {
     }
     this.confirmDelete(
       {
-        title: this.t('PAC.Operations.StopMcpRuntimeTitle', 'Stop MCP runtime'),
-        information: this.t(
-          'PAC.Operations.StopMcpRuntimeConfirm',
-          'Stop runtime {{id}} for server "{{serverName}}"?',
-          {
-            id: runtime.id,
-            serverName: runtime.serverName
-          }
-        )
+        title: this.t('XP.Operations.StopMcpRuntimeTitle', 'Stop MCP runtime'),
+        information: this.t('XP.Operations.StopMcpRuntimeConfirm', 'Stop runtime {{id}} for server "{{serverName}}"?', {
+          id: runtime.id,
+          serverName: runtime.serverName
+        })
       },
       () => {
         this.stoppingRuntimeId.set(runtime.id)
@@ -249,10 +245,10 @@ export class McpRuntimesComponent implements OnInit {
         const stopped = (result as { stopped?: boolean }).stopped === true
         this.stoppingRuntimeId.set(null)
         if (stopped) {
-          this.#toastr.success(this.t('PAC.Operations.McpRuntimeStopped', 'MCP runtime stopped'))
+          this.#toastr.success(this.t('XP.Operations.McpRuntimeStopped', 'MCP runtime stopped'))
         } else {
           this.#toastr.error(
-            this.t('PAC.Operations.McpRuntimeNotFoundOrClosed', 'MCP runtime was not found or already closed')
+            this.t('XP.Operations.McpRuntimeNotFoundOrClosed', 'MCP runtime was not found or already closed')
           )
         }
         void this.refresh()
@@ -269,8 +265,8 @@ export class McpRuntimesComponent implements OnInit {
     const scope = this.killScopeLabel(filter)
     this.confirmDelete(
       {
-        title: this.t('PAC.Operations.KillMcpRuntimesTitle', 'Kill MCP runtimes'),
-        information: this.t('PAC.Operations.KillMcpRuntimesConfirm', 'Stop all MCP runtimes matching {{scope}}?', {
+        title: this.t('XP.Operations.KillMcpRuntimesTitle', 'Kill MCP runtimes'),
+        information: this.t('XP.Operations.KillMcpRuntimesConfirm', 'Stop all MCP runtimes matching {{scope}}?', {
           scope
         })
       },
@@ -283,7 +279,7 @@ export class McpRuntimesComponent implements OnInit {
         const stopped = (result as { stopped?: number }).stopped ?? 0
         this.killing.set(false)
         this.#toastr.success(
-          this.t('PAC.Operations.McpRuntimeStoppedCount', 'Stopped {{count}} MCP runtime(s)', { count: stopped })
+          this.t('XP.Operations.McpRuntimeStoppedCount', 'Stopped {{count}} MCP runtime(s)', { count: stopped })
         )
         void this.refresh()
       },
@@ -299,7 +295,7 @@ export class McpRuntimesComponent implements OnInit {
   }
 
   statusLabel(status: McpRuntimeStatus) {
-    return this.t(`PAC.Operations.RuntimeStatus.${status}`, status)
+    return this.t(`XP.Operations.RuntimeStatus.${status}`, status)
   }
 
   statusClass(status: McpRuntimeStatus) {
@@ -355,24 +351,24 @@ export class McpRuntimesComponent implements OnInit {
     const endedAt = runtime.closedAt ? new Date(runtime.closedAt).getTime() : Date.now()
     const seconds = Math.max(0, Math.floor((endedAt - startedAt) / 1000))
     if (seconds < 60) {
-      return this.t('PAC.Operations.DurationSeconds', '{{count}}s', { count: seconds })
+      return this.t('XP.Operations.DurationSeconds', '{{count}}s', { count: seconds })
     }
     const minutes = Math.floor(seconds / 60)
     if (minutes < 60) {
-      return this.t('PAC.Operations.DurationMinutesSeconds', '{{minutes}}m {{seconds}}s', {
+      return this.t('XP.Operations.DurationMinutesSeconds', '{{minutes}}m {{seconds}}s', {
         minutes,
         seconds: seconds % 60
       })
     }
     const hours = Math.floor(minutes / 60)
     if (hours < 24) {
-      return this.t('PAC.Operations.DurationHoursMinutes', '{{hours}}h {{minutes}}m', {
+      return this.t('XP.Operations.DurationHoursMinutes', '{{hours}}h {{minutes}}m', {
         hours,
         minutes: minutes % 60
       })
     }
     const days = Math.floor(hours / 24)
-    return this.t('PAC.Operations.DurationDaysHours', '{{days}}d {{hours}}h', {
+    return this.t('XP.Operations.DurationDaysHours', '{{days}}d {{hours}}h', {
       days,
       hours: hours % 24
     })
@@ -380,8 +376,8 @@ export class McpRuntimesComponent implements OnInit {
 
   pidLabel(runtime: McpStdioRuntimeSnapshot) {
     const pids = [
-      runtime.runnerPid ? `${this.t('PAC.Operations.RunnerPid', 'runner')} ${runtime.runnerPid}` : '',
-      runtime.childPid ? `${this.t('PAC.Operations.ChildPid', 'child')} ${runtime.childPid}` : ''
+      runtime.runnerPid ? `${this.t('XP.Operations.RunnerPid', 'runner')} ${runtime.runnerPid}` : '',
+      runtime.childPid ? `${this.t('XP.Operations.ChildPid', 'child')} ${runtime.childPid}` : ''
     ].filter(Boolean)
     return pids.length ? pids.join(' / ') : '-'
   }
@@ -392,14 +388,14 @@ export class McpRuntimesComponent implements OnInit {
 
   pluginRuntimeType(runtime: McpStdioRuntimeSnapshot) {
     return runtime.pluginManaged
-      ? this.t('PAC.Operations.PluginManagedRuntime', 'plugin-managed')
-      : this.t('PAC.Operations.CustomStdioRuntime', 'custom stdio')
+      ? this.t('XP.Operations.PluginManagedRuntime', 'plugin-managed')
+      : this.t('XP.Operations.CustomStdioRuntime', 'custom stdio')
   }
 
   runtimeOriginLabel(runtime: McpStdioRuntimeSnapshot) {
     return runtime.origin === 'mcp-app-host'
-      ? this.t('PAC.Operations.RuntimeOrigin.McpAppHost', 'MCP App host')
-      : this.t('PAC.Operations.RuntimeOrigin.AgentToolset', 'Agent toolset')
+      ? this.t('XP.Operations.RuntimeOrigin.McpAppHost', 'MCP App host')
+      : this.t('XP.Operations.RuntimeOrigin.AgentToolset', 'Agent toolset')
   }
 
   workspaceLabel(workspaceId?: string | null) {
@@ -420,18 +416,18 @@ export class McpRuntimesComponent implements OnInit {
 
   idleExpiryLabel(runtime: McpStdioRuntimeSnapshot) {
     return runtime.idleExpiresAt
-      ? this.t('PAC.Operations.IdleExpiresAt', 'Idle expires {{time}}', {
+      ? this.t('XP.Operations.IdleExpiresAt', 'Idle expires {{time}}', {
           time: this.formatDate(runtime.idleExpiresAt)
         })
-      : this.t('PAC.Operations.NoExpiry', 'No expiry')
+      : this.t('XP.Operations.NoExpiry', 'No expiry')
   }
 
   maxLifetimeLabel(runtime: McpStdioRuntimeSnapshot) {
     return runtime.maxLifetimeExpiresAt
-      ? this.t('PAC.Operations.MaxLifetimeAt', 'Max lifetime {{time}}', {
+      ? this.t('XP.Operations.MaxLifetimeAt', 'Max lifetime {{time}}', {
           time: this.formatDate(runtime.maxLifetimeExpiresAt)
         })
-      : this.t('PAC.Operations.NoExpiry', 'No expiry')
+      : this.t('XP.Operations.NoExpiry', 'No expiry')
   }
 
   trackByRuntimeId(_: number, runtime: McpStdioRuntimeSnapshot) {
@@ -477,16 +473,16 @@ export class McpRuntimesComponent implements OnInit {
 
   private killScopeLabel(filter: McpRuntimeListFilter) {
     const parts = [
-      filter.workspaceId ? `${this.t('PAC.Operations.Workspace', 'workspace')}=${filter.workspaceId}` : '',
-      filter.toolsetId ? `${this.t('PAC.Operations.Toolset', 'toolset')}=${filter.toolsetId}` : '',
-      filter.pluginName ? `${this.t('PAC.Operations.Plugin', 'plugin')}=${filter.pluginName}` : '',
-      filter.executionId ? `${this.t('PAC.Operations.Execution', 'execution')}=${filter.executionId}` : '',
-      filter.appInstanceId ? `${this.t('PAC.Operations.AppInstance', 'app instance')}=${filter.appInstanceId}` : ''
+      filter.workspaceId ? `${this.t('XP.Operations.Workspace', 'workspace')}=${filter.workspaceId}` : '',
+      filter.toolsetId ? `${this.t('XP.Operations.Toolset', 'toolset')}=${filter.toolsetId}` : '',
+      filter.pluginName ? `${this.t('XP.Operations.Plugin', 'plugin')}=${filter.pluginName}` : '',
+      filter.executionId ? `${this.t('XP.Operations.Execution', 'execution')}=${filter.executionId}` : '',
+      filter.appInstanceId ? `${this.t('XP.Operations.AppInstance', 'app instance')}=${filter.appInstanceId}` : ''
     ].filter(Boolean)
 
     return parts.length
       ? parts.join(', ')
-      : this.t('PAC.Operations.CurrentScopeActiveRuntimes', 'active runtimes in the current tenant and organization')
+      : this.t('XP.Operations.CurrentScopeActiveRuntimes', 'active runtimes in the current tenant and organization')
   }
 
   private t(key: string, defaultValue: string, params: Record<string, unknown> = {}) {

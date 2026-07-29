@@ -1,7 +1,0 @@
-export * from './entities/index'
-export * from './events/index'
-export * from './features'
-export * from './prepare'
-export * from './seeds/index'
-export * from './casl/index'
-export * from './helper'

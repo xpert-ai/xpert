@@ -1,0 +1,18 @@
+@reference "../../../styles/tailwind-reference.css";
+:host {
+  @apply flex w-full max-w-[28rem] flex-col;
+}
+
+.xp-login {
+  width: 100%;
+}
+
+.xp-login__signins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 0.65rem;
+}
+
+.xp-login__signin-button img {
+  max-width: fit-content;
+}

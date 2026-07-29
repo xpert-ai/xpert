@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing'
 import { DomSanitizer } from '@angular/platform-browser'
 import { FileHtmlPreviewComponent } from './file-html-preview.component'
 
-jest.mock('@xpert-ai/core', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Pipe, inject } = jest.requireActual('@angular/core')
 
   @Pipe({

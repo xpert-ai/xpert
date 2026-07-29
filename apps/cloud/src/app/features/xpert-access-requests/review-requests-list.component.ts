@@ -44,7 +44,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
               type="search"
               [formControl]="searchControl"
               [placeholder]="
-                'PAC.XpertAccessRequests.SearchPlaceholder'
+                'XP.XpertAccessRequests.SearchPlaceholder'
                   | translate: { Default: 'Search assistant, requester, or reason' }
               "
             />
@@ -53,7 +53,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
           @if (searchTerm()) {
             <button z-button zType="ghost" zSize="sm" type="button" (click)="resetSearch()">
               <z-icon zType="x" />
-              {{ 'PAC.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
+              {{ 'XP.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
             </button>
           }
         </div>
@@ -61,7 +61,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
         <div class="flex shrink-0 items-center gap-2">
           <z-badge zType="outline" zShape="pill">
             {{
-              'PAC.XpertAccessRequests.FilteredSummary'
+              'XP.XpertAccessRequests.FilteredSummary'
                 | translate
                   : {
                       Default: '{{visible}}
@@ -69,7 +69,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
           </z-badge>
           <button z-button zType="outline" zSize="sm" type="button" [disabled]="loading()" (click)="load()">
             <z-icon zType="autorenew" [class.animate-spin]="loading()" />
-            {{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+            {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
           </button>
         </div>
       </div>
@@ -96,11 +96,11 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
               <z-icon zType="inbox" zSize="lg" />
             </div>
             <h3 class="mt-4 text-base font-semibold text-foreground">
-              {{ 'PAC.XpertAccessRequests.EmptyTitle' | translate: { Default: 'No pending requests' } }}
+              {{ 'XP.XpertAccessRequests.EmptyTitle' | translate: { Default: 'No pending requests' } }}
             </h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
               {{
-                'PAC.XpertAccessRequests.EmptyHint'
+                'XP.XpertAccessRequests.EmptyHint'
                   | translate: { Default: 'Requests that you can review will appear here.' }
               }}
             </p>
@@ -113,11 +113,11 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
               <z-icon zType="search" zSize="lg" />
             </div>
             <h3 class="mt-4 text-base font-semibold text-foreground">
-              {{ 'PAC.XpertAccessRequests.NoSearchResultsTitle' | translate: { Default: 'No matching requests' } }}
+              {{ 'XP.XpertAccessRequests.NoSearchResultsTitle' | translate: { Default: 'No matching requests' } }}
             </h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
               {{
-                'PAC.XpertAccessRequests.NoSearchResultsHint'
+                'XP.XpertAccessRequests.NoSearchResultsHint'
                   | translate: { Default: 'Try another assistant name, requester, or reason.' }
               }}
             </p>
@@ -136,19 +136,19 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
             <thead z-table-header>
               <tr z-table-row class="border-b bg-muted/40 hover:bg-muted/40">
                 <th z-table-head class="sticky top-0 z-10 bg-background">
-                  {{ 'PAC.XpertAccessRequests.Assistant' | translate: { Default: 'Assistant' } }}
+                  {{ 'XP.XpertAccessRequests.Assistant' | translate: { Default: 'Assistant' } }}
                 </th>
                 <th z-table-head class="sticky top-0 z-10 bg-background">
-                  {{ 'PAC.XpertAccessRequests.Requester' | translate: { Default: 'Requester' } }}
+                  {{ 'XP.XpertAccessRequests.Requester' | translate: { Default: 'Requester' } }}
                 </th>
                 <th z-table-head class="sticky top-0 z-10 bg-background">
-                  {{ 'PAC.XpertAccessRequests.Reason' | translate: { Default: 'Reason' } }}
+                  {{ 'XP.XpertAccessRequests.Reason' | translate: { Default: 'Reason' } }}
                 </th>
                 <th z-table-head class="sticky top-0 z-10 bg-background">
-                  {{ 'PAC.XpertAccessRequests.RequestedAt' | translate: { Default: 'Requested' } }}
+                  {{ 'XP.XpertAccessRequests.RequestedAt' | translate: { Default: 'Requested' } }}
                 </th>
                 <th z-table-head class="sticky top-0 z-10 bg-background text-right">
-                  {{ 'PAC.XpertAccessRequests.Actions' | translate: { Default: 'Actions' } }}
+                  {{ 'XP.XpertAccessRequests.Actions' | translate: { Default: 'Actions' } }}
                 </th>
               </tr>
             </thead>
@@ -168,7 +168,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                         </div>
                         <div class="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                           <z-badge zType="outline" zShape="pill">
-                            {{ 'PAC.XpertAccessRequests.Pending' | translate: { Default: 'Pending' } }}
+                            {{ 'XP.XpertAccessRequests.Pending' | translate: { Default: 'Pending' } }}
                           </z-badge>
                           <span class="truncate" [title]="request.xpertId">{{ request.xpertId }}</span>
                         </div>
@@ -194,7 +194,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                         {{ request.reason }}
                       } @else {
                         <span class="text-muted-foreground">
-                          {{ 'PAC.XpertAccessRequests.NoReason' | translate: { Default: 'No reason provided.' } }}
+                          {{ 'XP.XpertAccessRequests.NoReason' | translate: { Default: 'No reason provided.' } }}
                         </span>
                       }
                     </div>
@@ -220,7 +220,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                         (click)="reject(request)"
                       >
                         <z-icon zType="block" />
-                        {{ 'PAC.ACTIONS.Reject' | translate: { Default: 'Reject' } }}
+                        {{ 'XP.ACTIONS.Reject' | translate: { Default: 'Reject' } }}
                       </button>
                       <button
                         z-button
@@ -231,7 +231,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                         (click)="approve(request)"
                       >
                         <z-icon zType="done" />
-                        {{ 'PAC.ACTIONS.Approve' | translate: { Default: 'Approve' } }}
+                        {{ 'XP.ACTIONS.Approve' | translate: { Default: 'Approve' } }}
                       </button>
                     </div>
                   </td>
@@ -360,7 +360,7 @@ export class XpertAccessRequestReviewListComponent {
       if (action === 'approve') {
         await firstValueFrom(
           this.#service.approveRequest(request.id, {
-            response: this.#translate.instant('PAC.Explore.AgentSquare.ApprovedResponse', {
+            response: this.#translate.instant('XP.Explore.AgentSquare.ApprovedResponse', {
               Default: 'Approved.'
             })
           })
@@ -368,7 +368,7 @@ export class XpertAccessRequestReviewListComponent {
       } else {
         await firstValueFrom(
           this.#service.rejectRequest(request.id, {
-            response: this.#translate.instant('PAC.Explore.AgentSquare.RejectedResponse', {
+            response: this.#translate.instant('XP.Explore.AgentSquare.RejectedResponse', {
               Default: 'Rejected.'
             })
           })

@@ -10,16 +10,20 @@ import { AssistantsTenantPageComponent } from './assistants-tenant.component'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-assistants',
+  selector: 'xp-settings-assistants',
   imports: [CommonModule, AssistantsTenantPageComponent, AssistantsOrganizationPageComponent],
   providers: [AssistantsSettingsFacade],
-  styles: `:host {@apply w-full;}`,
+  styles: `
+    :host {
+      @apply w-full;
+    }
+  `,
   animations: [routeAnimations],
   template: `
     @if (activeScope().level === requestScopeLevel.TENANT) {
-      <pac-settings-assistants-tenant-page />
+      <xp-settings-assistants-tenant-page />
     } @else {
-      <pac-settings-assistants-organization-page />
+      <xp-settings-assistants-organization-page />
     }
   `
 })

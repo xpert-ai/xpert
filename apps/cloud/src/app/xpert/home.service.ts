@@ -1,14 +1,6 @@
-import { computed, effect, inject, Injectable, model, signal } from '@angular/core'
-import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { Observable, shareReplay } from 'rxjs'
-import {
-  ChatConversationService,
-  IChatConversation,
-  injectToastr,
-  ISemanticModel,
-  IXpert,
-  XpertAPIService
-} from '../@core'
+import { ChatConversationService, IChatConversation, IXpert, XpertAPIService } from '../@core'
 import { AppService } from '../app.service'
 
 /**
@@ -19,8 +11,6 @@ export class XpertHomeService {
   readonly appService = inject(AppService)
   readonly xpertService = inject(XpertAPIService)
   readonly conversationService = inject(ChatConversationService)
-  readonly semanticModelService = inject(SemanticModelServerService)
-  readonly #toastr = injectToastr()
 
   readonly lang = this.appService.lang
 
@@ -36,78 +26,48 @@ export class XpertHomeService {
   readonly messages = computed(() => this.conversation()?.messages)
 
   readonly canvasOpened = signal<{
-    opened: boolean;
-    type: 'Dashboard' | 'Computer' | 'File';
+    opened: boolean
+    type: 'Dashboard' | 'Computer' | 'File'
     /**
      * @deprecated Use componentId to locate step message
      */
-    messageId?: string; 
-    componentId?: string; 
+    messageId?: string
+    componentId?: string
     file?: any
   }>(null)
 
   // Xperts details
   readonly #xperts: Record<string, Observable<IXpert>> = {}
 
-  readonly #models: Record<string, Observable<ISemanticModel>> = {}
-  readonly #publicModels: Record<string, Observable<ISemanticModel>> = {}
-
   /**
    * Conversations cache for xperts
    */
-  readonly conversations = signal<Record<string, {xpert?: IXpert; items: IChatConversation[]; search?: string}>>({})
+  readonly conversations = signal<Record<string, { xpert?: IXpert; items: IChatConversation[]; search?: string }>>({})
 
   // Canvas
-  private canvasEffect = effect(
-    () => {
-      const messages = [...(this.messages() ?? [])]
-      if (!this.canvasOpened()) {
-        // Find the last element with type === 'component'
-        let stepMessage = null
-        messages?.reverse().find((item) => {
-          if (Array.isArray(item.content)) {
-            stepMessage = [...item.content].reverse().find((msg) => msg.type === 'component' && msg.data?.category === 'Computer')
-            return !!stepMessage
-          }
-          return false
-        })
-
-        if (stepMessage) {
-          this.canvasOpened.set({
-            opened: true,
-            type: 'Computer',
-          })
+  private canvasEffect = effect(() => {
+    const messages = [...(this.messages() ?? [])]
+    if (!this.canvasOpened()) {
+      // Find the last element with type === 'component'
+      let stepMessage = null
+      messages?.reverse().find((item) => {
+        if (Array.isArray(item.content)) {
+          stepMessage = [...item.content]
+            .reverse()
+            .find((msg) => msg.type === 'component' && msg.data?.category === 'Computer')
+          return !!stepMessage
         }
+        return false
+      })
+
+      if (stepMessage) {
+        this.canvasOpened.set({
+          opened: true,
+          type: 'Computer'
+        })
       }
     }
-  )
-
-  /**
-   * Observe semantic model from cache or server.
-   * 
-   * @param id model id
-   * @param refresh Skip cache to fetch latest model
-   * @returns 
-   */
-  selectSemanticModel(id: string, refresh = false) {
-    if (!this.#models[id] || refresh) {
-      this.#models[id] = this.semanticModelService.getById(id, {
-            relations: ['indicators', 'createdBy', 'updatedBy', 'dataSource', 'dataSource.type']
-          })
-          .pipe(shareReplay(1))
-    }
-    return this.#models[id]
-  }
-
-  selectPublicSemanticModel(id: string) {
-    if (!this.#publicModels[id]) {
-      this.#publicModels[id] = this.semanticModelService.getPublicOne(id, {
-          relations: ['indicators', 'createdBy', 'updatedBy', 'dataSource', 'dataSource.type']
-        })
-        .pipe(shareReplay(1))
-    }
-    return this.#publicModels[id]
-  }
+  })
 
   getXpert(slug: string) {
     if (!this.#xperts[slug]) {

@@ -10,6 +10,7 @@ const appTailwindCssReferenceAllowlist = new Set([
   'apps/cloud/src/app/_app.component.scss',
   'apps/cloud/src/app/@shared/_components-theme.scss',
   'apps/cloud/src/app/@shared/_components.scss',
+  'apps/cloud/src/app/auth/_auth-theme.scss',
   'apps/cloud/src/app/features/chat/_chat.component.scss',
   'apps/cloud/src/app/features/home/dashboard/_dashboard-theme.scss',
   'apps/cloud/src/app/features/project/_project.component.scss',

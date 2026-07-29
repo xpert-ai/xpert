@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, OverlayAnimations } from '@xpert-ai/core'
+import { attrModel, linkedModel, OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
@@ -17,7 +17,7 @@ import { ZardSliderComponent, type ZardSliderValue, ZardTooltipImports } from '@
     ZardSliderComponent,
     ...ZardTooltipImports,
     CopilotPromptEditorComponent
-],
+  ],
   templateUrl: './summary.component.html',
   styleUrl: './summary.component.scss',
   animations: [...OverlayAnimations]

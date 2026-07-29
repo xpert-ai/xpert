@@ -1,7 +1,6 @@
-
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
@@ -25,7 +24,7 @@ export class ParameterFormComponent {
   eParameterTypeEnum = ParameterTypeEnum
 
   protected cva = inject<NgxControlValueAccessor<Record<string, unknown>>>(NgxControlValueAccessor)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly schema = input<TParameterSchema | any>()
@@ -54,15 +53,13 @@ export class ParameterFormComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        // if (this.fields() && this.value$()) {
-        //   console.log(this.schema())
-        //   this.form.patchValue(this.value$)
-        //   assign(this.optionsModel, this.value$())
-        // }
-      }
-    )
+    effect(() => {
+      // if (this.fields() && this.value$()) {
+      //   console.log(this.schema())
+      //   this.form.patchValue(this.value$)
+      //   assign(this.optionsModel, this.value$())
+      // }
+    })
   }
 
   updateValue(name: string, value: unknown) {

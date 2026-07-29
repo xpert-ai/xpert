@@ -12,7 +12,7 @@ import {
 
 @Component({
   standalone: true,
-  selector: 'pac-model-gateway-key-dialog',
+  selector: 'xp-model-gateway-key-dialog',
   imports: [
     ReactiveFormsModule,
     TranslateModule,
@@ -24,35 +24,35 @@ import {
   template: `
     <section>
       <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
+        {{ 'XP.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
       </h2>
       <p class="mt-2 text-sm leading-6 text-text-secondary">
         {{
-          'PAC.ModelGateway.KeyOwnerHint'
+          'XP.ModelGateway.KeyOwnerHint'
             | translate: { Default: 'Usage from this key is charged to your own membership and point balance.' }
         }}
       </p>
       <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         <z-form-field class="w-full">
-          <z-form-label>{{ 'PAC.ModelGateway.KeyName' | translate: { Default: 'Key name' } }}</z-form-label>
+          <z-form-label>{{ 'XP.ModelGateway.KeyName' | translate: { Default: 'Key name' } }}</z-form-label>
           <input z-input formControlName="name" maxlength="100" />
         </z-form-field>
         <z-form-field class="w-full">
-          <z-form-label>{{ 'PAC.ModelGateway.Lifetime' | translate: { Default: 'Lifetime' } }}</z-form-label>
+          <z-form-label>{{ 'XP.ModelGateway.Lifetime' | translate: { Default: 'Lifetime' } }}</z-form-label>
           <z-select class="w-full" formControlName="lifetime">
             @for (lifetime of lifetimes; track lifetime) {
               <z-select-item [zValue]="lifetime">
-                {{ 'PAC.ModelGateway.LifetimeValue.' + lifetime | translate: { Default: lifetime } }}
+                {{ 'XP.ModelGateway.LifetimeValue.' + lifetime | translate: { Default: lifetime } }}
               </z-select-item>
             }
           </z-select>
         </z-form-field>
         <footer class="flex justify-end gap-2">
           <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button z-button type="submit" [disabled]="form.invalid">
-            {{ 'PAC.ModelGateway.Create' | translate: { Default: 'Create' } }}
+            {{ 'XP.ModelGateway.Create' | translate: { Default: 'Create' } }}
           </button>
         </footer>
       </form>

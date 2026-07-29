@@ -136,12 +136,6 @@ export const routes: Routes = [
         ]
       },
       {
-        path: 'chatbi',
-        redirectTo: '/chatbi',
-        pathMatch: 'full'
-      },
-
-      {
         path: 'tasks',
         component: ChatTasksComponent,
         data: {

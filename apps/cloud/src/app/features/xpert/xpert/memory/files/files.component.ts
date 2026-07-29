@@ -61,7 +61,7 @@ export class XpertMemoryFilesComponent {
     () =>
       this.xpert()?.title ||
       this.xpert()?.name ||
-      this.#translate.instant('PAC.Xpert.FileMemoryFiles', { Default: 'Memory files' })
+      this.#translate.instant('XP.Xpert.FileMemoryFiles', { Default: 'Memory files' })
   )
   readonly reloadKey = computed(() => this.xpertId() ?? '__hosted__')
   readonly dreaming = signal(false)
@@ -177,7 +177,7 @@ export class XpertMemoryFilesComponent {
     try {
       await this.persistDreamConfig(xpertId)
       const run = await firstValueFrom(this.#fileMemoryAPI.triggerDream(xpertId))
-      this.#toastr.success('PAC.Xpert.FileMemoryDreamQueued', {
+      this.#toastr.success('XP.Xpert.FileMemoryDreamQueued', {
         Default: `Dream queued: ${run.runId}`,
         runId: run.runId
       })

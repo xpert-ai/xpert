@@ -1,24 +1,20 @@
-import { CdkListboxModule } from '@angular/cdk/listbox'
-import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, ViewChild, computed, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
   ZardButtonComponent,
   ZardFormImports,
   ZardInputDirective,
-  ZardProgressBarComponent,
   ZardStepperComponent,
   ZardStepperImports,
   type ZardStepperSelectionEvent
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
-import { matchWithValidator } from '@xpert-ai/cloud/auth'
-import { DataSourceService, DataSourceTypesService, IFeatureOrganizationUpdateInput, injectOrganization, ITenant, Store } from '@xpert-ai/cloud/state'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { omit } from '@xpert-ai/ocap-core'
-import { FormlyModule } from '@ngx-formly/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, startWith, switchMap } from 'rxjs'
+import { matchWithValidator } from '@cloud/app/auth'
+import { injectOrganization, ITenant, Store } from '@cloud/app/@core/state'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { TranslateModule } from '@ngx-translate/core'
+import { combineLatest, filter, firstValueFrom, map, switchMap } from 'rxjs'
 import {
   AiProviderRole,
   AuthStrategy,
@@ -27,47 +23,39 @@ import {
   CurrenciesEnum,
   DEFAULT_TENANT,
   DefaultValueDateTypeEnum,
-  FeatureService,
-  IDataSourceType,
   IOrganization,
-  OrganizationDemoNetworkEnum,
-  OrganizationsService,
-  ServerAgent,
   ICopilot,
   TenantService,
   ToastrService,
-  convertConfigurationSchema,
   getErrorMessage,
   injectHelpWebsite,
   injectLanguage
 } from '../../@core'
 import { CopilotConfigFormComponent } from '@cloud/app/@shared/copilot'
-import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
 
 @Component({
   standalone: true,
-  selector: 'ngm-tenant-details',
+  selector: 'xp-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule, CopilotConfigFormComponent, ZardButtonComponent],
-  providers: [FeatureService]
+  imports: [
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardStepperImports,
+    ...ZardFormImports,
+    ZardInputDirective,
+    XpCommonModule,
+    CopilotConfigFormComponent,
+    ZardButtonComponent
+  ]
 })
 export class TenantDetailsComponent {
-  OrganizationDemoNetworkEnum = OrganizationDemoNetworkEnum
-  AiProviderRole = AiProviderRole
-
   readonly #store = inject(Store)
   private readonly tenantService = inject(TenantService)
-  private readonly typesService = inject(DataSourceTypesService)
-  private readonly dataSourceService = inject(DataSourceService)
-  private readonly organizationsService = inject(OrganizationsService)
-  readonly #featureAPI = inject(FeatureService)
   readonly #copilotServer = inject(CopilotServerService)
-  private readonly serverAgent? = inject(ServerAgent, { optional: true })
   private readonly authStrategy = inject(AuthStrategy)
   private readonly _formBuilder = inject(FormBuilder)
   private readonly router = inject(Router)
-  private readonly translateService = inject(TranslateService)
   private readonly toastrService = inject(ToastrService)
   readonly currentLanguage = injectLanguage()
   readonly helpWebsite = injectHelpWebsite()
@@ -85,10 +73,6 @@ export class TenantDetailsComponent {
     confirmPassword: ['', [Validators.required, Validators.minLength(8), matchWithValidator(this.password)]]
   })
 
-  // Features
-  readonly features = model<{feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi'}[]>([])
-  readonly hasAiFeature = computed(() => this.features().some(({category, feature}) => category === 'ai' && feature.isEnabled))
-  readonly hasSemanticModel = computed(() => this.features().some(({category, feature}) => category === 'bi' && feature.isEnabled))
   readonly orgCopilots = toSignal(
     combineLatest([this.#copilotServer.refresh$, toObservable(this.selectedOrganization)]).pipe(
       filter(([, organization]) => !!organization?.id),
@@ -97,62 +81,15 @@ export class TenantDetailsComponent {
     ),
     { initialValue: [] as ICopilot[] }
   )
-  readonly primaryCopilot = computed(() => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null)
+  readonly primaryCopilot = computed(
+    () => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null
+  )
   readonly showAiModelForm = computed(() => !!this.primaryCopilot()?.enabled)
-
-  demoFormGroup: FormGroup = this._formBuilder.group({
-    source: [OrganizationDemoNetworkEnum.github, Validators.required]
-  })
-
-  dataSourceTypeFormGroup: FormGroup = this._formBuilder.group({
-    type: [null, [Validators.required]],
-    name: [null, [Validators.required]]
-  })
-  get type() {
-    return this.dataSourceTypeFormGroup.get('type').value?.[0]
-  }
 
   loading = signal(false)
   aiModelSetupRequested = signal(false)
   tenantCompleted = signal(false)
-  demoError = signal<string>(null)
-  demoCompleted = signal(false)
-  connectionCompleted = signal(false)
   primaryCopilotCreatedInOnboarding = signal(false)
-  dataSourceTypesLoading = signal(false)
-  dataSourceTypesError = signal<string>(null)
-
-  searchControl = new FormControl()
-  private readonly dataSourceTypes$ = new BehaviorSubject<IDataSourceType[]>([])
-  private dataSourceTypesLoadedForOrgId: string | null = null
-  private dataSourceTypesLoadingForOrgId: string | null = null
-  public readonly filteredDataSourceTypes = toSignal(
-    combineLatest([this.dataSourceTypes$, this.searchControl.valueChanges.pipe(startWith(''))]).pipe(
-      map(([types, search]) => {
-        const filteredTypes = search
-          ? types.filter((type) => type.name.toLowerCase().includes(search.toLowerCase()))
-          : [...types]
-        const selectedTypes = this.dataSourceTypeFormGroup.get('type').value ?? []
-
-        selectedTypes.forEach((selected) => {
-          if (!filteredTypes.some((type) => this.compareTypeFn(type, selected))) {
-            filteredTypes.push(selected)
-          }
-        })
-
-        return filteredTypes
-      })
-    )
-  )
-
-  readonly formlyFields = toSignal(
-    combineLatest([
-      this.translateService.stream('PAC.DataSources.Schema'),
-      this.dataSourceTypeFormGroup.get('type').valueChanges
-    ]).pipe(map(([i18n, type]) => convertConfigurationSchema(type[0].configuration, i18n)))
-  )
-
-  model = {}
 
   readonly navigating = signal(false)
 
@@ -161,7 +98,6 @@ export class TenantDetailsComponent {
       const organizationId = this.selectedOrganization()?.id
       if (organizationId) {
         this.#copilotServer.refresh()
-        void this.loadDataSourceTypes(organizationId)
       }
     })
   }
@@ -172,10 +108,6 @@ export class TenantDetailsComponent {
 
   mustMatchError() {
     return this.userFormGroup.get('confirmPassword').getError('mismatch')
-  }
-
-  dataSourceNameError() {
-    return this.dataSourceTypeFormGroup.get('name').getError('required')
   }
 
   async onboard() {
@@ -236,142 +168,12 @@ export class TenantDetailsComponent {
     )
 
     this.#store.setOrganizationScope(organization)
-    await this.loadDataSourceTypes(organization.id)
     this.#copilotServer.refresh()
-  }
-
-  private async loadDataSourceTypes(organizationId = this.selectedOrganization()?.id) {
-    if (
-      !organizationId ||
-      this.dataSourceTypesLoadedForOrgId === organizationId ||
-      this.dataSourceTypesLoadingForOrgId === organizationId
-    ) {
-      return
-    }
-
-    this.dataSourceTypesLoadingForOrgId = organizationId
-    this.dataSourceTypesLoading.set(true)
-    this.dataSourceTypesError.set(null)
-
-    try {
-      this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
-      this.dataSourceTypesLoadedForOrgId = organizationId
-    } catch (error) {
-      this.dataSourceTypes$.next([])
-      this.dataSourceTypesLoadedForOrgId = null
-      const errorText = getErrorMessage(error)
-      this.dataSourceTypesError.set(errorText)
-      this.toastrService.error(errorText)
-    } finally {
-      if (this.dataSourceTypesLoadingForOrgId === organizationId) {
-        this.dataSourceTypesLoadingForOrgId = null
-      }
-      this.dataSourceTypesLoading.set(false)
-    }
-  }
-
-  enableFeatures() {
-    this.loading.set(true)
-    this.#featureAPI.featuresToggle(this.features().map(({feature}) => feature)).subscribe({
-      next: async () => {
-        this.toastrService.success('PAC.Onboarding.EnableFeaturesSuccess', {
-          Default: 'Features enabled successfully!'
-        })
-
-        if (this.hasAiFeature()) {
-          await this.startAiModelSetup()
-        }
-
-        this.loading.set(false)
-        this.stepper.next()
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.toastrService.error(getErrorMessage(err))
-      }
-    })
-  }
-
-  /**
-   * Generate demo data for default organization
-   */
-  async generateDemo() {
-    try {
-      this.demoError.set(null)
-      this.loading.set(true)
-      await firstValueFrom(
-        this.organizationsService.demo(this.selectedOrganization().id, {
-          source: this.demoFormGroup.get('source').value,
-          importData: true
-        })
-      )
-
-      this.toastrService.success('PAC.Onboarding.GenerateDemoSuccess', {
-        Default: 'Demo data & samples generated successfully!'
-      })
-      this.demoCompleted.set(true)
-      this.loading.set(false)
-      this.stepper.next()
-    } catch (error) {
-      this.loading.set(false)
-      const errorText = getErrorMessage(error)
-      this.demoError.set(errorText)
-      this.toastrService.error(errorText)
-    }
   }
 
   navigateHome() {
     this.navigating.set(true)
     this.router.navigate(['/chat/'])
-  }
-
-  compareTypeFn(a: IDataSourceType, b: IDataSourceType) {
-    return a?.id === b?.id
-  }
-
-  onModelChange(event) {
-    // console.log(event)
-  }
-
-  async connectDatabase() {
-    this.loading.set(true)
-    const dataSource = {
-      name: this.dataSourceTypeFormGroup.value.name,
-      type: this.type,
-      options: {
-        ...omit(this.dataSourceTypeFormGroup.value, 'type', 'name')
-      }
-    }
-    try {
-      await this.serverAgent.request(
-        {
-          type: this.type.protocol.toUpperCase(),
-          dataSource: {
-            ...this.dataSourceTypeFormGroup.value,
-            typeId: this.type.id
-          },
-          isDraft: false
-        },
-        {
-          method: 'get',
-          url: 'ping',
-          body: dataSource
-        }
-      )
-
-      this.toastrService.success('PAC.ACTIONS.PING', { Default: 'Ping' })
-
-      // Create datadource
-      const result = await firstValueFrom(this.dataSourceService.create(dataSource))
-      this.toastrService.success('PAC.MESSAGE.CreateDataSource', { Default: 'Create data source' })
-      this.loading.set(false)
-      this.connectionCompleted.set(true)
-      this.stepper.next()
-    } catch (err) {
-      const message = getErrorMessage(err)
-      this.loading.set(false)
-      this.toastrService.error(message)
-    }
   }
 
   async startAiModelSetup() {
@@ -400,21 +202,11 @@ export class TenantDetailsComponent {
   }
 
   onStepChange(event: ZardStepperSelectionEvent) {
-    if (
-      !this.hasAiFeature() ||
-      event.selectedIndex !== this.getAiModelStepIndex() ||
-      this.primaryCopilot()?.enabled ||
-      this.aiModelSetupRequested() ||
-      this.loading()
-    ) {
+    if (event.selectedIndex !== 1 || this.primaryCopilot()?.enabled || this.aiModelSetupRequested() || this.loading()) {
       return
     }
 
     void this.startAiModelSetup()
-  }
-
-  private getAiModelStepIndex() {
-    return this.hasSemanticModel() ? 3 : 2
   }
 
   async skipAiModelSetup() {

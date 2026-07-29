@@ -1,22 +1,36 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, OnInit, TemplateRef, ViewChild, ViewContainerRef, inject } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
+  inject
+} from '@angular/core'
 import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
-import { cloneDeep } from '@xpert-ai/ocap-core'
+import { OcapCoreModule } from '@xpert-ai/headless-ui'
+import { cloneDeep } from 'lodash-es'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardIconComponent, ZardTableImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogService,
+  ZardIconComponent,
+  ZardTableImports
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-formly-table',
+  selector: 'xp-formly-table',
   templateUrl: `table.type.html`,
   styleUrls: [`table.type.scss`],
   host: {
-    class: 'pac-formly-table'
+    class: 'xp-formly-table'
   },
   imports: [
     CommonModule,
@@ -34,7 +48,7 @@ import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardIconCompo
     OcapCoreModule
   ]
 })
-export class PACFormlyTableComponent extends FieldArrayType implements OnInit {
+export class XpFormlyTableComponent extends FieldArrayType implements OnInit {
   private readonly _dialog = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
@@ -63,7 +77,7 @@ export class PACFormlyTableComponent extends FieldArrayType implements OnInit {
   open(): void {
     this._dialog
       .open(this.dialogRef, {
-        panelClass: ['ngm-dialog-container', 'pac-formly__table'],
+        panelClass: ['xp-dialog-container', 'xp-formly__table'],
         viewContainerRef: this._viewContainerRef
       })
       .afterClosed()

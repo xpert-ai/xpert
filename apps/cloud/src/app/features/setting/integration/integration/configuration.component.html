@@ -2,18 +2,18 @@
   <form class="flex max-w-full flex-col gap-2 p-4 mx-auto lg:max-w-lg" [formGroup]="formGroup">
     <emoji-avatar formControlName="avatar" large editable class="self-center overflow-hidden rounded-xl shadow-sm" />
 
-    <ngm-input class="flex-1" [label]="'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name">
+    <xp-input class="flex-1" [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name">
       @if (!name) {
-        <div ngmError>{{ 'PAC.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}</div>
+        <div xpError>{{ 'XP.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}</div>
       }
-    </ngm-input>
+    </xp-input>
 
     <div class="flex min-w-full flex-1 flex-col">
-      <label class="ngm-input-label shrink-0">{{
-        'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' }
+      <label class="xp-input-label shrink-0">{{
+        'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
       }}</label>
       <textarea
-        class="ngm-input-element"
+        class="xp-input-element"
         z-input
         formControlName="description"
         cdkTextareaAutosize
@@ -23,8 +23,8 @@
     </div>
 
     <div class="flex min-w-full flex-1 flex-col">
-      <label class="ngm-input-label flex shrink-0 items-center justify-between">
-        {{ 'PAC.Integration.Provider' | translate: { Default: 'Provider' } }}
+      <label class="xp-input-label flex shrink-0 items-center justify-between">
+        {{ 'XP.Integration.Provider' | translate: { Default: 'Provider' } }}
 
         @if (providerHelpLinks().length) {
           <span class="flex items-center gap-3">
@@ -38,7 +38,7 @@
                 @if (helpLink.label) {
                   {{ helpLink.label | i18n }}
                 } @else {
-                  {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+                  {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
                 }
                 <i class="ri-book-open-line ml-1 flex items-center justify-center group-hover:hidden"></i>
                 <i class="ri-book-open-fill ml-1 hidden items-center justify-center group-hover:flex"></i>
@@ -47,9 +47,9 @@
           </span>
         }
       </label>
-      <ngm-select
+      <xp-select
         class="flex-1"
-        [placeholder]="'PAC.Integration.SelectProvider' | translate: { Default: 'Select a provider' }"
+        [placeholder]="'XP.Integration.SelectProvider' | translate: { Default: 'Select a provider' }"
         formControlName="provider"
         [selectOptions]="providers()"
       >
@@ -83,7 +83,7 @@
             </div>
           </div>
         </ng-template>
-      </ngm-select>
+      </xp-select>
     </div>
 
     @if (integrationProvider(); as provider) {
@@ -108,7 +108,7 @@
 
     @if (webhookUrl()) {
       <div>
-        <p>{{ 'PAC.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
+        <p>{{ 'XP.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
         <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm">{{
           webhookUrl()
         }}</pre>
@@ -117,7 +117,7 @@
 
     @if (callbackUrl()) {
       <div class="flex flex-col gap-2">
-        <p>{{ 'PAC.KEY_WORDS.CallbackUrl' | translate: { Default: 'Callback URL' } }}:</p>
+        <p>{{ 'XP.KEY_WORDS.CallbackUrl' | translate: { Default: 'Callback URL' } }}:</p>
         <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm">{{
           callbackUrl()
         }}</pre>
@@ -126,13 +126,10 @@
 
     @if (authorizationUrl()) {
       <div class="flex flex-col gap-2 rounded-lg border border-divider-subtle p-3">
-        <p>{{ 'PAC.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' } }}</p>
+        <p>{{ 'XP.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' } }}</p>
         <div class="text-sm text-text-secondary">
           {{
-            (longConnectionProbe()?.connected
-              ? 'PAC.Integration.ReconnectSlackHint'
-              : 'PAC.Integration.ConnectSlackHint'
-            )
+            (longConnectionProbe()?.connected ? 'XP.Integration.ReconnectSlackHint' : 'XP.Integration.ConnectSlackHint')
               | translate
                 : {
                     Default: longConnectionProbe()?.connected
@@ -144,7 +141,7 @@
         <div>
           <button z-button zType="secondary" type="button" (click)="openAuthorizationUrl()">
             {{
-              (longConnectionProbe()?.connected ? 'PAC.Integration.ReconnectSlack' : 'PAC.Integration.ConnectSlack')
+              (longConnectionProbe()?.connected ? 'XP.Integration.ReconnectSlack' : 'XP.Integration.ConnectSlack')
                 | translate
                   : {
                       Default: longConnectionProbe()?.connected ? 'Reconnect Slack' : 'Connect to Slack'
@@ -156,7 +153,7 @@
     } @else if (authorizationRequiresSavedIntegration() && !paramId() && callbackUrl()) {
       <div class="rounded-lg border border-divider-subtle p-3 text-sm text-text-secondary">
         {{
-          'PAC.Integration.SaveIntegrationBeforeAuthorize'
+          'XP.Integration.SaveIntegrationBeforeAuthorize'
             | translate
               : {
                   Default: 'Save this integration first, then the authorization button will appear here.'
@@ -167,22 +164,22 @@
 
     @if (longConnectionProbe(); as probe) {
       <div class="flex flex-col gap-2">
-        <p>{{ 'PAC.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
+        <p>{{ 'XP.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
         <div class="flex flex-col gap-1 rounded-md bg-background-default-subtle px-3 py-2 text-sm">
           <div>
-            <span class="font-medium">{{ 'PAC.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
+            <span class="font-medium">{{ 'XP.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
             {{ probe.connected === true ? 'Yes' : probe.connected === false ? 'No' : '-' }}
           </div>
           <div>
-            <span class="font-medium">{{ 'PAC.KEY_WORDS.State' | translate: { Default: 'State' } }}:</span>
+            <span class="font-medium">{{ 'XP.KEY_WORDS.State' | translate: { Default: 'State' } }}:</span>
             {{ probe.state || '-' }}
           </div>
           <div>
-            <span class="font-medium">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Last error' } }}:</span>
+            <span class="font-medium">{{ 'XP.KEY_WORDS.Error' | translate: { Default: 'Last error' } }}:</span>
             <span class="whitespace-break-spaces">{{ probe.lastError || '-' }}</span>
           </div>
           <div>
-            <span class="font-medium">{{ 'PAC.KEY_WORDS.CheckedAt' | translate: { Default: 'Checked at' } }}:</span>
+            <span class="font-medium">{{ 'XP.KEY_WORDS.CheckedAt' | translate: { Default: 'Checked at' } }}:</span>
             {{ formatCheckedAt(probe.checkedAt) || '-' }}
           </div>
         </div>
@@ -191,7 +188,7 @@
 
     @if (testWarnings().length) {
       <div class="flex flex-col gap-2">
-        <p>{{ 'PAC.KEY_WORDS.Warnings' | translate: { Default: 'Warnings' } }}:</p>
+        <p>{{ 'XP.KEY_WORDS.Warnings' | translate: { Default: 'Warnings' } }}:</p>
         <div class="rounded-md bg-amber-50 px-3 py-2 text-sm dark:bg-amber-500/10">
           <ul class="flex list-disc flex-col gap-1 pl-5">
             @for (warning of testWarnings(); track warning) {
@@ -210,22 +207,22 @@
         [disabled]="!integrationProvider() || optionsInvalid"
         (click)="test()"
       >
-        {{ 'PAC.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
+        {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
       </button>
       <div class="flex items-center gap-2">
         <button z-button zType="secondary" type="button" (click)="cancel()">
-          {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+          {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
         <button
           z-button
           zType="default"
-          [zTooltip]="'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' }"
+          [zTooltip]="'XP.KEY_WORDS.Save' | translate: { Default: 'Save' }"
           zPosition="top"
           [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid"
           (click)="upsert()"
         >
           <z-icon zType="save"></z-icon>
-          {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+          {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
         </button>
       </div>
     </div>
@@ -233,5 +230,5 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 h-full w-full"></ngm-spin>
+  <xp-spin class="absolute left-0 top-0 h-full w-full"></xp-spin>
 }

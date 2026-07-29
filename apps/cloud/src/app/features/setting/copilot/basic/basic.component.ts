@@ -4,11 +4,11 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { injectOrganizationId } from '@cloud/app/@core/state'
 import { AiProviderRole, ICopilot, MembershipStatusEnum } from '@xpert-ai/contracts'
-import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardAccordionImports,
@@ -31,7 +31,7 @@ import { catchError, map, Observable, of, switchMap } from 'rxjs'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot-basic',
+  selector: 'xp-settings-copilot-basic',
   templateUrl: './basic.component.html',
   styleUrls: ['./basic.component.scss'],
   imports: [
@@ -44,9 +44,9 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     ...ZardTooltipImports,
     ZardBadgeComponent,
     ZardButtonComponent,
-    NgmDensityDirective,
-    NgmSpinComponent,
-    NgmI18nPipe,
+    XpDensityDirective,
+    XpSpinComponent,
+    XpI18nPipe,
     CapitalizePipe,
     CopilotProviderComponent,
     CopilotFormComponent,

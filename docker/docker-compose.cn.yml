@@ -85,7 +85,6 @@ services:
       DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
       API_HOST: api
       API_PORT: 3000
-      ENABLE_LOCAL_AGENT: false
     entrypoint: './entrypoint.compose.sh'
     command: ['nginx', '-g', 'daemon off;']
     env_file:

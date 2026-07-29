@@ -45,6 +45,7 @@ import {
     mapTranslationLanguage,
     resolveRuntimeXpert,
     STATE_VARIABLE_HUMAN,
+    stringifyMessageContent,
     TAgentRunnableConfigurable,
     TStateVariable,
     TSummarize,
@@ -55,7 +56,6 @@ import {
     WorkflowNodeTypeEnum,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
-import { stringifyMessageContent } from '@xpert-ai/copilot'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'

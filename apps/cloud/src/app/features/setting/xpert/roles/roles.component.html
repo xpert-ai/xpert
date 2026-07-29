@@ -1,13 +1,13 @@
 <div class="filter-bar p-2 flex items-center gap-4">
   <span class="flex-1"></span>
 
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button
       z-button
       zType="default"
       zSize="icon-sm"
       zShape="circle"
-      [zTooltip]="'PAC.Copilot.Roles.AddRole' | translate: { Default: 'Add new role' }"
+      [zTooltip]="'XP.Copilot.Roles.AddRole' | translate: { Default: 'Add new role' }"
       (click)="addRole()"
     >
       <z-icon zType="add"></z-icon>
@@ -20,22 +20,28 @@
     <thead z-table-header>
       <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
         <th z-table-head class="sticky top-0 z-10 bg-background">
-          {{ 'PAC.Copilot.Roles.Avatar' | translate: { Default: 'Avatar' } }}
+          {{ 'XP.Copilot.Roles.Avatar' | translate: { Default: 'Avatar' } }}
         </th>
         <th z-table-head class="sticky top-0 z-10 bg-background">
-          {{ 'PAC.Copilot.Roles.Name' | translate: { Default: 'Name' } }}
+          {{ 'XP.Copilot.Roles.Name' | translate: { Default: 'Name' } }}
         </th>
         <th z-table-head class="sticky top-0 z-10 bg-background">
-          {{ 'PAC.Copilot.Roles.Title' | translate: { Default: 'Title' } }}
+          {{ 'XP.Copilot.Roles.Title' | translate: { Default: 'Title' } }}
         </th>
         <th z-table-head class="sticky top-0 z-10 bg-background">
-          {{ 'PAC.Copilot.Roles.TitleCN' | translate: { Default: 'Title (CN)' } }}
+          {{ 'XP.Copilot.Roles.TitleCN' | translate: { Default: 'Title (CN)' } }}
         </th>
         <th z-table-head class="sticky top-0 z-10 bg-background">
-          {{ 'PAC.Copilot.Roles.Description' | translate: { Default: 'Description' } }}
+          {{ 'XP.Copilot.Roles.Description' | translate: { Default: 'Description' } }}
         </th>
-        <th z-table-head zTableStickyEnd [zTableStickyEnd]="0" [zTableStickyZIndex]="5" class="sticky top-0 z-10 w-32 bg-background">
-          {{ 'PAC.Copilot.Roles.Actions' | translate: { Default: 'Actions' } }}
+        <th
+          z-table-head
+          zTableStickyEnd
+          [zTableStickyEnd]="0"
+          [zTableStickyZIndex]="5"
+          class="sticky top-0 z-10 w-32 bg-background"
+        >
+          {{ 'XP.Copilot.Roles.Actions' | translate: { Default: 'Actions' } }}
         </th>
       </tr>
     </thead>
@@ -44,32 +50,32 @@
       @for (element of dataSource(); track element.id || $index) {
         <tr z-table-row>
           <td z-table-cell>
-            <pac-avatar [imageUrl]="element.avatar" class="w-10 h-10 overflow-hidden rounded-full" />
+            <xp-avatar [imageUrl]="element.avatar" class="w-10 h-10 overflow-hidden rounded-full" />
           </td>
           <td z-table-cell>
             @if (element.__edit__) {
-              <ngm-input [(ngModel)]="element.name" class="mt-4" />
+              <xp-input [(ngModel)]="element.name" class="mt-4" />
             } @else {
               {{ element.name }}
             }
           </td>
           <td z-table-cell>
             @if (element.__edit__) {
-              <ngm-input [(ngModel)]="element.title" class="mt-4" />
+              <xp-input [(ngModel)]="element.title" class="mt-4" />
             } @else {
               {{ element.title }}
             }
           </td>
           <td z-table-cell>
             @if (element.__edit__) {
-              <ngm-input [(ngModel)]="element.titleCN" class="mt-4" />
+              <xp-input [(ngModel)]="element.titleCN" class="mt-4" />
             } @else {
               {{ element.titleCN }}
             }
           </td>
           <td z-table-cell>
             @if (element.__edit__) {
-              <ngm-input [(ngModel)]="element.description" class="mt-4" />
+              <xp-input [(ngModel)]="element.description" class="mt-4" />
             } @else {
               {{ element.description }}
             }
@@ -83,7 +89,7 @@
                   zSize="icon"
                   zShape="circle"
                   class="opacity-50 hover:opacity-100"
-                  [zTooltip]="'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' }"
+                  [zTooltip]="'XP.KEY_WORDS.Save' | translate: { Default: 'Save' }"
                   (click)="saveEdit(element)"
                 >
                   <z-icon zType="save"></z-icon>
@@ -95,7 +101,7 @@
                   zSize="icon"
                   zShape="circle"
                   class="opacity-50 hover:opacity-100"
-                  [zTooltip]="'PAC.KEY_WORDS.Edit' | translate: { Default: 'Edit' }"
+                  [zTooltip]="'XP.KEY_WORDS.Edit' | translate: { Default: 'Edit' }"
                   (click)="startEdit(element)"
                 >
                   <z-icon zType="edit"></z-icon>
@@ -110,8 +116,8 @@
                 zSize="icon"
                 zShape="circle"
                 class="opacity-50 hover:opacity-100"
-                ngmAppearance="danger"
-                [zTooltip]="'PAC.KEY_WORDS.Delete' | translate: { Default: 'Delete' }"
+                xpAppearance="danger"
+                [zTooltip]="'XP.KEY_WORDS.Delete' | translate: { Default: 'Delete' }"
                 (click)="deleteRole(element)"
               >
                 <z-icon zType="delete"></z-icon>
@@ -122,7 +128,7 @@
       } @empty {
         <tr z-table-row>
           <td z-table-cell colspan="6" class="py-8 text-center text-muted-foreground">
-            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+            {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
           </td>
         </tr>
       }

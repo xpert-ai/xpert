@@ -2,15 +2,15 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { DataSourceService } from '@xpert-ai/cloud/state'
+import { DataSourceService } from '@cloud/app/@core/state'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { combineLatestWith, debounceTime, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators'
 import { IDataSource } from '@xpert-ai/contracts'
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../../@core/animations'
 import { injectHelpWebsite } from '../../../@core/providers/website'
-import { PACDataSourceCreationComponent } from './creation/creation.component'
-import { PACDataSourceEditComponent } from './edit/edit.component'
+import { XpDataSourceCreationComponent } from './creation/creation.component'
+import { XpDataSourceEditComponent } from './edit/edit.component'
 
 import {
   ZardAlertDialogService,
@@ -45,11 +45,11 @@ const DATA_SOURCE_EDIT_DIALOG_WIDTH = 'min(560px, calc(100vw - 48px))'
     ...ZardCardImports,
     ...ZardMenuImports
   ],
-  selector: 'pac-data-sources',
+  selector: 'xp-data-sources',
   templateUrl: './data-sources.component.html',
   styleUrls: ['./data-sources.component.scss']
 })
-export class PACDataSourcesComponent {
+export class XpDataSourcesComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
 
   private readonly dataSource = inject(DataSourceService)
@@ -82,7 +82,7 @@ export class PACDataSourcesComponent {
 
   create() {
     this.#dialog
-      .open(PACDataSourceCreationComponent, {
+      .open(XpDataSourceCreationComponent, {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: DATA_SOURCE_DIALOG_PANEL_CLASS,
         width: DATA_SOURCE_CREATION_DIALOG_WIDTH,
@@ -99,7 +99,7 @@ export class PACDataSourcesComponent {
 
   edit(dataSource: IDataSource) {
     this.#dialog
-      .open(PACDataSourceEditComponent, {
+      .open(XpDataSourceEditComponent, {
         data: {
           id: dataSource.id
         },
@@ -120,7 +120,7 @@ export class PACDataSourcesComponent {
 
   copy(data: IDataSource) {
     this.#dialog
-      .open(PACDataSourceCreationComponent, {
+      .open(XpDataSourceCreationComponent, {
         data,
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: DATA_SOURCE_DIALOG_PANEL_CLASS,

@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe, TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -20,9 +20,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
+    XpI18nPipe,
     XpertParametersFormComponent
-],
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertWorkflowErrorHandlingComponent {

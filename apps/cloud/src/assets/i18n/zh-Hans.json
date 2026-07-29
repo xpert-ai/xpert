@@ -215,7 +215,6 @@
     "ORGANIZATION": "公司",
     "DASHBOARD": "仪表盘",
     "INDICATOR": "指标",
-    "INDICATOR_MARKET": "市场",
     "INDICATOR_APP": "指标应用",
     "INDICATOR_REGISTER": "注册",
     "INDICATOR_GROUPS": "组",
@@ -227,7 +226,7 @@
     "STORY": "故事",
     "USERS": "用户"
   },
-  "PAC": {
+  "XP": {
     "Title": "XpertAI 云",
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime 运维",
@@ -984,7 +983,6 @@
       "PrimaryKey": "主键",
       "TableName": "表名",
       "DataAgent": "数据代理",
-      "ServerAgent": "服务器代理",
       "Admin": "管理",
       "Members": "成员",
       "SettingsNavigation": "设置导航栏",
@@ -1189,10 +1187,6 @@
       "XpertShared": {
         "Label": "工作空间助手",
         "Description": "用于 Xpert 工作空间和 Studio Shell 的共享助手。"
-      },
-      "ChatBI": {
-        "Label": "ChatBI 助手",
-        "Description": "在 ChatBI 页面与你的数据分析助手对话。"
       },
       "ClawXpert": {
         "Label": "ClawXpert",
@@ -1802,7 +1796,6 @@
       "Certification": "认证",
       "Skills Repository": "技能库",
       "Chat": "聊天",
-      "ChatBI Assistant": "ChatBI 助手",
       "CodeXpert": "编码专家",
       "DeepResearch": "深度研究",
       "Data & Ontology": "数据与本体",
@@ -1840,8 +1833,6 @@
       "Knowledgebase": "知识库",
       "Preview": "预览",
       "AGENT": "代理",
-      "LOCAL_AGENT": "本地代理",
-      "WASM_DB": "WASM 数据库",
       "Attributes": "属性",
       "CALCULATION": "计算",
       "CALCULATED_MEMBERS": "计算成员",
@@ -1959,8 +1950,7 @@
         "SELECT_DATASOURCE_COLUMNS": {
           "Name": "名称",
           "Type": "类型",
-          "Protocol": "协议",
-          "UseLocalAgent": "使用本地代理"
+          "Protocol": "协议"
         },
         "CATALOG_COLUMNS": {
           "Name": "名称",
@@ -1991,9 +1981,7 @@
         "REGISTER_INDICATOR": "注册指标",
         "BATCH_UPLOAD": "批量上传",
         "Embedding": "嵌入",
-        "DownloadAsTemplate": "下载为模板",
-        "INDICATOR_MARKET": "指标市场",
-        "INDICATOR_MARKET_DESC": "浏览指标，申请指标权限"
+        "DownloadAsTemplate": "下载为模板"
       },
       "GENERAL": {
         "TITLE": "通用",
@@ -2007,7 +1995,6 @@
         "CONFIGURATION": "配置",
         "NAME": "名称",
         "NAME_REQUIRED": "名称必输",
-        "USE_LOCAL_AGENT": "使用本地代理",
         "DONE": "完成",
         "AuthType": "授权方式",
         "AuthType_None": "无",
@@ -2132,7 +2119,6 @@
       "USER_ORGANIZATION_ADDED": "用户组织添加成功",
       "USER_ORGANIZATION_REMOVED": "用户组织删除成功",
       "UpdateSuccess": "保存成功",
-      "LocalAgentOffline": "本地代理离线",
       "NameAlreadyExist": "名称已存在",
       "Required": "必输",
       "Update": "更新",
@@ -4503,88 +4489,6 @@
         "ConversationPreferenceSaveFailed": "保存 ClawXpert 会话偏好失败。"
       }
     },
-    "ChatBI": {
-      "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
-      "Title": "ChatBI-数据分析与洞察",
-      "EventCanvas": "事件画布",
-      "EventCanvasDesc": "此区域用于展示对话过程中产生的结构化事件、工具轨迹和业务信号。",
-      "LiveSignals": "实时信号",
-      "PendingEvents": "待处理事件流",
-      "AssistantShell": "助手面板",
-      "ComputerTrace": "线程活动",
-      "TraceLoading": "正在加载线程活动...",
-      "TraceLoadFailed": "加载线程活动失败",
-      "TraceEmpty": "暂无线程活动",
-      "TraceEmptyDesc": "当助手构建图表、探索文件、运行程序并生成结构化操作时，此 ChatBI 线程中的仪表板输出和计算机端步骤会显示在这里。",
-      "PinDashboard": "固定快照",
-      "UnpinDashboard": "取消固定快照",
-      "DataOntologyGuidePrefix": "建议直接使用",
-      "DataOntologySystem": "数据&本体",
-      "DataOntologyGuideSuffix": "系统的智能体来完成数据分析需求。",
-      "QuestionTimeline": "问题时间线",
-      "QuestionTimelineDesc": "跟踪分析流程中产生的提示里程碑、模型动作和事件节点。",
-      "ToolInvocations": "工具调用",
-      "ToolInvocationsDesc": "为模型查询、图表生成和语义模型检索预留展示空间。",
-      "BusinessAlerts": "业务提醒",
-      "BusinessAlertsDesc": "突出显示助手发现的 KPI 变化、异常和决策节点。",
-      "TransformData": "利用人工智能将数据转化为洞察力。",
-      "InputPlaceholder": "针对数据集询问问题，按 Enter 发送",
-      "NoSemanticModel": "无语义模型",
-      "NewConversation": "新建对话",
-      "Cubes": "多维数据集",
-      "Slicers": "过滤器",
-      "Empty": "空白",
-      "ShowChart": "显示图形",
-      "ShowTable": "显示表格",
-      "AddtoStory": "添加到故事",
-      "SystemMessage_1": "您好，我是XpertAI 云 BI 智能助手，当前数据为《{{value}}》，可点击顶部切换。",
-      "SystemMessage_2": "你也可以尝试点击样例",
-      "SystemMessage_3": "我能准确识别含时间、条件、维度和指标的问题哦。",
-      "SystemMessage_Samples": [
-        "2023年加拿大客户每月的销售额走势",
-        "2024年所有用户中消费金额前 10 的用户",
-        "2023年各个月的消费金额分别是多少",
-        "2023年各渠道用户的消费金额分布",
-        "2023年各渠道的用户数分别是多少"
-      ],
-      "SystemMessage_eg": "如",
-      "SystemMessage_Year": "2023年",
-      "SystemMessage_Cloud": "XpertAI 云 BI",
-      "SystemMessage_Month": "每个月",
-      "SystemMessage_Revenue": "收入",
-      "SystemMessage_HowMuch": "是多少",
-      "Chart_Line": "线图",
-      "Chart_Column": "柱形图",
-      "Chart_Bar": "条形图",
-      "Chart_Pie": "饼图",
-      "NewCalculatedMeasures": "新增计算指标",
-      "RenewTokenLimit": "重置 Token 限制",
-      "Save": "保存",
-      "SelectSemanticModel": "选择语义模型",
-      "SelectCube": "选择一个数据集",
-      "SelectACube": "选择一个数据集",
-      "Model": "模型",
-      "Entity": "实体",
-      "Description": "描述",
-      "EditModel": "编辑模型",
-      "DeleteModel": "删除模型",
-      "SemanticModel": "语义模型",
-      "Caption": "简要描述",
-      "AddModel": "添加模型",
-      "AnotherBatch": "换一批",
-      "TryFollowing": "您还可以尝试以下分析",
-      "RolesWithPermission": "有权限的角色",
-      "IntegrationsWithPermission": "有权限的集成",
-      "NewChatBIModel": "新建 ChatBI 模型",
-      "ModelExists": "模型已存在",
-      "EntityNotFound": "未找到模型实体",
-      "PleaseSelectSemanticModel": "请选择语义模型",
-      "PleaseSelectEntity": "请选择实体",
-      "NoSemanticModelsAvailable": "没有可用的语义模型，请先创建语义模型",
-      "NoEntitiesAvailable": "没有可用的实体，请先添加实体",
-      "AddEntity": "添加实体",
-      "CreateSemanticModel": "创建语义模型"
-    },
     "Home": {
       "Insight": {
         "Title": "💡智慧洞察",
@@ -4629,37 +4533,16 @@
       "Actuallength": "实际长度",
       "ConfirmYourPassword": "确认密码",
       "PasswordMustMatch": "密码不一致",
-      "WantGenerateDemo": "是否想要生成演示数据",
-      "GenerateDemoDescription": "系统将从服务器链接上下载演示数据文件，并将数据导入至系统数据库中，然后创建相应的演示样例",
       "Skip": "跳过",
-      "Generate": "生成",
-      "Retry": "重试",
-      "AddYourData": "添加您的数据",
-      "ReadyExploringYourData": "准备好开始探索您的数据了吗？在下面添加它吧。",
-      "NotReadySample": "还没有准备好？跳过并玩玩我们的示例吧。",
-      "DisplayName": "显示名称",
-      "NameRequired": "名称不能为空",
-      "AddDataLater": "我稍后添加我的数据",
-      "ConnectDatabase": "连接数据库",
       "Done": "完成",
       "AllSetup": "您已经设置好了！",
-      "TakeMetoMetadAnalyticsPlatform": "带我去 Metad 分析平台",
       "TakeMetoXpertAiPlatform": "带我去 Xpert AI 平台",
-      "SelectNetwork": "选择所需网络",
-      "GenerateDemoSuccess": "演示数据和样例生成成功！",
       "UnknownSystemStatus": "无法获取系统状态，请检查安装配置的环境参数。",
       "faqs_domain": "常见问题 （域名配置）",
-      "FeatureCategory_ai": "AI 平台功能",
-      "FeatureCategory_bi": "BI 平台功能",
-      "FeatureCategoryDesc_ai": "AI 相关的功能，包括工作流，数字专家智能体，知识库，项目空间等",
-      "FeatureCategoryDesc_bi": "BI 数据分析相关的功能，包括语义模型，指标，故事仪表板等",
       "CreateAdminAndOrg": "创建您的超级管理员账户及默认组织。",
-      "EnableFeatures": "启用功能模块",
-      "EnableFeaturesDesc": "选择您想要启用的功能模块，稍后也可以在系统设置中进行配置。",
       "ConfigureAiModel": "配置 AI 模型",
       "ConfigureAiModelDesc": "为模型提供商配置主提供商并选择默认模型。稍后您仍可以在系统设置中继续完善。",
-      "SaveAndNext": "保存并下一步",
-      "EnableFeaturesSuccess": "功能模块设置成功！"
+      "SaveAndNext": "保存并下一步"
     },
     "Languages": {
       "en": "English",
@@ -4794,45 +4677,9 @@
           "Name": "数字专家",
           "Description": "利用人工智能技术提供个性化、实时且精准的咨询、分析和决策支持的虚拟助手。"
         },
-        "FEATURE_COPILOT_CHATBI": {
-          "Name": "对话 BI",
-          "Description": "对话界面，通过自然语言交互来实现数据查询、分析和可视化。"
-        },
-        "FEATURE_MODEL": {
-          "Name": "语义模型",
-          "Description": "启用语义模型功能"
-        },
         "FEATURE_DATA_SOURCE": {
           "Name": "数据源",
           "Description": "启用数据源配置功能"
-        },
-        "FEATURE_PROJECT": {
-          "Name": "BI项目",
-          "Description": "启用BI项目工作空间功能"
-        },
-        "FEATURE_STORY": {
-          "Name": "故事",
-          "Description": "启用故事仪表板功能，制作，分享和浏览故事仪表板"
-        },
-        "FEATURE_INDICATOR": {
-          "Name": "指标",
-          "Description": "启用指标功能，注册，发布和申请查看业务指标数据"
-        },
-        "FEATURE_INDICATOR_REGISTER": {
-          "Name": "指标注册",
-          "Description": "启用指标注册功能，注册数据指标"
-        },
-        "FEATURE_INDICATOR_MARKET": {
-          "Name": "指标市场",
-          "Description": "启用指标市场功能，发布、浏览和申请指标"
-        },
-        "FEATURE_INDICATOR_APP": {
-          "Name": "指标应用",
-          "Description": "启用指标应用程序，浏览有权限的指标"
-        },
-        "FEATURE_BUSINESS_AREA": {
-          "Name": "业务域",
-          "Description": "启用业务域功能，创建和使用业务域"
         },
         "FEATURE_ORGANIZATION": {
           "Name": "组织",
@@ -4874,10 +4721,6 @@
           "Name": "系统集成",
           "Description": "管理组织内的集成连接"
         },
-        "FEATURE_DATA_FACTORY": {
-          "Name": "数据工厂",
-          "Description": "负责自动化、标准化和高效地处理、转换和存储数据，以支持数据分析、应用和决策"
-        },
         "GROUP_XPERT": {
           "Name": "数字专家功能",
           "Description": "管理数字专家及相关入口"
@@ -4889,10 +4732,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "在主导航中显示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -6532,8 +6371,6 @@
         "DATA_SOURCE_VIEW": "查看数据源",
         "DATA_SOURCE_EDIT": "维护数据源",
         "CERTIFICATION_EDIT": "维护认证",
-        "CHATBI_VIEW": "使用 ChatBI",
-        "CHATBI_EDIT": "管理 ChatBI 配置",
         "COPILOT_VIEW": "使用智能助理",
         "COPILOT_EDIT": "管理模型提供商",
         "MEMBERSHIP_EDIT": "管理会员套餐",

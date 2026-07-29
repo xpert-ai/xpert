@@ -16,7 +16,7 @@ import {
   ViewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { timer } from 'rxjs'
@@ -85,12 +85,10 @@ export class CopilotInstructionEditorComponent {
     //   }
     // })
 
-    effect(
-      () => {
-        const height = this.elementRef.nativeElement.offsetHeight
-        this.startHeight = height
-      }
-    )
+    effect(() => {
+      const height = this.elementRef.nativeElement.offsetHeight
+      this.startHeight = height
+    })
   }
 
   remove() {

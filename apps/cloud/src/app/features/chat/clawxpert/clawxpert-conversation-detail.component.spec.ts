@@ -128,7 +128,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-clawxpert-conversation-files',
+    selector: 'xp-clawxpert-conversation-files',
     template: ''
   })
   class ClawXpertConversationFilesComponent {
@@ -149,7 +149,7 @@ jest.mock('./clawxpert-conversation-preview.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-clawxpert-conversation-preview',
+    selector: 'xp-clawxpert-conversation-preview',
     template: ''
   })
   class ClawXpertConversationPreviewComponent {
@@ -173,7 +173,7 @@ jest.mock('../tasks/tasks.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-chat-tasks',
+    selector: 'xp-chat-tasks',
     template: ''
   })
   class ChatTasksComponent {
@@ -440,7 +440,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const activeConversation = signal<IChatConversation | null>(null)
     facade = {
       definition: {
-        titleKey: 'PAC.Chat.ClawXpert.DetailTitle',
+        titleKey: 'XP.Chat.ClawXpert.DetailTitle',
         defaultTitle: 'ClawXpert'
       },
       identity: signal('clawxpert'),
@@ -1008,7 +1008,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.debugElement.query(By.directive(ExtensionHostOutletComponent))).not.toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.DetailPanelEmptyTitle')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.DetailPanelEmptyTitle')
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
 
@@ -1601,7 +1601,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DetailPanelEmptyTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.DetailPanelEmptyTitle')
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
 

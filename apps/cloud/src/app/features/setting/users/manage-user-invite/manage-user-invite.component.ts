@@ -2,7 +2,7 @@ import { CommonModule, DatePipe } from '@angular/common'
 import { Component, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
-import { InviteService, Store, ToastrService } from '@xpert-ai/cloud/state'
+import { InviteService, Store, ToastrService } from '@cloud/app/@core/state'
 import {
   type IInvite,
   type IOrganization,
@@ -11,14 +11,14 @@ import {
   InvitationTypeEnum,
   InviteStatusEnum
 } from '@xpert-ai/contracts'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { getErrorMessage } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { formatDistanceToNow, isAfter } from 'date-fns'
 import { BehaviorSubject, combineLatestWith, map, switchMap, withLatestFrom } from 'rxjs'
-import { PACUsersComponent } from '../users.component'
+import { XpUsersComponent } from '../users.component'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
@@ -46,7 +46,7 @@ type InviteRow = Omit<IInvite, 'createdAt' | 'expireDate'> & {
 
 @Component({
   standalone: true,
-  selector: 'pac-manage-user-invite',
+  selector: 'xp-manage-user-invite',
   templateUrl: './manage-user-invite.component.html',
   styleUrls: ['./manage-user-invite.component.scss'],
   imports: [
@@ -67,7 +67,7 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
   private readonly inviteService = inject(InviteService)
   private readonly toastrService = inject(ToastrService)
   private readonly locale = inject(LOCALE_ID)
-  private readonly usersComponent = inject(PACUsersComponent)
+  private readonly usersComponent = inject(XpUsersComponent)
 
   private readonly refresh$ = new BehaviorSubject<void>(null)
   private readonly sortState$ = new BehaviorSubject<InviteSortState>({
@@ -128,7 +128,7 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     const targetOrganization = this.store.selectedOrganization ?? organization
     if (!id || !email || !targetOrganization?.id || !role?.name) {
       this.toastrService.error(
-        this.getTranslation('PAC.Invite.ResendMissingData', {
+        this.getTranslation('XP.Invite.ResendMissingData', {
           Default: 'This invite is missing organization or role information and cannot be resent.'
         })
       )
@@ -163,7 +163,7 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     this.confirmDelete(
       {
         value: email,
-        information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {
+        information: this.translateService.instant('XP.USERS_PAGE.ConfirmDeleteInvite', {
           Default: 'After deletion, the invited user will no longer be able to confirm the invitation'
         })
       },
@@ -223,7 +223,7 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
       createdAtTime,
       expireDateTime: expireDateTime || Number.MAX_SAFE_INTEGER,
       displayStatus,
-      statusText: this.getTranslation(`PAC.INVITE_PAGE.STATUS.${displayStatus}`, {
+      statusText: this.getTranslation(`XP.INVITE_PAGE.STATUS.${displayStatus}`, {
         Default: displayStatus
       })
     }

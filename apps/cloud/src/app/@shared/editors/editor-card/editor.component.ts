@@ -1,4 +1,3 @@
-
 import {
   booleanAttribute,
   Component,
@@ -19,7 +18,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [FormsModule, ...ZardTooltipImports, TranslateModule, CodeEditorComponent, Copy2Component],
-  selector: 'pac-code-editor-card',
+  selector: 'xp-code-editor-card',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
   hostDirectives: [NgxControlValueAccessor]

@@ -110,8 +110,8 @@ describe('XpertFrequentQuestionsService', () => {
             organizationId: 'org-1',
             locale: 'zh-Hans',
             questions: ['历史中最常问什么？'],
-            generatedAt: new Date('2026-05-20T00:00:00.000Z'),
-            expiresAt: new Date('2026-05-21T00:00:00.000Z'),
+            generatedAt: new Date(),
+            expiresAt: new Date(Date.now() + 60_000),
             sample: {
                 windowDays: 90,
                 conversationLimit: 50,

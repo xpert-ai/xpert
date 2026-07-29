@@ -3,8 +3,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -22,7 +22,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ZardSwitchComponent,
-    NgmCommonModule,
+    XpCommonModule,
     CopilotModelSelectComponent
   ],
   selector: 'xp-knowledge-retrieval-settings',

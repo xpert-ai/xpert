@@ -78,7 +78,7 @@ jest.mock('../../xpert/xpert', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-xpert-new-blank',
+    selector: 'xp-xpert-new-blank',
     template: ''
   })
   class XpertNewBlankComponent {}
@@ -171,8 +171,8 @@ describe('ClawXpertBindingWizardComponent', () => {
 
     const textContent = fixture.nativeElement.textContent
 
-    expect(textContent).toContain('PAC.Chat.ClawXpert.WizardTitle')
-    expect(textContent).not.toContain('PAC.Chat.ClawXpert.OnboardingTitle')
+    expect(textContent).toContain('XP.Chat.ClawXpert.WizardTitle')
+    expect(textContent).not.toContain('XP.Chat.ClawXpert.OnboardingTitle')
     expect(fixture.nativeElement.querySelector('[data-onboarding-step]')).toBeNull()
   })
 

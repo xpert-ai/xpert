@@ -16,36 +16,34 @@ export type ModelGatewayRequestDialogResult = {
 
 @Component({
   standalone: true,
-  selector: 'pac-model-gateway-request-dialog',
+  selector: 'xp-model-gateway-request-dialog',
   imports: [ReactiveFormsModule, TranslateModule, ZardButtonComponent, ZardInputDirective, ...ZardFormImports],
   template: `
     <section>
       <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.ModelGateway.ApplyTitle' | translate: { Default: 'Apply for external API access' } }}
+        {{ 'XP.ModelGateway.ApplyTitle' | translate: { Default: 'Apply for external API access' } }}
       </h2>
-      <p class="mt-2 text-sm text-text-secondary">
-        {{ item.externalModelId }} · {{ item.provider }}/{{ item.model }}
-      </p>
+      <p class="mt-2 text-sm text-text-secondary">{{ item.externalModelId }} · {{ item.provider }}/{{ item.model }}</p>
       <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         <z-form-field class="w-full">
-          <z-form-label>{{ 'PAC.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</z-form-label>
+          <z-form-label>{{ 'XP.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</z-form-label>
           <textarea
             z-input
             class="min-h-28 resize-y"
             formControlName="reason"
             maxlength="1000"
             [placeholder]="
-              'PAC.ModelGateway.ReasonPlaceholder'
+              'XP.ModelGateway.ReasonPlaceholder'
                 | translate: { Default: 'Describe the external platform and expected usage.' }
             "
           ></textarea>
         </z-form-field>
         <footer class="flex justify-end gap-2">
           <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button z-button type="submit" [disabled]="form.invalid">
-            {{ 'PAC.ModelGateway.Submit' | translate: { Default: 'Submit request' } }}
+            {{ 'XP.ModelGateway.Submit' | translate: { Default: 'Submit request' } }}
           </button>
         </footer>
       </form>

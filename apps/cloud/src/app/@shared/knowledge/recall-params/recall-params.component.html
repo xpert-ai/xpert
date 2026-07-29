@@ -1,7 +1,7 @@
 <div class="flex justify-between items-center">
   <div class="flex items-center h-6">
     <div class="font-semibold uppercase text-sm text-text-primary">
-      {{ 'PAC.Knowledgebase.RecallParams' | translate: { Default: 'Recall Params' } }}
+      {{ 'XP.Knowledgebase.RecallParams' | translate: { Default: 'Recall Params' } }}
     </div>
   </div>
 </div>
@@ -14,7 +14,7 @@
     <div
       class="shrink-0 text-text-tertiary hover:text-text-secondary"
       [zTooltip]="
-        'PAC.Knowledgebase.TopKTooltip'
+        'XP.Knowledgebase.TopKTooltip'
           | translate: { Default: 'Used to filter text chunks that are most similar to user questions.' }
       "
       zPosition="top"
@@ -56,12 +56,12 @@
 <div class="flex items-center justify-between">
   <div class="flex items-center h-6">
     <span class="mr-1 text-text-secondary system-sm-semibold"
-      >Score {{ 'PAC.Knowledgebase.Threshold' | translate: { Default: 'Threshold' } }}</span
+      >Score {{ 'XP.Knowledgebase.Threshold' | translate: { Default: 'Threshold' } }}</span
     >
     <div
       class="shrink-0 text-text-tertiary hover:text-text-secondary"
       [zTooltip]="
-        'PAC.Knowledgebase.ScoreTooltip'
+        'XP.Knowledgebase.ScoreTooltip'
           | translate: { Default: 'Used to set the similarity threshold for text chunk filtering.' }
       "
       zPosition="top"
@@ -104,12 +104,12 @@
   <div class="flex items-center justify-between">
     <div class="flex items-center h-6">
       <span class="mr-1 text-text-secondary system-sm-semibold">{{
-        'PAC.Knowledgebase.Weight' | translate: { Default: 'Weight' }
+        'XP.Knowledgebase.Weight' | translate: { Default: 'Weight' }
       }}</span>
       <div
         class="shrink-0 text-text-tertiary hover:text-text-secondary"
         [zTooltip]="
-          'PAC.Knowledgebase.WeightTooltip'
+          'XP.Knowledgebase.WeightTooltip'
             | translate: { Default: 'Weight in the combination of multiple knowledgebases.' }
         "
         zPosition="top"

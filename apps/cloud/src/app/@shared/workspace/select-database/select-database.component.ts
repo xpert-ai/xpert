@@ -3,7 +3,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { injectXpertTableAPI } from '@cloud/app/@core'
 import { IXpertTable } from '@xpert-ai/contracts'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type SelectDatabaseOrder = 'createdAt' | 'updatedAt' | 'name'
@@ -80,20 +80,22 @@ export class WorkspaceSelectDatabaseComponent {
   readonly xpertTableAPI = injectXpertTableAPI()
 
   // Inputs
-  readonly _data = inject<{workspaceId: string}>(DIALOG_DATA)
-  
+  readonly _data = inject<{ workspaceId: string }>(DIALOG_DATA)
+
   // Resources
   readonly workspaceId = signal<string>(this._data.workspaceId)
   readonly #tableResource = myRxResource({
     request: () => ({
       workspaceId: this.workspaceId()
     }),
-    loader: ({request}) => {
-      return request.workspaceId ? this.xpertTableAPI.getAll({
-        where: {
-          workspaceId: request.workspaceId
-        }
-      }) : null
+    loader: ({ request }) => {
+      return request.workspaceId
+        ? this.xpertTableAPI.getAll({
+            where: {
+              workspaceId: request.workspaceId
+            }
+          })
+        : null
     }
   })
   readonly tables = computed(() => this.#tableResource.value()?.items ?? [])
@@ -101,7 +103,7 @@ export class WorkspaceSelectDatabaseComponent {
 
   readonly #databaseResource = myRxResource({
     request: () => ({}),
-    loader: ({request}) => {
+    loader: ({ request }) => {
       return this.xpertTableAPI.getDatabases()
     }
   })
@@ -153,10 +155,14 @@ export class WorkspaceSelectDatabaseComponent {
     () => this.navItems()?.find((item) => item.value === this.selectedNav())?.label ?? DEFAULT_NAV_ITEMS[0].label
   )
   readonly selectedOwnerLabel = computed(
-    () => this.ownerOptions()?.find((option) => option.value === this.selectedOwner())?.label ?? DEFAULT_OWNER_OPTIONS[0].label
+    () =>
+      this.ownerOptions()?.find((option) => option.value === this.selectedOwner())?.label ??
+      DEFAULT_OWNER_OPTIONS[0].label
   )
   readonly selectedOrderLabel = computed(
-    () => this.orderOptions()?.find((option) => option.value === this.selectedOrder())?.label ?? DEFAULT_ORDER_OPTIONS[0].label
+    () =>
+      this.orderOptions()?.find((option) => option.value === this.selectedOrder())?.label ??
+      DEFAULT_ORDER_OPTIONS[0].label
   )
 
   readonly filteredDatabases = computed(() => {
@@ -170,33 +176,34 @@ export class WorkspaceSelectDatabaseComponent {
         table.description?.toLowerCase().includes(term) ||
         dbName?.includes(term)
 
-      const matchesCollection = selectedCollection === 'all' || table.database === selectedCollection || table.workspaceId === selectedCollection
+      const matchesCollection =
+        selectedCollection === 'all' ||
+        table.database === selectedCollection ||
+        table.workspaceId === selectedCollection
 
       return matchesTerm && matchesCollection
     })
   })
 
   constructor() {
-    effect(
-      () => {
-        const navItems = this.navItems()
-        if (navItems?.length && !navItems.find((item) => item.value === this.selectedNav())) {
-          this.selectedNav.set(navItems[0].value)
-        }
-
-        const owners = this.ownerOptions()
-        if (owners?.length && !owners.find((item) => item.value === this.selectedOwner())) {
-          this.selectedOwner.set(owners[0].value)
-        }
-
-        const orders = this.orderOptions()
-        if (orders?.length && !orders.find((item) => item.value === this.selectedOrder())) {
-          this.selectedOrder.set(orders[0].value)
-        }
-
-        this.filterChanged.emit(this.filters())
+    effect(() => {
+      const navItems = this.navItems()
+      if (navItems?.length && !navItems.find((item) => item.value === this.selectedNav())) {
+        this.selectedNav.set(navItems[0].value)
       }
-    )
+
+      const owners = this.ownerOptions()
+      if (owners?.length && !owners.find((item) => item.value === this.selectedOwner())) {
+        this.selectedOwner.set(owners[0].value)
+      }
+
+      const orders = this.orderOptions()
+      if (orders?.length && !orders.find((item) => item.value === this.selectedOrder())) {
+        this.selectedOrder.set(orders[0].value)
+      }
+
+      this.filterChanged.emit(this.filters())
+    })
   }
 
   trackByTable(_index: number, table: IXpertTable) {

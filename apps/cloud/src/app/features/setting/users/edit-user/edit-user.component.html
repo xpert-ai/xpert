@@ -6,12 +6,12 @@
       (click)="backToList()"
     >
       <i class="ri-arrow-left-line text-base"></i>
-      <span>{{ 'PAC.Users.BackToList' | translate: { Default: 'Back to users' } }}</span>
+      <span>{{ 'XP.Users.BackToList' | translate: { Default: 'Back to users' } }}</span>
     </button>
 
     @if (user(); as currentUser) {
       <div class="flex min-w-0 flex-col gap-2">
-        <div class="pac-page-title truncate">
+        <div class="xp-page-title truncate">
           {{ userLabel(currentUser) }}
         </div>
 
@@ -40,7 +40,7 @@
             </z-badge>
           } @else {
             <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
-              {{ 'PAC.USERS_PAGE.NoRole' | translate: { Default: 'No role' } }}
+              {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No role' } }}
             </z-badge>
           }
         </div>
@@ -48,15 +48,15 @@
         @if (isTechnicalUser(currentUser)) {
           <div class="text-sm text-text-tertiary">
             {{
-              'PAC.Users.TechnicalUserReadonlyHint'
+              'XP.Users.TechnicalUserReadonlyHint'
                 | translate: { Default: 'Basic account fields are read-only for technical users.' }
             }}
           </div>
         }
       </div>
     } @else {
-      <div class="pac-page-title">
-        {{ 'PAC.MENU.USERS' | translate: { Default: 'Users' } }}
+      <div class="xp-page-title">
+        {{ 'XP.MENU.USERS' | translate: { Default: 'Users' } }}
       </div>
     }
   </div>
@@ -69,8 +69,8 @@
       [selectedIndex]="activeTabIndex()"
       (selectedIndexChange)="selectTabByIndex($event)"
     >
-      <z-tab [label]="'PAC.Users.Tabs.Basic' | translate: { Default: 'Basic information' }" bodyClass="pt-5">
-        <pac-user-basic
+      <z-tab [label]="'XP.Users.Tabs.Basic' | translate: { Default: 'Basic information' }" bodyClass="pt-5">
+        <xp-user-basic
           [allowRoleChange]="
             canManageTenantUser() && (RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name)
           "
@@ -80,28 +80,28 @@
       </z-tab>
 
       @if (canShowMembershipTab() && !isTechnicalUser(currentUser)) {
-        <z-tab [label]="'PAC.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
+        <z-tab [label]="'XP.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
           @if (currentUser.id; as userId) {
-            <pac-user-membership class="block" [userId]="userId" />
+            <xp-user-membership class="block" [userId]="userId" />
           }
         </z-tab>
       }
 
       @if (isTenantScope() && !isTechnicalUser(currentUser)) {
-        <z-tab [label]="'PAC.Users.Tabs.Organizations' | translate: { Default: 'Organizations' }" bodyClass="pt-5">
-          <pac-user-organizations />
+        <z-tab [label]="'XP.Users.Tabs.Organizations' | translate: { Default: 'Organizations' }" bodyClass="pt-5">
+          <xp-user-organizations />
         </z-tab>
       }
 
       @if (canManageTenantUser() && !isTechnicalUser(currentUser)) {
-        <z-tab [label]="'PAC.Users.Tabs.Security' | translate: { Default: 'Security' }" bodyClass="pt-5">
+        <z-tab [label]="'XP.Users.Tabs.Security' | translate: { Default: 'Security' }" bodyClass="pt-5">
           <section class="flex max-w-5xl flex-col gap-8">
             <div class="max-w-xl">
               <div class="mb-3 text-base font-semibold">
-                {{ 'PAC.USERS_PAGE.ChangePassword' | translate: { Default: 'Change Password' } }}
+                {{ 'XP.USERS_PAGE.ChangePassword' | translate: { Default: 'Change Password' } }}
               </div>
 
-              <pac-user-change-password-form
+              <xp-user-change-password-form
                 #password
                 [(ngModel)]="newPassword"
                 class="block ng-untouched ng-pristine ng-valid"
@@ -109,7 +109,7 @@
 
               <div class="flex justify-end pt-3">
                 <button z-button zType="default" (click)="changePassword()">
-                  {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+                  {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
                 </button>
               </div>
             </div>
@@ -117,18 +117,17 @@
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div class="min-w-0">
                 <div class="font-semibold text-text-destructive">
-                  {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
+                  {{ 'XP.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
                 </div>
                 <div class="text-sm text-text-tertiary">
                   {{
-                    'PAC.USERS_PAGE.DeleteUserDesc'
-                      | translate: { Default: 'Delete this user and its associated data' }
+                    'XP.USERS_PAGE.DeleteUserDesc' | translate: { Default: 'Delete this user and its associated data' }
                   }}.
                 </div>
               </div>
 
               <button type="button" class="btn btn-large danger pressable shrink-0" (click)="deleteUser()">
-                {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
+                {{ 'XP.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
               </button>
             </div>
           </section>
@@ -139,5 +138,5 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute w-full h-full top-0 left-0" />
+  <xp-spin class="absolute w-full h-full top-0 left-0" />
 }

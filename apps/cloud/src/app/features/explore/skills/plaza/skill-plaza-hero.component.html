@@ -5,9 +5,9 @@
 <section class="mx-auto flex w-full max-w-7xl flex-col gap-5">
   <div class="flex flex-col items-center text-center">
     <h2 class="text-3xl font-semibold tracking-normal text-foreground md:text-4xl">
-      {{ 'PAC.Explore.SkillPlazaHeroTitlePrefix' | translate: { Default: 'Discover and manage your' } }}
+      {{ 'XP.Explore.SkillPlazaHeroTitlePrefix' | translate: { Default: 'Discover and manage your' } }}
       <span class="text-primary">xpert</span>
-      {{ 'PAC.Explore.SkillPlazaHeroTitleSuffix' | translate: { Default: 'skills' } }}
+      {{ 'XP.Explore.SkillPlazaHeroTitleSuffix' | translate: { Default: 'skills' } }}
     </h2>
 
     <div class="mt-5 w-full max-w-xl">
@@ -17,7 +17,7 @@
           zSize="lg"
           [ngModel]="search()"
           [placeholder]="
-            'PAC.Explore.SkillSearchPlaceholder' | translate: { Default: 'Search skill name, description, or tags' }
+            'XP.Explore.SkillSearchPlaceholder' | translate: { Default: 'Search skill name, description, or tags' }
           "
           (ngModelChange)="updateSearch($event)"
         />
@@ -31,13 +31,13 @@
         <div class="flex flex-col justify-center">
           <h3 class="text-xl font-semibold text-foreground">
             {{
-              'PAC.Explore.SkillPlazaHeroBusinessTitle'
+              'XP.Explore.SkillPlazaHeroBusinessTitle'
                 | translate: { Default: 'Turn business know-how into reusable skills' }
             }}
           </h3>
           <p class="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
             {{
-              'PAC.Explore.SkillPlazaHeroBusinessDesc'
+              'XP.Explore.SkillPlazaHeroBusinessDesc'
                 | translate
                   : {
                       Default: 'Package workflows, knowledge, and tools as xpert skills for one-click team use.'
@@ -48,7 +48,7 @@
             class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
             [routerLink]="workspaceSkillsLink()"
           >
-            {{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
+            {{ 'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
             <z-icon zType="arrow-right" zSize="sm" />
           </a>
         </div>
@@ -68,13 +68,13 @@
         <div class="flex flex-col justify-center">
           <h3 class="text-xl font-semibold text-foreground">
             {{
-              'PAC.Explore.SkillPlazaHeroConnectTitle'
+              'XP.Explore.SkillPlazaHeroConnectTitle'
                 | translate: { Default: 'Connect models, tools, and business systems' }
             }}
           </h3>
           <p class="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
             {{
-              'PAC.Explore.SkillPlazaHeroConnectDesc'
+              'XP.Explore.SkillPlazaHeroConnectDesc'
                 | translate
                   : {
                       Default:
@@ -86,7 +86,7 @@
             class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
             routerLink="/settings/tenant/skills"
           >
-            {{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
+            {{ 'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
             <z-icon zType="arrow-right" zSize="sm" />
           </a>
         </div>

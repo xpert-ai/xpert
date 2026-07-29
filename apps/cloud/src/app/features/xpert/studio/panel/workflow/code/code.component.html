@@ -2,7 +2,7 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       <div class="system-sm-semibold-uppercase text-text-secondary">
-        {{ 'PAC.Xpert.InputVariables' | translate: { Default: 'Input Variables' } }}
+        {{ 'XP.Xpert.InputVariables' | translate: { Default: 'Input Variables' } }}
       </div>
     </div>
     <div class="flex">
@@ -22,7 +22,7 @@
           <div class="relative shrink-0 w-[120px]">
             <input
               class="xp-input w-full"
-              [placeholder]="'PAC.Xpert.VariableName' | translate: { Default: 'Variable Name' }"
+              [placeholder]="'XP.Xpert.VariableName' | translate: { Default: 'Variable Name' }"
               [ngModel]="param.name"
               (ngModelChange)="updateInput(i, 'name', $event)"
             />
@@ -72,7 +72,7 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       <div class="system-sm-semibold-uppercase text-text-secondary">
-        {{ 'PAC.Xpert.OutputVariables' | translate: { Default: 'Output Variables' } }}
+        {{ 'XP.Xpert.OutputVariables' | translate: { Default: 'Output Variables' } }}
       </div>
     </div>
     <div class="flex">
@@ -92,12 +92,12 @@
           <div class="relative w-full grow">
             <input
               class="xp-input w-full"
-              [placeholder]="'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' }"
+              [placeholder]="'XP.Xpert.PleaseEnter' | translate: { Default: 'Please enter' }"
               [ngModel]="output.name"
               (ngModelChange)="updateOutput(i, 'name', $event)"
             />
           </div>
-          <ngm-select
+          <xp-select
             class="w-48"
             [nullable]="false"
             [selectOptions]="OutputSelectOptions"
@@ -122,7 +122,7 @@
   <div class="flex items-center justify-between px-4 py-2 h-10">
     <div class="flex items-center">
       <div class="mr-0.5 system-sm-semibold-uppercase text-text-secondary">
-        {{ 'PAC.Xpert.RetryOnFailure' | translate: { Default: 'Retry on failure' } }}
+        {{ 'XP.Xpert.RetryOnFailure' | translate: { Default: 'Retry on failure' } }}
       </div>
     </div>
 
@@ -132,10 +132,10 @@
   @if (enabledRetry()) {
     <div class="w-full flex justify-between items-center px-4">
       <div class="grow text-sm">
-        {{ 'PAC.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
+        {{ 'XP.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
         <i
           class="ri-information-line opacity-20 hover:opacity-100"
-          [zTooltip]="'PAC.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }"
+          [zTooltip]="'XP.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }"
           zPosition="top"
         ></i>
       </div>
@@ -162,10 +162,10 @@
 
     <div class="w-full flex justify-between items-center px-4">
       <div class="grow text-sm">
-        {{ 'PAC.Xpert.RetryInterval' | translate: { Default: 'Retry Interval' } }}
+        {{ 'XP.Xpert.RetryInterval' | translate: { Default: 'Retry Interval' } }}
         <i
           class="ri-information-line opacity-20 hover:opacity-100"
-          [zTooltip]="'PAC.Xpert.RetryIntervalTip' | translate: { Default: 'How many seconds between retries?' }"
+          [zTooltip]="'XP.Xpert.RetryIntervalTip' | translate: { Default: 'How many seconds between retries?' }"
           zPosition="top"
         ></i>
       </div>

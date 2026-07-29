@@ -10,7 +10,7 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,
-  selector: 'pac-account',
+  selector: 'xp-account',
   templateUrl: './account.component.html',
   styleUrls: ['./account.component.scss'],
   animations: [routeAnimations],
@@ -24,7 +24,7 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
     UserAvatarEditorComponent
   ]
 })
-export class PACAccountComponent {
+export class XpAccountComponent {
   private readonly store = inject(Store)
   private readonly membership = inject(MembershipService)
 

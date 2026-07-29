@@ -1,6 +1,6 @@
 {
     "name": "@xpert-ai/server-ai",
-    "version": "3.9.19",
+    "version": "3.9.21",
     "private": true,
     "type": "commonjs",
     "license": "AGPL-3.0",
@@ -40,8 +40,6 @@
         "@sap_oss/odata-library": "2.4.0",
         "@xpert-ai/chatkit-types": "0.4.6",
         "@xpert-ai/contracts": "workspace:*",
-        "@xpert-ai/copilot": "workspace:*",
-        "@xpert-ai/ocap-core": "workspace:*",
         "@xpert-ai/plugin-sdk": "workspace:*",
         "@xpert-ai/server-auth": "workspace:*",
         "@xpert-ai/server-common": "workspace:*",

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
-import { injectOrganization, Store } from '@xpert-ai/cloud/state'
+import { injectOrganization, Store } from '@cloud/app/@core/state'
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgxPermissionsService } from 'ngx-permissions'
@@ -22,14 +22,14 @@ import { UserMutationComponent, UserUploadComponent } from '../../../@shared/use
 
 @Component({
   standalone: true,
-  selector: 'pac-users',
+  selector: 'xp-users',
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SharedModule, SharedUiModule]
 })
-export class PACUsersComponent extends TranslationBaseComponent {
+export class XpUsersComponent extends TranslationBaseComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
   userLabel = userLabel
 

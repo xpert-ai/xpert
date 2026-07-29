@@ -25,11 +25,11 @@ import {
   ZardTableImports,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { format } from 'date-fns'
 import { firstValueFrom } from 'rxjs'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
 import { injectToastr } from '../../../@core/services/toastr.service'
 import { getErrorMessage } from '../../../@core/types'
@@ -44,7 +44,7 @@ type ModelAccessAdminTab = 'requests' | 'grants' | 'audit'
 
 @Component({
   standalone: true,
-  selector: 'pac-model-access-admin',
+  selector: 'xp-model-access-admin',
   templateUrl: './model-access.component.html',
   host: {
     class: 'flex min-w-0 w-full max-w-full flex-1'
@@ -53,8 +53,8 @@ type ModelAccessAdminTab = 'requests' | 'grants' | 'audit'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSpinComponent,
-    NgmI18nPipe,
+    XpSpinComponent,
+    XpI18nPipe,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardDatePickerComponent,

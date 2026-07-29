@@ -7,8 +7,8 @@ import { getErrorMessage, injectProjectService, injectToastr, IXpertProject, Ord
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { linkedModel, TranslatePipe, uploadYamlFile } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, TranslatePipe, uploadYamlFile } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, map, startWith, switchMap } from 'rxjs'
 
@@ -16,8 +16,8 @@ import { EMPTY, map, startWith, switchMap } from 'rxjs'
  */
 @Component({
   standalone: true,
-  imports: [RouterModule, CdkMenuModule, TranslatePipe, NgmSpinComponent, EmojiAvatarComponent],
-  selector: 'pac-chat-projects',
+  imports: [RouterModule, CdkMenuModule, TranslatePipe, XpSpinComponent, EmojiAvatarComponent],
+  selector: 'xp-chat-projects',
   templateUrl: './projects.component.html',
   styleUrl: 'projects.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -31,7 +31,7 @@ export class ChatProjectsComponent {
   readonly #dialog = inject(Dialog)
 
   readonly #projects = derivedAsync<{ projects?: IXpertProject[]; loading: boolean }>(() =>
-    this.projectSercice.getAllMy({order: {updatedAt: OrderTypeEnum.DESC}}).pipe(
+    this.projectSercice.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
       map(({ items }) => ({ projects: items, loading: false })),
       startWith({ loading: true })
     )
@@ -66,7 +66,7 @@ export class ChatProjectsComponent {
   removeProject(project: IXpertProject) {
     this.confirmDelete({
       value: project.name,
-      information: this.i18nService.instant('PAC.XProject.DeleteProjectAndAll', {
+      information: this.i18nService.instant('XP.XProject.DeleteProjectAndAll', {
         Default: 'Delete the project and all the materials in it'
       })
     })
@@ -118,7 +118,7 @@ export class ChatProjectsComponent {
           })
           .catch((error) => {
             this.#toastr.error(
-              this.i18nService.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+              this.i18nService.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
                 ': ' +
                 getErrorMessage(error)
             )
@@ -128,18 +128,20 @@ export class ChatProjectsComponent {
 
     input.click()
   }
-  
+
   handleImportedDSL(dsl: any) {
-    this.#dialog.open<IXpertProject>(XpertProjectInstallComponent, {
-      data: {
-        dsl
-      }
-    }).closed.subscribe({
-      next: (result) => {
-        if (result) {
-          this.#router.navigate(['/project', result.id])
+    this.#dialog
+      .open<IXpertProject>(XpertProjectInstallComponent, {
+        data: {
+          dsl
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.#router.navigate(['/project', result.id])
+          }
+        }
+      })
   }
 }

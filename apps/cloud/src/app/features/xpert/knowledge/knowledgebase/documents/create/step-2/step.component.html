@@ -1,15 +1,15 @@
-<xp-knowledge-document-create-settings class="flex overflow-hidden"
+<xp-knowledge-document-create-settings
+  class="flex overflow-hidden"
   [(documents)]="documents"
   [(parserConfig)]="parserConfig"
 >
   <div actions class="w-full flex items-center mt-8 py-2">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
-      (click)="prevStep()">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="prevStep()">
       <i class="ri-arrow-left-line mr-1"></i>
-      {{ 'PAC.Knowledgebase.PrevStep' | translate: {Default: 'Previous'} }}
+      {{ 'XP.Knowledgebase.PrevStep' | translate: { Default: 'Previous' } }}
     </button>
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-auto"
-      (click)="saveAndProcess()"
-    >{{ 'PAC.Knowledgebase.SaveProcess' | translate: {Default: 'Save and process'} }}</button>
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-auto" (click)="saveAndProcess()">
+      {{ 'XP.Knowledgebase.SaveProcess' | translate: { Default: 'Save and process' } }}
+    </button>
   </div>
 </xp-knowledge-document-create-settings>

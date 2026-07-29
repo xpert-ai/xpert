@@ -9,7 +9,7 @@ import {
   Z_MODAL_DATA,
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { XpButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'
@@ -17,7 +17,14 @@ import { userLabel } from '../../pipes'
 import { SharedModule } from '../../shared.module'
 
 function isEmployee(value: unknown): value is IEmployee {
-  return !!value && typeof value === 'object' && 'user' in value && 'userId' in value && 'isActive' in value && 'tags' in value
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'user' in value &&
+    'userId' in value &&
+    'isActive' in value &&
+    'tags' in value
+  )
 }
 
 @Component({
@@ -32,9 +39,9 @@ function isEmployee(value: unknown): value is IEmployee {
     ...ZardFormImports,
     ZardLoaderComponent,
     TranslateModule,
-    ButtonGroupDirective
+    XpButtonGroupDirective
   ],
-  selector: 'pac-employee-search',
+  selector: 'xp-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']
 })

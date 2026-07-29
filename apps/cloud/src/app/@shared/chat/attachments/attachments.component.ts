@@ -14,8 +14,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { injectToastr, StorageFileService } from '@cloud/app/@core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentComponent } from '../attachment/attachment.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -48,7 +48,7 @@ type ChatAttachmentListItem = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ]

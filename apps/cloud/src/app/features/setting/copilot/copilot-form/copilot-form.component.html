@@ -1,8 +1,12 @@
-<pac-copilot-config-form #copilotForm [copilot]="copilot()" (saved)="saved.emit()">
+<xp-copilot-config-form #copilotForm [copilot]="copilot()" (saved)="saved.emit()">
   <div [formGroup]="copilotForm.formGroup" class="w-full flex flex-col justify-start items-stretch">
     <div class="w-full flex flex-col justify-start items-stretch">
-      <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{copilotForm.tokenBalance() | number}}</label>
-      <z-slider class="my-4"
+      <label
+        >{{ 'XP.Copilot.TokenLimitPerUser' | translate: { Default: 'Token Limit/User' } }}:
+        {{ copilotForm.tokenBalance() | number }}</label
+      >
+      <z-slider
+        class="my-4"
         min="0"
         max="10000000"
         step="10000"
@@ -13,15 +17,26 @@
     </div>
 
     <div class="mt-4 flex self-stretch items-center gap-2">
-      <button z-button zType="secondary" type="button" class="rounded-lg" [disabled]="copilotForm.formGroup.pristine" (click)="copilotForm.reset()">
-        {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+      <button
+        z-button
+        zType="secondary"
+        type="button"
+        class="rounded-lg"
+        [disabled]="copilotForm.formGroup.pristine"
+        (click)="copilotForm.reset()"
+      >
+        {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
-      <button z-button zType="default" type="button" class="rounded-lg"
+      <button
+        z-button
+        zType="default"
+        type="button"
+        class="rounded-lg"
         [disabled]="!copilotForm.canSubmit()"
         (click)="copilotForm.submit()"
       >
-        <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
+        <span>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
       </button>
     </div>
   </div>
-</pac-copilot-config-form>
+</xp-copilot-config-form>

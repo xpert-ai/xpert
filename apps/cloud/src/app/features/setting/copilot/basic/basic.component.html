@@ -3,10 +3,10 @@
     class="mb-4 flex flex-col gap-3 rounded-xl border-[0.5px] border-divider-regular bg-components-card-bg px-4 py-3"
   >
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-    <div class="min-w-0">
-      <div class="text-sm text-text-tertiary">
-        {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
-      </div>
+      <div class="min-w-0">
+        <div class="text-sm text-text-tertiary">
+          {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+        </div>
         <div class="mt-1 flex flex-wrap items-center gap-2">
           <div
             class="truncate font-semibold text-text-primary"
@@ -16,54 +16,54 @@
           </div>
           @if (membership.membership.status === MembershipStatusEnum.Expired) {
             <z-badge zType="destructive" zShape="pill">
-              {{ 'PAC.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
+              {{ 'XP.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
             </z-badge>
           }
           @if (membership.membership.status === MembershipStatusEnum.Paused) {
             <z-badge zType="secondary" zShape="pill">
-              {{ 'PAC.Membership.MemberStatuses.paused' | translate: { Default: 'Paused' } }}
+              {{ 'XP.Membership.MemberStatuses.paused' | translate: { Default: 'Paused' } }}
             </z-badge>
           }
+        </div>
       </div>
-    </div>
 
       <div class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:text-right">
         <div>
-      <div class="text-sm text-text-tertiary">
-            {{ 'PAC.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
-      </div>
-      <div class="mt-1 font-semibold text-text-primary">
+          <div class="text-sm text-text-tertiary">
+            {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
+          </div>
+          <div class="mt-1 font-semibold text-text-primary">
             @if (isUnlimitedMembership()) {
               <span
-                [attr.aria-label]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                [title]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
                 >∞</span
               >
-        } @else {
+            } @else {
               {{ membership.pointsRemaining | number: '1.0-10' }} /
               {{ membership.pointsGranted | number: '1.0-10' }}
-        }
-      </div>
-      <div class="mt-1 text-xs text-text-tertiary">
+            }
+          </div>
+          <div class="mt-1 text-xs text-text-tertiary">
             @if (membership.membership.status === MembershipStatusEnum.Expired) {
-              {{ 'PAC.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
+              {{ 'XP.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
             } @else if (isUnlimitedMembership()) {
-              {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+              {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
             } @else {
-        {{ membershipRemainingPercent() | number: '1.0-0' }}%
-        {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+              {{ membershipRemainingPercent() | number: '1.0-0' }}%
+              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
             }
           </div>
         </div>
         <div>
           <div class="text-sm text-text-tertiary">
-            {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+            {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
           </div>
           <div class="mt-1 font-semibold text-text-primary">
             {{ membership.personalPointsBalance | number: '1.0-10' }}
           </div>
           <div class="mt-1 text-xs text-text-tertiary">
-            {{ 'PAC.Membership.Permanent' | translate: { Default: 'Permanent' } }}
+            {{ 'XP.Membership.Permanent' | translate: { Default: 'Permanent' } }}
           </div>
         </div>
       </div>
@@ -73,14 +73,14 @@
       @if (membership.personalPointsOnly) {
         <div class="mb-1 font-medium text-text-secondary">
           {{
-            'PAC.Membership.PersonalPointsOnlyHint'
+            'XP.Membership.PersonalPointsOnlyHint'
               | translate: { Default: 'The membership plan is unavailable. Only personal points are currently used.' }
           }}
         </div>
       }
       <div>
         {{
-          'PAC.Membership.PersonalPointsHint'
+          'XP.Membership.PersonalPointsHint'
             | translate
               : {
                   Default:
@@ -94,7 +94,7 @@
 
 @if (tenantCopilots()?.length) {
   <div class="text-lg px-2 py-2">
-    {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Available models' } }}
+    {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Available models' } }}
   </div>
 
   @for (copilot of tenantCopilots(); track copilot.id) {
@@ -109,7 +109,7 @@
 
 @if (tenantCopilots()?.length) {
   <div class="text-lg px-2 py-4">
-    {{ 'PAC.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
+    {{ 'XP.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
   </div>
 }
 <z-accordion class="space-y-2">
@@ -145,14 +145,14 @@
           }
         }
         <div class="ml-2">
-          {{ 'PAC.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
-          {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+          {{ 'XP.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
+          {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
         </div>
       </z-accordion-title>
       <z-accordion-description class="!flex-none">
         <z-switch
           labelPosition="before"
-          [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
+          [zTooltip]="'XP.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
           zPosition="top"
           [checked]="primary()?.enabled"
           (change)="onToggle(null, eAiProviderRole.Primary, primary()?.enabled, expansion)"
@@ -163,7 +163,7 @@
       </z-accordion-description>
     </z-accordion-header>
 
-    <pac-copilot-form [copilot]="primary()" />
+    <xp-copilot-form [copilot]="primary()" />
   </z-accordion-item>
 
   @for (copilot of copilots(); track copilot.id) {
@@ -224,9 +224,9 @@
                   {{ copilot.name }}
                 } @else {
                   {{
-                    'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) }
+                    'XP.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) }
                   }}
-                  {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+                  {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
                 }
               </div>
             }
@@ -235,7 +235,7 @@
         <z-accordion-description class="!flex-none">
           <z-switch
             labelPosition="before"
-            [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
+            [zTooltip]="'XP.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
             zPosition="top"
             [checked]="copilot.enabled"
             (change)="onToggle(copilot, null, copilot.enabled, expansion)"
@@ -247,7 +247,7 @@
             <button
               type="button"
               class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
-              [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+              [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
               zPosition="top"
               (click)="deleteCopilot(copilot)"
             >
@@ -257,14 +257,14 @@
         </z-accordion-description>
       </z-accordion-header>
 
-      <pac-copilot-form [copilot]="copilot" />
+      <xp-copilot-form [copilot]="copilot" />
     </z-accordion-item>
   }
 </z-accordion>
 
 <div class="flex justify-end mt-2">
   <button type="button" class="btn btn-primary btn-large pressable" [cdkMenuTriggerFor]="addMenu">
-    <i class="ri-apps-2-add-line"></i> {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+    <i class="ri-apps-2-add-line"></i> {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
   </button>
 </div>
 
@@ -272,12 +272,12 @@
   <div cdkMenu class="cdk-menu__large w-[200px] divide-y-2 p-2">
     @for (provider of providers(); track provider.value) {
       <div cdkMenuItem (click)="addProvider(provider.value)">
-        {{ 'PAC.KEY_WORDS.' + provider.label | translate: { Default: provider.label } }}
+        {{ 'XP.KEY_WORDS.' + provider.label | translate: { Default: provider.label } }}
       </div>
     }
   </div>
 </ng-template>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

@@ -64,7 +64,7 @@ jest.mock('@cloud/app/@shared/avatar/icon/icon.component', () => {
   return { IconComponent }
 })
 
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   const { inject } = jest.requireActual('@angular/core')
 
   class PluginAPIService {}
@@ -83,7 +83,7 @@ jest.mock('@xpert-ai/cloud/state', () => {
 })
 
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, Input } = jest.requireActual('@angular/core')
+  const { Component, Directive, Input, Pipe, signal } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -105,32 +105,20 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Input() zDisabled?: boolean
   }
 
-  return { ZardBadgeComponent, ZardButtonComponent }
-})
-
-jest.mock('@xpert-ai/ocap-angular/common', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
-
   @Component({
     standalone: true,
-    selector: 'ngm-spin',
+    selector: 'xp-spin',
     template: ''
   })
-  class NgmSpinComponent {
+  class XpSpinComponent {
     @Input() small?: boolean
   }
-
-  return { NgmSpinComponent }
-})
-
-jest.mock('@xpert-ai/ocap-angular/core', () => {
-  const { Pipe, signal } = jest.requireActual('@angular/core')
 
   @Pipe({
     name: 'i18n',
     standalone: true
   })
-  class NgmI18nPipe {
+  class XpI18nPipe {
     transform(value: unknown): string {
       if (typeof value === 'string') {
         return value
@@ -168,7 +156,7 @@ jest.mock('@xpert-ai/ocap-angular/core', () => {
     return typeof property === 'string' ? property : null
   }
 
-  return { myRxResource, NgmI18nPipe }
+  return { myRxResource, XpI18nPipe, XpSpinComponent, ZardBadgeComponent, ZardButtonComponent }
 })
 
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
@@ -184,7 +172,7 @@ import {
 } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { XpertTypeEnum } from '@xpert-ai/contracts'
-import { IPluginComponentDefinition, PLUGIN_COMPONENT_TYPE, PluginAPIService } from '@xpert-ai/cloud/state'
+import { IPluginComponentDefinition, PLUGIN_COMPONENT_TYPE, PluginAPIService } from '@cloud/app/@core/state'
 import { XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { TPluginWithDownloads } from '../types'
 import { PluginResourcesComponent } from '../resources/resources.component'
@@ -923,7 +911,7 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(component.resourceContribution(app)).toBeNull()
     expect(component.appSetupAction(app).type).toBe('details')
     expect(fixture.nativeElement.textContent).not.toContain('Install app')
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Plugin.InstallApp')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Plugin.InstallApp')
   })
 
   it('initializes the associated assistant template from an app without a real app component', async () => {

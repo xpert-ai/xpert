@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing'
 import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
 import { FeatureService, Store, ToastrService } from '../../../@core/services'
-import { PACFeaturesComponent } from './features.component'
+import { XpFeaturesComponent } from './features.component'
 
 class MockStore {
   readonly activeScope: { level: RequestScopeLevel; organizationId?: string }
@@ -16,7 +16,7 @@ class MockStore {
   }
 }
 
-describe('PACFeaturesComponent', () => {
+describe('XpFeaturesComponent', () => {
   it('publishes the feature definition refresh event after feature definitions are upgraded', () => {
     const featureService = {
       upgrade: jest.fn(() => of({})),
@@ -44,7 +44,7 @@ describe('PACFeaturesComponent', () => {
       ]
     })
 
-    const component = TestBed.runInInjectionContext(() => new PACFeaturesComponent())
+    const component = TestBed.runInInjectionContext(() => new XpFeaturesComponent())
 
     component.upgrade()
 
@@ -80,7 +80,7 @@ describe('PACFeaturesComponent', () => {
       ]
     })
 
-    const component = TestBed.runInInjectionContext(() => new PACFeaturesComponent())
+    const component = TestBed.runInInjectionContext(() => new XpFeaturesComponent())
 
     expect(component.canUpgrade()).toBe(false)
 

@@ -3,8 +3,8 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { By } from '@angular/platform-browser'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui/components/combobox-deprecated'
-import { PACFormlyInputModule } from './input.module'
+import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui'
+import { XpFormlyInputModule } from './input.module'
 
 const { TestBed } = require('@angular/core/testing')
 const { NoopAnimationsModule } = require('@angular/platform-browser/animations')
@@ -22,7 +22,7 @@ class HostComponent {
 
 @NgModule({
   declarations: [HostComponent],
-  imports: [ReactiveFormsModule, TranslateModule.forRoot(), FormlyModule.forRoot(), PACFormlyInputModule]
+  imports: [ReactiveFormsModule, TranslateModule.forRoot(), FormlyModule.forRoot(), XpFormlyInputModule]
 })
 class TestInputModule {}
 
@@ -61,7 +61,7 @@ const renderComponent = (field: FormlyFieldConfig, model: Record<string, unknown
 }
 
 describe('formly: Input Type', () => {
-  it('should render z-input for plain input fields without ngm-input', () => {
+  it('should render z-input for plain input fields without xp-input', () => {
     const { query } = renderComponent({
       key: 'name',
       type: 'input',
@@ -70,7 +70,7 @@ describe('formly: Input Type', () => {
       }
     })
 
-    expect(query('ngm-input')).toBeNull()
+    expect(query('xp-input')).toBeNull()
     expect(query('z-combobox-deprecated')).toBeNull()
     expect(query('input[z-input]')).not.toBeNull()
   })
@@ -84,7 +84,7 @@ describe('formly: Input Type', () => {
       }
     })
 
-    expect(query('ngm-input')).toBeNull()
+    expect(query('xp-input')).toBeNull()
     expect(fixture.debugElement.query(By.directive(ZardComboboxDeprecatedComponent))).not.toBeNull()
   })
 

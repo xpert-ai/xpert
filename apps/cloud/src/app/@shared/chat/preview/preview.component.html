@@ -1,5 +1,5 @@
 <div class="shrink-0 flex items-center justify-between px-4 pt-3 pb-2 text-text-primary system-xl-semibold">
-  <div class="h-8">{{ 'PAC.Xpert.Preview' | translate: { Default: 'Preview' } }}</div>
+  <div class="h-8">{{ 'XP.Xpert.Preview' | translate: { Default: 'Preview' } }}</div>
   <div class="flex items-center gap-1">
     <ng-content></ng-content>
 
@@ -7,7 +7,7 @@
       <button
         type="button"
         class="action-btn action-btn-sm primary w-7 h-7"
-        [zTooltip]="'PAC.Xpert.Restart' | translate: { Default: 'Restart' }"
+        [zTooltip]="'XP.Xpert.Restart' | translate: { Default: 'Restart' }"
         (click)="onRestart()"
       >
         <i class="ri-restart-line font-normal text-base"></i>
@@ -87,7 +87,7 @@
                         <!-- Retry button for this message -->
                         <div
                           class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                          [zTooltip]="'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
+                          [zTooltip]="'XP.KEY_WORDS.Retry' | translate: { Default: 'Retry' }"
                           zPosition="top"
                           (click)="onRetryMessage(message)"
                         >
@@ -96,7 +96,7 @@
                       }
                       <div
                         class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                        [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+                        [zTooltip]="'XP.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
                         zPosition="top"
                         (click)="copy(message)"
                       >
@@ -110,7 +110,7 @@
                       @if (textToSpeech_enabled()) {
                         <div
                           class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium bg-components-card-bg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-secondary"
-                          [zTooltip]="'PAC.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
+                          [zTooltip]="'XP.Xpert.ReadAloud' | translate: { Default: 'Read aloud' }"
                           zPosition="top"
                           (click)="readAloud(message)"
                         >
@@ -151,7 +151,7 @@
                             </g>
                           </svg>
                           <div class="text-sm leading-4">
-                            {{ 'PAC.Xpert.ExecutionLog' | translate: { Default: 'Execution Log' } }}
+                            {{ 'XP.Xpert.ExecutionLog' | translate: { Default: 'Execution Log' } }}
                           </div>
                         </div>
                         <div class="mx-1 w-[1px] h-[14px] bg-components-list-option-active-bg"></div>
@@ -163,7 +163,7 @@
                         @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
                           <div
                             class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-                            [zTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
+                            [zTooltip]="'XP.KEY_WORDS.CancelLike' | translate: { Default: 'Cancel like' }"
                             zPosition="top"
                             (click)="cancelFeedback(message, feedback.id)"
                           >
@@ -172,7 +172,7 @@
                         } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
                           <div
                             class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-status-error-bg text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
-                            [zTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
+                            [zTooltip]="'XP.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
                             zPosition="top"
                             (click)="cancelFeedback(message, feedback.id)"
                           >
@@ -185,7 +185,7 @@
                         >
                           <div
                             class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-                            [zTooltip]="'PAC.KEY_WORDS.Like' | translate: { Default: 'Like' }"
+                            [zTooltip]="'XP.KEY_WORDS.Like' | translate: { Default: 'Like' }"
                             zPosition="top"
                             (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
                           >
@@ -193,7 +193,7 @@
                           </div>
                           <div
                             class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-                            [zTooltip]="'PAC.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
+                            [zTooltip]="'XP.KEY_WORDS.Dislike' | translate: { Default: 'Dislike' }"
                             zPosition="top"
                             (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
                           >
@@ -250,7 +250,7 @@
 
         <div class="w-[256px] text-center text-[13px] text-text-quaternary">
           {{
-            'PAC.Xpert.StartDebuggingDigitalExpert'
+            'XP.Xpert.StartDebuggingDigitalExpert'
               | translate: { Default: 'Enter your content in the box below to start debugging Digital Expert' }
           }}
         </div>
@@ -258,8 +258,8 @@
         @if (starters()?.length) {
           <div class="w-full flex items-center mt-4 leading-[18px] text-sm text-text-tertiary uppercase">
             <div class="grow w-0 h-px bg-divider-deep"></div>
-            <div class="mx-3">{{ 'PAC.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
-            <div class="mx-3">{{ 'PAC.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
+            <div class="mx-3">{{ 'XP.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
+            <div class="mx-3">{{ 'XP.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
             <div class="grow w-0 h-px bg-divider-deep"></div>
           </div>
 
@@ -284,14 +284,14 @@
         <div class="flex justify-center items-center cursor-pointer">
           <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
           <div class="text-sm text-text-tertiary ml-2">
-            {{ 'PAC.Xpert.Suggesting' | translate: { Default: 'Suggesting' } }}...
+            {{ 'XP.Xpert.Suggesting' | translate: { Default: 'Suggesting' } }}...
           </div>
         </div>
       } @else if (suggestionQuestions()?.length) {
         <div class="mb-2 py-2">
           <div class="mb-2.5 flex items-center justify-between gap-2">
             <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180">
-              {{ 'PAC.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
+              {{ 'XP.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
             </div>
             <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
           </div>
@@ -339,7 +339,7 @@
         <div class="flex-1 py-1 break-all">{{ error() }}</div>
 
         <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
-          {{ 'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
+          {{ 'XP.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
         </button>
       </div>
     }
@@ -355,7 +355,7 @@
         (click)="quoteSelectedText()"
       >
         <i class="ri-double-quotes-l text-base"></i>
-        <span>{{ 'PAC.Chat.QuoteSelection' | translate: { Default: 'Quote selection' } }}</span>
+        <span>{{ 'XP.Chat.QuoteSelection' | translate: { Default: 'Quote selection' } }}</span>
       </button>
     }
 
@@ -430,11 +430,11 @@
                   zType="secondary"
                   zSize="sm"
                   class="composer-chip"
-                  [attr.aria-label]="'PAC.Chat.DisablePlanMode' | translate: { Default: 'Turn off plan mode' }"
+                  [attr.aria-label]="'XP.Chat.DisablePlanMode' | translate: { Default: 'Turn off plan mode' }"
                   (click)="setPlanMode(false)"
                 >
                   <z-icon zType="list-filter-plus"></z-icon>
-                  <span>{{ 'PAC.Chat.PlanModeActive' | translate: { Default: 'Plan' } }}</span>
+                  <span>{{ 'XP.Chat.PlanModeActive' | translate: { Default: 'Plan' } }}</span>
                   <z-icon zType="x"></z-icon>
                 </button>
               }
@@ -447,7 +447,7 @@
                   zSize="sm"
                   class="composer-chip"
                   [attr.aria-label]="
-                    'PAC.Chat.RemoveRuntimeCapability' | translate: { Default: 'Remove runtime capability' }
+                    'XP.Chat.RemoveRuntimeCapability' | translate: { Default: 'Remove runtime capability' }
                   "
                   (click)="removeRuntimeCapability(option)"
                 >
@@ -479,7 +479,7 @@
                     zType="ghost"
                     zSize="icon-sm"
                     zShape="circle"
-                    [attr.aria-label]="'PAC.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
+                    [attr.aria-label]="'XP.Chat.RemoveReference' | translate: { Default: 'Remove reference' }"
                     (click)="removeReference(reference)"
                   >
                     <z-icon zType="x"></z-icon>
@@ -584,9 +584,9 @@
               <div class="absolute right-0 left-0 flex items-center px-4 z-10">
                 <div class="grow">
                   @if (isRecording()) {
-                    <span>{{ 'PAC.Xpert.Speaking' | translate: { Default: 'Speaking' } }}...</span>
+                    <span>{{ 'XP.Xpert.Speaking' | translate: { Default: 'Speaking' } }}...</span>
                   } @else if (isConverting()) {
-                    <span>{{ 'PAC.Xpert.Converting' | translate: { Default: 'Converting' } }}...</span>
+                    <span>{{ 'XP.Xpert.Converting' | translate: { Default: 'Converting' } }}...</span>
                   }
                 </div>
                 <button

@@ -15,7 +15,7 @@
           <input
             type="search"
             class="xp-input w-full pl-9 pr-3 text-sm text-text-secondary shadow-inner transition focus:ring-2 focus:ring-primary-100"
-            placeholder="{{ 'PAC.Workspace.SelectDB.Search' | translate: { Default: 'Search' } }}"
+            placeholder="{{ 'XP.Workspace.SelectDB.Search' | translate: { Default: 'Search' } }}"
             [value]="searchTerm()"
             (input)="updateSearch($any($event.target).value)"
           />
@@ -25,14 +25,14 @@
           class="mt-3 inline-flex w-full items-center justify-between rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/80"
           (click)="requestCreate()"
         >
-          <span>{{ 'PAC.Workspace.SelectDB.NewTable' | translate: { Default: 'New Table' } }}</span>
+          <span>{{ 'XP.Workspace.SelectDB.NewTable' | translate: { Default: 'New Table' } }}</span>
           <i class="ri-add-line text-base"></i>
         </button>
       </div>
 
       <div class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         <p class="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-text-quaternary">
-          {{ 'PAC.Workspace.SelectDB.DatabaseResources' | translate: { Default: 'Database Resources' } }}
+          {{ 'XP.Workspace.SelectDB.DatabaseResources' | translate: { Default: 'Database Resources' } }}
         </p>
         @for (item of navItems(); track item.value) {
           <button
@@ -66,10 +66,10 @@
       <header class="flex items-center justify-between border-b border-divider-regular px-6 py-4">
         <div>
           <p class="text-base font-semibold">
-            {{ 'PAC.Workspace.SelectDB.DatabaseList' | translate: { Default: 'Database List' } }}
+            {{ 'XP.Workspace.SelectDB.DatabaseList' | translate: { Default: 'Database List' } }}
           </p>
           <p class="text-xs text-text-quaternary">
-            {{ 'PAC.Workspace.SelectDB.CurrentFilters' | translate: { Default: 'Current filters' } }}:
+            {{ 'XP.Workspace.SelectDB.CurrentFilters' | translate: { Default: 'Current filters' } }}:
             {{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}
           </p>
         </div>
@@ -160,9 +160,7 @@
         @if (loading()) {
           <div class="flex h-full flex-col items-center justify-center gap-3 text-sm text-text-quaternary">
             <span class="h-10 w-10 animate-spin rounded-full border-2 border-divider-deep border-t-primary-500"></span>
-            <span>{{
-              'PAC.Workspace.SelectDB.LoadingDatabases' | translate: { Default: 'Loading databases...' }
-            }}</span>
+            <span>{{ 'XP.Workspace.SelectDB.LoadingDatabases' | translate: { Default: 'Loading databases...' } }}</span>
           </div>
         } @else {
           @if (filteredDatabases().length) {
@@ -180,7 +178,7 @@
                       <p class="text-sm text-text-tertiary dark:text-text-quaternary">
                         {{
                           table.description ||
-                            ('PAC.Workspace.SelectDB.NoDescription' | translate: { Default: 'No description' })
+                            ('XP.Workspace.SelectDB.NoDescription' | translate: { Default: 'No description' })
                         }}
                       </p>
                     </div>
@@ -190,13 +188,13 @@
                       <p>
                         {{
                           table.database ||
-                            ('PAC.Workspace.SelectDB.DefaultDatabase' | translate: { Default: 'Default database' })
+                            ('XP.Workspace.SelectDB.DefaultDatabase' | translate: { Default: 'Default database' })
                         }}
                       </p>
                       <p>
                         {{
                           table.schema ||
-                            ('PAC.Workspace.SelectDB.DefaultSchema' | translate: { Default: 'Default Schema' })
+                            ('XP.Workspace.SelectDB.DefaultSchema' | translate: { Default: 'Default Schema' })
                         }}
                       </p>
                     </div>
@@ -205,7 +203,7 @@
                       class="rounded-full border border-primary-200 px-4 py-1.5 text-sm font-semibold text-primary-600 transition hover:bg-primary-50 dark:border-primary-500/40 dark:text-primary-300"
                       (click)="selectDatabase(table)"
                     >
-                      {{ 'PAC.Workspace.SelectDB.Add' | translate: { Default: 'Add' } }}
+                      {{ 'XP.Workspace.SelectDB.Add' | translate: { Default: 'Add' } }}
                     </button>
                   </div>
                 </li>
@@ -215,7 +213,7 @@
             <div class="flex h-full flex-col items-center justify-center text-sm text-text-quaternary">
               <i class="ri-inbox-archive-line mb-3 text-4xl"></i>
               <p>
-                {{ 'PAC.Workspace.SelectDB.NoMatchingDatabases' | translate: { Default: 'No matching databases' } }}
+                {{ 'XP.Workspace.SelectDB.NoMatchingDatabases' | translate: { Default: 'No matching databases' } }}
               </p>
               <p class="text-xs">{{ emptyHint() }}</p>
             </div>
@@ -231,7 +229,7 @@
             (click)="requestLoadMore()"
           >
             <i class="ri-arrow-down-circle-line text-lg"></i>
-            {{ 'PAC.Workspace.SelectDB.LoadMore' | translate: { Default: 'Load More' } }}
+            {{ 'XP.Workspace.SelectDB.LoadMore' | translate: { Default: 'Load More' } }}
           </button>
         </div>
       }

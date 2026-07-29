@@ -1,20 +1,20 @@
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 
-import { NgmFormlyRadioComponent } from './radio.type'
+import { XpFormlyRadioComponent } from './radio.type'
 
 @NgModule({
   imports: [
-    NgmFormlyRadioComponent,
+    XpFormlyRadioComponent,
     FormlyModule.forChild({
       types: [
         {
           name: 'radio',
-          component: NgmFormlyRadioComponent
+          component: XpFormlyRadioComponent
         }
       ]
     })
   ],
-  exports: [NgmFormlyRadioComponent]
+  exports: [XpFormlyRadioComponent]
 })
-export class NgmFormlyRadioModule {}
+export class XpFormlyRadioModule {}

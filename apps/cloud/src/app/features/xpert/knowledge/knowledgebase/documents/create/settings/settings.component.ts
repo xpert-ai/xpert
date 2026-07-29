@@ -13,12 +13,12 @@ import {
   ModelFeature
 } from '@cloud/app/@core'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { attrModel, linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
 import { KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
 import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
@@ -36,9 +36,9 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmCheckboxComponent,
-    NgmSelectComponent,
+    XpI18nPipe,
+    XpCheckboxComponent,
+    XpSelectComponent,
     IconComponent,
     JSONSchemaFormComponent,
     CopilotModelSelectComponent,

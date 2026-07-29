@@ -1,7 +1,6 @@
-
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertParameterTypeEnum } from '../../../@core'

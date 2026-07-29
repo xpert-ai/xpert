@@ -1,10 +1,10 @@
 @if (toolsetList()?.length) {
-  <ul cdkListbox cdkListboxMultiple class="ngm-cdk-listbox" [(ngModel)]="toolsets" [cdkListboxCompareWith]="compareId">
+  <ul cdkListbox cdkListboxMultiple class="xp-cdk-listbox" [(ngModel)]="toolsets" [cdkListboxCompareWith]="compareId">
     @for (item of toolsetList(); track item.id) {
       <li
         [cdkOption]="item"
         #option="cdkOption"
-        class="ngm-cdk-option flex items-center cursor-pointer px-8 py-3 rounded-md hover:bg-hover-bg"
+        class="xp-cdk-option flex items-center cursor-pointer px-8 py-3 rounded-md hover:bg-hover-bg"
         [class.cdk-option-selected]="option.isSelected()"
         [cdkOptionDisabled]="disabled()"
       >

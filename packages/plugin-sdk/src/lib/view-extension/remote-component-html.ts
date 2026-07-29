@@ -24,16 +24,31 @@ const XPERT_REMOTE_UI_CSS = `
   --xui-color-foreground: #18181b;
   --xui-color-card: #fff;
   --xui-color-card-foreground: #18181b;
+  --xui-color-popover: var(--xui-color-card);
+  --xui-color-popover-foreground: var(--xui-color-card-foreground);
+  --xui-color-secondary: #f4f4f5;
+  --xui-color-secondary-foreground: #18181b;
   --xui-color-muted: #f4f4f5;
   --xui-color-muted-foreground: #71717a;
+  --xui-color-accent: #f4f4f5;
+  --xui-color-accent-foreground: #18181b;
   --xui-color-border: #e4e4e7;
   --xui-color-input: #d4d4d8;
   --xui-color-primary: #18181b;
   --xui-color-primary-foreground: #fff;
+  --xui-color-ring: var(--xui-color-primary);
   --xui-color-destructive: #dc2626;
+  --xui-color-destructive-foreground: #fff;
   --xui-color-destructive-background: #fef2f2;
   --xui-color-success: #047857;
   --xui-color-success-background: #ecfdf5;
+  --xui-color-warning: #b45309;
+  --xui-color-info: #2563eb;
+  --xui-color-chart-1: var(--xui-color-primary);
+  --xui-color-chart-2: var(--xui-color-success);
+  --xui-color-chart-3: var(--xui-color-warning);
+  --xui-color-chart-4: var(--xui-color-destructive);
+  --xui-color-chart-5: #7c3aed;
   --xui-radius-sm: 6px;
   --xui-radius-md: 8px;
   --xui-radius-lg: 10px;
@@ -329,16 +344,31 @@ const XPERT_REMOTE_UI_BOOTSTRAP = `
     colorForeground: '--xui-color-foreground',
     colorCard: '--xui-color-card',
     colorCardForeground: '--xui-color-card-foreground',
+    colorPopover: '--xui-color-popover',
+    colorPopoverForeground: '--xui-color-popover-foreground',
+    colorSecondary: '--xui-color-secondary',
+    colorSecondaryForeground: '--xui-color-secondary-foreground',
     colorMuted: '--xui-color-muted',
     colorMutedForeground: '--xui-color-muted-foreground',
+    colorAccent: '--xui-color-accent',
+    colorAccentForeground: '--xui-color-accent-foreground',
     colorBorder: '--xui-color-border',
     colorInput: '--xui-color-input',
     colorPrimary: '--xui-color-primary',
     colorPrimaryForeground: '--xui-color-primary-foreground',
+    colorRing: '--xui-color-ring',
     colorDestructive: '--xui-color-destructive',
+    colorDestructiveForeground: '--xui-color-destructive-foreground',
     colorDestructiveBackground: '--xui-color-destructive-background',
     colorSuccess: '--xui-color-success',
     colorSuccessBackground: '--xui-color-success-background',
+    colorWarning: '--xui-color-warning',
+    colorInfo: '--xui-color-info',
+    colorChart1: '--xui-color-chart-1',
+    colorChart2: '--xui-color-chart-2',
+    colorChart3: '--xui-color-chart-3',
+    colorChart4: '--xui-color-chart-4',
+    colorChart5: '--xui-color-chart-5',
     radiusSm: '--xui-radius-sm',
     radiusMd: '--xui-radius-md',
     radiusLg: '--xui-radius-lg',

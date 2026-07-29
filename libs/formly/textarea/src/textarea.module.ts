@@ -1,4 +1,3 @@
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
@@ -12,7 +11,6 @@ import { FormlyFieldTextAreaComponent } from './textarea.type'
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    DragDropModule,
     TextFieldModule,
     ZardInputDirective,
     ...ZardFormImports,
@@ -27,4 +25,4 @@ import { FormlyFieldTextAreaComponent } from './textarea.type'
     })
   ]
 })
-export class PACFormlyTextAreaModule {}
+export class XpFormlyTextAreaModule {}

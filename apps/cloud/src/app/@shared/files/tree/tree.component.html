@@ -24,14 +24,14 @@
               zType="ghost"
               type="button"
               [class]="uploadActionClasses()"
-              [zTooltip]="'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+              [zTooltip]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
               zPosition="top"
-              [attr.aria-label]="'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+              [attr.aria-label]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
               [disabled]="uploadDisabled() || uploading()"
               (click)="onUploadClick('file')"
             >
               <i class="ri-upload-2-line"></i>
-              <span class="sr-only">{{ 'PAC.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
+              <span class="sr-only">{{ 'XP.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
             </button>
 
             <button
@@ -40,14 +40,14 @@
               zType="ghost"
               type="button"
               [class]="uploadActionClasses()"
-              [zTooltip]="'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+              [zTooltip]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
               zPosition="top"
-              [attr.aria-label]="'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+              [attr.aria-label]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
               [disabled]="uploadDisabled() || uploading()"
               (click)="onUploadClick('folder')"
             >
               <i class="ri-folder-upload-line"></i>
-              <span class="sr-only">{{ 'PAC.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
+              <span class="sr-only">{{ 'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
             </button>
           </div>
 
@@ -74,11 +74,7 @@
               }
 
               @if (item.hasChildren) {
-                <button
-                  type="button"
-                  [class]="toggleClasses()"
-                  (click)="onDirectoryToggle($event, item)"
-                >
+                <button type="button" [class]="toggleClasses()" (click)="onDirectoryToggle($event, item)">
                   @if (isDirectoryLoading(item.fullPath || item.filePath)) {
                     <i class="ri-loader-4-line animate-spin"></i>
                   } @else if (item.expanded) {
@@ -113,14 +109,14 @@
 
               @if (showActions(item)) {
                 <div
-                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto "
+                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto"
                 >
                   @if (canDownloadItem(item)) {
                     <button
                       type="button"
                       [class]="itemActionClasses()"
                       [disabled]="isDownloading(item.fullPath || item.filePath)"
-                      [attr.aria-label]="'PAC.Files.Download' | translate: { Default: 'Download' }"
+                      [attr.aria-label]="'XP.Files.Download' | translate: { Default: 'Download' }"
                       (click)="onFileDownload($event, item)"
                     >
                       @if (isDownloading(item.fullPath || item.filePath)) {
@@ -128,7 +124,7 @@
                       } @else {
                         <i class="ri-download-2-line"></i>
                       }
-                      <span>{{ 'PAC.Files.Download' | translate: { Default: 'Download' } }}</span>
+                      <span>{{ 'XP.Files.Download' | translate: { Default: 'Download' } }}</span>
                     </button>
                   }
 
@@ -137,7 +133,7 @@
                       type="button"
                       [class]="cx(itemActionClasses(), 'hover:text-text-destructive')"
                       [disabled]="isDeleting(item.fullPath || item.filePath)"
-                      [attr.aria-label]="'PAC.Files.Delete' | translate: { Default: 'Delete' }"
+                      [attr.aria-label]="'XP.Files.Delete' | translate: { Default: 'Delete' }"
                       (click)="onFileDelete($event, item)"
                     >
                       @if (isDeleting(item.fullPath || item.filePath)) {
@@ -145,7 +141,7 @@
                       } @else {
                         <i class="ri-delete-bin-line"></i>
                       }
-                      <span>{{ 'PAC.Files.Delete' | translate: { Default: 'Delete' } }}</span>
+                      <span>{{ 'XP.Files.Delete' | translate: { Default: 'Delete' } }}</span>
                     </button>
                   }
                 </div>
@@ -174,5 +170,4 @@
       </div>
     }
   </div>
-
 </section>

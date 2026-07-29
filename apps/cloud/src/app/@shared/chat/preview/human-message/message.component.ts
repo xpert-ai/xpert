@@ -3,8 +3,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@xpert-ai/core'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IChatMessage } from '@cloud/app/@core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -30,7 +30,7 @@ import {
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmCommonModule,
+    XpCommonModule,
     FileIconComponent,
     FileTypePipe
   ],

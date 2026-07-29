@@ -4,7 +4,6 @@
     "ORGANIZATION": "Organization",
     "DASHBOARD": "Dashboard",
     "INDICATOR": "Indicator",
-    "INDICATOR_MARKET": "Market",
     "INDICATOR_REGISTER": "Register",
     "INDICATOR_GROUPS": "Groups",
     "INDICATOR_MY": "My Indicators",
@@ -22,7 +21,7 @@
     "EmailTemplates": "Email Templates",
     "CustomSMTP": "Custom SMTP"
   },
-  "PAC": {
+  "XP": {
     "Title": "Metad Analytics Cloud",
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime Operations",
@@ -561,7 +560,6 @@
       "Model Providers": "Model Providers",
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
-      "LOCAL_AGENT_STATUS": "Local Agent Status",
       "MANAGE_FEATURES": "Manage Feature Modules",
       "Roles": {
         "Administration": "Administration",
@@ -572,7 +570,6 @@
         "CONFIGURATION": "Configuration",
         "NAME": "Name",
         "NAME_REQUIRED": "Name is required",
-        "USE_LOCAL_AGENT": "Use Local Agent",
         "DONE": "Done",
         "AuthType": "Auth Type",
         "AuthType_None": "None",

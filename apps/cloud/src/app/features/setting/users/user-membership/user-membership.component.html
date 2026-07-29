@@ -5,51 +5,51 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+              {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
             </div>
             <div class="font-medium">{{ currentMembership.plan?.name || currentMembership.planId }}</div>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}
+              {{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}
             </div>
             <z-badge zType="outline" zShape="pill" class="mt-1">
               {{
-                'PAC.Membership.MemberStatuses.' + currentMembership.status
+                'XP.Membership.MemberStatuses.' + currentMembership.status
                   | translate: { Default: currentMembership.status }
               }}
             </z-badge>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.Source' | translate: { Default: 'Source' } }}
+              {{ 'XP.Membership.Source' | translate: { Default: 'Source' } }}
             </div>
             <div class="font-medium">
               {{
-                'PAC.Membership.Sources.' + currentMembership.source | translate: { Default: currentMembership.source }
+                'XP.Membership.Sources.' + currentMembership.source | translate: { Default: currentMembership.source }
               }}
             </div>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.RenewalMode' | translate: { Default: 'Renewal mode' } }}
+              {{ 'XP.Membership.RenewalMode' | translate: { Default: 'Renewal mode' } }}
             </div>
             <div class="font-medium">
               {{
-                'PAC.Membership.RenewalModes.' + currentMembership.renewalMode
+                'XP.Membership.RenewalModes.' + currentMembership.renewalMode
                   | translate: { Default: currentMembership.renewalMode }
               }}
             </div>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
                 <span
-                  [attr.aria-label]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                  [title]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                  [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                  [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
                   >∞</span
                 >
               } @else {
@@ -60,7 +60,7 @@
           @if (canManagePersonalPoints) {
             <div>
               <div class="text-sm text-text-tertiary">
-                {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+                {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
               </div>
               <div class="font-medium">{{ personalPointsBalance() | number: '1.0-10' }}</div>
             </div>
@@ -70,7 +70,7 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
@@ -83,7 +83,7 @@
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
+              {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
             </div>
             <div class="font-medium">{{ currentMembership.currentPeriodEnd | date: 'medium' }}</div>
           </div>
@@ -93,22 +93,22 @@
         <div class="flex flex-wrap justify-end gap-2 border-t border-divider-subtle pt-3">
           @if (currentMembership.status === MembershipStatusEnum.Active) {
             <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="pause()">
-              {{ 'PAC.Membership.Pause' | translate: { Default: 'Pause' } }}
+              {{ 'XP.Membership.Pause' | translate: { Default: 'Pause' } }}
             </button>
           }
           @if (currentMembership.status === MembershipStatusEnum.Paused) {
             <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="resume()">
-              {{ 'PAC.Membership.Resume' | translate: { Default: 'Resume' } }}
+              {{ 'XP.Membership.Resume' | translate: { Default: 'Resume' } }}
             </button>
           }
           @if (currentMembership.status !== MembershipStatusEnum.Expired) {
             <button z-button zType="destructive" type="button" [disabled]="loading()" (click)="revoke()">
-              {{ 'PAC.Membership.Revoke' | translate: { Default: 'Revoke' } }}
+              {{ 'XP.Membership.Revoke' | translate: { Default: 'Revoke' } }}
             </button>
           }
           @if (currentMembership.source !== MembershipSourceEnum.External) {
             <button z-button zType="outline" type="button" [disabled]="loading()" (click)="renew()">
-              {{ 'PAC.Membership.Renew' | translate: { Default: 'Renew' } }}
+              {{ 'XP.Membership.Renew' | translate: { Default: 'Renew' } }}
             </button>
           }
         </div>
@@ -116,8 +116,7 @@
     } @else {
       <div class="rounded-lg border border-dashed border-divider-regular p-5 text-text-tertiary">
         {{
-          'PAC.Membership.NoUserMembership'
-            | translate: { Default: 'No membership has been created for this user yet.' }
+          'XP.Membership.NoUserMembership' | translate: { Default: 'No membership has been created for this user yet.' }
         }}
       </div>
     }
@@ -127,11 +126,11 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div class="font-semibold text-text-primary">
-              {{ 'PAC.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
+              {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
             </div>
             <div class="text-sm text-text-tertiary">
               {{
-                'PAC.Membership.UpcomingPeriodsHint'
+                'XP.Membership.UpcomingPeriodsHint'
                   | translate
                     : {
                         Default:
@@ -150,13 +149,13 @@
             >
               <div>
                 <div class="text-sm text-text-tertiary">
-                  {{ 'PAC.Membership.Plan' | translate: { Default: 'Plan' } }}
+                  {{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}
                 </div>
                 <div class="font-medium">{{ period.planSnapshot.name }}</div>
               </div>
               <div>
                 <div class="text-sm text-text-tertiary">
-                  {{ 'PAC.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
+                  {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
                 </div>
                 <div class="font-medium">
                   {{ period.periodStart | date: 'medium' }} – {{ period.periodEnd | date: 'medium' }}
@@ -164,13 +163,13 @@
               </div>
               <div>
                 <div class="text-sm text-text-tertiary">
-                  {{ 'PAC.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
+                  {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
                 </div>
                 <div class="font-medium">
                   @if (period.pointsGranted === null) {
                     <span
-                      [attr.aria-label]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                      [title]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                      [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                      [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
                       >∞</span
                     >
                   } @else {
@@ -182,15 +181,13 @@
                 @if (isExternallyManagedPeriod(period)) {
                   <span class="text-sm text-text-tertiary">
                     {{
-                      'PAC.Membership.ExternalPeriodManagedHint'
+                      'XP.Membership.ExternalPeriodManagedHint'
                         | translate: { Default: 'Refund and cancel in the billing system' }
                     }}
                   </span>
                 } @else if (!canCancelPeriod(period)) {
                   <span class="text-sm text-text-tertiary">
-                    {{
-                      'PAC.Membership.CancelLaterPeriodsFirst' | translate: { Default: 'Cancel later periods first' }
-                    }}
+                    {{ 'XP.Membership.CancelLaterPeriodsFirst' | translate: { Default: 'Cancel later periods first' } }}
                   </span>
                 } @else {
                   <button
@@ -201,7 +198,7 @@
                     [disabled]="loading()"
                     (click)="cancelPeriod(period)"
                   >
-                    {{ 'PAC.Membership.CancelPeriod' | translate: { Default: 'Cancel period' } }}
+                    {{ 'XP.Membership.CancelPeriod' | translate: { Default: 'Cancel period' } }}
                   </button>
                 }
               </div>
@@ -213,7 +210,7 @@
 
     <form [formGroup]="assignmentForm" class="flex flex-col gap-3 rounded-lg bg-components-panel-bg p-4">
       <div class="font-semibold text-text-primary">
-        {{ 'PAC.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+        {{ 'XP.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
       </div>
       <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_minmax(240px,1fr)_auto]">
         <z-form-field class="w-full">
@@ -226,10 +223,10 @@
         <z-form-field class="w-full">
           <z-select class="w-full" formControlName="renewalMode">
             <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
-              {{ 'PAC.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
+              {{ 'XP.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
             </z-select-item>
             <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
-              {{ 'PAC.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
+              {{ 'XP.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
             </z-select-item>
           </z-select>
         </z-form-field>
@@ -237,7 +234,7 @@
           <input
             z-input
             formControlName="note"
-            [placeholder]="'PAC.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
+            [placeholder]="'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
           />
         </z-form-field>
         <button
@@ -247,7 +244,7 @@
           [disabled]="loading() || assignmentForm.invalid"
           (click)="assign()"
         >
-          {{ 'PAC.Membership.Assign' | translate: { Default: 'Assign' } }}
+          {{ 'XP.Membership.Assign' | translate: { Default: 'Assign' } }}
         </button>
       </div>
     </form>
@@ -256,11 +253,11 @@
       <form [formGroup]="cyclePointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
         <div>
           <div class="font-semibold text-text-primary">
-            {{ 'PAC.Membership.AdjustCyclePoints' | translate: { Default: 'Adjust cycle points' } }}
+            {{ 'XP.Membership.AdjustCyclePoints' | translate: { Default: 'Adjust cycle points' } }}
           </div>
           <div class="text-sm text-text-tertiary">
             {{
-              'PAC.Membership.CyclePointsHint' | translate: { Default: 'Only affects the current membership period.' }
+              'XP.Membership.CyclePointsHint' | translate: { Default: 'Only affects the current membership period.' }
             }}
           </div>
         </div>
@@ -268,10 +265,10 @@
           <z-form-field class="w-full">
             <z-select class="w-full" formControlName="direction">
               <z-select-item zValue="increase">
-                {{ 'PAC.Membership.Increase' | translate: { Default: 'Increase' } }}
+                {{ 'XP.Membership.Increase' | translate: { Default: 'Increase' } }}
               </z-select-item>
               <z-select-item zValue="decrease">
-                {{ 'PAC.Membership.Decrease' | translate: { Default: 'Decrease' } }}
+                {{ 'XP.Membership.Decrease' | translate: { Default: 'Decrease' } }}
               </z-select-item>
             </z-select>
           </z-form-field>
@@ -282,14 +279,14 @@
               min="0"
               step="0.001"
               formControlName="points"
-              [placeholder]="'PAC.Membership.Points' | translate: { Default: 'Points' }"
+              [placeholder]="'XP.Membership.Points' | translate: { Default: 'Points' }"
             />
           </z-form-field>
           <z-form-field class="w-full">
             <input
               z-input
               formControlName="reason"
-              [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+              [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
             />
           </z-form-field>
           <button
@@ -299,7 +296,7 @@
             [disabled]="loading() || cyclePointsForm.invalid || !canAdjustCyclePoints()"
             (click)="adjust()"
           >
-            {{ 'PAC.Membership.Adjust' | translate: { Default: 'Adjust' } }}
+            {{ 'XP.Membership.Adjust' | translate: { Default: 'Adjust' } }}
           </button>
         </div>
       </form>
@@ -308,11 +305,11 @@
         <form [formGroup]="personalPointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
           <div>
             <div class="font-semibold text-text-primary">
-              {{ 'PAC.Membership.AdjustPersonalPoints' | translate: { Default: 'Adjust personal points' } }}
+              {{ 'XP.Membership.AdjustPersonalPoints' | translate: { Default: 'Adjust personal points' } }}
             </div>
             <div class="text-sm text-text-tertiary">
               {{
-                'PAC.Membership.PersonalPointsHint'
+                'XP.Membership.PersonalPointsHint'
                   | translate: { Default: 'Permanent balance. Membership cycle points are consumed first.' }
               }}
             </div>
@@ -321,10 +318,10 @@
             <z-form-field class="w-full">
               <z-select class="w-full" formControlName="direction">
                 <z-select-item zValue="increase">
-                  {{ 'PAC.Membership.Increase' | translate: { Default: 'Increase' } }}
+                  {{ 'XP.Membership.Increase' | translate: { Default: 'Increase' } }}
                 </z-select-item>
                 <z-select-item zValue="decrease">
-                  {{ 'PAC.Membership.Decrease' | translate: { Default: 'Decrease' } }}
+                  {{ 'XP.Membership.Decrease' | translate: { Default: 'Decrease' } }}
                 </z-select-item>
               </z-select>
             </z-form-field>
@@ -335,14 +332,14 @@
                 min="0"
                 step="0.001"
                 formControlName="points"
-                [placeholder]="'PAC.Membership.Points' | translate: { Default: 'Points' }"
+                [placeholder]="'XP.Membership.Points' | translate: { Default: 'Points' }"
               />
             </z-form-field>
             <z-form-field class="w-full">
               <input
                 z-input
                 formControlName="reason"
-                [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+                [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
               />
             </z-form-field>
             <button
@@ -352,7 +349,7 @@
               [disabled]="loading() || personalPointsForm.invalid"
               (click)="adjustPersonal()"
             >
-              {{ 'PAC.Membership.Adjust' | translate: { Default: 'Adjust' } }}
+              {{ 'XP.Membership.Adjust' | translate: { Default: 'Adjust' } }}
             </button>
           </div>
         </form>
@@ -362,11 +359,11 @@
     <section class="overflow-hidden rounded-lg border border-divider-regular">
       <div class="border-b border-divider-regular px-4 py-3">
         <div class="font-semibold text-text-primary">
-          {{ 'PAC.Membership.OperationHistory' | translate: { Default: 'Operation history' } }}
+          {{ 'XP.Membership.OperationHistory' | translate: { Default: 'Operation history' } }}
         </div>
         <div class="mt-1 text-sm text-text-tertiary">
           {{
-            'PAC.Membership.OperationHistoryHint'
+            'XP.Membership.OperationHistoryHint'
               | translate: { Default: 'Recent assignments, point changes, renewals, and status changes.' }
           }}
         </div>
@@ -378,7 +375,7 @@
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="text-sm font-medium text-text-primary">
-                  {{ 'PAC.Membership.LedgerSource.' + entry.source | translate: { Default: entry.source } }}
+                  {{ 'XP.Membership.LedgerSource.' + entry.source | translate: { Default: entry.source } }}
                 </span>
                 @if (entry.pointsDelta) {
                   <z-badge [zType]="entry.pointsDelta > 0 ? 'secondary' : 'outline'" zShape="pill">
@@ -387,14 +384,12 @@
                 }
               </div>
               <div class="mt-1 truncate text-sm text-text-tertiary" [title]="entry.reason || ''">
-                {{
-                  entry.reason || ('PAC.Membership.NoOperationReason' | translate: { Default: 'No reason provided' })
-                }}
+                {{ entry.reason || ('XP.Membership.NoOperationReason' | translate: { Default: 'No reason provided' }) }}
               </div>
             </div>
             <div>
               <div class="text-xs text-text-tertiary">
-                {{ 'PAC.Membership.Operator' | translate: { Default: 'Operator' } }}
+                {{ 'XP.Membership.Operator' | translate: { Default: 'Operator' } }}
               </div>
               <div class="mt-1 truncate text-sm text-text-primary" [title]="auditActorLabel(entry)">
                 {{ auditActorLabel(entry) }}
@@ -402,14 +397,14 @@
             </div>
             <div>
               <div class="text-xs text-text-tertiary">
-                {{ 'PAC.Membership.OperationTime' | translate: { Default: 'Time' } }}
+                {{ 'XP.Membership.OperationTime' | translate: { Default: 'Time' } }}
               </div>
               <div class="mt-1 text-sm text-text-primary">{{ entry.createdAt | date: 'medium' }}</div>
             </div>
           </div>
         } @empty {
           <div class="px-4 py-8 text-center text-sm text-text-tertiary">
-            {{ 'PAC.Membership.NoOperationHistory' | translate: { Default: 'No membership operations yet.' } }}
+            {{ 'XP.Membership.NoOperationHistory' | translate: { Default: 'No membership operations yet.' } }}
           </div>
         }
       </div>

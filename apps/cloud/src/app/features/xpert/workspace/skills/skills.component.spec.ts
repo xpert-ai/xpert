@@ -27,7 +27,7 @@ jest.mock('@cloud/app/@shared/files', () => {
 
   Component({
     standalone: true,
-    selector: 'pac-file-workbench',
+    selector: 'xp-file-workbench',
     template: '',
     inputs: [
       'rootId',

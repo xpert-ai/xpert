@@ -8,21 +8,21 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   rules:
-  - host: adminer.mtda.cloud
-    http:
-      paths:
-    # 在Ingress Controller的版本≥0.22.0之后，path中需要使用正则表达式定义路径，并在rewrite-target中结合捕获组一起使用。
-      - path: /
-        backend:
-          service: 
-            name: db-adminer
-            port: 
-              number: 8084
-        pathType: ImplementationSpecific
+    - host: adminer.mtda.cloud
+      http:
+        paths:
+          # 在Ingress Controller的版本≥0.22.0之后，path中需要使用正则表达式定义路径，并在rewrite-target中结合捕获组一起使用。
+          - path: /
+            backend:
+              service:
+                name: db-adminer
+                port:
+                  number: 8084
+            pathType: ImplementationSpecific
   tls:
-  - hosts:
-      - adminer.mtda.cloud
-    secretName: adminer-tls
+    - hosts:
+        - adminer.mtda.cloud
+      secretName: adminer-tls
 ---
 apiVersion: v1
 kind: Service
@@ -155,7 +155,7 @@ spec:
                 secretKeyRef:
                   name: ocap-secrets
                   key: FEISHU_CLIENT_SECRET
-                  optional: false  
+                  optional: false
             - name: API_BASE_URL
               value: 'https://api.mtda.cloud'
             - name: CLIENT_BASE_URL
@@ -241,8 +241,6 @@ spec:
           env:
             - name: API_BASE_URL
               value: 'https://api.mtda.cloud'
-            - name: ENABLE_LOCAL_AGENT
-              value: 'true'
 ---
 apiVersion: apps/v1
 kind: Deployment

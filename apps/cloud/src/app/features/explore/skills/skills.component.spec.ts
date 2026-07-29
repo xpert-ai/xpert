@@ -155,8 +155,8 @@ describe('ExploreSkillsComponent', () => {
 
     const shareButtons = Array.from(fixture.nativeElement.querySelectorAll('button')).filter(
       (button): button is HTMLButtonElement =>
-        button.textContent?.includes('PAC.Explore.ShareSkill') ||
-        button.textContent?.includes('PAC.Explore.RepublishSkill') ||
+        button.textContent?.includes('XP.Explore.ShareSkill') ||
+        button.textContent?.includes('XP.Explore.RepublishSkill') ||
         false
     )
 

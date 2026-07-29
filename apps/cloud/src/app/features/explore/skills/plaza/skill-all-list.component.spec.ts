@@ -32,7 +32,7 @@ describe('SkillAllListComponent', () => {
     const fixture = TestBed.createComponent(SkillAllListComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Explore.NoSkills')
+    expect(fixture.nativeElement.textContent).toContain('XP.Explore.NoSkills')
   })
 
   it('renders skills and emits view/install/load-more events', async () => {

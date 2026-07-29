@@ -5,11 +5,11 @@
     >
       <div>
         <h1 class="text-lg font-semibold text-text-primary">
-          {{ 'PAC.ModelAccess.Title' | translate: { Default: 'Model access' } }}
+          {{ 'XP.ModelAccess.Title' | translate: { Default: 'Model access' } }}
         </h1>
         <p class="mt-1 text-sm text-text-secondary">
           {{
-            'PAC.ModelAccess.Description'
+            'XP.ModelAccess.Description'
               | translate
                 : {
                     Default:
@@ -21,7 +21,7 @@
       @if (requestableModels().length) {
         <button z-button type="button" (click)="apply()">
           <i class="ri-add-line"></i>
-          {{ 'PAC.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
+          {{ 'XP.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
         </button>
       }
     </header>
@@ -31,7 +31,7 @@
         <z-accordion-item zValue="plan-models" class="[&_[data-slot=accordion-body]>div]:px-0">
           <z-accordion-header class="px-0">
             <z-accordion-title class="text-base font-semibold text-text-primary">
-              {{ 'PAC.ModelAccess.PlanModels' | translate: { Default: 'Plan models' } }}
+              {{ 'XP.ModelAccess.PlanModels' | translate: { Default: 'Plan models' } }}
             </z-accordion-title>
             <z-accordion-description class="!flex-none">
               <z-badge zType="secondary" zShape="pill">{{ planModels().length }}</z-badge>
@@ -41,13 +41,13 @@
             <div class="mb-3 flex justify-end">
               <z-form-field class="w-full sm:max-w-sm">
                 <z-form-label>
-                  {{ 'PAC.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
+                  {{ 'XP.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
                 </z-form-label>
                 <input
                   z-input
                   [formControl]="planModelSearchControl"
                   [placeholder]="
-                    'PAC.ModelGateway.SearchModelsPlaceholder'
+                    'XP.ModelGateway.SearchModelsPlaceholder'
                       | translate: { Default: 'Model ID, provider, or model name' }
                   "
                 />
@@ -71,14 +71,14 @@
                       </div>
                       <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.Source.plan' | translate: { Default: 'Plan included' } }}
+                          {{ 'XP.ModelAccess.Source.plan' | translate: { Default: 'Plan included' } }}
                         </z-badge>
-                        <span>{{ 'PAC.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
+                        <span>{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
                       </div>
                       @if (item.unavailableReason) {
                         <div class="flex items-center gap-2 text-xs text-text-warning">
                           <i class="ri-information-line"></i>
-                          {{ 'PAC.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                          {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
                         </div>
                       }
                     </z-card-content>
@@ -88,16 +88,16 @@
             } @else {
               <z-empty
                 [zDescription]="
-                  'PAC.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
+                  'XP.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
                 "
               />
             }
           } @else {
             <z-empty
               zIcon="inbox"
-              [zTitle]="'PAC.ModelAccess.NoPlanModels' | translate: { Default: 'No plan models' }"
+              [zTitle]="'XP.ModelAccess.NoPlanModels' | translate: { Default: 'No plan models' }"
               [zDescription]="
-                'PAC.ModelAccess.NoPlanModelsDescription'
+                'XP.ModelAccess.NoPlanModelsDescription'
                   | translate: { Default: 'The current membership plan does not include any models.' }
               "
             />
@@ -109,7 +109,7 @@
     <section class="space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h2 class="font-semibold text-text-primary">
-          {{ 'PAC.ModelAccess.ExtraGrants' | translate: { Default: 'Additional grants' } }}
+          {{ 'XP.ModelAccess.ExtraGrants' | translate: { Default: 'Additional grants' } }}
         </h2>
         <z-badge zType="secondary" zShape="pill">{{ grantModels().length }}</z-badge>
       </div>
@@ -128,28 +128,28 @@
                     </div>
                   </div>
                   <z-badge [zType]="item.unavailableReason ? 'secondary' : 'default'" zShape="pill">
-                    {{ 'PAC.ModelAccess.GrantStatus.active' | translate }}
+                    {{ 'XP.ModelAccess.GrantStatus.active' | translate }}
                   </z-badge>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
                   <z-badge zType="secondary" zShape="pill">
-                    {{ 'PAC.ModelAccess.Source.grant' | translate: { Default: 'Additional grant' } }}
+                    {{ 'XP.ModelAccess.Source.grant' | translate: { Default: 'Additional grant' } }}
                   </z-badge>
                   <span>{{ item.modelType }}</span>
                   <span>·</span>
-                  <span>{{ 'PAC.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
+                  <span>{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
                 </div>
                 <div class="text-xs text-text-secondary">
                   @if (item.grant?.validUntil) {
-                    {{ 'PAC.ModelAccess.ValidUntil' | translate: { date: formatValidUntil(item.grant.validUntil) } }}
+                    {{ 'XP.ModelAccess.ValidUntil' | translate: { date: formatValidUntil(item.grant.validUntil) } }}
                   } @else {
-                    {{ 'PAC.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
+                    {{ 'XP.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
                   }
                 </div>
                 @if (item.unavailableReason) {
                   <div class="flex items-center gap-2 text-xs text-text-warning">
                     <i class="ri-pause-circle-line"></i>
-                    {{ 'PAC.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                    {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
                   </div>
                 }
               </z-card-content>
@@ -159,9 +159,9 @@
       } @else {
         <z-empty
           zIcon="inbox"
-          [zTitle]="'PAC.ModelAccess.NoGrants' | translate: { Default: 'No personal grants' }"
+          [zTitle]="'XP.ModelAccess.NoGrants' | translate: { Default: 'No personal grants' }"
           [zDescription]="
-            'PAC.ModelAccess.NoGrantsDescription'
+            'XP.ModelAccess.NoGrantsDescription'
               | translate: { Default: 'Approved personal model access will appear here.' }
           "
         />
@@ -169,7 +169,7 @@
           <div class="flex justify-center">
             <button z-button type="button" (click)="apply()">
               <i class="ri-add-line"></i>
-              {{ 'PAC.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
+              {{ 'XP.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
             </button>
           </div>
         }
@@ -179,7 +179,7 @@
     <section class="space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h2 class="font-semibold text-text-primary">
-          {{ 'PAC.ModelAccess.MyRequests' | translate: { Default: 'My requests' } }}
+          {{ 'XP.ModelAccess.MyRequests' | translate: { Default: 'My requests' } }}
         </h2>
         <z-badge zType="secondary" zShape="pill">{{ data.requests.length }}</z-badge>
       </div>
@@ -197,11 +197,11 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <z-badge zType="outline" zShape="pill">
-                      {{ 'PAC.ModelAccess.StatusValue.' + currentRequestStatus(request) | translate }}
+                      {{ 'XP.ModelAccess.StatusValue.' + currentRequestStatus(request) | translate }}
                     </z-badge>
                     @if (request.status === requestedStatus) {
                       <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
-                        {{ 'PAC.ModelAccess.Withdraw' | translate: { Default: 'Withdraw' } }}
+                        {{ 'XP.ModelAccess.Withdraw' | translate: { Default: 'Withdraw' } }}
                       </button>
                     }
                   </div>
@@ -213,23 +213,23 @@
                       <li class="relative text-xs text-text-secondary">
                         <span class="absolute -left-[1.3rem] top-1 size-2 rounded-full bg-button-primary-bg"></span>
                         <div class="font-medium text-text-primary">
-                          {{ 'PAC.ModelAccess.Event.' + event.eventType | translate }}
+                          {{ 'XP.ModelAccess.Event.' + event.eventType | translate }}
                         </div>
                         <div>
                           {{ event.createdAt | date: 'medium' }} ·
                           {{
                             event.actorType === 'system'
-                              ? ('PAC.ModelAccess.SystemActor' | translate: { Default: 'System' })
+                              ? ('XP.ModelAccess.SystemActor' | translate: { Default: 'System' })
                               : event.actorName
                           }}
                         </div>
                         @if (event.systemReasonCode) {
                           <div class="mt-1">
-                            {{ 'PAC.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
+                            {{ 'XP.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
                           </div>
                         } @else if (event.eventType === 'model_suspended' && event.reason) {
                           <div class="mt-1">
-                            {{ 'PAC.ModelAccess.Unavailable.' + event.reason | translate }}
+                            {{ 'XP.ModelAccess.Unavailable.' + event.reason | translate }}
                           </div>
                         } @else if (event.reason) {
                           <div class="mt-1">{{ event.reason }}</div>
@@ -245,12 +245,12 @@
       } @else {
         <z-empty
           zIcon="inbox"
-          [zTitle]="'PAC.ModelAccess.NoRequests' | translate: { Default: 'No requests yet' }"
+          [zTitle]="'XP.ModelAccess.NoRequests' | translate: { Default: 'No requests yet' }"
           [zDescription]="
             data.catalog.canRequest
-              ? ('PAC.ModelAccess.NoRequestsDescription'
+              ? ('XP.ModelAccess.NoRequestsDescription'
                 | translate: { Default: 'Apply for a model that is not already included or granted.' })
-              : ('PAC.ModelAccess.RequestsUnavailable'
+              : ('XP.ModelAccess.RequestsUnavailable'
                 | translate: { Default: 'Model access requests are unavailable in the current scope.' })
           "
         />
@@ -258,12 +258,12 @@
     </section>
   } @else if (state() === undefined) {
     <div class="flex min-h-64 items-center justify-center">
-      <ngm-spin />
+      <xp-spin />
     </div>
   } @else {
     <z-empty
       zIcon="inbox"
-      [zTitle]="'PAC.ModelAccess.LoadFailed' | translate: { Default: 'Unable to load model access' }"
+      [zTitle]="'XP.ModelAccess.LoadFailed' | translate: { Default: 'Unable to load model access' }"
     />
   }
 </div>

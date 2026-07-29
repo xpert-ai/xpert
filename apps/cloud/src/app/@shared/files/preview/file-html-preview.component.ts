@@ -11,7 +11,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import type { TChatElementAttribute, TChatFileElementReference } from '@xpert-ai/contracts'
 
 type HtmlInspectorElementPayload = {
@@ -62,7 +62,7 @@ type HtmlSourceLineRange = {
 
 @Component({
   standalone: true,
-  selector: 'pac-file-html-preview',
+  selector: 'xp-file-html-preview',
   templateUrl: './file-html-preview.component.html',
   imports: [SafePipe],
   host: {

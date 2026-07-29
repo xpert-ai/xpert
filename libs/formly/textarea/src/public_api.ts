@@ -1,2 +1,2 @@
-export { PACFormlyTextAreaModule } from './textarea.module';
-export { FormlyFieldTextAreaComponent, FormlyTextAreaFieldConfig } from './textarea.type';
+export { XpFormlyTextAreaModule } from './textarea.module'
+export { FormlyFieldTextAreaComponent, FormlyTextAreaFieldConfig } from './textarea.type'

@@ -3,7 +3,7 @@ import fsPromises from 'fs/promises'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 
-// The same as import { TableColumnType } from '@xpert-ai/ocap-core'
+// Spreadsheet column types used by the server-side XLSX helpers.
 export declare type TableColumnType = 'String' | 'Integer' | 'Numeric' | 'Boolean' | 'Datetime' | 'Date' | 'Time'
 export interface UploadSheetType {
   file: File
@@ -134,10 +134,10 @@ export async function loadCsvWithAutoEncoding(filePath: string) {
 
 export async function loadExcel(filePath: string) {
   const workbook = XLSX.readFile(filePath, {
-        type: 'file',
-        cellDates: true,
-        cellNF: false
-      })
+    type: 'file',
+    cellDates: true,
+    cellNF: false
+  })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
 
   const jsonData = XLSX.utils.sheet_to_json(sheet)

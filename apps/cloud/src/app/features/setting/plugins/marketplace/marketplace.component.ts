@@ -3,16 +3,16 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, TemplateRef, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, routeAnimations } from '@cloud/app/@core'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import {
   injectActiveScope,
   IPluginMarketplaceRegistryItem,
   IPluginMarketplaceRegistrySection,
   PluginAPIService
-} from '@xpert-ai/cloud/state'
-import { OverlayAnimations } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { debouncedSignal, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+} from '@cloud/app/@core/state'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import type { Observable } from 'rxjs'
 import { TPlugin } from '@cloud/app/@shared/plugins'
@@ -30,7 +30,7 @@ import {
   ZardLoaderComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import {
   type I18nObject,
   type I18nText,
@@ -70,9 +70,9 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
     CdkMenuModule,
     TranslateModule,
     FormsModule,
-    NgmSelectComponent,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpSelectComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     SettingsPluginComponent,
     ZardAlertComponent,
     ZardBadgeComponent,
@@ -99,7 +99,7 @@ export class PluginsMarketplaceComponent {
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = inject(I18nService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   readonly addSourceDialog = viewChild('addSourceDialog', { read: TemplateRef })
   readonly registryDialog = viewChild('registryDialog', { read: TemplateRef })
@@ -419,7 +419,7 @@ export class PluginsMarketplaceComponent {
 
     if (this.registryRequiredFieldsMissing()) {
       this.registryFormError.set(
-        this.i18nService.instant('PAC.Plugin.RegisteredPluginRequiredFields', {
+        this.i18nService.instant('XP.Plugin.RegisteredPluginRequiredFields', {
           Default: 'Package, name, description, category, author, and target apps are required.'
         })
       )
@@ -427,7 +427,7 @@ export class PluginsMarketplaceComponent {
     }
     if (!targetAppMeta) {
       this.registryFormError.set(
-        this.i18nService.instant('PAC.Plugin.RegisteredPluginJsonInvalid', {
+        this.i18nService.instant('XP.Plugin.RegisteredPluginJsonInvalid', {
           Default: 'Advanced JSON must be a valid object.'
         })
       )
@@ -465,7 +465,7 @@ export class PluginsMarketplaceComponent {
         this.resetRegistryForm()
         this.loadRegistryItems()
         this.reload()
-        this.#toastr.success('PAC.Plugin.RegisteredPluginSaved', {
+        this.#toastr.success('XP.Plugin.RegisteredPluginSaved', {
           Default: 'Registered plugin saved'
         })
       },
@@ -479,10 +479,10 @@ export class PluginsMarketplaceComponent {
   deleteRegistryItem(item: IPluginMarketplaceRegistryItem) {
     this.confirmDelete(
       {
-        title: this.i18nService.instant('PAC.Plugin.DeleteRegisteredPlugin', {
+        title: this.i18nService.instant('XP.Plugin.DeleteRegisteredPlugin', {
           Default: 'Delete registered plugin'
         }),
-        information: this.i18nService.instant('PAC.Plugin.DeleteRegisteredPluginMessage', {
+        information: this.i18nService.instant('XP.Plugin.DeleteRegisteredPluginMessage', {
           Default: `Delete "${this.i18n.transform(item.displayName) || item.packageName}" from the platform registry? Installed plugins remain installed.`
         })
       },
@@ -532,7 +532,7 @@ export class PluginsMarketplaceComponent {
             this.sourceFilter.set(source.id)
           }
           this.reload()
-          this.#toastr.success('PAC.Plugin.MarketplaceSourceAdded', {
+          this.#toastr.success('XP.Plugin.MarketplaceSourceAdded', {
             Default: 'Marketplace source added'
           })
         },
@@ -554,7 +554,7 @@ export class PluginsMarketplaceComponent {
       next: () => {
         this.refreshingSource.set(false)
         this.reload()
-        this.#toastr.success('PAC.Plugin.MarketplaceSourceRefreshed', {
+        this.#toastr.success('XP.Plugin.MarketplaceSourceRefreshed', {
           Default: 'Marketplace source refreshed'
         })
       },

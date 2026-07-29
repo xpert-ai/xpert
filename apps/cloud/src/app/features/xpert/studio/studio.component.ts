@@ -37,12 +37,12 @@ import {
   FSelectionChangeEvent,
   FZoomDirective
 } from '@foblex/flow'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { DisplayBehaviour, isEqual } from '@xpert-ai/ocap-core'
-import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour, XpCommonModule } from '@xpert-ai/headless-ui'
+import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
+import { isEqual } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { Observable, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'
@@ -112,7 +112,7 @@ import { XpertStudioCopilotServerService } from './xpert-studio-copilot-server.s
     NgxFloatUiModule,
     ...ZardTooltipImports,
 
-    NgmCommonModule,
+    XpCommonModule,
 
     EmojiAvatarComponent,
     XpertStudioFeaturesComponent,
@@ -130,7 +130,7 @@ import { XpertStudioCopilotServerService } from './xpert-studio-copilot-server.s
     XpertStudioConnectionMenuComponent,
     XpertStudioConnectionCenterComponent
   ],
-  selector: 'pac-xpert-studio',
+  selector: 'xp-xpert-studio',
   templateUrl: './studio.component.html',
   styleUrl: 'studio.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -312,13 +312,11 @@ export class XpertStudioComponent {
       this.#assistantFacade?.clearStudioContext()
     })
 
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.xpertService.paramId.set(this.paramId())
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.xpertService.paramId.set(this.paramId())
       }
-    )
+    })
 
     effect(() => {
       if (!this.#assistantFacade) {
@@ -536,7 +534,7 @@ export class XpertStudioComponent {
 
   copyNode(node: TXpertTeamNode) {
     this.#clipboard.copy(JSON.stringify(node))
-    this.#toastr.success('PAC.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+    this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
   }
 
   duplicateNode(node: TXpertTeamNode) {
@@ -737,7 +735,9 @@ export class XpertStudioComponent {
   }
 
   private isCanvasGroupTarget(node: TXpertTeamNode | undefined): boolean {
-    return !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+    return (
+      !!node && (node.type === 'xpert' || (node.type === 'workflow' && GROUP_NODE_TYPES.includes(node.entity.type)))
+    )
   }
 
   private releaseInvalidParentNodes(): void {

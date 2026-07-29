@@ -4,10 +4,10 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectHelpWebsite } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
-import { injectActiveScope, injectPluginAPI, injectScopeLevel } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectPluginAPI, injectScopeLevel } from '@cloud/app/@core/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { PluginRuntimeRestartService } from '../plugin-runtime-restart.service'
 
@@ -26,7 +26,7 @@ type PluginInstallDialogData = {
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
+  imports: [TranslateModule, FormsModule, XpSpinComponent, PluginComponent],
   selector: 'xp-settings-plugin-install',
   templateUrl: './install.component.html',
   styleUrls: ['./install.component.scss']

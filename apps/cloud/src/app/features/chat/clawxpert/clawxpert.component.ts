@@ -13,7 +13,7 @@ const ENTRY_ONBOARDING_QUERY_VALUE = 'clawxpert'
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert',
+  selector: 'xp-clawxpert',
   imports: [CommonModule, RouterModule],
   template: `
     <div class="h-full overflow-hidden">

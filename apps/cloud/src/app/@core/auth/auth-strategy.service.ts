@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, signal } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
-import { PacAuthResult, PacAuthStrategy, PacAuthStrategyClass } from '@xpert-ai/cloud/auth'
-import { AuthService } from '@xpert-ai/cloud/state'
+import { XpAuthResult, XpAuthStrategy, XpAuthStrategyClass } from '@cloud/app/auth'
+import { AuthService } from '@cloud/app/@core/state'
 import { IAuthResponse, ITag, ITenant, IUser, IUserLoginInput } from '@xpert-ai/contracts'
 import { CookieService } from 'ngx-cookie-service'
 import { Observable, firstValueFrom, from, of } from 'rxjs'
@@ -11,7 +11,7 @@ import { Store } from '../services/store.service'
 import { ARTIFACT_SHARE_SESSION_HTTP_OPTIONS, artifactShareSessionUrl } from '../../artifacts/artifact-share-session'
 
 @Injectable()
-export class AuthStrategy extends PacAuthStrategy {
+export class AuthStrategy extends XpAuthStrategy {
   private static config = {
     login: {
       redirect: {
@@ -59,7 +59,7 @@ export class AuthStrategy extends PacAuthStrategy {
   /**
    * Share the refresh token request, avoid duplicate requests.
    */
-  readonly refreshTokenReq = signal<Observable<PacAuthResult>>(null)
+  readonly refreshTokenReq = signal<Observable<XpAuthResult>>(null)
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -71,11 +71,11 @@ export class AuthStrategy extends PacAuthStrategy {
     super()
   }
 
-  static setup(options: { name: string }): [PacAuthStrategyClass, any] {
+  static setup(options: { name: string }): [XpAuthStrategyClass, any] {
     return [AuthStrategy, options]
   }
 
-  authenticate(args: { userName: string; password: string; rememberMe?: boolean | null }): Observable<PacAuthResult> {
+  authenticate(args: { userName: string; password: string; rememberMe?: boolean | null }): Observable<XpAuthResult> {
     const { userName, password } = args
 
     const loginInput: IUserLoginInput = {
@@ -108,11 +108,11 @@ export class AuthStrategy extends PacAuthStrategy {
     terms: boolean
     tenant: ITenant
     tags: ITag[]
-  }): Observable<PacAuthResult> {
+  }): Observable<XpAuthResult> {
     const { email, fullName, password, confirm, tenant, tags } = args
 
     if (password !== confirm) {
-      return of(new PacAuthResult(false, null, null, ["The passwords don't match."]))
+      return of(new XpAuthResult(false, null, null, ["The passwords don't match."]))
     }
 
     const registerInput = {
@@ -139,15 +139,15 @@ export class AuthStrategy extends PacAuthStrategy {
       //   }
       //   return EMPTY
       // }),
-      map(() => new PacAuthResult(true, null, false, [], [])),
+      map(() => new XpAuthResult(true, null, false, [], [])),
       catchError((err) => {
         if (err.status === 409) {
-          return of(new PacAuthResult(false, err.error, false, [err.error?.error], []))
+          return of(new XpAuthResult(false, err.error, false, [err.error?.error], []))
         } else if (err.status === 400) {
-          return of(new PacAuthResult(false, err.error, false, err.error?.message, []))
+          return of(new XpAuthResult(false, err.error, false, err.error?.message, []))
         }
         return of(
-          new PacAuthResult(false, err, false, AuthStrategy.config.register.defaultErrors, [
+          new XpAuthResult(false, err, false, AuthStrategy.config.register.defaultErrors, [
             AuthStrategy.config.register.defaultErrors
           ])
         )
@@ -155,11 +155,11 @@ export class AuthStrategy extends PacAuthStrategy {
     )
   }
 
-  public logout(): Observable<PacAuthResult> {
+  public logout(): Observable<XpAuthResult> {
     return from(this._logout())
   }
 
-  public login(loginInput: IUserLoginInput): Observable<PacAuthResult> {
+  public login(loginInput: IUserLoginInput): Observable<XpAuthResult> {
     return this.authService.login(loginInput).pipe(
       map((res: IAuthResponse) => {
         let user: IUser
@@ -172,7 +172,7 @@ export class AuthStrategy extends PacAuthStrategy {
         }
 
         if (!user) {
-          return new PacAuthResult(false, res, false, AuthStrategy.config.login.defaultErrors)
+          return new XpAuthResult(false, res, false, AuthStrategy.config.login.defaultErrors)
         }
 
         // 将 User Token RefreshToken 保存至 localStorage
@@ -182,7 +182,7 @@ export class AuthStrategy extends PacAuthStrategy {
         this.store.restoreRememberedScope(user.id)
         this.store.user = user
 
-        return new PacAuthResult(
+        return new XpAuthResult(
           true,
           res,
           AuthStrategy.config.login.redirect.success,
@@ -193,7 +193,7 @@ export class AuthStrategy extends PacAuthStrategy {
       catchError((err) => {
         console.error(err)
         return of(
-          new PacAuthResult(false, err, false, AuthStrategy.config.login.defaultErrors, [
+          new XpAuthResult(false, err, false, AuthStrategy.config.login.defaultErrors, [
             AuthStrategy.config.login.defaultErrors
           ])
         )
@@ -207,7 +207,7 @@ export class AuthStrategy extends PacAuthStrategy {
    * Will share the refresh token request, avoid duplicate requests.
    *
    */
-  refreshToken(data?: any): Observable<PacAuthResult> {
+  refreshToken(data?: any): Observable<XpAuthResult> {
     if (!this.refreshTokenReq()) {
       this.refreshTokenReq.set(
         this.authService.refreshAccessToken().pipe(
@@ -215,7 +215,7 @@ export class AuthStrategy extends PacAuthStrategy {
             this.store.token = tokens.token
             this.store.refreshToken = tokens.refreshToken
 
-            return new PacAuthResult(true, tokens, false)
+            return new XpAuthResult(true, tokens, false)
           }),
           tap(() => {
             this.refreshTokenReq.set(null)
@@ -228,7 +228,7 @@ export class AuthStrategy extends PacAuthStrategy {
     return this.refreshTokenReq()
   }
 
-  requestPassword(data?: any): Observable<PacAuthResult> {
+  requestPassword(data?: any): Observable<XpAuthResult> {
     const { email } = data
     return this.authService
       .requestPassword({
@@ -236,17 +236,17 @@ export class AuthStrategy extends PacAuthStrategy {
       })
       .pipe(
         map((tokens) => {
-          return new PacAuthResult(true, tokens, false)
+          return new XpAuthResult(true, tokens, false)
         })
       )
   }
 
-  resetPassword(data?: any): Observable<PacAuthResult> {
+  resetPassword(data?: any): Observable<XpAuthResult> {
     const { password, confirmPassword } = data
     const token = this.route.snapshot.queryParamMap.get('token')
 
     if (password !== confirmPassword) {
-      return of(new PacAuthResult(false, null, null, ['The password and confirmation password do not match.']))
+      return of(new XpAuthResult(false, null, null, ['The password and confirmation password do not match.']))
     }
 
     return this.authService
@@ -260,7 +260,7 @@ export class AuthStrategy extends PacAuthStrategy {
           if (res.status === 400) {
             throw new Error(res.message)
           }
-          return new PacAuthResult(
+          return new XpAuthResult(
             true,
             res,
             AuthStrategy.config.resetPass.redirect.success,
@@ -270,7 +270,7 @@ export class AuthStrategy extends PacAuthStrategy {
         }),
         catchError((err) => {
           return of(
-            new PacAuthResult(false, err, false, AuthStrategy.config.resetPass.defaultErrors, [
+            new XpAuthResult(false, err, false, AuthStrategy.config.resetPass.defaultErrors, [
               AuthStrategy.config.resetPass.defaultErrors
             ])
           )
@@ -278,7 +278,7 @@ export class AuthStrategy extends PacAuthStrategy {
       )
   }
 
-  private async _logout(): Promise<PacAuthResult> {
+  private async _logout(): Promise<XpAuthResult> {
     try {
       await firstValueFrom(this.http.delete(artifactShareSessionUrl(), ARTIFACT_SHARE_SESSION_HTTP_OPTIONS))
     } catch {
@@ -295,7 +295,7 @@ export class AuthStrategy extends PacAuthStrategy {
     // 	} catch (error) {}
     // }
 
-    return new PacAuthResult(
+    return new XpAuthResult(
       true,
       null,
       AuthStrategy.config.logout.redirect.success,

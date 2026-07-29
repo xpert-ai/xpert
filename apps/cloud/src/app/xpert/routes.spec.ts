@@ -1,4 +1,4 @@
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   Store: class Store {}
 }))
 

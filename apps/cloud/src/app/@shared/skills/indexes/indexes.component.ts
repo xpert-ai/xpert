@@ -9,7 +9,7 @@ import {
   ISkillRepositoryIndex,
   SkillRepositoryIndexService
 } from '@cloud/app/@core'
-import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
+import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
@@ -85,12 +85,15 @@ export class XpertSkillIndexesComponent {
   })
 
   constructor() {
-    effect(() => {
-      const repoId = this.repositoryId()
-      if (repoId) {
-        this.loadIndexes(repoId)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const repoId = this.repositoryId()
+        if (repoId) {
+          this.loadIndexes(repoId)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   install(item: ISkillRepositoryIndex) {

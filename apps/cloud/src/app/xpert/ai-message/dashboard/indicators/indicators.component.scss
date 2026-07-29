@@ -1,8 +1,0 @@
-@reference "../../../../../styles/tailwind-reference.css";
-:host {
-  @apply flex flex-col items-stretch;
-}
-
-.indicator.last:not(.has-more):not(.active) {
-  @apply rounded-b-xl;
-}

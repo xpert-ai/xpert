@@ -1,7 +1,7 @@
 import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, RolesEnum, authGuard } from '../@core'
+import { AiFeatureEnum, AIPermissionsEnum, RolesEnum, authGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
 import { NotFoundComponent } from '../@shared/not-found'
 import { AppService } from '../app.service'
@@ -33,15 +33,6 @@ export const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Chat',
-          scopeContext: 'dual-scope'
-        }
-      },
-      {
-        path: 'chatbi',
-        loadChildren: () => import('./chatbi/routes').then((m) => m.routes),
-        canActivate: [authGuard],
-        data: {
-          title: 'Chat BI',
           scopeContext: 'dual-scope'
         }
       },
@@ -165,66 +156,12 @@ export const routes: Routes = [
           scopeContext: 'dual-scope'
         }
       },
-
-      // BI Routers
-      // {
-      //   path: 'dashboard',
-      //   canActivate: [authGuard],
-      //   data: {
-      //     title: 'Dashboard',
-      //     scopeContext: 'dual-scope',
-      //     permissions: {
-      //       only: [AnalyticsPermissionsEnum.STORIES_VIEW],
-      //       redirectTo
-      //     }
-      //   },
-      //   loadChildren: () => import('./home/home.module').then((m) => m.HomeModule)
-      // },
-      {
-        path: 'story',
-        loadChildren: () => import('./story/story.module').then((m) => m.PACStoryModule),
-        canActivate: [authGuard, NgxPermissionsGuard],
-        data: {
-          title: 'Story',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.STORIES_VIEW],
-            redirectTo
-          }
-        }
-      },
-      {
-        path: 'indicator-app',
-        loadChildren: () => import('@xpert-ai/cloud/indicator-market').then((m) => m.IndicatorMarketModule),
-        canActivate: [authGuard],
-        data: {
-          title: 'Indicator-app',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW],
-            redirectTo
-          }
-        }
-      },
       {
         path: 'organization',
         loadChildren: () => import('./organization/organization.module').then((m) => m.OrganizationModule),
         data: {
           title: 'Organization',
           scopeContext: 'organization-only'
-        }
-      },
-      {
-        path: 'data',
-        loadChildren: () => import('./data/routes').then((m) => m.routes),
-        canActivate: [authGuard, NgxPermissionsGuard],
-        data: {
-          title: 'Data',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.MODELS_EDIT, AnalyticsPermissionsEnum.STORIES_EDIT],
-            redirectTo
-          }
         }
       },
       // Settings Routers

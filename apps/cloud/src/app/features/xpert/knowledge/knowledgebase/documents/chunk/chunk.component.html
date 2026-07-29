@@ -24,10 +24,8 @@
         (click)="addChunk()"
       >
         <i class="ri-file-add-line"></i>
-        <span
-          class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent"
-        >
-          {{ 'PAC.Knowledgebase.AddChunk' | translate: { Default: 'Add Chunk' } }}
+        <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent">
+          {{ 'XP.Knowledgebase.AddChunk' | translate: { Default: 'Add Chunk' } }}
         </span>
       </button>
       <!--  <div class="relative">
@@ -50,10 +48,10 @@
     <div class="flex items-center px-3 py-2 rounded-lg border-[0.5px]">
       @if (docEnabled()) {
         <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
-        <span class="">{{ 'PAC.Knowledgebase.Available' | translate: { Default: 'Available' } }}</span>
+        <span class="">{{ 'XP.Knowledgebase.Available' | translate: { Default: 'Available' } }}</span>
       } @else {
         <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-components-card-bg flex"></span>
-        <span class="">{{ 'PAC.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}</span>
+        <span class="">{{ 'XP.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}</span>
       }
 
       <div class="flex justify-between items-center ml-1.5">
@@ -72,10 +70,8 @@
         (click)="toggleShowMetadata()"
       >
         <i class="ri-file-info-line"></i>
-        <span
-          class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent"
-        >
-          {{ 'PAC.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
+        <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent">
+          {{ 'XP.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
         </span>
       </button>
     </div>
@@ -86,13 +82,13 @@
   <div class="grow shrink-1 flex flex-col justify-start overflow-hidden">
     <div class="flex justify-between items-center px-8 py-4">
       <div>
-        {{ 'PAC.Knowledgebase.Chunks' | translate: { Default: 'Chunks' } }}: {{ total() }}
-        {{ 'PAC.Knowledgebase.Pieces' | translate: { Default: 'Pieces' } }}
+        {{ 'XP.Knowledgebase.Chunks' | translate: { Default: 'Chunks' } }}: {{ total() }}
+        {{ 'XP.Knowledgebase.Pieces' | translate: { Default: 'Pieces' } }}
       </div>
       <i
         class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
         [class.!text-primary-500]="preview()"
-        [zTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
+        [zTooltip]="'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
         zPosition="top"
         (click)="toggleAllPreview()"
       ></i>
@@ -102,7 +98,7 @@
           <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
           <input
             class="xp-input w-full"
-            [placeholder]="'PAC.Knowledgebase.Search' | translate: { Default: 'Search' }"
+            [placeholder]="'XP.Knowledgebase.Search' | translate: { Default: 'Search' }"
             [ngModel]="search()"
             (ngModelChangeDebounced)="onSearch($event)"
           />
@@ -128,7 +124,7 @@
             >
               <div
                 class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg hover:text-text-primary cursor-pointer"
-                [zTooltip]="'PAC.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' }"
+                [zTooltip]="'XP.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' }"
                 zPosition="top"
                 (click)="openChunkMetadata(chunk)"
               >
@@ -168,18 +164,18 @@
     >
       <div class="flex justify-between items-center mb-4">
         <div class="text-text-primary system-xl-semibold">
-          {{ 'PAC.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
+          {{ 'XP.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
         </div>
         <div class="flex items-center">
           @if (editMetadata()) {
             <button type="button" class="btn disabled:btn-disabled btn-primary btn-small" (click)="saveMetadata()">
               <i class="ri-edit-line mr-1"></i>
-              <div>{{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}</div>
+              <div>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</div>
             </button>
           } @else {
             <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small" (click)="toggleEditMetadata()">
               <i class="ri-edit-line mr-1"></i>
-              <div>{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</div>
+              <div>{{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</div>
             </button>
           }
         </div>
@@ -191,52 +187,52 @@
             <div class="mb-2 flex items-center gap-x-1 text-text-secondary system-xs-semibold-uppercase">
               <i class="ri-refresh-line"></i>
               <span>
-                {{ 'PAC.Knowledgebase.LastIncrementalSync' | translate: { Default: 'Recent Incremental Update' } }}
+                {{ 'XP.Knowledgebase.LastIncrementalSync' | translate: { Default: 'Recent Incremental Update' } }}
               </span>
             </div>
             <div class="grid grid-cols-[128px_1fr] gap-x-2 gap-y-1">
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.IncrementalSyncMode' | translate: { Default: 'Mode' } }}
+                {{ 'XP.Knowledgebase.IncrementalSyncMode' | translate: { Default: 'Mode' } }}
               </div>
               <div class="text-sm text-text-secondary">
                 @switch (sync.mode) {
                   @case ('full') {
-                    {{ 'PAC.Knowledgebase.IncrementalSyncModeFull' | translate: { Default: 'Full' } }}
+                    {{ 'XP.Knowledgebase.IncrementalSyncModeFull' | translate: { Default: 'Full' } }}
                   }
                   @case ('incremental') {
-                    {{ 'PAC.Knowledgebase.IncrementalSyncModeIncremental' | translate: { Default: 'Incremental' } }}
+                    {{ 'XP.Knowledgebase.IncrementalSyncModeIncremental' | translate: { Default: 'Incremental' } }}
                   }
                   @default {
-                    {{ 'PAC.Knowledgebase.IncrementalSyncModeSkipped' | translate: { Default: 'Skipped' } }}
+                    {{ 'XP.Knowledgebase.IncrementalSyncModeSkipped' | translate: { Default: 'Skipped' } }}
                   }
                 }
               </div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.TotalChunks' | translate: { Default: 'Total Chunks' } }}
+                {{ 'XP.Knowledgebase.TotalChunks' | translate: { Default: 'Total Chunks' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.total }}</div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.SkippedChunks' | translate: { Default: 'Skipped Chunks' } }}
+                {{ 'XP.Knowledgebase.SkippedChunks' | translate: { Default: 'Skipped Chunks' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.skipped }}</div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.AddedChunks' | translate: { Default: 'Added Chunks' } }}
+                {{ 'XP.Knowledgebase.AddedChunks' | translate: { Default: 'Added Chunks' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.added }}</div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.UpdatedChunks' | translate: { Default: 'Updated Chunks' } }}
+                {{ 'XP.Knowledgebase.UpdatedChunks' | translate: { Default: 'Updated Chunks' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.updated }}</div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.DeletedChunks' | translate: { Default: 'Deleted Chunks' } }}
+                {{ 'XP.Knowledgebase.DeletedChunks' | translate: { Default: 'Deleted Chunks' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.deleted }}</div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.EmbeddingTokens' | translate: { Default: 'Embedding Tokens' } }}
+                {{ 'XP.Knowledgebase.EmbeddingTokens' | translate: { Default: 'Embedding Tokens' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.embeddingTokens }}</div>
               <div class="text-sm font-medium text-text-tertiary">
-                {{ 'PAC.Knowledgebase.ProcessedAt' | translate: { Default: 'Processed At' } }}
+                {{ 'XP.Knowledgebase.ProcessedAt' | translate: { Default: 'Processed At' } }}
               </div>
               <div class="text-sm text-text-secondary">{{ sync.processedAtText }}</div>
             </div>
@@ -291,7 +287,7 @@
       <div class="flex items-center justify-between gap-3 border-b border-divider-subtle px-4 py-3">
         <div class="min-w-0">
           <div class="text-text-primary system-xl-semibold">
-            {{ 'PAC.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' } }}
+            {{ 'XP.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' } }}
           </div>
           <div class="mt-0.5 flex min-w-0 items-center gap-x-2 text-text-tertiary">
             <i class="ri-text-block shrink-0"></i>
@@ -301,7 +297,7 @@
             <span class="system-xs-medium text-text-quaternary">·</span>
             <span class="system-xs-medium shrink-0">
               {{ selectedMetadataChunk.pageContent?.length || 0 }}
-              {{ 'PAC.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}
+              {{ 'XP.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}
             </span>
           </div>
         </div>
@@ -309,13 +305,13 @@
           <copy
             class="flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
             [content]="chunkMetadataJson()"
-            [zTooltip]="'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' }"
+            [zTooltip]="'XP.ACTIONS.Copy' | translate: { Default: 'Copy' }"
             zPosition="top"
           />
           <button
             type="button"
             class="flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
-            [zTooltip]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
+            [zTooltip]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
             zPosition="top"
             (click)="closeChunkMetadata()"
           >
@@ -326,7 +322,7 @@
 
       <div class="flex min-h-0 grow flex-col overflow-auto px-4 py-3">
         <div class="system-sm-semibold text-text-secondary">
-          {{ 'PAC.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
+          {{ 'XP.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
         </div>
         <div class="mt-2 rounded-lg border border-divider-subtle">
           @if (chunkMetadataEntries().length) {
@@ -346,19 +342,19 @@
             }
           } @else {
             <div class="px-3 py-6 text-center text-text-tertiary system-sm-regular">
-              {{ 'PAC.Knowledgebase.NoMetadata' | translate: { Default: 'No metadata' } }}
+              {{ 'XP.Knowledgebase.NoMetadata' | translate: { Default: 'No metadata' } }}
             </div>
           }
         </div>
 
         <div class="mt-4 flex items-center justify-between gap-2">
           <div class="system-sm-semibold text-text-secondary">
-            {{ 'PAC.Knowledgebase.MetadataJson' | translate: { Default: 'Metadata JSON' } }}
+            {{ 'XP.Knowledgebase.MetadataJson' | translate: { Default: 'Metadata JSON' } }}
           </div>
           <copy
             class="flex h-7 cursor-pointer items-center rounded-lg border border-components-button-secondary-border bg-components-button-secondary-bg px-2 text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
             [content]="chunkMetadataJson()"
-            [zTooltip]="'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' }"
+            [zTooltip]="'XP.ACTIONS.Copy' | translate: { Default: 'Copy' }"
             zPosition="top"
           />
         </div>
@@ -377,16 +373,16 @@
       <div class="flex items-center justify-between pt-3 pr-3 pl-4">
         <div class="flex flex-col">
           <div class="text-text-primary system-xl-semibold">
-            {{ 'PAC.Knowledgebase.EditChunk' | translate: { Default: 'Edit Chunk' } }}
+            {{ 'XP.Knowledgebase.EditChunk' | translate: { Default: 'Edit Chunk' } }}
           </div>
           <div class="flex items-center gap-x-2">
             <div class="flex items-center text-text-tertiary">
               <i class="ri-text-block mr-1"></i>
-              <div class="system-xs-medium">{{ 'PAC.Knowledgebase.Chunk' | translate: { Default: 'Chunk' } }}</div>
+              <div class="system-xs-medium">{{ 'XP.Knowledgebase.Chunk' | translate: { Default: 'Chunk' } }}</div>
             </div>
             <div class="text-text-quaternary system-xs-medium">·</div>
             <span class="text-text-tertiary system-xs-medium"
-              >736 {{ 'PAC.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}</span
+              >736 {{ 'XP.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}</span
             >
           </div>
         </div>
@@ -401,7 +397,7 @@
         <div class="break-all overflow-hidden whitespace-pre-line grow">
           <textarea
             class="xp-input text-sm disabled:bg-transparent inset-0 border-none resize-none overflow-y-auto h-full w-full pb-6 body-md-regular text-text-secondary tracking-[-0.07px]"
-            placeholder="{{ 'PAC.Knowledgebase.AddContentHere' | translate: { Default: 'Add content here' } }}"
+            placeholder="{{ 'XP.Knowledgebase.AddContentHere' | translate: { Default: 'Add content here' } }}"
             [ngModel]="editChunk().pageContent"
             (ngModelChange)="updateChunk($event)"
           ></textarea>
@@ -413,7 +409,7 @@
           <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="cancelEdit()">
             <div class="flex items-center gap-x-1">
               <span class="text-text-secondary system-sm-medium">
-                {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+                {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
               </span>
               <span class="px-[1px] bg-components-input-bg-normal rounded-[2.5px] shadow-md text-text-tertiary text-sm"
                 >ESC</span
@@ -423,7 +419,7 @@
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium" (click)="saveEdit()">
             <div class="flex items-center gap-x-1">
               <span class="text-components-button-primary-text">
-                {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+                {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
               </span>
               <div class="flex items-center gap-x-0.5 text-sm">
                 <span class="capitalize">⌘</span>
@@ -438,5 +434,5 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

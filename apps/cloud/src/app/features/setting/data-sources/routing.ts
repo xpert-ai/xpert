@@ -1,12 +1,12 @@
 import { Routes } from '@angular/router'
-import { PACDataSourcesComponent } from './data-sources.component'
+import { XpDataSourcesComponent } from './data-sources.component'
 
 export default [
   {
     path: '',
-    component: PACDataSourcesComponent,
+    component: XpDataSourcesComponent,
     data: {
-      title: 'Settings / Datasource',
+      title: 'Settings / Datasource'
     }
   }
 ] as Routes

@@ -12,10 +12,10 @@
   @if (entryOnboardingRequiresOrganizationSwitch(current)) {
     <div class="flex items-center gap-2">
       <span class="text-xs text-muted-foreground">
-        {{ 'PAC.Chat.ClawXpert.EntryGuideSwitchScopeHint' | translate }}
+        {{ 'XP.Chat.ClawXpert.EntryGuideSwitchScopeHint' | translate }}
       </span>
       <button z-button zSize="sm" type="button" (click)="openEntryOnboardingScopeSwitcher()">
-        {{ 'PAC.Chat.ClawXpert.EntryGuideSwitchScope' | translate }}
+        {{ 'XP.Chat.ClawXpert.EntryGuideSwitchScope' | translate }}
       </button>
     </div>
   } @else {
@@ -29,7 +29,7 @@
           [zDisabled]="entryOnboardingCreating()"
           (click)="prev()"
         >
-          {{ 'PAC.ACTIONS.Back' | translate }}
+          {{ 'XP.ACTIONS.Back' | translate }}
         </button>
       }
 
@@ -45,7 +45,7 @@
           {{ entryOnboardingFinishText() | translate }}
         </button>
       } @else {
-        <button z-button zSize="sm" type="button" (click)="next()">{{ 'PAC.ACTIONS.Next' | translate }}</button>
+        <button z-button zSize="sm" type="button" (click)="next()">{{ 'XP.ACTIONS.Next' | translate }}</button>
       }
     </div>
   }
@@ -64,7 +64,7 @@
 
 <z-layout class="flex-1 h-full" zDirection="horizontal">
   <z-sidebar
-    class="pac-features__sidenav flex flex-col p-0!"
+    class="xp-features__sidenav flex flex-col p-0!"
     [zWidth]="292"
     [zCollapsible]="true"
     [zCollapsed]="renderedSidebarCollapsed()"
@@ -72,7 +72,7 @@
     [zTrigger]="emptySidebarTrigger"
     (zCollapsedChange)="onCollapsedChange($event)"
   >
-    <pac-cloud-sidebar
+    <xp-cloud-sidebar
       [collapsed]="renderedSidebarCollapsed()"
       [isMobile]="isMobile()"
       [menus]="menus()"
@@ -89,11 +89,11 @@
         @if (navigation$ | async; as navigation) {
           <div class="flex items-center text-sm overflow-hidden">
             @if (appService.inProject()) {
-              <pac-header-project class="h-full rounded-none"/>
+              <xp-header-project class="h-full rounded-none"/>
             }
 
             @if (appService.inWorkspace()) {
-              <pac-workspace-selector class="rounded-xl hover:bg-hover-bg" />
+              <xp-workspace-selector class="rounded-xl hover:bg-hover-bg" />
             }
             <span class="font-bold flex items-center cursor-pointer
             text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-200"
@@ -115,7 +115,7 @@
       </div>
 
       @if (isAuthenticated$ | async; as user) {
-        <pac-header-user [user]="user" />
+        <xp-header-user [user]="user" />
       }
     </header> -->
 

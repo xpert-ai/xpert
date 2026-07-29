@@ -1,27 +1,38 @@
-<div class="sticky top-0 px-6 py-4 flex items-center h-14 bg-components-card-bg text-base font-medium text-text-primary z-20">
-  <div class="shrink-0 text-xl">{{'PAC.Xpert.General' | translate: {Default: 'General'} }}</div>
-  <div class="grow flex justify-end">
-  </div>
+<div
+  class="sticky top-0 px-6 py-4 flex items-center h-14 bg-components-card-bg text-base font-medium text-text-primary z-20"
+>
+  <div class="shrink-0 text-xl">{{ 'XP.Xpert.General' | translate: { Default: 'General' } }}</div>
+  <div class="grow flex justify-end"></div>
 </div>
 
 <div class="relative flex-1 flex flex-col justify-between items-stretch px-8 py-4">
   <div class="pt-2">
     <div class="pb-2">
-      <label class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}</label>
-      <input class="xp-input w-full h-10 text-sm hover:border focus:border"
-        [placeholder]="'PAC.Xpert.EnterWorkspaceName' | translate: {Default: 'Enter workspace name'}"
+      <label class="py-2 font-medium leading-[20px] text-text-primary">{{
+        'XP.Xpert.Name' | translate: { Default: 'Name' }
+      }}</label>
+      <input
+        class="xp-input w-full h-10 text-sm hover:border focus:border"
+        [placeholder]="'XP.Xpert.EnterWorkspaceName' | translate: { Default: 'Enter workspace name' }"
         [(ngModel)]="name"
-        >
+      />
     </div>
 
     <div class="mt-5 rounded-lg border border-divider-regular bg-background-default-subtle p-4">
       <div class="flex items-center justify-between gap-4">
         <div>
           <div class="font-semibold text-text-primary">
-            {{ 'PAC.Xpert.WorkspaceAccess' | translate: { Default: 'Workspace access' } }}
+            {{ 'XP.Xpert.WorkspaceAccess' | translate: { Default: 'Workspace access' } }}
           </div>
           <div class="mt-1 text-sm text-text-tertiary">
-            {{ 'PAC.Xpert.WorkspaceAccessDesc' | translate: { Default: 'Control whether this tenant-level workspace is shared with all organizations in the tenant' } }}.
+            {{
+              'XP.Xpert.WorkspaceAccessDesc'
+                | translate
+                  : {
+                      Default:
+                        'Control whether this tenant-level workspace is shared with all organizations in the tenant'
+                    }
+            }}.
           </div>
         </div>
 
@@ -33,9 +44,9 @@
           "
         >
           @if (tenantShared()) {
-            {{ 'PAC.Xpert.TenantShared' | translate: { Default: 'Tenant shared' } }}
+            {{ 'XP.Xpert.TenantShared' | translate: { Default: 'Tenant shared' } }}
           } @else {
-            {{ 'PAC.Xpert.PrivateWorkspace' | translate: { Default: 'Private' } }}
+            {{ 'XP.Xpert.PrivateWorkspace' | translate: { Default: 'Private' } }}
           }
         </div>
       </div>
@@ -43,19 +54,35 @@
       <div class="mt-4 flex items-center justify-between gap-4">
         <div class="min-w-0">
           <div class="font-medium text-text-primary">
-            {{ 'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' } }}
+            {{ 'XP.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' } }}
           </div>
           <div class="mt-1 text-sm text-text-tertiary">
-            {{ 'PAC.Xpert.TenantSharedWorkspaceDesc' | translate: { Default: 'Organization users in this tenant can read and run resources in this workspace, but cannot edit them' } }}.
+            {{
+              'XP.Xpert.TenantSharedWorkspaceDesc'
+                | translate
+                  : {
+                      Default:
+                        'Organization users in this tenant can read and run resources in this workspace, but cannot edit them'
+                    }
+            }}.
           </div>
           @if (!isTenantWorkspace()) {
             <div class="mt-2 text-xs text-text-warning">
-              {{ 'PAC.Xpert.TenantSharedTenantOnly' | translate: { Default: 'Only tenant-level workspaces can be shared across the tenant' } }}.
+              {{
+                'XP.Xpert.TenantSharedTenantOnly'
+                  | translate: { Default: 'Only tenant-level workspaces can be shared across the tenant' }
+              }}.
             </div>
           }
         </div>
 
-        <label [class]="canEditVisibility() ? 'inline-flex items-center cursor-pointer' : 'inline-flex items-center cursor-not-allowed opacity-60'">
+        <label
+          [class]="
+            canEditVisibility()
+              ? 'inline-flex items-center cursor-pointer'
+              : 'inline-flex items-center cursor-not-allowed opacity-60'
+          "
+        >
           <input
             type="checkbox"
             value=""
@@ -70,29 +97,38 @@
       </div>
     </div>
 
-    <button type="button" class="btn disabled:btn-disabled btn-large btn-primary pressable mt-4" [disabled]="loading() || !canManageWorkspace()" (click)="update()">
-      {{ 'PAC.ACTIONS.Update' | translate: {Default: 'Update'} }}
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-large btn-primary pressable mt-4"
+      [disabled]="loading() || !canManageWorkspace()"
+      (click)="update()"
+    >
+      {{ 'XP.ACTIONS.Update' | translate: { Default: 'Update' } }}
     </button>
   </div>
 
   <div>
     <div class="text-xl font-semibold text-orange-500 pb-2">
-      {{ 'PAC.KEY_WORDS.DangerZone' | translate: {Default: 'Danger zone'} }}
+      {{ 'XP.KEY_WORDS.DangerZone' | translate: { Default: 'Danger zone' } }}
     </div>
 
     <div class="border border-solid border-orange-500 rounded-xl flex flex-col">
       <div class="w-full flex justify-between items-center p-4">
         <div class="flex flex-col">
           <div class="font-semibold">
-            {{ 'PAC.Xpert.ArchiveWorkspace' | translate: {Default: 'Archive this workspace'} }}
+            {{ 'XP.Xpert.ArchiveWorkspace' | translate: { Default: 'Archive this workspace' } }}
           </div>
           <div>
-            {{ 'PAC.Xpert.ArchiveWorkspaceDesc' | translate: {Default: 'Mark this workspace and all its xperts and toolsets as archived and read-only'} }}.
+            {{
+              'XP.Xpert.ArchiveWorkspaceDesc'
+                | translate
+                  : { Default: 'Mark this workspace and all its xperts and toolsets as archived and read-only' }
+            }}.
           </div>
         </div>
 
         <button type="button" class="btn btn-large danger pressable" (click)="archive()">
-          {{ 'PAC.Xpert.ArchiveWorkspace' | translate: {Default: 'Archive this workspace'} }}
+          {{ 'XP.Xpert.ArchiveWorkspace' | translate: { Default: 'Archive this workspace' } }}
         </button>
       </div>
 
@@ -101,21 +137,24 @@
       <div class="w-full flex justify-between items-center p-4">
         <div class="flex flex-col">
           <div class="font-semibold">
-            {{ 'PAC.Xpert.DeleteWorkspace' | translate: {Default: 'Delete this workspace'} }}
+            {{ 'XP.Xpert.DeleteWorkspace' | translate: { Default: 'Delete this workspace' } }}
           </div>
           <div>
-            {{ 'PAC.Xpert.DeleteWorkspaceDesc' | translate: {Default: 'Once deleted, it will be gone forever. Please be certain'} }}.
+            {{
+              'XP.Xpert.DeleteWorkspaceDesc'
+                | translate: { Default: 'Once deleted, it will be gone forever. Please be certain' }
+            }}.
           </div>
         </div>
 
         <button type="button" class="btn btn-large danger pressable" (click)="delete()">
-          {{ 'PAC.Xpert.DeleteWorkspace' | translate: {Default: 'Delete this workspace'} }}
+          {{ 'XP.Xpert.DeleteWorkspace' | translate: { Default: 'Delete this workspace' } }}
         </button>
       </div>
     </div>
   </div>
 
   @if (loading()) {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full"></ngm-spin>
+    <xp-spin class="absolute top-0 left-0 w-full h-full"></xp-spin>
   }
 </div>

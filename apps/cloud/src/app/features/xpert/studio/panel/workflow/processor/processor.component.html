@@ -1,6 +1,8 @@
 @if (transformerStrategy(); as strategy) {
   <div class="flex items-start px-4 pt-4">
-    <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal">
+    <div
+      class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+    >
       <xp-icon [icon]="strategy.meta.icon" />
     </div>
 
@@ -16,13 +18,12 @@
 }
 
 <div class="p-4">
-
   <div class="flex justify-between mt-2">
     <div class="font-semibold uppercase">
-      {{ 'PAC.Pipeline.AuthenticationMethod' | translate: {Default: 'Authentication method'} }}
+      {{ 'XP.Pipeline.AuthenticationMethod' | translate: { Default: 'Authentication method' } }}
     </div>
 
-    <ngm-select class="w-48" [(ngModel)]="authMode" [nullable]="false" [selectOptions]="authModeOptions()"/>
+    <xp-select class="w-48" [(ngModel)]="authMode" [nullable]="false" [selectOptions]="authModeOptions()" />
   </div>
   @switch (authMode()) {
     @case ('integration') {
@@ -39,24 +40,24 @@
 
 <div class="p-4 space-y-4">
   <div class="font-bold my-2">
-    {{ 'PAC.Pipeline.Parameters' | translate: {Default: 'Parameters'} }}
+    {{ 'XP.Pipeline.Parameters' | translate: { Default: 'Parameters' } }}
   </div>
 
   <div>
     <div>
-      {{ 'PAC.Pipeline.InputVariable' | translate: {Default: 'Input variable'} }}
-      <span class="text-text-destructive">*</span></div>
-    <xpert-state-variable-select
-      [variables]="variables()"
-      [(ngModel)]="input"
-    />
+      {{ 'XP.Pipeline.InputVariable' | translate: { Default: 'Input variable' } }}
+      <span class="text-text-destructive">*</span>
+    </div>
+    <xpert-state-variable-select [variables]="variables()" [(ngModel)]="input" />
   </div>
 
   <div class="font-bold mb-2">
-    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
+    {{ 'XP.Pipeline.Configuration' | translate: { Default: 'Configuration' } }}
   </div>
   @if (transformerConfigSchema(); as transformerConfigSchema) {
-    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 
+    <json-schema-form
+      class="mt-2 grid grid-cols-2 gap-2"
+      [schema]="transformerConfigSchema"
       [(ngModel)]="transformer"
     />
   }

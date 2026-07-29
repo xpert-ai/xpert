@@ -1,41 +1,42 @@
-<div class="w-full pac-page-body-toolbar p-1">
+<div class="w-full xp-page-body-toolbar p-1">
   <div></div>
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button z-button zType="default" [cdkMenuTriggerFor]="orgMenu">
       <div class="flex items-center">
         <z-icon zType="add"></z-icon>
-        {{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
+        {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
       </div>
     </button>
   </div>
 </div>
 
 <div class="p-2">
-  <ngm-table class="overflow-hidden rounded-lg border border-divider-deep mt-2"
+  <xp-table
+    class="overflow-hidden rounded-lg border border-divider-deep mt-2"
     paging
     [data]="userOrganizations()"
     [columns]="[
       {
         name: 'organization.name',
-        caption: 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'}
+        caption: 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' }
       },
       {
         name: 'isDefault',
-        caption: 'PAC.KEY_WORDS.Default' | translate: {Default: 'Default'},
+        caption: 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' },
         cellTemplate: defaultTempl
       },
       {
         name: 'isActive',
-        caption: 'PAC.KEY_WORDS.Active' | translate: {Default: 'Active'},
+        caption: 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' },
         cellTemplate: activeTempl
       },
       {
         name: 'organization.short_description',
-        caption: 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'}
+        caption: 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
       },
       {
         name: 'action',
-        caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
+        caption: 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
         cellTemplate: actionTempl,
         stickyEnd: true
       }
@@ -44,7 +45,7 @@
 </div>
 
 <ng-template #userTempl let-user>
-  <pac-user-profile-inline [user]="user"></pac-user-profile-inline>
+  <xp-user-profile-inline [user]="user"></xp-user-profile-inline>
 </ng-template>
 
 <ng-template #defaultTempl let-isDefault="isDefault" let-id="id">
@@ -74,7 +75,17 @@
 <ng-template #actionTempl let-loading="loading" let-id="id" let-organization="organization">
   @let membership = membershipById(id);
   @if (membership && canRemoveMembership(membership)) {
-    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-quaternary" [disabled]="loading" (click)="removeOrg(id, organization)">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      xpAppearance="danger"
+      displayDensity="cosy"
+      class="text-text-quaternary"
+      [disabled]="loading"
+      (click)="removeOrg(id, organization)"
+    >
       <div class="flex justify-center items-center">
         <z-icon zType="delete"></z-icon>
       </div>
@@ -82,17 +93,17 @@
   }
 </ng-template>
 
-<ng-template #orgMenu >
+<ng-template #orgMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (org of organizations(); track org) {
       <button cdkMenuItem (click)="addOrg(org)">
-        {{org.name}}
+        {{ org.name }}
       </button>
     }
 
     @if (!organizations()?.length) {
       <div class="p-4">
-        {{ 'PAC.Users.NoMoreOrganizations' | translate: { Default: 'No more organizations can be added' } }}
+        {{ 'XP.Users.NoMoreOrganizations' | translate: { Default: 'No more organizations can be added' } }}
       </div>
     }
   </div>

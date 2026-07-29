@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -255,14 +255,14 @@ export class XpertStudioPanelCommandsComponent {
       return
     }
     if (!this.profileConfigured()) {
-      this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
       return
     }
     this.saving.set(true)
     this.xpertAPI.updateCommandProfile(xpertId, this.profile()).subscribe({
       next: () => {
         this.saving.set(false)
-        this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+        this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
         this.studioService.refresh()
         this.load()
       },
@@ -383,12 +383,12 @@ export class XpertStudioPanelCommandsComponent {
         continue
       }
       if (BUILTIN_COMMANDS.has(name)) {
-        conflicts.push(this.#translate.instant('PAC.PromptWorkflow.BuiltinCommandConflict', { name }))
+        conflicts.push(this.#translate.instant('XP.PromptWorkflow.BuiltinCommandConflict', { name }))
       }
       const previous = seen.get(name)
       if (previous) {
         conflicts.push(
-          this.#translate.instant('PAC.PromptWorkflow.CommandNameConflict', { name, previous, source: entry.source })
+          this.#translate.instant('XP.PromptWorkflow.CommandNameConflict', { name, previous, source: entry.source })
         )
       } else {
         seen.set(name, entry.source)

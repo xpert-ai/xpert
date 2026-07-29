@@ -1,10 +1,9 @@
-
 import { HttpEventType } from '@angular/common/http'
 import { booleanAttribute, Component, effect, inject, input, output, signal } from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage, IStorageFile } from '@cloud/app/@core/types'
-import { FileTypePipe } from '@xpert-ai/core'
-import { effectAction, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { FileTypePipe } from '@xpert-ai/headless-ui'
+import { effectAction, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
@@ -18,7 +17,7 @@ import { FileIconComponent } from '../icon/icon.component'
   styleUrls: ['./storage-file.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
+      directive: XpDensityDirective,
       inputs: ['small', 'large']
     }
   ]

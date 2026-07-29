@@ -6,9 +6,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { ChatContextCompressionChunkComponent, ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
-import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
-import { SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
-import { TimeGranularity } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageStepCategory,
@@ -58,13 +55,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatComponentMessageComponent {
-  eSlicersCapacity = SlicersCapacity
-  eTimeGranularity = TimeGranularity
   eChatMessageStepCategory = ChatMessageStepCategory
   readonly contextCompressionComponentType = CONTEXT_COMPRESSION_COMPONENT_TYPE
 
   readonly #dialog = inject(Dialog)
-  readonly dsCore = inject(NgmDSCoreService)
   readonly homeService = inject(XpertHomeService)
   readonly chatService = inject(ChatService)
 

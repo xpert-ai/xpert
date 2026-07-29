@@ -4,19 +4,19 @@ import { Component, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
-import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { OverlayAnimation1 } from '@xpert-ai/core'
+import { injectWorkspace } from '@cloud/app/@core/state'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, tap } from 'rxjs/operators'
 import { injectUser, IXpertWorkspace, OrderTypeEnum, Store, XpertWorkspaceService } from '../../../@core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-workspace-selector',
+  selector: 'xp-workspace-selector',
   templateUrl: 'workspace-selector.component.html',
   styleUrl: 'workspace-selector.component.scss',
   host: {
-    class: 'pac-workspace-selector'
+    class: 'xp-workspace-selector'
   },
   imports: [FormsModule, CdkMenuModule, TranslateModule, ...ZardTooltipImports],
   animations: [OverlayAnimation1]

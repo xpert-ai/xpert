@@ -6,11 +6,11 @@ import { ActivatedRoute, RouterModule } from '@angular/router'
 import { getErrorMessage } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { IPluginMarketplaceDetailItem, injectPluginAPI, PluginMarketplaceItem } from '@xpert-ai/cloud/state'
+import { IPluginMarketplaceDetailItem, injectPluginAPI, PluginMarketplaceItem } from '@cloud/app/@core/state'
 import { JSONValue } from '@xpert-ai/contracts'
 import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { map } from 'rxjs'
@@ -28,8 +28,8 @@ import { PLUGIN_MARKETPLACE_TARGET_APP } from '../plugin-marketplace-categories'
     RouterModule,
     TranslateModule,
     MarkdownModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     IconComponent,
     ZardBadgeComponent,
     ZardButtonComponent

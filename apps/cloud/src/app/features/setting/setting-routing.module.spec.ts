@@ -13,14 +13,11 @@ jest.mock('../../@core', () => ({
     MODEL_ACCESS_REQUEST_EDIT: 'MODEL_ACCESS_REQUEST_EDIT',
     MODEL_GATEWAY_MANAGE: 'MODEL_GATEWAY_MANAGE'
   },
-  AnalyticsPermissionsEnum: {
-    BUSINESS_AREA_EDIT: 'BUSINESS_AREA_EDIT',
-    DATA_SOURCE_EDIT: 'DATA_SOURCE_EDIT'
-  },
   PermissionsEnum: {
     ALL_ORG_EDIT: 'ALL_ORG_EDIT',
     ALL_ORG_VIEW: 'ALL_ORG_VIEW',
     CHANGE_ROLES_PERMISSIONS: 'CHANGE_ROLES_PERMISSIONS',
+    DATA_SOURCE_EDIT: 'DATA_SOURCE_EDIT',
     INTEGRATION_EDIT: 'INTEGRATION_EDIT',
     ORG_USERS_EDIT: 'ORG_USERS_EDIT',
     ORG_USERS_VIEW: 'ORG_USERS_VIEW'
@@ -38,19 +35,19 @@ jest.mock('../feature-gate', () => ({
 }))
 
 jest.mock('./account/account.component', () => ({
-  PACAccountComponent: class PACAccountComponent {}
+  XpAccountComponent: class XpAccountComponent {}
 }))
 
 jest.mock('./account/password.component', () => ({
-  PACAccountPasswordComponent: class PACAccountPasswordComponent {}
+  XpAccountPasswordComponent: class XpAccountPasswordComponent {}
 }))
 
 jest.mock('./account/profile.component', () => ({
-  PACAccountProfileComponent: class PACAccountProfileComponent {}
+  XpAccountProfileComponent: class XpAccountProfileComponent {}
 }))
 
 jest.mock('./settings.component', () => ({
-  PACSettingComponent: class PACSettingComponent {}
+  XpSettingComponent: class XpSettingComponent {}
 }))
 
 import { NgxPermissionsGuard } from 'ngx-permissions'
@@ -105,5 +102,4 @@ describe('setting routes', () => {
       redirectTo: expect.any(Function)
     })
   })
-
 })

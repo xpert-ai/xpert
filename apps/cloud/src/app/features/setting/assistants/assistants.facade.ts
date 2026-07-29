@@ -41,9 +41,9 @@ export class AssistantsSettingsFacade {
   readonly fixedApiUrl = buildAssistantRuntimeApiUrl(environment.API_BASE_URL)
   readonly chatkitFrameUrl = sanitizeConfiguredFrameUrl(environment.CHATKIT_FRAME_URL)
   readonly tenantXperts: Signal<IXpert[]> = toSignal(
-    this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.TENANT, SETTINGS_XPERT_SCOPE_CODE).pipe(
-      map((items: IXpert[] | IPagination<IXpert> | null | undefined) => this.normalizeXperts(items))
-    ),
+    this.#assistantBindingService
+      .getAvailableXperts(AssistantBindingScope.TENANT, SETTINGS_XPERT_SCOPE_CODE)
+      .pipe(map((items: IXpert[] | IPagination<IXpert> | null | undefined) => this.normalizeXperts(items))),
     { initialValue: [] as IXpert[] }
   )
   readonly organizationAvailableXperts: Signal<IXpert[]> = toSignal(
@@ -145,32 +145,30 @@ export class AssistantsSettingsFacade {
   sourceLabel(sourceScope?: string | null) {
     switch (sourceScope) {
       case AssistantBindingSourceScope.ORGANIZATION:
-        return this.t('PAC.Assistant.OrganizationOverride', 'Organization Override')
+        return this.t('XP.Assistant.OrganizationOverride', 'Organization Override')
       case AssistantBindingSourceScope.TENANT:
-        return this.t('PAC.Assistant.TenantDefault', 'Tenant Default')
+        return this.t('XP.Assistant.TenantDefault', 'Tenant Default')
       default:
-        return this.t('PAC.Assistant.NotConfigured', 'Not Configured')
+        return this.t('XP.Assistant.NotConfigured', 'Not Configured')
     }
   }
 
   effectiveStatusLabel(config?: IResolvedAssistantBinding | null) {
     if (!config || config.sourceScope === AssistantBindingSourceScope.NONE) {
-      return this.t('PAC.Assistant.NotConfigured', 'Not Configured')
+      return this.t('XP.Assistant.NotConfigured', 'Not Configured')
     }
 
-    return config.enabled
-      ? this.t('PAC.Assistant.Enabled', 'Enabled')
-      : this.t('PAC.KEY_WORDS.Disabled', 'Disabled')
+    return config.enabled ? this.t('XP.Assistant.Enabled', 'Enabled') : this.t('XP.KEY_WORDS.Disabled', 'Disabled')
   }
 
   sourceStateLabel(config?: IAssistantBinding | null) {
     if (config) {
       return config.scope === AssistantBindingScope.ORGANIZATION
-        ? this.t('PAC.Assistant.SavedInOrganizationScope', 'Saved in organization scope')
-        : this.t('PAC.Assistant.SavedInTenantScope', 'Saved in tenant scope')
+        ? this.t('XP.Assistant.SavedInOrganizationScope', 'Saved in organization scope')
+        : this.t('XP.Assistant.SavedInTenantScope', 'Saved in tenant scope')
     }
 
-    return this.t('PAC.Assistant.NoSavedConfigInScope', 'No saved config in this scope')
+    return this.t('XP.Assistant.NoSavedConfigInScope', 'No saved config in this scope')
   }
 
   assistantSelectionValue(scope: AssistantBindingScope, code: AssistantCode) {
@@ -180,10 +178,7 @@ export class AssistantsSettingsFacade {
   }
 
   assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode): ZardComboboxOption[] {
-    const xperts =
-      scope === AssistantBindingScope.TENANT
-        ? this.tenantXperts()
-        : this.organizationAvailableXperts()
+    const xperts = scope === AssistantBindingScope.TENANT ? this.tenantXperts() : this.organizationAvailableXperts()
     const selectedValue = this.assistantSelectionValue(scope, code)
     const options = xperts.map((xpert) => this.toAssistantXpertOption(xpert))
 
@@ -191,10 +186,7 @@ export class AssistantsSettingsFacade {
       return options
     }
 
-    return [
-      this.toAssistantXpertOption(this.xpertLookup()[selectedValue], selectedValue),
-      ...options
-    ]
+    return [this.toAssistantXpertOption(this.xpertLookup()[selectedValue], selectedValue), ...options]
   }
 
   selectAssistantXpert(scope: AssistantBindingScope, code: AssistantCode, value: unknown) {
@@ -227,11 +219,11 @@ export class AssistantsSettingsFacade {
           assistantId: form.getRawValue().assistantId
         })
       )
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       await this.loadConfigs()
     } catch (error) {
       this.#toastr.error(
-        getErrorMessage(error) || this.t('PAC.Assistant.SaveFailed', 'Failed to save assistant configuration.')
+        getErrorMessage(error) || this.t('XP.Assistant.SaveFailed', 'Failed to save assistant configuration.')
       )
     } finally {
       this.savingKey.set(null)
@@ -248,12 +240,12 @@ export class AssistantsSettingsFacade {
 
     try {
       await firstValueFrom(this.#assistantBindingService.delete(assistant.code, AssistantBindingScope.ORGANIZATION))
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       await this.loadConfigs()
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.t('PAC.Assistant.ResetOrganizationFailed', 'Failed to reset organization assistant configuration.')
+          this.t('XP.Assistant.ResetOrganizationFailed', 'Failed to reset organization assistant configuration.')
       )
     } finally {
       this.savingKey.set(null)
@@ -286,10 +278,13 @@ export class AssistantsSettingsFacade {
       this.tenantConfigs.set(this.toConfigMap(tenantConfigs))
       this.organizationConfigs.set(this.toConfigMap(organizationConfigs))
       this.effectiveConfigs.set(
-        effectiveConfigs.reduce((acc, item) => {
-          acc[item.code] = item
-          return acc
-        }, {} as Partial<Record<AssistantCode, IResolvedAssistantBinding>>)
+        effectiveConfigs.reduce(
+          (acc, item) => {
+            acc[item.code] = item
+            return acc
+          },
+          {} as Partial<Record<AssistantCode, IResolvedAssistantBinding>>
+        )
       )
 
       ASSISTANT_REGISTRY.forEach((assistant) => {
@@ -305,7 +300,7 @@ export class AssistantsSettingsFacade {
       }
     } catch (error) {
       this.#toastr.error(
-        getErrorMessage(error) || this.t('PAC.Assistant.LoadFailed', 'Failed to load assistant configurations.')
+        getErrorMessage(error) || this.t('XP.Assistant.LoadFailed', 'Failed to load assistant configurations.')
       )
     } finally {
       this.loading.set(false)
@@ -330,10 +325,13 @@ export class AssistantsSettingsFacade {
   }
 
   private toConfigMap(items: IAssistantBinding[]) {
-    return items.reduce((acc, item) => {
-      acc[item.code] = item
-      return acc
-    }, {} as Partial<Record<AssistantCode, IAssistantBinding>>)
+    return items.reduce(
+      (acc, item) => {
+        acc[item.code] = item
+        return acc
+      },
+      {} as Partial<Record<AssistantCode, IAssistantBinding>>
+    )
   }
 
   private getXpertLabel(xpert: Partial<IXpert> | null | undefined) {
@@ -375,7 +373,7 @@ export class AssistantsSettingsFacade {
 
   private normalizeXperts(items: IXpert[] | IPagination<IXpert> | null | undefined): IXpert[] {
     const seen = new Set<string>()
-    const candidates = Array.isArray(items) ? items : (Array.isArray(items?.items) ? items.items : [])
+    const candidates = Array.isArray(items) ? items : Array.isArray(items?.items) ? items.items : []
 
     return candidates.filter((xpert): xpert is IXpert => {
       if (!xpert?.id || xpert.latest === false || seen.has(xpert.id)) {

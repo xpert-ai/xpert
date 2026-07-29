@@ -8,7 +8,7 @@ import { SharedUiModule } from '../../../@shared/ui.module'
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-xpert',
+  selector: 'xp-settings-xpert',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   imports: [AsyncPipe, RouterModule, TranslateModule, SharedUiModule],

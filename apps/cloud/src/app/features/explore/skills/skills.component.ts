@@ -146,7 +146,7 @@ export class ExploreSkillsComponent {
         title: skillDisplayTitle(item),
         description:
           skillDisplayDescription(item) ||
-          this.#translate.instant('PAC.Explore.SkillDescriptionFallback', {
+          this.#translate.instant('XP.Explore.SkillDescriptionFallback', {
             Default: 'This skill does not include additional details yet.'
           }),
         tags: (item.tags ?? []).slice(0, 2),
@@ -493,7 +493,7 @@ export class ExploreSkillsComponent {
     try {
       await firstValueFrom(this.#skillPackageService.installPackage(workspaceId, item.id))
       this.#toastr.success(
-        this.#translate.instant('PAC.Explore.SkillInstallSuccess', {
+        this.#translate.instant('XP.Explore.SkillInstallSuccess', {
           Default: 'Skill is ready. Existing installs are reused, and newer versions update automatically.'
         })
       )
@@ -517,7 +517,7 @@ export class ExploreSkillsComponent {
       readI18nText(item.metadata?.summary) ||
       readI18nText(item.metadata?.description) ||
       item.skillIndex?.description ||
-      this.#translate.instant('PAC.Explore.SkillDescriptionFallback', {
+      this.#translate.instant('XP.Explore.SkillDescriptionFallback', {
         Default: 'This skill does not include additional details yet.'
       })
     )
@@ -526,7 +526,7 @@ export class ExploreSkillsComponent {
   installedSkillRepositoryLabel(item: ISkillPackage): string {
     return (
       item.skillIndex?.repository?.name ||
-      this.#translate.instant('PAC.Explore.LocalSkill', {
+      this.#translate.instant('XP.Explore.LocalSkill', {
         Default: 'Local Skill'
       })
     )
@@ -535,7 +535,7 @@ export class ExploreSkillsComponent {
   installedSkillProviderLabel(item: ISkillPackage): string {
     return (
       item.skillIndex?.repository?.provider ||
-      this.#translate.instant('PAC.Explore.LocalProvider', {
+      this.#translate.instant('XP.Explore.LocalProvider', {
         Default: 'Local'
       })
     )
@@ -547,7 +547,7 @@ export class ExploreSkillsComponent {
       item.skillIndex?.publisher?.name ||
       item.skillIndex?.publisher?.handle ||
       item.metadata?.author?.name ||
-      this.#translate.instant('PAC.Explore.LocalAuthor', {
+      this.#translate.instant('XP.Explore.LocalAuthor', {
         Default: 'Uploaded Locally'
       })
     )
