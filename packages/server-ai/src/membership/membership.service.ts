@@ -628,6 +628,10 @@ export class MembershipService {
             tenantId: input.tenantId,
             organizationId: null
         }
+        const defaultPlan = await this.ensureDefaultTenantPlanForEmptyScope(input.tenantId)
+        if (!defaultPlan) {
+            return { scanned: 0, assigned: 0, nextCursor: null }
+        }
         const take = Math.min(Math.max(Math.trunc(input.take ?? 100), 1), 500)
         const users = await this.userRepository.find({
             select: ['id'],
@@ -751,6 +755,59 @@ export class MembershipService {
 
     private async enqueueTenantDefaultMembershipBackfill(tenantId: string) {
         await this.backfillQueueService?.enqueueTenantDefaultMembershipBackfill(tenantId)
+    }
+
+    private async ensureDefaultTenantPlanForEmptyScope(tenantId: string): Promise<MembershipPlan | null> {
+        const scope: MembershipScope = { tenantId, organizationId: null }
+        return this.dataSource.transaction(async (manager) => {
+            await this.acquireTenantDefaultPlanInitializationLock(manager, tenantId)
+            if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
+                return null
+            }
+
+            const defaultPlan = await this.findDefaultPlan(tenantId, null, manager)
+            if (defaultPlan) {
+                return defaultPlan
+            }
+
+            const repository = manager.getRepository(MembershipPlan)
+            const existingPlans = await repository.find({
+                where: this.scopeWhere(tenantId, null),
+                take: 1
+            })
+            if (existingPlans.length) {
+                return null
+            }
+
+            const tokensPerPoint = await this.resolveTenantTokensPerPoint(tenantId)
+            return repository.save(
+                repository.create({
+                    tenantId,
+                    organizationId: null,
+                    code: 'default',
+                    name: DEFAULT_PLAN_NAME,
+                    status: MembershipPlanStatusEnum.Active,
+                    isDefault: true,
+                    period: MembershipPeriodEnum.Monthly,
+                    includedPoints: DEFAULT_INCLUDED_POINTS,
+                    tokensPerPoint,
+                    allowedModels: [],
+                    modelMultipliers: [],
+                    rateLimits: []
+                })
+            )
+        })
+    }
+
+    private async acquireTenantDefaultPlanInitializationLock(manager: EntityManager, tenantId: string) {
+        if (manager.connection.options.type !== 'postgres') {
+            return
+        }
+
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+            tenantId,
+            'tenant-default-membership-plan'
+        ])
     }
 
     private async acquireTenantDefaultMembershipLock(manager: EntityManager, tenantId: string, userId: string) {
