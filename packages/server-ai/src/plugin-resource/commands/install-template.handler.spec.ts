@@ -209,7 +209,8 @@ describe('PluginTemplateInstallHandler', () => {
             throw new Error('Expected template install to import the normalized draft.')
         }
         expect(importCommand.options).toMatchObject({
-            normalizeCopilotModels: false
+            normalizeCopilotModels: false,
+            language: LanguagesEnum.English
         })
         expect(importCommand.draft.team?.copilotModel).toEqual({
             copilotId: 'copilot-deepseek',

@@ -2,6 +2,7 @@ import { resolveI18nText, TAvatar } from '@xpert-ai/contracts'
 import { yaml } from '@xpert-ai/server-common'
 
 export type XpertTemplateDslMetadata = {
+    title?: string
     description?: string
     avatar?: TAvatar
 }
@@ -19,10 +20,12 @@ export function readXpertTemplateDslMetadata(dslContent: string, language: strin
         return {}
     }
 
+    const title = resolveI18nText(Reflect.get(team, 'title'), language) ?? undefined
     const description = resolveI18nText(Reflect.get(team, 'description'), language) ?? undefined
     const avatar = readAvatar(Reflect.get(team, 'avatar'))
 
     return {
+        ...(title ? { title } : {}),
         ...(description ? { description } : {}),
         ...(avatar ? { avatar } : {})
     }

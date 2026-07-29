@@ -226,7 +226,11 @@ export class XpertController extends CrudController<Xpert> {
         @I18nLang() language: LanguagesEnum = LanguagesEnum.English
     ) {
         try {
-            const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(new XpertImportCommand(dsl))
+            const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
+                new XpertImportCommand(dsl, {
+                    language: LanguagesMap[language] ?? language
+                })
+            )
             const normalizedTemplateId = typeof templateId === 'string' ? templateId.trim() : ''
             if (normalizedTemplateId && xpert.workspaceId) {
                 await this.templateWorkspaceInitializer.initializeByTemplateId(

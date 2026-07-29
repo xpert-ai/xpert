@@ -11,6 +11,7 @@ import {
     mapTranslationLanguage,
     omitXpertRelations,
     ProviderModel,
+    resolveI18nText,
     replaceAgentInDraft,
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
@@ -93,6 +94,10 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
      * copilot normalization only for commands that explicitly request it.
      */
     public async execute(command: XpertImportCommand): Promise<IXpert> {
+        normalizeImportedLocalizedText(
+            command.draft,
+            command.options.language ?? RequestContext.getLanguageCode() ?? 'en-US'
+        )
         const draft = command.draft as XpertDraftDslDTO
         if (!draft?.team) {
             throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
@@ -511,6 +516,63 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 
         return xpert
     }
+}
+
+/**
+ * Resolves localized template metadata at the untyped DSL boundary so Xpert
+ * and XpertAgent persistence never receive objects for string columns.
+ */
+function normalizeImportedLocalizedText(value: unknown, language: string) {
+    if (!isObjectValue(value)) {
+        return
+    }
+
+    const team = Reflect.get(value, 'team')
+    if (isObjectValue(team)) {
+        normalizeLocalizedTextFields(team, language)
+        const primaryAgent = Reflect.get(team, 'agent')
+        if (isObjectValue(primaryAgent)) {
+            normalizeLocalizedTextFields(primaryAgent, language)
+        }
+    }
+
+    const nodes = Reflect.get(value, 'nodes')
+    if (!Array.isArray(nodes)) {
+        return
+    }
+
+    for (const node of nodes) {
+        if (!isObjectValue(node)) {
+            continue
+        }
+        const type = Reflect.get(node, 'type')
+        if (type !== 'agent' && type !== 'xpert') {
+            continue
+        }
+        const entity = Reflect.get(node, 'entity')
+        if (isObjectValue(entity)) {
+            normalizeLocalizedTextFields(entity, language)
+        }
+    }
+}
+
+function normalizeLocalizedTextFields(value: object, language: string) {
+    for (const key of ['title', 'description'] as const) {
+        const field = Reflect.get(value, key)
+        if (typeof field === 'undefined') {
+            continue
+        }
+        const normalized = resolveI18nText(field, language)
+        if (normalized) {
+            Reflect.set(value, key, normalized)
+        } else {
+            Reflect.deleteProperty(value, key)
+        }
+    }
+}
+
+function isObjectValue(value: unknown): value is object {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**
