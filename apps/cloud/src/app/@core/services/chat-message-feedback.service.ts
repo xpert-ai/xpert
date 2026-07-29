@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
+import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import { IChatMessageFeedback } from '../types'
 import { appendOrganizationIdQueryParam } from './query-params'
 

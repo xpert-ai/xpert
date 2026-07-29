@@ -1,4 +1,4 @@
-import { CreationTable, File } from '@xpert-ai/adapter'
+import { CreationTable, DBQueryRunner, File } from '@xpert-ai/plugin-sdk'
 import { AuthenticationEnum } from '@xpert-ai/contracts'
 import { UploadSheetType, getErrorMessage, readExcelWorkSheets } from '@xpert-ai/server-common'
 import { RequestContext } from '../core/context'
@@ -6,7 +6,6 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { DataSource } from './data-source.entity'
 import { QueryBus } from '@nestjs/cqrs'
 import { DataSourceStrategyQuery } from './queries'
-import { DBQueryRunner } from '@xpert-ai/plugin-sdk'
 
 type CsvImportRunner = DBQueryRunner & {
 	importCsv(params: CreationTable, options?: { catalog?: string }): Promise<void>

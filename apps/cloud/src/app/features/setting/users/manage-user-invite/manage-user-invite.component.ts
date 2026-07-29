@@ -2,7 +2,7 @@ import { CommonModule, DatePipe } from '@angular/common'
 import { Component, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
-import { InviteService, Store, ToastrService } from '@xpert-ai/cloud/state'
+import { InviteService, Store, ToastrService } from '@cloud/app/@core/state'
 import {
   type IInvite,
   type IOrganization,

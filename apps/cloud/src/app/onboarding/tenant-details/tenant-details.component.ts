@@ -12,7 +12,7 @@ import {
   type ZardStepperSelectionEvent
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
-import { matchWithValidator } from '@xpert-ai/cloud/auth'
+import { matchWithValidator } from '@cloud/app/auth'
 import {
   DataSourceService,
   DataSourceTypesService,
@@ -20,7 +20,7 @@ import {
   injectOrganization,
   ITenant,
   Store
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { omit } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'

@@ -1,4 +1,4 @@
-import { IDSSchema, IDSTable } from '@xpert-ai/adapter'
+import { IDSSchema, IDSTable } from '@xpert-ai/plugin-sdk'
 import { omit } from '@xpert-ai/server-common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'

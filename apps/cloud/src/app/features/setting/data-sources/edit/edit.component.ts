@@ -13,7 +13,7 @@ import {
   ZardLoaderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
+import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@cloud/app/@core/state'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { cloneDeep } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'

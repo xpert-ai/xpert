@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
+import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@cloud/app/@core/state'
 import { AuthenticationEnum, getErrorMessage, IDataSource, IDataSourceType } from '@cloud/app/@core/types'
 import { omit } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

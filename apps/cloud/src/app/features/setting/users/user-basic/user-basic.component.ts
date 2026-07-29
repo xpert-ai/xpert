@@ -2,7 +2,7 @@ import { Component, effect, input, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute } from '@angular/router'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { UsersService } from '@cloud/app/@core/state'
 import { IUserUpdateInput, LanguagesEnum } from '@xpert-ai/contracts'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

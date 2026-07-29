@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { injectPluginAPI, IPluginDescriptor } from '@xpert-ai/cloud/state'
+import { injectPluginAPI, IPluginDescriptor } from '@cloud/app/@core/state'
 import { AiProviderRole } from '@xpert-ai/contracts'
 import { catchError, firstValueFrom, from, map, of, switchMap } from 'rxjs'
 import {

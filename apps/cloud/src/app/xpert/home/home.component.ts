@@ -10,7 +10,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { HeaderUserComponent } from '@cloud/app/@theme/header'
-import { LanguagesEnum } from '@xpert-ai/cloud/state'
+import { LanguagesEnum } from '@cloud/app/@core/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import {

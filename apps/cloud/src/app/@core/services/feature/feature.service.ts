@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { API_PREFIX } from '@cloud/app/@core/state'
 import { toParams } from '@xpert-ai/headless-ui'
 import {
   IFeature,

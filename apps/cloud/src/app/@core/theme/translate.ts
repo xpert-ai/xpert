@@ -4,7 +4,7 @@ import en from '@angular/common/locales/en'
 import localeZhExtra from '@angular/common/locales/extra/zh-Hans'
 import zh from '@angular/common/locales/zh'
 import localeZh from '@angular/common/locales/zh-Hans'
-import { ZhHans as AuthZhHans, ZhHant as AuthZhHant } from '@xpert-ai/cloud/auth'
+import { ZhHans as AuthZhHans, ZhHant as AuthZhHant } from '@cloud/app/auth'
 import { ZhHans, ZhHant } from '@xpert-ai/headless-ui'
 import {
   registerLocaleData as nxRegisterLocaleData,

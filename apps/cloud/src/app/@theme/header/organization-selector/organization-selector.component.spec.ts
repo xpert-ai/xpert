@@ -11,7 +11,7 @@ jest.mock('@cloud/app/@shared/i18n', () => ({
   })
 }))
 
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   class CurrentUserHydrationService {}
   class UsersService {}
 
@@ -166,11 +166,11 @@ describe('OrganizationSelectorComponent', () => {
           useValue: organizationsService
         },
         {
-          provide: jest.requireMock('@xpert-ai/cloud/state').UsersService,
+          provide: jest.requireMock('@cloud/app/@core/state').UsersService,
           useValue: usersService
         },
         {
-          provide: jest.requireMock('@xpert-ai/cloud/state').CurrentUserHydrationService,
+          provide: jest.requireMock('@cloud/app/@core/state').CurrentUserHydrationService,
           useValue: {
             getFeatureHydration: jest.fn()
           }

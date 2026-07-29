@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { UsersService } from '@cloud/app/@core/state'
 import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

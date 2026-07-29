@@ -17,7 +17,6 @@ USER node:node
 
 WORKDIR /srv/xpert
 
-COPY --chown=node:node legacies/adapter/package.json ./legacies/adapter/
 COPY --chown=node:node legacies/copilot/package.json ./legacies/copilot/
 COPY --chown=node:node packages/store/package.json ./packages/store/
 COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
@@ -41,7 +40,6 @@ RUN pnpm install --no-frozen-lockfile
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
-COPY --chown=node:node legacies/adapter ./legacies/adapter
 COPY --chown=node:node legacies/copilot ./legacies/copilot
 COPY --chown=node:node apps/api ./apps/api
 RUN rm -rf packages/angular packages/ui

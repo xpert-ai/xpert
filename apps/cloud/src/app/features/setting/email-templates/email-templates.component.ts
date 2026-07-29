@@ -12,7 +12,7 @@ import { EmailTemplateNameEnum } from '../../../@core/types'
 import { EmailTemplateService, injectToastr, LanguagesService } from '../../../@core/services'
 import { groupBy } from 'lodash-es'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
-import { injectOrganization } from '@xpert-ai/cloud/state'
+import { injectOrganization } from '@cloud/app/@core/state'
 import { LanguagesEnum } from '@xpert-ai/contracts'
 import { EmailTemplateComponent } from './template/template.component'
 

@@ -1,6 +1,13 @@
 import { inject } from '@angular/core'
-import { ActivatedRouteSnapshot, CanActivateFn, RedirectFunction, Router, RouterStateSnapshot, Routes } from '@angular/router'
-import { Store } from '@xpert-ai/cloud/state'
+import {
+  ActivatedRouteSnapshot,
+  CanActivateFn,
+  RedirectFunction,
+  Router,
+  RouterStateSnapshot,
+  Routes
+} from '@angular/router'
+import { Store } from '@cloud/app/@core/state'
 import { firstValueFrom } from 'rxjs'
 import { XpertAPIService } from '../@core'
 

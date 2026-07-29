@@ -3,7 +3,7 @@ const mockPluginAPI = {
   install: jest.fn()
 }
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   injectPluginAPI: () => mockPluginAPI
 }))
 

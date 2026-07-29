@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { IEmployee, IEmployeeCreateInput, IEmployeeFindInput, IEmployeeUpdateInput } from '@xpert-ai/contracts'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { API_PREFIX } from '@cloud/app/@core/state'
 import { firstValueFrom, Observable } from 'rxjs'
 import { first, map } from 'rxjs/operators'
 import { toParams } from '@xpert-ai/headless-ui'

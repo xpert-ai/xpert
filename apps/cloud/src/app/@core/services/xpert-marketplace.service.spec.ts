@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing'
 import { XpertAccessRequestStatusEnum } from '../types'
 import { XpertMarketplaceService } from './xpert-marketplace.service'
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   API_PREFIX: '/api'
 }))
 

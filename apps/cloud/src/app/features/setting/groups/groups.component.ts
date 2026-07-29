@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { injectOrganization } from '@xpert-ai/cloud/state'
+import { injectOrganization } from '@cloud/app/@core/state'
 import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'

@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { injectUser } from '@cloud/app/@core'
-import { injectActiveScope, injectRuntimeControlAPI } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectRuntimeControlAPI } from '@cloud/app/@core/state'
 import {
   RUNTIME_RESTART_CONFIRMATION,
   type IRuntimeRestartCapability,

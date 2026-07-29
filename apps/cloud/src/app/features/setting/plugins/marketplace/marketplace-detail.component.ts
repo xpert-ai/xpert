@@ -12,7 +12,7 @@ import {
   IPluginComponentDefinition,
   PLUGIN_COMPONENT_TYPE,
   PluginComponentType
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import {
   I18nObject,
   IconDefinition,

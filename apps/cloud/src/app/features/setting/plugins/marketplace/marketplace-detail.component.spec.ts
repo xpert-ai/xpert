@@ -64,7 +64,7 @@ jest.mock('@cloud/app/@shared/avatar/icon/icon.component', () => {
   return { IconComponent }
 })
 
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   const { inject } = jest.requireActual('@angular/core')
 
   class PluginAPIService {}
@@ -172,7 +172,7 @@ import {
 } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { XpertTypeEnum } from '@xpert-ai/contracts'
-import { IPluginComponentDefinition, PLUGIN_COMPONENT_TYPE, PluginAPIService } from '@xpert-ai/cloud/state'
+import { IPluginComponentDefinition, PLUGIN_COMPONENT_TYPE, PluginAPIService } from '@cloud/app/@core/state'
 import { XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { TPluginWithDownloads } from '../types'
 import { PluginResourcesComponent } from '../resources/resources.component'

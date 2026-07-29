@@ -27,7 +27,7 @@ import {
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PLUGIN_RESOURCE_RUNTIME_TYPE,
   PluginAPIService
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { ClawXpertBindingTargetService } from '../../../chat/clawxpert/clawxpert-binding-target.service'
 import { ClawXpertSkillTrialIntentService } from '../../../chat/clawxpert/clawxpert-skill-trial-intent.service'
 import { TPluginWithDownloads } from '../types'

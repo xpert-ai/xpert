@@ -20,7 +20,7 @@ import {
   PLUGIN_COMPONENT_TYPE,
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PluginComponentType
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

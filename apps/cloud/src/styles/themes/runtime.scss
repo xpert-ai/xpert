@@ -1,6 +1,6 @@
 @use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as runtimeTheme;
 @use 'libs/formly/formly-theme' as formly;
-@use 'libs/apps/auth/src/lib/auth-theme' as auth;
+@use '../../app/auth/auth-theme' as auth;
 @use 'packages/ui/src/lib/ui/compat/theming' as uiCompat;
 @use '../../app/features/features-theme' as features;
 @use '../../app/@shared/components-theme' as shared;

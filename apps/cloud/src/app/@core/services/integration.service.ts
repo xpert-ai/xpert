@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { API_PREFIX, OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@xpert-ai/contracts'
 import { TSelectOption } from '@xpert-ai/headless-ui'
 import { Observable } from 'rxjs'

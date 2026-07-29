@@ -27,8 +27,8 @@ import {
   CURRENT_USER_BOOTSTRAP_SELECT,
   injectUserPreferences,
   UsersService
-} from '@xpert-ai/cloud/state'
-import type { IUserOrganization } from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
+import type { IUserOrganization } from '@cloud/app/@core/state'
 import { isNotEmpty, nonNullable } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'

@@ -10,7 +10,7 @@ import {
   PLUGIN_COMPONENT_TYPE,
   PLUGIN_RESOURCE_RUNTIME_TYPE,
   type PluginResourceComponentSelector
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { parseYAML } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'

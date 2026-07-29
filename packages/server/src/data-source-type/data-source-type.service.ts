@@ -2,20 +2,15 @@ import { DataSourceProtocolEnum, DataSourceSyntaxEnum } from '@xpert-ai/contract
 import { environment as env } from '@xpert-ai/server-config'
 import { RequestContext } from '../core/context'
 import { TenantAwareCrudService } from '../core/crud'
-import { Tenant, TenantCreatedEvent } from '../tenant'
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { OnEvent } from '@nestjs/event-emitter'
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm'
-import { AdapterBaseOptions, QUERY_RUNNERS } from '@xpert-ai/adapter'
+import { Inject, Injectable } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
 import { DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
-import { EntityManager, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
-import { seedDefaultDataSourceTypes } from './data-source-type.seed'
 
 @Injectable()
 export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType> {
-	private readonly logger = new Logger(DataSourceTypeService.name)
 	log = console.log
 
 	@Inject(DataSourceStrategyRegistry)
@@ -23,19 +18,9 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 
 	constructor(
 		@InjectRepository(DataSourceType)
-		dsTypeRepository: Repository<DataSourceType>,
-		@InjectEntityManager()
-		private entityManager: EntityManager
+		dsTypeRepository: Repository<DataSourceType>
 	) {
 		super(dsTypeRepository)
-	}
-
-	@OnEvent('tenant.created')
-	async handleTenantCreatedEvent(event: TenantCreatedEvent) {
-		this.logger.debug('Tenant Created Event: seed dataSource types')
-		const { tenantId } = event
-		const tenant = await this.entityManager.findOne(Tenant, { where: { id: tenantId } })
-		await seedDefaultDataSourceTypes(this.entityManager.connection, tenant)
 	}
 
 	async sync() {
@@ -44,15 +29,12 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 			chalk.magenta(
 				`🌱 SEEDING DATA SOURCE TYPES ${
 					env.production ? 'PRODUCTION' : ''
-				} DATABASE FOR TANANT: '${tenantId}'...`
+				} DATABASE FOR TENANT: '${tenantId}'...`
 			)
 		)
-		const queryRunnerClasses = Object.values(QUERY_RUNNERS)
-		this.dataSourceStrategyRegistry.list().forEach((strategy) => {
-			queryRunnerClasses.push(strategy.getClassType())
-		})
-		for (const QueryRunner of queryRunnerClasses) {
-			const queryRunner = new QueryRunner({} as AdapterBaseOptions)
+		for (const strategy of this.dataSourceStrategyRegistry.list()) {
+			const QueryRunner = strategy.getClassType()
+			const queryRunner = new QueryRunner()
 			try {
 				await this.upsertDataSourceType(tenantId, queryRunner)
 			} catch (error) {

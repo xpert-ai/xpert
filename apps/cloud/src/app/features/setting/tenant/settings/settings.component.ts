@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
 import { isNil } from '@xpert-ai/contracts'
-import { DataSourceTypesService } from '@xpert-ai/cloud/state'
+import { DataSourceTypesService } from '@cloud/app/@core/state'
 import { TenantService, ToastrService } from '../../../../@core'
 
 interface ItemData {

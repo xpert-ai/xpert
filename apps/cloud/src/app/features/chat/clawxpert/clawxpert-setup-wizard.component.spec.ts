@@ -51,7 +51,7 @@ let clawXpertBootstrap: {
   createTemplateXpert: jest.Mock
 }
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   injectPluginAPI: () => mockPluginAPI
 }))
 

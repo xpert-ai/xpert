@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { UsersService } from '@cloud/app/@core/state'
 import { XpSpinComponent, XpStepperComponent, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'

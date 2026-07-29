@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ToastrService } from '@xpert-ai/cloud/state'
+import { ToastrService } from '@cloud/app/@core/state'
 import { XpInputComponent } from '@xpert-ai/headless-ui'
 import { XpButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

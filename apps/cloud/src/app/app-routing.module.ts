@@ -10,7 +10,7 @@ const routes: Routes = [
   },
   {
     path: 'auth',
-    loadChildren: () => import('@xpert-ai/cloud/auth').then((m) => m.XpAuthModule)
+    loadChildren: () => import('@cloud/app/auth').then((m) => m.XpAuthModule)
   },
   {
     path: 'artifacts/auth/:artifactLinkSlug',

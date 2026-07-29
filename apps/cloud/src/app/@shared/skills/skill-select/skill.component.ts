@@ -7,7 +7,7 @@ import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
-import { injectWorkspace } from '@xpert-ai/cloud/state'
+import { injectWorkspace } from '@cloud/app/@core/state'
 import { injectSkillPackageAPI } from 'apps/cloud/src/app/@core'
 import { of } from 'rxjs'
 import { JSON_SCHEMA_WIDGET_CONTEXT, JsonSchemaWidgetContext } from '../../forms'

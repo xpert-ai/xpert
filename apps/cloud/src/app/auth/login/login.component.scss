@@ -1,0 +1,24 @@
+@reference "../../../styles/tailwind-reference.css";
+:host {
+  @apply w-[368px] flex flex-col max-w-full px-8;
+}
+
+.xp-auth__login-remember {
+  margin-bottom: 1rem;
+}
+
+.xp-auth__signin-button {
+  height: 45px;
+  margin-top: 1rem;
+}
+
+.xp-login__signins {
+  margin: 1rem 0;
+}
+
+.xp-login__signin-button {
+  img {
+    --mdc-icon-button-icon-size: 30px;
+    max-width: fit-content;
+  }
+}

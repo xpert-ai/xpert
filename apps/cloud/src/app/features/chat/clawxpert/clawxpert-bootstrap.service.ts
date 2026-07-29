@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { Router } from '@angular/router'
-import { IPluginDescriptor, injectPluginAPI } from '@xpert-ai/cloud/state'
+import { IPluginDescriptor, injectPluginAPI } from '@cloud/app/@core/state'
 import {
   PLUGIN_LOAD_STATUS,
   replaceAgentInDraft,

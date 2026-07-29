@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable, of, Subject } from 'rxjs'
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { TranslateService } from '@ngx-translate/core'
 import { ThemesEnum, normalizeTheme } from '@xpert-ai/headless-ui'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { AppService } from './app.service'
 import { I18nService } from './@shared/i18n'
 

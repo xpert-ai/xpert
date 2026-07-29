@@ -11,7 +11,7 @@
 // } from '@xpert-ai/contracts'
 // import { lastValueFrom, Observable, of } from 'rxjs'
 // import { first, switchMap, tap } from 'rxjs/operators'
-// import { API_PREFIX } from '@xpert-ai/cloud/state'
+// import { API_PREFIX } from '@cloud/app/@core/state'
 
 // export interface AuthState {
 //   inited: boolean

@@ -21,7 +21,7 @@ import {
   type IUser,
   type IUserOrganization,
   UsersService
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { nonNullable, OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { XpHighlightDirective, XpSearchComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal } from '@xpert-ai/headless-ui'

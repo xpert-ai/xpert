@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
-import { injectWorkspace } from '@xpert-ai/cloud/state'
+import { injectWorkspace } from '@cloud/app/@core/state'
 import { ChatKitPetOptions } from '@xpert-ai/chatkit-types'
 import { AssistantCode, XpertAPIService } from '../../../@core'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'

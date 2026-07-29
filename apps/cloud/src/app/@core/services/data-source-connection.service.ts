@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core'
-import { DataSourceAuthenticationInput, DataSourcePingInput, DataSourceService } from '@xpert-ai/cloud/state'
+import { DataSourceAuthenticationInput, DataSourcePingInput, DataSourceService } from '@cloud/app/@core/state'
 import { AuthenticationEnum } from '@xpert-ai/contracts'
 import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'

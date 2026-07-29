@@ -6,7 +6,7 @@ import { of } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { AppService } from 'apps/cloud/src/app/app.service'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import {
   TagService,
@@ -24,8 +24,8 @@ jest.mock('echarts/core', () => ({
   registerTheme: jest.fn()
 }))
 
-jest.mock('@xpert-ai/cloud/state', () => ({
-  ...jest.requireActual('@xpert-ai/cloud/state'),
+jest.mock('@cloud/app/@core/state', () => ({
+  ...jest.requireActual('@cloud/app/@core/state'),
   Store: class Store {},
   injectWorkspace: () => selectedWorkspace
 }))

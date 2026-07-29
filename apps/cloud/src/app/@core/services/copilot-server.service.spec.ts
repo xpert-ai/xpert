@@ -19,7 +19,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 })
 
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   const { HttpClient } = require('@angular/common/http')
   const { inject } = require('@angular/core')
 
@@ -52,7 +52,7 @@ jest.mock('../types', () => ({
   }
 }))
 
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { CopilotServerService } from './copilot-server.service'
 import { AiModelTypeEnum, AiProviderRole } from '../types'
 

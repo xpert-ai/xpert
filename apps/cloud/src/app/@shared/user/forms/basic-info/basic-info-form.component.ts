@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { AuthService } from '@xpert-ai/cloud/state'
+import { AuthService } from '@cloud/app/@core/state'
 import { IRole, ITag, IUser } from '@xpert-ai/contracts'
 import { FORMLY_W_FULL } from '@xpert-ai/formly'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'

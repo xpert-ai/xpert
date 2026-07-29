@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, IDataSource, IDSSchema, IXpertTable, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { API_PREFIX, IDataSource, IDSSchema, IXpertTable, OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 
 @Injectable({ providedIn: 'root' })

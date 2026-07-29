@@ -1,4 +1,4 @@
-import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { API_PREFIX } from '@cloud/app/@core/state'
 export const API_EMAIL_TEMPLATE = API_PREFIX + '/email-template'
 export const API_TAG = API_PREFIX + '/tags'
 export const API_COPILOT_ROLE = API_PREFIX + '/copilot-role'

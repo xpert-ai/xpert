@@ -17,7 +17,7 @@ import {
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
-import { injectActiveScope, injectPluginAPI } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectPluginAPI } from '@cloud/app/@core/state'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, XpHighlightDirective, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'

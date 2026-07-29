@@ -1,6 +1,6 @@
 import { Component, ElementRef, forwardRef, inject, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { AuthService } from '@xpert-ai/cloud/state'
+import { AuthService } from '@cloud/app/@core/state'
 import { IUser } from '@xpert-ai/contracts'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'

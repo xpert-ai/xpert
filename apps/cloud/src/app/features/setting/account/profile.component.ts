@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { IUser, UsersService } from '@xpert-ai/cloud/state'
+import { IUser, UsersService } from '@cloud/app/@core/state'
 import { linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'

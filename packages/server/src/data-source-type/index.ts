@@ -1,4 +1,3 @@
-export * from './data-source-type.seed'
 export * from './data-source-type.service'
 export * from './data-source-type.module'
 export * from './data-source-type.entity'

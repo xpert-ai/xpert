@@ -12,7 +12,7 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
 import { IXpertProject } from '../types'
-import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
+import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import { Endpoints } from '@octokit/types'
 import { toParams } from '@xpert-ai/headless-ui'
 

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Observable, tap } from 'rxjs'
 import { API_XPERT_TOOL } from '../constants/app.constants'
@@ -18,7 +18,7 @@ export class XpertToolService extends OrganizationBaseCrudService<IXpertTool> {
   test(tool: IXpertTool) {
     return this.httpClient.post(this.apiBaseUrl + `/test`, tool, { responseType: 'text' })
   }
-  
+
   getParamsFaker(id: string) {
     return this.httpClient.get<Record<string, any>>(this.apiBaseUrl + `/${id}/faker`)
   }

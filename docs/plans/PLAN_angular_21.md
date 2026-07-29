@@ -52,7 +52,7 @@
 - 防止 Story 文件参与正常库构建：  
   在 `libs/story-angular/tsconfig.lib.json`、`packages/copilot-angular/tsconfig.lib.json` 增加 `**/*.stories.ts` / `**/*.stories.js` 排除项。
 - 内部包 peer 版本提升到 Angular 21：  
-  `libs/apps/indicator-market/package.json`、`libs/apps/state/package.json`、`libs/core-angular/package.json`、`libs/story-angular/package.json`、`libs/component-angular/package.json`、`libs/formly/package.json`、`packages/copilot-angular/package.json`、`packages/angular/package.json`。
+  `libs/apps/indicator-market/package.json`、`libs/core-angular/package.json`、`libs/story-angular/package.json`、`libs/component-angular/package.json`、`libs/formly/package.json`、`packages/copilot-angular/package.json`、`packages/angular/package.json`。
 - Markdown 兼容修复：  
   `apps/cloud/project.json` 删除 `node_modules/marked/marked.min.js` 脚本注入；  
   `apps/cloud/src/app/@shared/chat/providers/markdown.ts` 将 `renderer.code` 重写改为 `marked@17` token 形态签名。

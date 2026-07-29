@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { DataSourceService } from '@xpert-ai/cloud/state'
+import { DataSourceService } from '@cloud/app/@core/state'
 import { TranslateService } from '@ngx-translate/core'
 import { IDataSource } from '@xpert-ai/contracts'
 import { of } from 'rxjs'

@@ -32,7 +32,6 @@ import { createDefaultFeatureToggle, createFeatures } from '../../feature/featur
 import { DEFAULT_EMPLOYEES, DEFAULT_PEANUT_EMPLOYEES } from './../../employee'
 import { createLanguages } from '../../language/language.seed'
 import { Role, Tenant } from '../entities/internal'
-import { seedDefaultDataSourceTypes } from '../../data-source-type/data-source-type.seed'
 
 export enum SeederTypeEnum {
 	ALL = 'all',
@@ -339,8 +338,6 @@ export class SeedDataService {
 		// 	}
 		// );
 
-		await this.seedTenantMoreDefault(this.connection, this.tenant)
-
 		// Trigger create demo command for the default organization; After all default data is seeded
 		if (isDemo) {
 			await this.tryExecute(
@@ -583,10 +580,6 @@ export class SeedDataService {
 	// 		}
 	// 	}
 	// }
-
-	public async seedTenantMoreDefault(connection: Connection, tenant: ITenant) {
-		await this.tryExecute('Default DataSource Types', seedDefaultDataSourceTypes(connection, tenant))
-	}
 
 	public async seedOrganizationDemo(connection: Connection, tenant: ITenant, organization: IOrganization) {
 		//

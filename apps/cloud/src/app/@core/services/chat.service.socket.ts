@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { nonNullable } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { distinctUntilChanged, filter } from 'rxjs/operators'

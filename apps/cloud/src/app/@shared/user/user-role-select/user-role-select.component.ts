@@ -8,7 +8,7 @@ import {
   ZardLoaderComponent,
   ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { UsersService } from '@cloud/app/@core/state'
 import { XpButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'

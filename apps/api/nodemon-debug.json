@@ -5,7 +5,6 @@
     "src",
     "../../packages/common/src",
     "../../packages/config/src",
-    "../../legacies/adapter/src",
     "../../packages/server/src",
     "../../packages/auth/src",
     "../../packages/server-ai/src",

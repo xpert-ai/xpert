@@ -1,6 +1,6 @@
 import { Component, computed, input, output } from '@angular/core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { injectOrganizationId } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { injectHelpWebsite, ITag, IToolProvider, TagCategoryEnum } from '../../../@core'

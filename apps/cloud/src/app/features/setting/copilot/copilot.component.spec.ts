@@ -5,7 +5,7 @@ import { provideRouter, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from '../../../@core'
 import { CopilotComponent } from './copilot.component'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 
 const COPILOT_MONITORING_FEATURE = 'FEATURE_COPILOT_MONITORING'
 let monitoringEnabled = true
@@ -19,7 +19,7 @@ jest.mock('../../../@core', () => ({
   routeAnimations: jest.requireActual('@angular/animations').trigger('routeAnimations', [])
 }))
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   AiFeatureEnum: {
     FEATURE_COPILOT_MONITORING: 'FEATURE_COPILOT_MONITORING'
   },

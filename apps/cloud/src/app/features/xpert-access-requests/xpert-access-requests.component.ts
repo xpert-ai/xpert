@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core'
-import { injectOrganization } from '@xpert-ai/cloud/state'
+import { injectOrganization } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardBadgeComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { XpertAccessRequestReviewListComponent } from './review-requests-list.component'

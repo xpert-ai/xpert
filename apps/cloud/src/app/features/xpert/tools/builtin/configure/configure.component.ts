@@ -29,7 +29,7 @@ import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
 import { environment } from '@cloud/environments/environment'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
-import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { injectOrganizationId } from '@cloud/app/@core/state'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**

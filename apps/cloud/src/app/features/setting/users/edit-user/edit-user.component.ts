@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
-import { Store, UsersService } from '@xpert-ai/cloud/state'
+import { Store, UsersService } from '@cloud/app/@core/state'
 import { AiFeatureEnum, IUser, UserType } from '@xpert-ai/contracts'
 import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'

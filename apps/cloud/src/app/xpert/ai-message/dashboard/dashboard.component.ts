@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
-import { TMessageComponent, TMessageComponentStep } from '@xpert-ai/cloud/state'
+import { TMessageComponent, TMessageComponentStep } from '@cloud/app/@core/state'
 import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
 import { XpertHomeService } from '../../home.service'
 import { ChatService } from '../../chat.service'

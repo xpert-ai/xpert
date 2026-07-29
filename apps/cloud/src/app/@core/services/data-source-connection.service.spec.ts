@@ -1,6 +1,6 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
-import { DataSourceService, Store } from '@xpert-ai/cloud/state'
+import { DataSourceService, Store } from '@cloud/app/@core/state'
 import { AuthenticationEnum } from '@xpert-ai/contracts'
 import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, of } from 'rxjs'

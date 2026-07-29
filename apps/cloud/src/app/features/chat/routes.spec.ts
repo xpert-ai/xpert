@@ -54,14 +54,14 @@ jest.mock('./home/home.component', () => ({
   ChatHomeComponent: class ChatHomeComponent {}
 }))
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   CurrentUserHydrationService: class CurrentUserHydrationService {}
 }))
 
 import { Injector, runInInjectionContext } from '@angular/core'
 import { Route, Router, UrlSegment, UrlSegmentGroup } from '@angular/router'
 import { Observable, firstValueFrom, of } from 'rxjs'
-import { CurrentUserHydrationService } from '@xpert-ai/cloud/state'
+import { CurrentUserHydrationService } from '@cloud/app/@core/state'
 import { routes } from './routes'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'

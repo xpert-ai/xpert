@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ToastrService, UsersService } from '@xpert-ai/cloud/state'
+import { ToastrService, UsersService } from '@cloud/app/@core/state'
 import {
   type IOrganization,
   type IUser,

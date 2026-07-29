@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { UsersService } from '@xpert-ai/cloud/state'
+import { UsersService } from '@cloud/app/@core/state'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
 import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'

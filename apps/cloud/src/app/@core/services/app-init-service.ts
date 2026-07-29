@@ -7,7 +7,7 @@ import {
   CURRENT_USER_BOOTSTRAP_RELATIONS,
   CURRENT_USER_BOOTSTRAP_SELECT,
   UsersService
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import * as Sentry from '@sentry/angular'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'

@@ -6,7 +6,6 @@ const referenceTarget = path.join(repoRoot, 'tailwind-workspace-reference.css')
 const roots = ['libs', 'packages', 'legacies'].map((dir) => path.join(repoRoot, dir))
 const globalChainReferenceOverride = '@reference "../../../tailwind-workspace-reference.css";'
 const globalChainReferenceFiles = new Set([
-  'libs/apps/auth/src/lib/_auth-theme.scss',
   'libs/formly/_formly-theme.scss',
   'libs/formly/_formly.scss',
   'libs/formly/table/_table-theme.scss',

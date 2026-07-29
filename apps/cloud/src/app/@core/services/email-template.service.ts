@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_PREFIX, BaseOrgCrudService } from '@xpert-ai/cloud/state'
+import { API_PREFIX, BaseOrgCrudService } from '@cloud/app/@core/state'
 import {
   ICustomizableEmailTemplate,
   ICustomizeEmailTemplateFindInput,
@@ -23,9 +23,11 @@ export class EmailTemplateService extends BaseOrgCrudService<IEmailTemplate> {
       switchMap((organizationId) =>
         super.getAll({
           where: {
-            organizationId: organizationId ? organizationId : {
-              $isNull: true
-            }
+            organizationId: organizationId
+              ? organizationId
+              : {
+                  $isNull: true
+                }
           }
         })
       )

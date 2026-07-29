@@ -1,7 +1,7 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ICopilotModel, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { ICopilotModel, OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { toParams } from '@xpert-ai/headless-ui'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, filter, firstValueFrom, Observable, shareReplay, switchMap } from 'rxjs'

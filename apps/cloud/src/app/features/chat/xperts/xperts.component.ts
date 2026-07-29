@@ -18,7 +18,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'

@@ -9,7 +9,7 @@ import {
   IPluginMarketplaceRegistryItem,
   IPluginMarketplaceRegistrySection,
   PluginAPIService
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'

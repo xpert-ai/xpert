@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { injectOrganizationId } from '@cloud/app/@core/state'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatMessageStepCategory, injectApiBaseUrl } from '@cloud/app/@core'

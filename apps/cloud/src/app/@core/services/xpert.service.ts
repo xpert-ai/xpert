@@ -12,7 +12,7 @@ import {
   toHttpParams,
   TSandboxProviderMeta,
   TWorkflowTriggerMeta
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { toParams } from '@xpert-ai/headless-ui'
 import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { derivedFrom } from 'ngxtension/derived-from'
