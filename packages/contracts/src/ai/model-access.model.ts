@@ -27,6 +27,7 @@ export enum ModelAccessChannelEnum {
 }
 
 export enum ModelAccessSourceEnum {
+  Direct = 'direct',
   Plan = 'plan',
   Grant = 'grant'
 }

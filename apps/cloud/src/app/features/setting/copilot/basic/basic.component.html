@@ -163,7 +163,7 @@
       </z-accordion-description>
     </z-accordion-header>
 
-    <xp-copilot-form [copilot]="primary()" />
+    <xp-copilot-form [copilot]="primary()" (saved)="copilotServer.refresh()" />
   </z-accordion-item>
 
   @for (copilot of copilots(); track copilot.id) {
@@ -257,7 +257,7 @@
         </z-accordion-description>
       </z-accordion-header>
 
-      <xp-copilot-form [copilot]="copilot" />
+      <xp-copilot-form [copilot]="copilot" (saved)="copilotServer.refresh()" />
     </z-accordion-item>
   }
 </z-accordion>

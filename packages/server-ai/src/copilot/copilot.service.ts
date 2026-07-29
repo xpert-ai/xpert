@@ -101,11 +101,15 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (!tenantId) {
             return []
         }
-        if (!(await this.membershipService.isMembershipAccessEnabled({ tenantId, organizationId }))) {
-            return this.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId, where, relations)
-        }
+        const [tenantMembershipEnabled, organizationMembershipEnabled] = await Promise.all([
+            this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
+            organizationId
+                ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
+                : Promise.resolve(false)
+        ])
         if (
             organizationId &&
+            organizationMembershipEnabled &&
             (await this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)) > 0
         ) {
             await this.membershipService.ensureScopeInitialized({
@@ -115,28 +119,46 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
             })
         }
 
-        const access = await this.membershipService.findModelAccess({
-            tenantId,
-            organizationId
-        })
-        if (!access && !organizationId) {
+        const access =
+            organizationMembershipEnabled || tenantMembershipEnabled
+                ? await this.membershipService.findModelAccess({
+                      tenantId,
+                      organizationId
+                  })
+                : null
+        const allowedScopes = new Set<string | null>()
+        if (!organizationId) {
+            if (!tenantMembershipEnabled || access?.organizationId === null) {
+                allowedScopes.add(null)
+            }
+        } else if (organizationMembershipEnabled) {
+            if (access?.organizationId === organizationId) {
+                allowedScopes.add(organizationId)
+            } else if (tenantMembershipEnabled && access?.organizationId === null) {
+                allowedScopes.add(null)
+            }
+        } else {
+            allowedScopes.add(organizationId)
+            if (tenantMembershipEnabled && access?.organizationId === null) {
+                allowedScopes.add(null)
+            }
+        }
+        if (!allowedScopes.size) {
             return []
         }
 
         const resolvedRelations = this.mergeCopilotRelations(relations)
         const baseWhere = { ...(where ?? {}), tenantId, enabled: true }
+        const scopeWhere = Array.from(allowedScopes).map((scopeOrganizationId) => ({
+            ...baseWhere,
+            organizationId: scopeOrganizationId ? scopeOrganizationId : IsNull()
+        }))
         const items = await this.repository.find({
-            where: organizationId
-                ? [
-                      { ...baseWhere, organizationId },
-                      { ...baseWhere, organizationId: IsNull() }
-                  ]
-                : { ...baseWhere, organizationId: IsNull() },
+            where: organizationId ? scopeWhere : scopeWhere[0],
             relations: resolvedRelations
         })
-        const hydratedItems = await this.hydrateVisibleModelProviders(items, tenantId, organizationId ?? null)
-
-        return hydratedItems.filter((copilot) => !!access && (copilot.organizationId ?? null) === access.organizationId)
+        const scopedItems = items.filter((copilot) => allowedScopes.has(copilot.organizationId ?? null))
+        return this.hydrateVisibleModelProviders(scopedItems, tenantId, organizationId ?? null)
     }
 
     async findAllEnabledCopilotsWithoutMembership(

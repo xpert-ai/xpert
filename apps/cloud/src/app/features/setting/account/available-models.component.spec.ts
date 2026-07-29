@@ -61,7 +61,7 @@ describe('XpAccountAvailableModelsComponent', () => {
     TestBed.resetTestingModule()
   })
 
-  it('groups available models and searches package models by model and provider labels', () => {
+  it('groups available models and searches plan and direct models by model and provider labels', () => {
     const packageModel = catalogItem('package', {
       planIncluded: true,
       allowed: true,
@@ -73,6 +73,12 @@ describe('XpAccountAvailableModelsComponent', () => {
       accessSource: ModelAccessSourceEnum.Grant,
       grant: activeGrant('granted')
     })
+    const directModel = catalogItem('direct', {
+      allowed: true,
+      accessSource: ModelAccessSourceEnum.Direct,
+      ownershipScope: ModelAccessOwnershipScopeEnum.Organization,
+      modelLabel: { en_US: 'Direct Reasoner' }
+    })
     const requestableModel = catalogItem('requestable', { requestable: true })
 
     TestBed.configureTestingModule({
@@ -81,7 +87,7 @@ describe('XpAccountAvailableModelsComponent', () => {
           provide: ModelAccessService,
           useValue: {
             catalog$: of({
-              items: [packageModel, grantedModel, requestableModel],
+              items: [packageModel, grantedModel, directModel, requestableModel],
               canRequest: true,
               tenantFeatureEnabled: true,
               organizationFeatureEnabled: false
@@ -98,14 +104,17 @@ describe('XpAccountAvailableModelsComponent', () => {
     })
     const component = TestBed.runInInjectionContext(() => new XpAccountAvailableModelsComponent())
 
-    expect(component.planModels()).toEqual([packageModel])
+    expect(component.availableModels()).toEqual([packageModel, directModel])
     expect(component.grantModels()).toEqual([grantedModel])
     expect(component.requestableModels()).toEqual([requestableModel])
 
-    component.planModelSearchControl.setValue('alpha')
-    expect(component.filteredPlanModels()).toEqual([packageModel])
+    component.availableModelSearchControl.setValue('alpha')
+    expect(component.filteredAvailableModels()).toEqual([packageModel])
 
-    component.planModelSearchControl.setValue('missing')
-    expect(component.filteredPlanModels()).toEqual([])
+    component.availableModelSearchControl.setValue('direct reasoner')
+    expect(component.filteredAvailableModels()).toEqual([directModel])
+
+    component.availableModelSearchControl.setValue('missing')
+    expect(component.filteredAvailableModels()).toEqual([])
   })
 })

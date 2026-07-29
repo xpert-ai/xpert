@@ -986,7 +986,7 @@
     <z-card-content class="flex flex-col gap-4 p-4">
       <form
         [formGroup]="memberFilterForm"
-        class="grid gap-3 rounded-lg bg-components-panel-bg p-4 md:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_12rem_14rem_12rem_auto]"
+        class="grid gap-3 rounded-lg bg-components-panel-bg p-4 md:grid-cols-2 xl:grid-cols-[minmax(14rem,2fr)_minmax(9rem,1fr)_minmax(10rem,1fr)_minmax(12rem,1fr)_auto]"
         (ngSubmit)="applyMemberFilters()"
       >
         <z-form-field class="w-full">
@@ -1035,7 +1035,7 @@
           </z-form-label>
           <z-date-picker class="w-full" zFormat="yyyy-MM-dd" formControlName="expiringBefore" />
         </z-form-field>
-        <div class="flex items-end gap-2">
+        <div class="flex items-end justify-end gap-2 px-3 pb-3 xl:ml-2">
           <button z-button zType="default" type="submit" [disabled]="adminMembersLoading()">
             {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
           </button>
@@ -1121,7 +1121,7 @@
           z-button
           zType="secondary"
           type="button"
-          class="shrink-0"
+          class="shrink-0 xl:mb-3"
           [disabled]="
             adminMembersLoading() ||
             !selectedUserCount() ||
