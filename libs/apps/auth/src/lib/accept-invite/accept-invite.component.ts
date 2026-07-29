@@ -2,7 +2,13 @@ import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angul
 import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardLoaderComponent
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -72,7 +78,7 @@ export class AcceptInvitePageComponent implements OnInit {
 
   submitForm = async (input: IUserRegistrationInput) => {
     try {
-      const { user, password } = input
+      const { user, password, referralCode } = input
       const { id: inviteId, role, organization } = this.invitation
       // if (role.name === RolesEnum.EMPLOYEE) {
       // 	await this.inviteService.acceptEmployeeInvite({
@@ -85,6 +91,7 @@ export class AcceptInvitePageComponent implements OnInit {
       await this.inviteService.acceptUserInvite({
         user,
         password,
+        referralCode,
         organization,
         inviteId
       })

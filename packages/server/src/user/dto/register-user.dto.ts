@@ -1,34 +1,48 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsNotEmpty, IsNotEmptyObject, IsObject, MinLength, ValidateNested } from "class-validator";
-import { IUserRegistrationInput } from "@xpert-ai/contracts";
-import { Match } from "./../../shared/decorators/validations";
-import { CreateUserDTO } from "./create-user.dto";
+import { ApiProperty } from '@nestjs/swagger'
+import { Type } from 'class-transformer'
+import {
+	IsNotEmpty,
+	IsNotEmptyObject,
+	IsObject,
+	IsOptional,
+	IsString,
+	MaxLength,
+	MinLength,
+	ValidateNested
+} from 'class-validator'
+import { IUserRegistrationInput } from '@xpert-ai/contracts'
+import { Match } from './../../shared/decorators/validations'
+import { CreateUserDTO } from './create-user.dto'
 
 /**
  * Register User DTO validation
  */
 export class RegisterUserDTO implements IUserRegistrationInput {
+	@ApiProperty({ type: () => String, required: false })
+	@IsOptional()
+	@IsString()
+	@MaxLength(32)
+	readonly referralCode?: string
 
-    @ApiProperty({ type: () => String, required : true })
-    @IsNotEmpty({ message: "Password should not be empty" })
-    @MinLength(4, {
-        message: 'Password should be at least 4 characters long.'
-    })
-    readonly password: string;
+	@ApiProperty({ type: () => String, required: true })
+	@IsNotEmpty({ message: 'Password should not be empty' })
+	@MinLength(4, {
+		message: 'Password should be at least 4 characters long.'
+	})
+	readonly password: string
 
-    @ApiProperty({ type: () => String, required : true })
-    @IsNotEmpty({ message: "Confirm password should not be empty" })
-    @Match(RegisterUserDTO, (it) => it.password, {
-        message: 'The password and confirmation password must match.'
-    })
-    readonly confirmPassword: string;
+	@ApiProperty({ type: () => String, required: true })
+	@IsNotEmpty({ message: 'Confirm password should not be empty' })
+	@Match(RegisterUserDTO, (it) => it.password, {
+		message: 'The password and confirmation password must match.'
+	})
+	readonly confirmPassword: string
 
-    @ApiProperty({ type: () => CreateUserDTO, required : true })
-    @IsObject()
-    @IsNotEmptyObject()
-    @IsNotEmpty({ message: "User should not be empty" })
-    @ValidateNested()
-    @Type(() => CreateUserDTO)
-    readonly user: CreateUserDTO;
+	@ApiProperty({ type: () => CreateUserDTO, required: true })
+	@IsObject()
+	@IsNotEmptyObject()
+	@IsNotEmpty({ message: 'User should not be empty' })
+	@ValidateNested()
+	@Type(() => CreateUserDTO)
+	readonly user: CreateUserDTO
 }

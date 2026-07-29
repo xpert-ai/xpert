@@ -30,6 +30,7 @@ export * from './organization-team-model'
 export * from './organization.model'
 
 export * from './role-permission.model'
+export * from './referral.model'
 export * from './seed.model'
 
 export * from './tag-entity.model'

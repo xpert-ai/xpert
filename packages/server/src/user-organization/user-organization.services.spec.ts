@@ -12,7 +12,7 @@ import type { EventEmitter2 } from '@nestjs/event-emitter'
 import type { Repository } from 'typeorm'
 import { RolesEnum, type IUser, type IUserOrganization } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
-import { EVENT_USER_ORGANIZATION_DELETED } from '../user/events'
+import { EVENT_USER_ORGANIZATION_CREATED, EVENT_USER_ORGANIZATION_DELETED } from '../user/events'
 import { UserOrganization } from './user-organization.entity'
 import { UserOrganizationService } from './user-organization.services'
 
@@ -21,7 +21,9 @@ describe('UserOrganizationService', () => {
 		find: jest.fn(),
 		findOne: jest.fn(),
 		delete: jest.fn(),
-		update: jest.fn()
+		update: jest.fn(),
+		create: jest.fn((entity) => entity),
+		save: jest.fn()
 	}
 	const eventEmitter = {
 		emit: jest.fn()
@@ -38,8 +40,13 @@ describe('UserOrganizationService', () => {
 		jest.mocked(RequestContext.currentUserId).mockReturnValue('actor-1')
 		jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-1')
 		userOrganizationRepository.findOne.mockResolvedValue(null)
+		userOrganizationRepository.find.mockResolvedValue([])
 		userOrganizationRepository.delete.mockResolvedValue({ affected: 3 })
 		userOrganizationRepository.update.mockResolvedValue({ affected: 1 })
+		userOrganizationRepository.save.mockImplementation(async (entity) => ({
+			...entity,
+			id: 'membership-1'
+		}))
 
 		service = new UserOrganizationService(
 			userOrganizationRepository as unknown as Repository<UserOrganization>,
@@ -95,6 +102,48 @@ describe('UserOrganizationService', () => {
 			tenantId: 'tenant-1',
 			userId: 'admin-1'
 		})
+	})
+
+	it('defers transactional membership side effects until the transaction has completed', async () => {
+		const manager = {
+			getRepository: jest.fn(() => userOrganizationRepository)
+		}
+
+		const result = await service.ensureMembershipInTransaction(manager as never, {
+			organizationId: 'org-1',
+			tenantId: 'tenant-1',
+			userId: 'user-1'
+		})
+
+		expect(result).toMatchObject({
+			created: true,
+			membership: {
+				id: 'membership-1',
+				organizationId: 'org-1',
+				tenantId: 'tenant-1',
+				userId: 'user-1',
+				isDefault: true,
+				isActive: true
+			}
+		})
+		expect(cacheManager.set).not.toHaveBeenCalled()
+		expect(eventEmitter.emit).not.toHaveBeenCalled()
+
+		await service.completeMembershipCreation({
+			organizationId: 'org-1',
+			tenantId: 'tenant-1',
+			userId: 'user-1'
+		})
+
+		expect(cacheManager.set).toHaveBeenCalled()
+		expect(eventEmitter.emit).toHaveBeenCalledWith(
+			EVENT_USER_ORGANIZATION_CREATED,
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				userId: 'user-1'
+			})
+		)
 	})
 
 	it('bulk removes organization memberships and preserves per-user side effects', async () => {

@@ -112,6 +112,13 @@ const integrationFeature: IFeature = {
   description: 'Integration feature'
 }
 
+const referralFeature: IFeature = {
+  id: 'feature-referral',
+  code: FeatureEnum.FEATURE_REFERRAL,
+  name: 'Invitation codes',
+  description: 'Invitation code feature'
+}
+
 const customChildFeature: IFeature = {
   id: 'feature-custom-child',
   code: 'FEATURE_CUSTOM_CHILD',
@@ -229,10 +236,17 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+      .visibleFeatureGroups([
+        rolePermissionFeature,
+        businessAreaFeature,
+        integrationFeature,
+        referralFeature,
+        parentFeature
+      ])
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+    expect(groupIds).toContain(FeatureEnum.FEATURE_REFERRAL)
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(groupIds).not.toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
@@ -268,13 +282,20 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+      .visibleFeatureGroups([
+        rolePermissionFeature,
+        businessAreaFeature,
+        integrationFeature,
+        referralFeature,
+        parentFeature
+      ])
       .map((group) => group.id)
 
     expect(groupIds).toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(groupIds).not.toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+    expect(groupIds).not.toContain(FeatureEnum.FEATURE_REFERRAL)
   })
 
   it('marks the business area feature card as deprecated', async () => {

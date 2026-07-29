@@ -34,6 +34,7 @@ export interface RegisterAndBindSsoInput {
   email?: string
   password?: string
   confirmPassword?: string
+	referralCode?: string
 }
 
 export interface CompletedSsoBindingResult {
@@ -93,9 +94,7 @@ export class AuthSsoBindingService {
     }
   }
 
-  async completeCurrentUserBinding(
-    input: CompleteCurrentUserSsoBindingInput
-  ): Promise<CompletedSsoBindingResult> {
+	async completeCurrentUserBinding(input: CompleteCurrentUserSsoBindingInput): Promise<CompletedSsoBindingResult> {
     const challenge = await this.getRequiredCurrentUserChallenge(input?.ticket)
     const userId = RequestContext.currentUserId()
 
@@ -146,6 +145,7 @@ export class AuthSsoBindingService {
         },
         password,
         confirmPassword,
+				referralCode: input.referralCode,
         organizationId: challenge.organizationId ?? undefined
       },
       languageCode
@@ -161,10 +161,7 @@ export class AuthSsoBindingService {
     }
   }
 
-  private async getRequiredChallenge(
-    ticket: string | undefined,
-    expectedFlow: PendingSsoBindingFlow
-  ) {
+	private async getRequiredChallenge(ticket: string | undefined, expectedFlow: PendingSsoBindingFlow) {
     const normalizedTicket = this.requireValue(ticket, 'ticket')
     const challenge = await this.pendingSsoBindingChallengeService.get(normalizedTicket)
 
@@ -205,10 +202,7 @@ export class AuthSsoBindingService {
     }
   }
 
-  private async bindUserToChallenge(
-    challenge: PendingSsoBindingChallengeRecord,
-    userId: string
-  ): Promise<void> {
+	private async bindUserToChallenge(challenge: PendingSsoBindingChallengeRecord, userId: string): Promise<void> {
     const existingUserBinding = await this.accountBindingService.getUserBinding({
       tenantId: challenge.tenantId,
       userId,

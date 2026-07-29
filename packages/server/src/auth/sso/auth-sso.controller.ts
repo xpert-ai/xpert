@@ -32,9 +32,7 @@ export class AuthSsoController {
 
   @Public()
   @Post('bind/complete')
-  async completeBinding(
-    @Body() body: { ticket?: string; userName?: string; password?: string }
-  ) {
+	async completeBinding(@Body() body: { ticket?: string; userName?: string; password?: string }) {
     return this.authSsoBindingService.completeBinding(body)
   }
 
@@ -46,7 +44,14 @@ export class AuthSsoController {
   @Public()
   @Post('bind/register')
   async registerAndCompleteBinding(
-    @Body() body: { ticket?: string; email?: string; password?: string; confirmPassword?: string },
+		@Body()
+		body: {
+			ticket?: string
+			email?: string
+			password?: string
+			confirmPassword?: string
+			referralCode?: string
+		},
     @I18nLang() languageCode: LanguagesEnum
   ) {
     return this.authSsoBindingService.registerAndBind(body, languageCode)

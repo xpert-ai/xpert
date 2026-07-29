@@ -106,4 +106,14 @@ describe('setting routes', () => {
     })
   })
 
+  it('keeps invitation code access inline instead of using a separate account route', () => {
+    expect(accountChildren.find((route) => route.path === 'configuration')).toBeUndefined()
+  })
+
+  it('loads referral settings through its feature-local routes', () => {
+    const referralRoute = settingChildren.find((route) => route.path === 'referrals')
+
+    expect(referralRoute?.loadChildren).toBeDefined()
+    expect(referralRoute?.loadComponent).toBeUndefined()
+  })
 })

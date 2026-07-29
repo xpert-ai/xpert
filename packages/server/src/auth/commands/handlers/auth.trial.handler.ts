@@ -1,4 +1,11 @@
-import { CurrenciesEnum, DEFAULT_TENANT, DefaultValueDateTypeEnum, IOrganizationCreateInput, IUser, RolesEnum } from '@xpert-ai/contracts'
+import {
+	CurrenciesEnum,
+	DEFAULT_TENANT,
+	DefaultValueDateTypeEnum,
+	IOrganizationCreateInput,
+	IUser,
+	RolesEnum
+} from '@xpert-ai/contracts'
 import { ConflictException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from 'eventemitter2'
@@ -43,9 +50,8 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 
 		// Account verified by email
 		if (success && record.emailVerified) {
-
 			this.logger.debug(`Found email '${record.email}' is email exists`)
-			
+
 			throw new ConflictException(input.user.email, 'email exists')
 		}
 
@@ -53,7 +59,6 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 			where: { name: RolesEnum.TRIAL }
 		})
 		if (success) {
-
 			this.logger.debug(`Found TRIAL role and clear recreate user '${record.email}'`)
 			if (record.emailVerification) {
 				await this.userService.deleteEmailVarification(record.emailVerification.id)
@@ -70,9 +75,10 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 						roleId: role.id
 					},
 					password: input.password,
+					referralCode: input.referralCode
 				},
 				languageCode
-		  )
+			)
 		}
 
 		// Create organization for trial user
@@ -95,10 +101,11 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 					roleId: role.id
 				},
 				password: input.password,
+				referralCode: input.referralCode,
 				organizationId: organization.id
 			},
 			languageCode
-	  	)
+		)
 
 		this.logger.debug(`Signup user '${userId}'`)
 
@@ -107,10 +114,7 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 		// user.createTrial(organization.id)
 		// user.commit()
 
-		this.eventEmitter.emit(
-			'trial_user.created',
-			new TrialUserCreatedEvent(userId, organization.id),
-		  );
+		this.eventEmitter.emit('trial_user.created', new TrialUserCreatedEvent(userId, organization.id))
 
 		return user
 	}

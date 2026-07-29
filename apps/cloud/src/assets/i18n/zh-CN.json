@@ -18,6 +18,28 @@
   },
   "PAC": {
     "Title": "元数分析云",
+    "Referral": {
+      "CopyCode": "复制邀请码",
+      "Copied": "已复制",
+      "ReferralCode": "邀请码（选填）",
+      "ReferralCodePlaceholder": "请输入邀请码",
+      "ValidatingReferralCode": "正在验证...",
+      "InvalidReferralCode": "邀请码无效。",
+      "ValidReferralCode": "邀请码有效。",
+      "Relationships": "邀请关系",
+      "RelationshipsDescription": "查看当前租户内只读的账号直接邀请关系。",
+      "SearchPlaceholder": "搜索账号或邀请码",
+      "Referrer": "邀请人",
+      "Referred": "被邀请人",
+      "UsedCode": "使用的邀请码",
+      "BoundAt": "绑定时间",
+      "DeletedAccount": "已删除账号",
+      "Empty": "暂无邀请关系。",
+      "LoadError": "邀请关系加载失败。",
+      "Previous": "上一页",
+      "Next": "下一页",
+      "PageSummary": "第 {{page}} / {{pages}} 页，共 {{total}} 条"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime 运维",
       "SuperAdminOnly": "超级管理员",
@@ -676,6 +698,7 @@
       }
     },
     "MENU": {
+      "ReferralRelationships": "邀请关系",
       "Tasks": "任务",
       "Scheduled": "定时",
       "Plugins": "插件",
@@ -2793,6 +2816,10 @@
           "Name": "模型 API 网关",
           "Description": "将已批准的租户或组织模型发布为 OpenAI 兼容 API"
         },
+        "FEATURE_REFERRAL": {
+          "Name": "邀请码",
+          "Description": "启用账号邀请码及租户内邀请关系管理"
+        },
         "FEATURE_MODEL": {
           "Name": "语义模型",
           "Description": "启用语义模型功能"
@@ -3018,6 +3045,7 @@
         "PAYMENT_GATEWAY_VIEW": "View Payment Gateway",
         "SMS_GATEWAY_VIEW": "View SMS Gateway",
         "CUSTOM_SMTP_VIEW": "View Custom SMTP",
+        "REFERRAL_VIEW": "查看邀请关系",
         "IMPORT_EXPORT_VIEW": "View Import/Export",
         "ORG_JOB_EMPLOYEE_VIEW": "查看任务员工",
         "ORG_JOB_MATCHING_VIEW": "查看任务匹配",
