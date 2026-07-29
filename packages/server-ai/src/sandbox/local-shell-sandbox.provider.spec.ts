@@ -328,6 +328,48 @@ describe('LocalShellSandbox', () => {
         }
     })
 
+    it('treats managed service readiness text literally', async () => {
+        const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-ready-text-'))
+        const sandbox = new LocalShellSandbox({ workingDirectory })
+
+        try {
+            const started = await sandbox.startService({
+                command: `node -e "console.log('ready[ok]'); setTimeout(() => process.exit(0), 1000)"`,
+                cwd: workingDirectory,
+                metadata: {},
+                onStateChange: jest.fn(),
+                readyPattern: 'ready[ok]',
+                serviceId: 'literal-ready-text'
+            })
+
+            expect(started.status).toBe('running')
+        } finally {
+            fs.rmSync(workingDirectory, { recursive: true, force: true })
+        }
+    })
+
+    it('rejects readiness text over 4096 UTF-8 bytes before spawning a service', async () => {
+        const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-ready-limit-'))
+        const markerPath = path.join(workingDirectory, 'spawned.txt')
+        const sandbox = new LocalShellSandbox({ workingDirectory })
+
+        try {
+            await expect(
+                sandbox.startService({
+                    command: `touch '${markerPath}'`,
+                    cwd: workingDirectory,
+                    metadata: {},
+                    onStateChange: jest.fn(),
+                    readyPattern: '测'.repeat(1366),
+                    serviceId: 'oversized-ready-text'
+                })
+            ).rejects.toThrow('Service readiness text must not exceed 4096 UTF-8 bytes.')
+            expect(fs.existsSync(markerPath)).toBe(false)
+        } finally {
+            fs.rmSync(workingDirectory, { recursive: true, force: true })
+        }
+    })
+
     it('refuses to proxy requests for services that are no longer running', async () => {
         const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-proxy-'))
         const sandbox = new LocalShellSandbox({ workingDirectory })
@@ -525,6 +567,8 @@ describe('LocalShellSandboxProvider Sandbox Jobs', () => {
 
     it('rejects host-executed jobs in production', async () => {
         process.env.NODE_ENV = 'production'
+        delete process.env.NSJAIL_RUNNER_URL
+        delete process.env.NSJAIL_RUNNER_TOKEN
         const provider = new LocalShellSandboxProvider()
 
         await expect(
@@ -540,4 +584,61 @@ describe('LocalShellSandboxProvider Sandbox Jobs', () => {
             })
         ).resolves.toMatchObject({ available: false, reason: expect.stringContaining('disabled in production') })
     })
+})
+
+describe('LocalShellSandboxProvider', () => {
+    const originalNodeEnv = process.env.NODE_ENV
+    const originalRunnerUrl = process.env.NSJAIL_RUNNER_URL
+    const originalRunnerToken = process.env.NSJAIL_RUNNER_TOKEN
+
+    beforeEach(() => {
+        process.env.NODE_ENV = 'development'
+        delete process.env.NSJAIL_RUNNER_URL
+        delete process.env.NSJAIL_RUNNER_TOKEN
+    })
+
+    afterAll(() => {
+        if (originalNodeEnv === undefined) {
+            delete process.env.NODE_ENV
+        } else {
+            process.env.NODE_ENV = originalNodeEnv
+        }
+        if (originalRunnerUrl === undefined) {
+            delete process.env.NSJAIL_RUNNER_URL
+        } else {
+            process.env.NSJAIL_RUNNER_URL = originalRunnerUrl
+        }
+        if (originalRunnerToken === undefined) {
+            delete process.env.NSJAIL_RUNNER_TOKEN
+        } else {
+            process.env.NSJAIL_RUNNER_TOKEN = originalRunnerToken
+        }
+    })
+
+    it('remains available when the NsJail Runner is not configured', () => {
+        expect(new LocalShellSandboxProvider().isAvailable()).toBe(true)
+    })
+
+    it.each(['NSJAIL_RUNNER_URL', 'NSJAIL_RUNNER_TOKEN'] as const)(
+        'remains available in development when %s is configured',
+        async (name) => {
+            process.env[name] = 'configured'
+            const provider = new LocalShellSandboxProvider()
+
+            expect(provider.isAvailable()).toBe(true)
+            await expect(provider.create()).resolves.toBeInstanceOf(LocalShellSandbox)
+        }
+    )
+
+    it.each(['NSJAIL_RUNNER_URL', 'NSJAIL_RUNNER_TOKEN'] as const)(
+        'fails closed in production when %s is configured',
+        async (name) => {
+            process.env.NODE_ENV = 'production'
+            process.env[name] = 'configured'
+            const provider = new LocalShellSandboxProvider()
+
+            expect(provider.isAvailable()).toBe(false)
+            await expect(provider.create()).rejects.toThrow('Sandbox provider is unavailable: local-shell-sandbox')
+        }
+    )
 })

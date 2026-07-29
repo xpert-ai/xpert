@@ -22,6 +22,7 @@ import {
 
 describe('volume layout helpers', () => {
     const originalHome = process.env.HOME
+    const originalSandboxVolume = process.env.SANDBOX_VOLUME
     const originalUserProfile = process.env.USERPROFILE
 
     beforeEach(() => {
@@ -31,11 +32,17 @@ describe('volume layout helpers', () => {
             volume: ''
         }
         process.env.HOME = '/Users/tester'
+        delete process.env.SANDBOX_VOLUME
         process.env.USERPROFILE = '/Users/tester'
     })
 
     afterAll(() => {
         process.env.HOME = originalHome
+        if (originalSandboxVolume === undefined) {
+            delete process.env.SANDBOX_VOLUME
+        } else {
+            process.env.SANDBOX_VOLUME = originalSandboxVolume
+        }
         process.env.USERPROFILE = originalUserProfile
     })
 
@@ -71,6 +78,17 @@ describe('volume layout helpers', () => {
         expect(getDockerHostSandboxVolumeRootPath('tenant-1')).toBe('/tmp/sandbox/tenant-1')
         expect(normalizeSandboxPublicVolumeSubpath('project/123e4567-e89b-12d3-a456-426614174000/file.txt')).toBe(
             'project/123e4567-e89b-12d3-a456-426614174000/file.txt'
+        )
+    })
+
+    it('keeps tenant and logical subpath when SANDBOX_VOLUME is configured', () => {
+        process.env.SANDBOX_VOLUME = '/Users/tester/data'
+
+        expect(usesFlattenedSandboxVolumeLayout()).toBe(false)
+        expect(getApiContainerSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data/tenant-1')
+        expect(getDockerHostSandboxVolumeRootPath('tenant-1')).toBe('/Users/tester/data/tenant-1')
+        expect(normalizeSandboxPublicVolumeSubpath('xpert/xpert-1/shared/file.txt')).toBe(
+            'xpert/xpert-1/shared/file.txt'
         )
     })
 
