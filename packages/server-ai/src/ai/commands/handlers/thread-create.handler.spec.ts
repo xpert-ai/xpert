@@ -31,14 +31,14 @@ import { ThreadCreateCommand } from '../thread-create.command'
 import { resolveThreadCreateAssistantId, ThreadCreateHandler } from './thread-create.handler'
 
 describe('resolveThreadCreateAssistantId', () => {
-	it.each([
-		['non-string', 123],
-		['null', null],
-		['empty', ''],
-		['blank', '   ']
-	])('rejects an invalid assistant_id: %s', (_label, assistantId) => {
-		expect(() => resolveThreadCreateAssistantId({ assistant_id: assistantId })).toThrow(BadRequestException)
-	})
+    it.each([
+        ['non-string', 123],
+        ['null', null],
+        ['empty', ''],
+        ['blank', '   ']
+    ])('rejects an invalid assistant_id: %s', (_label, assistantId) => {
+        expect(() => resolveThreadCreateAssistantId({ assistant_id: assistantId })).toThrow(BadRequestException)
+    })
 })
 
 describe('ThreadCreateHandler', () => {
@@ -131,10 +131,14 @@ describe('ThreadCreateHandler', () => {
         handler = moduleRef.get(ThreadCreateHandler)
     })
 
-    it('writes xpertId when a thread is created with assistant_id', async () => {
+    it('writes xpertId and fromEndUserId when a thread is created with assistant_id', async () => {
+        const metadata: Record<string, never> = {}
+        Reflect.set(metadata, 'fromEndUserId', 'end-user-1')
+
         const result = await handler.execute(
             new ThreadCreateCommand({
                 assistant_id: 'xpert-1',
+                metadata,
                 if_exists: 'raise'
             })
         )
@@ -146,9 +150,13 @@ describe('ThreadCreateHandler', () => {
         }
         expect(upsert.entity).toMatchObject({
             from: 'api',
+            fromEndUserId: 'end-user-1',
             xpertId: 'xpert-1'
         })
-        expect(result.metadata.assistant_id).toBe('xpert-1')
+        expect(result.metadata).toMatchObject({
+            assistant_id: 'xpert-1',
+            fromEndUserId: 'end-user-1'
+        })
     })
 
     it('checks for an existing thread before switching to the assistant scope', async () => {
@@ -231,7 +239,7 @@ describe('ThreadCreateHandler', () => {
         expect(bind.xpertId).toBe('xpert-1')
     })
 
-    it('rejects binding another public session user\'s thread', async () => {
+    it("rejects binding another public session user's thread", async () => {
         jest.mocked(RequestContext.currentApiPrincipal).mockReturnValue({
             id: 'session-user-1',
             principalType: 'client_secret',
