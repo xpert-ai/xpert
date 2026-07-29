@@ -36,13 +36,60 @@ describe('Artifact share controllers', () => {
         expect(response.send).toHaveBeenCalledWith(expect.any(Buffer))
     })
 
+    it('returns a protected share descriptor through the standard authenticated API', async () => {
+        const descriptor = {
+            link: { slug: 'team-slug', accessMode: 'organization_all' },
+            artifact: { id: 'artifact-1', title: 'Team dashboard' },
+            version: { id: 'version-1', versionNumber: 3 }
+        }
+        const service = {
+            resolveDescriptorForAuthenticatedAccess: jest.fn(async () => descriptor),
+            summarizeRequest: jest.fn(() => ({ ip: '127.0.0.1' }))
+        }
+        const controller = new ArtifactsManagementController(service as never)
+
+        await expect(controller.describeSharedArtifact('team-slug', requestFixture())).resolves.toEqual(descriptor)
+        expect(service.resolveDescriptorForAuthenticatedAccess).toHaveBeenCalledWith({
+            slug: 'team-slug',
+            requestSummary: { ip: '127.0.0.1' }
+        })
+    })
+
+    it('serves protected shared HTML with version and checksum headers', async () => {
+        const service = {
+            resolveForAuthenticatedAccess: jest.fn(async () => ({
+                link: {},
+                artifact: {},
+                version: { id: 'version-3', sha256: 'share123' },
+                buffer: Buffer.from('<!doctype html><script>viewer()</script>'),
+                mimeType: 'text/html',
+                fileName: 'shared-viewer.html',
+                disposition: 'inline',
+                safeHtmlProfile: 'interactive'
+            })),
+            summarizeRequest: jest.fn(() => ({ ip: '127.0.0.1' }))
+        }
+        const response = responseFixture()
+        const controller = new ArtifactsManagementController(service as never)
+
+        await controller.getSharedArtifactContent('team-slug', requestFixture(), response.value)
+
+        expect(service.resolveForAuthenticatedAccess).toHaveBeenCalledWith({
+            slug: 'team-slug',
+            requestSummary: { ip: '127.0.0.1' }
+        })
+        expect(response.headers.get('X-Xpert-Artifact-Version')).toBe('version-3')
+        expect(response.headers.get('X-Xpert-Artifact-SHA256')).toBe('share123')
+        expect(response.send).toHaveBeenCalledWith(expect.any(Buffer))
+    })
+
     it('serves interactive HTML directly with an opaque sandbox and HTTPS typography access', async () => {
         const service = {
             resolveAccessContextFromRequest: jest.fn(async () => ({ principal: {} })),
             resolveForPublicAccess: jest.fn(async () => ({
                 link: {},
                 artifact: {},
-                version: {},
+                version: { id: 'version-1', sha256: 'abc123' },
                 buffer: Buffer.from('<!doctype html><script>viewer()</script>'),
                 mimeType: 'text/html',
                 fileName: 'viewer.html',
@@ -60,6 +107,8 @@ describe('Artifact share controllers', () => {
         expect(response.send).toHaveBeenCalledWith(expect.any(Buffer))
         expect(response.redirect).not.toHaveBeenCalled()
         expect(response.headers.get('Cache-Control')).toBe('no-store')
+        expect(response.headers.get('X-Xpert-Artifact-Version')).toBe('version-1')
+        expect(response.headers.get('X-Xpert-Artifact-SHA256')).toBe('abc123')
         expect(csp).toContain('sandbox allow-scripts')
         expect(csp).not.toContain('allow-same-origin')
         expect(csp).toContain("script-src 'unsafe-inline'")
@@ -95,7 +144,7 @@ describe('Artifact share controllers', () => {
             resolveForPublicAccess: jest.fn(async () => ({
                 link: {},
                 artifact: {},
-                version: {},
+                version: { id: 'version-2' },
                 buffer: Buffer.from('<!doctype html><p>strict</p>'),
                 mimeType: 'text/html',
                 fileName: 'strict.html',
@@ -114,6 +163,31 @@ describe('Artifact share controllers', () => {
         expect(csp).not.toContain('script-src')
         expect(csp).toContain("style-src 'unsafe-inline' https:")
         expect(csp).toContain('font-src data: https:')
+    })
+
+    it('returns a share descriptor without redirecting to the raw HTML viewer', async () => {
+        const descriptor = {
+            link: { slug: 'team-slug', accessMode: 'organization_all' },
+            artifact: { id: 'artifact-1', title: 'Team dashboard' },
+            version: { id: 'version-1', versionNumber: 3 }
+        }
+        const service = {
+            resolveAccessContextFromRequest: jest.fn(async () => ({
+                principal: { userId: 'viewer-1', tenantId: 'tenant-1' },
+                authenticatedUser: { id: 'viewer-1' }
+            })),
+            resolveDescriptorForPublicAccess: jest.fn(async () => descriptor),
+            summarizeRequest: jest.fn(() => ({ ip: '127.0.0.1' }))
+        }
+        const controller = new ArtifactsPublicController(service as never)
+
+        await expect(controller.describe('team-slug', '', requestFixture())).resolves.toEqual(descriptor)
+        expect(service.resolveDescriptorForPublicAccess).toHaveBeenCalledWith(
+            expect.objectContaining({
+                slug: 'team-slug',
+                principal: { userId: 'viewer-1', tenantId: 'tenant-1' }
+            })
+        )
     })
 
     it('sets a short-lived HttpOnly share-only cookie and returns the fixed URL', async () => {

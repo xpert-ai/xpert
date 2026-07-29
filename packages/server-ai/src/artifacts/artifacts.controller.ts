@@ -57,6 +57,23 @@ export class ArtifactsPublicController {
         await this.sendOrRedirect(artifactLinkSlug, previewToken, req, res, true)
     }
 
+    @Public()
+    @Get(':artifactLinkSlug/descriptor')
+    async describe(
+        @Param('artifactLinkSlug') artifactLinkSlug: string,
+        @Query(SIGNED_PREVIEW_QUERY_PARAM) previewToken: string,
+        @Req() req: Request
+    ) {
+        const access = await this.service.resolveAccessContextFromRequest(req)
+        return this.service.resolveDescriptorForPublicAccess({
+            slug: artifactLinkSlug,
+            previewToken,
+            principal: access.principal,
+            authenticatedUser: access.authenticatedUser,
+            requestSummary: this.service.summarizeRequest(req)
+        })
+    }
+
     private async sendOrRedirect(slug: string, previewToken: string, req: Request, res: Response, download: boolean) {
         const access = await this.service.resolveAccessContextFromRequest(req)
         try {
@@ -130,6 +147,27 @@ export class ArtifactsManagementController {
             resourceId,
             includeDeleted: includeDeleted === 'true'
         })
+    }
+
+    @Get('shared-links/:artifactLinkSlug/descriptor')
+    async describeSharedArtifact(@Param('artifactLinkSlug') artifactLinkSlug: string, @Req() req: Request) {
+        return this.service.resolveDescriptorForAuthenticatedAccess({
+            slug: artifactLinkSlug,
+            requestSummary: this.service.summarizeRequest(req)
+        })
+    }
+
+    @Get('shared-links/:artifactLinkSlug/content')
+    async getSharedArtifactContent(
+        @Param('artifactLinkSlug') artifactLinkSlug: string,
+        @Req() req: Request,
+        @Res() res: Response
+    ) {
+        const resolved = await this.service.resolveForAuthenticatedAccess({
+            slug: artifactLinkSlug,
+            requestSummary: this.service.summarizeRequest(req)
+        })
+        sendArtifactResponse(res, resolved)
     }
 
     @Get(':artifactId/versions/:artifactVersionId/content')
@@ -247,6 +285,10 @@ function sendArtifactResponse(res: Response, artifact: ArtifactResponse) {
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Referrer-Policy', 'no-referrer')
     res.setHeader('Cache-Control', 'no-store')
+    res.setHeader('X-Xpert-Artifact-Version', artifact.version.id)
+    if (artifact.version.sha256) {
+        res.setHeader('X-Xpert-Artifact-SHA256', artifact.version.sha256)
+    }
     res.setHeader('Content-Disposition', buildContentDisposition(artifact.disposition, artifact.fileName))
     if (artifact.mimeType === 'text/html') {
         res.setHeader('X-Xpert-Artifact-Html-Profile', artifact.safeHtmlProfile ?? 'strict')

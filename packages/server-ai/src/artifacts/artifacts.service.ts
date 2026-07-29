@@ -117,6 +117,12 @@ export type ArtifactManagementResolvedVersion = {
     fileName: string
 }
 
+export type ArtifactSharedDescriptor = {
+    link: ArtifactLinkRecord
+    artifact: ArtifactRecord
+    version: ArtifactVersionRecord
+}
+
 @Injectable()
 export class ArtifactsService implements ArtifactsApi {
     constructor(
@@ -264,6 +270,26 @@ export class ArtifactsService implements ArtifactsApi {
         return this.resolveArtifactLink(input)
     }
 
+    async resolveDescriptorForPublicAccess(input: {
+        slug: string
+        previewToken?: string | null
+        principal?: ArtifactAccessPrincipal | null
+        authenticatedUser?: IUser | null
+        requestSummary?: ArtifactRequestSummary
+    }): Promise<ArtifactSharedDescriptor> {
+        const { link, artifact, version } = await this.authorizeArtifactLink(input)
+        const sharedLink = this.serializeLink(link)
+        sharedLink.artifact = undefined
+        sharedLink.version = undefined
+        const sharedVersion = serializeArtifactVersion(version)
+        sharedVersion.workspaceFileRef = undefined
+        return {
+            link: sharedLink,
+            artifact: serializeArtifact(artifact),
+            version: sharedVersion
+        }
+    }
+
     async resolveForAuthenticatedAccess(input: {
         slug: string
         requestSummary?: ArtifactRequestSummary
@@ -280,6 +306,22 @@ export class ArtifactsService implements ArtifactsApi {
         })
     }
 
+    async resolveDescriptorForAuthenticatedAccess(input: {
+        slug: string
+        requestSummary?: ArtifactRequestSummary
+    }): Promise<ArtifactSharedDescriptor> {
+        const user = ServerRequestContext.currentUser()
+        if (!user?.id || !user.tenantId) {
+            throw new UnauthorizedException('Login is required to access this artifact link')
+        }
+        return this.resolveDescriptorForPublicAccess({
+            slug: input.slug,
+            principal: { userId: user.id, tenantId: user.tenantId },
+            authenticatedUser: user,
+            requestSummary: input.requestSummary
+        })
+    }
+
     private async resolveArtifactLink(input: {
         slug: string
         download?: boolean
@@ -288,6 +330,50 @@ export class ArtifactsService implements ArtifactsApi {
         authenticatedUser?: IUser | null
         requestSummary?: ArtifactRequestSummary
     }): Promise<ArtifactResolvedVersion> {
+        const { link, artifact, version } = await this.authorizeArtifactLink(input)
+        const file = await this.readWorkspaceArtifact(version.workspaceFileRef)
+        const sha256 = digestBuffer(file.buffer)
+        if (version.sha256 && !safeEqualString(version.sha256, sha256)) {
+            await this.recordAccessLog(link, 'denied', {
+                statusCode: 409,
+                error: 'artifact_checksum_mismatch',
+                requestSummary: input.requestSummary
+            })
+            throw new GoneException('Artifact changed after the link was created')
+        }
+
+        const event: ArtifactAccessEvent = input.download ? 'download' : 'access'
+        await this.incrementCounters(link, input.download ? 'download' : 'access')
+        await this.recordAccessLog(link, event, {
+            statusCode: 200,
+            principalUserId: input.principal?.userId,
+            requestSummary: input.requestSummary
+        })
+
+        return {
+            link,
+            artifact,
+            version,
+            buffer: file.buffer,
+            mimeType: version.mimeType,
+            fileName: version.fileName ?? file.name,
+            disposition: input.download ? 'attachment' : link.disposition,
+            safeHtmlProfile: link.safeHtmlProfile
+        }
+    }
+
+    private async authorizeArtifactLink(input: {
+        slug: string
+        download?: boolean
+        previewToken?: string | null
+        principal?: ArtifactAccessPrincipal | null
+        authenticatedUser?: IUser | null
+        requestSummary?: ArtifactRequestSummary
+    }): Promise<{
+        link: ArtifactLink
+        artifact: Artifact
+        version: ArtifactVersion
+    }> {
         const link = await this.linkRepository.findOne({
             where: { slug: normalizeRequiredString(input.slug, 'slug') },
             relations: ['artifact']
@@ -322,35 +408,7 @@ export class ArtifactsService implements ArtifactsApi {
         }
 
         const version = await this.resolveLinkVersion(link, artifact)
-        const file = await this.readWorkspaceArtifact(version.workspaceFileRef)
-        const sha256 = digestBuffer(file.buffer)
-        if (version.sha256 && !safeEqualString(version.sha256, sha256)) {
-            await this.recordAccessLog(link, 'denied', {
-                statusCode: 409,
-                error: 'artifact_checksum_mismatch',
-                requestSummary: input.requestSummary
-            })
-            throw new GoneException('Artifact changed after the link was created')
-        }
-
-        const event: ArtifactAccessEvent = input.download ? 'download' : 'access'
-        await this.incrementCounters(link, input.download ? 'download' : 'access')
-        await this.recordAccessLog(link, event, {
-            statusCode: 200,
-            principalUserId: input.principal?.userId,
-            requestSummary: input.requestSummary
-        })
-
-        return {
-            link,
-            artifact,
-            version,
-            buffer: file.buffer,
-            mimeType: version.mimeType,
-            fileName: version.fileName ?? file.name,
-            disposition: input.download ? 'attachment' : link.disposition,
-            safeHtmlProfile: link.safeHtmlProfile
-        }
+        return { link, artifact, version }
     }
 
     resolvePrincipalFromRequest(request: ArtifactHttpRequest): ArtifactAccessPrincipal {
