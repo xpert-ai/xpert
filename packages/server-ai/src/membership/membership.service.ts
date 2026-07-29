@@ -2405,7 +2405,11 @@ export class MembershipService {
                 const remaining = pointsUsed - membershipPointsUsed
                 if (remaining > 0) {
                     await this.acquirePersonalPointsLock(manager, input.tenantId, billableUserId)
-                    const personalBalance = await this.getPersonalPointsBalance(input.tenantId, billableUserId, manager)
+                    const personalBalance = await this.getPersonalPointsBalance(
+                        input.tenantId,
+                        billableUserId,
+                        manager
+                    )
                     personalPointsUsed = Math.min(remaining, personalBalance)
                 }
                 membership.pointsUsed = (membership.pointsUsed ?? 0) + membershipPointsUsed
@@ -2510,7 +2514,11 @@ export class MembershipService {
         return Number(((tokenUsed / tokensPerPoint) * Math.max(0, multiplier)).toFixed(10))
     }
 
-    resolveModelMultiplierForPlan(plan: Pick<IMembershipPlan, 'modelMultipliers'>, provider?: string, model?: string) {
+    resolveModelMultiplierForPlan(
+        plan: Pick<IMembershipPlan, 'modelMultipliers'>,
+        provider?: string,
+        model?: string
+    ) {
         return this.resolveModelMultiplier(plan, provider, model)
     }
 
@@ -4213,7 +4221,11 @@ export class MembershipService {
         return start
     }
 
-    private resolveModelMultiplier(plan: Pick<IMembershipPlan, 'modelMultipliers'>, provider?: string, model?: string) {
+    private resolveModelMultiplier(
+        plan: Pick<IMembershipPlan, 'modelMultipliers'>,
+        provider?: string,
+        model?: string
+    ) {
         const multiplier = (plan.modelMultipliers ?? []).find((item) => {
             const providerMatches = !item.provider || item.provider === provider
             const modelMatches = !item.model || item.model === model || item.model === '*'
