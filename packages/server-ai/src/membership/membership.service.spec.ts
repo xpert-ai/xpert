@@ -258,10 +258,9 @@ describe('MembershipService', () => {
             where: { tenantId: 'tenant-1', isDefault: true },
             select: { id: true, timeZone: true }
         })
-        expect(userQueryBuilder.andWhere).toHaveBeenCalledWith(
-            'membership.currentPeriodEnd <= :expiringBefore',
-            { expiringBefore: new Date('2027-03-14T15:59:59.999Z') }
-        )
+        expect(userQueryBuilder.andWhere).toHaveBeenCalledWith('membership.currentPeriodEnd <= :expiringBefore', {
+            expiringBefore: new Date('2027-03-14T15:59:59.999Z')
+        })
     })
 
     it('calculates fractional points directly from token usage without rounding per call', () => {
@@ -401,7 +400,8 @@ describe('MembershipService', () => {
             )
         }
         const backfillQueueService = {
-            enqueueTenantDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined)
+            enqueueTenantDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined),
+            enqueueOrganizationDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined)
         }
         const updateBuilder = {
             update: jest.fn().mockReturnThis(),
@@ -432,8 +432,8 @@ describe('MembershipService', () => {
                 if (where?.status === MembershipPlanStatusEnum.Active && where?.isDefault === undefined) {
                     return scopedPlans.find((plan) => plan.status === MembershipPlanStatusEnum.Active) ?? null
                 }
-                if (where?.code === 'default-unlimited') {
-                    return scopedPlans.find((plan) => plan.code === 'default-unlimited') ?? null
+                if (where?.code) {
+                    return scopedPlans.find((plan) => plan.code === where.code) ?? null
                 }
                 return null
             }),
@@ -456,7 +456,10 @@ describe('MembershipService', () => {
             })
         }
         const userOrganizationRepository = {
-            find: jest.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }]),
+            find: jest.fn().mockResolvedValue([
+                { id: 'user-organization-1', userId: 'user-1' },
+                { id: 'user-organization-2', userId: 'user-2' }
+            ]),
             findOne: jest.fn(async ({ where }) =>
                 ['user-1', 'user-2'].includes(where.userId)
                     ? {
@@ -1271,6 +1274,34 @@ describe('MembershipService', () => {
         ).resolves.toBe(false)
     })
 
+    it('keeps explicit tenant scope when the current request belongs to an organization', async () => {
+        const requestedScopes: Array<string | null> = []
+        const featureOrganizationRepository = createMembershipFeatureRepository((organizationId) => {
+            requestedScopes.push(organizationId)
+            return organizationId === 'org-1' ? [{ isEnabled: false }] : [{ isEnabled: true }]
+        }).repository
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(
+            service.isMembershipPlanEnabled({
+                tenantId: 'tenant-1',
+                organizationId: null
+            })
+        ).resolves.toBe(true)
+        expect(requestedScopes).toEqual([null])
+    })
+
     it('uses organization membership plan feature toggles before tenant toggles', async () => {
         const requestedScopes: Array<string | null> = []
         const featureOrganizationRepository = createMembershipFeatureRepository((organizationId) => {
@@ -1376,6 +1407,41 @@ describe('MembershipService', () => {
         expect(findModelAccess).not.toHaveBeenCalled()
     })
 
+    it('allows direct model usage without consulting membership access', async () => {
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const isMembershipAccessEnabled = jest.spyOn(service, 'isMembershipAccessEnabled')
+        const findModelAccess = jest.spyOn(service, 'findModelAccess')
+
+        await expect(
+            service.assertCanUse(
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    copilotOrganizationId: 'org-1',
+                    userId: 'assistant-tech-user',
+                    provider: 'deepseek',
+                    model: 'deepseek-chat'
+                },
+                {
+                    allowed: true,
+                    channel: ModelAccessChannelEnum.Xpert,
+                    billableUserId: 'assistant-tech-user',
+                    copilotId: 'org-copilot',
+                    copilotModelId: 'deepseek-chat',
+                    provider: 'deepseek',
+                    modelType: AiModelTypeEnum.LLM,
+                    model: 'deepseek-chat',
+                    accessSource: ModelAccessSourceEnum.Direct,
+                    multiplier: 1,
+                    scope: ModelAccessOwnershipScopeEnum.Organization,
+                    organizationId: 'org-1'
+                }
+            )
+        ).resolves.toBeUndefined()
+        expect(isMembershipAccessEnabled).not.toHaveBeenCalled()
+        expect(findModelAccess).not.toHaveBeenCalled()
+    })
+
     it('does not record membership usage when membership plan feature is disabled', async () => {
         const dataSource = {
             transaction: jest.fn()
@@ -1404,6 +1470,42 @@ describe('MembershipService', () => {
                 tokenUsed: 1000
             })
         ).resolves.toBeNull()
+        expect(dataSource.transaction).not.toHaveBeenCalled()
+    })
+
+    it('does not record membership usage for direct model access', async () => {
+        const dataSource = {
+            transaction: jest.fn()
+        }
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const isMembershipAccessEnabled = jest.spyOn(service, 'isMembershipAccessEnabled')
+
+        await expect(
+            service.recordUsage({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: 'org-1',
+                userId: 'assistant-tech-user',
+                provider: 'deepseek',
+                model: 'deepseek-chat',
+                tokenUsed: 1000,
+                modelAccess: {
+                    allowed: true,
+                    channel: ModelAccessChannelEnum.Xpert,
+                    billableUserId: 'assistant-tech-user',
+                    copilotId: 'org-copilot',
+                    copilotModelId: 'deepseek-chat',
+                    provider: 'deepseek',
+                    modelType: AiModelTypeEnum.LLM,
+                    model: 'deepseek-chat',
+                    accessSource: ModelAccessSourceEnum.Direct,
+                    multiplier: 1,
+                    scope: ModelAccessOwnershipScopeEnum.Organization,
+                    organizationId: 'org-1'
+                }
+            })
+        ).resolves.toBeNull()
+        expect(isMembershipAccessEnabled).not.toHaveBeenCalled()
         expect(dataSource.transaction).not.toHaveBeenCalled()
     })
 
@@ -1913,9 +2015,17 @@ describe('MembershipService', () => {
         expect(findUsableMembership).toHaveBeenCalledWith('tenant-1', 'org-1', 'assistant-tech-user', undefined, false)
     })
 
-    it('keeps organization initialization on tenant fallback when no active organization plan exists', async () => {
-        const { dataSource, ledgerRepository, memberships, membershipRepository, planRepository, plans, service } =
-            createScopeInitializationHarness()
+    it('queues organization initialization when no active organization plan exists', async () => {
+        const {
+            backfillQueueService,
+            dataSource,
+            ledgerRepository,
+            memberships,
+            membershipRepository,
+            planRepository,
+            plans,
+            service
+        } = createScopeInitializationHarness()
 
         const status = await service.ensureScopeInitialized({
             tenantId: 'tenant-1',
@@ -1937,6 +2047,10 @@ describe('MembershipService', () => {
         expect(planRepository.save).not.toHaveBeenCalled()
         expect(membershipRepository.save).not.toHaveBeenCalled()
         expect(ledgerRepository.save).not.toHaveBeenCalled()
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
+            'tenant-1',
+            'org-1'
+        )
     })
 
     it('initializes tenant scope by enqueueing an idempotent backfill', async () => {
@@ -2001,6 +2115,81 @@ describe('MembershipService', () => {
         ])
         expect(firstResult).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
         expect(secondResult).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
+    })
+
+    it('creates one default organization plan and backfills active members idempotently', async () => {
+        const { ledgers, memberships, plans, service } = createScopeInitializationHarness()
+
+        const [firstResult, secondResult] = await Promise.all([
+            service.backfillOrganizationDefaultMembershipBatch({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            }),
+            service.backfillOrganizationDefaultMembershipBatch({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            })
+        ])
+
+        expect(plans).toEqual([
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                code: 'default',
+                name: 'Default',
+                status: MembershipPlanStatusEnum.Active,
+                isDefault: true,
+                period: MembershipPeriodEnum.Monthly,
+                includedPoints: 1000,
+                tokensPerPoint: DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
+                allowedModels: [],
+                modelMultipliers: [],
+                rateLimits: []
+            })
+        ])
+        expect(memberships).toHaveLength(2)
+        expect(memberships).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    planId: 'plan-default',
+                    source: MembershipSourceEnum.Organization
+                }),
+                expect.objectContaining({
+                    organizationId: 'org-1',
+                    userId: 'user-2',
+                    planId: 'plan-default',
+                    source: MembershipSourceEnum.Organization
+                })
+            ])
+        )
+        expect(ledgers).toHaveLength(2)
+        expect(firstResult).toEqual({ scanned: 2, assigned: 2, nextCursor: null })
+        expect(secondResult).toEqual({ scanned: 2, assigned: 0, nextCursor: null })
+    })
+
+    it('does not assign a user who leaves the organization after the batch is scanned', async () => {
+        const { memberships, service, userOrganizationRepository } = createScopeInitializationHarness()
+        userOrganizationRepository.find
+            .mockResolvedValueOnce([
+                { id: 'user-organization-1', userId: 'user-1' },
+                { id: 'user-organization-2', userId: 'user-2' }
+            ])
+            .mockResolvedValueOnce([{ id: 'user-organization-1', userId: 'user-1' }])
+
+        const result = await service.backfillOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+
+        expect(memberships).toEqual([
+            expect.objectContaining({
+                organizationId: 'org-1',
+                userId: 'user-1'
+            })
+        ])
+        expect(result).toEqual({ scanned: 2, assigned: 1, nextCursor: null })
     })
 
     it('does not replace an existing tenant plan when the scope has no default plan', async () => {
@@ -2074,9 +2263,17 @@ describe('MembershipService', () => {
         })
     })
 
-    it('does not reactivate an archived default organization plan during initialization', async () => {
-        const { dataSource, ledgerRepository, memberships, membershipRepository, planRepository, plans, service } =
-            createScopeInitializationHarness()
+    it('queues organization initialization when only archived organization plans exist', async () => {
+        const {
+            backfillQueueService,
+            dataSource,
+            ledgerRepository,
+            memberships,
+            membershipRepository,
+            planRepository,
+            plans,
+            service
+        } = createScopeInitializationHarness()
         plans.push({
             id: 'plan-archived',
             tenantId: 'tenant-1',
@@ -2115,6 +2312,126 @@ describe('MembershipService', () => {
         expect(planRepository.save).not.toHaveBeenCalled()
         expect(membershipRepository.save).not.toHaveBeenCalled()
         expect(ledgerRepository.save).not.toHaveBeenCalled()
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
+            'tenant-1',
+            'org-1'
+        )
+    })
+
+    it('reactivates an archived Default organization plan and backfills active members idempotently', async () => {
+        const { memberships, planRepository, plans, service } = createScopeInitializationHarness()
+        const archivedPlan = {
+            id: 'plan-archived',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            code: 'default',
+            name: 'Default',
+            status: MembershipPlanStatusEnum.Archived,
+            isDefault: false,
+            period: MembershipPeriodEnum.Monthly,
+            includedPoints: 1000,
+            tokensPerPoint: 1000,
+            allowedModels: [],
+            modelMultipliers: [],
+            rateLimits: []
+        } as MembershipPlan
+        plans.push(archivedPlan)
+        memberships.push(
+            createMembership({
+                id: 'membership-expired',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                status: MembershipStatusEnum.Expired,
+                planId: archivedPlan.id,
+                plan: archivedPlan
+            })
+        )
+
+        const firstResult = await service.backfillOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        const secondResult = await service.backfillOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+
+        expect(plans).toEqual([
+            expect.objectContaining({
+                id: 'plan-archived',
+                code: 'default',
+                name: 'Default',
+                status: MembershipPlanStatusEnum.Active,
+                isDefault: true
+            })
+        ])
+        expect(memberships).toHaveLength(3)
+        expect(memberships).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'membership-expired',
+                    userId: 'user-1',
+                    status: MembershipStatusEnum.Expired
+                }),
+                expect.objectContaining({
+                    userId: 'user-1',
+                    status: MembershipStatusEnum.Active,
+                    planId: 'plan-archived'
+                }),
+                expect.objectContaining({
+                    userId: 'user-2',
+                    status: MembershipStatusEnum.Active,
+                    planId: 'plan-archived'
+                })
+            ])
+        )
+        expect(planRepository.save).toHaveBeenCalledTimes(1)
+        expect(firstResult).toEqual({ scanned: 2, assigned: 2, nextCursor: null })
+        expect(secondResult).toEqual({ scanned: 2, assigned: 0, nextCursor: null })
+    })
+
+    it('keeps archived organization plans and creates one active Default plan for backfill', async () => {
+        const { memberships, plans, service } = createScopeInitializationHarness()
+        plans.push({
+            id: 'plan-archived',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            code: 'legacy',
+            name: 'Legacy',
+            status: MembershipPlanStatusEnum.Archived,
+            isDefault: false,
+            period: MembershipPeriodEnum.Monthly,
+            includedPoints: 500,
+            tokensPerPoint: 1000,
+            allowedModels: [],
+            modelMultipliers: [],
+            rateLimits: []
+        } as MembershipPlan)
+
+        const result = await service.backfillOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+
+        expect(plans).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'plan-archived',
+                    code: 'legacy',
+                    status: MembershipPlanStatusEnum.Archived,
+                    isDefault: false
+                }),
+                expect.objectContaining({
+                    code: 'default',
+                    name: 'Default',
+                    status: MembershipPlanStatusEnum.Active,
+                    isDefault: true
+                })
+            ])
+        )
+        expect(plans).toHaveLength(2)
+        expect(memberships).toHaveLength(2)
+        expect(result).toEqual({ scanned: 2, assigned: 2, nextCursor: null })
     })
 
     it('initializes organization scope with an existing active plan and active member memberships idempotently', async () => {
@@ -2174,7 +2491,7 @@ describe('MembershipService', () => {
         expect(planRepository.save).toHaveBeenCalledTimes(1)
     })
 
-    it('does not reactivate paused or revoked organization memberships during repair', async () => {
+    it('preserves paused and revoked records while filling missing active organization memberships', async () => {
         const { ledgerRepository, memberships, membershipRepository, plans, service } =
             createScopeInitializationHarness()
         const plan = createPlan({
@@ -2211,10 +2528,16 @@ describe('MembershipService', () => {
         expect(status).toMatchObject({ initialized: true, needsRepair: false, assignedMemberCount: 2 })
         expect(memberships.map((membership) => membership.status)).toEqual([
             MembershipStatusEnum.Paused,
-            MembershipStatusEnum.Expired
+            MembershipStatusEnum.Expired,
+            MembershipStatusEnum.Active
         ])
-        expect(membershipRepository.save).not.toHaveBeenCalled()
-        expect(ledgerRepository.save).not.toHaveBeenCalled()
+        expect(memberships[2]).toMatchObject({
+            userId: 'user-2',
+            planId: plan.id,
+            source: MembershipSourceEnum.Organization
+        })
+        expect(membershipRepository.save).toHaveBeenCalledTimes(1)
+        expect(ledgerRepository.save).toHaveBeenCalledTimes(1)
     })
 
     it('records xpert usage against the xpert creator membership', async () => {

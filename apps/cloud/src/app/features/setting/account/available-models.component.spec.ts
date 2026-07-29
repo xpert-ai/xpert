@@ -15,10 +15,7 @@ import { ModelAccessService } from '../../../@core/services/model-access.service
 import { ToastrService } from '../../../@core/services/toastr.service'
 import { PACAccountAvailableModelsComponent } from './available-models.component'
 
-function catalogItem(
-  key: string,
-  input: Partial<IModelAccessCatalogItem> = {}
-): IModelAccessCatalogItem {
+function catalogItem(key: string, input: Partial<IModelAccessCatalogItem> = {}): IModelAccessCatalogItem {
   return {
     key,
     channel: ModelAccessChannelEnum.Xpert,
@@ -64,7 +61,7 @@ describe('PACAccountAvailableModelsComponent', () => {
     TestBed.resetTestingModule()
   })
 
-  it('groups available models and searches package models by model and provider labels', () => {
+  it('groups available models and searches plan and direct models by model and provider labels', () => {
     const packageModel = catalogItem('package', {
       planIncluded: true,
       allowed: true,
@@ -76,6 +73,12 @@ describe('PACAccountAvailableModelsComponent', () => {
       accessSource: ModelAccessSourceEnum.Grant,
       grant: activeGrant('granted')
     })
+    const directModel = catalogItem('direct', {
+      allowed: true,
+      accessSource: ModelAccessSourceEnum.Direct,
+      ownershipScope: ModelAccessOwnershipScopeEnum.Organization,
+      modelLabel: { en_US: 'Direct Reasoner' }
+    })
     const requestableModel = catalogItem('requestable', { requestable: true })
 
     TestBed.configureTestingModule({
@@ -84,7 +87,7 @@ describe('PACAccountAvailableModelsComponent', () => {
           provide: ModelAccessService,
           useValue: {
             catalog$: of({
-              items: [packageModel, grantedModel, requestableModel],
+              items: [packageModel, grantedModel, directModel, requestableModel],
               canRequest: true,
               tenantFeatureEnabled: true,
               organizationFeatureEnabled: false
@@ -101,14 +104,17 @@ describe('PACAccountAvailableModelsComponent', () => {
     })
     const component = TestBed.runInInjectionContext(() => new PACAccountAvailableModelsComponent())
 
-    expect(component.planModels()).toEqual([packageModel])
+    expect(component.availableModels()).toEqual([packageModel, directModel])
     expect(component.grantModels()).toEqual([grantedModel])
     expect(component.requestableModels()).toEqual([requestableModel])
 
-    component.planModelSearchControl.setValue('alpha')
-    expect(component.filteredPlanModels()).toEqual([packageModel])
+    component.availableModelSearchControl.setValue('alpha')
+    expect(component.filteredAvailableModels()).toEqual([packageModel])
 
-    component.planModelSearchControl.setValue('missing')
-    expect(component.filteredPlanModels()).toEqual([])
+    component.availableModelSearchControl.setValue('direct reasoner')
+    expect(component.filteredAvailableModels()).toEqual([directModel])
+
+    component.availableModelSearchControl.setValue('missing')
+    expect(component.filteredAvailableModels()).toEqual([])
   })
 })
