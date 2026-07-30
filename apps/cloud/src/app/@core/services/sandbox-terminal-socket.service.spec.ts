@@ -3,7 +3,7 @@ import { Store } from '@cloud/app/@core/state'
 import type { Socket } from 'socket.io-client'
 import { io } from 'socket.io-client'
 import { AuthStrategy } from '../auth'
-import { SandboxTerminalServerEvent } from '../types'
+import { SandboxTerminalClientEvent, SandboxTerminalServerEvent } from '../types'
 import { SandboxTerminalSocketService } from './sandbox-terminal-socket.service'
 
 jest.mock('socket.io-client', () => ({
@@ -109,6 +109,18 @@ describe('SandboxTerminalSocketService', () => {
 
     expect(secondSocket).toBe(firstSocket)
     expect(mockedIo).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancels a pending open through the close event using its request id', () => {
+    const service = TestBed.inject(SandboxTerminalSocketService)
+
+    service.close({
+      requestId: 'request-pending'
+    })
+
+    expect(sockets[0].emit).toHaveBeenCalledWith(SandboxTerminalClientEvent.Close, {
+      requestId: 'request-pending'
+    })
   })
 
   it('ignores events from a socket after it has been replaced', () => {

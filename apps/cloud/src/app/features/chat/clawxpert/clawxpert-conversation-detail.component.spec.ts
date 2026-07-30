@@ -2039,7 +2039,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
   })
 
-  it('opens a browser tab when a sandbox service start tool log arrives', async () => {
+  it('opens a browser tab when a structured sandbox preview event arrives', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -2048,18 +2048,14 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const runtimeInput = getRuntimeInput()
     runtimeInput.onLog?.({
-      name: 'tool_log',
+      name: 'lg.chat.event',
       data: {
-        payload: {
-          item: {
-            tool: 'sandbox_service_start',
-            output: JSON.stringify({
-              id: 'service-1',
-              actualPort: 3000,
-              previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
-            })
-          }
-        }
+        type: 'workbench.browser.preview',
+        source: 'sandbox_service_start',
+        serviceId: 'service-1',
+        displayUrl: 'localhost:3000',
+        url: 'localhost:3000',
+        previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
       }
     })
     await settle(fixture)

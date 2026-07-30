@@ -20,6 +20,7 @@ import { getNsjailMessage } from './nsjail-i18n'
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 const RUNNER_GRACE_PERIOD_MS = 10_000
 const RUNNER_HEALTH_TIMEOUT_MS = 2_000
+export const NSJAIL_PROXY_RESPONSE_HEADER = 'x-xpert-nsjail-proxy-response'
 const FILE_OPERATION_ERRORS = new Set<FileOperationError>([
     'file_not_found',
     'permission_denied',
@@ -519,10 +520,15 @@ export class NsjailRunnerClient {
         return parseServiceState(value)
     }
 
-    async proxyService(runtimeId: string, serviceId: string, request: NsjailProxyRequest): Promise<Response> {
+    async proxyService(
+        runtimeId: string,
+        serviceId: string,
+        request: NsjailProxyRequest,
+        signal?: AbortSignal
+    ): Promise<Response> {
         return this.request(
             `/v1/runtimes/${encodeURIComponent(runtimeId)}/services/${encodeURIComponent(serviceId)}/proxy`,
-            { body: request, method: 'POST', timeoutMs: 0 }
+            { acceptAnyStatus: true, body: request, method: 'POST', redirect: 'manual', signal, timeoutMs: 0 }
         )
     }
 
@@ -539,7 +545,14 @@ export class NsjailRunnerClient {
 
     private async request(
         pathname: string,
-        options: { body?: unknown; method: string; timeoutMs?: number }
+        options: {
+            acceptAnyStatus?: boolean
+            body?: unknown
+            method: string
+            redirect?: RequestRedirect
+            signal?: AbortSignal
+            timeoutMs?: number
+        }
     ): Promise<Response> {
         const timeoutMs = options.timeoutMs === undefined ? DEFAULT_REQUEST_TIMEOUT_MS : options.timeoutMs
         const controller = timeoutMs > 0 ? new AbortController() : null
@@ -553,9 +566,12 @@ export class NsjailRunnerClient {
                     ...(options.body === undefined ? {} : { 'content-type': 'application/json' })
                 },
                 method: options.method,
-                signal: controller?.signal
+                redirect: options.redirect,
+                signal: controller?.signal ?? options.signal
             })
-            if (!response.ok) {
+            const isProxyResponse =
+                options.acceptAnyStatus && response.headers.get(NSJAIL_PROXY_RESPONSE_HEADER) === '1'
+            if (!isProxyResponse && !response.ok) {
                 let runnerMessage: string | undefined
                 try {
                     const payload: unknown = await response.json()
@@ -580,7 +596,7 @@ export class NsjailRunnerClient {
             }
             return response
         } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
+            if (error instanceof Error && error.name === 'AbortError' && controller?.signal.aborted) {
                 throw new NsjailRunnerTimeoutError(
                     getNsjailMessage(
                         'NsJailRunnerRequestTimedOut',

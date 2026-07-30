@@ -106,6 +106,10 @@ team:
         position:
           x: 108
           y: 1552
+      Middleware_4aN7pQ9sTx:
+        position:
+          x: 108
+          y: 1672
     position:
       x: 23
       y: 266
@@ -251,6 +255,18 @@ nodes:
       provider: SandboxFile
       required: true
   - type: workflow
+    key: Middleware_4aN7pQ9sTx
+    position:
+      x: 3492
+      y: 372
+    entity:
+      id: Middleware_4aN7pQ9sTx
+      type: middleware
+      key: Middleware_4aN7pQ9sTx
+      title: SandboxService
+      provider: SandboxService
+      required: true
+  - type: workflow
     key: Middleware_UrHWMDuqBe
     position:
       x: 2042
@@ -347,6 +363,10 @@ connections:
     key: Agent_xtcQNJthR8/Middleware_Rwf5Mlc5Vp
     from: Agent_xtcQNJthR8
     to: Middleware_Rwf5Mlc5Vp
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_4aN7pQ9sTx
+    from: Agent_xtcQNJthR8
+    to: Middleware_4aN7pQ9sTx
   - type: workflow
     key: Agent_xtcQNJthR8/Middleware_UrHWMDuqBe
     from: Agent_xtcQNJthR8

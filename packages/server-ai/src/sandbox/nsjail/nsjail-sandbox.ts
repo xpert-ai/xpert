@@ -25,6 +25,7 @@ import {
     isNsjailRuntimeNotFoundError,
     isPermanentNsjailRunnerRequestError,
     isRetryableNsjailRunnerRequestError,
+    NSJAIL_PROXY_RESPONSE_HEADER,
     NsjailRunnerClient
 } from './nsjail-runner.client'
 import { getNsjailMessage } from './nsjail-i18n'
@@ -33,6 +34,17 @@ import { NsjailRuntimeCreateRequest, NsjailServiceStartRequest, NsjailServiceSta
 const TERMINAL_POLL_RETRY_MS = 100
 const TERMINAL_POLL_MAX_RETRY_MS = 5_000
 const MAX_PROXY_REQUEST_BYTES = 16 * 1024 * 1024
+const MAX_PROXY_REWRITE_RESPONSE_BYTES = 16 * 1024 * 1024
+const SENSITIVE_PROXY_REQUEST_HEADERS = new Set([
+    'authorization',
+    'cookie',
+    'proxy-authorization',
+    'x-api-key',
+    'x-auth-token',
+    'x-client-secret',
+    'x-csrf-token',
+    'x-xsrf-token'
+])
 
 function sleep(milliseconds: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, milliseconds))
@@ -84,7 +96,7 @@ function normalizeRequestHeaders(headers: IncomingHttpHeaders): { [name: string]
             lowerName === 'connection' ||
             lowerName === 'keep-alive' ||
             lowerName === 'proxy-authenticate' ||
-            lowerName === 'proxy-authorization' ||
+            SENSITIVE_PROXY_REQUEST_HEADERS.has(lowerName) ||
             lowerName === 'te' ||
             lowerName === 'trailer' ||
             lowerName === 'transfer-encoding' ||
@@ -120,6 +132,9 @@ function shouldForwardProxyResponseHeader(name: string, rewriteBody: boolean): b
         normalized === 'keep-alive' ||
         normalized === 'proxy-authenticate' ||
         normalized === 'proxy-authorization' ||
+        normalized === 'service-worker-allowed' ||
+        normalized === NSJAIL_PROXY_RESPONSE_HEADER ||
+        normalized === 'set-cookie' ||
         normalized === 'te' ||
         normalized === 'trailer' ||
         normalized === 'transfer-encoding' ||
@@ -188,6 +203,105 @@ async function readRequestBody(request: SandboxServiceProxyRequest['request']): 
         chunks.push(buffer)
     }
     return Buffer.concat(chunks)
+}
+
+function waitForResponseDrain(response: SandboxServiceProxyRequest['response'], signal: AbortSignal): Promise<boolean> {
+    if (signal.aborted) {
+        return Promise.resolve(false)
+    }
+
+    return new Promise((resolve) => {
+        const finish = (drained: boolean) => {
+            response.off('drain', onDrain)
+            signal.removeEventListener('abort', onAbort)
+            resolve(drained)
+        }
+        const onDrain = () => finish(true)
+        const onAbort = () => finish(false)
+        response.once('drain', onDrain)
+        signal.addEventListener('abort', onAbort, { once: true })
+    })
+}
+
+async function readProxyResponseBody(body: ReadableStream<Uint8Array>, signal: AbortSignal): Promise<Buffer | null> {
+    const reader = body.getReader()
+    const chunks: Buffer[] = []
+    let size = 0
+    let cancelPromise: Promise<void> | null = null
+    const cancelReader = () => {
+        cancelPromise ??= reader.cancel().catch(() => undefined)
+    }
+    signal.addEventListener('abort', cancelReader, { once: true })
+
+    try {
+        while (!signal.aborted) {
+            const chunk = await reader.read()
+            if (signal.aborted) {
+                return null
+            }
+            if (chunk.done) {
+                return Buffer.concat(chunks, size)
+            }
+            const buffer = Buffer.from(chunk.value)
+            size += buffer.byteLength
+            if (size > MAX_PROXY_REWRITE_RESPONSE_BYTES) {
+                cancelReader()
+                await cancelPromise
+                throw new Error(
+                    getNsjailMessage(
+                        'NsJailProxyResponseTooLarge',
+                        `Sandbox service proxy response exceeds ${MAX_PROXY_REWRITE_RESPONSE_BYTES} bytes.`,
+                        { maxBytes: MAX_PROXY_REWRITE_RESPONSE_BYTES }
+                    )
+                )
+            }
+            chunks.push(buffer)
+        }
+        return null
+    } finally {
+        signal.removeEventListener('abort', cancelReader)
+        if (signal.aborted) {
+            cancelReader()
+            await cancelPromise
+        }
+        reader.releaseLock()
+    }
+}
+
+async function streamProxyResponseBody(
+    body: ReadableStream<Uint8Array>,
+    response: SandboxServiceProxyRequest['response'],
+    signal: AbortSignal
+): Promise<boolean> {
+    const reader = body.getReader()
+    let cancelPromise: Promise<void> | null = null
+    const cancelReader = () => {
+        cancelPromise ??= reader.cancel().catch(() => undefined)
+    }
+    signal.addEventListener('abort', cancelReader, { once: true })
+
+    try {
+        while (!signal.aborted) {
+            const chunk = await reader.read()
+            if (signal.aborted) {
+                return false
+            }
+            if (chunk.done) {
+                return true
+            }
+            if (!response.write(Buffer.from(chunk.value)) && !(await waitForResponseDrain(response, signal))) {
+                return false
+            }
+        }
+        return false
+    } finally {
+        signal.removeEventListener('abort', cancelReader)
+        if (signal.aborted) {
+            cancelReader()
+            await cancelPromise
+        }
+        reader.releaseLock()
+    }
 }
 
 class NsjailTerminalSession implements SandboxTerminalSession {
@@ -456,8 +570,16 @@ export class NsjailSandbox
             return
         }
 
+        const abortController = new AbortController()
+        const abortProxy = () => abortController.abort()
+        request.request.once('aborted', abortProxy)
+        request.response.once('close', abortProxy)
+
         try {
             const body = await readRequestBody(request.request)
+            if (abortController.signal.aborted) {
+                return
+            }
             const proxyRequest = {
                 bodyBase64: body.toString('base64'),
                 headers: normalizeRequestHeaders(request.request.headers),
@@ -465,7 +587,12 @@ export class NsjailSandbox
                 path: request.path
             }
             const upstream = await this.withRuntimeRecovery(() =>
-                this.options.client.proxyService(this.options.runtimeId, request.service.id ?? '', proxyRequest)
+                this.options.client.proxyService(
+                    this.options.runtimeId,
+                    request.service.id ?? '',
+                    proxyRequest,
+                    abortController.signal
+                )
             )
             const proxyBasePath = normalizePreviewProxyBasePath(request.service)
             const rewriteBody = Boolean(
@@ -474,17 +601,23 @@ export class NsjailSandbox
 
             request.response.statusCode = upstream.status
             upstream.headers.forEach((value, name) => {
-                if (name.toLowerCase() !== 'set-cookie' && shouldForwardProxyResponseHeader(name, rewriteBody)) {
-                    request.response.setHeader(name, value)
+                if (shouldForwardProxyResponseHeader(name, rewriteBody)) {
+                    request.response.setHeader(
+                        name,
+                        name.toLowerCase() === 'location' && proxyBasePath
+                            ? rewritePreviewRootPath(value, proxyBasePath)
+                            : value
+                    )
                 }
             })
-            const setCookies = upstream.headers.getSetCookie()
-            if (setCookies.length && shouldForwardProxyResponseHeader('set-cookie', rewriteBody)) {
-                request.response.setHeader('set-cookie', setCookies)
-            }
 
             if (rewriteBody && proxyBasePath) {
-                request.response.end(rewritePreviewTextResponse(await upstream.text(), proxyBasePath))
+                const content = upstream.body
+                    ? await readProxyResponseBody(upstream.body, abortController.signal)
+                    : Buffer.alloc(0)
+                if (content) {
+                    request.response.end(rewritePreviewTextResponse(content.toString('utf8'), proxyBasePath))
+                }
                 return
             }
 
@@ -492,14 +625,13 @@ export class NsjailSandbox
                 request.response.end()
                 return
             }
-            const reader = upstream.body.getReader()
-            let chunk = await reader.read()
-            while (!chunk.done) {
-                request.response.write(Buffer.from(chunk.value))
-                chunk = await reader.read()
+            if (await streamProxyResponseBody(upstream.body, request.response, abortController.signal)) {
+                request.response.end()
             }
-            request.response.end()
         } catch (error) {
+            if (abortController.signal.aborted) {
+                return
+            }
             if (!request.response.headersSent) {
                 request.response.statusCode = 502
                 request.response.setHeader('content-type', 'text/plain; charset=utf-8')
@@ -510,6 +642,9 @@ export class NsjailSandbox
                     reason
                 })
             )
+        } finally {
+            request.request.off('aborted', abortProxy)
+            request.response.off('close', abortProxy)
         }
     }
 

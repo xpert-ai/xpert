@@ -457,8 +457,10 @@ export class ChatSharedTerminalComponent {
             this.statusMessage.set('The current sandbox provider does not support terminal sessions.')
             break
           case SandboxTerminalClosedReason.OpenFailed:
-            this.status.set('error')
-            this.statusMessage.set('Failed to open the terminal session.')
+            if (this.status() !== 'error' || !this.statusMessage()) {
+              this.status.set('error')
+              this.statusMessage.set('Failed to open the terminal session.')
+            }
             break
           case SandboxTerminalClosedReason.ProcessExited:
           case SandboxTerminalClosedReason.ClientClosed:
@@ -468,6 +470,12 @@ export class ChatSharedTerminalComponent {
           case SandboxTerminalClosedReason.SocketDisconnected:
             this.status.set('disconnected')
             this.statusMessage.set('Terminal connection lost. Reconnecting will start a new session.')
+            break
+          case SandboxTerminalClosedReason.Error:
+            if (this.status() !== 'error' || !this.statusMessage()) {
+              this.status.set('error')
+              this.statusMessage.set('Terminal session closed because of an unexpected error.')
+            }
             break
           default:
             this.status.set('error')
@@ -480,9 +488,17 @@ export class ChatSharedTerminalComponent {
   }
 
   private closeInteractiveSession(notifyServer: boolean) {
-    if (notifyServer && this.#sessionId) {
+    if (!notifyServer) {
+      return
+    }
+
+    if (this.#sessionId) {
       this.#sandboxTerminalSocketService.close({
         sessionId: this.#sessionId
+      })
+    } else if (this.#terminalOpenRequestId) {
+      this.#sandboxTerminalSocketService.close({
+        requestId: this.#terminalOpenRequestId
       })
     }
   }

@@ -37,6 +37,7 @@ import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
+import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
 
 export async function bootstrap(options: { title: string; version: string }) {
   // Pre-bootstrap the application configuration
@@ -50,6 +51,7 @@ export async function bootstrap(options: { title: string; version: string }) {
   class RootModule {}
 
   const app = await NestFactory.create<NestExpressApplication>(RootModule, {
+    bodyParser: false,
     bufferLogs: true
   })
 
@@ -75,11 +77,22 @@ export async function bootstrap(options: { title: string; version: string }) {
   app.use(
     text({
       limit: '50mb',
-      type: 'text/xml'
+      type: createSandboxAwareBodyParserType('text/xml')
     })
   )
-  app.use(json({ limit: '50mb' }))
-  app.use(urlencoded({ extended: true, limit: '50mb' }))
+  app.use(
+    json({
+      limit: '50mb',
+      type: createSandboxAwareBodyParserType('application/json')
+    })
+  )
+  app.use(
+    urlencoded({
+      extended: true,
+      limit: '50mb',
+      type: createSandboxAwareBodyParserType('application/x-www-form-urlencoded')
+    })
+  )
 
   // CORS
   const headersForOpenAI =

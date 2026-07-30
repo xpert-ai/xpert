@@ -25,25 +25,20 @@ describe('NsjailSandboxProvider', () => {
         }
     })
 
-    it('stays unavailable until the configured Runner is healthy', async () => {
+    it('uses deployment configuration for provider discovery without probing transient Runner health', async () => {
         const provider = new NsjailSandboxProvider()
         await expect(provider.isAvailable()).resolves.toBe(false)
 
         process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
         process.env.NSJAIL_RUNNER_TOKEN = 'secret'
-        fetchSpy.mockResolvedValue(
-            new Response(JSON.stringify({ status: 'ok' }), {
-                headers: { 'content-type': 'application/json' },
-                status: 200
-            })
-        )
+        fetchSpy.mockRejectedValue(new Error('Runner is restarting'))
 
         await expect(provider.isAvailable()).resolves.toBe(true)
         await expect(provider.isAvailable()).resolves.toBe(true)
-        expect(fetchSpy).toHaveBeenCalledTimes(1)
+        expect(fetchSpy).not.toHaveBeenCalled()
     })
 
-    it('stays unavailable when the Runner rejects the configured token', async () => {
+    it('keeps a configured provider discoverable when the Runner rejects the token', async () => {
         process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
         process.env.NSJAIL_RUNNER_TOKEN = 'invalid'
         fetchSpy.mockResolvedValue(
@@ -53,7 +48,8 @@ describe('NsjailSandboxProvider', () => {
             })
         )
 
-        await expect(new NsjailSandboxProvider().isAvailable()).resolves.toBe(false)
+        await expect(new NsjailSandboxProvider().isAvailable()).resolves.toBe(true)
+        expect(fetchSpy).not.toHaveBeenCalled()
     })
 
     it('creates a stable Runner runtime from the existing workspace binding', async () => {
@@ -97,6 +93,30 @@ describe('NsjailSandboxProvider', () => {
                 method: 'POST'
             })
         )
+    })
+
+    it('rejects creation when the configured Runner is unhealthy', async () => {
+        process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
+        process.env.NSJAIL_RUNNER_TOKEN = 'invalid'
+        fetchSpy.mockResolvedValue(
+            new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                headers: { 'content-type': 'application/json' },
+                status: 401
+            })
+        )
+
+        await expect(
+            new NsjailSandboxProvider().create({
+                workFor: { id: 'project-1', type: 'project' },
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/project/project-1',
+                    workspacePath: '/workspace',
+                    workspaceRoot: '/workspace'
+                }
+            })
+        ).rejects.toThrow('not healthy or rejected')
+        expect(fetchSpy).toHaveBeenCalledTimes(1)
+        expect(fetchSpy.mock.calls[0]?.[0]).toBe('http://runner:8090/health')
     })
 
     it('uses distinct runtime ids for different normalized working directories', async () => {

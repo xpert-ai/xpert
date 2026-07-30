@@ -1,10 +1,14 @@
 import base64
 import io
+import json
 import os
 import pathlib
+import socket
 import subprocess
+import sys
 import tempfile
 import threading
+import time
 import unittest
 from http import HTTPStatus
 from unittest import mock
@@ -96,6 +100,8 @@ class RunnerCgroupCleanupTest(unittest.TestCase):
         self.patcher.start()
 
     def tearDown(self) -> None:
+        with runner.CGROUPS_LOCK:
+            runner.OWNED_NSJAIL_CGROUPS.clear()
         self.patcher.stop()
         self.temporary_directory.cleanup()
 
@@ -128,6 +134,28 @@ class RunnerCgroupCleanupTest(unittest.TestCase):
             self.assertFalse(runner.remove_empty_nsjail_cgroup(path, retries=1))
 
         rmdir.assert_not_called()
+
+    def test_cleanup_only_removes_cgroups_recorded_by_this_runner(self) -> None:
+        owned = self.create_cgroup("NSJAIL.123")
+        foreign = self.create_cgroup("NSJAIL.456")
+        runner.record_nsjail_cgroups((owned,))
+
+        with mock.patch.object(runner, "remove_empty_nsjail_cgroup", return_value=True) as remove:
+            self.assertTrue(runner.cleanup_nsjail_cgroups((owned, foreign)))
+
+        remove.assert_called_once_with(owned)
+
+    def test_cleanup_does_not_remove_a_reused_foreign_cgroup_path(self) -> None:
+        path = self.create_cgroup("NSJAIL.123")
+        runner.record_nsjail_cgroups((path,))
+        with runner.CGROUPS_LOCK:
+            runner.OWNED_NSJAIL_CGROUPS[path] = (-1, -1)
+
+        with mock.patch.object(runner, "remove_empty_nsjail_cgroup", return_value=True) as remove:
+            self.assertTrue(runner.cleanup_nsjail_cgroups((path,)))
+
+        remove.assert_not_called()
+        self.assertNotIn(path, runner.OWNED_NSJAIL_CGROUPS)
 
     def test_cgroup_pid_limit_is_not_conflated_with_rlimit_nproc(self) -> None:
         runtime = runner.Runtime("a" * 32, self.cgroup_root, "/workspace")
@@ -251,9 +279,16 @@ class RunnerFileBoundaryTest(unittest.TestCase):
         self.assertTrue(self.runtime.destroyed)
         self.assertNotIn(self.runtime.runtime_id, runner.RUNTIMES)
 
-    def test_running_service_prevents_idle_runtime_reaping(self) -> None:
+    def test_running_service_is_reaped_after_runtime_becomes_idle(self) -> None:
         process = subprocess.Popen(["sleep", "30"], start_new_session=True)
-        service = runner.Service("service", process, self.root / "stdout.log", self.root / "stderr.log", None, runner.utc_now())
+        service = runner.Service(
+            "service",
+            process,
+            self.root / "stdout.log",
+            self.root / "stderr.log",
+            None,
+            runner.utc_now(),
+        )
         self.runtime.services[service.service_id] = service
         self.runtime.last_activity_at = 100
         with runner.RUNTIMES_LOCK:
@@ -261,8 +296,35 @@ class RunnerFileBoundaryTest(unittest.TestCase):
 
         reaped = runner.reap_idle_runtimes(now=100 + 7201, idle_ttl_seconds=7200)
 
-        self.assertEqual(reaped, 0)
-        self.assertIn(self.runtime.runtime_id, runner.RUNTIMES)
+        self.assertEqual(reaped, 1)
+        self.assertTrue(self.runtime.destroyed)
+        self.assertNotIn(self.runtime.runtime_id, runner.RUNTIMES)
+
+    def test_runtime_hard_ttl_reaps_recently_active_service(self) -> None:
+        process = subprocess.Popen(["sleep", "30"], start_new_session=True)
+        service = runner.Service(
+            "service",
+            process,
+            self.root / "stdout.log",
+            self.root / "stderr.log",
+            None,
+            runner.utc_now(),
+        )
+        self.runtime.services[service.service_id] = service
+        self.runtime.created_at = 100
+        self.runtime.last_activity_at = 100 + 86_399
+        with runner.RUNTIMES_LOCK:
+            runner.RUNTIMES[self.runtime.runtime_id] = self.runtime
+
+        reaped = runner.reap_idle_runtimes(
+            now=100 + 86_401,
+            idle_ttl_seconds=7200,
+            hard_ttl_seconds=86_400,
+        )
+
+        self.assertEqual(reaped, 1)
+        self.assertTrue(self.runtime.destroyed)
+        self.assertNotIn(self.runtime.runtime_id, runner.RUNTIMES)
 
     def test_final_terminal_event_releases_runtime_slot(self) -> None:
         class ExitedTerminal:
@@ -308,6 +370,30 @@ class RunnerFileBoundaryTest(unittest.TestCase):
         runner.reserve_service_start(self.runtime, "new-service")
 
         self.assertIn("new-service", self.runtime.starting_service_ids)
+
+    def test_retained_service_records_are_bounded_without_blocking_same_id_restart(self) -> None:
+        class StoppedProcess:
+            returncode = 0
+
+            def poll(self) -> int:
+                return 0
+
+        self.runtime.services["retained"] = runner.Service(
+            "retained",
+            StoppedProcess(),
+            self.root / "retained.stdout.log",
+            self.root / "retained.stderr.log",
+            None,
+            runner.utc_now(),
+        )
+
+        with mock.patch.object(runner, "MAX_SERVICE_RECORDS_PER_RUNTIME", 1):
+            with self.assertRaises(runner.RunnerError) as context:
+                runner.reserve_service_start(self.runtime, "new-service")
+            runner.reserve_service_start(self.runtime, "retained")
+
+        self.assertEqual(context.exception.status, HTTPStatus.TOO_MANY_REQUESTS)
+        self.assertIn("retained", self.runtime.starting_service_ids)
 
 
 class RunnerExecutionLimitTest(unittest.TestCase):
@@ -369,6 +455,167 @@ class RunnerExecutionLimitTest(unittest.TestCase):
 
         self.assertEqual(self.runtime_a.active_executions, 0)
         self.assertEqual(runner.ACTIVE_EXECUTIONS_GLOBAL, 0)
+
+
+class RunnerProxyLimitTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        root = pathlib.Path(self.temporary_directory.name)
+        self.runtime_a = runner.Runtime("a" * 32, root, "/workspace")
+        self.runtime_b = runner.Runtime("b" * 32, root, "/workspace")
+        with runner.PROXIES_LOCK:
+            runner.ACTIVE_PROXIES_GLOBAL = 0
+
+    def tearDown(self) -> None:
+        self.runtime_a.destroy()
+        self.runtime_b.destroy()
+        with runner.PROXIES_LOCK:
+            runner.ACTIVE_PROXIES_GLOBAL = 0
+        self.temporary_directory.cleanup()
+
+    def test_runtime_proxy_limit_rejects_a_concurrent_request(self) -> None:
+        with (
+            mock.patch.object(runner, "MAX_PROXIES_GLOBAL", 2),
+            mock.patch.object(runner, "MAX_PROXIES_PER_RUNTIME", 1),
+            runner.proxy_slot(self.runtime_a),
+        ):
+            with self.assertRaises(runner.RunnerError) as context:
+                with runner.proxy_slot(self.runtime_a):
+                    self.fail("per-runtime proxy limit was not enforced")
+
+        self.assertEqual(context.exception.status, HTTPStatus.TOO_MANY_REQUESTS)
+        self.assertEqual(self.runtime_a.active_proxies, 0)
+        self.assertEqual(runner.ACTIVE_PROXIES_GLOBAL, 0)
+
+    def test_global_proxy_limit_applies_across_runtimes(self) -> None:
+        with (
+            mock.patch.object(runner, "MAX_PROXIES_GLOBAL", 1),
+            mock.patch.object(runner, "MAX_PROXIES_PER_RUNTIME", 1),
+            runner.proxy_slot(self.runtime_a),
+        ):
+            with self.assertRaises(runner.RunnerError) as context:
+                with runner.proxy_slot(self.runtime_b):
+                    self.fail("global proxy limit was not enforced")
+
+        self.assertEqual(context.exception.status, HTTPStatus.TOO_MANY_REQUESTS)
+        self.assertEqual(self.runtime_b.active_proxies, 0)
+
+    def test_downstream_disconnect_terminates_and_untracks_proxy_helper(self) -> None:
+        service_process = subprocess.Popen(["sleep", "30"], start_new_session=True)
+        service = runner.Service(
+            "service",
+            service_process,
+            pathlib.Path(self.temporary_directory.name) / "stdout.log",
+            pathlib.Path(self.temporary_directory.name) / "stderr.log",
+            3000,
+            runner.utc_now(),
+            status="running",
+        )
+        self.runtime_a.services[service.service_id] = service
+        server_socket, client_socket = socket.socketpair()
+        client_socket.close()
+        handler = object.__new__(runner.RunnerHandler)
+        handler.connection = server_socket
+        handler.wfile = io.BytesIO()
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+        helper_processes: list[subprocess.Popen[bytes]] = []
+        real_popen = subprocess.Popen
+
+        def start_helper(*_args: object, **_kwargs: object) -> subprocess.Popen[bytes]:
+            helper = real_popen(
+                ["sleep", "30"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                start_new_session=True,
+            )
+            helper_processes.append(helper)
+            return helper
+
+        try:
+            with (
+                mock.patch.object(runner, "namespace_pid", return_value=123),
+                mock.patch.object(runner.subprocess, "Popen", side_effect=start_helper),
+            ):
+                with self.assertRaises(BrokenPipeError):
+                    handler._proxy_service(self.runtime_a, service, {})
+        finally:
+            server_socket.close()
+            for helper in helper_processes:
+                if helper.poll() is None:
+                    helper.kill()
+                helper.wait(timeout=2)
+
+        self.assertEqual(len(helper_processes), 1)
+        self.assertIsNotNone(helper_processes[0].poll())
+        self.assertNotIn(helper_processes[0], self.runtime_a.active_processes)
+        self.assertEqual(self.runtime_a.active_proxies, 0)
+        self.assertEqual(runner.ACTIVE_PROXIES_GLOBAL, 0)
+
+    def test_proxy_streams_helper_status_headers_and_body(self) -> None:
+        service_process = subprocess.Popen(["sleep", "30"], start_new_session=True)
+        service = runner.Service(
+            "service",
+            service_process,
+            pathlib.Path(self.temporary_directory.name) / "stdout.log",
+            pathlib.Path(self.temporary_directory.name) / "stderr.log",
+            3000,
+            runner.utc_now(),
+            status="running",
+        )
+        self.runtime_a.services[service.service_id] = service
+        server_socket, client_socket = socket.socketpair()
+        handler = object.__new__(runner.RunnerHandler)
+        handler.connection = server_socket
+        handler.wfile = io.BytesIO()
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+        real_popen = subprocess.Popen
+
+        def start_helper(*_args: object, **_kwargs: object) -> subprocess.Popen[bytes]:
+            return real_popen(
+                [
+                    sys.executable,
+                    "-c",
+                    (
+                        "import sys;"
+                        "sys.stdin.buffer.read();"
+                        "sys.stdout.buffer.write("
+                        "b'{\"status\":201,\"headers\":[[\"x-test\",\"yes\"],"
+                        "[\"X-Xpert-NsJail-Proxy-Response\",\"spoofed\"]]}\\nbody');"
+                        "sys.stdout.buffer.flush()"
+                    ),
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                start_new_session=True,
+            )
+
+        try:
+            with (
+                mock.patch.object(runner, "namespace_pid", return_value=123),
+                mock.patch.object(runner.subprocess, "Popen", side_effect=start_helper),
+            ):
+                handler._proxy_service(self.runtime_a, service, {})
+        finally:
+            client_socket.close()
+            server_socket.close()
+
+        handler.send_response.assert_called_once_with(201)
+        self.assertEqual(
+            handler.send_header.call_args_list,
+            [
+                mock.call("x-test", "yes"),
+                mock.call(runner.PROXY_RESPONSE_MARKER_HEADER, "1"),
+            ],
+        )
+        handler.end_headers.assert_called_once_with()
+        self.assertEqual(handler.wfile.getvalue(), b"body")
+        self.assertFalse(self.runtime_a.active_processes)
 
 
 class RunnerTerminalReservationTest(unittest.TestCase):
@@ -539,15 +786,65 @@ class RunnerManagedServiceSafetyTest(unittest.TestCase):
         self.assertEqual(restarted_stdout.read_bytes(), b"")
         self.assertEqual(restarted_stderr.read_bytes(), b"")
 
-    def test_stopping_a_service_removes_runtime_state_and_logs(self) -> None:
+    def test_stopping_a_service_retains_runtime_state_and_bounded_logs(self) -> None:
         service = self.create_service()
         service.stdout_path.write_text("output")
 
         state = runner.remove_service(self.runtime, service)
 
         self.assertEqual(state["status"], "stopped")
-        self.assertNotIn(service.service_id, self.runtime.services)
-        self.assertFalse(service.stdout_path.parent.exists())
+        self.assertIs(self.runtime.services[service.service_id], service)
+        self.assertEqual(service.stdout_path.read_text(), "output")
+
+    def test_naturally_finished_service_remains_available_for_logs(self) -> None:
+        stdout_path, stderr_path = runner.prepare_service_logs(self.runtime, "finished")
+        process = subprocess.Popen(["/bin/sh", "-c", "printf done; exit 0"], stdout=subprocess.PIPE)
+        assert process.stdout is not None
+        stdout_path.write_bytes(process.stdout.read())
+        process.stdout.close()
+        process.wait(timeout=2)
+        service = runner.Service("finished", process, stdout_path, stderr_path, None, runner.utc_now())
+        self.runtime.services[service.service_id] = service
+
+        states = runner.list_service_states(self.runtime)
+
+        self.assertEqual(states[0]["status"], "stopped")
+        self.assertIs(self.runtime.services[service.service_id], service)
+        self.assertEqual(runner.tail_file(stdout_path, 20), "done")
+
+    def test_readiness_timeout_retains_failed_state_and_logs(self) -> None:
+        clock = 0.0
+
+        def advance_clock() -> float:
+            nonlocal clock
+            clock += 31
+            return clock
+
+        with (
+            mock.patch.object(
+                runner,
+                "nsjail_args",
+                return_value=["/bin/sh", "-c", "printf 'not ready\\n'; sleep 30"],
+            ),
+            mock.patch.object(runner, "discover_nsjail_cgroups", return_value=()),
+            mock.patch.object(runner.time, "monotonic", side_effect=advance_clock),
+        ):
+            with self.assertRaisesRegex(runner.RunnerError, "did not become ready"):
+                runner.start_service(
+                    self.runtime,
+                    {
+                        "command": "ignored",
+                        "cwd": "/workspace",
+                        "env": [],
+                        "port": None,
+                        "readyPattern": "READY",
+                        "serviceId": "timeout",
+                    },
+                )
+
+        service = self.runtime.services["timeout"]
+        self.assertEqual(service.status, "failed")
+        self.assertTrue(service.stdout_path.parent.is_dir())
 
     def test_service_log_copy_keeps_disk_usage_bounded(self) -> None:
         path = self.root / "bounded.log"
@@ -555,6 +852,56 @@ class RunnerManagedServiceSafetyTest(unittest.TestCase):
             runner.copy_bounded_log(io.BytesIO(b"0123456789"), path)
 
         self.assertEqual(path.read_bytes(), b"23456789")
+
+
+class NetProxyTimeoutTest(unittest.TestCase):
+    def test_upstream_body_idle_timeout_is_bounded(self) -> None:
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+        release_server = threading.Event()
+
+        def serve_stalled_response() -> None:
+            connection, _ = listener.accept()
+            with connection:
+                connection.recv(64 * 1024)
+                connection.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\nx")
+                release_server.wait(timeout=5)
+
+        server_thread = threading.Thread(target=serve_stalled_response)
+        server_thread.start()
+        process = subprocess.Popen(
+            [sys.executable, str(pathlib.Path(__file__).with_name("net_proxy.py"))],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        payload = {
+            "bodyBase64": "",
+            "headers": {},
+            "idleTimeoutSeconds": 1,
+            "method": "GET",
+            "path": "/",
+            "port": port,
+        }
+        started_at = time.monotonic()
+        try:
+            try:
+                stdout, stderr = process.communicate(json.dumps(payload).encode(), timeout=2.5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate(timeout=2)
+                self.fail("net proxy did not enforce the upstream body idle timeout")
+        finally:
+            release_server.set()
+            listener.close()
+            server_thread.join(timeout=2)
+
+        self.assertLess(time.monotonic() - started_at, 2.5)
+        self.assertNotEqual(process.returncode, 0)
+        self.assertIn(b'"status": 200', stdout)
+        self.assertIn(b"timed out", stderr.lower())
 
 
 if __name__ == "__main__":

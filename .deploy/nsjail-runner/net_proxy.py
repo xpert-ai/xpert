@@ -28,6 +28,7 @@ def main() -> None:
         port = int(payload["port"])
         method = str(payload["method"]).upper()
         path = str(payload["path"])
+        idle_timeout_seconds = int(payload["idleTimeoutSeconds"])
         headers_value = payload.get("headers", {})
         body = base64.b64decode(str(payload.get("bodyBase64", "")), validate=True)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
@@ -35,6 +36,8 @@ def main() -> None:
 
     if port < 1 or port > 65535:
         fail("Invalid proxy port.")
+    if idle_timeout_seconds < 1 or idle_timeout_seconds > 3600:
+        fail("Invalid proxy idle timeout.")
     parsed_path = urlsplit(path)
     if not path.startswith("/") or parsed_path.scheme or parsed_path.netloc:
         fail("Invalid proxy path.")
@@ -50,11 +53,12 @@ def main() -> None:
     headers["host"] = f"127.0.0.1:{port}"
 
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=30)
+    response_started = False
     try:
         connection.request(method, path, body=body or None, headers=headers)
         response = connection.getresponse()
         if connection.sock:
-            connection.sock.settimeout(None)
+            connection.sock.settimeout(idle_timeout_seconds)
         response_headers = [
             [name, value]
             for name, value in response.getheaders()
@@ -64,6 +68,7 @@ def main() -> None:
             (json.dumps({"headers": response_headers, "status": response.status}) + "\n").encode("utf-8")
         )
         sys.stdout.buffer.flush()
+        response_started = True
         while True:
             chunk = response.read(64 * 1024)
             if not chunk:
@@ -71,7 +76,11 @@ def main() -> None:
             sys.stdout.buffer.write(chunk)
             sys.stdout.buffer.flush()
     except (OSError, http.client.HTTPException) as error:
-        fail(f"Service proxy failed: {error}")
+        message = f"Service proxy failed: {error}"
+        if response_started:
+            print(message, file=sys.stderr, flush=True)
+            raise SystemExit(1)
+        fail(message)
     finally:
         connection.close()
 

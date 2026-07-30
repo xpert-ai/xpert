@@ -612,6 +612,11 @@ print('forbidden syscall returned')
         finally:
             stopped = self.client.json("DELETE", f"/v1/runtimes/{self.runtime_a}/services/{service_id}")
             assert stopped["status"] == "stopped", stopped
+        stopped_logs = self.client.json(
+            "GET",
+            f"/v1/runtimes/{self.runtime_a}/services/{service_id}/logs?tail=20",
+        )
+        assert "GET / HTTP" in stopped_logs["stderr"], stopped_logs
 
         restarted = self.client.json(
             "POST",

@@ -1,8 +1,4 @@
-import {
-    SandboxTerminalClosedReason,
-    SandboxTerminalErrorCode,
-    SandboxTerminalServerEvent
-} from '@xpert-ai/contracts'
+import { SandboxTerminalClosedReason, SandboxTerminalErrorCode, SandboxTerminalServerEvent } from '@xpert-ai/contracts'
 import type { SandboxTerminalOpenOptions } from '@xpert-ai/plugin-sdk'
 import type { Socket } from 'socket.io'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
@@ -202,10 +198,7 @@ describe('SandboxTerminalGateway', () => {
             write: jest.fn()
         }
         const backend = {
-            open: jest
-                .fn()
-                .mockResolvedValueOnce(firstSession)
-                .mockResolvedValueOnce(secondSession)
+            open: jest.fn().mockResolvedValueOnce(firstSession).mockResolvedValueOnce(secondSession)
         }
         sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
             provider: 'local-shell-sandbox',
@@ -224,7 +217,11 @@ describe('SandboxTerminalGateway', () => {
             },
             client as unknown as Socket
         )
-        const firstSessionId = findEmitPayload(client.emit, SandboxTerminalServerEvent.Opened, 'request-close-1')?.sessionId
+        const firstSessionId = findEmitPayload(
+            client.emit,
+            SandboxTerminalServerEvent.Opened,
+            'request-close-1'
+        )?.sessionId
 
         await gateway.close(
             {
@@ -248,7 +245,11 @@ describe('SandboxTerminalGateway', () => {
             },
             client as unknown as Socket
         )
-        const secondSessionId = findEmitPayload(client.emit, SandboxTerminalServerEvent.Opened, 'request-close-2')?.sessionId
+        const secondSessionId = findEmitPayload(
+            client.emit,
+            SandboxTerminalServerEvent.Opened,
+            'request-close-2'
+        )?.sessionId
 
         await gateway.handleDisconnect(client as unknown as Socket)
 
@@ -257,6 +258,142 @@ describe('SandboxTerminalGateway', () => {
             reason: SandboxTerminalClosedReason.SocketDisconnected,
             sessionId: secondSessionId
         })
+    })
+
+    it('cancels a pending open by request id and closes a session that resolves late', async () => {
+        let resolveSession: ((session: { close: jest.Mock; resize: jest.Mock; write: jest.Mock }) => void) | null = null
+        const session = {
+            close: jest.fn(),
+            resize: jest.fn(),
+            write: jest.fn()
+        }
+        const openPromise = new Promise<typeof session>((resolve) => {
+            resolveSession = resolve
+        })
+        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+            provider: 'nsjail',
+            sandbox: {
+                backend: {
+                    open: jest.fn(() => openPromise)
+                }
+            },
+            workingDirectory: '/workspace'
+        })
+
+        const gatewayOpen = gateway.open(
+            {
+                cols: 120,
+                conversationId: 'conversation-1',
+                requestId: 'request-pending',
+                rows: 32
+            },
+            client as unknown as Socket
+        )
+        await Promise.resolve()
+
+        await gateway.close(
+            {
+                requestId: 'request-pending'
+            },
+            client as unknown as Socket
+        )
+        resolveSession?.(session)
+        await gatewayOpen
+
+        expect(session.close).toHaveBeenCalledTimes(1)
+        expect(client.emit).toHaveBeenCalledWith(SandboxTerminalServerEvent.Closed, {
+            reason: SandboxTerminalClosedReason.ClientClosed,
+            requestId: 'request-pending'
+        })
+        expect(client.emit).not.toHaveBeenCalledWith(
+            SandboxTerminalServerEvent.Opened,
+            expect.objectContaining({ requestId: 'request-pending' })
+        )
+    })
+
+    it('closes a pending session that resolves after its socket disconnects', async () => {
+        let resolveSession: ((session: { close: jest.Mock; resize: jest.Mock; write: jest.Mock }) => void) | null = null
+        const session = {
+            close: jest.fn(),
+            resize: jest.fn(),
+            write: jest.fn()
+        }
+        const openPromise = new Promise<typeof session>((resolve) => {
+            resolveSession = resolve
+        })
+        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+            provider: 'nsjail',
+            sandbox: {
+                backend: {
+                    open: jest.fn(() => openPromise)
+                }
+            },
+            workingDirectory: '/workspace'
+        })
+
+        const gatewayOpen = gateway.open(
+            {
+                cols: 120,
+                conversationId: 'conversation-1',
+                requestId: 'request-disconnected',
+                rows: 32
+            },
+            client as unknown as Socket
+        )
+        await Promise.resolve()
+
+        await gateway.handleDisconnect(client as unknown as Socket)
+        resolveSession?.(session)
+        await gatewayOpen
+
+        expect(session.close).toHaveBeenCalledTimes(1)
+        expect(client.emit).not.toHaveBeenCalledWith(
+            SandboxTerminalServerEvent.Opened,
+            expect.objectContaining({ requestId: 'request-disconnected' })
+        )
+    })
+
+    it('closes an opened session by its request id when the opened event has not reached the client', async () => {
+        const session = {
+            close: jest.fn(),
+            resize: jest.fn(),
+            write: jest.fn()
+        }
+        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+            provider: 'nsjail',
+            sandbox: {
+                backend: {
+                    open: jest.fn(() => session)
+                }
+            },
+            workingDirectory: '/workspace'
+        })
+
+        await gateway.open(
+            {
+                cols: 120,
+                conversationId: 'conversation-1',
+                requestId: 'request-opened',
+                rows: 32
+            },
+            client as unknown as Socket
+        )
+
+        await gateway.close(
+            {
+                requestId: 'request-opened'
+            },
+            client as unknown as Socket
+        )
+
+        expect(session.close).toHaveBeenCalledTimes(1)
+        expect(client.emit).toHaveBeenCalledWith(
+            SandboxTerminalServerEvent.Closed,
+            expect.objectContaining({
+                reason: SandboxTerminalClosedReason.ClientClosed,
+                sessionId: expect.any(String)
+            })
+        )
     })
 })
 

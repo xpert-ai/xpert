@@ -122,4 +122,87 @@ describe('NsjailRunnerClient', () => {
             status: 404
         })
     })
+
+    it.each([302, 404, 500])(
+        'returns proxied HTTP %s responses without following or converting them',
+        async (status) => {
+            fetchSpy.mockResolvedValue(
+                new Response(null, {
+                    headers: { 'x-xpert-nsjail-proxy-response': '1' },
+                    status
+                })
+            )
+
+            await expect(
+                client.proxyService('f'.repeat(32), 'web', {
+                    bodyBase64: '',
+                    headers: {},
+                    method: 'GET',
+                    path: '/'
+                })
+            ).resolves.toMatchObject({ status })
+            expect(fetchSpy).toHaveBeenLastCalledWith(
+                `http://runner:8090/v1/runtimes/${'f'.repeat(32)}/services/web/proxy`,
+                expect.objectContaining({ redirect: 'manual' })
+            )
+        }
+    )
+
+    it('keeps unmarked Runner failures in the RPC error path', async () => {
+        fetchSpy.mockResolvedValue(
+            new Response(JSON.stringify({ error: 'NsJail runtime not found' }), {
+                headers: { 'content-type': 'application/json' },
+                status: 404
+            })
+        )
+
+        await expect(
+            client.proxyService('f'.repeat(32), 'web', {
+                bodyBase64: '',
+                headers: {},
+                method: 'GET',
+                path: '/'
+            })
+        ).rejects.toMatchObject({
+            runnerMessage: 'NsJail runtime not found',
+            status: 404
+        })
+    })
+
+    it('cancels an in-flight proxy request when the downstream signal aborts', async () => {
+        const controller = new AbortController()
+        fetchSpy.mockImplementation(
+            (_input, init) =>
+                new Promise<Response>((_resolve, reject) => {
+                    init?.signal?.addEventListener(
+                        'abort',
+                        () => {
+                            const error = new Error('aborted')
+                            error.name = 'AbortError'
+                            reject(error)
+                        },
+                        { once: true }
+                    )
+                })
+        )
+
+        const response = client.proxyService(
+            'f'.repeat(32),
+            'web',
+            {
+                bodyBase64: '',
+                headers: {},
+                method: 'GET',
+                path: '/'
+            },
+            controller.signal
+        )
+        controller.abort()
+
+        await expect(response).rejects.toMatchObject({ name: 'AbortError' })
+        expect(fetchSpy).toHaveBeenLastCalledWith(
+            expect.any(String),
+            expect.objectContaining({ signal: controller.signal })
+        )
+    })
 })

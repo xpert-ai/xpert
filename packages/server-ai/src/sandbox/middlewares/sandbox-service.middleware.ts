@@ -1,5 +1,8 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import {
+    ChatMessageEventTypeEnum,
+    ISandboxManagedService,
   SandboxManagedServiceErrorCode,
   TAgentMiddlewareMeta,
   TAgentRunnableConfigurable
@@ -26,6 +29,7 @@ const SANDBOX_SERVICE_LIST_TOOL_NAME = 'sandbox_service_list'
 const SANDBOX_SERVICE_LOGS_TOOL_NAME = 'sandbox_service_logs'
 const SANDBOX_SERVICE_STOP_TOOL_NAME = 'sandbox_service_stop'
 const SANDBOX_SERVICE_RESTART_TOOL_NAME = 'sandbox_service_restart'
+const WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE = 'workbench.browser.preview'
 
 const serviceStartToolSchema = z.object({
   command: z.string().min(1, 'Command is required.'),
@@ -108,6 +112,24 @@ function stringifyToolResult(value: unknown): string {
   }
 }
 
+async function emitManagedServicePreviewEvent(service: ISandboxManagedService) {
+    if (!service.id || service.transportMode !== 'http' || !service.previewUrl) {
+        return
+    }
+
+    const port = service.actualPort ?? service.requestedPort
+    const displayUrl = typeof port === 'number' ? `localhost:${port}` : service.previewUrl
+
+    await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+        type: WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE,
+        source: SANDBOX_SERVICE_START_TOOL_NAME,
+        serviceId: service.id,
+        displayUrl,
+        url: displayUrl,
+        previewUrl: service.previewUrl
+    }).catch(() => undefined)
+}
+
 @Injectable()
 @AgentMiddlewareStrategy(SANDBOX_SERVICE_MIDDLEWARE_NAME)
 export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
@@ -149,8 +171,7 @@ export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
         }
 
         try {
-          return stringifyToolResult(
-            await this.commandBus.execute(
+                    const service: ISandboxManagedService = await this.commandBus.execute(
               new SandboxStartManagedServiceCommand({
                 agentKey: configurable?.rootAgentKey ?? configurable?.agentKey ?? null,
                 executionId: configurable?.rootExecutionId ?? configurable?.executionId ?? null,
@@ -167,7 +188,8 @@ export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
                 threadId
               })
             )
-          )
+                    await emitManagedServicePreviewEvent(service)
+                    return stringifyToolResult(service)
         } catch (error) {
           return stringifyToolResult(normalizeManagedServiceError(error))
         }
@@ -299,7 +321,8 @@ export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
       },
       {
         name: SANDBOX_SERVICE_RESTART_TOOL_NAME,
-        description: 'Restart a managed sandbox service by serviceId using its stored command and launch settings.',
+                description:
+                    'Restart a managed sandbox service by serviceId using its stored command and launch settings.',
         schema: serviceActionToolSchema
       }
     )

@@ -78,10 +78,10 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
 
     async isAvailable(): Promise<boolean> {
         const config = readRunnerConfig()
-        if (!config.baseUrl || !config.token) {
-            return false
-        }
+        return Boolean(config.baseUrl && config.token)
+    }
 
+    private async isRunnerHealthy(config: ReturnType<typeof readRunnerConfig>): Promise<boolean> {
         const configKey = `${config.baseUrl}\u0000${config.token}`
         if (this.healthCache?.configKey === configKey && this.healthCache.expiresAt > Date.now()) {
             return this.healthCache.available
@@ -133,7 +133,7 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
                 )
             )
         }
-        if (!(await this.isAvailable())) {
+        if (!(await this.isRunnerHealthy(config))) {
             throw new Error(
                 getNsjailMessage(
                     'NsJailRunnerUnavailable',

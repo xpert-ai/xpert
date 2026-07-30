@@ -1,7 +1,9 @@
 jest.mock('../../../@core', () => ({
+  SandboxService: class SandboxService {},
   injectApiBaseUrl: () => '',
   resolveAbsoluteApiBaseUrl: () => 'http://localhost:3000',
   injectToastr: () => ({
+    error: jest.fn(),
     warning: jest.fn()
   })
 }))
@@ -9,6 +11,8 @@ jest.mock('../../../@core', () => ({
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
+import { of, Subject } from 'rxjs'
+import { SandboxService } from '../../../@core'
 import type { ClawXpertManagedServicesSandboxApi } from './clawxpert-managed-services-browser'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 
@@ -48,11 +52,29 @@ function dispatchMouse(target: EventTarget, type: string, clientX: number, clien
 
 describe('ClawXpertConversationPreviewComponent', () => {
   let overlayContainer: OverlayContainer
+  let sandboxService: {
+    createManagedServicePreviewSession: jest.Mock
+  }
 
   beforeEach(async () => {
     TestBed.resetTestingModule()
+    sandboxService = {
+      createManagedServicePreviewSession: jest.fn(() =>
+        of({
+          expiresAt: '2026-07-29T09:00:00.000Z',
+          previewUrl:
+            'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+        })
+      )
+    }
     await TestBed.configureTestingModule({
-      imports: [TranslateModule.forRoot(), ClawXpertConversationPreviewComponent]
+      imports: [TranslateModule.forRoot(), ClawXpertConversationPreviewComponent],
+      providers: [
+        {
+          provide: SandboxService,
+          useValue: sandboxService
+        }
+      ]
     }).compileComponents()
 
     overlayContainer = TestBed.inject(OverlayContainer)
@@ -109,6 +131,102 @@ describe('ClawXpertConversationPreviewComponent', () => {
       throw new Error('Expected preview iframe to be rendered for a running service.')
     }
     expect(iframe.src).toBe('http://localhost:4173/')
+    expect(iframe.getAttribute('sandbox')).toBeNull()
+    expect(iframe.getAttribute('referrerpolicy')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-browser-inspect]')).not.toBeNull()
+    ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ClearCookie')
+  })
+
+  it('loads managed services through the isolated preview bootstrap origin', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('serviceId', 'service-1')
+    fixture.componentRef.setInput('url', 'localhost:4173')
+    await settle(fixture)
+
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledTimes(1)
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledWith('conversation-1', 'service-1')
+    expect(fixture.componentInstance.externalUrl()).toBe('http://localhost:4173/')
+    expect(fixture.componentInstance.activeServiceId()).toBe('service-1')
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected the isolated managed service preview iframe to be rendered.')
+    }
+
+    expect(iframe.src).toBe(
+      'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+    )
+    expect(iframe.getAttribute('sandbox')).toBe(
+      'allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts'
+    )
+    expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer')
+    expect(fixture.nativeElement.querySelector('[data-browser-inspect]')).toBeNull()
+    expect((fixture.nativeElement.querySelector('[data-open-external]') as HTMLButtonElement).disabled).toBe(true)
+    expect(fixture.componentInstance.openableUrl()).toBeNull()
+    ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('XP.Chat.ClawXpert.ClearCookie')
+
+    fixture.componentInstance.reloadFrame()
+    await settle(fixture)
+
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledTimes(2)
+    expect(fixture.componentInstance.activeServiceId()).toBe('service-1')
+    expect(fixture.componentInstance.reloadNonce()).toBe(1)
+
+    fixture.componentRef.setInput('reloadKey', 10)
+    await settle(fixture)
+
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledTimes(3)
+    expect(fixture.componentInstance.reloadNonce()).toBe(10)
+  })
+
+  it('ignores a stale managed preview session after the service binding changes', async () => {
+    const firstSession = new Subject<{ expiresAt: string; previewUrl: string }>()
+    const secondSession = new Subject<{ expiresAt: string; previewUrl: string }>()
+    sandboxService.createManagedServicePreviewSession
+      .mockReturnValueOnce(firstSession)
+      .mockReturnValueOnce(secondSession)
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('serviceId', 'service-1')
+    fixture.componentRef.setInput('url', 'localhost:4173')
+    await settle(fixture)
+
+    fixture.componentRef.setInput('conversationId', 'conversation-2')
+    fixture.componentRef.setInput('serviceId', 'service-2')
+    fixture.componentRef.setInput('url', 'localhost:5173')
+    await settle(fixture)
+
+    firstSession.next({
+      expiresAt: '2026-07-29T09:00:00.000Z',
+      previewUrl: 'https://preview.exampleusercontent.com/old-preview#ticket=old'
+    })
+    firstSession.complete()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.managedPreviewUrl()).toBeNull()
+
+    secondSession.next({
+      expiresAt: '2026-07-29T09:00:00.000Z',
+      previewUrl: 'https://preview.exampleusercontent.com/new-preview#ticket=new'
+    })
+    secondSession.complete()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.managedPreviewUrl()).toBe(
+      'https://preview.exampleusercontent.com/new-preview#ticket=new'
+    )
   })
 
   it('renders an external URL from input', async () => {
@@ -128,6 +246,8 @@ describe('ClawXpertConversationPreviewComponent', () => {
       throw new Error('Expected preview iframe to be rendered for an external URL.')
     }
     expect(iframe.src).toBe('http://localhost/api/xpert-sites/project-request-dashboard-2?v=1')
+    expect(iframe.getAttribute('sandbox')).toBeNull()
+    expect(iframe.getAttribute('referrerpolicy')).toBeNull()
   })
 
   it('emits element references from an external URL preview in inspect mode', async () => {

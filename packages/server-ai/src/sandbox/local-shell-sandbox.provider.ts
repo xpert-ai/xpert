@@ -258,6 +258,8 @@ function shouldForwardProxyResponseHeader(name: string, rewriteBody: boolean): b
         normalized === 'keep-alive' ||
         normalized === 'proxy-authenticate' ||
         normalized === 'proxy-authorization' ||
+        normalized === 'service-worker-allowed' ||
+        normalized === 'set-cookie' ||
         normalized === 'te' ||
         normalized === 'trailer' ||
         normalized === 'transfer-encoding' ||
@@ -859,10 +861,17 @@ export class LocalShellSandbox
         }
 
         const headers = { ...request.request.headers }
+        delete headers.authorization
         delete headers.connection
+        delete headers.cookie
         delete headers['keep-alive']
         delete headers['proxy-authenticate']
         delete headers['proxy-authorization']
+        delete headers['x-api-key']
+        delete headers['x-auth-token']
+        delete headers['x-client-secret']
+        delete headers['x-csrf-token']
+        delete headers['x-xsrf-token']
         delete headers.trailer
         delete headers['transfer-encoding']
         delete headers.upgrade

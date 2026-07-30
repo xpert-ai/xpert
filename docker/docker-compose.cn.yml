@@ -44,6 +44,7 @@ services:
       OLAP_HOST: olap
       OLAP_PORT: 8080
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      SANDBOX_PREVIEW_BASE_URL: ${SANDBOX_PREVIEW_BASE_URL:-http://localhost:3001}
       SENTRY_DSN: ${SENTRY_DSN:-}
     env_file:
       - .env
@@ -97,6 +98,7 @@ services:
     ports:
       - ${WEB_PORT:-80}:80
       - ${API_PORT:-3000}:3000
+      - ${SANDBOX_PREVIEW_PORT:-3001}:3001
       # - 443:443
     volumes:
       - ../.deploy/webapp/nginx.compose.conf:/etc/nginx/conf.d/compose.conf.template:ro

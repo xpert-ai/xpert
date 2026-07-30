@@ -9,6 +9,7 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -17,7 +18,8 @@ import { environment } from '@cloud/environments/environment'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective, ZardMenuImports } from '@xpert-ai/headless-ui'
 import { TChatElementReference } from '@xpert-ai/contracts'
-import { injectToastr, resolveAbsoluteApiBaseUrl } from '../../../@core'
+import { firstValueFrom } from 'rxjs'
+import { injectToastr, resolveAbsoluteApiBaseUrl, SandboxService } from '../../../@core'
 import {
   createClawXpertManagedServicesBrowserController,
   type ClawXpertManagedServicesBrowserControllerOptions,
@@ -162,6 +164,7 @@ const DEVICE_VIEWPORT_PRESETS: readonly DeviceViewportPreset[] = [
 
 type BrowserNavigationOptions = {
   emitState?: boolean
+  preserveManagedService?: boolean
   pushHistory?: boolean
 }
 
@@ -504,18 +507,20 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
             </label>
           </form>
 
-          <button
-            type="button"
-            data-browser-inspect
-            [class]="
-              mode() === 'inspect'
-                ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-accent transition-colors hover:bg-hover-bg'
-                : 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary'
-            "
-            (click)="toggleInspectMode()"
-          >
-            <i class="ri-focus-3-line text-lg"></i>
-          </button>
+          @if (!hasManagedPreview()) {
+            <button
+              type="button"
+              data-browser-inspect
+              [class]="
+                mode() === 'inspect'
+                  ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-accent transition-colors hover:bg-hover-bg'
+                  : 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary'
+              "
+              (click)="toggleInspectMode()"
+            >
+              <i class="ri-focus-3-line text-lg"></i>
+            </button>
+          }
 
           <button
             type="button"
@@ -639,17 +644,33 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
                   [style.width.px]="deviceToolbar() ? deviceViewportWidth() : null"
                   [style.height.px]="deviceToolbar() ? deviceViewportHeight() : null"
                 >
-                  <iframe
-                    #previewFrame
-                    class="origin-top-left min-h-full bg-background-default-subtle"
-                    [class.h-full]="zoomLevel() === 100"
-                    [class.w-full]="zoomLevel() === 100"
-                    [style.height.%]="framePercentSize()"
-                    [style.width.%]="framePercentSize()"
-                    [style.transform]="frameTransform()"
-                    [src]="browserResourceUrl()"
-                    (load)="handleFrameLoad()"
-                  ></iframe>
+                  @if (hasManagedPreview()) {
+                    <iframe
+                      #previewFrame
+                      class="origin-top-left min-h-full bg-background-default-subtle"
+                      [class.h-full]="zoomLevel() === 100"
+                      [class.w-full]="zoomLevel() === 100"
+                      [style.height.%]="framePercentSize()"
+                      [style.width.%]="framePercentSize()"
+                      [style.transform]="frameTransform()"
+                      [src]="browserResourceUrl()"
+                      sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+                      referrerpolicy="no-referrer"
+                      (load)="handleFrameLoad()"
+                    ></iframe>
+                  } @else {
+                    <iframe
+                      #previewFrame
+                      class="origin-top-left min-h-full bg-background-default-subtle"
+                      [class.h-full]="zoomLevel() === 100"
+                      [class.w-full]="zoomLevel() === 100"
+                      [style.height.%]="framePercentSize()"
+                      [style.width.%]="framePercentSize()"
+                      [style.transform]="frameTransform()"
+                      [src]="browserResourceUrl()"
+                      (load)="handleFrameLoad()"
+                    ></iframe>
+                  }
                 </div>
 
                 @if (deviceToolbar()) {
@@ -736,9 +757,11 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
             <button type="button" class="h-8 w-8" (click)="zoomIn()">+</button>
           </div>
         </div>
-        <button type="button" z-menu-item (click)="clearCookies()">
-          {{ 'XP.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
-        </button>
+        @if (!hasManagedPreview()) {
+          <button type="button" z-menu-item (click)="clearCookies()">
+            {{ 'XP.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
+          </button>
+        }
         <button type="button" z-menu-item (click)="clearCache()">
           {{ 'XP.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
         </button>
@@ -771,8 +794,11 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
 export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly #sanitizer = inject(DomSanitizer)
   readonly #apiBaseUrl = resolveAbsoluteApiBaseUrl(environment.API_BASE_URL)
+  readonly #sandboxService = inject(SandboxService)
   readonly #toastr = injectToastr()
   readonly #document = inject(DOCUMENT)
+  #managedPreviewRequestId = 0
+  #lastAppliedReloadKey: number | undefined
   #frameCleanup: (() => void) | null = null
   #frameSyncRequestId: number | null = null
   #frameSyncWindow: Window | null = null
@@ -791,8 +817,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly frameRef = viewChild<ElementRef<HTMLIFrameElement>>('previewFrame')
 
   readonly addressValue = signal('')
+  readonly activeServiceId = signal<string | null>(null)
   readonly displayUrl = signal<string | null>(null)
   readonly externalUrl = signal<string | null>(null)
+  readonly managedPreviewUrl = signal<string | null>(null)
   readonly zoomLevel = signal(DEFAULT_ZOOM_LEVEL)
   readonly deviceToolbar = signal(false)
   readonly deviceViewportWidth = signal(DEFAULT_DEVICE_VIEWPORT_WIDTH)
@@ -820,29 +848,60 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   )
   readonly selectedDevicePresetDefaultLabel = computed(() => this.selectedDevicePreset()?.defaultLabel ?? 'Responsive')
   readonly activeOverlay = computed(() => this.selectedOverlay() ?? this.hoveredOverlay())
-  readonly hasBrowserTarget = computed(() => !!this.externalUrl())
+  readonly hasManagedPreview = computed(
+    () => isNonEmptyString(this.conversationId()) && isNonEmptyString(this.activeServiceId())
+  )
+  readonly hasBrowserTarget = computed(() =>
+    this.hasManagedPreview() ? !!this.managedPreviewUrl() : !!this.externalUrl()
+  )
   readonly canGoBack = computed(() => this.historyIndex() > 0)
   readonly canGoForward = computed(() => this.historyIndex() >= 0 && this.historyIndex() < this.history().length - 1)
   readonly framePercentSize = computed(() => 100 / (this.zoomLevel() / 100))
   readonly frameTransform = computed(() => `scale(${this.zoomLevel() / 100})`)
   readonly externalResourceUrl = computed<SafeResourceUrl | null>(() => {
     const externalUrl = this.externalUrl()
-    const browserUrl = externalUrl ? sameOriginApiProxyUrl(externalUrl, this.#apiBaseUrl) : null
-    const previewUrl = browserUrl ? appendBrowserCacheKey(browserUrl, this.reloadNonce(), this.cacheBustNonce()) : null
+    const managedPreviewUrl = this.hasManagedPreview() ? this.managedPreviewUrl() : null
+    const browserUrl = managedPreviewUrl ?? (externalUrl ? sameOriginApiProxyUrl(externalUrl, this.#apiBaseUrl) : null)
+    const previewUrl = managedPreviewUrl
+      ? managedPreviewUrl
+      : browserUrl
+        ? appendBrowserCacheKey(browserUrl, this.reloadNonce(), this.cacheBustNonce())
+        : null
     return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
   })
   readonly browserResourceUrl = computed(() => this.externalResourceUrl())
-  readonly openableUrl = computed(() => this.externalUrl())
+  readonly openableUrl = computed(() => (this.hasManagedPreview() ? null : this.externalUrl()))
 
   constructor() {
     effect(() => {
-      this.conversationId()
-      this.resetFrameState()
-      this.externalUrl.set(null)
-      this.displayUrl.set(null)
-      this.addressValue.set('')
-      this.history.set([])
-      this.historyIndex.set(-1)
+      const conversationId = this.conversationId()
+      const serviceId = this.serviceId()
+      const url = this.url()
+      const normalizedServiceId = isNonEmptyString(serviceId) ? serviceId : null
+
+      untracked(() => {
+        this.#managedPreviewRequestId += 1
+        this.resetFrameState()
+        this.activeServiceId.set(normalizedServiceId)
+        this.externalUrl.set(null)
+        this.managedPreviewUrl.set(null)
+        this.displayUrl.set(null)
+        this.addressValue.set('')
+        this.history.set([])
+        this.historyIndex.set(-1)
+
+        if (isNonEmptyString(url)) {
+          void this.navigateToAddress(url, {
+            emitState: false,
+            preserveManagedService: true,
+            pushHistory: false
+          })
+        }
+
+        if (isNonEmptyString(conversationId) && normalizedServiceId) {
+          void this.loadManagedPreviewSession(conversationId, normalizedServiceId)
+        }
+      })
     })
 
     effect(() => {
@@ -856,26 +915,26 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     effect(() => {
       const reloadKey = this.reloadKey()
       const nextReloadKey = typeof reloadKey === 'number' && Number.isFinite(reloadKey) ? reloadKey : 0
-      if (this.reloadNonce() !== nextReloadKey) {
+      untracked(() => {
+        const reloadAlreadyApplied = this.reloadNonce() === nextReloadKey
+        const shouldReloadManagedPreview = this.#lastAppliedReloadKey !== undefined && !reloadAlreadyApplied
+        this.#lastAppliedReloadKey = nextReloadKey
         this.reloadNonce.set(nextReloadKey)
-      }
-    })
 
-    effect(() => {
-      this.conversationId()
-      const url = this.url()
-      this.serviceId()
-
-      if (isNonEmptyString(url)) {
-        void this.navigateToAddress(url, {
-          emitState: false,
-          pushHistory: false
-        })
-      }
+        if (shouldReloadManagedPreview) {
+          const conversationId = this.conversationId()
+          const serviceId = this.activeServiceId()
+          if (isNonEmptyString(conversationId) && isNonEmptyString(serviceId)) {
+            this.resetFrameState()
+            void this.loadManagedPreviewSession(conversationId, serviceId)
+          }
+        }
+      })
     })
   }
 
   ngOnDestroy(): void {
+    this.#managedPreviewRequestId += 1
     this.stopDeviceViewportResize()
     this.destroyFrameListeners()
   }
@@ -896,6 +955,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   }
 
   async navigateToAddress(rawAddress: string, options: BrowserNavigationOptions = {}) {
+    if (!options.preserveManagedService) {
+      this.clearManagedPreview()
+    }
+
     const address = rawAddress.trim()
     if (!address) {
       this.externalUrl.set(null)
@@ -962,6 +1025,11 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   reloadFrame() {
     this.reloadNonce.update((value) => value + 1)
     this.resetFrameState()
+    const conversationId = this.conversationId()
+    const serviceId = this.activeServiceId()
+    if (isNonEmptyString(conversationId) && isNonEmptyString(serviceId)) {
+      void this.loadManagedPreviewSession(conversationId, serviceId)
+    }
     this.emitBrowserState()
   }
 
@@ -1413,10 +1481,42 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
       deviceToolbarVisible: this.deviceToolbar(),
       displayUrl,
       reloadKey: this.reloadNonce(),
-      serviceId: null,
+      serviceId: this.activeServiceId(),
       url: this.externalUrl() ?? displayUrl,
       zoom: this.zoomLevel()
     })
+  }
+
+  private clearManagedPreview() {
+    this.#managedPreviewRequestId += 1
+    this.activeServiceId.set(null)
+    this.managedPreviewUrl.set(null)
+  }
+
+  private async loadManagedPreviewSession(conversationId: string, serviceId: string) {
+    const requestId = ++this.#managedPreviewRequestId
+    this.managedPreviewUrl.set(null)
+
+    try {
+      const session = await firstValueFrom(
+        this.#sandboxService.createManagedServicePreviewSession(conversationId, serviceId)
+      )
+      if (
+        requestId !== this.#managedPreviewRequestId ||
+        this.conversationId() !== conversationId ||
+        this.activeServiceId() !== serviceId
+      ) {
+        return
+      }
+
+      this.managedPreviewUrl.set(session.previewUrl)
+    } catch {
+      if (requestId !== this.#managedPreviewRequestId) {
+        return
+      }
+
+      this.#toastr.error('XP.Chat.ClawXpert.PreviewUnavailableDesc')
+    }
   }
 
   private readInputEventValue(event: Event, fallback: number) {

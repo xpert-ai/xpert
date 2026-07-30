@@ -3,6 +3,7 @@ import http from 'node:http'
 import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
+import { Readable, Writable } from 'node:stream'
 import { LocalShellSandbox, LocalShellSandboxProvider } from './local-shell-sandbox.provider'
 
 const mockSpawnPty = jest.fn()
@@ -443,8 +444,12 @@ describe('LocalShellSandbox', () => {
         const previewUrl = `/api/sandbox/conversations/conversation-1/services/${serviceId}/proxy/`
         const html =
             '<!doctype html><script type="module" src="/@vite/client"></script><script type="module" src="/src/main.tsx"></script><link rel="stylesheet" href=/assets/app.css><style>.hero{background:url(/assets/hero.png)}</style>'
-        const upstreamServer = http.createServer((_request, response) => {
+        let upstreamHeaders: http.IncomingHttpHeaders = {}
+        const upstreamServer = http.createServer((request, response) => {
+            upstreamHeaders = request.headers
             response.setHeader('content-type', 'text/html; charset=utf-8')
+            response.setHeader('service-worker-allowed', '/')
+            response.setHeader('set-cookie', 'sandbox-session=unsafe; Path=/')
             response.end(html)
         })
         const response = {
@@ -478,7 +483,15 @@ describe('LocalShellSandbox', () => {
                 path: '/',
                 request: {
                     headers: {
-                        'accept-encoding': 'gzip'
+                        'accept-encoding': 'gzip',
+                        authorization: 'Bearer platform-token',
+                        cookie: 'platform-session=secret',
+                        'x-api-key': 'platform-api-key',
+                        'x-auth-token': 'platform-auth-token',
+                        'x-client-secret': 'platform-client-secret',
+                        'x-csrf-token': 'platform-csrf',
+                        'x-xsrf-token': 'platform-xsrf',
+                        'x-preview-header': 'forward-me'
                     },
                     method: 'GET',
                     readableEnded: true
@@ -505,6 +518,100 @@ describe('LocalShellSandbox', () => {
             expect(response.body).toContain(`href=${previewUrl}assets/app.css`)
             expect(response.body).toContain(`url(${previewUrl}assets/hero.png)`)
             expect(response.headers.has('content-length')).toBe(false)
+            expect(response.headers.has('set-cookie')).toBe(false)
+            expect(response.headers.has('service-worker-allowed')).toBe(false)
+            expect(upstreamHeaders.authorization).toBeUndefined()
+            expect(upstreamHeaders.cookie).toBeUndefined()
+            expect(upstreamHeaders['x-api-key']).toBeUndefined()
+            expect(upstreamHeaders['x-auth-token']).toBeUndefined()
+            expect(upstreamHeaders['x-client-secret']).toBeUndefined()
+            expect(upstreamHeaders['x-csrf-token']).toBeUndefined()
+            expect(upstreamHeaders['x-xsrf-token']).toBeUndefined()
+            expect(upstreamHeaders['x-preview-header']).toBe('forward-me')
+        } finally {
+            await new Promise<void>((resolve, reject) => {
+                upstreamServer.close((error) => {
+                    if (error) {
+                        reject(error)
+                        return
+                    }
+                    resolve()
+                })
+            })
+            fs.rmSync(workingDirectory, { recursive: true, force: true })
+        }
+    })
+
+    it('forwards the original request body bytes to the local service', async () => {
+        const workingDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-shell-proxy-body-'))
+        const sandbox = new LocalShellSandbox({ workingDirectory })
+        const port = await reservePort()
+        const serviceId = 'service-proxy-body'
+        const body = Buffer.from('item=a+b&item=c%20d')
+        let receivedBody = Buffer.alloc(0)
+        const upstreamServer = http.createServer(async (request, response) => {
+            const chunks: Buffer[] = []
+            for await (const chunk of request) {
+                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+            }
+            receivedBody = Buffer.concat(chunks)
+            response.end('ok')
+        })
+        const responseChunks: Buffer[] = []
+        const response = Object.assign(
+            new Writable({
+                write(chunk, _encoding, callback) {
+                    responseChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+                    callback()
+                }
+            }),
+            {
+                headersSent: false,
+                setHeader: jest.fn(),
+                statusCode: 200
+            }
+        )
+        const incoming = Object.assign(Readable.from([body]), {
+            headers: {
+                'content-length': String(body.byteLength),
+                'content-type': 'application/x-www-form-urlencoded'
+            },
+            method: 'POST'
+        })
+
+        try {
+            await new Promise<void>((resolve) => {
+                upstreamServer.listen(port, '127.0.0.1', () => resolve())
+            })
+            const managedServices = (sandbox as unknown as { managedServices: Map<string, unknown> }).managedServices
+            managedServices.set(serviceId, {
+                actualPort: port,
+                requestedPort: port,
+                status: {
+                    status: 'running'
+                }
+            })
+
+            await sandbox.proxyServiceRequest({
+                path: '/api',
+                request: incoming as never,
+                response: response as never,
+                service: {
+                    actualPort: port,
+                    command: 'node server.js',
+                    conversationId: 'conversation-1',
+                    id: serviceId,
+                    name: 'web',
+                    provider: 'local-shell-sandbox',
+                    requestedPort: port,
+                    status: 'running',
+                    transportMode: 'http',
+                    workingDirectory
+                }
+            })
+
+            expect(receivedBody).toEqual(body)
+            expect(Buffer.concat(responseChunks).toString('utf8')).toBe('ok')
         } finally {
             await new Promise<void>((resolve, reject) => {
                 upstreamServer.close((error) => {
