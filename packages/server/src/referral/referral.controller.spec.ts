@@ -12,7 +12,9 @@ import { ReferralController } from './referral.controller'
 describe('ReferralController public endpoints', () => {
 	const referralService = {
 		isFeatureEnabled: jest.fn(),
-		validatePublicCode: jest.fn()
+		validatePublicCode: jest.fn(),
+		getMyCode: jest.fn(),
+		regenerateMyCode: jest.fn()
 	}
 	const validationRateLimitService = {
 		assertAllowed: jest.fn()
@@ -30,6 +32,8 @@ describe('ReferralController public endpoints', () => {
 		})
 		referralService.isFeatureEnabled.mockResolvedValue(true)
 		referralService.validatePublicCode.mockResolvedValue(true)
+		referralService.getMyCode.mockResolvedValue({ code: 'ABC234DEFG' })
+		referralService.regenerateMyCode.mockResolvedValue({ code: 'XYZ234DEFG' })
 	})
 
 	it('reports availability for an anonymous tenant-scoped request', async () => {
@@ -49,5 +53,13 @@ describe('ReferralController public endpoints', () => {
 
 		expect(validationRateLimitService.assertAllowed).toHaveBeenCalledWith('tenant-1', '203.0.113.10')
 		expect(referralService.validatePublicCode).toHaveBeenCalledWith('tenant-1', 'ABC234DEFG')
+	})
+
+	it('regenerates the authenticated account invitation code', async () => {
+		await expect(controller.regenerateMyCode()).resolves.toEqual({
+			code: 'XYZ234DEFG'
+		})
+
+		expect(referralService.regenerateMyCode).toHaveBeenCalledTimes(1)
 	})
 })

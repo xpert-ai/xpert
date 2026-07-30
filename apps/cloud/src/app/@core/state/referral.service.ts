@@ -30,6 +30,10 @@ export class ReferralService {
     return firstValueFrom(this.http.get<IReferralCodeView>(`${this.apiUrl}/me`))
   }
 
+  regenerateMyCode() {
+    return firstValueFrom(this.http.post<IReferralCodeView>(`${this.apiUrl}/me/regenerate`, {}))
+  }
+
   getRelations(query: IReferralRelationQuery) {
     let params = new HttpParams()
     for (const [key, value] of Object.entries(query)) {

@@ -231,6 +231,12 @@
     "Referral": {
       "CopyCode": "复制邀请码",
       "Copied": "已复制",
+      "RegenerateCode": "重新生成邀请码",
+      "RegeneratingCode": "正在重新生成...",
+      "RegenerateConfirmTitle": "重新生成邀请码？",
+      "RegenerateConfirmDescription": "当前邀请码将立即失效，已建立的邀请关系不会受到影响。",
+      "RegenerateSuccess": "邀请码已重新生成。",
+      "RegenerateFailed": "邀请码重新生成失败。",
       "ReferralCode": "邀请码（选填）",
       "ReferralCodePlaceholder": "请输入邀请码",
       "ValidatingReferralCode": "正在验证...",

@@ -25,6 +25,12 @@
     "Referral": {
       "CopyCode": "複製邀請碼",
       "Copied": "已複製",
+      "RegenerateCode": "重新產生邀請碼",
+      "RegeneratingCode": "正在重新產生...",
+      "RegenerateConfirmTitle": "重新產生邀請碼？",
+      "RegenerateConfirmDescription": "目前邀請碼將立即失效，已建立的邀請關係不會受到影響。",
+      "RegenerateSuccess": "邀請碼已重新產生。",
+      "RegenerateFailed": "邀請碼重新產生失敗。",
       "ReferralCode": "邀請碼（選填）",
       "ReferralCodePlaceholder": "請輸入邀請碼",
       "ValidatingReferralCode": "正在驗證...",

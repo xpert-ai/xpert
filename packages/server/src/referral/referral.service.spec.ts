@@ -32,9 +32,20 @@ describe('ReferralService registration binding', () => {
 		orIgnore: jest.fn().mockReturnThis(),
 		execute: jest.fn()
 	}
+	const transactionCodeRepository = {
+		findOne: jest.fn(),
+		save: jest.fn()
+	}
+	const transactionManager = {
+		getRepository: jest.fn(() => transactionCodeRepository)
+	}
+	const repositoryManager = {
+		transaction: jest.fn((callback) => callback(transactionManager))
+	}
 	const codeRepository = {
 		createQueryBuilder: jest.fn((alias?: string) => (alias ? codeQueryBuilder : codeInsertQueryBuilder)),
-		findOne: jest.fn()
+		findOne: jest.fn(),
+		manager: repositoryManager
 	}
 	const relationQueryBuilder = {
 		withDeleted: jest.fn().mockReturnThis(),
@@ -78,6 +89,13 @@ describe('ReferralService registration binding', () => {
 		codeRepository.findOne.mockResolvedValue({
 			code: 'ABC234DEFG'
 		})
+		transactionCodeRepository.findOne.mockResolvedValue({
+			id: 'referral-code-1',
+			tenantId: 'tenant-1',
+			userId: 'user-1',
+			code: 'ABC234DEFG'
+		})
+		transactionCodeRepository.save.mockImplementation(async (entity) => entity)
 		codeQueryBuilder.getOne.mockResolvedValue({
 			code: 'ABC234DEFG',
 			userId: 'referrer-1'
@@ -203,6 +221,44 @@ describe('ReferralService registration binding', () => {
 
 		expect(codeRepository.findOne).not.toHaveBeenCalled()
 		expect(codeInsertQueryBuilder.execute).not.toHaveBeenCalled()
+	})
+
+	it('atomically replaces the current code without changing existing relationships', async () => {
+		const result = await service.regenerateMyCode()
+
+		expect(repositoryManager.transaction).toHaveBeenCalledTimes(1)
+		expect(transactionCodeRepository.findOne).toHaveBeenCalledWith({
+			where: {
+				tenantId: 'tenant-1',
+				userId: 'user-1'
+			},
+			lock: {
+				mode: 'pessimistic_write'
+			}
+		})
+		expect(transactionCodeRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'referral-code-1',
+				code: expect.stringMatching(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/)
+			})
+		)
+		expect(result.code).not.toBe('ABC234DEFG')
+		expect(relationRepository.save).not.toHaveBeenCalled()
+		expect(relationRepository.createQueryBuilder).not.toHaveBeenCalled()
+	})
+
+	it('retries regeneration in a new transaction when the generated code collides', async () => {
+		repositoryManager.transaction.mockRejectedValueOnce({
+			driverError: {
+				code: '23505'
+			}
+		})
+
+		await expect(service.regenerateMyCode()).resolves.toEqual({
+			code: expect.stringMatching(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/)
+		})
+
+		expect(repositoryManager.transaction).toHaveBeenCalledTimes(2)
 	})
 
 	it('returns tenant-scoped deleted account placeholders', async () => {

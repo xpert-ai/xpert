@@ -4,6 +4,12 @@ import { join } from 'node:path'
 const referralTranslationKeys = [
   'CopyCode',
   'Copied',
+  'RegenerateCode',
+  'RegeneratingCode',
+  'RegenerateConfirmTitle',
+  'RegenerateConfirmDescription',
+  'RegenerateSuccess',
+  'RegenerateFailed',
   'ReferralCode',
   'ReferralCodePlaceholder',
   'ValidatingReferralCode',

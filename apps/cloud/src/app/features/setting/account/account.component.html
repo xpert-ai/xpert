@@ -5,21 +5,40 @@
       [src]="user?.imageUrl || '/assets/images/avatar-default.svg'" alt="{{user | user}}" /> -->
     <div class="text-sm font-medium text-text-primary">{{ user()?.email }}</div>
     @if (canUseReferral() && referralCode()) {
-      <button
-        data-referral-copy
-        z-button
-        zType="link"
-        zSize="sm"
-        type="button"
-        class="h-auto px-0 py-0 text-xs"
-        (click)="copyReferralCode()"
-      >
-        @if (referralCodeCopied()) {
-          {{ 'XP.Referral.Copied' | translate: { Default: 'Copied' } }}
-        } @else {
-          {{ 'XP.Referral.CopyCode' | translate: { Default: 'Copy invitation code' } }}
-        }
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          data-referral-copy
+          z-button
+          zType="link"
+          zSize="sm"
+          type="button"
+          class="h-auto px-0 py-0 text-xs"
+          [zDisabled]="referralCodeRegenerating()"
+          (click)="copyReferralCode()"
+        >
+          @if (referralCodeCopied()) {
+            {{ 'XP.Referral.Copied' | translate: { Default: 'Copied' } }}
+          } @else {
+            {{ 'XP.Referral.CopyCode' | translate: { Default: 'Copy invitation code' } }}
+          }
+        </button>
+        <button
+          data-referral-regenerate
+          z-button
+          zType="link"
+          zSize="sm"
+          type="button"
+          class="h-auto px-0 py-0 text-xs"
+          [zDisabled]="referralCodeRegenerating()"
+          (click)="regenerateReferralCode()"
+        >
+          @if (referralCodeRegenerating()) {
+            {{ 'XP.Referral.RegeneratingCode' | translate: { Default: 'Regenerating...' } }}
+          } @else {
+            {{ 'XP.Referral.RegenerateCode' | translate: { Default: 'Regenerate invitation code' } }}
+          }
+        </button>
+      </div>
     }
   </div>
 
