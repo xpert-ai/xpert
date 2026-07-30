@@ -35,13 +35,24 @@ type AssistantHostedClientSecret =
       xpertId?: string
       assistantId?: string
     }
-type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> &
+type AssistantChatKitWorkbenchOptions = {
+  enabled?: boolean
+  onClientCommand?: (request: {
+    commandKey: string
+    payload?: unknown
+    hostType: 'agent'
+    hostId: string
+    viewKey: string
+  }) => unknown | Promise<unknown>
+}
+type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api' | 'workbench'> &
   AssistantChatKitEventHandlers & {
     api: {
       apiUrl: string
       xpertId?: string
       getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
     }
+    workbench?: AssistantChatKitWorkbenchOptions
   }
 
 type AssistantRuntimeInput = {
@@ -80,6 +91,7 @@ type AssistantHostedRuntimeInput = {
   layout?: AssistantHostedChatKitOptions['layout']
   pet?: AssistantHostedChatKitOptions['pet']
   taskSummary?: AssistantHostedChatKitOptions['taskSummary']
+  workbench?: AssistantHostedChatKitOptions['workbench']
   startScreen?: Signal<AssistantHostedChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
   titleKey: string
@@ -307,6 +319,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       layout: input.layout,
       pet: input.pet,
       taskSummary: input.taskSummary,
+      workbench: input.workbench,
       messageNavigation: {
         enabled: true
       },

@@ -68,7 +68,12 @@ export class XpAccountAvailableModelsComponent {
     ),
     { initialValue: undefined }
   )
-  readonly planModels = computed(() => this.state()?.catalog.items.filter((item) => item.planIncluded) ?? [])
+  readonly availableModels = computed(
+    () =>
+      this.state()?.catalog.items.filter(
+        (item) => item.planIncluded || item.accessSource === ModelAccessSourceEnum.Direct
+      ) ?? []
+  )
   readonly grantModels = computed(
     () =>
       this.state()?.catalog.items.filter(
@@ -77,13 +82,13 @@ export class XpAccountAvailableModelsComponent {
       ) ?? []
   )
   readonly requestableModels = computed(() => this.state()?.catalog.items.filter((item) => item.requestable) ?? [])
-  readonly planModelSearchControl = new FormControl('', { nonNullable: true })
-  readonly planModelSearch = toSignal(this.planModelSearchControl.valueChanges.pipe(startWith('')), {
+  readonly availableModelSearchControl = new FormControl('', { nonNullable: true })
+  readonly availableModelSearch = toSignal(this.availableModelSearchControl.valueChanges.pipe(startWith('')), {
     initialValue: ''
   })
-  readonly filteredPlanModels = computed(() => {
-    const search = this.planModelSearch().trim().toLowerCase()
-    const items = this.planModels()
+  readonly filteredAvailableModels = computed(() => {
+    const search = this.availableModelSearch().trim().toLowerCase()
+    const items = this.availableModels()
     if (!search) {
       return items
     }

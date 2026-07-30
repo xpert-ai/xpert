@@ -179,6 +179,12 @@ describe('PublicChatkitComponent', () => {
       greeting: 'How can I help sales today?',
       prompts: [{ label: 'Create a quote', prompt: 'Create a quote' }]
     })
+    expect(mockRuntimeInput?.layout).toEqual({
+      maxWidth: '960px'
+    })
+    expect(mockRuntimeInput?.workbench).toEqual({
+      enabled: true
+    })
   })
 
   it('fills the root flex outlet width for the public ChatKit shell', () => {

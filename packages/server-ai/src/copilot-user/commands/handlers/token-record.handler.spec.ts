@@ -1,6 +1,7 @@
 import {
     AiModelTypeEnum,
     IModelAccessResolution,
+    ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum
 } from '@xpert-ai/contracts'
@@ -12,6 +13,7 @@ describe('CopilotTokenRecordHandler', () => {
     function grantResolution(overrides: Partial<IModelAccessResolution> = {}): IModelAccessResolution {
         return {
             allowed: true,
+            channel: ModelAccessChannelEnum.Xpert,
             billableUserId: 'creator-user',
             copilotId: 'copilot-1',
             copilotModelId: 'qwen3.6-plus',
