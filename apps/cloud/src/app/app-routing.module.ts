@@ -27,6 +27,13 @@ const routes: Routes = [
     loadChildren: () => import('./xpert/routes').then((m) => m.routes)
   },
   {
+    path: 'plugins/marketplace',
+    loadComponent: () =>
+      import('./plugin-marketplace/public-plugin-marketplace-page.component').then(
+        (m) => m.PublicPluginMarketplacePageComponent
+      )
+  },
+  {
     path: '',
     loadChildren: () => import('./features/features.module').then((m) => m.FeaturesModule)
   },

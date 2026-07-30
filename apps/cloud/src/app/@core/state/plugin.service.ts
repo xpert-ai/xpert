@@ -126,6 +126,17 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     })
   }
 
+  getPublicMarketplace(params?: { targetApp?: string }) {
+    let httpParams = new HttpParams()
+    if (params?.targetApp) {
+      httpParams = httpParams.set('targetApp', params.targetApp)
+    }
+
+    return this.httpClient.get<IPluginMarketplaceResponse>(`${this.apiBaseUrl}/marketplace/public`, {
+      params: httpParams
+    })
+  }
+
   getMarketplacePluginDetail(params: { name: string; targetApp?: string; sourceId?: string; locale?: string }) {
     let httpParams = new HttpParams().set('name', params.name)
     if (params.targetApp) {

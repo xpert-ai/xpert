@@ -489,6 +489,117 @@ describe('PluginMarketplaceService marketplace trial shortcuts', () => {
 	})
 })
 
+describe('PluginMarketplaceService public marketplace', () => {
+	afterEach(() => {
+		jest.restoreAllMocks()
+	})
+
+	it('returns only the builtin registry catalog without tenant or source state', async () => {
+		const sourceRepository = {
+			find: jest.fn(),
+			findOne: jest.fn(),
+			create: jest.fn(),
+			save: jest.fn()
+		}
+		const registryRepository = {
+			find: jest.fn()
+		}
+		const pluginInstanceService = {
+			findVisibleInOrganization: jest.fn()
+		}
+		type ServiceDependencies = ConstructorParameters<typeof PluginMarketplaceService>
+		const service = new PluginMarketplaceService(
+			sourceRepository as unknown as ServiceDependencies[0],
+			registryRepository as unknown as ServiceDependencies[1],
+			[],
+			pluginInstanceService as unknown as ServiceDependencies[3]
+		)
+		const fetchRegistry = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			json: async () => ({
+				updatedAt: '2026-07-30T00:00:00.000Z',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-public',
+						packageName: '@xpert-ai/plugin-public',
+						displayName: 'Public Plugin',
+						description: 'Visible in the public marketplace',
+						targetApps: ['xpert'],
+						sourceId: 'builtin-default',
+						sourceName: 'Xpert Plugin Registry',
+						source: {
+							type: 'marketplace',
+							url: 'https://registry.example.test/plugins/index.json'
+						}
+					},
+					{
+						name: '@xpert-ai/plugin-other-app',
+						packageName: '@xpert-ai/plugin-other-app',
+						targetApps: ['data-xpert']
+					}
+				],
+				official: ['@xpert-ai/plugin-public'],
+				partner: [],
+				community: []
+			})
+		} as unknown as Response)
+		const publicService = service as unknown as {
+			listPublicMarketplace(query?: { targetApp?: string }): Promise<{
+				total: number
+				items: Array<Record<string, unknown>>
+				sources: unknown[]
+				errors?: unknown[]
+			}>
+		}
+		const tenantPaths = service as unknown as {
+			getSourceRecords(): Promise<unknown[]>
+			loadPlatformRegistryCatalog(): Promise<unknown>
+			buildInstalledContext(): Promise<unknown>
+		}
+		const listMarketplace = jest.spyOn(service, 'listMarketplace')
+		const getSourceRecords = jest.spyOn(tenantPaths, 'getSourceRecords')
+		const loadPlatformRegistryCatalog = jest.spyOn(tenantPaths, 'loadPlatformRegistryCatalog')
+		const buildInstalledContext = jest.spyOn(tenantPaths, 'buildInstalledContext')
+
+		const response = await publicService.listPublicMarketplace({
+			targetApp: 'xpert'
+		})
+		await publicService.listPublicMarketplace({
+			targetApp: 'xpert'
+		})
+
+		expect(fetchRegistry).toHaveBeenCalledTimes(1)
+		expect(fetchRegistry).toHaveBeenCalledWith(expect.stringContaining('xpert-plugin-registry/plugins/index.json'))
+		expect(response).toEqual(
+			expect.objectContaining({
+				total: 1,
+				sources: [],
+				errors: [],
+				items: [
+					expect.objectContaining({
+						name: '@xpert-ai/plugin-public',
+						installed: false
+					})
+				]
+			})
+		)
+		expect(response.items[0]).not.toHaveProperty('source')
+		expect(response.items[0]).not.toHaveProperty('sourceId')
+		expect(response.items[0]).not.toHaveProperty('sourceName')
+		expect(response.items[0]).not.toHaveProperty('marketplacePlugin')
+		expect(sourceRepository.find).not.toHaveBeenCalled()
+		expect(sourceRepository.findOne).not.toHaveBeenCalled()
+		expect(sourceRepository.create).not.toHaveBeenCalled()
+		expect(sourceRepository.save).not.toHaveBeenCalled()
+		expect(registryRepository.find).not.toHaveBeenCalled()
+		expect(pluginInstanceService.findVisibleInOrganization).not.toHaveBeenCalled()
+		expect(listMarketplace).not.toHaveBeenCalled()
+		expect(getSourceRecords).not.toHaveBeenCalled()
+		expect(loadPlatformRegistryCatalog).not.toHaveBeenCalled()
+		expect(buildInstalledContext).not.toHaveBeenCalled()
+	})
+})
+
 describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 	afterEach(() => {
 		jest.restoreAllMocks()
