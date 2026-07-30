@@ -29,18 +29,20 @@ jest.mock('../../../@shared/user', () => ({
 }))
 
 describe('XpAccountComponent template', () => {
-  it('places the invitation code copy action below the email without a configuration tab', () => {
+  it('places larger invitation code actions above the personal information form', () => {
     const template = readFileSync(join(__dirname, 'account.component.html'), 'utf8')
-    const emailIndex = template.indexOf('{{ user()?.email }}')
     const copyActionIndex = template.indexOf('data-referral-copy')
     const regenerateActionIndex = template.indexOf('data-referral-regenerate')
-    const tabNavigationIndex = template.indexOf('<nav')
+    const tabPanelIndex = template.indexOf('<z-tab-nav-panel')
+    const routerOutletIndex = template.indexOf('<router-outlet')
 
-    expect(emailIndex).toBeGreaterThan(-1)
-    expect(copyActionIndex).toBeGreaterThan(emailIndex)
-    expect(copyActionIndex).toBeLessThan(tabNavigationIndex)
+    expect(copyActionIndex).toBeGreaterThan(tabPanelIndex)
+    expect(routerOutletIndex).toBeGreaterThan(-1)
+    expect(copyActionIndex).toBeLessThan(routerOutletIndex)
     expect(regenerateActionIndex).toBeGreaterThan(copyActionIndex)
-    expect(regenerateActionIndex).toBeLessThan(tabNavigationIndex)
+    expect(template).toContain('rla4.isActive && canUseReferral() && referralCode()')
+    expect(template).toMatch(/data-referral-copy[\s\S]*?class="h-auto px-0 py-0 text-base"/)
+    expect(template).toMatch(/data-referral-regenerate[\s\S]*?class="h-auto px-0 py-0 text-base"/)
     expect(template).not.toContain("['configuration']")
   })
 
