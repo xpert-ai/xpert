@@ -6,7 +6,7 @@ import {
 	PermissionsEnum,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common'
 import { Request } from 'express'
 import { RequestContext } from '../core/context'
 import { Permissions, Public, Roles } from '../shared/decorators'
@@ -45,6 +45,11 @@ export class ReferralController {
 	@Get('me')
 	async getMyCode(): Promise<IReferralCodeView> {
 		return this.referralService.getMyCode()
+	}
+
+	@Post('me/regenerate')
+	async regenerateMyCode(): Promise<IReferralCodeView> {
+		return this.referralService.regenerateMyCode()
 	}
 
 	@UseGuards(TenantPermissionGuard, RoleGuard, PermissionGuard)

@@ -26,6 +26,12 @@
     "Referral": {
       "CopyCode": "Copy invitation code",
       "Copied": "Copied",
+      "RegenerateCode": "Regenerate invitation code",
+      "RegeneratingCode": "Regenerating...",
+      "RegenerateConfirmTitle": "Regenerate invitation code?",
+      "RegenerateConfirmDescription": "The current invitation code will stop working immediately. Existing invitation relationships will not be changed.",
+      "RegenerateSuccess": "Invitation code regenerated.",
+      "RegenerateFailed": "Invitation code could not be regenerated.",
       "ReferralCode": "Invitation code (optional)",
       "ReferralCodePlaceholder": "Enter invitation code",
       "ValidatingReferralCode": "Validating...",

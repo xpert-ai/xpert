@@ -2,11 +2,13 @@ jest.mock('../core/context', () => ({
 	RequestContext: {
 		currentTenantId: jest.fn(),
 		currentUserId: jest.fn(),
+		currentUser: jest.fn(),
 		isTenantScope: jest.fn()
 	}
 }))
 
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { FeatureOrganization } from '../feature/feature-organization.entity'
 import { ReferralCode } from './referral-code.entity'
@@ -23,8 +25,27 @@ describe('ReferralService registration binding', () => {
 		andWhere: jest.fn().mockReturnThis(),
 		getOne: jest.fn()
 	}
+	const codeInsertQueryBuilder = {
+		insert: jest.fn().mockReturnThis(),
+		into: jest.fn().mockReturnThis(),
+		values: jest.fn().mockReturnThis(),
+		orIgnore: jest.fn().mockReturnThis(),
+		execute: jest.fn()
+	}
+	const transactionCodeRepository = {
+		findOne: jest.fn(),
+		save: jest.fn()
+	}
+	const transactionManager = {
+		getRepository: jest.fn(() => transactionCodeRepository)
+	}
+	const repositoryManager = {
+		transaction: jest.fn((callback) => callback(transactionManager))
+	}
 	const codeRepository = {
-		createQueryBuilder: jest.fn(() => codeQueryBuilder)
+		createQueryBuilder: jest.fn((alias?: string) => (alias ? codeQueryBuilder : codeInsertQueryBuilder)),
+		findOne: jest.fn(),
+		manager: repositoryManager
 	}
 	const relationQueryBuilder = {
 		withDeleted: jest.fn().mockReturnThis(),
@@ -64,11 +85,27 @@ describe('ReferralService registration binding', () => {
 		relationRepository.findOne.mockResolvedValue(null)
 		relationRepository.save.mockImplementation(async (entity) => entity)
 		relationQueryBuilder.getManyAndCount.mockResolvedValue([[], 0])
+		codeInsertQueryBuilder.execute.mockResolvedValue({})
+		codeRepository.findOne.mockResolvedValue({
+			code: 'ABC234DEFG'
+		})
+		transactionCodeRepository.findOne.mockResolvedValue({
+			id: 'referral-code-1',
+			tenantId: 'tenant-1',
+			userId: 'user-1',
+			code: 'ABC234DEFG'
+		})
+		transactionCodeRepository.save.mockImplementation(async (entity) => entity)
 		codeQueryBuilder.getOne.mockResolvedValue({
 			code: 'ABC234DEFG',
 			userId: 'referrer-1'
 		})
 		jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant-1')
+		jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
+		jest.mocked(RequestContext.currentUser).mockReturnValue({
+			id: 'user-1',
+			type: UserType.USER
+		} as never)
 		jest.mocked(RequestContext.isTenantScope).mockReturnValue(true)
 	})
 
@@ -134,6 +171,94 @@ describe('ReferralService registration binding', () => {
 
 		expect(codeRepository.createQueryBuilder).not.toHaveBeenCalled()
 		expect(relationRepository.save).not.toHaveBeenCalled()
+	})
+
+	it('returns the existing invitation code without creating another one', async () => {
+		await expect(service.getMyCode()).resolves.toEqual({
+			code: 'ABC234DEFG'
+		})
+
+		expect(codeInsertQueryBuilder.execute).not.toHaveBeenCalled()
+	})
+
+	it('creates an invitation code on demand when an existing account has none', async () => {
+		codeRepository.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+			code: 'ABC234DEFG'
+		})
+
+		await expect(service.getMyCode()).resolves.toEqual({
+			code: 'ABC234DEFG'
+		})
+
+		expect(codeInsertQueryBuilder.values).toHaveBeenCalledWith({
+			tenantId: 'tenant-1',
+			userId: 'user-1',
+			code: expect.stringMatching(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/)
+		})
+		expect(codeInsertQueryBuilder.orIgnore).toHaveBeenCalled()
+		expect(codeInsertQueryBuilder.execute).toHaveBeenCalledTimes(1)
+	})
+
+	it('retries on-demand generation when a candidate code collides', async () => {
+		codeRepository.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({
+			code: 'ABC234DEFG'
+		})
+
+		await expect(service.getMyCode()).resolves.toEqual({
+			code: 'ABC234DEFG'
+		})
+
+		expect(codeInsertQueryBuilder.execute).toHaveBeenCalledTimes(2)
+	})
+
+	it('does not create invitation codes for communication users on demand', async () => {
+		jest.mocked(RequestContext.currentUser).mockReturnValue({
+			id: 'user-1',
+			type: UserType.COMMUNICATION
+		} as never)
+
+		await expect(service.getMyCode()).rejects.toBeInstanceOf(NotFoundException)
+
+		expect(codeRepository.findOne).not.toHaveBeenCalled()
+		expect(codeInsertQueryBuilder.execute).not.toHaveBeenCalled()
+	})
+
+	it('atomically replaces the current code without changing existing relationships', async () => {
+		const result = await service.regenerateMyCode()
+
+		expect(repositoryManager.transaction).toHaveBeenCalledTimes(1)
+		expect(transactionCodeRepository.findOne).toHaveBeenCalledWith({
+			where: {
+				tenantId: 'tenant-1',
+				userId: 'user-1'
+			},
+			lock: {
+				mode: 'pessimistic_write'
+			}
+		})
+		expect(transactionCodeRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'referral-code-1',
+				code: expect.stringMatching(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/)
+			})
+		)
+		expect(result.code).not.toBe('ABC234DEFG')
+		expect(relationRepository.save).not.toHaveBeenCalled()
+		expect(relationRepository.createQueryBuilder).not.toHaveBeenCalled()
+	})
+
+	it('retries regeneration in a new transaction when the generated code collides', async () => {
+		repositoryManager.transaction.mockRejectedValueOnce({
+			driverError: {
+				code: '23505'
+			}
+		})
+
+		await expect(service.regenerateMyCode()).resolves.toEqual({
+			code: expect.stringMatching(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/)
+		})
+
+		expect(repositoryManager.transaction).toHaveBeenCalledTimes(2)
 	})
 
 	it('returns tenant-scoped deleted account placeholders', async () => {

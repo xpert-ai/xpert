@@ -38,4 +38,13 @@ describe('ReferralService invitation tenant context', () => {
     request.flush(true)
     await expect(result).resolves.toBe(true)
   })
+
+  it('regenerates the current account invitation code', async () => {
+    const result = service.regenerateMyCode()
+    const request = httpMock.expectOne('/api/referral/me/regenerate')
+
+    expect(request.request.method).toBe('POST')
+    request.flush({ code: 'XYZ234DEFG' })
+    await expect(result).resolves.toEqual({ code: 'XYZ234DEFG' })
+  })
 })
