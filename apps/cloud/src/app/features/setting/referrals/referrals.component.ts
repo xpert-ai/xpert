@@ -85,7 +85,7 @@ export class ReferralRelationsComponent implements OnInit {
 
   accountLabel(account: IReferralRelationView['referrer']) {
     return account.deleted
-      ? this.translateService.instant('PAC.Referral.DeletedAccount', { Default: 'Deleted account' })
+      ? this.translateService.instant('XP.Referral.DeletedAccount', { Default: 'Deleted account' })
       : account.name || account.email || '-'
   }
 }

@@ -21,7 +21,8 @@ describe('ReferralCodeSubscriber', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 		queryBuilder.execute.mockResolvedValue({})
-		repository.findOne.mockResolvedValue({
+		repository.findOne.mockReset()
+		repository.findOne.mockResolvedValueOnce(null).mockResolvedValue({
 			id: 'referral-code-1'
 		})
 	})
@@ -58,7 +59,7 @@ describe('ReferralCodeSubscriber', () => {
 	})
 
 	it('retries when a generated code collides', async () => {
-		repository.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+		repository.findOne.mockReset().mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({
 			id: 'referral-code-1'
 		})
 
