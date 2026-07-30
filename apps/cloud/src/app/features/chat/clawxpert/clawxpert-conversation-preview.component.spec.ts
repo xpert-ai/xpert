@@ -62,8 +62,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
       createManagedServicePreviewSession: jest.fn(() =>
         of({
           expiresAt: '2026-07-29T09:00:00.000Z',
-          previewUrl:
-            'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+          previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
       )
     }
@@ -142,7 +141,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ClearCookie')
   })
 
-  it('loads managed services through the isolated preview bootstrap origin', async () => {
+  it('loads managed services through the same-origin preview session', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     fixture.componentRef.setInput('serviceId', 'service-1')
@@ -157,25 +156,23 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
     if (!iframe) {
-      throw new Error('Expected the isolated managed service preview iframe to be rendered.')
+      throw new Error('Expected the managed service preview iframe to be rendered.')
     }
 
-    expect(iframe.src).toBe(
-      'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+    expect(iframe.src).toBe('http://localhost/api/sandbox/conversations/conversation-1/services/service-1/proxy/')
+    expect(iframe.getAttribute('sandbox')).toBeNull()
+    expect(iframe.getAttribute('referrerpolicy')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-browser-inspect]')).not.toBeNull()
+    expect((fixture.nativeElement.querySelector('[data-open-external]') as HTMLButtonElement).disabled).toBe(false)
+    expect(fixture.componentInstance.openableUrl()).toBe(
+      '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
     )
-    expect(iframe.getAttribute('sandbox')).toBe(
-      'allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts'
-    )
-    expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer')
-    expect(fixture.nativeElement.querySelector('[data-browser-inspect]')).toBeNull()
-    expect((fixture.nativeElement.querySelector('[data-open-external]') as HTMLButtonElement).disabled).toBe(true)
-    expect(fixture.componentInstance.openableUrl()).toBeNull()
     ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
     fixture.detectChanges()
     await Promise.resolve()
     fixture.detectChanges()
 
-    expect(overlayContainer.getContainerElement().textContent).not.toContain('XP.Chat.ClawXpert.ClearCookie')
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ClearCookie')
 
     fixture.componentInstance.reloadFrame()
     await settle(fixture)
@@ -210,7 +207,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
 
     firstSession.next({
       expiresAt: '2026-07-29T09:00:00.000Z',
-      previewUrl: 'https://preview.exampleusercontent.com/old-preview#ticket=old'
+      previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/old'
     })
     firstSession.complete()
     await settle(fixture)
@@ -219,13 +216,13 @@ describe('ClawXpertConversationPreviewComponent', () => {
 
     secondSession.next({
       expiresAt: '2026-07-29T09:00:00.000Z',
-      previewUrl: 'https://preview.exampleusercontent.com/new-preview#ticket=new'
+      previewUrl: '/api/sandbox/conversations/conversation-2/services/service-2/proxy/new'
     })
     secondSession.complete()
     await settle(fixture)
 
     expect(fixture.componentInstance.managedPreviewUrl()).toBe(
-      'https://preview.exampleusercontent.com/new-preview#ticket=new'
+      '/api/sandbox/conversations/conversation-2/services/service-2/proxy/new'
     )
   })
 

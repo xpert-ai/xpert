@@ -1,8 +1,8 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import {
-    ChatMessageEventTypeEnum,
-    ISandboxManagedService,
+  ChatMessageEventTypeEnum,
+  ISandboxManagedService,
   SandboxManagedServiceErrorCode,
   TAgentMiddlewareMeta,
   TAgentRunnableConfigurable
@@ -113,21 +113,21 @@ function stringifyToolResult(value: unknown): string {
 }
 
 async function emitManagedServicePreviewEvent(service: ISandboxManagedService) {
-    if (!service.id || service.transportMode !== 'http' || !service.previewUrl) {
-        return
-    }
+  if (!service.id || service.transportMode !== 'http' || !service.previewUrl) {
+    return
+  }
 
-    const port = service.actualPort ?? service.requestedPort
-    const displayUrl = typeof port === 'number' ? `localhost:${port}` : service.previewUrl
+  const port = service.actualPort ?? service.requestedPort
+  const displayUrl = typeof port === 'number' ? `localhost:${port}` : service.previewUrl
 
-    await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
-        type: WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE,
-        source: SANDBOX_SERVICE_START_TOOL_NAME,
-        serviceId: service.id,
-        displayUrl,
-        url: displayUrl,
-        previewUrl: service.previewUrl
-    }).catch(() => undefined)
+  await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+    type: WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE,
+    source: SANDBOX_SERVICE_START_TOOL_NAME,
+    serviceId: service.id,
+    displayUrl,
+    url: displayUrl,
+    previewUrl: service.previewUrl
+  }).catch(() => undefined)
 }
 
 @Injectable()
@@ -171,25 +171,25 @@ export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
         }
 
         try {
-                    const service: ISandboxManagedService = await this.commandBus.execute(
-              new SandboxStartManagedServiceCommand({
-                agentKey: configurable?.rootAgentKey ?? configurable?.agentKey ?? null,
-                executionId: configurable?.rootExecutionId ?? configurable?.executionId ?? null,
-                input: {
-                  command,
-                  ...(cwd ? { cwd } : {}),
-                  ...(env ? { env: normalizeEnvEntries(env) } : {}),
-                  name,
-                  ...(port ? { port } : {}),
-                  ...(previewPath ? { previewPath } : {}),
-                  ...(readyPattern ? { readyPattern } : {}),
-                  ...(replaceExisting ? { replaceExisting } : {})
-                },
-                threadId
-              })
-            )
-                    await emitManagedServicePreviewEvent(service)
-                    return stringifyToolResult(service)
+          const service: ISandboxManagedService = await this.commandBus.execute(
+            new SandboxStartManagedServiceCommand({
+              agentKey: configurable?.rootAgentKey ?? configurable?.agentKey ?? null,
+              executionId: configurable?.rootExecutionId ?? configurable?.executionId ?? null,
+              input: {
+                command,
+                ...(cwd ? { cwd } : {}),
+                ...(env ? { env: normalizeEnvEntries(env) } : {}),
+                name,
+                ...(port ? { port } : {}),
+                ...(previewPath ? { previewPath } : {}),
+                ...(readyPattern ? { readyPattern } : {}),
+                ...(replaceExisting ? { replaceExisting } : {})
+              },
+              threadId
+            })
+          )
+          await emitManagedServicePreviewEvent(service)
+          return stringifyToolResult(service)
         } catch (error) {
           return stringifyToolResult(normalizeManagedServiceError(error))
         }
@@ -321,8 +321,7 @@ export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
       },
       {
         name: SANDBOX_SERVICE_RESTART_TOOL_NAME,
-                description:
-                    'Restart a managed sandbox service by serviceId using its stored command and launch settings.',
+        description: 'Restart a managed sandbox service by serviceId using its stored command and launch settings.',
         schema: serviceActionToolSchema
       }
     )

@@ -507,20 +507,18 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
             </label>
           </form>
 
-          @if (!hasManagedPreview()) {
-            <button
-              type="button"
-              data-browser-inspect
-              [class]="
-                mode() === 'inspect'
-                  ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-accent transition-colors hover:bg-hover-bg'
-                  : 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary'
-              "
-              (click)="toggleInspectMode()"
-            >
-              <i class="ri-focus-3-line text-lg"></i>
-            </button>
-          }
+          <button
+            type="button"
+            data-browser-inspect
+            [class]="
+              mode() === 'inspect'
+                ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-accent transition-colors hover:bg-hover-bg'
+                : 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary'
+            "
+            (click)="toggleInspectMode()"
+          >
+            <i class="ri-focus-3-line text-lg"></i>
+          </button>
 
           <button
             type="button"
@@ -644,33 +642,17 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
                   [style.width.px]="deviceToolbar() ? deviceViewportWidth() : null"
                   [style.height.px]="deviceToolbar() ? deviceViewportHeight() : null"
                 >
-                  @if (hasManagedPreview()) {
-                    <iframe
-                      #previewFrame
-                      class="origin-top-left min-h-full bg-background-default-subtle"
-                      [class.h-full]="zoomLevel() === 100"
-                      [class.w-full]="zoomLevel() === 100"
-                      [style.height.%]="framePercentSize()"
-                      [style.width.%]="framePercentSize()"
-                      [style.transform]="frameTransform()"
-                      [src]="browserResourceUrl()"
-                      sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
-                      referrerpolicy="no-referrer"
-                      (load)="handleFrameLoad()"
-                    ></iframe>
-                  } @else {
-                    <iframe
-                      #previewFrame
-                      class="origin-top-left min-h-full bg-background-default-subtle"
-                      [class.h-full]="zoomLevel() === 100"
-                      [class.w-full]="zoomLevel() === 100"
-                      [style.height.%]="framePercentSize()"
-                      [style.width.%]="framePercentSize()"
-                      [style.transform]="frameTransform()"
-                      [src]="browserResourceUrl()"
-                      (load)="handleFrameLoad()"
-                    ></iframe>
-                  }
+                  <iframe
+                    #previewFrame
+                    class="origin-top-left min-h-full bg-background-default-subtle"
+                    [class.h-full]="zoomLevel() === 100"
+                    [class.w-full]="zoomLevel() === 100"
+                    [style.height.%]="framePercentSize()"
+                    [style.width.%]="framePercentSize()"
+                    [style.transform]="frameTransform()"
+                    [src]="browserResourceUrl()"
+                    (load)="handleFrameLoad()"
+                  ></iframe>
                 </div>
 
                 @if (deviceToolbar()) {
@@ -757,11 +739,9 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
             <button type="button" class="h-8 w-8" (click)="zoomIn()">+</button>
           </div>
         </div>
-        @if (!hasManagedPreview()) {
-          <button type="button" z-menu-item (click)="clearCookies()">
-            {{ 'XP.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
-          </button>
-        }
+        <button type="button" z-menu-item (click)="clearCookies()">
+          {{ 'XP.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
+        </button>
         <button type="button" z-menu-item (click)="clearCache()">
           {{ 'XP.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
         </button>
@@ -870,7 +850,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
   })
   readonly browserResourceUrl = computed(() => this.externalResourceUrl())
-  readonly openableUrl = computed(() => (this.hasManagedPreview() ? null : this.externalUrl()))
+  readonly openableUrl = computed(() => (this.hasManagedPreview() ? this.managedPreviewUrl() : this.externalUrl()))
 
   constructor() {
     effect(() => {

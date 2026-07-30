@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import { environment } from '@xpert-ai/server-config'
 import {
@@ -34,7 +33,6 @@ import {
     Req,
     Res,
     Sse,
-    UnauthorizedException,
     UploadedFile,
     UseGuards,
     UseInterceptors
@@ -44,7 +42,6 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import fs from 'fs'
-import { t } from 'i18next'
 import { I18nService } from 'nestjs-i18n'
 import { isAbsolute, join, relative } from 'path'
 import { Observable } from 'rxjs'
@@ -63,35 +60,6 @@ import { SandboxPreviewAuthGuard } from './sandbox-preview-auth.guard'
 import { SandboxPreviewSessionService } from './sandbox-preview-session.service'
 import { SandboxManagedServiceError } from './sandbox-managed-service.error'
 import { SandboxManagedServiceService } from './sandbox-managed-service.service'
-
-function buildSandboxPreviewBootstrapDocument(nonce: string): string {
-    return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="referrer" content="no-referrer">
-<title>Sandbox preview</title>
-</head>
-<body>
-<script nonce="${nonce}">
-const parameters = new URLSearchParams(window.location.hash.slice(1));
-window.history.replaceState(null, '', window.location.pathname);
-const form = document.createElement('form');
-form.method = 'post';
-form.action = window.location.pathname;
-for (const name of ['ticket', 'target']) {
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = name;
-  input.value = parameters.get(name) || '';
-  form.appendChild(input);
-}
-document.body.appendChild(form);
-form.submit();
-</script>
-</body>
-</html>`
-}
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -546,13 +514,22 @@ export class SandboxController {
     async createManagedServicePreviewSession(
         @Param('conversationId') conversationId: string,
         @Param('serviceId') serviceId: string,
-        @Query('organizationId') organizationId: string
+        @Query('organizationId') organizationId: string,
+        @Req() request: Request,
+        @Res({ passthrough: true }) response: Response
     ): Promise<TSandboxManagedServicePreviewSession> {
         try {
             const service = await this.organizationScopeService.run(organizationId, () =>
                 this.sandboxManagedServiceService.getByConversationId(conversationId, serviceId)
             )
-            return this.sandboxPreviewSessionService.createSession(service)
+            const session = this.sandboxPreviewSessionService.createSession(service, {
+                secure: request.secure || request.headers['x-forwarded-proto'] === 'https'
+            })
+            response.cookie(session.cookie.name, session.cookie.value, session.cookie.options)
+            return {
+                expiresAt: session.expiresAt,
+                previewUrl: session.previewUrl
+            }
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
@@ -562,65 +539,25 @@ export class SandboxController {
     async createManagedServicePreviewSessionByThread(
         @Param('threadId') threadId: string,
         @Param('serviceId') serviceId: string,
-        @Query('organizationId') organizationId: string
+        @Query('organizationId') organizationId: string,
+        @Req() request: Request,
+        @Res({ passthrough: true }) response: Response
     ): Promise<TSandboxManagedServicePreviewSession> {
         try {
             const service = await this.organizationScopeService.run(organizationId, () =>
                 this.sandboxManagedServiceService.getByThreadId(threadId, serviceId)
             )
-            return this.sandboxPreviewSessionService.createSession(service)
+            const session = this.sandboxPreviewSessionService.createSession(service, {
+                secure: request.secure || request.headers['x-forwarded-proto'] === 'https'
+            })
+            response.cookie(session.cookie.name, session.cookie.value, session.cookie.options)
+            return {
+                expiresAt: session.expiresAt,
+                previewUrl: session.previewUrl
+            }
         } catch (error) {
             this.throwManagedServiceHttpError(error)
         }
-    }
-
-    @Public()
-    @Get('conversations/:conversationId/services/:serviceId/preview-bootstrap')
-    renderManagedServicePreviewBootstrap(@Res() response: Response) {
-        const nonce = randomBytes(18).toString('base64url')
-        response.setHeader('Cache-Control', 'no-store')
-        response.setHeader(
-            'Content-Security-Policy',
-            `default-src 'none'; script-src 'nonce-${nonce}'; form-action 'self'; base-uri 'none'`
-        )
-        response.setHeader('Referrer-Policy', 'no-referrer')
-        response.setHeader('X-Content-Type-Options', 'nosniff')
-        response.status(200)
-        response.type('html')
-        response.send(buildSandboxPreviewBootstrapDocument(nonce))
-    }
-
-    @Public()
-    @Post('conversations/:conversationId/services/:serviceId/preview-bootstrap')
-    bootstrapManagedServicePreviewSession(
-        @Param('conversationId') conversationId: string,
-        @Param('serviceId') serviceId: string,
-        @Body('ticket') ticket: string | undefined,
-        @Body('target') targetPath: string | undefined,
-        @Req() request: Request,
-        @Res() response: Response
-    ) {
-        const bootstrap = this.sandboxPreviewSessionService.bootstrapSession({
-            conversationId,
-            request,
-            serviceId,
-            targetPath,
-            ticket
-        })
-        if (!bootstrap) {
-            throw new UnauthorizedException(
-                t('server-ai:Error.SandboxPreviewBootstrapInvalid', {
-                    defaultValue: 'Sandbox preview bootstrap is invalid.'
-                })
-            )
-        }
-
-        response.setHeader('Cache-Control', 'no-store')
-        response.setHeader('Referrer-Policy', 'no-referrer')
-        if (bootstrap.cookie) {
-            response.cookie(bootstrap.cookie.name, bootstrap.cookie.value, bootstrap.cookie.options)
-        }
-        response.redirect(303, bootstrap.redirectPath)
     }
 
     @Public()

@@ -43,7 +43,7 @@ jest.mock('./sandbox-preview-auth.guard', () => ({
 }))
 
 jest.mock('./sandbox-preview-session.service', () => ({
-    SANDBOX_PREVIEW_COOKIE_NAME: '__Host-xpert_sandbox_preview',
+    SANDBOX_PREVIEW_COOKIE_NAME: 'xpert_sandbox_preview',
     SandboxPreviewSessionService: class SandboxPreviewSessionService {}
 }))
 
@@ -82,7 +82,6 @@ describe('SandboxController', () => {
         proxyByConversationId: jest.Mock
     }
     let sandboxPreviewSessionService: {
-        bootstrapSession: jest.Mock
         createSession: jest.Mock
     }
     let organizationScopeService: {
@@ -121,7 +120,6 @@ describe('SandboxController', () => {
             proxyByConversationId: jest.fn()
         }
         sandboxPreviewSessionService = {
-            bootstrapSession: jest.fn(),
             createSession: jest.fn()
         }
         organizationScopeService = {
@@ -226,7 +224,12 @@ describe('SandboxController', () => {
         )
 
         await expect(
-            controller.terminal({ cmd: 'ls' }, null, 'conversation-1', new EventEmitter() as unknown as Response)
+            controller.terminal(
+                { cmd: 'ls' },
+                null,
+                'conversation-1',
+                new EventEmitter() as unknown as Response
+            )
         ).rejects.toBeInstanceOf(ForbiddenException)
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
@@ -423,8 +426,8 @@ describe('SandboxController', () => {
         await expect(
             controller.getManagedServiceLogsByThread('thread-1', 'service-1', '120', 'org-1')
         ).resolves.toEqual({
-                stdout: 'ready',
-                stderr: ''
+            stdout: 'ready',
+            stderr: ''
         })
         expect(organizationScopeService.run).toHaveBeenCalledWith('org-1', expect.any(Function))
         expect(sandboxManagedServiceService.getLogsByThreadId).toHaveBeenCalledWith('thread-1', 'service-1', 120)
@@ -469,7 +472,17 @@ describe('SandboxController', () => {
         )
     })
 
-    it('creates an isolated preview bootstrap session', async () => {
+    it('creates a preview session cookie for iframe access', async () => {
+        const request = {
+            headers: {
+                'x-forwarded-proto': 'https'
+            },
+            secure: false
+        } as unknown as Request
+        const response = {
+            cookie: jest.fn()
+        }
+
         sandboxManagedServiceService.getByConversationId.mockResolvedValue({
             id: 'service-1',
             conversationId: 'conversation-1',
@@ -482,26 +495,60 @@ describe('SandboxController', () => {
             previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
         sandboxPreviewSessionService.createSession.mockReturnValue({
+            cookie: {
+                name: 'xpert_sandbox_preview',
+                options: {
+                    httpOnly: true,
+                    maxAge: 3600000,
+                    path: '/api/sandbox/conversations/conversation-1/services/service-1/proxy',
+                    sameSite: 'lax',
+                    secure: true
+                },
+                value: 'preview-token'
+            },
             expiresAt: '2026-04-20T13:00:00.000Z',
-            previewUrl:
-                'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
 
         await expect(
-            controller.createManagedServicePreviewSession('conversation-1', 'service-1', undefined)
+            controller.createManagedServicePreviewSession(
+                'conversation-1',
+                'service-1',
+                undefined,
+                request,
+                response as unknown as Response
+            )
         ).resolves.toEqual({
             expiresAt: '2026-04-20T13:00:00.000Z',
-            previewUrl:
-                'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
 
         expect(sandboxManagedServiceService.getByConversationId).toHaveBeenCalledWith('conversation-1', 'service-1')
         expect(sandboxPreviewSessionService.createSession).toHaveBeenCalledWith(
-            expect.objectContaining({ id: 'service-1' })
+            expect.objectContaining({ id: 'service-1' }),
+            { secure: true }
+        )
+        expect(response.cookie).toHaveBeenCalledWith(
+            'xpert_sandbox_preview',
+            'preview-token',
+            expect.objectContaining({
+                path: '/api/sandbox/conversations/conversation-1/services/service-1/proxy',
+                secure: true
+            })
         )
     })
 
-    it('creates a thread preview bootstrap session', async () => {
+    it('creates a thread preview session cookie for iframe access', async () => {
+        const request = {
+            headers: {
+                'x-forwarded-proto': 'https'
+            },
+            secure: false
+        } as unknown as Request
+        const response = {
+            cookie: jest.fn()
+        }
+
         sandboxManagedServiceService.getByThreadId.mockResolvedValue({
             id: 'service-1',
             conversationId: 'conversation-1',
@@ -514,101 +561,43 @@ describe('SandboxController', () => {
             previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
         sandboxPreviewSessionService.createSession.mockReturnValue({
+            cookie: {
+                name: 'xpert_sandbox_preview',
+                options: {
+                    httpOnly: true,
+                    maxAge: 3600000,
+                    path: '/api/sandbox/conversations/conversation-1/services/service-1/proxy',
+                    sameSite: 'lax',
+                    secure: true
+                },
+                value: 'preview-token'
+            },
             expiresAt: '2026-04-20T13:00:00.000Z',
-            previewUrl:
-                'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
 
         await expect(
-            controller.createManagedServicePreviewSessionByThread('thread-1', 'service-1', 'org-1')
+            controller.createManagedServicePreviewSessionByThread(
+                'thread-1',
+                'service-1',
+                'org-1',
+                request,
+                response as unknown as Response
+            )
         ).resolves.toEqual({
             expiresAt: '2026-04-20T13:00:00.000Z',
-            previewUrl:
-                'https://preview.exampleusercontent.com/api/sandbox/conversations/conversation-1/services/service-1/preview-bootstrap#ticket=preview-ticket'
+            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         })
 
         expect(organizationScopeService.run).toHaveBeenCalledWith('org-1', expect.any(Function))
         expect(sandboxManagedServiceService.getByThreadId).toHaveBeenCalledWith('thread-1', 'service-1')
-    })
-
-    it('renders a no-store bootstrap document that reads credentials only from the URL fragment', () => {
-        const response = {
-            send: jest.fn(),
-            setHeader: jest.fn(),
-            status: jest.fn(),
-            type: jest.fn()
-        }
-
-        controller.renderManagedServicePreviewBootstrap(response as unknown as Response)
-
-        expect(response.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store')
-        expect(response.setHeader).toHaveBeenCalledWith(
-            'Content-Security-Policy',
-            expect.stringMatching(/^default-src 'none'; script-src 'nonce-[^']+';/)
-        )
-        expect(response.setHeader).toHaveBeenCalledWith('Referrer-Policy', 'no-referrer')
-        expect(response.setHeader).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff')
-        expect(response.status).toHaveBeenCalledWith(200)
-        expect(response.type).toHaveBeenCalledWith('html')
-        expect(response.send).toHaveBeenCalledWith(expect.stringContaining('window.location.hash.slice(1)'))
-        expect(response.send).toHaveBeenCalledWith(expect.stringContaining("form.method = 'post'"))
-    })
-
-    it('sets the preview cookie and redirects from the preview host bootstrap route', () => {
-        const request = {
-            headers: {
-                host: 'preview.exampleusercontent.com'
-            }
-        } as Request
-        const response = {
-            cookie: jest.fn(),
-            redirect: jest.fn(),
-            setHeader: jest.fn()
-        }
-        sandboxPreviewSessionService.bootstrapSession.mockReturnValue({
-            cookie: {
-                name: '__Host-xpert_sandbox_preview',
-                options: {
-                    httpOnly: true,
-                    maxAge: 3600000,
-                    path: '/',
-                    sameSite: 'none',
-                    secure: true
-                },
-                value: 'preview-session'
-            },
-            redirectPath: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
-        })
-
-        controller.bootstrapManagedServicePreviewSession(
-            'conversation-1',
-                'service-1',
-            'bootstrap-ticket',
-            '/api/sandbox/conversations/conversation-1/services/service-1/proxy/',
-                request,
-                response as unknown as Response
-            )
-
-        expect(sandboxPreviewSessionService.bootstrapSession).toHaveBeenCalledWith({
-            conversationId: 'conversation-1',
-            request,
-            serviceId: 'service-1',
-            targetPath: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/',
-            ticket: 'bootstrap-ticket'
-        })
-        expect(response.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store')
-        expect(response.setHeader).toHaveBeenCalledWith('Referrer-Policy', 'no-referrer')
         expect(response.cookie).toHaveBeenCalledWith(
-            '__Host-xpert_sandbox_preview',
-            'preview-session',
+            'xpert_sandbox_preview',
+            'preview-token',
             expect.objectContaining({
-                path: '/',
+                path: '/api/sandbox/conversations/conversation-1/services/service-1/proxy',
                 secure: true
             })
-        )
-        expect(response.redirect).toHaveBeenCalledWith(
-            303,
-            '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
         )
     })
 })

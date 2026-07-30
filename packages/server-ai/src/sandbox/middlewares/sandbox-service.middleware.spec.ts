@@ -4,13 +4,13 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { SandboxServiceMiddleware } from './sandbox-service.middleware'
 
 jest.mock('@langchain/core/callbacks/dispatch', () => ({
-    dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
+  dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
 }))
 
 jest.mock('@xpert-ai/contracts', () => ({
-    ChatMessageEventTypeEnum: {
-        ON_CHAT_EVENT: 'ON_CHAT_EVENT'
-    },
+  ChatMessageEventTypeEnum: {
+    ON_CHAT_EVENT: 'ON_CHAT_EVENT'
+  },
   SandboxManagedServiceErrorCode: {
     ConversationRequired: 'conversation_required',
     ProviderUnavailable: 'provider_unavailable'
@@ -112,45 +112,45 @@ describe('SandboxServiceMiddleware', () => {
     ).toThrow('SandboxService requires the xpert sandbox feature to be enabled.')
   })
 
-    it('emits a structured browser preview event after starting an HTTP service', async () => {
-        commandBus.execute.mockResolvedValue({
-            id: 'service-1',
-            conversationId: 'conversation-1',
-            provider: 'nsjail',
-            name: 'web',
-            command: 'npm run dev',
-            workingDirectory: '/workspace/sites/web',
-            requestedPort: 4173,
-            actualPort: 4173,
-            previewPath: '/',
-            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/',
-            status: 'running',
-            transportMode: 'http'
-        })
-        const tool = await createTool('sandbox_service_start')
-
-        await tool.invoke(
-            {
-                command: 'npm run dev',
-                name: 'web',
-                port: 4173
-            },
-            {
-                configurable: {
-                    thread_id: 'thread-1'
-                }
-            }
-        )
-
-        expect(dispatchCustomEvent).toHaveBeenCalledWith('ON_CHAT_EVENT', {
-            type: 'workbench.browser.preview',
-            source: 'sandbox_service_start',
-            serviceId: 'service-1',
-            displayUrl: 'localhost:4173',
-            url: 'localhost:4173',
-            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
-        })
+  it('emits a structured browser preview event after starting an HTTP service', async () => {
+    commandBus.execute.mockResolvedValue({
+      id: 'service-1',
+      conversationId: 'conversation-1',
+      provider: 'nsjail',
+      name: 'web',
+      command: 'npm run dev',
+      workingDirectory: '/workspace/sites/web',
+      requestedPort: 4173,
+      actualPort: 4173,
+      previewPath: '/',
+      previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/',
+      status: 'running',
+      transportMode: 'http'
     })
+    const tool = await createTool('sandbox_service_start')
+
+    await tool.invoke(
+      {
+        command: 'npm run dev',
+        name: 'web',
+        port: 4173
+      },
+      {
+        configurable: {
+          thread_id: 'thread-1'
+        }
+      }
+    )
+
+    expect(dispatchCustomEvent).toHaveBeenCalledWith('ON_CHAT_EVENT', {
+      type: 'workbench.browser.preview',
+      source: 'sandbox_service_start',
+      serviceId: 'service-1',
+      displayUrl: 'localhost:4173',
+      url: 'localhost:4173',
+      previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
+    })
+  })
 
   it('registers managed service tools separately from sandbox shell', async () => {
     const middleware = await createMiddleware()
