@@ -5,6 +5,7 @@ import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { Injectable } from '@nestjs/common'
+import { t } from 'i18next'
 import {
     appendSandboxMessage,
     BaseSandbox,
@@ -257,6 +258,8 @@ function shouldForwardProxyResponseHeader(name: string, rewriteBody: boolean): b
         normalized === 'keep-alive' ||
         normalized === 'proxy-authenticate' ||
         normalized === 'proxy-authorization' ||
+        normalized === 'service-worker-allowed' ||
+        normalized === 'set-cookie' ||
         normalized === 'te' ||
         normalized === 'trailer' ||
         normalized === 'transfer-encoding' ||
@@ -383,8 +386,26 @@ function readLogTail(filePath: string, maxLines: number): string {
         .trim()
 }
 
-function doesServiceLogMatch(logPaths: ManagedServiceLogPaths, readyPattern: RegExp): boolean {
-    return readyPattern.test(`${readLogTail(logPaths.stdoutPath, 200)}\n${readLogTail(logPaths.stderrPath, 200)}`)
+const MAX_SERVICE_READY_TEXT_BYTES = 4096
+
+function normalizeServiceReadyText(value: string | null | undefined): string | null {
+    if (!isNonEmptyString(value)) {
+        return null
+    }
+    if (Buffer.byteLength(value, 'utf8') > MAX_SERVICE_READY_TEXT_BYTES) {
+        const fallbackMessage = `Service readiness text must not exceed ${MAX_SERVICE_READY_TEXT_BYTES} UTF-8 bytes.`
+        throw new Error(
+            t('server-ai:Error.SandboxServiceReadyTextTooLarge', {
+                defaultValue: fallbackMessage,
+                maxBytes: MAX_SERVICE_READY_TEXT_BYTES
+            }) || fallbackMessage
+        )
+    }
+    return value
+}
+
+function doesServiceLogMatch(logPaths: ManagedServiceLogPaths, readyText: string): boolean {
+    return `${readLogTail(logPaths.stdoutPath, 200)}\n${readLogTail(logPaths.stderrPath, 200)}`.includes(readyText)
 }
 
 function waitForPort(port: number, timeoutMs: number): Promise<void> {
@@ -574,6 +595,7 @@ export class LocalShellSandbox
 
     async startService(options: SandboxManagedServiceStartOptions): Promise<SandboxManagedServiceStartResult> {
         const cwd = path.resolve(options.cwd || this.workingDirectory)
+        const readyText = normalizeServiceReadyText(options.readyPattern)
         if (options.port) {
             await ensurePortIsAvailable(options.port)
         }
@@ -673,7 +695,7 @@ export class LocalShellSandbox
                 logPaths,
                 port: options.port ?? null,
                 processId: child.pid,
-                readyPattern: options.readyPattern ?? null
+                readyPattern: readyText
             })
         } catch (error) {
             try {
@@ -839,10 +861,17 @@ export class LocalShellSandbox
         }
 
         const headers = { ...request.request.headers }
+        delete headers.authorization
         delete headers.connection
+        delete headers.cookie
         delete headers['keep-alive']
         delete headers['proxy-authenticate']
         delete headers['proxy-authorization']
+        delete headers['x-api-key']
+        delete headers['x-auth-token']
+        delete headers['x-client-secret']
+        delete headers['x-csrf-token']
+        delete headers['x-xsrf-token']
         delete headers.trailer
         delete headers['transfer-encoding']
         delete headers.upgrade
@@ -917,7 +946,7 @@ export class LocalShellSandbox
         processId?: number
         readyPattern?: string | null
     }): Promise<void> {
-        const readyRegex = isNonEmptyString(params.readyPattern) ? new RegExp(params.readyPattern) : null
+        const readyText = normalizeServiceReadyText(params.readyPattern)
         const deadline = Date.now() + 30_000
 
         while (Date.now() < deadline) {
@@ -930,11 +959,11 @@ export class LocalShellSandbox
                 }
             }
 
-            if (readyRegex && doesServiceLogMatch(params.logPaths, readyRegex)) {
+            if (readyText && doesServiceLogMatch(params.logPaths, readyText)) {
                 return
             }
 
-            if (!params.port && !readyRegex) {
+            if (!params.port && !readyText) {
                 await sleep(300)
                 if (params.processId) {
                     try {
@@ -1234,7 +1263,23 @@ export class LocalShellSandboxProvider implements ISandboxProvider<LocalShellSan
         }
     }
 
+    isAvailable(): boolean {
+        if (process.env.NODE_ENV !== 'production') {
+            return true
+        }
+        return !process.env.NSJAIL_RUNNER_URL?.trim() && !process.env.NSJAIL_RUNNER_TOKEN?.trim()
+    }
+
     async create(options?: SandboxProviderCreateOptions): Promise<LocalShellSandbox> {
+        if (!this.isAvailable()) {
+            const fallbackMessage = 'Sandbox provider is unavailable: ' + this.type
+            throw new Error(
+                t('server-ai:Error.SandboxProviderUnavailable', {
+                    defaultValue: fallbackMessage,
+                    provider: this.type
+                }) || fallbackMessage
+            )
+        }
         if (options?.workFor.type === 'job' && process.env.NODE_ENV === 'production') {
             throw new Error('Local Shell Sandbox Jobs are disabled in production.')
         }

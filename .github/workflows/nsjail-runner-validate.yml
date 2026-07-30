@@ -1,0 +1,82 @@
+name: Validate NsJail Runner
+
+on:
+  pull_request:
+    paths:
+      - '.deploy/nsjail-runner/**'
+      - '.github/workflows/nsjail-runner-validate.yml'
+      - 'package.json'
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - '.deploy/nsjail-runner/**'
+      - '.github/workflows/nsjail-runner-validate.yml'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate xpert-nsjail-runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RUN_PRIVILEGED_PROBE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Check out repository
+        shell: bash
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags --depth=1 origin "$GITHUB_REF"
+          git checkout --detach FETCH_HEAD
+
+      - name: Run Runner unit tests
+        run: corepack pnpm run test:nsjail-runner
+
+      - name: Build temporary Runner image
+        if: env.RUN_PRIVILEGED_PROBE == 'true'
+        run: docker build --file .deploy/nsjail-runner/Dockerfile --tag xpert-nsjail-runner:ci .
+
+      - name: Run Runner isolation probe
+        if: env.RUN_PRIVILEGED_PROBE == 'true'
+        shell: bash
+        run: |
+          workspace="$(mktemp -d)"
+          # NsJail drops privileges before resolving bind sources, so the jail UID needs traverse-only access.
+          chmod 0711 "$workspace"
+          token="$(openssl rand -hex 32)"
+          echo "RUNNER_WORKSPACE=$workspace" >> "$GITHUB_ENV"
+          docker run --detach \
+            --name xpert-nsjail-runner-ci \
+            --privileged \
+            --cgroupns=host \
+            --security-opt apparmor=unconfined \
+            --env XPERT_NSJAIL_RUNNER_TOKEN="$token" \
+            --env XPERT_NSJAIL_MEMORY_BYTES=134217728 \
+            --env XPERT_NSJAIL_CPU_MS_PER_SEC=200 \
+            --env XPERT_NSJAIL_PIDS=32 \
+            --env XPERT_NSJAIL_RLIMIT_AS_MB=512 \
+            --env XPERT_NSJAIL_RLIMIT_FSIZE_MB=2 \
+            --env XPERT_NSJAIL_RLIMIT_NOFILE=64 \
+            --volume "$workspace:/sandbox" \
+            --volume /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            xpert-nsjail-runner:ci
+          for attempt in {1..30}; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' xpert-nsjail-runner-ci)"
+            [[ "$status" == healthy ]] && break
+            [[ "$status" == unhealthy ]] && exit 1
+            sleep 1
+          done
+          [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-ci)" == healthy ]]
+          docker exec xpert-nsjail-runner-ci python3 /app/poc_validate.py
+
+      - name: Clean up Runner isolation probe
+        if: always() && env.RUN_PRIVILEGED_PROBE == 'true'
+        run: |
+          docker rm --force xpert-nsjail-runner-ci >/dev/null 2>&1 || true
+          docker image rm --force xpert-nsjail-runner:ci >/dev/null 2>&1 || true
+          [[ -z "${RUNNER_WORKSPACE:-}" ]] || rm -rf "$RUNNER_WORKSPACE"
