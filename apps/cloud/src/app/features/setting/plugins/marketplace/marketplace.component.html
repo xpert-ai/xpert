@@ -72,21 +72,23 @@
         />
       </div>
     </div>
-    <select
-      class="h-11 min-w-[180px] rounded-xl border border-(--border) bg-components-panel-bg-blur px-3 text-sm text-text-secondary shadow-sm outline-none"
-      [(ngModel)]="sourceFilter"
-    >
-      <option value="all">{{ 'XP.Plugin.AllSources' | translate: { Default: 'All sources' } }}</option>
-      @for (source of sources(); track source.id) {
-        <option [value]="source.id">
-          @if (sourceI18nKey(source.id, source.name); as sourceKey) {
-            {{ sourceKey | translate: { Default: source.name } }}
-          } @else {
-            {{ source.name }}
-          }
-        </option>
-      }
-    </select>
+    @if (!publicCatalog()) {
+      <select
+        class="h-11 min-w-[180px] rounded-xl border border-(--border) bg-components-panel-bg-blur px-3 text-sm text-text-secondary shadow-sm outline-none"
+        [(ngModel)]="sourceFilter"
+      >
+        <option value="all">{{ 'XP.Plugin.AllSources' | translate: { Default: 'All sources' } }}</option>
+        @for (source of sources(); track source.id) {
+          <option [value]="source.id">
+            @if (sourceI18nKey(source.id, source.name); as sourceKey) {
+              {{ sourceKey | translate: { Default: source.name } }}
+            } @else {
+              {{ source.name }}
+            }
+          </option>
+        }
+      </select>
+    }
   </div>
 </div>
 
@@ -274,6 +276,7 @@
               <xp-settings-plugin
                 class="group relative rounded-xl hover:bg-hover-bg"
                 [plugin]="plugin"
+                [publicCatalog]="publicCatalog()"
                 (pluginInstalled)="markPluginInstalled($event)"
               />
             }

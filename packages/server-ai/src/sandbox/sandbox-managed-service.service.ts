@@ -44,6 +44,17 @@ type MetadataCandidate = {
     }
 }
 
+const SENSITIVE_PREVIEW_REQUEST_HEADERS = new Set([
+    'authorization',
+    'cookie',
+    'proxy-authorization',
+    'x-api-key',
+    'x-auth-token',
+    'x-client-secret',
+    'x-csrf-token',
+    'x-xsrf-token'
+])
+
 function isObjectLike(value: unknown): value is object {
     return typeof value === 'object' && value !== null
 }
@@ -62,6 +73,59 @@ function normalizePreviewPath(value: string | null | undefined): string | null {
     }
 
     return value.startsWith('/') ? value : `/${value}`
+}
+
+function sanitizePreviewRequestHeaders(headers: Request['headers']): Request['headers'] {
+    const sanitized: Request['headers'] = {}
+    for (const [name, value] of Object.entries(headers)) {
+        if (!SENSITIVE_PREVIEW_REQUEST_HEADERS.has(name.toLowerCase())) {
+            sanitized[name] = value
+        }
+    }
+    return sanitized
+}
+
+function sanitizePreviewRequestDistinctHeaders(headers: Request['headersDistinct']): Request['headersDistinct'] {
+    const sanitized: Request['headersDistinct'] = {}
+    for (const [name, value] of Object.entries(headers)) {
+        if (!SENSITIVE_PREVIEW_REQUEST_HEADERS.has(name.toLowerCase())) {
+            sanitized[name] = value
+        }
+    }
+    return sanitized
+}
+
+function sanitizePreviewRequestRawHeaders(headers: Request['rawHeaders']): Request['rawHeaders'] {
+    const sanitized: string[] = []
+    for (let index = 0; index < headers.length; index += 2) {
+        const name = headers[index]
+        const value = headers[index + 1]
+        if (name && value !== undefined && !SENSITIVE_PREVIEW_REQUEST_HEADERS.has(name.toLowerCase())) {
+            sanitized.push(name, value)
+        }
+    }
+    return sanitized
+}
+
+function rewritePreviewLocation(
+    value: Parameters<Response['setHeader']>[1],
+    proxyBasePath: string
+): Parameters<Response['setHeader']>[1] {
+    if (typeof value === 'string') {
+        return value.startsWith('/') && !value.startsWith('//') && !value.startsWith(proxyBasePath)
+            ? `${proxyBasePath}${value.replace(/^\/+/, '')}`
+            : value
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((entry) =>
+            entry.startsWith('/') && !entry.startsWith('//') && !entry.startsWith(proxyBasePath)
+                ? `${proxyBasePath}${entry.replace(/^\/+/, '')}`
+                : entry
+        )
+    }
+
+    return value
 }
 
 function isEnvEntry(value: unknown): value is TSandboxManagedServiceEnvEntry {
@@ -410,12 +474,42 @@ export class SandboxManagedServiceService implements OnModuleInit {
             )
         }
 
-        await adapter.proxyServiceRequest({
-            path: requestPath,
-            request,
-            response,
-            service: this.toModel(service)
-        })
+        const originalHeaders = request.headers
+        const originalDistinctHeaders = request.headersDistinct
+        const originalRawHeaders = request.rawHeaders
+        const originalSetHeader = response.setHeader
+        const proxyBasePath = `/api/sandbox/conversations/${conversationId}/services/${serviceId}/proxy/`
+
+        // Keep platform credentials and preview-session cookies outside every provider backend.
+        request.headers = sanitizePreviewRequestHeaders(request.headers)
+        request.headersDistinct = sanitizePreviewRequestDistinctHeaders(request.headersDistinct)
+        request.rawHeaders = sanitizePreviewRequestRawHeaders(request.rawHeaders)
+        response.setHeader = (name, value) => {
+            const normalizedName = name.toLowerCase()
+            if (normalizedName === 'set-cookie' || normalizedName === 'service-worker-allowed') {
+                return response
+            }
+
+            return originalSetHeader.call(
+                response,
+                name,
+                normalizedName === 'location' ? rewritePreviewLocation(value, proxyBasePath) : value
+            )
+        }
+
+        try {
+            await adapter.proxyServiceRequest({
+                path: requestPath,
+                request,
+                response,
+                service: this.toModel(service)
+            })
+        } finally {
+            request.headers = originalHeaders
+            request.headersDistinct = originalDistinctHeaders
+            request.rawHeaders = originalRawHeaders
+            response.setHeader = originalSetHeader
+        }
     }
 
     private async requireConversation(conversationId: string) {

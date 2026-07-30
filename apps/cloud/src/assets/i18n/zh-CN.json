@@ -20,6 +20,12 @@
     "Referral": {
       "CopyCode": "复制邀请码",
       "Copied": "已复制",
+      "RegenerateCode": "重新生成邀请码",
+      "RegeneratingCode": "正在重新生成...",
+      "RegenerateConfirmTitle": "重新生成邀请码？",
+      "RegenerateConfirmDescription": "当前邀请码将立即失效，已建立的邀请关系不会受到影响。",
+      "RegenerateSuccess": "邀请码已重新生成。",
+      "RegenerateFailed": "邀请码重新生成失败。",
       "ReferralCode": "邀请码（选填）",
       "ReferralCodePlaceholder": "请输入邀请码",
       "ValidatingReferralCode": "正在验证...",
@@ -2219,7 +2225,7 @@
     },
     "ModelAccess": {
       "Title": "模型权限",
-      "Description": "查看套餐包含的模型，以及额外获得的个人模型授权。",
+      "Description": "查看直接可用、套餐包含及额外获得个人授权的模型。",
       "Apply": "申请模型",
       "ApplyTitle": "申请模型权限",
       "ApplyDescription": "选择可申请的模型，并说明使用原因。",
@@ -2236,6 +2242,9 @@
       "PlanModels": "套餐模型",
       "NoPlanModels": "暂无套餐模型",
       "NoPlanModelsDescription": "当前套餐未包含可用模型。",
+      "AvailableModels": "可用模型",
+      "NoAvailableModels": "暂无可用模型",
+      "NoAvailableModelsDescription": "当前没有直接可用或套餐包含的模型。",
       "ExtraGrants": "额外授权",
       "NoGrants": "暂无个人授权",
       "NoGrantsDescription": "你还没有获得额外的模型授权。",
@@ -2249,7 +2258,8 @@
       "SystemActor": "系统",
       "Source": {
         "plan": "套餐包含",
-        "grant": "额外授权"
+        "grant": "额外授权",
+        "direct": "直接可用"
       },
       "Scope": {
         "tenant": "租户级",

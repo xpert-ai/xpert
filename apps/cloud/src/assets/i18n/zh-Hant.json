@@ -25,6 +25,12 @@
     "Referral": {
       "CopyCode": "複製邀請碼",
       "Copied": "已複製",
+      "RegenerateCode": "重新產生邀請碼",
+      "RegeneratingCode": "正在重新產生...",
+      "RegenerateConfirmTitle": "重新產生邀請碼？",
+      "RegenerateConfirmDescription": "目前邀請碼將立即失效，已建立的邀請關係不會受到影響。",
+      "RegenerateSuccess": "邀請碼已重新產生。",
+      "RegenerateFailed": "邀請碼重新產生失敗。",
       "ReferralCode": "邀請碼（選填）",
       "ReferralCodePlaceholder": "請輸入邀請碼",
       "ValidatingReferralCode": "正在驗證...",
@@ -2822,7 +2828,7 @@
     },
     "ModelAccess": {
       "Title": "模型權限",
-      "Description": "查看方案包含的模型，以及額外取得的個人模型授權。",
+      "Description": "查看直接可用、方案包含及額外取得個人授權的模型。",
       "Apply": "申請模型",
       "ApplyTitle": "申請模型權限",
       "ApplyDescription": "選擇可申請的模型，並說明使用原因。",
@@ -2839,6 +2845,9 @@
       "PlanModels": "方案模型",
       "NoPlanModels": "暫無方案模型",
       "NoPlanModelsDescription": "目前方案未包含可用模型。",
+      "AvailableModels": "可用模型",
+      "NoAvailableModels": "暫無可用模型",
+      "NoAvailableModelsDescription": "目前沒有直接可用或方案包含的模型。",
       "ExtraGrants": "額外授權",
       "NoGrants": "暫無個人授權",
       "NoGrantsDescription": "你尚未取得額外的模型授權。",
@@ -2852,7 +2861,8 @@
       "SystemActor": "系統",
       "Source": {
         "plan": "方案包含",
-        "grant": "額外授權"
+        "grant": "額外授權",
+        "direct": "直接可用"
       },
       "Scope": {
         "tenant": "租戶級",

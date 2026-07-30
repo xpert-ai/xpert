@@ -171,6 +171,48 @@ function createFixture() {
 }
 
 describe('ModelAccessService model resolution', () => {
+    it('allows an organization model directly when organization membership is disabled', async () => {
+        const { copilotRepository, input, membershipService, service } = createFixture()
+        copilotRepository.findOne.mockResolvedValue({
+            id: 'copilot-1',
+            tenantId: 'tenant-1',
+            organizationId: 'runtime-org',
+            name: 'Organization Provider',
+            enabled: true,
+            modelProvider: {
+                id: 'provider-1',
+                providerName: 'openai',
+                isValid: true
+            }
+        })
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: null,
+            membership: { planId: 'tenant-plan', plan: {} }
+        })
+
+        await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+            allowed: true,
+            accessSource: 'direct',
+            organizationId: 'runtime-org',
+            scope: ModelAccessOwnershipScopeEnum.Organization
+        })
+        expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+    })
+
+    it('blocks tenant models in an organization when tenant membership is disabled', async () => {
+        const { input, membershipService, service } = createFixture()
+        membershipService.isMembershipAccessEnabled.mockResolvedValue(false)
+        membershipService.isMembershipPlanEnabled.mockResolvedValue(false)
+
+        await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+            allowed: false,
+            organizationId: null,
+            scope: ModelAccessOwnershipScopeEnum.Tenant,
+            unavailableReason: ModelAccessUnavailableReasonEnum.FeatureDisabled
+        })
+    })
+
     it('resolves an organization-scoped provider from the persisted model scope', async () => {
         const { copilotRepository, input, membershipService, providersService, service } = createFixture()
         const organizationProvider = {
@@ -368,6 +410,54 @@ describe('ModelAccessService model resolution', () => {
         )
     })
 
+    it('uses the current organization membership when a tenant model is used through a personal grant', async () => {
+        const { grantQueryBuilder, input, membershipService, service } = createFixture()
+        grantQueryBuilder.getOne.mockResolvedValue({
+            id: 'grant-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: 'creator-user',
+            requestId: 'request-1',
+            copilotId: 'copilot-1',
+            copilotModelId: 'gpt-4.1',
+            modelType: AiModelTypeEnum.LLM,
+            status: UserModelGrantStatusEnum.Active,
+            ownershipScope: ModelAccessOwnershipScopeEnum.Tenant,
+            modelSnapshot: {}
+        })
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: 'runtime-org',
+            membership: {
+                planId: 'organization-plan',
+                plan: { id: 'organization-plan' }
+            }
+        })
+        membershipService.isModelAllowed.mockReturnValue(false)
+
+        const resolution = await service.assertCanUseModel(input)
+
+        expect(resolution).toMatchObject({
+            allowed: true,
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-1',
+            planId: 'organization-plan',
+            multiplier: 1,
+            scope: ModelAccessOwnershipScopeEnum.Tenant,
+            organizationId: null
+        })
+        expect(membershipService.assertCanUse).toHaveBeenCalledWith(
+            {
+                tenantId: 'tenant-1',
+                organizationId: 'runtime-org',
+                copilotOrganizationId: null,
+                userId: 'creator-user',
+                provider: 'openai',
+                model: 'gpt-4.1'
+            },
+            resolution
+        )
+    })
+
     it('uses the exact copilot, model type, and model id when resolving a grant', async () => {
         const { grantQueryBuilder, input, membershipService, service } = createFixture()
         membershipService.findModelAccess.mockResolvedValue(null)
@@ -482,6 +572,64 @@ describe('ModelAccessService model resolution', () => {
 describe('ModelAccessService catalog', () => {
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('exposes organization models as direct access when organization membership is disabled', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('creator-user')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        const { copilotRepository, membershipService, queryBus, service } = createFixture()
+        copilotRepository.findOne.mockResolvedValue({
+            id: 'copilot-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: 'Organization Provider',
+            enabled: true,
+            modelProvider: {
+                id: 'provider-1',
+                providerName: 'openai',
+                isValid: true
+            }
+        })
+        membershipService.findModelAccess.mockResolvedValue(null)
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
+        queryBus.execute.mockImplementation(async (query: FindCopilotModelsQuery) =>
+            query.type === AiModelTypeEnum.LLM
+                ? [
+                      {
+                          id: 'copilot-1',
+                          organizationId: 'org-1',
+                          providerWithModels: {
+                              provider: 'openai',
+                              models: [
+                                  {
+                                      model: 'gpt-4.1',
+                                      model_type: AiModelTypeEnum.LLM
+                                  }
+                              ]
+                          }
+                      }
+                  ]
+                : []
+        )
+
+        await expect(service.getCatalog()).resolves.toMatchObject({
+            items: [
+                {
+                    copilotId: 'copilot-1',
+                    copilotModelId: 'gpt-4.1',
+                    ownershipScope: ModelAccessOwnershipScopeEnum.Organization,
+                    organizationId: 'org-1',
+                    accessSource: ModelAccessSourceEnum.Direct,
+                    planIncluded: false,
+                    allowed: true,
+                    requestable: false
+                }
+            ],
+            canRequest: false
+        })
+        expect(membershipService.hasConsumableBalance).not.toHaveBeenCalled()
     })
 
     it('automatically exposes tenant chat models for external API application', async () => {
@@ -1208,6 +1356,32 @@ describe('ModelAccessService request scope resolution', () => {
                 ownershipScope: expectedScope
             })
         )
+    })
+
+    it('rejects tenant model applications when tenant membership is disabled', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('creator-user')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'creator-user',
+            tenantId: 'tenant-1',
+            type: UserType.USER
+        })
+        jest.spyOn(RequestContext, 'isTenantScope').mockReturnValue(false)
+        jest.spyOn(RequestContext, 'isOrganizationScope').mockReturnValue(true)
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        const { dataSource, membershipService, service } = createFixture()
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !!organizationId)
+
+        await expect(
+            service.createRequest({
+                copilotId: 'copilot-1',
+                copilotModelId: 'gpt-4.1',
+                modelType: AiModelTypeEnum.LLM,
+                reason: 'Needed from the organization'
+            })
+        ).rejects.toThrow('Personal model access is disabled.')
+        expect(dataSource.transaction).not.toHaveBeenCalled()
     })
 })
 

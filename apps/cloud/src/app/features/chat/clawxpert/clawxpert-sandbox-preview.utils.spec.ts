@@ -67,6 +67,37 @@ describe('clawxpert sandbox preview utils', () => {
     ).toBe(true)
   })
 
+  it('does not open an empty browser tab when a tool event has no preview target', () => {
+    expect(
+      getSandboxPreviewTargetFromLogEvent({
+        name: 'lg.tool.end',
+        data: {
+          toolName: 'sandbox_service_start',
+          outputSummary: '{"id":"service-1"...'
+        }
+      })
+    ).toBeNull()
+  })
+
+  it('extracts the service id from a structured sandbox preview event', () => {
+    expect(
+      getSandboxPreviewTargetFromLogEvent({
+        name: 'lg.chat.event',
+        data: {
+          type: 'workbench.browser.preview',
+          source: 'sandbox_service_start',
+          serviceId: 'service-1',
+          displayUrl: 'localhost:4173',
+          url: 'localhost:4173'
+        }
+      })
+    ).toEqual({
+      displayUrl: 'localhost:4173',
+      serviceId: 'service-1',
+      url: 'localhost:4173'
+    })
+  })
+
   it('extracts a browser target from sandbox service start results', () => {
     expect(
       getSandboxPreviewTargetFromLogEvent({

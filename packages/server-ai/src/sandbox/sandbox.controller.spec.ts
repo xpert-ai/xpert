@@ -6,7 +6,7 @@ import type { Request, Response } from 'express'
 import type { I18nService } from 'nestjs-i18n'
 import { firstValueFrom, toArray } from 'rxjs'
 import { RequestContext } from '@xpert-ai/server-core'
-import type { VolumeClient } from '../shared'
+import type { VolumeClient, WorkspacePathMapperFactory } from '../shared'
 import type { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import type { SandboxManagedServiceService } from './sandbox-managed-service.service'
 import type { SandboxConversationContextService } from './sandbox-conversation-context.service'
@@ -137,6 +137,7 @@ describe('SandboxController', () => {
             sandboxManagedServiceService as unknown as SandboxManagedServiceService,
             sandboxPreviewSessionService as unknown as SandboxPreviewSessionService,
             organizationScopeService as unknown as SuperAdminOrganizationScopeService,
+            {} as WorkspacePathMapperFactory,
             volumeClient as unknown as VolumeClient
         )
     })
@@ -422,12 +423,12 @@ describe('SandboxController', () => {
             stderr: ''
         })
 
-        await expect(controller.getManagedServiceLogsByThread('thread-1', 'service-1', '120', 'org-1')).resolves.toEqual(
-            {
-                stdout: 'ready',
-                stderr: ''
-            }
-        )
+        await expect(
+            controller.getManagedServiceLogsByThread('thread-1', 'service-1', '120', 'org-1')
+        ).resolves.toEqual({
+            stdout: 'ready',
+            stderr: ''
+        })
         expect(organizationScopeService.run).toHaveBeenCalledWith('org-1', expect.any(Function))
         expect(sandboxManagedServiceService.getLogsByThreadId).toHaveBeenCalledWith('thread-1', 'service-1', 120)
     })

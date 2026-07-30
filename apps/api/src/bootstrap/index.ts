@@ -20,7 +20,7 @@ import {
   TenantService
 } from '@xpert-ai/server-core'
 import { IPluginConfig } from '@xpert-ai/server-common'
-import { ConflictException, DynamicModule, Logger as NestLogger, Module, Type } from '@nestjs/common'
+import { ConflictException, DynamicModule, Logger as NestLogger, Module, NotFoundException, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
@@ -37,6 +37,7 @@ import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
+import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
 
 export async function bootstrap(options: { title: string; version: string }) {
   // Pre-bootstrap the application configuration
@@ -50,6 +51,7 @@ export async function bootstrap(options: { title: string; version: string }) {
   class RootModule {}
 
   const app = await NestFactory.create<NestExpressApplication>(RootModule, {
+    bodyParser: false,
     bufferLogs: true
   })
 
@@ -75,11 +77,22 @@ export async function bootstrap(options: { title: string; version: string }) {
   app.use(
     text({
       limit: '50mb',
-      type: 'text/xml'
+      type: createSandboxAwareBodyParserType('text/xml')
     })
   )
-  app.use(json({ limit: '50mb' }))
-  app.use(urlencoded({ extended: true, limit: '50mb' }))
+  app.use(
+    json({
+      limit: '50mb',
+      type: createSandboxAwareBodyParserType('application/json')
+    })
+  )
+  app.use(
+    urlencoded({
+      extended: true,
+      limit: '50mb',
+      type: createSandboxAwareBodyParserType('application/x-www-form-urlencoded')
+    })
+  )
 
   // CORS
   const headersForOpenAI =
@@ -111,7 +124,15 @@ export async function bootstrap(options: { title: string; version: string }) {
   const serverService = app.select(ServerAppModule).get(AppService)
   await serverService.seedDBIfEmpty()
   const tenantService = app.select(ServerAppModule).get(TenantService)
-  setDefaultTenantId((await tenantService.getDefaultTenant())?.id ?? null)
+  let defaultTenantId: string | null = null
+  try {
+    defaultTenantId = (await tenantService.getDefaultTenant())?.id ?? null
+  } catch (error) {
+    if (!(error instanceof NotFoundException)) {
+      throw error
+    }
+  }
+  setDefaultTenantId(defaultTenantId)
   /**
    * Dependency injection with class-validator
    */

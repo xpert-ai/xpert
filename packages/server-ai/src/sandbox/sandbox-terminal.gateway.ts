@@ -29,7 +29,12 @@ import { SandboxConversationContextService } from './sandbox-conversation-contex
 
 type TerminalSessionEntry = {
     closeReason?: SandboxTerminalClosedReason
+    requestId: string
     session: SandboxTerminalSession
+}
+
+type PendingTerminalOpen = {
+    canceled: boolean
 }
 
 @WebSocketGateway({
@@ -40,6 +45,7 @@ type TerminalSessionEntry = {
 })
 export class SandboxTerminalGateway implements OnGatewayDisconnect {
     readonly #logger = new Logger(SandboxTerminalGateway.name)
+    readonly #pendingOpens = new Map<string, Map<string, PendingTerminalOpen>>()
     readonly #sessions = new Map<string, Map<string, TerminalSessionEntry>>()
 
     constructor(private readonly sandboxConversationContextService: SandboxConversationContextService) {}
@@ -47,11 +53,17 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
     @UseGuards(WsJWTGuard)
     @SubscribeMessage(SandboxTerminalClientEvent.Open)
     async open(@MessageBody() data: SandboxTerminalOpenRequest, @ConnectedSocket() client: Socket): Promise<void> {
+        const pendingOpen = this.registerPendingOpen(client.id, data.requestId)
+
         try {
             const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
                 conversationId: data.conversationId,
                 projectId: data.projectId
             })
+            if (pendingOpen.canceled) {
+                return
+            }
+
             const terminalAdapter = resolveSandboxTerminalAdapter(resolved.sandbox)
 
             if (!terminalAdapter) {
@@ -68,10 +80,24 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
             }
 
             const sessionId = randomUUID()
+            let pendingError: Error | null = null
             const session = await terminalAdapter.open({
                 cols: data.cols,
                 rows: data.rows,
+                onError: (error) => {
+                    if (pendingOpen.canceled) {
+                        return
+                    }
+                    if (!this.getSessionEntry(client.id, sessionId)) {
+                        pendingError = error
+                        return
+                    }
+                    void this.handleSessionError(client, sessionId, error)
+                },
                 onOutput: (chunk) => {
+                    if (pendingOpen.canceled) {
+                        return
+                    }
                     client.emit(SandboxTerminalServerEvent.Output, {
                         sessionId,
                         data: chunk
@@ -82,9 +108,20 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
                 }
             })
 
+            if (pendingOpen.canceled) {
+                await this.closeResolvedSession(session, sessionId)
+                return
+            }
+
             this.getSocketSessions(client.id).set(sessionId, {
+                requestId: data.requestId,
                 session
             })
+
+            if (pendingError) {
+                await this.handleSessionError(client, sessionId, pendingError)
+                return
+            }
 
             client.emit(SandboxTerminalServerEvent.Opened, {
                 provider: resolved.provider,
@@ -93,6 +130,10 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
                 workingDirectory: resolved.workingDirectory
             })
         } catch (error) {
+            if (pendingOpen.canceled) {
+                return
+            }
+
             const normalizedError = this.normalizeError(error, SandboxTerminalErrorCode.OpenFailed)
             this.emitError(client, {
                 ...normalizedError,
@@ -105,6 +146,8 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
                         : SandboxTerminalClosedReason.OpenFailed,
                 requestId: data.requestId
             })
+        } finally {
+            this.finishPendingOpen(client.id, data.requestId, pendingOpen)
         }
     }
 
@@ -152,10 +195,38 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
     @UseGuards(WsJWTGuard)
     @SubscribeMessage(SandboxTerminalClientEvent.Close)
     async close(@MessageBody() data: SandboxTerminalCloseRequest, @ConnectedSocket() client: Socket): Promise<void> {
-        await this.closeSession(client, data.sessionId, SandboxTerminalClosedReason.ClientClosed, true)
+        if (data.sessionId) {
+            await this.closeSession(client, data.sessionId, SandboxTerminalClosedReason.ClientClosed, true)
+            return
+        }
+
+        const pendingOpen = this.#pendingOpens.get(client.id)?.get(data.requestId)
+        if (pendingOpen) {
+            if (!pendingOpen.canceled) {
+                pendingOpen.canceled = true
+                this.finishPendingOpen(client.id, data.requestId, pendingOpen)
+                this.emitClosed(client, {
+                    reason: SandboxTerminalClosedReason.ClientClosed,
+                    requestId: data.requestId
+                })
+            }
+            return
+        }
+
+        const sessionEntry = [...(this.#sessions.get(client.id)?.entries() ?? [])].find(
+            ([, entry]) => entry.requestId === data.requestId
+        )
+        if (sessionEntry) {
+            await this.closeSession(client, sessionEntry[0], SandboxTerminalClosedReason.ClientClosed, true)
+        }
     }
 
     async handleDisconnect(client: Socket): Promise<void> {
+        for (const pendingOpen of this.#pendingOpens.get(client.id)?.values() ?? []) {
+            pendingOpen.canceled = true
+        }
+        this.#pendingOpens.delete(client.id)
+
         const sessionIds = [...(this.#sessions.get(client.id)?.keys() ?? [])]
         for (const sessionId of sessionIds) {
             await this.closeSession(client, sessionId, SandboxTerminalClosedReason.SocketDisconnected, false)
@@ -182,6 +253,38 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         })
         this.emitClosed(client, {
             reason: entry.closeReason ?? SandboxTerminalClosedReason.ProcessExited,
+            sessionId
+        })
+    }
+
+    private async handleSessionError(client: Socket, sessionId: string, error: unknown): Promise<void> {
+        const sessionMap = this.#sessions.get(client.id)
+        const entry = sessionMap?.get(sessionId)
+        if (!entry) {
+            return
+        }
+
+        sessionMap.delete(sessionId)
+        if (sessionMap.size === 0) {
+            this.#sessions.delete(client.id)
+        }
+
+        try {
+            await entry.session.close()
+        } catch (closeError) {
+            this.#logger.warn(
+                `Failed to close sandbox terminal session ${sessionId} after terminal error: ${
+                    this.normalizeError(closeError, SandboxTerminalErrorCode.CloseFailed).message
+                }`
+            )
+        }
+
+        this.emitError(client, {
+            ...this.normalizeError(error, SandboxTerminalErrorCode.ProviderUnavailable),
+            sessionId
+        })
+        this.emitClosed(client, {
+            reason: SandboxTerminalClosedReason.Error,
             sessionId
         })
     }
@@ -220,6 +323,49 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         }
     }
 
+    private async closeResolvedSession(session: SandboxTerminalSession, sessionId: string): Promise<void> {
+        try {
+            await session.close()
+        } catch (error) {
+            this.#logger.warn(
+                `Failed to close canceled sandbox terminal session ${sessionId}: ${
+                    this.normalizeError(error, SandboxTerminalErrorCode.CloseFailed).message
+                }`
+            )
+        }
+    }
+
+    private registerPendingOpen(socketId: string, requestId: string): PendingTerminalOpen {
+        let pendingOpens = this.#pendingOpens.get(socketId)
+        if (!pendingOpens) {
+            pendingOpens = new Map<string, PendingTerminalOpen>()
+            this.#pendingOpens.set(socketId, pendingOpens)
+        }
+
+        const existing = pendingOpens.get(requestId)
+        if (existing) {
+            existing.canceled = true
+        }
+
+        const pendingOpen = {
+            canceled: false
+        }
+        pendingOpens.set(requestId, pendingOpen)
+        return pendingOpen
+    }
+
+    private finishPendingOpen(socketId: string, requestId: string, pendingOpen: PendingTerminalOpen): void {
+        const pendingOpens = this.#pendingOpens.get(socketId)
+        if (pendingOpens?.get(requestId) !== pendingOpen) {
+            return
+        }
+
+        pendingOpens.delete(requestId)
+        if (pendingOpens.size === 0) {
+            this.#pendingOpens.delete(socketId)
+        }
+    }
+
     private getSocketSessions(socketId: string): Map<string, TerminalSessionEntry> {
         const existing = this.#sessions.get(socketId)
         if (existing) {
@@ -239,7 +385,10 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         client.emit(SandboxTerminalServerEvent.Error, error)
     }
 
-    private emitClosed(client: Socket, data: { reason: SandboxTerminalClosedReason; requestId?: string; sessionId?: string }): void {
+    private emitClosed(
+        client: Socket,
+        data: { reason: SandboxTerminalClosedReason; requestId?: string; sessionId?: string }
+    ): void {
         client.emit(SandboxTerminalServerEvent.Closed, data)
     }
 

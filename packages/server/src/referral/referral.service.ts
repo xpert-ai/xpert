@@ -3,7 +3,8 @@ import {
 	IPagination,
 	IReferralCodeView,
 	IReferralRelationQuery,
-	IReferralRelationView
+	IReferralRelationView,
+	UserType
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -11,6 +12,7 @@ import { t } from 'i18next'
 import { EntityManager, IsNull, Repository } from 'typeorm'
 import { RequestContext } from '../core/context'
 import { FeatureOrganization } from '../feature/feature-organization.entity'
+import { ensureReferralCode, regenerateReferralCode } from './referral-code'
 import { ReferralCode } from './referral-code.entity'
 import { ReferralRelation } from './referral-relation.entity'
 
@@ -115,28 +117,17 @@ export class ReferralService {
 	async getMyCode(): Promise<IReferralCodeView> {
 		const tenantId = this.requireTenantId()
 		await this.assertFeatureEnabled(tenantId)
-		const userId = RequestContext.currentUserId()
-		if (!userId) {
-			throw new UnauthorizedException(
-				t('server-ai:Error.ReferralAuthenticatedUserRequired', {
-					defaultValue: 'Authenticated user is required.'
-				})
-			)
-		}
-		const referralCode = await this.referralCodeRepository.findOne({
-			where: {
-				tenantId,
-				userId
-			}
-		})
+		const userId = this.requireReferralUserId()
+		const referralCode = await ensureReferralCode(this.referralCodeRepository, tenantId, userId)
 
-		if (!referralCode) {
-			throw new NotFoundException(
-				t('server-ai:Error.ReferralCodeNotFound', {
-					defaultValue: 'The invitation code was not found.'
-				})
-			)
-		}
+		return { code: referralCode.code }
+	}
+
+	async regenerateMyCode(): Promise<IReferralCodeView> {
+		const tenantId = this.requireTenantId()
+		await this.assertFeatureEnabled(tenantId)
+		const userId = this.requireReferralUserId()
+		const referralCode = await regenerateReferralCode(this.referralCodeRepository, tenantId, userId)
 
 		return { code: referralCode.code }
 	}
@@ -227,6 +218,21 @@ export class ReferralService {
 			)
 		}
 		return tenantId
+	}
+
+	private requireReferralUserId() {
+		const userId = RequestContext.currentUserId()
+		if (!userId) {
+			throw new UnauthorizedException(
+				t('server-ai:Error.ReferralAuthenticatedUserRequired', {
+					defaultValue: 'Authenticated user is required.'
+				})
+			)
+		}
+		if (RequestContext.currentUser()?.type === UserType.COMMUNICATION) {
+			throw new NotFoundException()
+		}
+		return userId
 	}
 
 	private normalizeCode(code?: string) {

@@ -173,6 +173,7 @@
         "NsJailRunnerRequestFailed": "NsJail Runner 请求失败（HTTP {{status}}）：{{reason}}",
         "NsJailRunnerRequestTimedOut": "NsJail Runner 请求在 {{timeoutMs}} 毫秒后超时。",
         "NsJailProxyRequestTooLarge": "沙盒服务代理请求超过 {{maxBytes}} 字节。",
+        "NsJailProxyResponseTooLarge": "沙盒服务代理响应超过 {{maxBytes}} 字节。",
         "NsJailServiceNotRunning": "所选沙盒服务未在运行。",
         "NsJailProxyRequestFailed": "代理沙盒服务请求失败：{{reason}}",
         "ConnectorAppIntegrationUnsupported": "连接器不支持平台应用集成。",

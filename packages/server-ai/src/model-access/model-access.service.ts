@@ -88,6 +88,17 @@ type ModelTarget = {
     listedForRequest?: boolean
 }
 
+enum ModelTargetAccessMode {
+    Direct = 'direct',
+    Membership = 'membership',
+    Blocked = 'blocked'
+}
+
+type MembershipFeatureState = {
+    organizationEnabled: boolean
+    tenantEnabled: boolean
+}
+
 type ResolveModelInput = {
     tenantId: string
     organizationId?: string | null
@@ -157,7 +168,9 @@ export class ModelAccessService {
             initialGrants,
             membershipAccess,
             tenantFeatureEnabled,
-            organizationFeatureEnabled
+            organizationFeatureEnabled,
+            tenantMembershipEnabled,
+            organizationMembershipEnabled
         ] = await Promise.all([
             this.loadVisibleCatalogTargets(organizationId),
             this.findUserRequestsForCurrentContext(tenantId, userId, organizationId),
@@ -167,7 +180,11 @@ export class ModelAccessService {
                 tenantId,
                 organizationId: null
             }),
-            organizationId ? this.isModelAccessFeatureEnabled({ tenantId, organizationId }) : Promise.resolve(false)
+            organizationId ? this.isModelAccessFeatureEnabled({ tenantId, organizationId }) : Promise.resolve(false),
+            this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
+            organizationId
+                ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
+                : Promise.resolve(false)
         ])
         let grantStateChanged = false
         for (const grant of initialGrants.filter((item) => item.status === UserModelGrantStatusEnum.Active)) {
@@ -208,7 +225,10 @@ export class ModelAccessService {
             targets.map((target) =>
                 this.toCatalogItem(target, user, effectiveRequests, grants, membershipAccess, {
                     tenantFeatureEnabled,
-                    organizationFeatureEnabled
+                    organizationFeatureEnabled,
+                    tenantMembershipEnabled,
+                    organizationMembershipEnabled,
+                    runtimeOrganizationId: organizationId
                 })
             )
         )
@@ -1140,25 +1160,7 @@ export class ModelAccessService {
             xpertId: input.xpertId
         })
         const runtimeOrganizationId = input.organizationId ?? null
-        const membershipEnabled = await this.membershipService.isMembershipAccessEnabled({
-            tenantId: input.tenantId,
-            organizationId: runtimeOrganizationId
-        })
         const fallbackScope = ModelAccessOwnershipScopeEnum.Tenant
-        if (!membershipEnabled) {
-            return {
-                allowed: true,
-                channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
-                copilotId: input.copilotId,
-                copilotModelId: input.copilotModelId,
-                modelType: input.modelType,
-                accessSource: null,
-                multiplier: 1,
-                scope: fallbackScope,
-                organizationId: null
-            }
-        }
 
         await this.processDueGrants({
             tenantId: input.tenantId,
@@ -1186,6 +1188,47 @@ export class ModelAccessService {
                 scope: grant?.ownershipScope ?? fallbackScope,
                 organizationId: grant?.organizationId ?? null,
                 unavailableReason: ModelAccessUnavailableReasonEnum.ModelDeleted
+            }
+        }
+
+        const membershipFeatureState = await this.resolveMembershipFeatureState(input.tenantId, runtimeOrganizationId)
+        const accessMode = this.resolveTargetAccessMode(target, runtimeOrganizationId, membershipFeatureState)
+        if (accessMode === ModelTargetAccessMode.Direct) {
+            return {
+                allowed: target.enabled,
+                channel: ModelAccessChannelEnum.Xpert,
+                billableUserId,
+                copilotId: target.copilotId,
+                copilotModelId: target.copilotModelId,
+                provider: target.provider,
+                modelType: target.modelType,
+                model: target.model,
+                accessSource: ModelAccessSourceEnum.Direct,
+                multiplier: 1,
+                scope: target.ownershipScope,
+                organizationId: target.organizationId,
+                unavailableReason: target.enabled ? null : ModelAccessUnavailableReasonEnum.ModelDisabled
+            }
+        }
+        if (accessMode === ModelTargetAccessMode.Blocked) {
+            if (grant) {
+                await this.recordGrantAvailability(grant, ModelAccessUnavailableReasonEnum.FeatureDisabled)
+            }
+            return {
+                allowed: false,
+                channel: ModelAccessChannelEnum.Xpert,
+                billableUserId,
+                copilotId: target.copilotId,
+                copilotModelId: target.copilotModelId,
+                provider: target.provider,
+                modelType: target.modelType,
+                model: target.model,
+                accessSource: grant ? ModelAccessSourceEnum.Grant : null,
+                grantId: grant?.id,
+                multiplier: 1,
+                scope: target.ownershipScope,
+                organizationId: target.organizationId,
+                unavailableReason: ModelAccessUnavailableReasonEnum.FeatureDisabled
             }
         }
 
@@ -1556,9 +1599,20 @@ export class ModelAccessService {
         requests: ModelAccessRequest[],
         grants: UserModelGrant[],
         membershipAccess: MembershipModelAccess | null,
-        features: { tenantFeatureEnabled: boolean; organizationFeatureEnabled: boolean }
+        features: {
+            tenantFeatureEnabled: boolean
+            organizationFeatureEnabled: boolean
+            tenantMembershipEnabled: boolean
+            organizationMembershipEnabled: boolean
+            runtimeOrganizationId: string | null
+        }
     ): Promise<IModelAccessCatalogItem> {
-        const planIncluded = this.isPlanIncluded(target, membershipAccess)
+        const accessMode = this.resolveTargetAccessMode(target, features.runtimeOrganizationId, {
+            tenantEnabled: features.tenantMembershipEnabled,
+            organizationEnabled: features.organizationMembershipEnabled
+        })
+        const planIncluded =
+            accessMode === ModelTargetAccessMode.Membership && this.isPlanIncluded(target, membershipAccess)
         const grant =
             grants.find(
                 (item) => this.sameModelTarget(item, target) && item.status === UserModelGrantStatusEnum.Active
@@ -1573,9 +1627,10 @@ export class ModelAccessService {
                 ? features.tenantFeatureEnabled
                 : features.organizationFeatureEnabled
         const manager = this.canManageTargetScope(target)
-        const quotaReason = await this.resolveQuotaReason(membershipAccess)
+        const quotaReason =
+            accessMode === ModelTargetAccessMode.Membership ? await this.resolveQuotaReason(membershipAccess) : null
         const grantUnavailableReason = effectiveGrant
-            ? !featureEnabled
+            ? accessMode === ModelTargetAccessMode.Blocked || !featureEnabled
                 ? ModelAccessUnavailableReasonEnum.FeatureDisabled
                 : !target.enabled
                   ? ModelAccessUnavailableReasonEnum.ModelDisabled
@@ -1599,20 +1654,27 @@ export class ModelAccessService {
             modelLabel: target.modelLabel,
             ownershipScope: target.ownershipScope,
             organizationId: target.organizationId,
-            accessSource: planIncluded
-                ? ModelAccessSourceEnum.Plan
-                : effectiveGrant
-                  ? ModelAccessSourceEnum.Grant
-                  : null,
+            accessSource:
+                accessMode === ModelTargetAccessMode.Direct
+                    ? ModelAccessSourceEnum.Direct
+                    : planIncluded
+                      ? ModelAccessSourceEnum.Plan
+                      : effectiveGrant
+                        ? ModelAccessSourceEnum.Grant
+                        : null,
             grantId: effectiveGrant?.id,
             planIncluded,
             allowed:
-                (planIncluded && target.enabled) ||
-                (!!effectiveGrant &&
-                    (grantUnavailableReason === null ||
-                        grantUnavailableReason === ModelAccessUnavailableReasonEnum.QuotaExhausted ||
-                        grantUnavailableReason === ModelAccessUnavailableReasonEnum.MembershipRequired)),
+                accessMode === ModelTargetAccessMode.Direct
+                    ? target.enabled
+                    : accessMode === ModelTargetAccessMode.Membership &&
+                      ((planIncluded && target.enabled) ||
+                          (!!effectiveGrant &&
+                              (grantUnavailableReason === null ||
+                                  grantUnavailableReason === ModelAccessUnavailableReasonEnum.QuotaExhausted ||
+                                  grantUnavailableReason === ModelAccessUnavailableReasonEnum.MembershipRequired))),
             requestable:
+                accessMode === ModelTargetAccessMode.Membership &&
                 user.type !== UserType.COMMUNICATION &&
                 target.listedForRequest === true &&
                 target.enabled &&
@@ -1622,11 +1684,17 @@ export class ModelAccessService {
                 !effectiveGrant &&
                 !pendingRequest,
             unavailableReason:
-                planIncluded && !target.enabled
-                    ? ModelAccessUnavailableReasonEnum.ModelDisabled
-                    : planIncluded
-                      ? quotaReason
-                      : grantUnavailableReason,
+                accessMode === ModelTargetAccessMode.Direct
+                    ? target.enabled
+                        ? null
+                        : ModelAccessUnavailableReasonEnum.ModelDisabled
+                    : accessMode === ModelTargetAccessMode.Blocked
+                      ? ModelAccessUnavailableReasonEnum.FeatureDisabled
+                      : planIncluded && !target.enabled
+                        ? ModelAccessUnavailableReasonEnum.ModelDisabled
+                        : planIncluded
+                          ? quotaReason
+                          : grantUnavailableReason,
             pendingRequest,
             grant: effectiveGrant
         }
@@ -1976,6 +2044,38 @@ export class ModelAccessService {
             access.organizationId === target.organizationId &&
             this.membershipService.isModelAllowed(access.membership.plan, target.provider, target.model)
         )
+    }
+
+    private async resolveMembershipFeatureState(
+        tenantId: string,
+        runtimeOrganizationId: string | null
+    ): Promise<MembershipFeatureState> {
+        const [tenantEnabled, organizationEnabled] = await Promise.all([
+            this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
+            runtimeOrganizationId
+                ? this.membershipService.isMembershipPlanEnabled({
+                      tenantId,
+                      organizationId: runtimeOrganizationId
+                  })
+                : Promise.resolve(false)
+        ])
+        return { tenantEnabled, organizationEnabled }
+    }
+
+    private resolveTargetAccessMode(
+        target: ModelTarget,
+        runtimeOrganizationId: string | null,
+        membershipFeatures: MembershipFeatureState
+    ): ModelTargetAccessMode {
+        if (target.organizationId) {
+            return membershipFeatures.organizationEnabled
+                ? ModelTargetAccessMode.Membership
+                : ModelTargetAccessMode.Direct
+        }
+        if (!runtimeOrganizationId) {
+            return membershipFeatures.tenantEnabled ? ModelTargetAccessMode.Membership : ModelTargetAccessMode.Direct
+        }
+        return membershipFeatures.tenantEnabled ? ModelTargetAccessMode.Membership : ModelTargetAccessMode.Blocked
     }
 
     private async resolveQuotaReason(access: MembershipModelAccess | null) {

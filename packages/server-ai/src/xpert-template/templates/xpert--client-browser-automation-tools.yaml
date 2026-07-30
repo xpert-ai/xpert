@@ -56,7 +56,7 @@ team:
             enabled: false
         sandbox:
             enabled: true
-            provider: local-shell-sandbox
+            provider: nsjail
     version: '1'
     agent:
         key: Agent_vCo6Ic4mHR

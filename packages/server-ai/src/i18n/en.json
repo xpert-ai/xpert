@@ -172,6 +172,7 @@
         "NsJailRunnerRequestFailed": "NsJail Runner request failed (HTTP {{status}}): {{reason}}",
         "NsJailRunnerRequestTimedOut": "NsJail Runner request timed out after {{timeoutMs}}ms.",
         "NsJailProxyRequestTooLarge": "Sandbox service proxy request exceeds {{maxBytes}} bytes.",
+        "NsJailProxyResponseTooLarge": "Sandbox service proxy response exceeds {{maxBytes}} bytes.",
         "NsJailServiceNotRunning": "The selected sandbox service is not running.",
         "NsJailProxyRequestFailed": "Failed to proxy sandbox service request: {{reason}}",
         "ConnectorAppIntegrationUnsupported": "Connector app integrations are not supported.",

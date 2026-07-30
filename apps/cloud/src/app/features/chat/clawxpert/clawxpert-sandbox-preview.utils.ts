@@ -42,13 +42,13 @@ export function shouldOpenSandboxPreviewFromLogEvent(event: ClawXpertSandboxPrev
 export function getSandboxPreviewTargetFromEffectEvent(
   event: ClawXpertSandboxPreviewEffectEvent
 ): ClawXpertSandboxPreviewTarget | null {
-  return shouldOpenSandboxPreviewFromEffectEvent(event) ? (findSandboxPreviewTarget(event) ?? {}) : null
+  return shouldOpenSandboxPreviewFromEffectEvent(event) ? findSandboxPreviewTarget(event) : null
 }
 
 export function getSandboxPreviewTargetFromLogEvent(
   event: ClawXpertSandboxPreviewLogEvent
 ): ClawXpertSandboxPreviewTarget | null {
-  return shouldOpenSandboxPreviewFromLogEvent(event) ? (findSandboxPreviewTarget(event) ?? {}) : null
+  return shouldOpenSandboxPreviewFromLogEvent(event) ? findSandboxPreviewTarget(event) : null
 }
 
 function hasPreviewOpenToolEvent(value: unknown, visited = new Set<object>()): boolean {
@@ -178,9 +178,12 @@ function readBrowserPreviewTarget(value: object): ClawXpertSandboxPreviewTarget 
     return null
   }
 
+  const serviceId = readStringProperty(value, 'serviceId')
+
   return {
     displayUrl: readStringProperty(value, 'displayUrl') ?? url,
-    url
+    url,
+    ...(serviceId ? { serviceId } : {})
   }
 }
 
