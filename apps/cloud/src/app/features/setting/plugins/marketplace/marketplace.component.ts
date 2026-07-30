@@ -1,6 +1,6 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, TemplateRef, computed, effect, inject, model, signal, viewChild } from '@angular/core'
+import { Component, TemplateRef, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, routeAnimations } from '@cloud/app/@core'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
@@ -100,6 +100,7 @@ export class PluginsMarketplaceComponent {
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = inject(I18nService)
   readonly i18n = new XpI18nPipe()
+  readonly publicCatalog = input(false)
 
   readonly addSourceDialog = viewChild('addSourceDialog', { read: TemplateRef })
   readonly registryDialog = viewChild('registryDialog', { read: TemplateRef })
@@ -109,14 +110,19 @@ export class PluginsMarketplaceComponent {
 
   readonly #marketplace = myRxResource({
     request: () => ({
+      publicCatalog: this.publicCatalog(),
       scope: this.#activeScope(),
       sourceId: this.selectedSourceId()
     }),
     loader: ({ request }) =>
-      this.pluginAPI.getMarketplace({
-        targetApp: PLUGIN_MARKETPLACE_TARGET_APP,
-        ...(request.sourceId ? { sourceId: request.sourceId } : {})
-      })
+      request.publicCatalog
+        ? this.pluginAPI.getPublicMarketplace({
+            targetApp: PLUGIN_MARKETPLACE_TARGET_APP
+          })
+        : this.pluginAPI.getMarketplace({
+            targetApp: PLUGIN_MARKETPLACE_TARGET_APP,
+            ...(request.sourceId ? { sourceId: request.sourceId } : {})
+          })
   })
 
   readonly manifest = this.#marketplace.value
@@ -292,7 +298,9 @@ export class PluginsMarketplaceComponent {
     this.pluginsWithDownloads.update((plugins) =>
       plugins.map((item) => (isSameMarketplacePlugin(item, plugin) ? { ...item, installed: true } : item))
     )
-    this.reload()
+    if (!this.publicCatalog()) {
+      this.reload()
+    }
   }
 
   sourceI18nKey(sourceId?: string | null, sourceName?: string | null) {

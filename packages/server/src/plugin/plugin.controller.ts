@@ -60,6 +60,7 @@ import {
 import { GetPluginSkillDocumentQuery, ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
 import { UploadedPluginArchiveFile } from './plugin-archive'
+import { Public } from '../shared/decorators'
 import { LOADED_PLUGINS, LoadedPluginRecord, PluginInstallInput, normalizePluginName } from './types'
 
 type LoadedPluginScopeState = {
@@ -228,6 +229,12 @@ export class PluginController {
 		@Query('search') search?: string
 	) {
 		return this.pluginMarketplaceService.listMarketplace({ targetApp, sourceId, search })
+	}
+
+	@Get('marketplace/public')
+	@Public()
+	async getPublicMarketplace(@Query('targetApp') targetApp?: string) {
+		return this.pluginMarketplaceService.listPublicMarketplace({ targetApp })
 	}
 
 	@Get('marketplace/sources')
