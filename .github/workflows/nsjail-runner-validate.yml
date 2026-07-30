@@ -28,10 +28,16 @@ jobs:
     steps:
       - name: Check out repository
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git init .
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
-          git fetch --no-tags --depth=1 origin "$GITHUB_REF"
+          basic_credential="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 --wrap=0)"
+          echo "::add-mask::$basic_credential"
+          git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic ${basic_credential}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_REF"
+          unset basic_credential
           git checkout --detach FETCH_HEAD
 
       - name: Run Runner unit tests
