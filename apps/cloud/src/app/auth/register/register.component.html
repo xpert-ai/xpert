@@ -93,11 +93,43 @@
       }
     </div>
 
+    @if (referralEnabled) {
+      <div>
+        <label for="referral_code" class="block mb-2 text-base font-medium text-text-primary">
+          {{ 'PAC.Referral.ReferralCode' | translate: { Default: 'Invitation code (optional)' } }}
+        </label>
+        <input
+          z-input
+          type="text"
+          name="referral_code"
+          id="referral_code"
+          formControlName="referralCode"
+          class="w-full uppercase"
+          maxlength="10"
+          autocomplete="off"
+          [placeholder]="'PAC.Referral.ReferralCodePlaceholder' | translate: { Default: 'Enter invitation code' }"
+        />
+        @if (referralValidationLoading) {
+          <span class="text-text-secondary text-sm mt-1 block">
+            {{ 'PAC.Referral.ValidatingReferralCode' | translate: { Default: 'Validating...' } }}
+          </span>
+        } @else if (referralCode.hasError('invalidReferralCode')) {
+          <span class="text-text-destructive text-sm mt-1 block">
+            {{ 'PAC.Referral.InvalidReferralCode' | translate: { Default: 'The invitation code is invalid.' } }}
+          </span>
+        } @else if (referralValid) {
+          <span class="text-text-success text-sm mt-1 block">
+            {{ 'PAC.Referral.ValidReferralCode' | translate: { Default: 'Invitation code is valid.' } }}
+          </span>
+        }
+      </div>
+    }
+
     <div class="flex justify-between items-center p-1">
       <button
         type="submit"
         class="btn disabled:btn-disabled btn-primary btn-medium mb-2"
-        [disabled]="form.invalid || loading || submitted"
+        [disabled]="form.invalid || loading || submitted || referralAvailabilityLoading || referralValidationLoading"
       >
         {{ 'AUTH.REGISTER.SUBMIT' | translate: { Default: 'Submit' } }}
       </button>
