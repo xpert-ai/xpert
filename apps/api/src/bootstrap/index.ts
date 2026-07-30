@@ -20,7 +20,7 @@ import {
   TenantService
 } from '@xpert-ai/server-core'
 import { IPluginConfig } from '@xpert-ai/server-common'
-import { ConflictException, DynamicModule, Logger as NestLogger, Module, Type } from '@nestjs/common'
+import { ConflictException, DynamicModule, Logger as NestLogger, Module, NotFoundException, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
@@ -111,7 +111,15 @@ export async function bootstrap(options: { title: string; version: string }) {
   const serverService = app.select(ServerAppModule).get(AppService)
   await serverService.seedDBIfEmpty()
   const tenantService = app.select(ServerAppModule).get(TenantService)
-  setDefaultTenantId((await tenantService.getDefaultTenant())?.id ?? null)
+  let defaultTenantId: string | null = null
+  try {
+    defaultTenantId = (await tenantService.getDefaultTenant())?.id ?? null
+  } catch (error) {
+    if (!(error instanceof NotFoundException)) {
+      throw error
+    }
+  }
+  setDefaultTenantId(defaultTenantId)
   /**
    * Dependency injection with class-validator
    */
