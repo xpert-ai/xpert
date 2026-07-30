@@ -1,11 +1,6 @@
 name: Publish Application Docker images
 
 on:
-  pull_request:
-    paths:
-      - '.deploy/nsjail-runner/**'
-      - '.github/workflows/docker-publish.yml'
-      - 'package.json'
   push:
     branches:
       - develop
@@ -15,17 +10,14 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   publish:
     name: Publish ${{ matrix.service.image_name }}
-    needs: publish-nsjail-runner
     if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
-    permissions:
-      contents: read
-      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -95,181 +87,3 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-to: type=inline
-
-  validate-nsjail-runner:
-    name: Validate xpert-nsjail-runner
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Run Runner unit tests
-        run: corepack pnpm run test:nsjail-runner
-
-      - name: Build Runner for the isolation probe
-        run: docker build --file .deploy/nsjail-runner/Dockerfile --tag xpert-nsjail-runner:ci .
-
-      - name: Run Runner isolation probe
-        shell: bash
-        run: |
-          workspace="$(mktemp -d)"
-          token="$(openssl rand -hex 32)"
-          echo "RUNNER_WORKSPACE=$workspace" >> "$GITHUB_ENV"
-          docker run --detach \
-            --name xpert-nsjail-runner-ci \
-            --privileged \
-            --cgroupns=host \
-            --security-opt apparmor=unconfined \
-            --env XPERT_NSJAIL_RUNNER_TOKEN="$token" \
-            --env XPERT_NSJAIL_MEMORY_BYTES=134217728 \
-            --env XPERT_NSJAIL_CPU_MS_PER_SEC=200 \
-            --env XPERT_NSJAIL_PIDS=32 \
-            --env XPERT_NSJAIL_RLIMIT_AS_MB=512 \
-            --env XPERT_NSJAIL_RLIMIT_FSIZE_MB=2 \
-            --env XPERT_NSJAIL_RLIMIT_NOFILE=64 \
-            --volume "$workspace:/sandbox" \
-            --volume /sys/fs/cgroup:/sys/fs/cgroup:rw \
-            xpert-nsjail-runner:ci
-          for attempt in {1..30}; do
-            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' xpert-nsjail-runner-ci)"
-            [[ "$status" == healthy ]] && break
-            [[ "$status" == unhealthy ]] && exit 1
-            sleep 1
-          done
-          [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-ci)" == healthy ]]
-          docker exec xpert-nsjail-runner-ci python3 /app/poc_validate.py
-
-      - name: Clean up Runner isolation probe
-        if: always()
-        run: |
-          docker rm --force xpert-nsjail-runner-ci >/dev/null 2>&1 || true
-          [[ -z "${RUNNER_WORKSPACE:-}" ]] || rm -rf "$RUNNER_WORKSPACE"
-
-  publish-nsjail-runner:
-    name: Publish xpert-nsjail-runner
-    needs: validate-nsjail-runner
-    if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment: production
-    permissions:
-      contents: read
-      packages: write
-    env:
-      NSJAIL_CANDIDATE_IMAGE: ghcr.io/${{ github.repository_owner }}/xpert-nsjail-runner
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Aliyun ACR
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-hangzhou.aliyuncs.com
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
-
-      - name: Compute Runner image metadata
-        id: nsjail-meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository_owner }}/xpert-nsjail-runner
-            metadc/xpert-nsjail-runner
-            registry.cn-hangzhou.aliyuncs.com/metad/xpert-nsjail-runner
-          flavor: |
-            latest=false
-          tags: |
-            type=raw,value=develop-candidate,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
-            type=raw,value=${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
-
-      - name: Build Runner image by digest
-        id: nsjail-build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: .deploy/nsjail-runner/Dockerfile
-          platforms: linux/amd64
-          outputs: type=image,name=${{ env.NSJAIL_CANDIDATE_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          provenance: true
-          labels: ${{ steps.nsjail-meta.outputs.labels }}
-          cache-to: type=inline
-
-      - name: Validate the Runner image being published
-        env:
-          RUNNER_IMAGE: ${{ env.NSJAIL_CANDIDATE_IMAGE }}@${{ steps.nsjail-build.outputs.digest }}
-        shell: bash
-        run: |
-          workspace="$(mktemp -d)"
-          token="$(openssl rand -hex 32)"
-          cleanup() {
-            docker rm --force xpert-nsjail-runner-publish >/dev/null 2>&1 || true
-            rm -rf "$workspace"
-          }
-          trap cleanup EXIT
-          docker run --detach \
-            --name xpert-nsjail-runner-publish \
-            --privileged \
-            --cgroupns=host \
-            --security-opt apparmor=unconfined \
-            --env XPERT_NSJAIL_RUNNER_TOKEN="$token" \
-            --env XPERT_NSJAIL_MEMORY_BYTES=134217728 \
-            --env XPERT_NSJAIL_CPU_MS_PER_SEC=200 \
-            --env XPERT_NSJAIL_PIDS=32 \
-            --env XPERT_NSJAIL_RLIMIT_AS_MB=512 \
-            --env XPERT_NSJAIL_RLIMIT_FSIZE_MB=2 \
-            --env XPERT_NSJAIL_RLIMIT_NOFILE=64 \
-            --volume "$workspace:/sandbox" \
-            --volume /sys/fs/cgroup:/sys/fs/cgroup:rw \
-            "$RUNNER_IMAGE"
-          for attempt in {1..30}; do
-            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' xpert-nsjail-runner-publish)"
-            [[ "$status" == healthy ]] && break
-            [[ "$status" == unhealthy ]] && exit 1
-            sleep 1
-          done
-          [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-publish)" == healthy ]]
-          docker exec xpert-nsjail-runner-publish python3 /app/poc_validate.py
-
-      - name: Publish validated Runner image
-        env:
-          EXPECTED_DIGEST: ${{ steps.nsjail-build.outputs.digest }}
-          RUNNER_TAGS: ${{ steps.nsjail-meta.outputs.tags }}
-          SOURCE_IMAGE: ${{ env.NSJAIL_CANDIDATE_IMAGE }}@${{ steps.nsjail-build.outputs.digest }}
-        shell: bash
-        run: |
-          [[ "$EXPECTED_DIGEST" == sha256:* ]]
-          while IFS= read -r tag; do
-            [[ -z "$tag" ]] && continue
-            docker buildx imagetools create --tag "$tag" "$SOURCE_IMAGE"
-            actual_digest="$(
-              docker buildx imagetools inspect "$tag" --format '{{json .Manifest}}' |
-                jq --raw-output '.digest'
-            )"
-            [[ "$actual_digest" == "$EXPECTED_DIGEST" ]]
-          done <<< "$RUNNER_TAGS"
