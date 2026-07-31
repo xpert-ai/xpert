@@ -173,10 +173,10 @@ function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, pac
 	console.log(chalk.gray(`Installing staged runtime dependencies for ${packageName}...`))
 	try {
 		fs.writeFileSync(packageJsonPath, JSON.stringify(runtimePackageJson, null, 2))
-		// Startup staging is not an update workflow: avoid audit/funding network work and
-		// prefer the local npm cache while still allowing a registry fallback on cache miss.
+		// Startup staging is not an update workflow: avoid audit/funding network work while
+		// allowing npm to validate cached registry metadata before dependency resolution.
 		execSync(
-			'npm install --omit=dev --omit=peer --ignore-scripts --no-save --legacy-peer-deps --no-audit --no-fund --prefer-offline',
+			'npm install --omit=dev --omit=peer --ignore-scripts --no-save --legacy-peer-deps --no-audit --no-fund',
 			{
 				cwd: targetPackageDir,
 				stdio: 'pipe',
