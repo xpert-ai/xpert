@@ -2095,15 +2095,7 @@ export class ModelAccessService {
         if (!(await this.membershipService.isMembershipPlanEnabled(targetScope, manager))) {
             return false
         }
-        const repository = manager?.getRepository(FeatureOrganization) ?? this.featureOrganizationRepository
-        const query = repository
-            .createQueryBuilder('featureOrganization')
-            .leftJoinAndSelect('featureOrganization.feature', 'feature')
-            .where('featureOrganization.tenantId = :tenantId', { tenantId: targetScope.tenantId })
-            .andWhere('feature.code = :code', { code: AiFeatureEnum.FEATURE_MODEL_GATEWAY })
-        this.applyScopeFilter(query, 'featureOrganization.organizationId', targetScope.organizationId)
-        const toggle = await query.getOne()
-        return toggle?.isEnabled === true
+        return this.isFeatureEnabledForScope(AiFeatureEnum.FEATURE_MODEL_GATEWAY, targetScope, manager)
     }
 
     private async assertModelGatewayFeatureEnabled(
@@ -2169,15 +2161,39 @@ export class ModelAccessService {
         if (!(await this.membershipService.isMembershipPlanEnabled(scope, manager))) {
             return false
         }
+        return this.isFeatureEnabledForScope(AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST, scope, manager)
+    }
+
+    private async isFeatureEnabledForScope(
+        code: AiFeatureEnum,
+        scope: { tenantId: string; organizationId: string | null },
+        manager?: EntityManager
+    ) {
+        const organizationToggle = scope.organizationId
+            ? await this.findFeatureToggle(code, scope.tenantId, scope.organizationId, manager)
+            : null
+        if (organizationToggle) {
+            return organizationToggle.isEnabled === true
+        }
+
+        const tenantToggle = await this.findFeatureToggle(code, scope.tenantId, null, manager)
+        return tenantToggle?.isEnabled === true
+    }
+
+    private async findFeatureToggle(
+        code: AiFeatureEnum,
+        tenantId: string,
+        organizationId: string | null,
+        manager?: EntityManager
+    ) {
         const repository = manager?.getRepository(FeatureOrganization) ?? this.featureOrganizationRepository
         const qb = repository
             .createQueryBuilder('featureOrganization')
             .leftJoinAndSelect('featureOrganization.feature', 'feature')
-            .where('featureOrganization.tenantId = :tenantId', { tenantId: scope.tenantId })
-            .andWhere('feature.code = :code', { code: AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST })
-        this.applyScopeFilter(qb, 'featureOrganization.organizationId', scope.organizationId)
-        const toggle = await qb.getOne()
-        return toggle?.isEnabled === true
+            .where('featureOrganization.tenantId = :tenantId', { tenantId })
+            .andWhere('feature.code = :code', { code })
+        this.applyScopeFilter(qb, 'featureOrganization.organizationId', organizationId)
+        return qb.getOne()
     }
 
     private async assertRequestFeatureEnabled(target: ModelTarget, manager?: EntityManager) {
