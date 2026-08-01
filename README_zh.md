@@ -102,17 +102,17 @@ Xpert 采用**智能体与工作流混合架构**。Agent 决定如何处理开�
 
 Xpert 是一个使用 Angular、NestJS、TypeORM、LangChain 和共享 TypeScript 契约构建的 Nx monorepo。
 
-| 路径                  | 用途                                                                                   |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| `apps/api`            | 主 NestJS API 应用和平台启动入口。                                                     |
-| `apps/cloud`          | Angular 应用，包含 Cloud UI、Agent Studio、工作空间、设置、ChatKit 和 Workbench 界面。 |
-| `packages/server-ai`  | Agent 执行、聊天、模型、工具集、MCP、知识、handoff 和 AI runtime 服务。                |
-| `packages/server`     | 平台共享的核心服务端模块。                                                             |
-| `packages/contracts`  | 前端、后端、SDK 和插件共享的契约。                                                     |
-| `packages/plugin-sdk` | 面向插件配置、权限、视图扩展和 Remote Component 的 SDK。                               |
-| `packages/plugins`    | 随宿主交付的内置插件。                                                                 |
-| `packages/ui`         | 共享 UI 原语和设计令牌。                                                               |
-| `docker`              | Docker Compose 部署文件和环境变量模板。                                                |
+| 路径                                               | 用途                                                                                   |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `apps/api`                                         | 主 NestJS API 应用和平台启动入口。                                                     |
+| `apps/cloud`                                       | Angular 应用，包含 Cloud UI、Agent Studio、工作空间、设置、ChatKit 和 Workbench 界面。 |
+| `packages/server-ai`                               | Agent 执行、聊天、模型、工具集、MCP、知识、handoff 和 AI runtime 服务。                |
+| `packages/server`                                  | 平台共享的核心服务端模块。                                                             |
+| `packages/contracts`                               | 前端、后端、SDK 和插件共享的契约。                                                     |
+| `packages/plugin-sdk`                              | 面向插件配置、权限、视图扩展和 Remote Component 的 SDK。                               |
+| `packages/plugins`                                 | 随宿主交付的内置插件。                                                                 |
+| `packages/core`, `packages/angular`, `packages/ui` | 核心数据/分析库和可复用 UI 包。                                                        |
+| `docker`                                           | Docker Compose 部署文件和环境变量模板。                                                |
 
 本地开发说明请查看[开发 Wiki](https://github.com/xpert-ai/xpert/wiki/Development)。
 
