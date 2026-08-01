@@ -1,12 +1,11 @@
-
 import { Component, input, output } from '@angular/core'
 import { I18nObject, injectHelpWebsite } from '../../../@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, NgmI18nPipe],
+  imports: [TranslateModule, XpI18nPipe],
   selector: 'card-pro',
   templateUrl: 'pro.component.html',
   styleUrls: ['pro.component.scss']
@@ -19,6 +18,5 @@ export class CardProComponent {
   readonly helpUrl = input<string>(null)
   readonly helpTitle = input<string>(null)
 
-  onCreate() {
-  }
+  onCreate() {}
 }

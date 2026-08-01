@@ -3,9 +3,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { isNil } from '@xpert-ai/contracts'
 import { ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { isNil } from '@xpert-ai/copilot'
-import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {
@@ -15,7 +15,7 @@ import {
   CredentialFormTypeEnum,
   ParameterType
 } from '../../../@core'
-import { NgmSelectComponent } from '../../common'
+import { XpSelectComponent } from '../../common'
 
 /**
  * @todo Use JSON Schema to implement
@@ -35,10 +35,10 @@ import { NgmSelectComponent } from '../../common'
     ...ZardTooltipImports,
     ZardInputDirective,
     ...ZardFormImports,
-    NgmDensityDirective,
-    NgmI18nPipe,
-    NgmSelectComponent
-],
+    XpDensityDirective,
+    XpI18nPipe,
+    XpSelectComponent
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class CopilotCredentialFormComponent {
@@ -47,7 +47,7 @@ export class CopilotCredentialFormComponent {
 
   readonly #translate = inject(TranslateService)
   readonly #fb = inject(FormBuilder)
-  readonly #i18n = new NgmI18nPipe()
+  readonly #i18n = new XpI18nPipe()
   protected cva = inject<NgxControlValueAccessor<Partial<Record<string, any>> | null>>(NgxControlValueAccessor)
 
   // Inputs

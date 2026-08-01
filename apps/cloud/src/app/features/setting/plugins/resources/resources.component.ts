@@ -20,9 +20,9 @@ import {
   PLUGIN_COMPONENT_TYPE,
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PluginComponentType
-} from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+} from '@cloud/app/@core/state'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, map, of } from 'rxjs'
 import { TInstalledPlugin } from '../types'
@@ -80,7 +80,7 @@ const XPERT_COMPONENT_TYPES: PluginComponentType[] = [PLUGIN_COMPONENT_TYPE.HOOK
 @Component({
   standalone: true,
   selector: 'xp-plugin-resources',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSpinComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, XpSpinComponent],
   templateUrl: './resources.component.html'
 })
 export class PluginResourcesComponent {
@@ -245,25 +245,25 @@ export class PluginResourcesComponent {
     return [
       {
         type: PLUGIN_COMPONENT_TYPE.SKILL,
-        labelKey: 'PAC.Plugin.ResourceGroupSkills',
+        labelKey: 'XP.Plugin.ResourceGroupSkills',
         defaultLabel: 'Skills',
         items: components.filter((item) => item.componentType === PLUGIN_COMPONENT_TYPE.SKILL)
       },
       {
         type: PLUGIN_COMPONENT_TYPE.MCP_SERVER,
-        labelKey: 'PAC.Plugin.ResourceGroupMcp',
+        labelKey: 'XP.Plugin.ResourceGroupMcp',
         defaultLabel: 'MCP',
         items: components.filter((item) => item.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER)
       },
       {
         type: PLUGIN_COMPONENT_TYPE.APP,
-        labelKey: 'PAC.Plugin.ResourceGroupApps',
+        labelKey: 'XP.Plugin.ResourceGroupApps',
         defaultLabel: 'Apps',
         items: components.filter((item) => item.componentType === PLUGIN_COMPONENT_TYPE.APP)
       },
       {
         type: PLUGIN_COMPONENT_TYPE.HOOK,
-        labelKey: 'PAC.Plugin.ResourceGroupHooks',
+        labelKey: 'XP.Plugin.ResourceGroupHooks',
         defaultLabel: 'Hooks',
         items: components.filter((item) => item.componentType === PLUGIN_COMPONENT_TYPE.HOOK)
       }
@@ -412,24 +412,24 @@ export class PluginResourcesComponent {
   componentTypeBadge(component: IPluginComponentDefinition): PluginComponentBadge {
     if (component.componentType === PLUGIN_COMPONENT_TYPE.SKILL) {
       return {
-        labelKey: 'PAC.Plugin.ResourceTypeSkill',
+        labelKey: 'XP.Plugin.ResourceTypeSkill',
         defaultLabel: 'Skill'
       }
     }
     if (component.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER) {
       return {
-        labelKey: 'PAC.Plugin.ResourceTypeMcp',
+        labelKey: 'XP.Plugin.ResourceTypeMcp',
         defaultLabel: 'MCP'
       }
     }
     if (component.componentType === PLUGIN_COMPONENT_TYPE.APP) {
       return {
-        labelKey: 'PAC.Plugin.ResourceTypeApp',
+        labelKey: 'XP.Plugin.ResourceTypeApp',
         defaultLabel: 'App'
       }
     }
     return {
-      labelKey: 'PAC.Plugin.ResourceTypeHook',
+      labelKey: 'XP.Plugin.ResourceTypeHook',
       defaultLabel: 'Hook'
     }
   }
@@ -483,8 +483,8 @@ export class PluginResourcesComponent {
       this.data.reload?.()
       const successKey =
         this.installMode() === 'workspace'
-          ? 'PAC.Plugin.ResourcesInstalledToWorkspace'
-          : 'PAC.Plugin.ResourcesInstalledToXpert'
+          ? 'XP.Plugin.ResourcesInstalledToWorkspace'
+          : 'XP.Plugin.ResourcesInstalledToXpert'
       this.toastr.success(successKey, {
         Default:
           this.installMode() === 'workspace'

@@ -3,9 +3,9 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { environment } from '@cloud/environments/environment'
-import { EntriesPipe, linkedModel } from '@xpert-ai/core'
-import { NgmAutoScrollBottomDirective, NgmTimerDirective } from '@xpert-ai/ocap-angular/common'
-import { attrModel } from '@xpert-ai/ocap-angular/core'
+import { EntriesPipe, linkedModel } from '@xpert-ai/headless-ui'
+import { XpAutoScrollBottomDirective, XpTimerDirective } from '@xpert-ai/headless-ui'
+import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -43,10 +43,10 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     MCPToolsComponent,
     EntriesPipe,
     XpertEnvVarInputComponent,
-    NgmAutoScrollBottomDirective,
-    NgmTimerDirective,
+    XpAutoScrollBottomDirective,
+    XpTimerDirective,
     ZardSwitchComponent
-],
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class MCPServerFormComponent {
@@ -190,26 +190,22 @@ export class MCPServerFormComponent {
   readonly logs = signal<string[]>([])
 
   constructor() {
-    effect(
-      () => {
-        if (this.types()[0] === 'code') {
-          if (!this.files()?.length) {
-            this.value$.update((state) => ({ ...(state ?? {}), files: this.initFiles() }))
-            this.fileIndex.set([0])
-          }
-          this.command = 'python3'
-          this.args.set(['main.py'])
-        }
-      }
-    )
-
-    effect(
-      () => {
-        if (this.views()[0] === 'code' && !this.fileIndex()?.length) {
+    effect(() => {
+      if (this.types()[0] === 'code') {
+        if (!this.files()?.length) {
+          this.value$.update((state) => ({ ...(state ?? {}), files: this.initFiles() }))
           this.fileIndex.set([0])
         }
+        this.command = 'python3'
+        this.args.set(['main.py'])
       }
-    )
+    })
+
+    effect(() => {
+      if (this.views()[0] === 'code' && !this.fileIndex()?.length) {
+        this.fileIndex.set([0])
+      }
+    })
   }
 
   updateType(types: MCPServerType[]) {

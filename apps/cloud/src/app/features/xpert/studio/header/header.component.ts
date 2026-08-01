@@ -6,8 +6,8 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { DEFAULT_XPERT_AGENT_RECURSION_LIMIT } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { attrModel, linkedModel, nonBlank } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -40,7 +40,7 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
-import { OverlayAnimations } from '@xpert-ai/core'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -52,8 +52,8 @@ import { OverlayAnimations } from '@xpert-ai/core'
     ...ZardTooltipImports,
     ZardSliderComponent,
     TranslateModule,
-    NgmSpinComponent,
-    ChecklistComponent,
+    XpSpinComponent,
+    ChecklistComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',

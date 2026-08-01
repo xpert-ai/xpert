@@ -5,8 +5,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@xpert-ai/contracts'
-import { routeAnimations } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -14,14 +14,7 @@ export type EmbeddedType = 'iframe' | 'scripts' | 'chromeplugin'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    RouterModule,
-    ...ZardTooltipImports,
-    NgmI18nPipe
-],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, ...ZardTooltipImports, XpI18nPipe],
   selector: 'xpert-develop-embedded',
   templateUrl: './embedded.component.html',
   styleUrl: 'embedded.component.scss',
@@ -114,7 +107,7 @@ export class XpertDevelopEmbeddedComponent {
 
   copy() {
     this.#clipboard.copy(this.app().code)
-    this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+    this.#toastr.info({ code: 'XP.Xpert.Copied', default: 'Copied' })
   }
 
   close() {

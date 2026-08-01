@@ -8,7 +8,7 @@
             (click)="backHome()"
           >
             <i class="ri-home-2-line"></i>
-            {{ 'PAC.Knowledgebase.Root' | translate: { Default: 'Root' } }}
+            {{ 'XP.Knowledgebase.Root' | translate: { Default: 'Root' } }}
           </a>
         </li>
         @if (grandParent(); as grand) {
@@ -39,13 +39,13 @@
     </nav>
   } @else {
     <h1 class="text-lg font-semibold text-text-primary">
-      {{ 'PAC.Knowledgebase.Files' | translate: { Default: 'Files' } }}
+      {{ 'XP.Knowledgebase.Files' | translate: { Default: 'Files' } }}
     </h1>
   }
   <div class="flex items-center space-x-0.5 text-sm font-normal text-text-tertiary">
     <span>
       {{
-        'PAC.Knowledgebase.DocumentsDescription'
+        'XP.Knowledgebase.DocumentsDescription'
           | translate
             : {
                 Default:
@@ -54,7 +54,7 @@
       }}
     </span>
     <a class="flex items-center text-text-accent" target="_blank" [href]="helpUrl()">
-      <span>{{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</span>
+      <span>{{ 'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</span>
       <i class="ri-corner-right-up-line"></i>
     </a>
     @if (knowledgebase()?.graphRag?.enabled) {
@@ -64,27 +64,27 @@
         @switch (knowledgebase()?.graphStatus) {
           @case (eKnowledgeGraphStatus.INDEXING) {
             <span class="text-text-accent">
-              {{ 'PAC.Knowledgebase.GraphStatus_Indexing' | translate: { Default: 'Graph indexing' } }}
+              {{ 'XP.Knowledgebase.GraphStatus_Indexing' | translate: { Default: 'Graph indexing' } }}
             </span>
           }
           @case (eKnowledgeGraphStatus.READY) {
             <span class="text-text-success">
-              {{ 'PAC.Knowledgebase.GraphStatus_Ready' | translate: { Default: 'Graph ready' } }}
+              {{ 'XP.Knowledgebase.GraphStatus_Ready' | translate: { Default: 'Graph ready' } }}
             </span>
           }
           @case (eKnowledgeGraphStatus.FAILED) {
             <span class="text-text-danger" [zTooltip]="knowledgebase()?.graphIndexError" zPosition="top">
-              {{ 'PAC.Knowledgebase.GraphStatus_Failed' | translate: { Default: 'Graph failed' } }}
+              {{ 'XP.Knowledgebase.GraphStatus_Failed' | translate: { Default: 'Graph failed' } }}
             </span>
           }
           @case (eKnowledgeGraphStatus.REBUILD_REQUIRED) {
             <span class="text-text-warning">
-              {{ 'PAC.Knowledgebase.GraphStatus_RebuildRequired' | translate: { Default: 'Graph rebuild required' } }}
+              {{ 'XP.Knowledgebase.GraphStatus_RebuildRequired' | translate: { Default: 'Graph rebuild required' } }}
             </span>
           }
           @default {
             <span>
-              {{ 'PAC.Knowledgebase.GraphStatus_Pending' | translate: { Default: 'Graph pending' } }}
+              {{ 'XP.Knowledgebase.GraphStatus_Pending' | translate: { Default: 'Graph pending' } }}
             </span>
           }
         }
@@ -102,7 +102,7 @@
     ></i>
     <input
       class="xp-input w-full pl-[26px]"
-      [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+      [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
       [(ngModel)]="search"
     />
     @if (search()) {
@@ -120,7 +120,7 @@
       [cdkMenuTriggerFor]="columnsMenu"
     >
       <i class="ri-layout-column-line mr-1"></i>
-      {{ 'PAC.KEY_WORDS.Columns' | translate: { Default: 'Columns' } }}
+      {{ 'XP.KEY_WORDS.Columns' | translate: { Default: 'Columns' } }}
     </button>
     <button
       type="button"
@@ -130,18 +130,18 @@
       [cdkMenuTriggerData]="{ ref: ref }"
     >
       <i class="ri-file-info-line mr-1"></i>
-      {{ 'PAC.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
+      {{ 'XP.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
     </button>
     <button
       type="button"
       class="btn disabled:btn-disabled btn-primary btn-large flex justify-center items-center gap-2"
-      [zTooltip]="'PAC.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' }"
+      [zTooltip]="'XP.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' }"
       zPosition="left"
       [disabled]="vectorMutationLocked()"
       [cdkMenuTriggerFor]="docMenu"
     >
       <i class="ri-folder-shared-fill"></i>
-      <span>{{ 'PAC.Knowledgebase.NewUpload' | translate: { Default: 'New / Upload' } }}</span>
+      <span>{{ 'XP.Knowledgebase.NewUpload' | translate: { Default: 'New / Upload' } }}</span>
     </button>
   </div>
 </div>
@@ -150,12 +150,12 @@
     <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle">
       <tr>
         <th scope="col" class="px-6 py-3 whitespace-nowrap" [style.width.px]="selectColumnWidth">
-          <ngm-checkbox
+          <xp-checkbox
             class="shrink-0"
             [indeterminate]="isPartialSelected()"
             [ngModel]="isAllSelected()"
             (ngModelChange)="selectAll($event)"
-            >#</ngm-checkbox
+            >#</xp-checkbox
           >
         </th>
         @for (column of visibleDocumentColumns(); track column.key) {
@@ -195,7 +195,7 @@
                 type="button"
                 class="absolute inset-y-0 right-0 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100"
                 [attr.aria-label]="
-                  ('PAC.Knowledgebase.ResizeColumn' | translate: { Default: 'Resize column' }) +
+                  ('XP.Knowledgebase.ResizeColumn' | translate: { Default: 'Resize column' }) +
                   ': ' +
                   (column.labelKey | translate: { Default: column.defaultLabel })
                 "
@@ -209,7 +209,7 @@
           </th>
         }
         <th scope="col" class="px-6 py-3 whitespace-nowrap" [style.width.px]="actionsColumnWidth">
-          {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
+          {{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
         </th>
       </tr>
     </thead>
@@ -218,14 +218,14 @@
       @for (element of filteredData(); track element.id; let i = $index) {
         <tr class="bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg">
           <td class="px-6 py-2" [style.width.px]="selectColumnWidth">
-            <ngm-checkbox
+            <xp-checkbox
               class="shrink-0"
               [disabled]="element.sourceType === eKDocumentSourceType.FOLDER"
               [ngModel]="selectionModel.isSelected(element.id)"
               (ngModelChange)="selectionModel.toggle(element.id)"
             >
               {{ i + 1 }}
-            </ngm-checkbox>
+            </xp-checkbox>
           </td>
           @for (column of visibleDocumentColumns(); track column.key) {
             <td class="px-6 py-2" [style.width.px]="column.width" [style.min-width.px]="column.minWidth">
@@ -264,12 +264,12 @@
                     <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
                       @switch (knowledgebase()?.status) {
                         @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
-                          <ngm-tags
+                          <xp-tags
                             class="text-sm"
                             [tags]="[
                               {
                                 caption:
-                                  'PAC.Knowledgebase.Status_RebuildRequired'
+                                  'XP.Knowledgebase.Status_RebuildRequired'
                                   | translate: { Default: 'Pending vector rebuild' }
                               }
                             ]"
@@ -277,26 +277,26 @@
                           />
                         }
                         @case (eKnowledgebaseStatusEnum.REBUILDING) {
-                          <ngm-tags
+                          <xp-tags
                             class="text-sm"
                             [tags]="[
                               {
                                 caption:
-                                  'PAC.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
+                                  'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
                               }
                             ]"
                             color="blue"
                           />
                         }
                         @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
-                          <ngm-tags
+                          <xp-tags
                             class="text-sm"
                             [zTooltip]="knowledgebase()?.embeddingRebuildError"
                             zPosition="left"
                             [tags]="[
                               {
                                 caption:
-                                  'PAC.Knowledgebase.Status_RebuildFailed'
+                                  'XP.Knowledgebase.Status_RebuildFailed'
                                   | translate: { Default: 'Vector rebuild failed' }
                               }
                             ]"
@@ -306,73 +306,72 @@
                         @default {
                           @switch (element.status) {
                             @case (eKBDocumentStatusEnum.RUNNING) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
-                                  { caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
+                                  { caption: 'XP.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
                                 ]"
                                 color="blue"
                               />
                             }
                             @case (eKBDocumentStatusEnum.FINISH) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
-                                  { caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
+                                  { caption: 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
                                 ]"
                                 color="green"
                               />
                             }
                             @case (eKBDocumentStatusEnum.ERROR) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [zTooltip]="element.processMsg"
                                 zPosition="left"
                                 [tags]="[
-                                  { caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }
+                                  { caption: 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }
                                 ]"
                                 color="red"
                               />
                             }
                             @case (eKBDocumentStatusEnum.WAITING) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
-                                  { caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
+                                  { caption: 'XP.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
                                 ]"
                                 color="orange"
                               />
                             }
                             @case (eKBDocumentStatusEnum.TRANSFORMED) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
                                   {
                                     caption:
-                                      'PAC.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
+                                      'XP.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
                                   }
                                 ]"
                                 color="orange"
                               />
                             }
                             @case (eKBDocumentStatusEnum.SPLITTED) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
                                   {
-                                    caption: 'PAC.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' }
+                                    caption: 'XP.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' }
                                   }
                                 ]"
                                 color="orange"
                               />
                             }
                             @case (eKBDocumentStatusEnum.UNDERSTOOD) {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
                                   {
-                                    caption:
-                                      'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                                    caption: 'XP.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
                                   }
                                 ]"
                                 color="orange"
@@ -380,7 +379,7 @@
                             }
                             @case (eKBDocumentStatusEnum.EMBEDDING) {
                               <div class="flex items-center gap-1">
-                                <ngm-progress-spinner
+                                <xp-progress-spinner
                                   class="w-6 h-6 shrink-0 text-text-success"
                                   [value]="element.progress"
                                 />
@@ -388,11 +387,11 @@
                               </div>
                             }
                             @default {
-                              <ngm-tags
+                              <xp-tags
                                 class="text-sm"
                                 [tags]="[
                                   {
-                                    caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' }
+                                    caption: 'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' }
                                   }
                                 ]"
                                 color="gray"
@@ -409,22 +408,22 @@
                           @switch (graphJob.status) {
                             @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
                               <span>
-                                {{ 'PAC.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}
+                                {{ 'XP.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}
                               </span>
                             }
                             @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
                               <span class="text-text-accent">
-                                {{ 'PAC.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
+                                {{ 'XP.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
                               </span>
                             }
                             @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
                               <span class="text-text-success">
-                                {{ 'PAC.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
+                                {{ 'XP.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
                               </span>
                             }
                             @case (eKnowledgeGraphIndexJobStatus.FAILED) {
                               <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
-                                {{ 'PAC.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
+                                {{ 'XP.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
                               </span>
                             }
                           }
@@ -479,17 +478,17 @@
           {{ selectionModel.selected.length }}
         </span>
         <span class="system-sm-semibold text-text-accent">
-          {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
+          {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
         </span>
       </div>
       <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
       <button type="button" class="btn btn-secondary btn-large" (click)="enableSelected()">
         <i class="ri-checkbox-circle-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
+        {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
       </button>
       <button type="button" class="btn btn-secondary btn-large" (click)="disableSelected()">
         <i class="ri-close-circle-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
+        {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
       </button>
       <button
         type="button"
@@ -498,7 +497,7 @@
         (click)="reprocess(selectionModel.selected)"
       >
         <i class="ri-reset-right-line mr-1"></i>
-        <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
+        <span>{{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
       </button>
       <button
         type="button"
@@ -511,7 +510,7 @@
         } @else {
           <i class="ri-download-2-line mr-1"></i>
         }
-        <span>{{ 'PAC.Knowledgebase.DownloadOriginalFiles' | translate: { Default: 'Download Originals' } }}</span>
+        <span>{{ 'XP.Knowledgebase.DownloadOriginalFiles' | translate: { Default: 'Download Originals' } }}</span>
       </button>
       <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
       <button
@@ -521,14 +520,14 @@
         (click)="deleteSelected()"
       >
         <i class="ri-delete-bin-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+        {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
       </button>
     </div>
   </div>
 }
 
 @if (isLoading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 <router-outlet #o="outlet"></router-outlet>
@@ -537,21 +536,21 @@
   <div cdkMenu class="cdk-menu__large w-[360px] !p-2" (click)="$event.stopPropagation()">
     <div class="flex items-center justify-between gap-3 px-2 py-1">
       <div class="system-sm-semibold text-text-primary">
-        {{ 'PAC.Knowledgebase.TableColumns' | translate: { Default: 'Table columns' } }}
+        {{ 'XP.Knowledgebase.TableColumns' | translate: { Default: 'Table columns' } }}
       </div>
       <button type="button" class="btn btn-ghost btn-small" (click)="resetColumns()">
         <i class="ri-reset-left-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+        {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
       </button>
     </div>
     <div class="px-2 pb-2 system-xs-regular text-text-tertiary">
-      {{ 'PAC.Knowledgebase.TableColumnsHint' | translate: { Default: 'Show, resize, and reorder columns.' } }}
+      {{ 'XP.Knowledgebase.TableColumnsHint' | translate: { Default: 'Show, resize, and reorder columns.' } }}
     </div>
 
     <div class="space-y-1">
       @for (column of tableColumns(); track column.key; let first = $first; let last = $last) {
         <div class="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-hover-bg">
-          <ngm-checkbox
+          <xp-checkbox
             class="min-w-0 flex-1"
             [disabled]="!column.hideable"
             [ngModel]="column.visible"
@@ -560,7 +559,7 @@
             <span class="truncate">
               {{ column.labelKey | translate: { Default: column.defaultLabel } }}
             </span>
-          </ngm-checkbox>
+          </xp-checkbox>
 
           <input
             class="xp-input h-7 w-20 px-2 text-xs"
@@ -569,7 +568,7 @@
             [max]="column.maxWidth || null"
             [ngModel]="column.width"
             [attr.aria-label]="
-              ('PAC.KEY_WORDS.Width' | translate: { Default: 'Width' }) +
+              ('XP.KEY_WORDS.Width' | translate: { Default: 'Width' }) +
               ': ' +
               (column.labelKey | translate: { Default: column.defaultLabel })
             "
@@ -581,7 +580,7 @@
               type="button"
               class="btn btn-ghost btn-small h-7 w-7 p-0"
               [disabled]="first"
-              [zTooltip]="'PAC.ACTIONS.MoveUp' | translate: { Default: 'Move up' }"
+              [zTooltip]="'XP.ACTIONS.MoveUp' | translate: { Default: 'Move up' }"
               zPosition="top"
               (click)="moveColumn(column.key, -1)"
             >
@@ -591,7 +590,7 @@
               type="button"
               class="btn btn-ghost btn-small h-7 w-7 p-0"
               [disabled]="last"
-              [zTooltip]="'PAC.ACTIONS.MoveDown' | translate: { Default: 'Move down' }"
+              [zTooltip]="'XP.ACTIONS.MoveDown' | translate: { Default: 'Move down' }"
               zPosition="top"
               (click)="moveColumn(column.key, 1)"
             >
@@ -608,16 +607,16 @@
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="createFolder()">
       <i class="ri-folder-add-fill mr-1 text-xl text-text-accent"></i>
-      <span class="ml-2">{{ 'PAC.Knowledgebase.NewFolder' | translate: { Default: 'New Folder' } }}</span>
+      <span class="ml-2">{{ 'XP.Knowledgebase.NewFolder' | translate: { Default: 'New Folder' } }}</span>
     </div>
     <div
       cdkMenuItem
       [cdkMenuItemDisabled]="!hasPipeline() || vectorMutationLocked()"
       [zTooltip]="
         hasPipeline()
-          ? ('PAC.Knowledgebase.AddDocumentFromPipeline'
+          ? ('XP.Knowledgebase.AddDocumentFromPipeline'
             | translate: { Default: 'Use pipelines to create documents and convert them' })
-          : ('PAC.Knowledgebase.CreatePipelineFirst'
+          : ('XP.Knowledgebase.CreatePipelineFirst'
             | translate: { Default: 'Create and publish a knowledge pipeline first.' })
       "
       zPosition="left"
@@ -627,21 +626,21 @@
     >
       <i class="ri-flow-chart mr-1 text-xl text-primary-600"></i>
       <span class="ml-2">{{
-        'PAC.Knowledgebase.CreateFromPipeline' | translate: { Default: 'Create From Pipeline' }
+        'XP.Knowledgebase.CreateFromPipeline' | translate: { Default: 'Create From Pipeline' }
       }}</span>
     </div>
     <div
       cdkMenuItem
       [cdkMenuItemDisabled]="vectorMutationLocked()"
       [zTooltip]="
-        'PAC.Knowledgebase.AddDocumentFixedConfig'
+        'XP.Knowledgebase.AddDocumentFixedConfig'
           | translate: { Default: 'Add a new document and convert it with a fixed configuration.' }
       "
       zPosition="left"
       (click)="uploadDocuments()"
     >
       <i class="ri-folder-shared-fill mr-1 text-xl text-text-success"></i>
-      <span class="ml-2">{{ 'PAC.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' } }}</span>
+      <span class="ml-2">{{ 'XP.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' } }}</span>
     </div>
   </div>
 </ng-template>
@@ -656,30 +655,30 @@
           } @else {
             <i class="ri-download-2-line mr-2"></i>
           }
-          <span>{{ 'PAC.Knowledgebase.DownloadOriginalFile' | translate: { Default: 'Download original file' } }}</span>
+          <span>{{ 'XP.Knowledgebase.DownloadOriginalFile' | translate: { Default: 'Download original file' } }}</span>
         </div>
       }
       <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="reprocess([doc.id])">
         <i class="ri-reset-right-line mr-2"></i>
-        <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
+        <span>{{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
       </div>
     }
     <div cdkMenuItem (click)="enableDoc(doc)">
       <i class="ri-checkbox-circle-line mr-2"></i>
-      {{ 'PAC.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
+      {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
     </div>
     <div cdkMenuItem class="danger" (click)="disableDoc(doc)">
       <i class="ri-close-circle-line mr-2"></i>
-      {{ 'PAC.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
+      {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
     </div>
     <div class="w-full border-t border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem (click)="renameDoc(doc)">
       <i class="ri-edit-line mr-2"></i>
-      <span>{{ 'PAC.ACTIONS.Rename' | translate: { Default: 'Rename' } }}</span>
+      <span>{{ 'XP.ACTIONS.Rename' | translate: { Default: 'Rename' } }}</span>
     </div>
     <div cdkMenuItem class="danger" [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="deleteDocument(doc)">
       <i class="ri-delete-bin-line mr-2"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </div>
   </div>
 </ng-template>
@@ -688,7 +687,7 @@
   <div class="p-4 rounded-2xl shadow-lg w-[500px] overflow-hidden bg-components-panel-bg-blur">
     <div class="flex justify-between">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
-        {{ 'PAC.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
+        {{ 'XP.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
       </h3>
       <button type="button" class="btn btn-ghost btn-small w-7 h-7 rounded-full" (click)="ref.close()">
         <i class="ri-close-line text-lg"></i>
@@ -697,7 +696,7 @@
 
     <div class="system-sm-regular text-text-tertiary">
       {{
-        'PAC.Knowledgebase.MetadataFieldsDescription'
+        'XP.Knowledgebase.MetadataFieldsDescription'
           | translate
             : {
                 Default:
@@ -709,7 +708,7 @@
     <div class="inline-block">
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3" (click)="addMetadataField()">
         <i class="ri-add-large-line"></i>
-        {{ 'PAC.Knowledgebase.AddField' | translate: { Default: 'Add Field' } }}
+        {{ 'XP.Knowledgebase.AddField' | translate: { Default: 'Add Field' } }}
       </button>
     </div>
 
@@ -745,7 +744,7 @@
               </div>
               <input
                 class="xp-input system-sm-medium grow truncate text-text-primary rounded-sm"
-                [placeholder]="'PAC.KEY_WORDS.Description' | translate: { Default: 'description' }"
+                [placeholder]="'XP.KEY_WORDS.Description' | translate: { Default: 'description' }"
                 [ngModel]="field.description"
                 (ngModelChange)="updateMetadataField(i, 'description', $event)"
               />
@@ -798,7 +797,7 @@
 
     <div class="w-full flex justify-end mt-4">
       <button type="button" class="mt-2 btn btn-primary btn-large" (click)="saveMetadataSchema(ref)">
-        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </div>

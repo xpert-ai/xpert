@@ -6,11 +6,11 @@
   <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
     <div>
       <div class="text-2xl font-semibold text-text-primary">
-        {{ 'PAC.Skill.InstalledSkills' | translate: { Default: 'Installed Skills' } }}
+        {{ 'XP.Skill.InstalledSkills' | translate: { Default: 'Installed Skills' } }}
       </div>
       <div class="mt-1 text-sm text-text-tertiary">
         {{
-          'PAC.Skill.WorkspaceSkillsWorkbenchDesc'
+          'XP.Skill.WorkspaceSkillsWorkbenchDesc'
             | translate
               : {
                   Default:
@@ -23,15 +23,15 @@
     <div class="flex flex-wrap gap-2">
       <button type="button" class="btn btn-primary btn-large" (click)="openGithubInstallDialog()">
         <i class="ri-add-line mr-1"></i>
-        <div>{{ 'PAC.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}</div>
+        <div>{{ 'XP.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}</div>
       </button>
       <button type="button" class="btn btn-secondary btn-large" (click)="openUploadDialog()">
         <i class="ri-upload-2-line mr-1"></i>
-        <div>{{ 'PAC.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}</div>
+        <div>{{ 'XP.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}</div>
       </button>
       <button type="button" class="btn btn-secondary btn-large" (click)="registerFromRepository()">
         <i class="ri-git-repository-line mr-1"></i>
-        {{ 'PAC.Skill.RegisterFromRepository' | translate: { Default: 'Register from Repository' } }}
+        {{ 'XP.Skill.RegisterFromRepository' | translate: { Default: 'Register from Repository' } }}
       </button>
       <button type="button" class="btn btn-secondary btn-large w-10 p-0" [cdkMenuTriggerFor]="moreMenu">
         <i class="ri-more-line"></i>
@@ -51,7 +51,7 @@
       (click)="mobilePane.set('skills')"
     >
       <i class="ri-stack-line"></i>
-      {{ 'PAC.Skill.SkillsPane' | translate: { Default: 'Skills' } }}
+      {{ 'XP.Skill.SkillsPane' | translate: { Default: 'Skills' } }}
     </button>
     <button
       type="button"
@@ -64,7 +64,7 @@
       (click)="mobilePane.set('tree')"
     >
       <i class="ri-git-branch-line"></i>
-      {{ 'PAC.Skill.TreePane' | translate: { Default: 'Tree' } }}
+      {{ 'XP.Skill.TreePane' | translate: { Default: 'Tree' } }}
     </button>
     <button
       type="button"
@@ -77,7 +77,7 @@
       (click)="mobilePane.set('file')"
     >
       <i class="ri-file-code-line"></i>
-      {{ 'PAC.Skill.FilePane' | translate: { Default: 'File' } }}
+      {{ 'XP.Skill.FilePane' | translate: { Default: 'File' } }}
     </button>
   </div>
 
@@ -89,11 +89,11 @@
       <div class="flex items-start justify-between gap-3 px-4 pt-4">
         <div class="min-w-0">
           <div class="text-sm font-semibold text-foreground">
-            {{ 'PAC.Skill.SkillLibrary' | translate: { Default: 'Skill Library' } }}
+            {{ 'XP.Skill.SkillLibrary' | translate: { Default: 'Skill Library' } }}
           </div>
           <div class="text-xs text-muted-foreground">
             {{ filteredSkills().length }}
-            {{ 'PAC.Skill.SkillsInstalledCount' | translate: { Default: 'installed skills' } }}
+            {{ 'XP.Skill.SkillsInstalledCount' | translate: { Default: 'installed skills' } }}
           </div>
         </div>
 
@@ -104,7 +104,7 @@
           [indeterminate]="partialSelected()"
           (ngModelChange)="setAllSkillSelection($event)"
         >
-          {{ 'PAC.Skill.SelectAll' | translate: { Default: 'Select all' } }}
+          {{ 'XP.Skill.SelectAll' | translate: { Default: 'Select all' } }}
         </z-checkbox>
       </div>
 
@@ -115,7 +115,7 @@
               z-input
               class="pr-10"
               [placeholder]="
-                'PAC.Skill.SearchInstalledSkillPlaceholder'
+                'XP.Skill.SearchInstalledSkillPlaceholder'
                   | translate: { Default: 'Search by name, summary, author, provider or tag' }
               "
               [ngModel]="search()"
@@ -183,7 +183,7 @@
                         @if (activeSkillId() === skill.id) {
                           <z-badge zType="secondary" class="gap-1">
                             <span class="size-1.5 rounded-full bg-primary"></span>
-                            {{ 'PAC.Skill.Previewing' | translate: { Default: 'Previewing' } }}
+                            {{ 'XP.Skill.Previewing' | translate: { Default: 'Previewing' } }}
                           </z-badge>
                         }
                         <z-badge zType="outline" class="gap-1">
@@ -201,7 +201,7 @@
                       <z-badge zType="secondary">{{ providerLabel(skill) }}</z-badge>
                       <z-badge zType="outline">{{ publisherLabel(skill) }}</z-badge>
                       <z-badge zType="outline">
-                        {{ skill.visibility || ('PAC.Skill.PrivateVisibility' | translate: { Default: 'private' }) }}
+                        {{ skill.visibility || ('XP.Skill.PrivateVisibility' | translate: { Default: 'private' }) }}
                       </z-badge>
                     </div>
 
@@ -221,9 +221,9 @@
                       class="size-7 rounded-lg"
                       [disabled]="isDownloadingSkill(skill.id)"
                       [attr.aria-label]="
-                        'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }
+                        'XP.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }
                       "
-                      [title]="'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }"
+                      [title]="'XP.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }"
                       (click)="downloadSkillPackage(skill, $event)"
                     >
                       @if (isDownloadingSkill(skill.id)) {
@@ -239,8 +239,8 @@
                       zSize="sm"
                       type="button"
                       class="size-7 rounded-lg text-muted-foreground hover:text-destructive"
-                      [attr.aria-label]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-                      [title]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                      [attr.aria-label]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                      [title]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                       (click)="$event.stopPropagation(); deleteSkill(skill)"
                     >
                       <z-icon zType="trash" zSize="sm" />
@@ -256,11 +256,11 @@
           >
             <z-icon zType="search" class="size-8 text-muted-foreground" />
             <div class="text-base font-semibold text-foreground">
-              {{ 'PAC.Skill.NoSkills' | translate: { Default: 'No skills installed yet.' } }}
+              {{ 'XP.Skill.NoSkills' | translate: { Default: 'No skills installed yet.' } }}
             </div>
             <div class="text-sm text-muted-foreground">
               {{
-                'PAC.Skill.NoSkillsWorkbenchHint'
+                'XP.Skill.NoSkillsWorkbenchHint'
                   | translate
                     : {
                         Default:
@@ -278,12 +278,12 @@
         <div class="mb-2 lg:hidden">
           <button type="button" class="btn btn-ghost btn-small" (click)="mobilePane.set('skills')">
             <i class="ri-arrow-left-line mr-1"></i>
-            {{ 'PAC.Skill.BackToSkills' | translate: { Default: 'Back to skills' } }}
+            {{ 'XP.Skill.BackToSkills' | translate: { Default: 'Back to skills' } }}
           </button>
         </div>
       }
 
-      <pac-file-workbench
+      <xp-file-workbench
         class="min-h-0 h-full"
         treeSize="sm"
         [rootId]="activeSkillId()"
@@ -302,14 +302,14 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute inset-0 z-50 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm" />
+  <xp-spin class="absolute inset-0 z-50 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm" />
 }
 
 <ng-template #moreMenu>
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem>
       <i class="ri-file-list-3-line mr-1"></i>
-      {{ 'PAC.Skill.BulkImport' | translate: { Default: 'Bulk Import' } }}
+      {{ 'XP.Skill.BulkImport' | translate: { Default: 'Bulk Import' } }}
     </div>
     <button
       cdkMenuItem
@@ -319,7 +319,7 @@
       (click)="deleteSelectedSkills()"
     >
       <i class="ri-delete-bin-line mr-1"></i>
-      {{ 'PAC.Skill.DeleteSelected' | translate: { Default: 'Delete Selected' } }}
+      {{ 'XP.Skill.DeleteSelected' | translate: { Default: 'Delete Selected' } }}
     </button>
   </div>
 </ng-template>
@@ -328,7 +328,7 @@
   <div class="relative flex w-[36rem] min-w-[32rem] max-w-[calc(100vw-2rem)] max-sm:min-w-0 flex-col overflow-hidden">
     <div class="flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
       <div class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
+        {{ 'XP.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
       </div>
       <button
         type="button"
@@ -352,7 +352,7 @@
   <div class="relative flex h-full max-h-[80vh] w-full flex-col overflow-hidden">
     <div class="sticky top-0 z-20 flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
       <div class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.Skill.RegisterSkillRepositoryTitle' | translate: { Default: 'Register a skill repository' } }}
+        {{ 'XP.Skill.RegisterSkillRepositoryTitle' | translate: { Default: 'Register a skill repository' } }}
       </div>
       <button
         type="button"
@@ -367,7 +367,7 @@
       <xp-skill-indexes [selectedRepository]="selectedRepository()" (installing)="onInstalling($event)" />
     </div>
     @if (registering()) {
-      <ngm-spin
+      <xp-spin
         class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"
       />
     }

@@ -6,7 +6,7 @@
   zShape="circle"
   z-menu
   class="composer-menu-trigger"
-  [attr.aria-label]="'PAC.Chat.ComposerMenu' | translate: { Default: 'Composer menu' }"
+  [attr.aria-label]="'XP.Chat.ComposerMenu' | translate: { Default: 'Composer menu' }"
   [zMenuTriggerFor]="composerMenu"
   zPlacement="topLeft"
 >
@@ -18,13 +18,13 @@
     @if (attachmentEnabled()) {
       <button z-menu-item type="button" class="composer-menu-row" (click)="upload.emit()">
         <z-icon zType="paperclip"></z-icon>
-        <span>{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</span>
+        <span>{{ 'XP.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</span>
       </button>
 
       @if (recentAttachments()?.length) {
         <div class="composer-menu-section">
           <div class="composer-menu-section-title">
-            {{ 'PAC.XProject.Recent' | translate: { Default: 'Recent' } }}
+            {{ 'XP.XProject.Recent' | translate: { Default: 'Recent' } }}
           </div>
           @for (file of recentAttachments(); track trackFile($index, file)) {
             <div
@@ -35,7 +35,7 @@
               (keydown.enter)="recentAttachment.emit(file)"
               (keydown.space)="$event.preventDefault(); recentAttachment.emit(file)"
             >
-              <pac-file-icon class="shrink-0" [fileType]="file.originalName | fileType" />
+              <xp-file-icon class="shrink-0" [fileType]="file.originalName | fileType" />
               <span class="min-w-0 flex-1 text-left">
                 <span class="block truncate text-sm">{{ file.originalName }}</span>
                 <span class="block truncate text-xs text-text-tertiary">
@@ -48,7 +48,7 @@
                 zType="ghost"
                 zSize="icon-sm"
                 zShape="circle"
-                [attr.aria-label]="'PAC.Chat.RemoveAttachment' | translate: { Default: 'Remove attachment' }"
+                [attr.aria-label]="'XP.Chat.RemoveAttachment' | translate: { Default: 'Remove attachment' }"
                 (click)="$event.stopPropagation(); deleteRecentAttachment.emit(file.id)"
               >
                 <z-icon zType="x"></z-icon>
@@ -69,15 +69,15 @@
     >
       <z-icon zType="list-filter-plus"></z-icon>
       <span class="min-w-0 flex-1 text-left">
-        <span class="block text-sm font-medium">{{ 'PAC.Chat.PlanMode' | translate: { Default: 'Plan mode' } }}</span>
+        <span class="block text-sm font-medium">{{ 'XP.Chat.PlanMode' | translate: { Default: 'Plan mode' } }}</span>
         <span class="block truncate text-xs text-text-tertiary">
-          {{ 'PAC.Chat.PlanModeDesc' | translate: { Default: 'Plan first, then execute after confirmation.' } }}
+          {{ 'XP.Chat.PlanModeDesc' | translate: { Default: 'Plan first, then execute after confirmation.' } }}
         </span>
       </span>
       <z-switch
         class="shrink-0"
         [checked]="planMode()"
-        [attr.aria-label]="'PAC.Chat.PlanMode' | translate: { Default: 'Plan mode' }"
+        [attr.aria-label]="'XP.Chat.PlanMode' | translate: { Default: 'Plan mode' }"
         (click)="$event.stopPropagation()"
         (change)="planModeChange.emit($event.checked)"
       />
@@ -85,14 +85,14 @@
 
     <div class="composer-menu-section">
       <div class="composer-menu-section-title">
-        {{ 'PAC.Chat.RuntimeCapabilities' | translate: { Default: 'Run with' } }}
+        {{ 'XP.Chat.RuntimeCapabilities' | translate: { Default: 'Run with' } }}
         @if (selectedCount()) {
           <z-badge zType="secondary">{{ selectedCount() }}</z-badge>
         }
       </div>
 
       @if (runtimeLoading()) {
-        <div class="composer-menu-empty">{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
+        <div class="composer-menu-empty">{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
       } @else if (groups().length) {
         @for (group of groups(); track trackGroup($index, group)) {
           <button z-menu-item type="button" class="composer-menu-row" (click)="selectGroup(group.kind)">
@@ -131,7 +131,7 @@
         <z-empty
           class="composer-menu-empty-state"
           zIcon="box"
-          [zTitle]="'PAC.Chat.NoRuntimeCapabilities' | translate: { Default: 'No runtime capabilities available.' }"
+          [zTitle]="'XP.Chat.NoRuntimeCapabilities' | translate: { Default: 'No runtime capabilities available.' }"
         />
       }
     </div>

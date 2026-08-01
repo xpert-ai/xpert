@@ -3,10 +3,10 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
-import { attrModel, linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNProcessor, IWorkflowNode, KnowledgebaseService, TSelectOption } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
@@ -23,10 +23,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     TranslateModule,
     IconComponent,
-    NgmI18nPipe,
+    XpI18nPipe,
     JSONSchemaFormComponent,
     StateVariableSelectComponent,
-    NgmSelectComponent,
+    XpSelectComponent,
     IntegrationSelectComponent
   ]
 })

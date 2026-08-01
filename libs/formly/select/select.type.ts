@@ -1,4 +1,3 @@
-
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import {
   ChangeDetectionStrategy,
@@ -13,8 +12,8 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmDisplayBehaviourComponent } from '@xpert-ai/ocap-angular/common'
-import { ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { XpDisplayBehaviourComponent } from '@xpert-ai/headless-ui'
+import { ISelectOption } from '@xpert-ai/headless-ui'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
@@ -23,11 +22,11 @@ import {
   ZardComboboxDeprecatedComponent,
   ZardComboboxDeprecatedPanelTemplateDirective,
   type ZardComboboxDeprecatedOption
-} from '@xpert-ai/headless-ui/components/combobox-deprecated'
-import { ZardFormImports } from '@xpert-ai/headless-ui/components/form'
-import { ZardLoaderComponent } from '@xpert-ai/headless-ui/components/loader'
-import { ZardSelectImports } from '@xpert-ai/headless-ui/components/select'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui/components/tooltip'
+} from '@xpert-ai/headless-ui'
+import { ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
 
@@ -39,12 +38,12 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
  */
 @Component({
   standalone: true,
-  selector: 'pac-formly-select',
+  selector: 'xp-formly-select',
   templateUrl: `select.type.html`,
   styleUrls: [`select.type.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'pac-formly-select'
+    class: 'xp-formly-select'
   },
   imports: [
     FormsModule,
@@ -56,12 +55,12 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
     ZardComboboxDeprecatedComponent,
     ZardComboboxDeprecatedPanelTemplateDirective,
     ZardLoaderComponent,
-    NgmDisplayBehaviourComponent,
+    XpDisplayBehaviourComponent,
     FormlyModule,
     TranslateModule
   ]
 })
-export class PACFormlySelectComponent extends FieldType implements OnInit {
+export class XpFormlySelectComponent extends FieldType implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly #destroyRef = inject(DestroyRef)
   private skipNextSearchTermChange = false
@@ -99,26 +98,24 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
     })
   })
 
-  #validatorEffectRef = effect(
-    () => {
-      const fieldError = isSignal(this.props.error) ? this.props.error() : this.props.error
-      if (isString(fieldError)) {
-        this.error.set(fieldError)
-      } else if (this.loadError()) {
-        this.error.set(this.loadError())
-      } else if (
-        isNonNullable(this.value()) &&
-        isNonNullable(this.selectOptions()) &&
-        !this.selectOptions().find((option) => this.optionValue(option) === this.value())
-      ) {
-        this.error.set(
-          this.#translate.instant('FORMLY.COMMON.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
-        )
-      } else {
-        this.error.set(null)
-      }
+  #validatorEffectRef = effect(() => {
+    const fieldError = isSignal(this.props.error) ? this.props.error() : this.props.error
+    if (isString(fieldError)) {
+      this.error.set(fieldError)
+    } else if (this.loadError()) {
+      this.error.set(this.loadError())
+    } else if (
+      isNonNullable(this.value()) &&
+      isNonNullable(this.selectOptions()) &&
+      !this.selectOptions().find((option) => this.optionValue(option) === this.value())
+    ) {
+      this.error.set(
+        this.#translate.instant('FORMLY.COMMON.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
+      )
+    } else {
+      this.error.set(null)
     }
-  )
+  })
 
   ngOnInit(): void {
     this.valueFormControl.valueChanges

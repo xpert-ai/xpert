@@ -2,7 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, inject, signal } from '@angular/core'
 import { ISkillPackage, ISkillRepository, ISkillRepositoryIndex } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  Z_MODAL_DATA,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 import { XpertGithubSkillInstallComponent } from '../github-install/github-install.component'
 import { XpertSkillIndexesComponent } from '../indexes/indexes.component'
 import { XpertSkillRepositoriesComponent } from '../skill-repositories/skill-repositories.component'
@@ -53,11 +59,14 @@ type XpertSkillInstallDialogData = {
         </div>
         <div class="min-w-0">
           <h4 class="text-lg font-semibold text-text-primary">
-            {{ 'PAC.Xpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install or update skills in this workspace' } }}
+            {{
+              'XP.Xpert.InstallWorkspaceSkillsTitle'
+                | translate: { Default: 'Install or update skills in this workspace' }
+            }}
           </h4>
           <p class="mt-1 text-sm leading-6 text-text-secondary">
             {{
-              'PAC.Xpert.InstallWorkspaceSkillsDialogDesc'
+              'XP.Xpert.InstallWorkspaceSkillsDialogDesc'
                 | translate
                   : {
                       Default:
@@ -73,11 +82,11 @@ type XpertSkillInstallDialogData = {
       <div class="sticky top-0 z-10 mt-1 rounded-2xl border border-divider-regular bg-background p-3">
         <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div class="text-sm font-semibold text-text-primary">
-            {{ 'PAC.Skill.SelectSkillSource' | translate: { Default: 'Select a skill source' } }}
+            {{ 'XP.Skill.SelectSkillSource' | translate: { Default: 'Select a skill source' } }}
           </div>
           <button z-button zType="outline" type="button" (click)="showGithubInstall.update(toggleBoolean)">
             <z-icon zType="add" class="mr-1 text-base"></z-icon>
-            {{ 'PAC.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}
+            {{ 'XP.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}
           </button>
         </div>
 
@@ -102,7 +111,7 @@ type XpertSkillInstallDialogData = {
     <div xpDialogActions>
       <div class="flex w-full justify-end">
         <button z-button zType="outline" type="button" xpDialogClose>
-          {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+          {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
       </div>
     </div>
@@ -110,9 +119,11 @@ type XpertSkillInstallDialogData = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertSkillInstallDialogComponent {
-  @HostBinding('class.ngm-dialog-container') readonly isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') readonly isDialogContainer = true
 
-  readonly #dialogRef = inject(ZardDialogRef<XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult | undefined>)
+  readonly #dialogRef = inject(
+    ZardDialogRef<XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult | undefined>
+  )
   readonly #data = inject<XpertSkillInstallDialogData | null>(Z_MODAL_DATA, { optional: true })
 
   readonly selectedRepository = signal<ISkillRepository | null>(null)

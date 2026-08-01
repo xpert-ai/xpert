@@ -1,7 +1,6 @@
-
 import { Component, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { SafePipe } from '@xpert-ai/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 

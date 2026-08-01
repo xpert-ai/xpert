@@ -1,16 +1,16 @@
-<div class="pac-page-header overflow-hidden">
+<div class="xp-page-header overflow-hidden">
   <div class="flex flex-col gap-3">
     <div class="flex flex-col gap-1">
-      <h2 class="pac-page-title">
-        {{ pageTitle() || ('PAC.Integration.SystemIntegration' | translate: { Default: 'System Integration' }) }}
+      <h2 class="xp-page-title">
+        {{ pageTitle() || ('XP.Integration.SystemIntegration' | translate: { Default: 'System Integration' }) }}
       </h2>
-      <p class="pac-page-subtitle text-text-tertiary">
+      <p class="xp-page-subtitle text-text-tertiary">
         @if (viewKey()) {
           @if (pageSubtitle(); as description) {
             {{ description | i18n }}
           } @else {
             {{
-              'PAC.ViewExtension.DetailTabHint'
+              'XP.ViewExtension.DetailTabHint'
                 | translate
                   : {
                       Default: 'Provider-specific views are rendered here with the platform declarative view system.'
@@ -19,7 +19,7 @@
           }
         } @else {
           {{
-            (hasExtensionTabs() ? 'PAC.Integration.ConfigurationWithTabsHint' : 'PAC.Integration.ConfigurationOnlyHint')
+            (hasExtensionTabs() ? 'XP.Integration.ConfigurationWithTabsHint' : 'XP.Integration.ConfigurationOnlyHint')
               | translate
                 : {
                     Default: hasExtensionTabs()
@@ -33,7 +33,7 @@
 
     <nav
       z-tab-nav-bar
-      class="pac-tab-nav-bar max-w-full self-stretch overflow-x-auto"
+      class="xp-tab-nav-bar max-w-full self-stretch overflow-x-auto"
       zSize="default"
       color="accent"
       alignTabs="start"
@@ -46,7 +46,7 @@
           <xp-icon [icon]="tab.icon" [size]="16" class="shrink-0 text-text-primary" />
           <span>
             @if (tab.kind === 'config') {
-              {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
+              {{ 'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
             } @else {
               {{ tab.title | i18n }}
             }
@@ -62,16 +62,16 @@
   </div>
 </div>
 
-<z-tab-nav-panel #tabPanel class="pac-page-body" [class.pac-integration-detail-panel]="viewKey()">
+<z-tab-nav-panel #tabPanel class="xp-page-body" [class.xp-integration-detail-panel]="viewKey()">
   @if (viewKey(); as viewKey) {
     @if (activeHostId(); as hostId) {
-      <pac-settings-integration-extension-view
+      <xp-settings-integration-extension-view
         class="block h-full min-h-0 overflow-hidden"
         [hostId]="hostId"
         [viewKey]="viewKey"
       />
     }
   } @else {
-    <pac-settings-integration-configuration />
+    <xp-settings-integration-configuration />
   }
 </z-tab-nav-panel>

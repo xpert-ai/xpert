@@ -133,6 +133,8 @@ export class PluginMarketplaceService {
 	private readonly npmMetadataCache = new Map<string, { level?: PluginLevel } | null>()
 	private readonly npmReadmeCache = new Map<string, PluginMarketplaceReadme | null>()
 	private readonly npmBundleManifestCache = new Map<string, XpertPluginBundleManifest | null>()
+	private readonly publicBuiltinSource = this.createBuiltinSourceRecord()
+	private publicBuiltinRefreshJob: Promise<NormalizedMarketplaceCatalog> | null = null
 
 	constructor(
 		@InjectRepository(PluginMarketplaceSource)
@@ -200,6 +202,41 @@ export class PluginMarketplaceService {
 			community: this.mergeCatalogNames(catalogs, 'community'),
 			sources: this.getMarketplaceSourceResponses(sources),
 			errors
+		}
+	}
+
+	async listPublicMarketplace(
+		query: Pick<PluginMarketplaceListQuery, 'targetApp'> = {}
+	): Promise<PluginMarketplaceResponse> {
+		const catalog = await this.loadPublicBuiltinCatalog()
+		const installedContext: InstalledPluginContext = {
+			installedNames: new Set<string>(),
+			loadedMetaByName: new Map<string, PluginMeta>()
+		}
+		const byName = new Map<string, PluginMarketplaceItem>()
+
+		for (const plugin of catalog.plugins) {
+			if (!this.matchesTargetApp(plugin, query.targetApp)) {
+				continue
+			}
+
+			const normalizedName = normalizePluginName(plugin.name)
+			if (!byName.has(normalizedName)) {
+				const item = this.toMarketplaceItem(plugin, query.targetApp, installedContext)
+				byName.set(normalizedName, this.toPublicMarketplaceItem(item))
+			}
+		}
+
+		const items = Array.from(byName.values())
+		return {
+			updatedAt: catalog.updatedAt,
+			total: items.length,
+			items,
+			official: catalog.official,
+			partner: catalog.partner,
+			community: catalog.community,
+			sources: [],
+			errors: []
 		}
 	}
 
@@ -1362,6 +1399,47 @@ export class PluginMarketplaceService {
 		return this.refreshSourceCache(source)
 	}
 
+	private async loadPublicBuiltinCatalog(): Promise<NormalizedMarketplaceCatalog> {
+		const cached = this.publicBuiltinSource.lastCatalog
+		if (cached && !this.isSourceCacheExpired(this.publicBuiltinSource)) {
+			return cached
+		}
+		if (this.publicBuiltinRefreshJob) {
+			return this.publicBuiltinRefreshJob
+		}
+
+		const refreshJob = this.refreshPublicBuiltinCatalog(cached)
+		this.publicBuiltinRefreshJob = refreshJob
+		try {
+			return await refreshJob
+		} finally {
+			if (this.publicBuiltinRefreshJob === refreshJob) {
+				this.publicBuiltinRefreshJob = null
+			}
+		}
+	}
+
+	private async refreshPublicBuiltinCatalog(
+		cached: NormalizedMarketplaceCatalog | null
+	): Promise<NormalizedMarketplaceCatalog> {
+		try {
+			const raw = await this.fetchJson(this.publicBuiltinSource.url)
+			const catalog = this.normalizeCatalog(raw, this.publicBuiltinSource)
+			this.publicBuiltinSource.lastCatalog = catalog
+			this.publicBuiltinSource.lastIndexStatus = 'success'
+			this.publicBuiltinSource.lastIndexedAt = new Date()
+			this.publicBuiltinSource.lastIndexError = null
+			return catalog
+		} catch (error) {
+			this.publicBuiltinSource.lastIndexStatus = 'failed'
+			this.publicBuiltinSource.lastIndexError = this.toErrorMessage(error)
+			if (cached) {
+				return cached
+			}
+			throw error
+		}
+	}
+
 	private isSourceCacheExpired(source: MarketplaceSourceRecord) {
 		const timestamp = this.toTimestamp(source.lastIndexedAt)
 		if (!timestamp) {
@@ -2219,6 +2297,34 @@ export class PluginMarketplaceService {
 			trialShortcuts,
 			operationSummary: this.countOperations(contributions),
 			marketplacePlugin: plugin
+		}
+	}
+
+	private toPublicMarketplaceItem(item: PluginMarketplaceItem): PluginMarketplaceItem {
+		return {
+			name: item.name,
+			packageName: item.packageName,
+			displayName: item.displayName,
+			description: item.description,
+			version: item.version,
+			artifactNamespace: item.artifactNamespace,
+			level: item.level,
+			deprecated: item.deprecated,
+			deprecationMessage: item.deprecationMessage,
+			category: item.category,
+			icon: item.icon,
+			author: item.author,
+			keywords: item.keywords,
+			screenshots: item.screenshots,
+			downloads: item.downloads,
+			installed: false,
+			contributions: item.contributions,
+			defaultPrompt: item.defaultPrompt,
+			trialShortcuts: item.trialShortcuts,
+			operationSummary: item.operationSummary,
+			targetApps: item.targetApps,
+			targetAppMeta: item.targetAppMeta,
+			section: item.section
 		}
 	}
 

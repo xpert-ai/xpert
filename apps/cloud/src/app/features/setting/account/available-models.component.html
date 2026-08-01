@@ -1,0 +1,272 @@
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4">
+  @if (state(); as data) {
+    <header
+      class="flex flex-col gap-3 rounded-2xl border border-divider-regular bg-components-card-bg p-5 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <h1 class="text-lg font-semibold text-text-primary">
+          {{ 'XP.ModelAccess.Title' | translate: { Default: 'Model access' } }}
+        </h1>
+        <p class="mt-1 text-sm text-text-secondary">
+          {{
+            'XP.ModelAccess.Description'
+              | translate
+                : {
+                    Default:
+                      'Your available models combine direct access, plan access, and active personal grants in the tenant and current organization.'
+                  }
+          }}
+        </p>
+      </div>
+      @if (requestableModels().length) {
+        <button z-button type="button" (click)="apply()">
+          <i class="ri-add-line"></i>
+          {{ 'XP.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
+        </button>
+      }
+    </header>
+
+    <section>
+      <z-accordion displayDensity="compact">
+        <z-accordion-item zValue="available-models" class="[&_[data-slot=accordion-body]>div]:px-0">
+          <z-accordion-header class="px-0">
+            <z-accordion-title class="text-base font-semibold text-text-primary">
+              {{ 'XP.ModelAccess.AvailableModels' | translate: { Default: 'Available models' } }}
+            </z-accordion-title>
+            <z-accordion-description class="!flex-none">
+              <z-badge zType="secondary" zShape="pill">{{ availableModels().length }}</z-badge>
+            </z-accordion-description>
+          </z-accordion-header>
+          @if (availableModels().length) {
+            <div class="mb-3 flex justify-end">
+              <z-form-field class="w-full sm:max-w-sm">
+                <z-form-label>
+                  {{ 'XP.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
+                </z-form-label>
+                <input
+                  z-input
+                  [formControl]="availableModelSearchControl"
+                  [placeholder]="
+                    'XP.ModelGateway.SearchModelsPlaceholder'
+                      | translate: { Default: 'Model ID, provider, or model name' }
+                  "
+                />
+              </z-form-field>
+            </div>
+            @if (filteredAvailableModels().length) {
+              <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                @for (item of filteredAvailableModels(); track item.key) {
+                  <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+                    <z-card-content class="space-y-3 p-4">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="truncate font-medium text-text-primary">
+                            {{ item.modelLabel ? (item.modelLabel | i18n) : item.model }}
+                          </div>
+                          <div class="mt-1 truncate text-xs text-text-tertiary">
+                            {{ item.providerLabel ? (item.providerLabel | i18n) : item.provider }}
+                          </div>
+                        </div>
+                        <z-badge zType="outline" zShape="pill" class="shrink-0 uppercase">{{ item.modelType }}</z-badge>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+                        <z-badge zType="secondary" zShape="pill">
+                          {{
+                            'XP.ModelAccess.Source.' + item.accessSource
+                              | translate: { Default: item.accessSource ?? 'Plan included' }
+                          }}
+                        </z-badge>
+                        <span>{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
+                      </div>
+                      @if (item.unavailableReason) {
+                        <div class="flex items-center gap-2 text-xs text-text-warning">
+                          <i class="ri-information-line"></i>
+                          {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                        </div>
+                      }
+                    </z-card-content>
+                  </z-card>
+                }
+              </div>
+            } @else {
+              <z-empty
+                [zDescription]="
+                  'XP.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
+                "
+              />
+            }
+          } @else {
+            <z-empty
+              zIcon="inbox"
+              [zTitle]="'XP.ModelAccess.NoAvailableModels' | translate: { Default: 'No available models' }"
+              [zDescription]="
+                'XP.ModelAccess.NoAvailableModelsDescription'
+                  | translate: { Default: 'No models are directly available or included in your current plan.' }
+              "
+            />
+          }
+        </z-accordion-item>
+      </z-accordion>
+    </section>
+
+    <section class="space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="font-semibold text-text-primary">
+          {{ 'XP.ModelAccess.ExtraGrants' | translate: { Default: 'Additional grants' } }}
+        </h2>
+        <z-badge zType="secondary" zShape="pill">{{ grantModels().length }}</z-badge>
+      </div>
+      @if (grantModels().length) {
+        <div class="grid gap-3 md:grid-cols-2">
+          @for (item of grantModels(); track item.key) {
+            <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+              <z-card-content class="space-y-3 p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="truncate font-medium text-text-primary">
+                      {{ item.modelLabel ? (item.modelLabel | i18n) : item.model }}
+                    </div>
+                    <div class="mt-1 text-xs text-text-tertiary">
+                      {{ item.providerLabel ? (item.providerLabel | i18n) : item.provider }}
+                    </div>
+                  </div>
+                  <z-badge [zType]="item.unavailableReason ? 'secondary' : 'default'" zShape="pill">
+                    {{ 'XP.ModelAccess.GrantStatus.active' | translate }}
+                  </z-badge>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+                  <z-badge zType="secondary" zShape="pill">
+                    {{ 'XP.ModelAccess.Source.grant' | translate: { Default: 'Additional grant' } }}
+                  </z-badge>
+                  <span>{{ item.modelType }}</span>
+                  <span>·</span>
+                  <span>{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
+                </div>
+                <div class="text-xs text-text-secondary">
+                  @if (item.grant?.validUntil) {
+                    {{ 'XP.ModelAccess.ValidUntil' | translate: { date: formatValidUntil(item.grant.validUntil) } }}
+                  } @else {
+                    {{ 'XP.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
+                  }
+                </div>
+                @if (item.unavailableReason) {
+                  <div class="flex items-center gap-2 text-xs text-text-warning">
+                    <i class="ri-pause-circle-line"></i>
+                    {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                  </div>
+                }
+              </z-card-content>
+            </z-card>
+          }
+        </div>
+      } @else {
+        <z-empty
+          zIcon="inbox"
+          [zTitle]="'XP.ModelAccess.NoGrants' | translate: { Default: 'No personal grants' }"
+          [zDescription]="
+            'XP.ModelAccess.NoGrantsDescription'
+              | translate: { Default: 'Approved personal model access will appear here.' }
+          "
+        />
+        @if (requestableModels().length) {
+          <div class="flex justify-center">
+            <button z-button type="button" (click)="apply()">
+              <i class="ri-add-line"></i>
+              {{ 'XP.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
+            </button>
+          </div>
+        }
+      }
+    </section>
+
+    <section class="space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="font-semibold text-text-primary">
+          {{ 'XP.ModelAccess.MyRequests' | translate: { Default: 'My requests' } }}
+        </h2>
+        <z-badge zType="secondary" zShape="pill">{{ data.requests.length }}</z-badge>
+      </div>
+      @if (data.requests.length) {
+        <div class="space-y-3">
+          @for (request of data.requests; track request.id) {
+            <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+              <z-card-content class="p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0">
+                    <div class="font-medium text-text-primary">
+                      {{ request.modelSnapshot.modelLabel ? (request.modelSnapshot.modelLabel | i18n) : request.model }}
+                    </div>
+                    <p class="mt-1 text-sm text-text-secondary">{{ request.reason }}</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <z-badge zType="outline" zShape="pill">
+                      {{ 'XP.ModelAccess.StatusValue.' + currentRequestStatus(request) | translate }}
+                    </z-badge>
+                    @if (request.status === requestedStatus) {
+                      <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
+                        {{ 'XP.ModelAccess.Withdraw' | translate: { Default: 'Withdraw' } }}
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                @if (request.events?.length) {
+                  <ol class="mt-4 space-y-3 border-l border-divider-regular pl-4">
+                    @for (event of request.events; track event.id) {
+                      <li class="relative text-xs text-text-secondary">
+                        <span class="absolute -left-[1.3rem] top-1 size-2 rounded-full bg-button-primary-bg"></span>
+                        <div class="font-medium text-text-primary">
+                          {{ 'XP.ModelAccess.Event.' + event.eventType | translate }}
+                        </div>
+                        <div>
+                          {{ event.createdAt | date: 'medium' }} ·
+                          {{
+                            event.actorType === 'system'
+                              ? ('XP.ModelAccess.SystemActor' | translate: { Default: 'System' })
+                              : event.actorName
+                          }}
+                        </div>
+                        @if (event.systemReasonCode) {
+                          <div class="mt-1">
+                            {{ 'XP.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
+                          </div>
+                        } @else if (event.eventType === 'model_suspended' && event.reason) {
+                          <div class="mt-1">
+                            {{ 'XP.ModelAccess.Unavailable.' + event.reason | translate }}
+                          </div>
+                        } @else if (event.reason) {
+                          <div class="mt-1">{{ event.reason }}</div>
+                        }
+                      </li>
+                    }
+                  </ol>
+                }
+              </z-card-content>
+            </z-card>
+          }
+        </div>
+      } @else {
+        <z-empty
+          zIcon="inbox"
+          [zTitle]="'XP.ModelAccess.NoRequests' | translate: { Default: 'No requests yet' }"
+          [zDescription]="
+            data.catalog.canRequest
+              ? ('XP.ModelAccess.NoRequestsDescription'
+                | translate: { Default: 'Apply for a model that is not already included or granted.' })
+              : ('XP.ModelAccess.RequestsUnavailable'
+                | translate: { Default: 'Model access requests are unavailable in the current scope.' })
+          "
+        />
+      }
+    </section>
+  } @else if (state() === undefined) {
+    <div class="flex min-h-64 items-center justify-center">
+      <xp-spin />
+    </div>
+  } @else {
+    <z-empty
+      zIcon="inbox"
+      [zTitle]="'XP.ModelAccess.LoadFailed' | translate: { Default: 'Unable to load model access' }"
+    />
+  }
+</div>

@@ -53,11 +53,13 @@
         ></span>
       </div>
       <div class="group">
-        <div class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all">
-          {{ 'PAC.Xpert.BackendServiceAPI' | translate: { Default: 'Backend Service API' } }}
+        <div
+          class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
+          {{ 'XP.Xpert.BackendServiceAPI' | translate: { Default: 'Backend Service API' } }}
         </div>
         <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-          {{ 'PAC.Xpert.EasilyIntegratedApp' | translate: { Default: 'Easily integrated into your application' } }}
+          {{ 'XP.Xpert.EasilyIntegratedApp' | translate: { Default: 'Easily integrated into your application' } }}
         </div>
         <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
       </div>
@@ -67,19 +69,19 @@
         <div
           class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-text-success bg-components-input-bg-normal mr-2"
         >
-          {{ 'PAC.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}
+          {{ 'XP.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}
         </div>
       } @else {
         <div
           class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-text-warning bg-components-input-bg-normal mr-2"
         >
-          {{ 'PAC.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
+          {{ 'XP.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
         </div>
       }
 
       <label
         class="inline-flex items-center cursor-pointer"
-        [zTooltip]="'PAC.Xpert.EnableXpertApi' | translate: { Default: 'Enable or disable api for xpert' }"
+        [zTooltip]="'XP.Xpert.EnableXpertApi' | translate: { Default: 'Enable or disable api for xpert' }"
         zPosition="top"
       >
         <input
@@ -98,7 +100,7 @@
   <div class="flex flex-col justify-center py-2">
     <div class="py-1">
       <div class="pb-1 text-sm text-text-tertiary">
-        {{ 'PAC.Xpert.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
+        {{ 'XP.Xpert.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
       </div>
       <div
         class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-components-input-bg-normal rounded-lg border border-(--border) justify-start items-center inline-flex"
@@ -111,7 +113,7 @@
         <div class="border-r border-solid mx-2 border-divider-deep !h-3.5 shrink-0"></div>
         <div
           class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
-          [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+          [zTooltip]="'XP.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
           zPosition="top"
           (click)="copy(apiUrl())"
         >
@@ -130,14 +132,14 @@
         <i class="ri-key-2-line text-lg mr-1.5"></i>
       </div>
       <div class="text-[13px] text-text-primary font-medium">
-        API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}
+        API {{ 'XP.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}
       </div>
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2" (click)="openApiReference()">
       <div class="flex flex-row items-center">
         <i class="ri-file-text-line text-lg mr-1.5"></i>
         <span class="text-[13px]">
-          {{ 'PAC.Xpert.APIReference' | translate: { Default: 'API Reference' } }}
+          {{ 'XP.Xpert.APIReference' | translate: { Default: 'API Reference' } }}
         </span>
       </div>
     </button>
@@ -145,5 +147,5 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

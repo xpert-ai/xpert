@@ -7,9 +7,9 @@ import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { environment } from '@cloud/environments/environment'
-import { LanguagesEnum, UsersService } from '@xpert-ai/cloud/state'
-import { OverlayAnimation1 } from '@xpert-ai/core'
-import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
+import { LanguagesEnum, UsersService } from '@cloud/app/@core/state'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
+import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -46,7 +46,7 @@ const THEMES = [
 @Component({
   standalone: true,
   imports: [FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
-  selector: 'pac-header-user',
+  selector: 'xp-header-user',
   templateUrl: './user.component.html',
   animations: [OverlayAnimation1]
 })
@@ -80,7 +80,7 @@ export class HeaderUserComponent {
   readonly language$ = toSignal(this.appService.preferredLanguage$)
   readonly hasActiveMembership = toSignal(this.#membership.hasActiveMembershipInScope(), { initialValue: false })
 
-  readonly themesT$ = toSignal(this.#i18n.stream('PAC.Themes'))
+  readonly themesT$ = toSignal(this.#i18n.stream('XP.Themes'))
 
   readonly themeOptions$ = computed(() => {
     const translate = this.themesT$()

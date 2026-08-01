@@ -1,7 +1,7 @@
 @if (loading()) {
   <div class="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
     <span class="text-sm text-muted-foreground">
-      {{ 'PAC.Explore.LoadingFeaturedSkills' | translate: { Default: 'Loading official picks...' } }}
+      {{ 'XP.Explore.LoadingFeaturedSkills' | translate: { Default: 'Loading official picks...' } }}
     </span>
   </div>
 } @else if (!visibleItems().length) {
@@ -11,11 +11,11 @@
     <div>
       <z-icon zType="military_tech" class="mx-auto size-8 text-muted-foreground" />
       <div class="mt-3 text-base font-medium text-foreground">
-        {{ 'PAC.Explore.NoFeaturedSkills' | translate: { Default: 'No official picks to display yet' } }}
+        {{ 'XP.Explore.NoFeaturedSkills' | translate: { Default: 'No official picks to display yet' } }}
       </div>
       <p class="mt-2 max-w-lg text-sm text-muted-foreground">
         {{
-          'PAC.Explore.NoFeaturedSkillsHint'
+          'XP.Explore.NoFeaturedSkillsHint'
             | translate
               : {
                   Default:
@@ -73,7 +73,7 @@
             <p class="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
               {{
                 description(featured) ||
-                  ('PAC.Explore.SkillDescriptionFallback'
+                  ('XP.Explore.SkillDescriptionFallback'
                     | translate: { Default: 'This skill does not include additional details yet.' })
               }}
             </p>
@@ -87,11 +87,11 @@
             <div class="mt-4 flex items-center justify-between gap-3">
               <span class="text-sm text-muted-foreground">
                 {{ featured.skill.stats?.downloads ?? '--' }}
-                {{ 'PAC.Explore.AddedTimes' | translate: { Default: 'adds' } }}
+                {{ 'XP.Explore.AddedTimes' | translate: { Default: 'adds' } }}
               </span>
               <button z-button zSize="sm" type="button" (click)="add(featured, $event)">
                 <z-icon zType="plus" zSize="sm" />
-                {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+                {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
               </button>
             </div>
           </div>

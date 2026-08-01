@@ -30,7 +30,7 @@
   @if (execution().error) {
     <div class="container flex flex-col w-full rounded-xl border border-solid border-divider-regular">
       <div class="p-2 text-sm text-text-secondary font-semibold">
-        {{ 'PAC.Xpert.Error' | translate: { Default: 'Error' } }}
+        {{ 'XP.Xpert.Error' | translate: { Default: 'Error' } }}
       </div>
       <div class="h-[0.5px] bg-black opacity-5"></div>
       <p class="text-xs rounded-lg p-2 whitespace-break-spaces text-red-500">{{ execution().error }}</p>
@@ -39,7 +39,7 @@
 
   <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-components-input-bg-normal">
     <div class="flex justify-between items-center p-2">
-      <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: { Default: 'Input' } }}</span>
+      <span class="uppercase">{{ 'XP.Xpert.Input' | translate: { Default: 'Input' } }}</span>
 
       <copy
         #copy
@@ -47,8 +47,8 @@
         [content]="execution().inputs"
         [zTooltip]="
           copy.copied()
-            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+            ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
         "
         zPosition="top"
       />
@@ -60,7 +60,7 @@
   @if (execution().outputs) {
     <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-components-input-bg-normal">
       <div class="flex justify-between items-center p-2">
-        <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: { Default: 'Output' } }}</span>
+        <span class="uppercase">{{ 'XP.Xpert.Output' | translate: { Default: 'Output' } }}</span>
 
         <copy
           #copy
@@ -68,8 +68,8 @@
           [content]="execution().outputs"
           [zTooltip]="
             copy.copied()
-              ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-              : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+              ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+              : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
           "
           zPosition="top"
         />

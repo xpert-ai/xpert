@@ -28,7 +28,7 @@ import { ExploreSkillInstallComponent } from './install.component'
 
 const selectedWorkspace = signal<{ id: string } | null>({ id: 'selected-workspace' })
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   injectWorkspace: () => selectedWorkspace
 }))
 

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_COPILOT_STORE } from '../constants/app.constants'
 import { ICopilotStore } from '../types'
@@ -11,5 +11,4 @@ export class CopilotStoreService extends OrganizationBaseCrudService<ICopilotSto
   constructor() {
     super(API_COPILOT_STORE)
   }
-
 }

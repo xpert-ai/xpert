@@ -8,27 +8,27 @@
           >
             <i class="ri-calendar-line text-lg"></i>
           </span>
-          <span>{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</span>
+          <span>{{ 'XP.Xpert.Task' | translate: { Default: 'Task' } }}</span>
         </div>
         <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
           <span>
             {{ totalTaskCount() }}
-            {{ 'PAC.Chat.Tasks' | translate: { Default: 'tasks' } }}
+            {{ 'XP.Chat.Tasks' | translate: { Default: 'tasks' } }}
           </span>
           <span class="h-1 w-1 rounded-full bg-text-tertiary"></span>
           <span>
             {{ successfulExecutionCount() }}
-            {{ 'PAC.Chat.Successful' | translate: { Default: 'successful' } }}
+            {{ 'XP.Chat.Successful' | translate: { Default: 'successful' } }}
             /
             {{ failedExecutionCount() }}
-            {{ 'PAC.Chat.Failed' | translate: { Default: 'failed' } }}
+            {{ 'XP.Chat.Failed' | translate: { Default: 'failed' } }}
           </span>
         </div>
       </div>
 
       <button z-button type="button" zType="default" zSize="lg" class="shrink-0" (click)="newTask()">
         <i class="ri-add-line text-lg"></i>
-        {{ 'PAC.Xpert.NewTask' | translate: { Default: 'New Task' } }}
+        {{ 'XP.Xpert.NewTask' | translate: { Default: 'New Task' } }}
       </button>
     </header>
 
@@ -45,7 +45,7 @@
             <div class="flex items-center justify-between gap-3">
               <div>
                 <div class="text-sm font-semibold text-text-primary">
-                  {{ 'PAC.Chat.TaskQueue' | translate: { Default: 'Task queue' } }}
+                  {{ 'XP.Chat.TaskQueue' | translate: { Default: 'Task queue' } }}
                 </div>
               </div>
               <z-badge zType="outline" zShape="pill" class="shrink-0">
@@ -57,19 +57,19 @@
               <div class="rounded-2xl bg-background-default-subtle px-3 py-2">
                 <div class="text-lg font-semibold text-text-primary">{{ scheduledTaskCount() }}</div>
                 <div class="truncate text-xs text-text-tertiary">
-                  {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
+                  {{ 'XP.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
                 </div>
               </div>
               <div class="rounded-2xl bg-background-default-subtle px-3 py-2">
                 <div class="text-lg font-semibold text-text-primary">{{ pausedTaskCount() }}</div>
                 <div class="truncate text-xs text-text-tertiary">
-                  {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
+                  {{ 'XP.Xpert.Paused' | translate: { Default: 'Paused' } }}
                 </div>
               </div>
               <div class="rounded-2xl bg-background-default-subtle px-3 py-2">
                 <div class="text-lg font-semibold text-text-primary">{{ archivedTaskCount() }}</div>
                 <div class="truncate text-xs text-text-tertiary">
-                  {{ 'PAC.Xpert.Archived' | translate: { Default: 'Archived' } }}
+                  {{ 'XP.Xpert.Archived' | translate: { Default: 'Archived' } }}
                 </div>
               </div>
             </div>
@@ -78,7 +78,7 @@
           <div class="min-h-0 flex-1 overflow-auto p-3">
             @if (!tasksLoaded()) {
               <div class="flex min-h-[18rem] items-center justify-center">
-                <ngm-spin class="h-8 w-8" />
+                <xp-spin class="h-8 w-8" />
               </div>
             } @else if (totalTaskCount()) {
               <div class="flex flex-col gap-3">
@@ -86,10 +86,10 @@
                   *ngTemplateOutlet="
                     taskGroupTempl;
                     context: {
-                      title: 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' },
+                      title: 'XP.Xpert.Scheduled' | translate: { Default: 'Scheduled' },
                       icon: 'ri-calendar-check-line',
                       tasks: scheduledTasks() ?? [],
-                      empty: 'PAC.Chat.NoScheduledTasks' | translate: { Default: 'No scheduled tasks.' }
+                      empty: 'XP.Chat.NoScheduledTasks' | translate: { Default: 'No scheduled tasks.' }
                     }
                   "
                 ></ng-container>
@@ -98,10 +98,10 @@
                   *ngTemplateOutlet="
                     taskGroupTempl;
                     context: {
-                      title: 'PAC.Xpert.Paused' | translate: { Default: 'Paused' },
+                      title: 'XP.Xpert.Paused' | translate: { Default: 'Paused' },
                       icon: 'ri-pause-circle-line',
                       tasks: pausedTasks() ?? [],
-                      empty: 'PAC.Chat.NoPausedTasks' | translate: { Default: 'No paused tasks.' }
+                      empty: 'XP.Chat.NoPausedTasks' | translate: { Default: 'No paused tasks.' }
                     }
                   "
                 ></ng-container>
@@ -110,10 +110,10 @@
                   *ngTemplateOutlet="
                     taskGroupTempl;
                     context: {
-                      title: 'PAC.Xpert.Archived' | translate: { Default: 'Archived' },
+                      title: 'XP.Xpert.Archived' | translate: { Default: 'Archived' },
                       icon: 'ri-archive-line',
                       tasks: archivedTasks() ?? [],
-                      empty: 'PAC.Chat.NoArchivedTasks' | translate: { Default: 'No archived tasks.' }
+                      empty: 'XP.Chat.NoArchivedTasks' | translate: { Default: 'No archived tasks.' }
                     }
                   "
                 ></ng-container>
@@ -122,7 +122,7 @@
               <z-empty
                 class="min-h-[18rem] rounded-2xl bg-background-default-subtle"
                 zIcon="calendar"
-                [zTitle]="'PAC.Chat.NoTasksAvailable' | translate: { Default: 'No tasks available' }"
+                [zTitle]="'XP.Chat.NoTasksAvailable' | translate: { Default: 'No tasks available' }"
               ></z-empty>
             }
           </div>
@@ -136,7 +136,7 @@
           <div class="flex h-full min-h-[18rem] items-center justify-center p-4">
             <z-empty
               zIcon="calendar"
-              [zTitle]="'PAC.Chat.SelectTaskTitle' | translate: { Default: 'Select a task' }"
+              [zTitle]="'XP.Chat.SelectTaskTitle' | translate: { Default: 'Select a task' }"
             ></z-empty>
           </div>
         </section>
@@ -146,7 +146,7 @@
 
   @if (loading()) {
     <div class="absolute inset-0 z-20 flex items-center justify-center bg-background-default/60 backdrop-blur-sm">
-      <ngm-spin class="h-8 w-8" />
+      <xp-spin class="h-8 w-8" />
     </div>
   }
 </div>
@@ -189,13 +189,13 @@
                 <div class="flex min-w-0 items-start justify-between gap-2">
                   <div class="min-w-0 flex-1">
                     <div class="truncate text-sm font-semibold text-text-primary">
-                      {{ task.name || ('PAC.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
+                      {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
                     </div>
                     <div class="mt-1 truncate text-xs font-mono text-text-secondary">
                       {{
                         task.scheduleDescription ||
                           task.schedule ||
-                          ('PAC.Chat.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
+                          ('XP.Chat.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
                       }}
                     </div>
                   </div>
@@ -228,7 +228,7 @@
                     zType="secondary"
                     class="gap-1 text-[11px]"
                     [zTooltip]="
-                      'PAC.Chat.TaskSuccessCount' | translate: { Default: 'Number of successful task executions' }
+                      'XP.Chat.TaskSuccessCount' | translate: { Default: 'Number of successful task executions' }
                     "
                     zPosition="top"
                   >
@@ -240,7 +240,7 @@
                       zType="destructive"
                       class="gap-1 text-[11px]"
                       [zTooltip]="
-                        'PAC.Chat.TaskFailureCount' | translate: { Default: 'Number of task execution failures' }
+                        'XP.Chat.TaskFailureCount' | translate: { Default: 'Number of task execution failures' }
                       "
                       zPosition="top"
                     >
@@ -273,7 +273,7 @@
           <div class="min-w-0">
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <h2 class="truncate text-lg font-semibold text-text-primary">
-                {{ task.name || ('PAC.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
+                {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
               </h2>
               <ng-container *ngTemplateOutlet="statusBadgeTempl; context: { status: task.status }"></ng-container>
             </div>
@@ -291,7 +291,7 @@
               zType="ghost"
               zSize="icon"
               class="rounded-xl text-text-secondary hover:text-text-primary"
-              [zTooltip]="'PAC.Xpert.Archive' | translate: { Default: 'Archive' }"
+              [zTooltip]="'XP.Xpert.Archive' | translate: { Default: 'Archive' }"
               zPosition="top"
               (click)="archiveTask(task)"
             >
@@ -304,7 +304,7 @@
             zType="ghost"
             zSize="icon"
             class="rounded-xl text-text-secondary hover:text-text-primary"
-            [attr.aria-label]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
+            [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
             (click)="taskId.set(null)"
           >
             <i class="ri-close-line text-lg"></i>
@@ -318,13 +318,13 @@
             <div class="rounded-2xl bg-background-default px-4 py-3">
               <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
                 <i class="ri-calendar-schedule-line text-text-secondary"></i>
-                {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
+                {{ 'XP.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
               </div>
               <div class="mt-2 text-sm font-mono leading-6 text-text-secondary">
                 {{
                   task.scheduleDescription ||
                     task.schedule ||
-                    ('PAC.Chat.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
+                    ('XP.Chat.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
                 }}
               </div>
             </div>
@@ -332,18 +332,18 @@
             <div class="rounded-2xl bg-background-default px-4 py-3">
               <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
                 <i class="ri-bar-chart-box-line text-text-secondary"></i>
-                {{ 'PAC.Chat.RunStats' | translate: { Default: 'Run stats' } }}
+                {{ 'XP.Chat.RunStats' | translate: { Default: 'Run stats' } }}
               </div>
               <div class="mt-3 flex flex-wrap gap-2">
                 <z-badge zType="secondary" class="gap-1">
                   <i class="ri-checkbox-circle-line"></i>
                   {{ task.successCount ?? 0 }}
-                  {{ 'PAC.Chat.Successful' | translate: { Default: 'successful' } }}
+                  {{ 'XP.Chat.Successful' | translate: { Default: 'successful' } }}
                 </z-badge>
                 <z-badge [zType]="task.errorCount ? 'destructive' : 'outline'" class="gap-1">
                   <i class="ri-error-warning-line"></i>
                   {{ task.errorCount ?? 0 }}
-                  {{ 'PAC.Chat.Failed' | translate: { Default: 'failed' } }}
+                  {{ 'XP.Chat.Failed' | translate: { Default: 'failed' } }}
                 </z-badge>
               </div>
             </div>
@@ -352,7 +352,7 @@
           @if (task.xpert) {
             <section class="rounded-2xl bg-background-default p-3">
               <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Xpert.Xpert' | translate: { Default: 'Xpert' } }}
+                {{ 'XP.Xpert.Xpert' | translate: { Default: 'Xpert' } }}
               </div>
               <xpert-inline-profile [xpert]="task.xpert" />
             </section>
@@ -361,10 +361,10 @@
           <section class="rounded-2xl bg-background-default px-4 py-3">
             <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
               <i class="ri-file-list-3-line text-text-secondary"></i>
-              {{ 'PAC.Xpert.Instruction' | translate: { Default: 'Instruction' } }}
+              {{ 'XP.Xpert.Instruction' | translate: { Default: 'Instruction' } }}
             </div>
             <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-text-secondary" [title]="task.prompt">
-              {{ task.prompt || ('PAC.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
+              {{ task.prompt || ('XP.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
             </p>
           </section>
 
@@ -378,7 +378,7 @@
                 (click)="editTask(task)"
               >
                 <i class="ri-pencil-line"></i>
-                {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
               </button>
               @if (task.status === eXpertTaskStatus.SCHEDULED) {
                 <button
@@ -389,7 +389,7 @@
                   (click)="pauseTask(task)"
                 >
                   <i class="ri-pause-circle-line"></i>
-                  {{ 'PAC.ACTIONS.Pause' | translate: { Default: 'Pause' } }}
+                  {{ 'XP.ACTIONS.Pause' | translate: { Default: 'Pause' } }}
                 </button>
               } @else {
                 <button
@@ -400,7 +400,7 @@
                   (click)="scheduleTask(task)"
                 >
                   <i class="ri-calendar-check-line"></i>
-                  {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
+                  {{ 'XP.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
                 </button>
               }
               <button
@@ -411,7 +411,7 @@
                 (click)="runTask(task)"
               >
                 <i class="ri-play-circle-line"></i>
-                {{ 'PAC.ACTIONS.Test' | translate: { Default: 'Test' } }}
+                {{ 'XP.ACTIONS.Test' | translate: { Default: 'Test' } }}
               </button>
             </section>
           }
@@ -420,11 +420,11 @@
             <div class="flex items-center justify-between gap-3 px-4 py-3">
               <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
                 <i class="ri-history-line text-text-secondary"></i>
-                {{ 'PAC.Xpert.History' | translate: { Default: 'History' } }}
+                {{ 'XP.Xpert.History' | translate: { Default: 'History' } }}
               </div>
               <z-badge zType="secondary" zShape="pill">
                 {{ historyConversations().length }}
-                {{ 'PAC.Xpert.Records' | translate: { Default: 'records' } }}
+                {{ 'XP.Xpert.Records' | translate: { Default: 'records' } }}
               </z-badge>
             </div>
 
@@ -439,7 +439,7 @@
                     >
                       <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-components-card-bg">
                         @if (history.status === 'busy') {
-                          <ngm-spin class="h-5 w-5" />
+                          <xp-spin class="h-5 w-5" />
                         } @else {
                           <i class="ri-chat-3-line text-text-secondary"></i>
                         }
@@ -454,7 +454,7 @@
                             {{
                               history.title ||
                                 history.options?.parameters?.input ||
-                                ('PAC.Chat.UntitledConversation' | translate: { Default: 'Untitled conversation' })
+                                ('XP.Chat.UntitledConversation' | translate: { Default: 'Untitled conversation' })
                             }}
                           </div>
                         }
@@ -469,7 +469,7 @@
                 <z-empty
                   class="min-h-[10rem]"
                   zIcon="message-circle-more"
-                  [zTitle]="'PAC.Xpert.NoRecordsYet' | translate: { Default: 'No records yet' }"
+                  [zTitle]="'XP.Xpert.NoRecordsYet' | translate: { Default: 'No records yet' }"
                 ></z-empty>
               }
 
@@ -477,7 +477,7 @@
                 <div
                   class="absolute inset-0 flex items-center justify-center bg-background-default/60 backdrop-blur-sm"
                 >
-                  <ngm-spin class="h-7 w-7" />
+                  <xp-spin class="h-7 w-7" />
                 </div>
               }
             </div>
@@ -509,22 +509,22 @@
   @switch (status) {
     @case (eXpertTaskStatus.SCHEDULED) {
       <z-badge zType="default" zShape="pill" class="shrink-0">
-        {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
+        {{ 'XP.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
       </z-badge>
     }
     @case (eXpertTaskStatus.PAUSED) {
       <z-badge zType="secondary" zShape="pill" class="shrink-0">
-        {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
+        {{ 'XP.Xpert.Paused' | translate: { Default: 'Paused' } }}
       </z-badge>
     }
     @case (eXpertTaskStatus.ARCHIVED) {
       <z-badge zType="outline" zShape="pill" class="shrink-0">
-        {{ 'PAC.Xpert.Archived' | translate: { Default: 'Archived' } }}
+        {{ 'XP.Xpert.Archived' | translate: { Default: 'Archived' } }}
       </z-badge>
     }
     @default {
       <z-badge zType="outline" zShape="pill" class="shrink-0">
-        {{ 'PAC.Chat.UnknownStatus' | translate: { Default: 'Unknown' } }}
+        {{ 'XP.Chat.UnknownStatus' | translate: { Default: 'Unknown' } }}
       </z-badge>
     }
   }

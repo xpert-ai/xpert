@@ -65,7 +65,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-overview',
+  selector: 'xp-clawxpert-overview',
   imports: [
     CommonModule,
     FormsModule,
@@ -90,7 +90,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
         <div
           class="flex h-full min-h-128 items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary"
         >
-          {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
+          {{ 'XP.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
         </div>
       } @else if (!facade.organizationId()) {
         <div class="block w-full h-full min-h-0 animate-pulse p-4">
@@ -100,13 +100,13 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
             <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
             <div class="mt-4 text-base font-medium text-text-primary">
               {{
-                'PAC.Chat.ClawXpert.OrganizationRequired'
+                'XP.Chat.ClawXpert.OrganizationRequired'
                   | translate: { Default: 'Select an organization to use ClawXpert' }
               }}
             </div>
             <div class="mt-2 max-w-sm text-sm text-text-secondary">
               {{
-                'PAC.Chat.ClawXpert.OrganizationRequiredDesc'
+                'XP.Chat.ClawXpert.OrganizationRequiredDesc'
                   | translate: { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
               }}
             </div>
@@ -118,14 +118,14 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
         >
           <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
           <div class="mt-4 text-base font-medium text-text-primary">
-            {{ 'PAC.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
+            {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
           </div>
           <div class="mt-2 max-w-sm text-sm text-text-secondary">
             {{ facade.viewErrorMessage() }}
           </div>
         </div>
       } @else if (facade.viewState() === 'wizard') {
-        <pac-clawxpert-binding-wizard class="block h-full p-8" />
+        <xp-clawxpert-binding-wizard class="block h-full p-8" />
       } @else {
         <div class="flex">
           <div class="w-100 shrink-0 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">
@@ -179,7 +179,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                   z-menu
                   [zMenuTriggerFor]="actionMenu"
                   [disabled]="facade.clearing() || facade.savingCopilotModel()"
-                  [attr.aria-label]="'PAC.Chat.ClawXpert.MoreActions' | translate: { Default: 'More actions' }"
+                  [attr.aria-label]="'XP.Chat.ClawXpert.MoreActions' | translate: { Default: 'More actions' }"
                 >
                   <z-icon zType="more_vert"></z-icon>
                 </button>
@@ -189,11 +189,11 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 <div z-menu-content class="w-[26rem] max-w-[calc(100vw-4rem)] overflow-visible p-0">
                   <div class="p-4">
                     <div class="text-sm font-medium text-text-primary">
-                      {{ 'PAC.Copilot.SelectModel' | translate: { Default: 'Select model' } }}
+                      {{ 'XP.Copilot.SelectModel' | translate: { Default: 'Select model' } }}
                     </div>
                     <p class="mt-1 text-xs leading-5 text-text-secondary">
                       {{
-                        'PAC.Chat.ClawXpert.CopilotModelDesc'
+                        'XP.Chat.ClawXpert.CopilotModelDesc'
                           | translate
                             : {
                                 Default: 'Switch the model used by the bound ClawXpert xpert without leaving this page.'
@@ -214,9 +214,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
 
                     @if (facade.savingCopilotModel()) {
                       <div class="mt-3 text-xs text-text-tertiary">
-                        {{
-                          'PAC.Chat.ClawXpert.CopilotModelSaving' | translate: { Default: 'Saving model selection…' }
-                        }}
+                        {{ 'XP.Chat.ClawXpert.CopilotModelSaving' | translate: { Default: 'Saving model selection…' } }}
                       </div>
                     }
                   </div>
@@ -226,17 +224,17 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
               <ng-template #actionMenu>
                 <div z-menu-content class="w-56">
                   <button type="button" z-menu-item (click)="openWizard()">
-                    {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
+                    {{ 'XP.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
                   </button>
 
                   <button type="button" z-menu-item (click)="openXpertOrchestration()">
-                    {{ 'PAC.Chat.ClawXpert.OpenOrchestration' | translate: { Default: '编排 ClawXpert' } }}
+                    {{ 'XP.Chat.ClawXpert.OpenOrchestration' | translate: { Default: '编排 ClawXpert' } }}
                   </button>
 
                   <z-divider zSpacing="sm"></z-divider>
 
                   <button type="button" z-menu-item [disabled]="facade.clearing()" (click)="clearPreference()">
-                    {{ 'PAC.Chat.ClawXpert.Clear' | translate: { Default: 'Clear ClawXpert' } }}
+                    {{ 'XP.Chat.ClawXpert.Clear' | translate: { Default: 'Clear ClawXpert' } }}
                   </button>
                 </div>
               </ng-template>
@@ -247,7 +245,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
               >
                 {{
-                  (facade.resolvedPreference() ? 'PAC.Chat.ClawXpert.StatusBound' : 'PAC.Chat.ClawXpert.StatusPending')
+                  (facade.resolvedPreference() ? 'XP.Chat.ClawXpert.StatusBound' : 'XP.Chat.ClawXpert.StatusPending')
                     | translate: { Default: facade.resolvedPreference() ? 'Bound' : 'Setup required' }
                 }}
               </span>
@@ -279,7 +277,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 (click)="goToChat()"
               >
                 <z-icon zType="message-circle-more"></z-icon>
-                {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
+                {{ 'XP.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
               </button>
 
               @if (facade.hasPersistedDraft()) {
@@ -294,7 +292,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                   (click)="publishXpert()"
                 >
                   <z-icon zType="upload"></z-icon>
-                  {{ 'PAC.Xpert.Publish' | translate: { Default: 'Publish' } }}
+                  {{ 'XP.Xpert.Publish' | translate: { Default: 'Publish' } }}
                 </button>
               }
             </div>
@@ -303,11 +301,11 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <div class="text-sm font-medium text-text-primary">
-                    {{ 'PAC.Chat.ClawXpert.ConversationStatsTitle' | translate: { Default: 'Conversation stats' } }}
+                    {{ 'XP.Chat.ClawXpert.ConversationStatsTitle' | translate: { Default: 'Conversation stats' } }}
                   </div>
                   <p class="mt-1 text-sm leading-6 text-text-secondary">
                     {{
-                      'PAC.Chat.ClawXpert.ConversationStatsDesc'
+                      'XP.Chat.ClawXpert.ConversationStatsDesc'
                         | translate
                           : {
                               Default: 'Daily message volume between you and this assistant over the last 12 weeks.'
@@ -320,13 +318,13 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                   <div class="rounded-2xl border border-divider-regular bg-background-default px-3 py-2 text-center">
                     <div class="text-lg font-semibold text-text-primary">{{ heatmap().totalMessages }}</div>
                     <div class="mt-1 text-[11px] text-text-tertiary">
-                      {{ 'PAC.Chat.ClawXpert.TotalMessages' | translate: { Default: 'Total messages' } }}
+                      {{ 'XP.Chat.ClawXpert.TotalMessages' | translate: { Default: 'Total messages' } }}
                     </div>
                   </div>
                   <div class="rounded-2xl border border-divider-regular bg-background-default px-3 py-2 text-center">
                     <div class="text-lg font-semibold text-text-primary">{{ heatmap().activeDays }}</div>
                     <div class="mt-1 text-[11px] text-text-tertiary">
-                      {{ 'PAC.Chat.ClawXpert.ActiveDays' | translate: { Default: 'Active days' } }}
+                      {{ 'XP.Chat.ClawXpert.ActiveDays' | translate: { Default: 'Active days' } }}
                     </div>
                   </div>
                 </div>
@@ -374,7 +372,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 <div class="text-xs text-text-tertiary">
                   @if (heatmap().totalMessages === 0) {
                     {{
-                      'PAC.Chat.ClawXpert.NoMessageActivity'
+                      'XP.Chat.ClawXpert.NoMessageActivity'
                         | translate
                           : {
                               Default: 'No message activity yet. Start a conversation to populate this heatmap.'
@@ -384,7 +382,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 </div>
 
                 <div class="flex items-center gap-2 text-[11px] text-text-tertiary">
-                  <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendQuiet' | translate: { Default: 'Quiet' } }}</span>
+                  <span>{{ 'XP.Chat.ClawXpert.HeatmapLegendQuiet' | translate: { Default: 'Quiet' } }}</span>
                   @for (legendCell of heatmapLegend; track legendCell.key) {
                     <div
                       class="h-3 w-3 rounded-[4px] border"
@@ -393,17 +391,17 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                       [style.opacity]="legendCell.opacity"
                     ></div>
                   }
-                  <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendBusy' | translate: { Default: 'Busy' } }}</span>
+                  <span>{{ 'XP.Chat.ClawXpert.HeatmapLegendBusy' | translate: { Default: 'Busy' } }}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="flex-1 min-h-0 p-4 flex flex-col gap-4 overflow-hidden">
-            <pac-clawxpert-preferences-editor />
-            <pac-clawxpert-trigger-config-editor />
-            <pac-clawxpert-scheduled-tasks />
-            <pac-clawxpert-tool-preferences />
+            <xp-clawxpert-preferences-editor />
+            <xp-clawxpert-trigger-config-editor />
+            <xp-clawxpert-scheduled-tasks />
+            <xp-clawxpert-tool-preferences />
           </div>
         </div>
       }
@@ -430,7 +428,7 @@ export class ClawXpertOverviewComponent {
   })
   readonly overviewDescription = computed(() => {
     if (!this.facade.resolvedPreference()) {
-      return this.#translate.instant('PAC.Chat.ClawXpert.OverviewEmptyDesc', {
+      return this.#translate.instant('XP.Chat.ClawXpert.OverviewEmptyDesc', {
         Default: 'Bind one published Xpert first. Once ready, this panel becomes the editable ClawXpert workspace.'
       })
     }
@@ -446,29 +444,29 @@ export class ClawXpertOverviewComponent {
   readonly modelSelectButtonLabel = computed(() => {
     const model = this.selectedCopilotModel()?.model?.trim()
     if (model) {
-      return this.#translate.instant('PAC.Chat.ClawXpert.CopilotModelSelected', {
+      return this.#translate.instant('XP.Chat.ClawXpert.CopilotModelSelected', {
         model,
         Default: `Model: ${model}`
       })
     }
 
-    return this.#translate.instant('PAC.Copilot.SelectModel', {
+    return this.#translate.instant('XP.Copilot.SelectModel', {
       Default: 'Select model'
     })
   })
   readonly metrics = computed<ClawXpertMetric[]>(() => [
     {
-      labelKey: 'PAC.Chat.ClawXpert.BoundDays',
+      labelKey: 'XP.Chat.ClawXpert.BoundDays',
       defaultLabel: 'Companion days',
       value: this.facade.boundDays()
     },
     {
-      labelKey: 'PAC.Chat.ClawXpert.ConversationCount',
+      labelKey: 'XP.Chat.ClawXpert.ConversationCount',
       defaultLabel: 'Conversations',
       value: this.facade.conversationCount()
     },
     {
-      labelKey: 'PAC.Chat.ClawXpert.TaskCount',
+      labelKey: 'XP.Chat.ClawXpert.TaskCount',
       defaultLabel: 'Tasks',
       value: this.facade.taskCount()
     }
@@ -479,16 +477,16 @@ export class ClawXpertOverviewComponent {
   readonly heatmapLegend = buildHeatmapLegend()
   readonly documentCards = computed<ClawXpertDocumentCard[]>(() => [
     {
-      labelKey: 'PAC.Chat.ClawXpert.TabBehavior',
+      labelKey: 'XP.Chat.ClawXpert.TabBehavior',
       defaultLabel: 'Behavior Guidelines',
-      descriptionKey: 'PAC.Chat.ClawXpert.BehaviorEditorDesc',
+      descriptionKey: 'XP.Chat.ClawXpert.BehaviorEditorDesc',
       defaultDescription: 'Edit the markdown file that defines the assistant behavior baseline for this binding.',
       words: countDisplayTextUnits(this.facade.userPreference()?.soul)
     },
     {
-      labelKey: 'PAC.Chat.ClawXpert.TabUserProfile',
+      labelKey: 'XP.Chat.ClawXpert.TabUserProfile',
       defaultLabel: 'User Profile',
-      descriptionKey: 'PAC.Chat.ClawXpert.UserProfileEditorDesc',
+      descriptionKey: 'XP.Chat.ClawXpert.UserProfileEditorDesc',
       defaultDescription: 'Capture stable user context in markdown so future sessions can start with better grounding.',
       words: countDisplayTextUnits(this.facade.userPreference()?.profile)
     }
@@ -613,21 +611,21 @@ function buildHeatmapCellTitle(
   const formattedDate = formatter.format(date)
 
   if (isFuture) {
-    return translate.instant('PAC.Chat.ClawXpert.HeatmapCellFuture', {
+    return translate.instant('XP.Chat.ClawXpert.HeatmapCellFuture', {
       date: formattedDate,
       Default: `${formattedDate}: upcoming`
     })
   }
 
   if (count > 0) {
-    return translate.instant('PAC.Chat.ClawXpert.HeatmapCellTitle', {
+    return translate.instant('XP.Chat.ClawXpert.HeatmapCellTitle', {
       date: formattedDate,
       count,
       Default: `${formattedDate}: ${count} messages`
     })
   }
 
-  return translate.instant('PAC.Chat.ClawXpert.HeatmapCellEmpty', {
+  return translate.instant('XP.Chat.ClawXpert.HeatmapCellEmpty', {
     date: formattedDate,
     Default: `${formattedDate}: 0 messages`
   })

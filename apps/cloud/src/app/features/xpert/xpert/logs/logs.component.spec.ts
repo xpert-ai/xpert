@@ -254,7 +254,7 @@ describe('XpertLogsComponent', () => {
     fixture = context.fixture
     const wecomSource = 'wecom' as TChatConversationLog['from']
 
-    expect(context.component.sourceLabelKey(wecomSource)).toBe('PAC.Xpert.ChatFromWecom')
+    expect(context.component.sourceLabelKey(wecomSource)).toBe('XP.Xpert.ChatFromWecom')
     expect(context.component.sourceDefaultLabel(wecomSource)).toBe('WeCom')
     expect(context.component.sourceOptions.some((option) => option.value === wecomSource)).toBe(true)
   })
@@ -265,7 +265,7 @@ describe('XpertLogsComponent', () => {
 
     expect(context.component.conversations()).toEqual([])
     expect(context.component.total()).toBe(3)
-    expect(fixture.nativeElement.textContent).toContain('PAC.Xpert.NoLogs')
+    expect(fixture.nativeElement.textContent).toContain('XP.Xpert.NoLogs')
   })
 
   it('ignores non-intersecting load-more observer events', async () => {

@@ -4,8 +4,8 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { nonBlank, SlideUpAnimation } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { nonBlank, SlideUpAnimation } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiFeatureEnum,
@@ -23,7 +23,7 @@ import {
 } from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
 import { injectConfirm, ZardAccordionImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -36,8 +36,8 @@ import { injectConfirm, ZardAccordionImports, ZardSwitchComponent, ZardTooltipIm
     TranslateModule,
     ...ZardAccordionImports,
     ...ZardTooltipImports,
-    NgmSpinComponent,
-    NgmSelectComponent,
+    XpSpinComponent,
+    XpSelectComponent,
     ZardSwitchComponent
   ],
   selector: 'xpert-publish',
@@ -97,9 +97,9 @@ export class XpertPublishVersionComponent {
   })
   readonly releaseNotesError = computed(() => {
     if (!this.releaseNotes()) {
-      return this.#translate.instant('PAC.Xpert.AddReleaseNotes', { Default: 'Add release notes' })
+      return this.#translate.instant('XP.Xpert.AddReleaseNotes', { Default: 'Add release notes' })
     } else if (this.releaseNotes().trim().length < 10) {
-      return this.#translate.instant('PAC.Xpert.ReleaseNotesLess', { Default: 'Release notes too less' })
+      return this.#translate.instant('XP.Xpert.ReleaseNotesLess', { Default: 'Release notes too less' })
     }
     return null
   })
@@ -125,8 +125,8 @@ export class XpertPublishVersionComponent {
     this.loading.set(true)
     this.confirm(
       {
-        title: this.#translate.instant('PAC.Xpert.SetAsLatest', { Default: 'Set as latest' }),
-        information: this.#translate.instant('PAC.Xpert.LatestDefaultVersion', {
+        title: this.#translate.instant('XP.Xpert.SetAsLatest', { Default: 'Set as latest' }),
+        information: this.#translate.instant('XP.Xpert.LatestDefaultVersion', {
           Default: 'Set this version as the latest, the default version when opening Digital Expert'
         })
       },
@@ -148,7 +148,7 @@ export class XpertPublishVersionComponent {
     this.confirmDelete(
       {
         value: 'v' + xpert.version,
-        information: this.#translate.instant('PAC.Xpert.DeleteThisVersion', {
+        information: this.#translate.instant('XP.Xpert.DeleteThisVersion', {
           Default: 'Deleting this version will not affect the use of other versions'
         })
       },
@@ -160,11 +160,7 @@ export class XpertPublishVersionComponent {
           this.studioService.gotoWorkspace()
         } else {
           this.studioService.refresh()
-          this.#toastr.success(
-            `PAC.Xpert.DeletedSuccessfully`,
-            { Default: 'Deleted successfully' },
-            `v${xpert.version}`
-          )
+          this.#toastr.success(`XP.Xpert.DeletedSuccessfully`, { Default: 'Deleted successfully' }, `v${xpert.version}`)
         }
       },
       error: (error) => {
@@ -191,7 +187,7 @@ export class XpertPublishVersionComponent {
       .subscribe({
         next: (result) => {
           this.#toastr.success(
-            `PAC.Xpert.PublishedSuccessfully`,
+            `XP.Xpert.PublishedSuccessfully`,
             { Default: 'Published successfully' },
             `v${result.version}`
           )
@@ -214,11 +210,11 @@ export class XpertPublishVersionComponent {
   }
 
   businessLabelKey(category: TXpertMarketplaceBusinessCategory) {
-    return `PAC.Plugin.MarketplaceCategory_${category}`
+    return `XP.Plugin.MarketplaceCategory_${category}`
   }
 
   technicalLabelKey(category: TXpertMarketplaceTechnicalCategory) {
-    return `PAC.Explore.AgentSquare.Technical.${category}`
+    return `XP.Explore.AgentSquare.Technical.${category}`
   }
 
   private marketplacePayload(): TXpertPublishMarketplaceInput {

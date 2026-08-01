@@ -3,9 +3,9 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { routeAnimations } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
@@ -29,7 +29,7 @@ import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
 import { environment } from '@cloud/environments/environment'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
-import { injectOrganizationId } from '@xpert-ai/cloud/state'
+import { injectOrganizationId } from '@cloud/app/@core/state'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
@@ -43,12 +43,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     EmojiAvatarComponent,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
-],
+  ],
   selector: 'xpert-tool-configure-builtin',
   templateUrl: './configure.component.html',
   styleUrl: 'configure.component.scss',
@@ -148,20 +148,18 @@ export class XpertToolConfigureBuiltinComponent {
     })
 
   constructor() {
-    effect(
-      () => {
-        if (this.builtinTools()) {
-          this.tools.update((tools) =>
-            tools?.map((tool) => {
-              if (!tool.schema) {
-                return { ...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name) }
-              }
-              return tool
-            })
-          )
-        }
+    effect(() => {
+      if (this.builtinTools()) {
+        this.tools.update((tools) =>
+          tools?.map((tool) => {
+            if (!tool.schema) {
+              return { ...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name) }
+            }
+            return tool
+          })
+        )
       }
-    )
+    })
   }
 
   openAuthorize(toolset?: IXpertToolset) {
@@ -218,7 +216,7 @@ export class XpertToolConfigureBuiltinComponent {
     }
     this.#toolsetService.update(this.toolset().id, toolset).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         this.loading.set(false)
         this.#dialogRef.close(toolset)
       },

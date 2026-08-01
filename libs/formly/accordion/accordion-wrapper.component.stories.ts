@@ -1,13 +1,13 @@
-import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, ReactiveFormsModule } from '@angular/forms'
 
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgmFormlyModule } from '@xpert-ai/formly';
-import { FormlyModule } from '@ngx-formly/core';
-import { Meta, moduleMetadata, Story } from '@storybook/angular';
-import { MetadFormlyEmptyModule } from '../empty';
-import { MetadFormlyPanelModule } from '../panel';
-import { MetadFormlyAccordionComponent } from './accordion-wrapper.component';
-import { MetadFormlyAccordionModule } from './accordion-wrapper.module';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
+import { XpFormlyModule } from '@xpert-ai/formly'
+import { FormlyModule } from '@ngx-formly/core'
+import { Meta, moduleMetadata, Story } from '@storybook/angular'
+import { MetadFormlyEmptyModule } from '../empty'
+import { MetadFormlyPanelModule } from '../panel'
+import { MetadFormlyAccordionComponent } from './accordion-wrapper.component'
+import { MetadFormlyAccordionModule } from './accordion-wrapper.module'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export default {
@@ -20,46 +20,46 @@ export default {
         ReactiveFormsModule,
         ZardButtonComponent,
         FormlyModule.forRoot(),
-        NgmFormlyModule,
+        XpFormlyModule,
         MetadFormlyAccordionModule,
         MetadFormlyPanelModule,
-        MetadFormlyEmptyModule,
-      ],
-    }),
-  ],
-} as Meta<MetadFormlyAccordionComponent>;
+        MetadFormlyEmptyModule
+      ]
+    })
+  ]
+} as Meta<MetadFormlyAccordionComponent>
 
 const Template: Story<any> = (args: MetadFormlyAccordionComponent) => ({
   props: args,
   template: `<formly-form [form]="form" [fields]="schema" [model]="model"></formly-form>
 <button z-button zType="ghost" [disabled]="form.invalid">Submit</button>
 <div>Result:</div>
-<pre>{{form.value | json}}</pre>`,
-});
+<pre>{{form.value | json}}</pre>`
+})
 
 function fieldGroup() {
   return [
     {
-      className: 'ngm-formly__col col-6',
+      className: 'xp-formly__col col-6',
       key: 'show',
       type: 'checkbox',
       templateOptions: {
-        label: 'Is Show',
-      },
+        label: 'Is Show'
+      }
     },
     {
-      className: 'ngm-formly__col col-6',
+      className: 'xp-formly__col col-6',
       key: 'type',
       type: 'select',
       templateOptions: {
         label: 'Type',
         options: [
           { value: 'value', label: 'Value' },
-          { value: 'category', label: 'Category' },
-        ],
-      },
-    },
-  ];
+          { value: 'category', label: 'Category' }
+        ]
+      }
+    }
+  ]
 }
 
 const AccordionFieldGroup = [
@@ -69,9 +69,9 @@ const AccordionFieldGroup = [
     templateOptions: {
       label: 'Expansion Value',
       keyShow: 'showValue',
-      toggleable: true,
+      toggleable: true
     },
-    fieldGroup: fieldGroup(),
+    fieldGroup: fieldGroup()
   },
   {
     key: 'value2',
@@ -79,9 +79,9 @@ const AccordionFieldGroup = [
     templateOptions: {
       label: 'Expansion Value2',
       keyShow: 'showValue2',
-      toggleable: true,
+      toggleable: true
     },
-    fieldGroup: fieldGroup(),
+    fieldGroup: fieldGroup()
   },
   {
     key: 'value3',
@@ -90,55 +90,55 @@ const AccordionFieldGroup = [
       label: 'Expansion Value3',
       keyShow: 'showValue3',
       toggleable: true,
-      disabled: true,
+      disabled: true
     },
-    fieldGroup: fieldGroup(),
+    fieldGroup: fieldGroup()
   },
   {
     key: 'value4',
     hideExpression: `!field.parent.model.showValue4`,
-    fieldGroup: fieldGroup(),
+    fieldGroup: fieldGroup()
   },
   {
     key: 'value5',
-    fieldGroup: fieldGroup(),
-  },
-];
+    fieldGroup: fieldGroup()
+  }
+]
 
 const ShowValues = [
   {
     key: 'showValue',
-    type: 'empty',
+    type: 'empty'
   },
   {
     key: 'showValue2',
-    type: 'empty',
+    type: 'empty'
   },
   {
     key: 'showValue3',
-    type: 'empty',
-  },
-];
+    type: 'empty'
+  }
+]
 
 const ShowValueTrues = [
   {
     key: 'showValue',
     type: 'empty',
-    defaultValue: true,
+    defaultValue: true
   },
   {
     key: 'showValue2',
     type: 'empty',
-    defaultValue: true,
+    defaultValue: true
   },
   {
     key: 'showValue3',
     type: 'empty',
-    defaultValue: true,
-  },
-];
+    defaultValue: true
+  }
+]
 
-export const Primary = Template.bind({});
+export const Primary = Template.bind({})
 Primary.args = {
   form: new FormGroup({}),
   model: {},
@@ -147,14 +147,14 @@ Primary.args = {
     {
       wrappers: ['accordion'],
       templateOptions: {
-        label: 'Expansion Type',
+        label: 'Expansion Type'
       },
-      fieldGroup: AccordionFieldGroup,
-    },
-  ],
-};
+      fieldGroup: AccordionFieldGroup
+    }
+  ]
+}
 
-export const DisplayMode = Template.bind({});
+export const DisplayMode = Template.bind({})
 DisplayMode.args = {
   form: new FormGroup({}),
   model: {},
@@ -163,14 +163,14 @@ DisplayMode.args = {
     {
       wrappers: ['accordion'],
       templateOptions: {
-        displayMode: 'default',
+        displayMode: 'default'
       },
-      fieldGroup: AccordionFieldGroup,
-    },
-  ],
-};
+      fieldGroup: AccordionFieldGroup
+    }
+  ]
+}
 
-export const HideToggle = Template.bind({});
+export const HideToggle = Template.bind({})
 HideToggle.args = {
   form: new FormGroup({}),
   model: {},
@@ -179,14 +179,14 @@ HideToggle.args = {
     {
       wrappers: ['accordion'],
       templateOptions: {
-        hideToggle: true,
+        hideToggle: true
       },
-      fieldGroup: AccordionFieldGroup,
-    },
-  ],
-};
+      fieldGroup: AccordionFieldGroup
+    }
+  ]
+}
 
-export const ExpandedMulti = Template.bind({});
+export const ExpandedMulti = Template.bind({})
 ExpandedMulti.args = {
   form: new FormGroup({}),
   model: {},
@@ -195,14 +195,14 @@ ExpandedMulti.args = {
     {
       wrappers: ['accordion'],
       templateOptions: {
-        expandedMulti: true,
+        expandedMulti: true
       },
-      fieldGroup: AccordionFieldGroup,
-    },
-  ],
-};
+      fieldGroup: AccordionFieldGroup
+    }
+  ]
+}
 
-export const TogglePosition = Template.bind({});
+export const TogglePosition = Template.bind({})
 TogglePosition.args = {
   form: new FormGroup({}),
   model: {},
@@ -211,14 +211,14 @@ TogglePosition.args = {
     {
       wrappers: ['accordion'],
       templateOptions: {
-        togglePosition: 'after',
+        togglePosition: 'after'
       },
-      fieldGroup: AccordionFieldGroup,
-    },
-  ],
-};
+      fieldGroup: AccordionFieldGroup
+    }
+  ]
+}
 
-export const ElevationZ = Template.bind({});
+export const ElevationZ = Template.bind({})
 ElevationZ.args = {
   form: new FormGroup({}),
   model: {},
@@ -227,21 +227,21 @@ ElevationZ.args = {
     {
       wrappers: ['accordion'],
       templateOptions: {
-        elevationZ: true,
+        elevationZ: true
       },
-      fieldGroup: AccordionFieldGroup,
-    },
-  ],
-};
+      fieldGroup: AccordionFieldGroup
+    }
+  ]
+}
 
-export const SubAccordion = Template.bind({});
+export const SubAccordion = Template.bind({})
 SubAccordion.args = {
   form: new FormGroup({}),
   model: {},
   schema: [
     {
       key: 'showValue',
-      type: 'empty',
+      type: 'empty'
     },
     {
       wrappers: ['accordion'],
@@ -249,32 +249,32 @@ SubAccordion.args = {
         {
           key: 'value',
           templateOptions: {
-            label: 'Sub Accordion Value',
+            label: 'Sub Accordion Value'
           },
           fieldGroup: [
             ...ShowValues,
             {
               wrappers: ['accordion'],
               templateOptions: {
-                elevationZ: true,
+                elevationZ: true
               },
-              fieldGroup: AccordionFieldGroup,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
+              fieldGroup: AccordionFieldGroup
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
 
-export const SubAccordionWithHide = Template.bind({});
+export const SubAccordionWithHide = Template.bind({})
 SubAccordionWithHide.args = {
   form: new FormGroup({}),
   model: {},
   schema: [
     {
       key: 'showValue',
-      type: 'empty',
+      type: 'empty'
     },
     {
       wrappers: ['accordion'],
@@ -284,25 +284,25 @@ SubAccordionWithHide.args = {
           hideExpression: `!field.parent.model.showValue`,
           templateOptions: {
             label: 'Sub Accordion Value',
-            keyShow: 'showValue',
+            keyShow: 'showValue'
           },
           fieldGroup: [
             ...ShowValues,
             {
               wrappers: ['accordion'],
               templateOptions: {
-                elevationZ: true,
+                elevationZ: true
               },
-              fieldGroup: AccordionFieldGroup,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
+              fieldGroup: AccordionFieldGroup
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
 
-export const SubAccordionWithFlatFields = Template.bind({});
+export const SubAccordionWithFlatFields = Template.bind({})
 SubAccordionWithFlatFields.args = {
   form: new FormGroup({}),
   model: {},
@@ -320,7 +320,7 @@ SubAccordionWithFlatFields.args = {
           hideExpression: `!field.parent.model.showValue`,
           templateOptions: {
             label: 'Sub Accordion Value',
-            keyShow: 'showValue',
+            keyShow: 'showValue'
           },
           fieldGroup: [
             {
@@ -334,13 +334,13 @@ SubAccordionWithFlatFields.args = {
             {
               wrappers: ['accordion'],
               templateOptions: {
-                elevationZ: true,
+                elevationZ: true
               },
-              fieldGroup: AccordionFieldGroup,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
+              fieldGroup: AccordionFieldGroup
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

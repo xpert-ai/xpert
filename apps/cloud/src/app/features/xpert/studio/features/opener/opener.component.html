@@ -1,15 +1,15 @@
 <textarea
   rows="3"
   class="xp-input system-md-regular w-full border-0 text-text-secondary"
-  [placeholder]="'PAC.Xpert.WriteOpenerMessage' | translate: {Default: 'Write your opener message here.'}"
+  [placeholder]="'XP.Xpert.WriteOpenerMessage' | translate: { Default: 'Write your opener message here.' }"
   [(ngModel)]="message"
 ></textarea>
 <div>
   <div class="flex items-center py-2">
     <div class="flex shrink-0 space-x-0.5 text-xs font-medium leading-[18px] text-text-tertiary">
-      <div class="uppercase">{{ 'PAC.Xpert.OpeningQuestions' | translate: {Default: 'Opening Questions'} }}</div>
+      <div class="uppercase">{{ 'XP.Xpert.OpeningQuestions' | translate: { Default: 'Opening Questions' } }}</div>
       <div>·</div>
-      <div>{{questions()?.length ?? 0}}/10</div>
+      <div>{{ questions()?.length ?? 0 }}/10</div>
     </div>
     <div
       class="my-2 bg-gradient-to-r from-divider-regular to-background-gradient-mask-transparent ml-3 h-px w-0 grow"
@@ -17,8 +17,10 @@
   </div>
   <div class="space-y-1" cdkDropList (cdkDropListDropped)="drop($event)">
     @for (question of questions(); track i; let i = $index) {
-      <div class="group relative flex items-center rounded-lg border border-divider-subtle bg-components-card-bg pl-2.5 hover:bg-hover-bg"
-        cdkDrag cdkDragLockAxis="y"
+      <div
+        class="group relative flex items-center rounded-lg border border-divider-subtle bg-components-card-bg pl-2.5 hover:bg-hover-bg"
+        cdkDrag
+        cdkDragLockAxis="y"
       >
         <i class="ri-draggable cursor-pointer"></i>
         <input
@@ -26,22 +28,24 @@
           type="input"
           [ngModel]="question"
           (ngModelChange)="updateQuestion(i, $event)"
-          />
-        <div class="absolute right-1.5 top-1/2 translate-y-[-50%] cursor-pointer rounded-md w-6 h-6 flex justify-center items-center text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive"
-          (click)="removeQuestion(i)">
+        />
+        <div
+          class="absolute right-1.5 top-1/2 translate-y-[-50%] cursor-pointer rounded-md w-6 h-6 flex justify-center items-center text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive"
+          (click)="removeQuestion(i)"
+        >
           <i class="ri-delete-bin-3-line"></i>
         </div>
       </div>
     }
   </div>
 
-  <div class="mt-1 flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-components-input-bg-normal px-3 
-      text-text-tertiary hover:bg-hover-bg"
+  <div
+    class="mt-1 flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-components-input-bg-normal px-3 text-text-tertiary hover:bg-hover-bg"
     (click)="addQuestion()"
   >
     <i class="ri-add-line"></i>
     <div class="system-sm-medium text-[13px]">
-      {{ 'PAC.Xpert.AddQuestion' | translate: {Default: 'Add Question'} }}
+      {{ 'XP.Xpert.AddQuestion' | translate: { Default: 'Add Question' } }}
     </div>
   </div>
 </div>

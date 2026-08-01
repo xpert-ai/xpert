@@ -1,7 +1,7 @@
 <div
   class="w-full flex flex-col items-start sticky top-0 z-10 border-b-[0.5px] mb-2 border-black/[0.08] bg-components-card-bg"
 >
-  <ngm-search [formControl]="searchControl" class="w-full rounded-xl" />
+  <xp-search [formControl]="searchControl" class="w-full rounded-xl" />
 
   <ul class="w-full flex items-center px-3 py-2 space-x-1 bg-gray-25" cdkListbox [(ngModel)]="type">
     @for (type of TYPES; track type.value) {
@@ -11,7 +11,7 @@
         [ngClass]="{ 'bg-components-list-option-active-bg': option.isSelected() }"
         [cdkOption]="type.value"
       >
-        {{ 'PAC.Xpert.ToolsetType_' + type.label | translate: { Default: type.label } }}
+        {{ 'XP.Xpert.ToolsetType_' + type.label | translate: { Default: type.label } }}
       </div>
     }
   </ul>
@@ -27,11 +27,13 @@
           zPosition="left"
           (click)="createMCPToolset()"
         >
-          <div class="bg-components-input-bg-normal text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+          <div
+            class="bg-components-input-bg-normal text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]"
+          >
             <i class="ri-add-line"></i>
           </div>
           <div class="flex items-center uppercase">
-            <span>{{ 'PAC.Xpert.NewMCPToolset' | translate: { Default: 'New MCP Toolset' } }}</span>
+            <span>{{ 'XP.Xpert.NewMCPToolset' | translate: { Default: 'New MCP Toolset' } }}</span>
           </div>
         </div>
       </div>
@@ -48,13 +50,13 @@
       #overlayTrigger="cdkOverlayOrigin"
     >
       <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
-      <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.name">
+      <div class="flex-1 truncate" [xpHighlight]="searchText()" [content]="toolset.name">
         {{ toolset.name }}
       </div>
     </div>
   } @empty {
     <div class="p-2">
-      {{ 'PAC.Xpert.NoToolset' | translate: { Default: 'No toolset' } }}
+      {{ 'XP.Xpert.NoToolset' | translate: { Default: 'No toolset' } }}
     </div>
   }
 } @else {
@@ -70,7 +72,7 @@
       #overlayTrigger="cdkOverlayOrigin"
     >
       <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
-      <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.label | i18n">
+      <div class="flex-1 truncate" [xpHighlight]="searchText()" [content]="toolset.label | i18n">
         {{ toolset.label | i18n }}
       </div>
     </div>

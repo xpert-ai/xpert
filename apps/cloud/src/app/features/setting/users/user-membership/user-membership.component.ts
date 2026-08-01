@@ -10,6 +10,7 @@ import {
   injectToastr
 } from '../../../../@core'
 import {
+  IMembershipPointLedger,
   IMembershipPlan,
   IUserMembership,
   IUserMembershipPeriod,
@@ -39,7 +40,7 @@ const POINT_ADJUSTMENT_VALIDATORS = [
 
 @Component({
   standalone: true,
-  selector: 'pac-user-membership',
+  selector: 'xp-user-membership',
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -78,6 +79,7 @@ export class UserMembershipComponent implements OnChanges {
       )?.id ?? null
   )
   readonly personalPointsBalance = signal(0)
+  readonly auditEntries = signal<IMembershipPointLedger[]>([])
   readonly loading = signal(false)
 
   readonly MembershipRenewalModeEnum = MembershipRenewalModeEnum
@@ -104,7 +106,7 @@ export class UserMembershipComponent implements OnChanges {
   })
 
   get canManage() {
-    return this.#store.hasPermission(AIPermissionsEnum.COPILOT_EDIT as never)
+    return this.#store.hasPermission(AIPermissionsEnum.MEMBERSHIP_EDIT as never)
   }
 
   get canManagePersonalPoints() {
@@ -123,15 +125,17 @@ export class UserMembershipComponent implements OnChanges {
       plans: this.#membership.getPlans(),
       memberships: this.#membership.getAdminUsers({ userId: this.userId, take: 1 }),
       periods: this.#membership.getAdminUserPeriods(this.userId),
+      audit: this.#membership.getAdminUserAudit(this.userId, { take: 20 }),
       personalPoints: this.canManagePersonalPoints
         ? this.#membership.getPersonalPoints(this.userId)
         : of({ balance: 0 })
     }).subscribe({
-      next: ({ plans, memberships, periods, personalPoints }) => {
+      next: ({ plans, memberships, periods, audit, personalPoints }) => {
         this.plans.set(plans.filter((plan) => plan.status === 'active'))
         const membership = memberships.items?.[0] ?? null
         this.membership.set(membership)
         this.periods.set(periods)
+        this.auditEntries.set(audit.items ?? [])
         this.personalPointsBalance.set(personalPoints.balance)
         this.assignmentForm.patchValue({
           planId: membership?.planId ?? this.plans()[0]?.id ?? '',
@@ -168,12 +172,12 @@ export class UserMembershipComponent implements OnChanges {
   async renew() {
     if (
       await this.confirmMembershipAction({
-        titleKey: 'PAC.Membership.RenewConfirmTitle',
+        titleKey: 'XP.Membership.RenewConfirmTitle',
         titleDefault: 'Renew membership?',
-        descriptionKey: 'PAC.Membership.RenewConfirmDescription',
+        descriptionKey: 'XP.Membership.RenewConfirmDescription',
         descriptionDefault:
           'A new period will be queued after the current period. The current period and its points will not change.',
-        actionKey: 'PAC.Membership.Renew',
+        actionKey: 'XP.Membership.Renew',
         actionDefault: 'Renew'
       })
     ) {
@@ -187,12 +191,12 @@ export class UserMembershipComponent implements OnChanges {
     }
     if (
       await this.confirmMembershipAction({
-        titleKey: 'PAC.Membership.CancelPeriodConfirmTitle',
+        titleKey: 'XP.Membership.CancelPeriodConfirmTitle',
         titleDefault: 'Cancel upcoming period?',
-        descriptionKey: 'PAC.Membership.CancelPeriodConfirmDescription',
+        descriptionKey: 'XP.Membership.CancelPeriodConfirmDescription',
         descriptionDefault:
           'This upcoming entitlement will be cancelled. The current period and other upcoming periods will not change.',
-        actionKey: 'PAC.Membership.CancelPeriod',
+        actionKey: 'XP.Membership.CancelPeriod',
         actionDefault: 'Cancel period',
         destructive: true
       })
@@ -204,11 +208,11 @@ export class UserMembershipComponent implements OnChanges {
   async pause() {
     if (
       await this.confirmMembershipAction({
-        titleKey: 'PAC.Membership.PauseConfirmTitle',
+        titleKey: 'XP.Membership.PauseConfirmTitle',
         titleDefault: 'Pause membership?',
-        descriptionKey: 'PAC.Membership.PauseConfirmDescription',
+        descriptionKey: 'XP.Membership.PauseConfirmDescription',
         descriptionDefault: 'The user will temporarily lose access to the current plan benefits.',
-        actionKey: 'PAC.Membership.Pause',
+        actionKey: 'XP.Membership.Pause',
         actionDefault: 'Pause'
       })
     ) {
@@ -219,11 +223,11 @@ export class UserMembershipComponent implements OnChanges {
   async resume() {
     if (
       await this.confirmMembershipAction({
-        titleKey: 'PAC.Membership.ResumeConfirmTitle',
+        titleKey: 'XP.Membership.ResumeConfirmTitle',
         titleDefault: 'Resume membership?',
-        descriptionKey: 'PAC.Membership.ResumeConfirmDescription',
+        descriptionKey: 'XP.Membership.ResumeConfirmDescription',
         descriptionDefault: 'The user will regain access to the current plan benefits.',
-        actionKey: 'PAC.Membership.Resume',
+        actionKey: 'XP.Membership.Resume',
         actionDefault: 'Resume'
       })
     ) {
@@ -234,12 +238,12 @@ export class UserMembershipComponent implements OnChanges {
   async revoke() {
     if (
       await this.confirmMembershipAction({
-        titleKey: 'PAC.Membership.RevokeConfirmTitle',
+        titleKey: 'XP.Membership.RevokeConfirmTitle',
         titleDefault: 'Revoke membership?',
-        descriptionKey: 'PAC.Membership.RevokeConfirmDescription',
+        descriptionKey: 'XP.Membership.RevokeConfirmDescription',
         descriptionDefault:
           'The current plan will end immediately. Unused cycle points will no longer be available; personal permanent points are unaffected.',
-        actionKey: 'PAC.Membership.Revoke',
+        actionKey: 'XP.Membership.Revoke',
         actionDefault: 'Revoke',
         destructive: true
       })
@@ -261,9 +265,9 @@ export class UserMembershipComponent implements OnChanges {
     this.loading.set(true)
     this.#membership.adjustUserPoints(this.userId, { pointDelta, reason: reason || null }).subscribe({
       next: (membership) => {
-        this.membership.set(membership)
         this.cyclePointsForm.reset({ direction: 'increase', points: 0, reason: '' })
-        this.loading.set(false)
+        this.membership.set(membership)
+        this.load()
       },
       error: (error) => this.handleError(error)
     })
@@ -290,10 +294,9 @@ export class UserMembershipComponent implements OnChanges {
         reason: reason || null
       })
       .subscribe({
-        next: ({ balance }) => {
-          this.personalPointsBalance.set(balance)
+        next: () => {
           this.personalPointsForm.reset({ direction: 'increase', points: 0, reason: '' })
-          this.loading.set(false)
+          this.load()
         },
         error: (error) => this.handleError(error)
       })
@@ -318,6 +321,14 @@ export class UserMembershipComponent implements OnChanges {
   isUnlimited() {
     const membership = this.membership()
     return !!membership && membership.pointsGranted === null
+  }
+
+  auditActorLabel(entry: IMembershipPointLedger) {
+    const actor = entry.actor
+    if (!actor) {
+      return this.#translate.instant('XP.Membership.SystemActor', { Default: 'System' })
+    }
+    return actor.email || actor.username || [actor.firstName, actor.lastName].filter(Boolean).join(' ') || entry.actorId
   }
 
   canAdjustCyclePoints() {
@@ -355,7 +366,7 @@ export class UserMembershipComponent implements OnChanges {
         title: this.#translate.instant(options.titleKey, { Default: options.titleDefault }),
         description: this.#translate.instant(options.descriptionKey, { Default: options.descriptionDefault }),
         actionText: this.#translate.instant(options.actionKey, { Default: options.actionDefault }),
-        cancelText: this.#translate.instant('PAC.ACTIONS.Cancel', { Default: 'Cancel' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
         destructive: options.destructive
       })
     )

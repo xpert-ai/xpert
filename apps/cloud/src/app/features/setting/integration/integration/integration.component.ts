@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { IsDirty } from '@xpert-ai/core'
+import { IsDirty } from '@xpert-ai/headless-ui'
 import type { I18nObject, IIntegration, IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -37,13 +37,13 @@ interface IntegrationShellTab {
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-integration',
+  selector: 'xp-settings-integration',
   templateUrl: './integration.component.html',
   styleUrls: ['./integration.component.scss'],
   imports: [
     RouterModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     IconComponent,
     ZardDividerComponent,
     ...ZardTabsImports,

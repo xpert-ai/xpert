@@ -10,7 +10,6 @@ import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { Environment } from '../core/entities/internal'
 
 @Entity('xpert_workspace')
 export class XpertWorkspace extends TenantOrganizationBaseEntity implements IXpertWorkspace {
@@ -63,9 +62,9 @@ export class XpertWorkspace extends TenantOrganizationBaseEntity implements IXpe
     | @OneToMany
     |--------------------------------------------------------------------------
     */
-	@ApiPropertyOptional({ type: () => Environment, isArray: true })
+	@ApiPropertyOptional({ type: () => Object, isArray: true })
 	@IsOptional()
-	@OneToMany(() => Environment, (_) => _.workspace, {
+	@OneToMany<IEnvironment>('Environment', 'workspace', {
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	environments?: IEnvironment[] | null

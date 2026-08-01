@@ -20,11 +20,11 @@ import { ToolsetCardComponent } from '@cloud/app/@shared/xpert'
 import { XpertToolConfigureBuiltinComponent } from '@cloud/app/features/xpert/tools'
 import {
   DisappearFadeOut,
-  DynamicGridDirective,
+  XpDynamicGridDirective,
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
-} from '@xpert-ai/core'
+} from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
@@ -33,9 +33,9 @@ import { BehaviorSubject, EMPTY, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
 import { CardCreateComponent } from '@cloud/app/@shared/card'
-import { debouncedSignal, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { debouncedSignal, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
@@ -51,14 +51,14 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    DynamicGridDirective,
+    XpDynamicGridDirective,
     MCPMarketplaceComponent,
     ToolsetCardComponent,
     CardCreateComponent,
-    NgmI18nPipe,
+    XpI18nPipe,
     EmojiAvatarComponent,
-    NgmHighlightDirective
-],
+    XpHighlightDirective
+  ],
   selector: 'chat-project-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
@@ -73,7 +73,7 @@ export class ChatProjectToolsComponent {
   readonly #projectComponent = inject(ChatProjectComponent)
   readonly #projectHomeComponent = inject(ChatProjectHomeComponent)
   readonly #toastr = injectToastr()
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   readonly project = this.#projectComponent.project
 

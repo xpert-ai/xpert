@@ -19,8 +19,6 @@ module.exports = {
   content: [
     join(__dirname, 'apps/cloud/src/**/!(*.stories|*.spec).{ts,html,scss,sass,css}'),
     join(__dirname, 'libs/apps/**/!(*.stories|*.spec).{ts,html,scss,sass,css}'),
-    join(__dirname, 'libs/component-angular/**/!(*.stories|*.spec).{ts,html,scss,sass,css}'),
-    join(__dirname, 'libs/story-angular/**/!(*.stories|*.spec).{ts,html,scss,sass,css}'),
     join(__dirname, 'libs/formly/**/!(*.stories|*.spec).{ts,html,scss,sass,css}'),
     join(__dirname, 'packages/**/!(*.stories|*.spec).{ts,html,scss,sass,css}')
   ],

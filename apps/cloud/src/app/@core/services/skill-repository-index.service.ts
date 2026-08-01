@@ -6,7 +6,7 @@ import {
   OrganizationBaseCrudService,
   PaginationParams,
   toHttpParams
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { switchMap } from 'rxjs'
 
@@ -36,10 +36,13 @@ export class SkillRepositoryIndexService extends OrganizationBaseCrudService<ISk
   }
 
   getAllByRepository(repositoryId: string, options?: PaginationParams<ISkillRepositoryIndex>, search?: string) {
-    return this.getMarketplace({
-      where: { repositoryId },
-      ...(options ?? {})
-    }, search)
+    return this.getMarketplace(
+      {
+        where: { repositoryId },
+        ...(options ?? {})
+      },
+      search
+    )
   }
 
   sync(repositoryId: string, mode: 'full' | 'incremental' = 'incremental') {

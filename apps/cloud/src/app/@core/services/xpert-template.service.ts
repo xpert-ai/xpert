@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { ICopilotModel, ITemplateSkillSyncResult, IXpert, TAvatar, TemplateSkillSyncMode } from '@xpert-ai/contracts'
-import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@xpert-ai/cloud/state'
+import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { ISkillMarketConfig, IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
 

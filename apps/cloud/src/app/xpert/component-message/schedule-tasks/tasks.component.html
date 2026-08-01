@@ -1,10 +1,10 @@
-<div class="px-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: { Default: 'Tasks' } }}:</div>
+<div class="px-2 text-base font-medium">{{ 'XP.Chat.Tasks' | translate: { Default: 'Tasks' } }}:</div>
 
 @for (task of syncedTasks(); track task.id) {
   <div
     class="task flex items-center w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-divider-regular hover:shadow-md"
     [class.deleted]="!!task.deletedAt"
-    [zTooltip]="task.deletedAt ? ('PAC.Chat.TaskDeleted' | translate: { Default: 'The task has been deleted' }) : null"
+    [zTooltip]="task.deletedAt ? ('XP.Chat.TaskDeleted' | translate: { Default: 'The task has been deleted' }) : null"
     zPosition="top"
   >
     <div class="flex-1 flex flex-col justify-start items-start overflow-hidden">
@@ -17,7 +17,7 @@
         <button
           type="button"
           class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-hover-bg hover:opacity-100"
-          [zTooltip]="'PAC.Chat.PauseTask' | translate: { Default: 'Pause the Task' }"
+          [zTooltip]="'XP.Chat.PauseTask' | translate: { Default: 'Pause the Task' }"
           zPosition="top"
           (click)="pause(task)"
         >
@@ -27,7 +27,7 @@
         <button
           type="button"
           class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-hover-bg hover:opacity-100"
-          [zTooltip]="'PAC.Chat.ScheduleTask' | translate: { Default: 'Schedule the Task' }"
+          [zTooltip]="'XP.Chat.ScheduleTask' | translate: { Default: 'Schedule the Task' }"
           zPosition="top"
           (click)="schedule(task)"
         >
@@ -47,12 +47,12 @@
   </div>
 } @empty {
   <div class="p-4 text-text-secondary">
-    {{ 'PAC.Chat.NoTasksAvailable' | translate: { Default: 'No tasks available' } }}
+    {{ 'XP.Chat.NoTasksAvailable' | translate: { Default: 'No tasks available' } }}
   </div>
 }
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 <ng-template #menu let-task="task">
@@ -60,12 +60,12 @@
     @if (!task.deletedAt) {
       <div cdkMenuItem (click)="editTask(task)">
         <i class="ri-edit-line mr-1"></i>
-        {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+        {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </div>
       @if (task.status === eXpertTaskStatus.SCHEDULED) {
         <div cdkMenuItem (click)="pause(task)">
           <i class="ri-pause-circle-line mr-1"></i>
-          {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
+          {{ 'XP.Chat.Pause' | translate: { Default: 'Pause' } }}
         </div>
       }
     }
@@ -73,7 +73,7 @@
     <div class="border-b border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem routerLink="/chat/tasks">
       <i class="ri-list-check-3 mr-1"></i>
-      {{ 'PAC.Xpert.ViewAllTasks' | translate: { Default: 'View all tasks' } }}
+      {{ 'XP.Xpert.ViewAllTasks' | translate: { Default: 'View all tasks' } }}
     </div>
   </div>
 </ng-template>

@@ -6,7 +6,7 @@
 </div>
 <div class="flex items-start gap-2 self-stretch pb-3 pl-6 pr-14 pt-6">
   <div class="text-2xl font-semibold self-stretch text-text-primary">
-    {{ 'PAC.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}
+    {{ 'XP.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}
   </div>
 </div>
 <div class="flex flex-col items-start justify-center gap-4 self-stretch px-6 py-3">
@@ -14,28 +14,28 @@
     @if (systemPluginUnavailableInCurrentScope()) {
       <p>
         {{
-          'PAC.Plugin.SystemPluginTenantScopeRequired'
+          'XP.Plugin.SystemPluginTenantScopeRequired'
             | translate: { Default: 'System and tenant-level plugins can only be installed from tenant scope.' }
         }}
       </p>
     } @else if (installedVersion() === pluginVersion()) {
       <p>
         {{
-          'PAC.Plugin.PluginAlreadyInstalled'
+          'XP.Plugin.PluginAlreadyInstalled'
             | translate: { Default: 'The latest version of this plugin is already installed' }
         }}
       </p>
     } @else {
       @if (status() === 'installed') {
-        <p>{{ 'PAC.Plugin.PluginInstalled' | translate: { Default: 'Plugin Installed' } }}</p>
+        <p>{{ 'XP.Plugin.PluginInstalled' | translate: { Default: 'Plugin Installed' } }}</p>
       } @else if (status() === 'installing') {
-        <p>{{ 'PAC.Plugin.PluginInstalling' | translate: { Default: 'Installing Plugin' } }}</p>
+        <p>{{ 'XP.Plugin.PluginInstalling' | translate: { Default: 'Installing Plugin' } }}</p>
       } @else if (status() === 'error') {
         <p>
-          {{ 'PAC.Plugin.PluginInstallError' | translate: { Default: 'Plugin installation failed, please try again' } }}
+          {{ 'XP.Plugin.PluginInstallError' | translate: { Default: 'Plugin installation failed, please try again' } }}
         </p>
       } @else {
-        <p>{{ 'PAC.Plugin.PluginWillInstall' | translate: { Default: 'The following plugin will be installed' } }}</p>
+        <p>{{ 'XP.Plugin.PluginWillInstall' | translate: { Default: 'The following plugin will be installed' } }}</p>
       }
       @if (error()) {
         <p class="text-text-destructive">{{ error() }}</p>
@@ -43,7 +43,7 @@
       @if (restartRequired()) {
         <p class="text-text-warning">
           {{
-            'PAC.Plugin.RestartRequired'
+            'XP.Plugin.RestartRequired'
               | translate
                 : { Default: 'Plugin changes were staged successfully. Restart the API service to activate them.' }
           }}
@@ -66,7 +66,7 @@
       </div>
     </xp-plugin>
     @if (status() === 'installing') {
-      <ngm-spin
+      <xp-spin
         class="absolute inset-0 left-0 top-0 w-full h-full rounded-2xl backdrop-blur-sm bg-components-card-bg/20"
       />
     }
@@ -83,7 +83,7 @@
       </div>
     }
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large min-w-[72px]" (click)="close()">
-      {{ 'PAC.Plugin.RestartLater' | translate: { Default: 'Later' } }}
+      {{ 'XP.Plugin.RestartLater' | translate: { Default: 'Later' } }}
     </button>
     @if (runtimeRestart.canRestart()) {
       <button
@@ -92,7 +92,7 @@
         (click)="restartNow()"
       >
         <i class="ri-restart-line mr-1"></i>
-        {{ 'PAC.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
+        {{ 'XP.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
       </button>
     }
   } @else if (
@@ -103,7 +103,7 @@
       class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"
       (click)="close()"
     >
-      <span>{{ 'PAC.Plugin.Close' | translate: { Default: 'Close' } }}</span>
+      <span>{{ 'XP.Plugin.Close' | translate: { Default: 'Close' } }}</span>
     </button>
   } @else {
     <button
@@ -112,7 +112,7 @@
       [disabled]="status() === 'installing'"
       (click)="close()"
     >
-      {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
 
     <button
@@ -121,7 +121,7 @@
       [disabled]="status() === 'installing'"
       (click)="install()"
     >
-      <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+      <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
     </button>
   }
 </div>

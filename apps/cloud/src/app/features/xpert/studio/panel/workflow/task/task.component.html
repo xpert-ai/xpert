@@ -1,8 +1,11 @@
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
-<div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
-<div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono">
-  <textarea class="xp-input w-full text-sm text-text-primary leading-[18px]"
-    placeholder="{{'PAC.Xpert.AddDescriptionPrefix' | translate: {Default: 'Add description prefix'} }}..."
+<div class="px-2 font-semibold">{{ 'XP.Xpert.ToolDescription' | translate: { Default: 'Tool Description' } }}</div>
+<div
+  class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono"
+>
+  <textarea
+    class="xp-input w-full text-sm text-text-primary leading-[18px]"
+    placeholder="{{ 'XP.Xpert.AddDescriptionPrefix' | translate: { Default: 'Add description prefix' } }}..."
     [(ngModel)]="descriptionPrefix"
   ></textarea>
 </div>
@@ -11,9 +14,12 @@
   {{ subAgentsDesc() }}
 </div>
 
-<div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono">
-  <textarea class="xp-input w-full text-sm text-text-primary leading-[18px]"
-    placeholder="{{'PAC.Xpert.AddDescriptionSuffix' | translate: {Default: 'Add description suffix'} }}..."
+<div
+  class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono"
+>
+  <textarea
+    class="xp-input w-full text-sm text-text-primary leading-[18px]"
+    placeholder="{{ 'XP.Xpert.AddDescriptionSuffix' | translate: { Default: 'Add description suffix' } }}..."
     [(ngModel)]="descriptionSuffix"
   ></textarea>
 </div>

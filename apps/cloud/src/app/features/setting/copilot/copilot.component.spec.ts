@@ -5,7 +5,7 @@ import { provideRouter, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from '../../../@core'
 import { CopilotComponent } from './copilot.component'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 
 const COPILOT_MONITORING_FEATURE = 'FEATURE_COPILOT_MONITORING'
 let monitoringEnabled = true
@@ -19,7 +19,7 @@ jest.mock('../../../@core', () => ({
   routeAnimations: jest.requireActual('@angular/animations').trigger('routeAnimations', [])
 }))
 
-jest.mock('@xpert-ai/cloud/state', () => ({
+jest.mock('@cloud/app/@core/state', () => ({
   AiFeatureEnum: {
     FEATURE_COPILOT_MONITORING: 'FEATURE_COPILOT_MONITORING'
   },
@@ -74,8 +74,8 @@ describe('CopilotComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(true)
-    expect(text).toContain('PAC.Copilot.Overview')
-    expect(text).toContain('PAC.Copilot.UsageCenter')
+    expect(text).toContain('XP.Copilot.Overview')
+    expect(text).toContain('XP.Copilot.UsageCenter')
   })
 
   it('hides usage and monitoring tabs when the monitoring feature is disabled', async () => {
@@ -85,8 +85,8 @@ describe('CopilotComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(false)
-    expect(text).not.toContain('PAC.Copilot.Overview')
-    expect(text).not.toContain('PAC.Copilot.UsageCenter')
+    expect(text).not.toContain('XP.Copilot.Overview')
+    expect(text).not.toContain('XP.Copilot.UsageCenter')
   })
 
   it('shows usage tab in tenant scope even when organization monitoring is disabled', async () => {
@@ -97,7 +97,7 @@ describe('CopilotComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(false)
-    expect(text).toContain('PAC.Copilot.Overview')
-    expect(text).toContain('PAC.Copilot.UsageCenter')
+    expect(text).toContain('XP.Copilot.Overview')
+    expect(text).toContain('XP.Copilot.UsageCenter')
   })
 })

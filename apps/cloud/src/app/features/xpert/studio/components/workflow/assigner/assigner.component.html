@@ -1,13 +1,15 @@
 <div class="space-y-1 my-2">
   @for (assigner of assigners(); track $index) {
-    <div class="relative bg-background-default-subtle hover:bg-hover-bg flex h-8 cursor-pointer justify-between items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+    <div
+      class="relative bg-background-default-subtle hover:bg-hover-bg flex h-8 cursor-pointer justify-between items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder"
+    >
       @if (assigner.value) {
         <div class="text-primary-500 font-mono truncate">
           {{ assigner.value }}
         </div>
       } @else {
         <div class="text-text-warning font-mono truncate">
-          {{ 'PAC.Xpert.NA' | translate: {Default: 'N/A'} }}
+          {{ 'XP.Xpert.NA' | translate: { Default: 'N/A' } }}
         </div>
       }
       <i class="ri-arrow-right-circle-line mx-1"></i>
@@ -17,7 +19,7 @@
         </div>
       } @else {
         <div class="text-text-warning font-mono truncate">
-          {{ 'PAC.Xpert.NA' | translate: {Default: 'N/A'} }}
+          {{ 'XP.Xpert.NA' | translate: { Default: 'N/A' } }}
         </div>
       }
     </div>
@@ -27,13 +29,19 @@
 <div class="relative w-full flex h-8 p-1">
   <div class="grow flex justify-end items-center">
     <div class="text-[12px] font-semibold text-text-primary uppercase">
-      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+      {{ 'XP.Xpert.Next' | translate: { Default: 'Next' } }}
     </div>
   </div>
 
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/edge'"
+    fOutputConnectableSide="right"
+    class="right group"
+    [fOutputMultiple]="true"
+  >
     <div class="inner-dot cursor-crosshair">
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
 </div>

@@ -1,9 +1,8 @@
-
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -30,7 +29,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CopilotModelSelectComponent,
     StateVariableSelectComponent,
     CopilotPromptEditorComponent
-],
+  ],
   host: {
     tabindex: '-1'
   }

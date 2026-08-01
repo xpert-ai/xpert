@@ -1,14 +1,14 @@
 <form [formGroup]="formGroup" class="flex flex-col space-y-2">
   <div>
     <div class="py-2 leading-5 font-medium">
-      {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+      {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
       <span class="ml-1 text-red-500">*</span>
     </div>
     <div class="flex items-center justify-between gap-3">
       <emoji-avatar class="rounded-lg overflow-hidden" [(avatar)]="avatar" editable />
       <input
-        class="ngm-input h-10 px-3 text-base font-normal grow"
-        [placeholder]="'PAC.Xpert.EnterToolsetName' | translate: { Default: 'Enter the toolset name' }"
+        class="xp-input h-10 px-3 text-base font-normal grow"
+        [placeholder]="'XP.Xpert.EnterToolsetName' | translate: { Default: 'Enter the toolset name' }"
         formControlName="name"
         [ngClass]="{ error: name.invalid && (name.dirty || name.touched) }"
       />
@@ -17,14 +17,14 @@
     <textarea
       formControlName="description"
       class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle"
-      [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
+      [placeholder]="'XP.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
     ></textarea>
   </div>
   <div class="select-none relative">
     <div class="flex justify-between items-center">
       <div class="flex items-center">
         <div class="py-2 leading-5 font-medium">
-          {{ 'PAC.Xpert.Schema' | translate: { Default: 'Schema' } }}
+          {{ 'XP.Xpert.Schema' | translate: { Default: 'Schema' } }}
           <span class="ml-1 text-red-500">*</span>
         </div>
         <div class="mx-2 w-px h-3 bg-black/5"></div>
@@ -35,7 +35,7 @@
           class="flex items-center h-[18px] space-x-1 text-[#155EEF] hover:text-primary-600"
         >
           <div class="text-xs font-normal">
-            {{ 'PAC.Xpert.ViewODataSpec' | translate: { Default: 'View the OData Specification' } }}
+            {{ 'XP.Xpert.ViewODataSpec' | translate: { Default: 'View the OData Specification' } }}
           </div>
           <svg
             width="12"
@@ -76,7 +76,7 @@
               <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
             </svg>
             <div class="text-sm font-medium text-zinc-700">
-              {{ 'PAC.Xpert.ImportFromURL' | translate: { Default: 'Import from URL' } }}
+              {{ 'XP.Xpert.ImportFromURL' | translate: { Default: 'Import from URL' } }}
             </div>
           </button>
 
@@ -95,7 +95,7 @@
                 [disabled]="!url()"
                 (click)="menuTrigger.close(); getMetadata()"
               >
-                {{ 'PAC.Xpert.Ok' | translate: { Default: 'Ok' } }}
+                {{ 'XP.Xpert.Ok' | translate: { Default: 'Ok' } }}
               </button>
             </div>
           </ng-template>
@@ -108,7 +108,7 @@
             #sampleMenuTrigger="cdkMenuTriggerFor"
           >
             <div class="text-sm font-medium text-text-secondary">
-              {{ 'PAC.Xpert.Samples' | translate: { Default: 'Samples' } }}
+              {{ 'XP.Xpert.Samples' | translate: { Default: 'Samples' } }}
             </div>
             <svg
               viewBox="0 0 24 24"
@@ -133,7 +133,7 @@
                   class="rounded-lg px-4 py-2"
                   (click)="sampleMenuTrigger.close(); triggerSample(sample[0])"
                 >
-                  {{ 'PAC.Xpert.ODataSamples.' + sample[0] + '.name' | translate: { Default: sample[1].name } }}
+                  {{ 'XP.Xpert.ODataSamples.' + sample[0] + '.name' | translate: { Default: sample[1].name } }}
                 </button>
               }
             </div>
@@ -143,43 +143,43 @@
     </div>
 
     <textarea
-      class="ngm-input w-full h-[240px] leading-5 text-sm overflow-y-auto text-text-secondary"
-      [placeholder]="'PAC.Xpert.EnterYourODataMetadata' | translate: { Default: 'Enter your OData metadata here' }"
+      class="xp-input w-full h-[240px] leading-5 text-sm overflow-y-auto text-text-secondary"
+      [placeholder]="'XP.Xpert.EnterYourODataMetadata' | translate: { Default: 'Enter your OData metadata here' }"
       formControlName="schema"
       [ngClass]="{ error: schema.invalid && (schema.dirty || schema.touched) }"
     ></textarea>
 
     <div formGroupName="options">
       <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-        {{ 'PAC.Xpert.BaseUrl' | translate: { Default: 'Base Url' } }}
+        {{ 'XP.Xpert.BaseUrl' | translate: { Default: 'Base Url' } }}
       </div>
       <input
         z-input
         class="w-full h-10 text-sm grow"
-        [placeholder]="'PAC.Xpert.EnterBaseUrl' | translate: { Default: 'Please enter base url' }"
+        [placeholder]="'XP.Xpert.EnterBaseUrl' | translate: { Default: 'Please enter base url' }"
         formControlName="baseUrl"
       />
     </div>
 
     @if (loading()) {
-      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+      <xp-spin class="absolute top-0 left-0 w-full h-full" />
     }
   </div>
   @if (!toolset()) {
     <div>
       <div class="py-2 leading-5 text-base font-medium text-text-primary">
-        {{ 'PAC.Xpert.AvailableTools' | translate: { Default: 'Available Tools' } }}
+        {{ 'XP.Xpert.AvailableTools' | translate: { Default: 'Available Tools' } }}
       </div>
       <div class="rounded-lg border border-divider-deep w-full overflow-x-auto">
         <table class="w-full leading-[18px] text-sm text-text-secondary font-normal">
           <thead class="text-text-tertiary uppercase">
             <tr class="border-divider-deep">
-              <th class="">{{ 'PAC.KEY_WORDS.Enabled' | translate: { Default: 'Enabled' } }}</th>
-              <th class="">{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</th>
-              <th class="w-[236px]">{{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</th>
-              <th class="">{{ 'PAC.KEY_WORDS.Method' | translate: { Default: 'Method' } }}</th>
-              <th class="">{{ 'PAC.KEY_WORDS.Path' | translate: { Default: 'Path' } }}</th>
-              <th class="w-[54px]">{{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}</th>
+              <th class="">{{ 'XP.KEY_WORDS.Enabled' | translate: { Default: 'Enabled' } }}</th>
+              <th class="">{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</th>
+              <th class="w-[236px]">{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</th>
+              <th class="">{{ 'XP.KEY_WORDS.Method' | translate: { Default: 'Method' } }}</th>
+              <th class="">{{ 'XP.KEY_WORDS.Path' | translate: { Default: 'Path' } }}</th>
+              <th class="w-[54px]">{{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}</th>
             </tr>
           </thead>
           <tbody formArrayName="tools">
@@ -190,10 +190,10 @@
                 </td>
                 <td class="p-2 pl-3 font-medium">
                   <xpert-tool-name-input formControlName="name" />
-                  <!-- <input formControlName="name" class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"> -->
+                  <!-- <input formControlName="name" class="w-full xp-input-inline xp-input-sm hover:bg-hover-bg"> -->
                 </td>
                 <td class="p-2 pl-3 font-medium">
-                  <input formControlName="description" class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg" />
+                  <input formControlName="description" class="w-full xp-input-inline xp-input-sm hover:bg-hover-bg" />
                 </td>
                 <td class="p-2 pl-3 font-medium">{{ tool.value.schema.method }}</td>
                 <td class="p-2 pl-3 font-medium">{{ tool.value.schema.path }}</td>
@@ -203,7 +203,7 @@
                     class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
                     (click)="openToolTest(tool.value)"
                   >
-                    <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}</div>
+                    <div class="text-sm font-medium">{{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}</div>
                   </button>
                 </td>
               </tr>
@@ -218,29 +218,29 @@
 
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-      {{ 'PAC.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
+      {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
     </div>
     <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [formControl]="tags"></tag-select>
   </div>
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-      {{ 'PAC.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
+      {{ 'XP.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
     </div>
     <input
       z-input
       class="w-full h-10 text-sm grow"
-      [placeholder]="'PAC.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
+      [placeholder]="'XP.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
       formControlName="privacyPolicy"
     />
   </div>
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-      {{ 'PAC.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
+      {{ 'XP.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
     </div>
     <input
       z-input
       class="w-full h-10 text-sm grow"
-      [placeholder]="'PAC.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
+      [placeholder]="'XP.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
       formControlName="customDisclaimer"
     />
   </div>

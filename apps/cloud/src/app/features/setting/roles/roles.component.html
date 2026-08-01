@@ -1,7 +1,7 @@
-<div class="pac-page-header">
+<div class="xp-page-header">
   <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-    <div class="pac-page-title">
-      {{ 'PAC.KEY_WORDS.Role&Permissions' | translate: { Default: 'Role & Permissions' } }}
+    <div class="xp-page-title">
+      {{ 'XP.KEY_WORDS.Role&Permissions' | translate: { Default: 'Role & Permissions' } }}
     </div>
 
     <div class="flex flex-wrap justify-start gap-2 xl:justify-end">
@@ -16,19 +16,19 @@
           (click)="syncDefaultPermissions()"
         >
           <z-icon zType="refresh"></z-icon>
-          {{ 'PAC.Role.SyncDefaults' | translate: { Default: 'Sync Defaults' } }}
+          {{ 'XP.Role.SyncDefaults' | translate: { Default: 'Sync Defaults' } }}
         </button>
       }
 
       <button z-button zType="default" type="button" displayDensity="cosy" class="self-start" (click)="create()">
         <z-icon zType="add"></z-icon>
-        {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
+        {{ 'XP.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
       </button>
     </div>
   </div>
 </div>
 
-<div class="pac-page-body">
+<div class="xp-page-body">
   @if (roles$ | async; as roles) {
     <div class="grid grid-cols-1 gap-4 p-4 xl:grid-cols-12">
       <z-card
@@ -37,7 +37,7 @@
         <z-card-header class="items-center border-b border-divider-regular py-5">
           <div class="min-w-0">
             <z-card-title>
-              {{ 'PAC.Role.RoleList' | translate: { Default: 'Role List' } }}
+              {{ 'XP.Role.RoleList' | translate: { Default: 'Role List' } }}
             </z-card-title>
           </div>
         </z-card-header>
@@ -70,7 +70,7 @@
                       displayDensity="compact"
                       type="button"
                       class="opacity-0 transition-opacity group-hover:opacity-100"
-                      [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                      [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                       (click)="$event.stopPropagation(); remove(option)"
                     >
                       <z-icon zType="delete"></z-icon>
@@ -90,18 +90,18 @@
                   <z-icon zType="shield"></z-icon>
                 </div>
                 <div class="text-sm font-semibold text-text-primary">
-                  {{ 'PAC.Role.NoRoles' | translate: { Default: 'No roles yet' } }}
+                  {{ 'XP.Role.NoRoles' | translate: { Default: 'No roles yet' } }}
                 </div>
                 <div class="max-w-xs text-sm text-text-tertiary">
                   {{
-                    'PAC.Role.NoRolesHint'
+                    'XP.Role.NoRolesHint'
                       | translate
                         : { Default: 'Create a role to start configuring role-based access for your organization.' }
                   }}
                 </div>
                 <button z-button zType="default" type="button" displayDensity="cosy" (click)="create()">
                   <z-icon zType="add"></z-icon>
-                  {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
+                  {{ 'XP.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
                 </button>
               </div>
             }
@@ -121,7 +121,7 @@
                   <z-card-subtitle class="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
                     <span>
                       {{ enabledPermissionCount(allPermissions()) }} / {{ allPermissions().length }}
-                      {{ 'PAC.Role.EnabledPermissions' | translate: { Default: 'enabled permissions' } }}
+                      {{ 'XP.Role.EnabledPermissions' | translate: { Default: 'enabled permissions' } }}
                     </span>
                   </z-card-subtitle>
                 </div>
@@ -134,7 +134,7 @@
                     zShape="circle"
                     displayDensity="cosy"
                     type="button"
-                    [zTooltip]="'PAC.ACTIONS.Rename' | translate: { Default: 'Rename' }"
+                    [zTooltip]="'XP.ACTIONS.Rename' | translate: { Default: 'Rename' }"
                     [disabled]="role.isSystem"
                     (click)="rename(role)"
                   >
@@ -150,7 +150,7 @@
                     zShape="circle"
                     displayDensity="cosy"
                     type="button"
-                    [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                    [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                     [disabled]="role.isSystem"
                     (click)="remove(role)"
                   >
@@ -167,7 +167,7 @@
                 <div class="flex w-full items-center justify-between gap-3">
                   <div class="min-w-0">
                     <z-card-title>
-                      {{ 'PAC.MENU.Roles.General' | translate: { Default: 'General' } }}
+                      {{ 'XP.MENU.Roles.General' | translate: { Default: 'General' } }}
                     </z-card-title>
                   </div>
 
@@ -200,18 +200,16 @@
                               isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''
                             "
                           >
-                            {{
-                              'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission }
-                            }}
+                            {{ 'XP.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
                             @if (isDeprecatedPermission(permission)) {
-                              {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                              {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
                             }
                           </span>
                           @if (isDeprecatedPermission(permission)) {
                             <z-icon
                               zType="triangle-alert"
                               class="ml-1 size-4 shrink-0 text-text-warning"
-                              [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                              [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
                               zPosition="top"
                             />
                           }
@@ -228,7 +226,7 @@
                 <div class="flex w-full items-center justify-between gap-3">
                   <div class="min-w-0">
                     <z-card-title>
-                      {{ 'PAC.MENU.Roles.Administration' | translate: { Default: 'Administration' } }}
+                      {{ 'XP.MENU.Roles.Administration' | translate: { Default: 'Administration' } }}
                     </z-card-title>
                   </div>
 
@@ -262,18 +260,16 @@
                               isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''
                             "
                           >
-                            {{
-                              'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission }
-                            }}
+                            {{ 'XP.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
                             @if (isDeprecatedPermission(permission)) {
-                              {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                              {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
                             }
                           </span>
                           @if (isDeprecatedPermission(permission)) {
                             <z-icon
                               zType="triangle-alert"
                               class="ml-1 size-4 shrink-0 text-text-warning"
-                              [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                              [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
                               zPosition="top"
                             />
                           }
@@ -289,11 +285,11 @@
           <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
             <z-card-content class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <div class="text-lg font-semibold text-text-primary">
-                {{ 'PAC.Role.NoRoleSelected' | translate: { Default: 'Select a role' } }}
+                {{ 'XP.Role.NoRoleSelected' | translate: { Default: 'Select a role' } }}
               </div>
               <div class="max-w-md text-sm text-text-tertiary">
                 {{
-                  'PAC.Role.NoRoleSelectedHint'
+                  'XP.Role.NoRoleSelectedHint'
                     | translate
                       : {
                           Default:
@@ -329,7 +325,7 @@
 
     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <button z-button zType="outline" type="button" (click)="dialogRef.close(null)">
-        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         z-button

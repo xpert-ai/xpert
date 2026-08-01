@@ -1,5 +1,0 @@
-export * from './indicator-type.component'
-export * from './types'
-export * from './register-form/register-form.component'
-export * from './indicator-form/indicator-form.component'
-export * from './list-indicators/list-indicators.component'

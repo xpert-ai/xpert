@@ -1,11 +1,10 @@
-
 import { Component, input, output } from '@angular/core'
 import { injectHelpWebsite } from '../../../@core'
 
 @Component({
   standalone: true,
   imports: [],
-  selector: 'ngm-card-create',
+  selector: 'xp-card-create',
   templateUrl: 'create.component.html',
   styleUrls: ['create.component.scss']
 })

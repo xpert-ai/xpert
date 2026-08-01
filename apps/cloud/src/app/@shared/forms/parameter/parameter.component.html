@@ -92,7 +92,7 @@
         </div>
       }
     </div>
-    <ngm-select
+    <xp-select
       class="flex items-stretch h-9"
       [selectOptions]="schema().options"
       [placeholder]="schema().placeholder | i18n"
@@ -101,7 +101,7 @@
   }
   @case (eParameterTypeEnum.BOOLEAN) {
     <div class="mb-2 mt-4 flex justify-start items-center">
-      <ngm-checkbox [label]="schema().label | i18n" [(ngModel)]="value$" />
+      <xp-checkbox [label]="schema().label | i18n" [(ngModel)]="value$" />
       @if (required()) {
         <span class="mx-1 text-red-500">*</span>
       }

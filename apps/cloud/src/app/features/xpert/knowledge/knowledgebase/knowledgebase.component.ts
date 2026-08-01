@@ -6,9 +6,9 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
 import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { OverlayAnimation1 } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmCopyComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpCopyComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { AppService } from '@cloud/app/app.service'
@@ -40,9 +40,9 @@ import { ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    NgmCopyComponent,
+    XpCopyComponent,
     EmojiAvatarComponent,
-    NgmSpinComponent,
+    XpSpinComponent,
     XpertInlineProfileComponent,
     ZardIconComponent,
     ZardSwitchComponent
@@ -69,15 +69,13 @@ export class KnowledgebaseComponent {
       id: this.paramId()
     }),
     loader: ({ request }) => {
-      return this.knowledgebaseAPI
-        .getDetail(request.id)
-        .pipe(
-          catchError((err) => {
-            this._toastrService.danger(err)
-            this.#router.navigate(['/xpert/w'])
-            return EMPTY
-          })
-        )
+      return this.knowledgebaseAPI.getDetail(request.id).pipe(
+        catchError((err) => {
+          this._toastrService.danger(err)
+          this.#router.navigate(['/xpert/w'])
+          return EMPTY
+        })
+      )
     }
   })
   readonly knowledgebase = this.#knowledgebase.value
@@ -118,7 +116,7 @@ export class KnowledgebaseComponent {
         .subscribe({
           next: () => {
             this.#loading.set(false)
-            this._toastrService.success('PAC.Knowledgebase.ApiStatusChanged', { Default: 'API status changed' })
+            this._toastrService.success('XP.Knowledgebase.ApiStatusChanged', { Default: 'API status changed' })
           },
           error: (err) => {
             this.#loading.set(false)
@@ -142,7 +140,7 @@ export class KnowledgebaseComponent {
       {
         value: knowledgebase.name,
         information: knowledgebase.xperts.length
-          ? this.i18nService.instant('PAC.Knowledgebase.DeleteWithExpertsWarning', {
+          ? this.i18nService.instant('XP.Knowledgebase.DeleteWithExpertsWarning', {
               Default: `This knowledge base has been referenced by digital experts. Deleting it will cause access exception.`
             })
           : knowledgebase.description
@@ -175,7 +173,7 @@ export class KnowledgebaseComponent {
       },
       error: (err) => {
         this.#loading.set(false)
-        this._toastrService.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
+        this._toastrService.error(`XP.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
   }

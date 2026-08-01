@@ -1,30 +1,34 @@
-<div class="pac-page-header">
-  <div class="pac-page-title">{{ 'PAC.Copilot.DigitalXpert' | translate: {Default: 'Digital Xpert'} }}</div>
-      
-<nav z-tab-nav-bar class="pac-tab-nav-bar" zSize="default" color="accent" alignTabs="start" stretchTabs="false" disableRipple
+<div class="xp-page-header">
+  <div class="xp-page-title">{{ 'XP.Copilot.DigitalXpert' | translate: { Default: 'Digital Xpert' } }}</div>
+
+  <nav
+    z-tab-nav-bar
+    class="xp-tab-nav-bar"
+    zSize="default"
+    color="accent"
+    alignTabs="start"
+    stretchTabs="false"
+    disableRipple
     [tabPanel]="tabPanel"
   >
-    <span z-tab-link [routerLink]="['./roles']"
-      routerLinkActive #rla1="routerLinkActive"
-      [active]="rla1.isActive"
-    >
+    <span z-tab-link [routerLink]="['./roles']" routerLinkActive #rla1="routerLinkActive" [active]="rla1.isActive">
       <z-icon zType="engineering"></z-icon>
-      {{ 'PAC.KEY_WORDS.Roles' | translate: {Default: "Roles"} }}
+      {{ 'XP.KEY_WORDS.Roles' | translate: { Default: 'Roles' } }}
     </span>
 
-    <span z-tab-link [routerLink]="['./toolsets']"
-      routerLinkActive #rla2="routerLinkActive"
-      [active]="rla2.isActive"
-    >
+    <span z-tab-link [routerLink]="['./toolsets']" routerLinkActive #rla2="routerLinkActive" [active]="rla2.isActive">
       <z-icon zType="construction"></z-icon>
-      {{ 'PAC.KEY_WORDS.Toolsets' | translate: {Default: "Toolsets"} }}
+      {{ 'XP.KEY_WORDS.Toolsets' | translate: { Default: 'Toolsets' } }}
     </span>
   </nav>
 </div>
 
 <z-divider></z-divider>
-  
-<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+
+<z-tab-nav-panel
+  #tabPanel
+  class="xp-page-body flex flex-col items-center"
+  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
+>
   <router-outlet #o="outlet"></router-outlet>
 </z-tab-nav-panel>

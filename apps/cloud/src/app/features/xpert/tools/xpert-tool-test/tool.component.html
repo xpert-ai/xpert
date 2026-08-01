@@ -1,16 +1,20 @@
-<button class="px-2 py-3 text-left border-[0.5px] flex flex-col items-stretch rounded-xl p-1 cursor-default
-  bg-background-default-subtle border-divider-deep enabled:hover:bg-hover-bg enabled:shadow-sm disabled:opacity-50"
+<button
+  class="px-2 py-3 text-left border-[0.5px] flex flex-col items-stretch rounded-xl p-1 cursor-default bg-background-default-subtle border-divider-deep enabled:hover:bg-hover-bg enabled:shadow-sm disabled:opacity-50"
   [disabled]="disabled()"
 >
   <div class="w-full text-text-primary font-semibold leading-5 flex items-center">
-    <button class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+    <button
+      class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
       [disabled]="disabled()"
-      (click)="toggleExpand()">
-      <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
-        [ngClass]="{'rotate-90': !expand()}"></i>
+      (click)="toggleExpand()"
+    >
+      <i
+        class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+        [ngClass]="{ 'rotate-90': !expand() }"
+      ></i>
     </button>
-    
-    <div class="flex-1 truncate">{{tool().name | i18n}}</div>
+
+    <div class="flex-1 truncate">{{ tool().name | i18n }}</div>
   </div>
 
   @if (expand()) {
@@ -26,6 +30,6 @@
   }
 
   @if (loading()) {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    <xp-spin class="absolute top-0 left-0 w-full h-full" />
   }
 </button>

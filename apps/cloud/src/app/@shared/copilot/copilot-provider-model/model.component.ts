@@ -16,10 +16,10 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { KebabToCamelCasePipe } from '@xpert-ai/core'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { KebabToCamelCasePipe } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
   getErrorMessage,
@@ -43,11 +43,11 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     CdkListboxModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-    NgmI18nPipe,
+    XpI18nPipe,
     KebabToCamelCasePipe,
-    NgmSpinComponent,
+    XpSpinComponent,
     CopilotCredentialFormComponent
-]
+  ]
 })
 export class CopilotProviderModelComponent {
   readonly #dialogRef = inject(DialogRef)
@@ -111,24 +111,22 @@ export class CopilotProviderModelComponent {
   }
 
   constructor() {
-    effect(
-      () => {
-        const value = this.model()
-        if (value) {
-          this.modelName.set(value.modelName)
-          this.modelTypes.set([value.modelType])
-          this.credentials.set(value.modelProperties)
+    effect(() => {
+      const value = this.model()
+      if (value) {
+        this.modelName.set(value.modelName)
+        this.modelTypes.set([value.modelType])
+        this.credentials.set(value.modelProperties)
 
-          // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
-          this.#cdr.markForCheck()
-          setTimeout(() => {
-            this.#cdr.detectChanges()
-          }, 1000)
-        } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
-          this.modelTypes.set([this.supported_model_types()[0]])
-        }
+        // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
+        this.#cdr.markForCheck()
+        setTimeout(() => {
+          this.#cdr.detectChanges()
+        }, 1000)
+      } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
+        this.modelTypes.set([this.supported_model_types()[0]])
       }
-    )
+    })
   }
 
   delete() {
@@ -136,7 +134,7 @@ export class CopilotProviderModelComponent {
     this.#copilotProviderService.deleteModel(this.copilotProvider().id, this.modelId()).subscribe({
       next: (deleteResult) => {
         this.#loading.set(false)
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         this.#dialogRef.close(deleteResult)
       },
       error: (err) => {
@@ -162,7 +160,7 @@ export class CopilotProviderModelComponent {
       .subscribe({
         next: (providerModel) => {
           this.#loading.set(false)
-          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
+          this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
           this.#dialogRef.close(providerModel)
         },
         error: (err) => {
@@ -185,7 +183,7 @@ export class CopilotProviderModelComponent {
       .subscribe({
         next: (providerModel) => {
           this.#loading.set(false)
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
           this.#dialogRef.close(providerModel)
         },
         error: (err) => {

@@ -8,17 +8,19 @@ import { OrganizationService } from '../../organization.service'
 import { OrganizationCreateCommand } from '../organization.create.command'
 import { Organization } from './../../../core/entities/internal'
 import { ImportRecordUpdateOrCreateCommand } from './../../../export-import/import-record/commands/import-record-update-or-create.command'
+import { UserOrganizationService } from '../../../user-organization/user-organization.services'
 
 @CommandHandler(OrganizationCreateCommand)
 export class OrganizationCreateHandler implements ICommandHandler<OrganizationCreateCommand> {
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly organizationService: OrganizationService,
+		private readonly userOrganizationService: UserOrganizationService,
 		private readonly eventEmitter: EventEmitter2
 	) {}
 
 	public async execute(command: OrganizationCreateCommand): Promise<IOrganization> {
-		const { input } = command
+		const { input, onboardingSuperAdminUserId } = command
 		const { isImporting = false, sourceId = null, tenantId = null } = input
 
 		// let { contact = {} } = input;
@@ -68,6 +70,14 @@ export class OrganizationCreateHandler implements ICommandHandler<OrganizationCr
 					tenantId
 				})
 			)
+		}
+
+		if (onboardingSuperAdminUserId) {
+			await this.userOrganizationService.ensureMembership({
+				organizationId: organization.id,
+				tenantId: organization.tenantId,
+				userId: onboardingSuperAdminUserId
+			})
 		}
 
 		this.eventEmitter.emit(

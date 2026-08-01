@@ -1,13 +1,13 @@
 <div class="w-[500px] max-w-full flex flex-col justify-center items-center gap-4 mb-20">
   <img src="/assets/icon.png" class="w-20 h-20 rounded-full" />
   <div class="text-3xl drop-shadow-md text-primary-500 dark:text-text-primary">
-    {{ 'PAC.Onboarding.WelcomeTo' | translate: { Default: 'Welcome to' } }}
+    {{ 'XP.Onboarding.WelcomeTo' | translate: { Default: 'Welcome to' } }}
     <span class="italic">X</span>pert AI
-    {{ 'PAC.Onboarding.Platform' | translate: { Default: 'Platform' } }}
+    {{ 'XP.Onboarding.Platform' | translate: { Default: 'Platform' } }}
   </div>
   <div class="text-lg text-center">
     {{
-      'PAC.Onboarding.WelcomeInfo'
+      'XP.Onboarding.WelcomeInfo'
         | translate
           : {
               Default:
@@ -21,15 +21,15 @@
     class="flex justify-center items-center rounded-xl text-lg px-4 py-1.5 shadow-sm border cursor-pointer text-primary-foreground border-gray-200 bg-primary hover:bg-primary/80 hover:shadow-lg"
     (click)="navigateTenant()"
   >
-    {{ 'PAC.Onboarding.LetGetStarted' | translate: { Default: "Let's get started" } }}
+    {{ 'XP.Onboarding.LetGetStarted' | translate: { Default: "Let's get started" } }}
   </button>
 </div>
 
 <div class="absolute bottom-4 p-4">
-  {{ 'PAC.Onboarding.FeelStuck' | translate: { Default: 'If you feel stuck' } }}
+  {{ 'XP.Onboarding.FeelStuck' | translate: { Default: 'If you feel stuck' } }}
   ,
   <a [href]="helpWebsite() + '/docs/getting-started/onboarding/'" class="text-primary-500 italic">
-    {{ 'PAC.Onboarding.OurGuide' | translate: { Default: 'our getting started guide' } }}
+    {{ 'XP.Onboarding.OurGuide' | translate: { Default: 'our getting started guide' } }}
   </a>
-  {{ 'PAC.Onboarding.ClickAway' | translate: { Default: 'is just a click away' } }}.
+  {{ 'XP.Onboarding.ClickAway' | translate: { Default: 'is just a click away' } }}.
 </div>

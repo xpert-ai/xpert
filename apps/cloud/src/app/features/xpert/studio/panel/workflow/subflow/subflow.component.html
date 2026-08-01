@@ -2,23 +2,27 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       <div class="font-semibold uppercase text-text-secondary">
-        {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
+        {{ 'XP.Xpert.InputVariables' | translate: { Default: 'Input Variables' } }}
       </div>
     </div>
     <div class="flex items-center gap-1">
-      <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable text-text-tertiary hover:text-text-primary"
+      <div
+        class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable text-text-tertiary hover:text-text-primary"
         (click)="addInput()"
       >
         <i class="ri-add-line"></i>
       </div>
     </div>
   </div>
-  
+
   <div class="mt-1">
     <div class="space-y-0.5">
       @for (item of inputParams(); track i; let i = $index) {
-        <li class="group/item relative px-1 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
-          <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
+        <li
+          class="group/item relative px-1 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg"
+        >
+          <xpert-state-variable-select
+            class="truncate opacity-90 hover:opacity-100"
             [variables]="variables()"
             [ngModel]="item.name"
             (ngModelChange)="updateInputParamName(item.name, $event)"
@@ -27,20 +31,26 @@
           <div class="grow"></div>
           <i class="ri-arrow-right-circle-line mx-1"></i>
 
-          <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
+          <xpert-state-variable-select
+            class="truncate opacity-90 hover:opacity-100"
             [varOptions]="subVarInputOptions()"
             [ngModel]="item.variable"
             (ngModelChange)="updateInput(i, 'variable', $event)"
           />
 
-          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
-            (click)="removeInput(i)">
+          <button
+            type="button"
+            class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
+            (click)="removeInput(i)"
+          >
             <i class="ri-delete-bin-line"></i>
           </button>
         </li>
       } @empty {
-        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-background-default-subtle">
-          {{ 'PAC.Xpert.AddInputVariables' | translate: {Default: 'Add input variables'} }}
+        <div
+          class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-background-default-subtle"
+        >
+          {{ 'XP.Xpert.AddInputVariables' | translate: { Default: 'Add input variables' } }}
         </div>
       }
     </div>
@@ -53,46 +63,53 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       <div class="font-semibold uppercase text-text-secondary">
-        {{ 'PAC.Xpert.OutputVariables' | translate: {Default: 'Output Variables'} }}
+        {{ 'XP.Xpert.OutputVariables' | translate: { Default: 'Output Variables' } }}
       </div>
     </div>
     <div class="flex items-center gap-1">
-      <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable text-text-tertiary hover:text-text-primary"
+      <div
+        class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable text-text-tertiary hover:text-text-primary"
         (click)="addOutput()"
       >
         <i class="ri-add-line"></i>
       </div>
     </div>
   </div>
-  
+
   <div class="mt-1">
     <div class="space-y-0.5">
       @for (param of outputParams(); track i; let i = $index) {
         <div class="group/item flex items-center space-x-1 px-1 py-0.5 hover:bg-hover-bg text-text-secondary">
           <div class="relative w-[120px]">
-            <input class="xp-input w-full"
-              [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
+            <input
+              class="xp-input w-full"
+              [placeholder]="'XP.Xpert.VariableName' | translate: { Default: 'Variable Name' }"
               [ngModel]="param.name"
               (ngModelChange)="updateOutput(i, 'name', $event)"
-            >
+            />
           </div>
 
           <div class="grow"></div>
           <i class="ri-arrow-left-circle-line mx-1"></i>
 
-          <xpert-state-variable-select 
-            [varOptions]="subVarOutputOptions()" 
-            [ngModel]="param.variable" 
+          <xpert-state-variable-select
+            [varOptions]="subVarOutputOptions()"
+            [ngModel]="param.variable"
             (ngModelChange)="updateOutput(i, 'variable', $event)"
           />
-          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center group p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
-            (click)="removeOutput(i)">
+          <button
+            type="button"
+            class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center group p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
+            (click)="removeOutput(i)"
+          >
             <i class="ri-delete-bin-line"></i>
           </button>
         </div>
       } @empty {
-        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-background-default-subtle">
-          {{ 'PAC.Xpert.AddOutputVariables' | translate: {Default: 'Add output variables'} }}
+        <div
+          class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-background-default-subtle"
+        >
+          {{ 'XP.Xpert.AddOutputVariables' | translate: { Default: 'Add output variables' } }}
         </div>
       }
     </div>

@@ -1,5 +1,5 @@
 import { IXpert, IXpertAgent } from '@xpert-ai/contracts'
-import { nonNullable } from '@xpert-ai/ocap-core'
+import { nonNullable } from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { isKeyEqual } from '../shared'
 import { resolveDraftAgentNode } from './draft-agent.utils'

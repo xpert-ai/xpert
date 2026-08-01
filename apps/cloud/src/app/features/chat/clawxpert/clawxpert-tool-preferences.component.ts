@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -96,12 +96,12 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-tool-preferences',
+  selector: 'xp-clawxpert-tool-preferences',
   imports: [
     CommonModule,
     FormsModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardButtonComponent,
     ZardIconComponent,
     ZardSwitchComponent,
@@ -123,14 +123,14 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
           </div>
         } @else if (facade.loadingTriggerDraft()) {
           <div class="flex min-h-[20rem] flex-1 items-center justify-center px-6 text-sm text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
+            {{ 'XP.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
           </div>
         } @else if (facade.triggerDraftErrorMessage()) {
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
             <div class="mt-4 text-lg font-semibold text-text-primary">
               {{
-                'PAC.Chat.ClawXpert.ToolPreferencesLoadFailed'
+                'XP.Chat.ClawXpert.ToolPreferencesLoadFailed'
                   | translate: { Default: 'Failed to load skills and tools.' }
               }}
             </div>
@@ -150,10 +150,10 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
             class="border-b border-divider-regular px-5 pt-3"
           >
             <button z-tab-link type="button" [active]="activeTab() === 'skills'" (click)="selectTab('skills')">
-              {{ 'PAC.Workflow.Skill' | translate: { Default: 'Skill' } }}
+              {{ 'XP.Workflow.Skill' | translate: { Default: 'Skill' } }}
             </button>
             <button z-tab-link type="button" [active]="activeTab() === 'tools'" (click)="selectTab('tools')">
-              {{ 'PAC.Common.Tools' | translate: { Default: 'Tools' } }}
+              {{ 'XP.Common.Tools' | translate: { Default: 'Tools' } }}
             </button>
           </nav>
 
@@ -164,11 +164,11 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                   <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div class="text-sm font-medium text-text-primary">
-                        {{ 'PAC.Chat.ClawXpert.SkillPreferencesTitle' | translate: { Default: 'Skill preferences' } }}
+                        {{ 'XP.Chat.ClawXpert.SkillPreferencesTitle' | translate: { Default: 'Skill preferences' } }}
                       </div>
                       <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                         {{
-                          'PAC.Chat.ClawXpert.SkillPreferencesDesc'
+                          'XP.Chat.ClawXpert.SkillPreferencesDesc'
                             | translate
                               : {
                                   Default:
@@ -182,7 +182,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
                     >
                       {{
-                        'PAC.Chat.ClawXpert.SkillCount'
+                        'XP.Chat.ClawXpert.SkillCount'
                           | translate
                             : {
                                 Default: '{count} skills',
@@ -201,13 +201,13 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
                       <div class="mt-4 text-lg font-semibold text-text-primary">
                         {{
-                          'PAC.Chat.ClawXpert.WorkspaceRequiredForSkillsTitle'
+                          'XP.Chat.ClawXpert.WorkspaceRequiredForSkillsTitle'
                             | translate: { Default: 'This ClawXpert is not attached to a workspace yet' }
                         }}
                       </div>
                       <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
                         {{
-                          'PAC.Chat.ClawXpert.WorkspaceRequiredForSkillsDesc'
+                          'XP.Chat.ClawXpert.WorkspaceRequiredForSkillsDesc'
                             | translate
                               : {
                                   Default:
@@ -222,7 +222,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary"
                       >
                         {{
-                          'PAC.Chat.ClawXpert.LoadingWorkspaceSkills'
+                          'XP.Chat.ClawXpert.LoadingWorkspaceSkills'
                             | translate: { Default: 'Loading workspace skills…' }
                         }}
                       </div>
@@ -234,7 +234,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                             <div class="min-w-0">
                               <div class="text-sm font-semibold text-text-primary">
                                 {{
-                                  'PAC.Chat.ClawXpert.WorkspaceSkillsLoadFailed'
+                                  'XP.Chat.ClawXpert.WorkspaceSkillsLoadFailed'
                                     | translate: { Default: 'Failed to load workspace skills' }
                                 }}
                               </div>
@@ -251,13 +251,13 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
                           <div class="mt-4 text-lg font-semibold text-text-primary">
                             {{
-                              'PAC.Chat.ClawXpert.NoSkillsAvailableTitle'
+                              'XP.Chat.ClawXpert.NoSkillsAvailableTitle'
                                 | translate: { Default: 'No workspace skills installed yet' }
                             }}
                           </div>
                           <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
                             {{
-                              'PAC.Chat.ClawXpert.NoSkillsAvailableDesc'
+                              'XP.Chat.ClawXpert.NoSkillsAvailableDesc'
                                 | translate
                                   : {
                                       Default:
@@ -280,7 +280,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                                   <div class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
                                     {{
                                       (item.summary | i18n) ||
-                                        ('PAC.Chat.ClawXpert.SkillSummaryFallback'
+                                        ('XP.Chat.ClawXpert.SkillSummaryFallback'
                                           | translate
                                             : {
                                                 Default:
@@ -318,7 +318,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
 
                                 @if (isSaving(item.id)) {
                                   <span class="text-xs text-text-tertiary">
-                                    {{ 'PAC.Common.Saving' | translate: { Default: 'Saving…' } }}
+                                    {{ 'XP.Common.Saving' | translate: { Default: 'Saving…' } }}
                                   </span>
                                 }
                               </div>
@@ -332,13 +332,13 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           <div>
                             <div class="text-sm font-medium text-text-primary">
                               {{
-                                'PAC.Chat.ClawXpert.InstallWorkspaceSkillsTitle'
+                                'XP.Chat.ClawXpert.InstallWorkspaceSkillsTitle'
                                   | translate: { Default: 'Install skills into this workspace' }
                               }}
                             </div>
                             <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                               {{
-                                'PAC.Chat.ClawXpert.InstallWorkspaceSkillsDesc'
+                                'XP.Chat.ClawXpert.InstallWorkspaceSkillsDesc'
                                   | translate
                                     : {
                                         Default:
@@ -352,7 +352,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                             <span
                               class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
                             >
-                              {{ 'PAC.Chat.ClawXpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
+                              {{ 'XP.Chat.ClawXpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
                             </span>
                           }
                           <button
@@ -363,7 +363,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                             (click)="openSkillInstallDialog()"
                           >
                             {{
-                              'PAC.Chat.ClawXpert.BrowseWorkspaceSkills'
+                              'XP.Chat.ClawXpert.BrowseWorkspaceSkills'
                                 | translate: { Default: 'Browse & install skills' }
                             }}
                           </button>
@@ -379,11 +379,11 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                   <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div class="text-sm font-medium text-text-primary">
-                        {{ 'PAC.Chat.ClawXpert.ToolPreferencesTitle' | translate: { Default: 'Tool preferences' } }}
+                        {{ 'XP.Chat.ClawXpert.ToolPreferencesTitle' | translate: { Default: 'Tool preferences' } }}
                       </div>
                       <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                         {{
-                          'PAC.Chat.ClawXpert.ToolPreferencesDesc'
+                          'XP.Chat.ClawXpert.ToolPreferencesDesc'
                             | translate
                               : {
                                   Default:
@@ -397,7 +397,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
                     >
                       {{
-                        'PAC.Chat.ClawXpert.ToolCount'
+                        'XP.Chat.ClawXpert.ToolCount'
                           | translate
                             : {
                                 Default: '{count} tools',
@@ -414,8 +414,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary"
                     >
                       {{
-                        'PAC.Chat.ClawXpert.LoadingToolPreferences'
-                          | translate: { Default: 'Loading tool preferences…' }
+                        'XP.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' }
                       }}
                     </div>
                   } @else if (!toolItems().length && !toolErrors().length) {
@@ -425,12 +424,12 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       <z-icon zType="build" class="text-3xl text-text-tertiary"></z-icon>
                       <div class="mt-4 text-lg font-semibold text-text-primary">
                         {{
-                          'PAC.Chat.ClawXpert.NoToolsAvailableTitle' | translate: { Default: 'No tools available yet' }
+                          'XP.Chat.ClawXpert.NoToolsAvailableTitle' | translate: { Default: 'No tools available yet' }
                         }}
                       </div>
                       <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
                         {{
-                          'PAC.Chat.ClawXpert.NoToolsAvailableDesc'
+                          'XP.Chat.ClawXpert.NoToolsAvailableDesc'
                             | translate
                               : {
                                   Default:
@@ -452,12 +451,12 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                                 {{
                                   item.description ||
                                     (item.sourceType === 'toolset'
-                                      ? ('PAC.Chat.ClawXpert.ToolsetToolFallbackDesc'
+                                      ? ('XP.Chat.ClawXpert.ToolsetToolFallbackDesc'
                                         | translate
                                           : {
                                               Default: 'Built-in tool available from this connected toolset.'
                                             })
-                                      : ('PAC.Chat.ClawXpert.MiddlewareToolFallbackDesc'
+                                      : ('XP.Chat.ClawXpert.MiddlewareToolFallbackDesc'
                                         | translate
                                           : {
                                               Default: 'Runtime middleware tool available from this draft node.'
@@ -483,7 +482,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
 
                             @if (isSaving(item.id)) {
                               <span class="text-xs text-text-tertiary">
-                                {{ 'PAC.Common.Saving' | translate: { Default: 'Saving…' } }}
+                                {{ 'XP.Common.Saving' | translate: { Default: 'Saving…' } }}
                               </span>
                             }
                           </div>
@@ -647,26 +646,26 @@ export class ClawXpertToolPreferencesComponent {
   readonly blockedState = computed(() => {
     if (!this.facade.organizationId()) {
       return {
-        titleKey: 'PAC.Chat.ClawXpert.ToolPreferenceOrganizationRequiredTitle',
+        titleKey: 'XP.Chat.ClawXpert.ToolPreferenceOrganizationRequiredTitle',
         defaultTitle: 'Choose an organization first',
-        descKey: 'PAC.Chat.ClawXpert.ToolPreferenceOrganizationRequiredDesc',
+        descKey: 'XP.Chat.ClawXpert.ToolPreferenceOrganizationRequiredDesc',
         defaultDesc: 'Select an organization and finish the ClawXpert setup before managing skills and tools.'
       }
     }
 
     if (!this.facade.resolvedPreference()) {
       return {
-        titleKey: 'PAC.Chat.ClawXpert.ToolPreferenceBindingRequiredTitle',
+        titleKey: 'XP.Chat.ClawXpert.ToolPreferenceBindingRequiredTitle',
         defaultTitle: 'Bind ClawXpert before managing tools',
-        descKey: 'PAC.Chat.ClawXpert.ToolPreferenceBindingRequiredDesc',
+        descKey: 'XP.Chat.ClawXpert.ToolPreferenceBindingRequiredDesc',
         defaultDesc: 'Once a ClawXpert binding is ready, this panel will load tools from the bound xpert draft.'
       }
     }
 
     return {
-      titleKey: 'PAC.Chat.ClawXpert.ToolPreferenceUnavailableTitle',
+      titleKey: 'XP.Chat.ClawXpert.ToolPreferenceUnavailableTitle',
       defaultTitle: 'Tool preferences are temporarily unavailable',
-      descKey: 'PAC.Chat.ClawXpert.ToolPreferenceUnavailableDesc',
+      descKey: 'XP.Chat.ClawXpert.ToolPreferenceUnavailableDesc',
       defaultDesc: 'The ClawXpert shell must be in the ready state before skills and tools can be managed.'
     }
   })

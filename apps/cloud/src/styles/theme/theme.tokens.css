@@ -72,8 +72,8 @@
   --color-text-quaternary: #93939f;
   --color-text-warning: var(--sys-warning);
   --color-text-destructive: var(--sys-danger);
-  --color-text-accent: var(--sys-accent);
-  --color-text-accent-secondary: color-mix(in oklab, var(--sys-accent) 72%, white);
+  --color-text-accent: var(--accent-foreground);
+  --color-text-accent-secondary: color-mix(in oklab, var(--accent-foreground) 72%, var(--sys-text-secondary));
   --color-status-neutral-bg: #f2f2f2;
   --color-status-neutral-fg: #616161;
   --color-status-neutral-indicator-bg: #93939f;
@@ -180,8 +180,8 @@
   --color-text-quaternary: color-mix(in oklab, var(--foreground) 42%, var(--background));
   --color-text-warning: var(--sys-warning);
   --color-text-destructive: var(--sys-danger);
-  --color-text-accent: var(--sys-accent);
-  --color-text-accent-secondary: color-mix(in oklab, var(--sys-accent) 72%, white);
+  --color-text-accent: var(--accent-foreground);
+  --color-text-accent-secondary: color-mix(in oklab, var(--accent-foreground) 72%, var(--sys-text-secondary));
   --color-status-neutral-bg: color-mix(in oklab, var(--foreground) 5%, transparent);
   --color-status-neutral-fg: var(--sys-text-secondary);
   --color-status-neutral-indicator-bg: var(--color-text-tertiary);

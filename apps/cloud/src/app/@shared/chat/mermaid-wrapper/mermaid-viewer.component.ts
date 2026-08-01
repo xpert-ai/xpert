@@ -1,4 +1,3 @@
-
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import mermaid from 'mermaid'
@@ -18,8 +17,8 @@ const svgCache = new Map<string, string>()
       [content]="code"
       [zTooltip]="
         copy.copied()
-          ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-          : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+          ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+          : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
       "
       zPosition="top"
     />

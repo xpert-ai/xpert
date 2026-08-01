@@ -6,15 +6,15 @@ import {
   IXpert,
   IXpertProjectTask,
   IXpertToolset,
-  TFileDirectory,
+  TFileDirectory
 } from '../types'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
 import { IXpertProject } from '../types'
-import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
+import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import { Endpoints } from '@octokit/types'
-import { toParams } from '@xpert-ai/core'
+import { toParams } from '@xpert-ai/headless-ui'
 
 type GitHubInstallationsResponse = Endpoints['GET /user/installations']['response']['data']
 
@@ -59,7 +59,9 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   }
 
   getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
-    return this.httpClient.get<{ items: IXpertToolset[]; total: number }>(this.apiBaseUrl + `/${id}/toolsets`, {params: toHttpParams(params)})
+    return this.httpClient.get<{ items: IXpertToolset[]; total: number }>(this.apiBaseUrl + `/${id}/toolsets`, {
+      params: toHttpParams(params)
+    })
   }
 
   addToolset(id: string, toolsetId: string) {
@@ -71,7 +73,9 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   }
 
   getKnowledgebases(id: string, params: PaginationParams<IKnowledgebase>) {
-    return this.httpClient.get<{ items: IKnowledgebase[]; total: number }>(this.apiBaseUrl + `/${id}/knowledges`, {params: toHttpParams(params)})
+    return this.httpClient.get<{ items: IKnowledgebase[]; total: number }>(this.apiBaseUrl + `/${id}/knowledges`, {
+      params: toHttpParams(params)
+    })
   }
 
   addKnowledgebase(id: string, kbId: string) {
@@ -106,10 +110,10 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   }
 
   exportDsl(id: string) {
-    return this.httpClient.get<{data: string}>(this.apiBaseUrl + `/${id}/export`)
+    return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`)
   }
 
-  importDsl(dsl: {project: IXpertProject}) {
+  importDsl(dsl: { project: IXpertProject }) {
     return this.httpClient.post<IXpertProject>(this.apiBaseUrl + `/import`, dsl)
   }
 
@@ -119,7 +123,7 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     formData.append('file', file)
     return this.httpClient.post(this.apiBaseUrl + `/${id}/file/upload`, formData, {
       observe: 'events',
-      reportProgress: true,
+      reportProgress: true
     })
   }
 
@@ -145,7 +149,7 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   removeAttachment(id: string, fileId: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/attachments/${fileId}`)
   }
-  
+
   // VCS github integration
   getVCS(id: string) {
     return this.httpClient.get<IXpertProjectVCS>(this.apiBaseUrl + `/${id}/vcs`)

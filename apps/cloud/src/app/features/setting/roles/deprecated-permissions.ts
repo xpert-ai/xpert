@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
 export const DEPRECATED_ROLE_PERMISSIONS = [
   PermissionsEnum.ADMIN_DASHBOARD_VIEW,
@@ -7,14 +7,7 @@ export const DEPRECATED_ROLE_PERMISSIONS = [
   PermissionsEnum.ORG_DEMO_EDIT,
   AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
   AIPermissionsEnum.COPILOT_VIEW,
-  AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
-  AnalyticsPermissionsEnum.MODELS_VIEW,
-  AnalyticsPermissionsEnum.STORIES_VIEW,
-  AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,
-  AnalyticsPermissionsEnum.INDICATOR_VIEW,
-  AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW,
-  AnalyticsPermissionsEnum.DATA_FACTORY_VIEW,
-  AnalyticsPermissionsEnum.DATA_FACTORY_EDIT,
+  PermissionsEnum.DATA_SOURCE_VIEW,
   PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
   PermissionsEnum.SUPER_ADMIN_EDIT,
   PermissionsEnum.ACCESS_DELETE_ACCOUNT,

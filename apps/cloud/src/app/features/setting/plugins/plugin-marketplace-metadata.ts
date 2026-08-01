@@ -1,4 +1,4 @@
-import { IPluginDescriptor } from '@xpert-ai/cloud/state'
+import { IPluginDescriptor } from '@cloud/app/@core/state'
 import {
   PluginMarketplaceItem,
   PluginMarketplaceContribution,

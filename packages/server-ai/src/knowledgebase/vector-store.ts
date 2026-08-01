@@ -1,7 +1,12 @@
 import { Callbacks } from '@langchain/core/callbacks/manager'
 import { DocumentInterface } from '@langchain/core/documents'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import {
+    IKnowledgebase,
+    IKnowledgeDocument,
+    IKnowledgeDocumentChunk,
+    IModelAccessResolution
+} from '@xpert-ai/contracts'
 import { IRerank } from '@xpert-ai/plugin-sdk'
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
 import { TDocChunkMetadata } from '../knowledge-document/types'
@@ -57,7 +62,8 @@ export class KnowledgeDocumentStore {
         public knowledgebase: IKnowledgebase,
         public vStore: VectorStore,
         protected rerankModel?: IRerank,
-        private readonly embeddingMetadata: TEmbeddingVectorMetadata = {}
+        private readonly embeddingMetadata: TEmbeddingVectorMetadata = {},
+        readonly modelAccess?: IModelAccessResolution | null
     ) {
         const model = getCopilotModel(knowledgebase)
         this.model = embeddingMetadata.model ?? model

@@ -23,7 +23,7 @@ import { OrganizationStepFormComponent } from '../organization-step-form/organiz
   styleUrls: ['./organization-mutation.component.scss']
 })
 export class OrganizationMutationComponent {
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
   readonly dialogRef = inject(DialogRef<IOrganizationCreateInput>)
 
   readonly organization = model<IOrganizationCreateInput>({} as IOrganizationCreateInput)

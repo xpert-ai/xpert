@@ -1,15 +1,25 @@
 <div class="system-xl-medium relative pb-1 text-text-primary">
-  {{'PAC.Xpert.BulkImport' | translate: {Default: 'Bulk Import'} }}
+  {{ 'XP.Xpert.BulkImport' | translate: { Default: 'Bulk Import' } }}
 </div>
 <div class="absolute right-4 top-4 cursor-pointer p-2" (click)="close()">
   <i class="ri-close-line"></i>
 </div>
 <div class="flex flex-col relative">
   <div class="mt-6">
-    <input id="fileUploader" #fileUploader accept=".csv" type="file" style="display: none" (change)="onFileSelected($event)" />
+    <input
+      id="fileUploader"
+      #fileUploader
+      accept=".csv"
+      type="file"
+      style="display: none"
+      (change)="onFileSelected($event)"
+    />
     <div>
-      <div class="dropzone system-sm-regular flex h-20 items-center rounded-xl border border-dashed border-divider-regular bg-components-dropzone-bg"
-        ngmDnd (fileDropped)="onFileDropped($event)">
+      <div
+        class="dropzone system-sm-regular flex h-20 items-center rounded-xl border border-dashed border-divider-regular bg-components-dropzone-bg"
+        xpDnd
+        (fileDropped)="onFileDropped($event)"
+      >
         <div class="flex w-full items-center justify-center space-x-2 px-2">
           <svg
             width="32"
@@ -79,23 +89,26 @@
           </svg>
           @if (file()) {
             <div class="flex justify-between items-center grow">
-              {{file().name}}
+              {{ file().name }}
               <div class="flex items-center">
                 <button type="button" class="btn btn-secondary btn-sm" (click)="fileUploader.click()">
-                  {{'PAC.ACTIONS.Change' | translate: {Default: 'Change'} }}
+                  {{ 'XP.ACTIONS.Change' | translate: { Default: 'Change' } }}
                 </button>
                 <div class="w-[1px] h-4 bg-divider-deep mx-2"></div>
-                <button type="button" class="w-7 h-7 flex justify-center items-center rounded-lg hover:bg-hover-bg"
-                  (click)="file.set(null);fileUploader.value = null">
+                <button
+                  type="button"
+                  class="w-7 h-7 flex justify-center items-center rounded-lg hover:bg-hover-bg"
+                  (click)="file.set(null); fileUploader.value = null"
+                >
                   <i class="ri-delete-back-2-line"></i>
                 </button>
               </div>
             </div>
           } @else {
             <div class="text-text-tertiary">
-              {{'PAC.Xpert.DragDropCsv' | translate: {Default: 'Drag and drop your CSV file here, or '} }}
+              {{ 'XP.Xpert.DragDropCsv' | translate: { Default: 'Drag and drop your CSV file here, or ' } }}
               <span class="cursor-pointer text-text-accent" (click)="fileUploader.click()">
-                {{'PAC.Xpert.Browse' | translate: {Default: 'Browse'} }}
+                {{ 'XP.Xpert.Browse' | translate: { Default: 'Browse' } }}
               </span>
             </div>
           }
@@ -105,7 +118,10 @@
   </div>
   <div class="mt-6">
     <div class="system-sm-medium text-text-primary">
-      {{'PAC.Xpert.MemoryCsvMustContain' | translate: {Default: 'The CSV file must conform to the following structure:'} }}
+      {{
+        'XP.Xpert.MemoryCsvMustContain'
+          | translate: { Default: 'The CSV file must conform to the following structure:' }
+      }}
     </div>
     <div class="mt-2 max-h-[500px] overflow-auto">
       @switch (type()) {
@@ -158,13 +174,13 @@
     <a class="mt-2 block cursor-pointer" (click)="downloadTemplate()">
       <div class="system-xs-medium flex h-[18px] items-center space-x-1 text-text-accent">
         <i class="ri-download-line mr-1"></i>
-        {{'PAC.Xpert.DownloadTemplateHere' | translate: {Default: 'Download the template here'} }}
+        {{ 'XP.Xpert.DownloadTemplateHere' | translate: { Default: 'Download the template here' } }}
       </div>
     </a>
   </div>
 
   @if (loading()) {
-    <ngm-spin class="absolute w-full h-full top-0 left-0"/>
+    <xp-spin class="absolute w-full h-full top-0 left-0" />
   }
 </div>
 
@@ -174,9 +190,14 @@
     class="btn disabled:btn-disabled btn-secondary btn-medium system-sm-medium mr-2 text-text-tertiary"
     (click)="close()"
   >
-    {{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button
-  >
-  <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+    {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+  </button>
+  <button
+    type="button"
+    class="btn disabled:btn-disabled btn-primary btn-medium"
     [disabled]="!file() || loading()"
-    (click)="upload()">{{'PAC.ACTIONS.Upload' | translate: {Default: 'Upload'} }}</button>
+    (click)="upload()"
+  >
+    {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+  </button>
 </div>

@@ -10,6 +10,7 @@ import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
 import { MembershipModule } from '../membership'
+import { ModelAccessModule } from '../model-access'
 
 @Module({
     imports: [
@@ -19,7 +20,8 @@ import { MembershipModule } from '../membership'
         TenantModule,
         CqrsModule,
         CopilotOrganizationModule,
-        MembershipModule
+        MembershipModule,
+        ModelAccessModule
     ],
     controllers: [CopilotUserController],
     providers: [CopilotUserService, ...CommandHandlers, ...QueryHandlers],

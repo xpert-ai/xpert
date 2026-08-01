@@ -1,3 +1,10 @@
-<button z-button zType="ghost" type="button" ngmAppearance="dashed" [class]="field.formControl.value ? 'text-text-accent hover:text-text-accent' : ''" (click)="openCodeEditorDialog()">
-    <z-icon zType="code"></z-icon> {{to?.label || 'Open Editor'}}
+<button
+  z-button
+  zType="ghost"
+  type="button"
+  xpAppearance="dashed"
+  [class]="field.formControl.value ? 'text-text-accent hover:text-text-accent' : ''"
+  (click)="openCodeEditorDialog()"
+>
+  <z-icon zType="code"></z-icon> {{ to?.label || 'Open Editor' }}
 </button>

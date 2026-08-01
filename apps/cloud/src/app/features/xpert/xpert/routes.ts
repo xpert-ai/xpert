@@ -1,9 +1,6 @@
 import { Routes } from '@angular/router'
 import { XpertStudioComponent } from '../studio/studio.component'
 import { XpertAuthorizationComponent } from './authorization/authorization.component'
-import { XpertCopilotKnowledgeNewBlankComponent } from './copilot/blank/blank.component'
-import { XpertCopilotComponent } from './copilot/copilot.component'
-import { XpertCopilotKnowledgeTestingComponent } from './copilot/testing/testing.component'
 import { XpertLogsComponent } from './logs/logs.component'
 import { XpertMonitorComponent } from './monitor/monitor.component'
 import { XpertComponent } from './xpert.component'
@@ -45,7 +42,7 @@ export const routes: Routes = [
         path: 'memory',
         component: XpertMemoryComponent,
         children: [
-            {
+          {
             path: '',
             redirectTo: 'store',
             pathMatch: 'full'
@@ -62,21 +59,8 @@ export const routes: Routes = [
       },
       {
         path: 'copilot',
-        component: XpertCopilotComponent,
-        children: [
-          {
-            path: 'create',
-            component: XpertCopilotKnowledgeNewBlankComponent
-          },
-          {
-            path: 'testing',
-            component: XpertCopilotKnowledgeTestingComponent
-          },
-          {
-            path: ':id',
-            component: XpertCopilotKnowledgeNewBlankComponent
-          }
-        ]
+        redirectTo: 'agents',
+        pathMatch: 'full'
       }
     ]
   }

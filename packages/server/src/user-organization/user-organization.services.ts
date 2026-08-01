@@ -10,7 +10,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Cache } from 'cache-manager'
-import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm'
+import { DeepPartial, DeleteResult, EntityManager, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm'
 import { TenantAwareCrudService } from './../core/crud'
 import {
 	EVENT_USER_ORGANIZATION_CREATED,
@@ -54,7 +54,12 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		return tenantId
 	}
 
-	private async ensureUniqueDefault(userId: string, tenantId: string, membershipId?: string) {
+	private async ensureUniqueDefault(
+		userId: string,
+		tenantId: string,
+		membershipId?: string,
+		repository: Repository<UserOrganization> = this.repository
+	) {
 		if (!userId) {
 			return
 		}
@@ -69,7 +74,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 					tenantId
 				}
 
-		const memberships = await this.repository.find({
+		const memberships = await repository.find({
 			where
 		})
 
@@ -78,7 +83,11 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 				continue
 			}
 			if (membership.isDefault) {
-				await super.update(membership.id, { isDefault: false } as Partial<UserOrganization>)
+				if (repository === this.repository) {
+					await super.update(membership.id, { isDefault: false })
+				} else {
+					await repository.update(membership.id, { isDefault: false })
+				}
 			}
 		}
 	}
@@ -239,14 +248,18 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		return this.findOne(membership.id)
 	}
 
-	private async prepareCreateEntity(entity: DeepPartial<UserOrganization>, explicitTenantId?: string) {
+	private async prepareCreateEntity(
+		entity: DeepPartial<UserOrganization>,
+		explicitTenantId?: string,
+		repository: Repository<UserOrganization> = this.repository
+	) {
 		if (!entity.userId || !entity.organizationId) {
 			throw new BadRequestException('User and organization are required.')
 		}
 
 		const tenantId = this.currentTenantId(explicitTenantId ?? entity.tenantId)
 
-		const existing = await this.repository.findOne({
+		const existing = await repository.findOne({
 			where: {
 				userId: entity.userId,
 				organizationId: entity.organizationId,
@@ -258,7 +271,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			throw new BadRequestException('User is already a member of this organization.')
 		}
 
-		const memberships = await this.repository.find({
+		const memberships = await repository.find({
 			where: {
 				userId: entity.userId,
 				tenantId
@@ -274,12 +287,12 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		}
 
 		if (isDefault) {
-			await this.ensureUniqueDefault(entity.userId, tenantId)
+			await this.ensureUniqueDefault(entity.userId, tenantId, undefined, repository)
 		}
 
 		return {
 			...entity,
-			tenant: entity.tenant ?? ({ id: tenantId } as any),
+			tenant: entity.tenant ?? { id: tenantId },
 			tenantId,
 			isDefault,
 			isActive
@@ -331,6 +344,64 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		)
 
 		return membership
+	}
+
+	async ensureMembershipInTransaction(
+		manager: EntityManager,
+		{
+			organizationId,
+			tenantId,
+			userId
+		}: {
+			organizationId: string
+			tenantId: string
+			userId: string
+		}
+	): Promise<{ membership: IUserOrganization; created: boolean }> {
+		const repository = manager.getRepository(UserOrganization)
+		const existing = await repository.findOne({
+			where: {
+				organizationId,
+				tenantId,
+				userId
+			}
+		})
+
+		if (existing) {
+			return {
+				membership: existing,
+				created: false
+			}
+		}
+
+		const entity = new UserOrganization({
+			organizationId,
+			tenantId,
+			userId
+		})
+		const payload = await this.prepareCreateEntity(entity, tenantId, repository)
+		const membership = await repository.save(repository.create(payload))
+
+		return {
+			membership,
+			created: true
+		}
+	}
+
+	async completeMembershipCreation({
+		organizationId,
+		tenantId,
+		userId
+	}: {
+		organizationId: string
+		tenantId: string
+		userId: string
+	}) {
+		await touchCurrentUserFeatureUserCacheVersion(this.cacheManager, tenantId, userId)
+		this.eventEmitter.emit(
+			EVENT_USER_ORGANIZATION_CREATED,
+			new UserOrganizationCreatedEvent(tenantId, organizationId, userId)
+		)
 	}
 
 	async findUserIdsByOrganization(organizationId: string): Promise<string[]> {

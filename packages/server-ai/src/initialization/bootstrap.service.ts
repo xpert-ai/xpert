@@ -32,6 +32,8 @@ import { TemplateSkillSyncService } from '../xpert-template/template-skill-sync.
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { MembershipService } from '../membership'
+import { ModelAccessService } from '../model-access'
+import { ModelGatewayService } from '../model-gateway'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
@@ -91,7 +93,9 @@ export class ServerAIBootstrapService {
         private readonly xpertTemplateService: XpertTemplateService,
         private readonly templateSkillSyncService: TemplateSkillSyncService,
         private readonly pluginManagementService: PluginManagementService,
-        private readonly membershipService: MembershipService
+        private readonly membershipService: MembershipService,
+        private readonly modelAccessService: ModelAccessService,
+        private readonly modelGatewayService: ModelGatewayService
     ) {}
 
     async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
@@ -141,12 +145,10 @@ export class ServerAIBootstrapService {
         let workspaceId: string | null = null
         let createdNewUserDefaultWorkspace = false
 
-        if (user.role?.name === RolesEnum.TRIAL) {
-            await this.membershipService.ensureTenantDefaultMembership({
-                tenantId: event.tenantId,
-                userId: event.userId
-            })
-        }
+        await this.membershipService.ensureTenantDefaultMembership({
+            tenantId: event.tenantId,
+            userId: event.userId
+        })
 
         await this.runInOrganizationContext(user, event.organizationId, async () => {
             if (this.shouldBootstrapPersonalWorkspace(user)) {
@@ -246,6 +248,16 @@ export class ServerAIBootstrapService {
 
     async cleanupUserInOrganization(event: UserOrganizationDeletedEvent) {
         await this.membershipService.revokeOrganizationMembershipForRemovedUser({
+            tenantId: event.tenantId,
+            organizationId: event.organizationId,
+            userId: event.userId
+        })
+        await this.modelAccessService.closeOrganizationAccessForRemovedUser({
+            tenantId: event.tenantId,
+            organizationId: event.organizationId,
+            userId: event.userId
+        })
+        await this.modelGatewayService.revokeOrganizationKeysForRemovedUser({
             tenantId: event.tenantId,
             organizationId: event.organizationId,
             userId: event.userId

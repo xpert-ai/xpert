@@ -1,0 +1,76 @@
+<form [formGroup]="form" class="accept-invite-form flex flex-col justify-start items-stretch gap-2">
+  <div>
+    <label>{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.FULL_NAME' | translate: { Default: 'Full Name' } }}</label>
+    <input
+      z-input
+      formControlName="fullName"
+      class="xp-input-element"
+      type="text"
+      [placeholder]="
+        'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.ENTER_YOUR_FULL_NAME' | translate: { Default: 'Enter Your Full Name' }
+      "
+    />
+  </div>
+  <div>
+    <label>{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.PASSWORD' | translate: { Default: 'Password' } }}</label>
+    <input z-input formControlName="password" class="xp-input-element" type="password" />
+  </div>
+
+  <div>
+    <label>{{
+      'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.REPEAT_PASSWORD' | translate: { Default: 'Repeat Password' }
+    }}</label>
+    <input z-input formControlName="repeatPassword" class="xp-input-element" type="password" />
+  </div>
+
+  @if (referralEnabled) {
+    <div>
+      <label>{{ 'XP.Referral.ReferralCode' | translate: { Default: 'Invitation code (optional)' } }}</label>
+      <input
+        z-input
+        formControlName="referralCode"
+        class="ngm-input-element uppercase"
+        type="text"
+        maxlength="10"
+        autocomplete="off"
+        [placeholder]="'XP.Referral.ReferralCodePlaceholder' | translate: { Default: 'Enter invitation code' }"
+        (blur)="validateReferralCode()"
+      />
+      @if (referralValidationLoading) {
+        <span class="mt-1 block text-sm text-text-secondary">
+          {{ 'XP.Referral.ValidatingReferralCode' | translate: { Default: 'Validating...' } }}
+        </span>
+      } @else if (form.controls.referralCode.hasError('invalidReferralCode')) {
+        <span class="mt-1 block text-sm text-text-destructive">
+          {{ 'XP.Referral.InvalidReferralCode' | translate: { Default: 'The invitation code is invalid.' } }}
+        </span>
+      } @else if (referralValid) {
+        <span class="mt-1 block text-sm text-text-success">
+          {{ 'XP.Referral.ValidReferralCode' | translate: { Default: 'Invitation code is valid.' } }}
+        </span>
+      }
+    </div>
+  }
+
+  <div class="flex justify-between items-center">
+    <z-checkbox formControlName="agreeTerms">{{
+      'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.AGREE_TO' | translate: { Default: 'Agree to' }
+    }}</z-checkbox>
+    <a href="#" target="_blank">{{
+      'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.TERMS_AND_CONDITIONS' | translate: { Default: 'Terms & Conditions' }
+    }}</a>
+  </div>
+
+  <div class="mt-4">
+    <button
+      z-button
+      zType="default"
+      [zDisabled]="form.invalid || referralAvailabilityLoading || referralValidationLoading"
+      (click)="saveInvites()"
+    >
+      {{
+        'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.COMPLETE_REGISTRATION' | translate: { Default: 'Complete Registration' }
+      }}
+    </button>
+  </div>
+</form>

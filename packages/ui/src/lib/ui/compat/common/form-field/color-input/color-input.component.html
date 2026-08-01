@@ -1,0 +1,27 @@
+@if (label) {
+  <label class="overflow-hidden text-ellipsis whitespace-nowrap p-1 text-sm">{{ label }}</label>
+}
+<div class="relative w-full">
+  <input
+    z-input
+    class="xp-input-element pr-10"
+    [disabled]="disabled"
+    [(ngModel)]="value"
+    (ngModelChange)="changeColor($event)"
+    (blur)="markAsTouched()"
+  />
+
+  <label
+    class="xp-color-input__trigger absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+    [class.pointer-events-none]="disabled"
+  >
+    <span class="xp-color-input__swatch" [style.background]="value || 'transparent'"></span>
+    <input
+      type="color"
+      class="sr-only"
+      [disabled]="disabled"
+      [value]="nativeColorValue"
+      (input)="updateFromNativeColor($event)"
+    />
+  </label>
+</div>

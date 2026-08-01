@@ -11,34 +11,32 @@ import {
   type OnInit,
   output,
   signal,
-  ViewEncapsulation,
-} from '@angular/core';
-import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+  ViewEncapsulation
+} from '@angular/core'
+import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { segmentedItemVariants, segmentedVariants, type ZardSegmentedVariants } from './segmented.variants';
+import { segmentedItemVariants, segmentedVariants, type ZardSegmentedVariants } from './segmented.variants'
 
 export interface SegmentedOption {
-  value: string;
-  label: string;
-  disabled?: boolean;
+  value: string
+  label: string
+  disabled?: boolean
 }
 
 @Component({
   selector: 'z-segmented-item',
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
+  encapsulation: ViewEncapsulation.None
 })
 export class ZardSegmentedItemComponent {
-  readonly value = input.required<string>();
-  readonly label = input.required<string>();
-  readonly zDisabled = input(false, { transform: booleanAttribute });
+  readonly value = input.required<string>()
+  readonly label = input.required<string>()
+  readonly zDisabled = input(false, { transform: booleanAttribute })
 }
 
 @Component({
@@ -80,97 +78,97 @@ export class ZardSegmentedItemComponent {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => ZardSegmentedComponent),
-      multi: true,
-    },
+      multi: true
+    }
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    '[class]': 'wrapperClasses()',
+    '[class]': 'wrapperClasses()'
   },
-  exportAs: 'zSegmented',
+  exportAs: 'zSegmented'
 })
 export class ZardSegmentedComponent implements ControlValueAccessor, OnInit {
-  private readonly itemComponents = contentChildren(ZardSegmentedItemComponent);
+  private readonly itemComponents = contentChildren(ZardSegmentedItemComponent)
 
-  readonly class = input<ClassValue>('');
-  readonly zSize = input<ZardSegmentedVariants['zSize']>('default');
-  readonly zOptions = input<SegmentedOption[]>([]);
-  readonly zDefaultValue = input<string>('');
-  readonly zDisabled = input(false, { transform: booleanAttribute });
-  readonly zAriaLabel = input<string>('Segmented control');
+  readonly class = input<ClassValue>('')
+  readonly zSize = input<ZardSegmentedVariants['zSize']>('default')
+  readonly zOptions = input<SegmentedOption[]>([])
+  readonly zDefaultValue = input<string>('')
+  readonly zDisabled = input(false, { transform: booleanAttribute })
+  readonly zAriaLabel = input<string>('Segmented control')
 
-  readonly zChange = output<string>();
+  readonly zChange = output<string>()
 
-  protected readonly disabledState = linkedSignal(() => this.zDisabled());
-  protected readonly items = signal<readonly ZardSegmentedItemComponent[]>([]);
-  protected readonly selectedValue = signal<string>('');
+  protected readonly disabledState = linkedSignal(() => this.zDisabled())
+  protected readonly items = signal<readonly ZardSegmentedItemComponent[]>([])
+  protected readonly selectedValue = signal<string>('')
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private onChange: (value: string) => void = () => {};
+  private onChange: (value: string) => void = () => {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private onTouched = () => {};
+  private onTouched = () => {}
 
   constructor() {
     effect(() => {
-      this.items.set(this.itemComponents());
-    });
+      this.items.set(this.itemComponents())
+    })
   }
 
   ngOnInit() {
     // Initialize with default value
     if (this.zDefaultValue()) {
-      this.selectedValue.set(this.zDefaultValue());
+      this.selectedValue.set(this.zDefaultValue())
     }
   }
 
-  protected readonly classes = computed(() => mergeClasses(segmentedVariants({ zSize: this.zSize() }), this.class()));
+  protected readonly classes = computed(() => mergeClasses(segmentedVariants({ zSize: this.zSize() }), this.class()))
 
-  protected readonly wrapperClasses = computed(() => 'inline-block');
+  protected readonly wrapperClasses = computed(() => 'inline-block')
 
   protected getItemClasses(value: string): string {
     return segmentedItemVariants({
       zSize: this.zSize(),
-      isActive: this.isSelected(value),
-    });
+      isActive: this.isSelected(value)
+    })
   }
 
   protected isSelected(value: string): boolean {
-    return this.selectedValue() === value;
+    return this.selectedValue() === value
   }
 
   protected selectOption(value: string) {
     if (this.disabledState()) {
-      return;
+      return
     }
 
-    const option = this.zOptions().find(opt => opt.value === value);
-    const item = this.items().find(item => item.value() === value);
+    const option = this.zOptions().find((opt) => opt.value === value)
+    const item = this.items().find((item) => item.value() === value)
 
     if (option?.disabled || item?.zDisabled()) {
-      return;
+      return
     }
 
-    this.selectedValue.set(value);
-    this.onChange(value);
-    this.onTouched();
-    this.zChange.emit(value);
+    this.selectedValue.set(value)
+    this.onChange(value)
+    this.onTouched()
+    this.zChange.emit(value)
   }
 
   // ControlValueAccessor implementation
   writeValue(value: string): void {
-    this.selectedValue.set(value ?? '');
+    this.selectedValue.set(value ?? '')
   }
 
   registerOnChange(fn: (value: string) => void): void {
-    this.onChange = fn;
+    this.onChange = fn
   }
 
   registerOnTouched(fn: () => void): void {
-    this.onTouched = fn;
+    this.onTouched = fn
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.disabledState.set(isDisabled);
+    this.disabledState.set(isDisabled)
   }
 }

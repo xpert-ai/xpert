@@ -1,12 +1,13 @@
 <form [formGroup]="formGroup" class="">
   <div class="mb-2">
     <label class="font-medium my-2 inline-block">
-      {{ 'PAC.Xpert.Name' | translate: { Default: 'Name' } }}
+      {{ 'XP.Xpert.Name' | translate: { Default: 'Name' } }}
     </label>
     <div class="relative w-full">
-      <input z-input
+      <input
+        z-input
         class="w-full grow h-10"
-        [placeholder]="'PAC.Xpert.TaskName' | translate: {Default: 'Name'}"
+        [placeholder]="'XP.Xpert.TaskName' | translate: { Default: 'Name' }"
         formControlName="name"
       />
     </div>
@@ -14,12 +15,13 @@
 
   <div class="mb-2">
     <label class="font-medium my-2 inline-block">
-      {{ 'PAC.Chat.Agent' | translate: { Default: 'Agent' } }}
+      {{ 'XP.Chat.Agent' | translate: { Default: 'Agent' } }}
     </label>
     <div class="relative w-full">
-      <input z-input
+      <input
+        z-input
         class="w-full grow h-10"
-        [placeholder]="'PAC.Chat.Agent' | translate: {Default: 'Agent'}"
+        [placeholder]="'XP.Chat.Agent' | translate: { Default: 'Agent' }"
         formControlName="agentKey"
       />
     </div>
@@ -27,12 +29,13 @@
 
   <div class="mb-2">
     <label class="font-medium my-2 inline-block">
-      {{ 'PAC.Xpert.Instructions' | translate: { Default: 'Instructions' } }}
+      {{ 'XP.Xpert.Instructions' | translate: { Default: 'Instructions' } }}
     </label>
     <div class="relative w-full">
-      <textarea z-input
+      <textarea
+        z-input
         class="w-full grow h-10"
-        [placeholder]="'PAC.Xpert.Instructions' | translate: {Default: 'Instructions'}"
+        [placeholder]="'XP.Xpert.Instructions' | translate: { Default: 'Instructions' }"
         formControlName="prompt"
         cdkTextareaAutosize
         cdkAutosizeMinRows="2"
@@ -43,12 +46,13 @@
 
   <div class="mb-2">
     <label class="font-medium my-2 inline-block">
-      {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
+      {{ 'XP.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
     </label>
     <div class="relative w-full">
-      <input z-input
+      <input
+        z-input
         class="w-full grow h-10"
-        [placeholder]="'PAC.Xpert.Schedule' | translate: {Default: 'Schedule'}"
+        [placeholder]="'XP.Xpert.Schedule' | translate: { Default: 'Schedule' }"
         formControlName="schedule"
       />
     </div>

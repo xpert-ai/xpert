@@ -1,4 +1,4 @@
-import { ICopilot } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ICopilot, IModelAccessResolution } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class CopilotTokenRecordCommand implements ICommand {
@@ -14,6 +14,8 @@ export class CopilotTokenRecordCommand implements ICommand {
 			copilotId?: string
 			copilot?: ICopilot
 			model?: string
+			modelType?: AiModelTypeEnum
+			modelAccess?: IModelAccessResolution
 			tokenUsed?: number
 			priceUsed?: number
 			currency?: string

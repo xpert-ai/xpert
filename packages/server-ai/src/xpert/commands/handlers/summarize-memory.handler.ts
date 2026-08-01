@@ -87,6 +87,8 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 
 		const embeddings = await this.queryBus.execute(
 			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
+				xpertId: xpert.id,
+				threadId,
 				tokenCallback: (token) => {
 					execution.embedTokens += token ?? 0
 				}

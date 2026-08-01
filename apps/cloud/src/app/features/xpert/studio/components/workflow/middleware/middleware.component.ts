@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FFlowModule } from '@foblex/flow'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { isEqual } from 'lodash-es'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
@@ -25,8 +25,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     NgxFloatUiModule,
     NgxJsonViewerModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     IconComponent
   ]
 })
@@ -76,7 +76,9 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
     }),
     loader: ({ request }) => {
       return request.provider
-        ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId).pipe(map((res) => res.tools))
+        ? this.agentAPI
+            .getAgentMiddleware(request.provider, request.options, request.xpertId)
+            .pipe(map((res) => res.tools))
         : null
     }
   })

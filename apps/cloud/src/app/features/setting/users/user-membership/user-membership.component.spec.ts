@@ -3,6 +3,7 @@ jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import {
+  AIPermissionsEnum,
   IUserMembershipPeriod,
   MembershipPeriodEnum,
   MembershipPeriodStatusEnum,
@@ -25,6 +26,7 @@ describe('UserMembershipComponent', () => {
     getPlans: jest.Mock
     getAdminUsers: jest.Mock
     getAdminUserPeriods: jest.Mock
+    getAdminUserAudit: jest.Mock
     getPersonalPoints: jest.Mock
   }
   let alertDialog: { confirm: jest.Mock }
@@ -67,6 +69,7 @@ describe('UserMembershipComponent', () => {
       getPlans: jest.fn().mockReturnValue(of([])),
       getAdminUsers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
       getAdminUserPeriods: jest.fn().mockReturnValue(of([])),
+      getAdminUserAudit: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
       getPersonalPoints: jest.fn().mockReturnValue(of({ balance: 10 }))
     }
     alertDialog = {
@@ -182,9 +185,9 @@ describe('UserMembershipComponent', () => {
     expect(membershipService.cancelAdminUserPeriod).not.toHaveBeenCalled()
   })
 
-  it('allows membership management whenever the current scope grants Copilot edit permission', () => {
+  it('allows membership management only with membership edit permission', () => {
     expect(component.canManage).toBe(true)
-    expect(store.hasPermission).toHaveBeenCalled()
+    expect(store.hasPermission).toHaveBeenCalledWith(AIPermissionsEnum.MEMBERSHIP_EDIT)
   })
 
   it('does not request tenant-owned personal points from organization scope', () => {

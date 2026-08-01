@@ -20,7 +20,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-binding-wizard',
+  selector: 'xp-clawxpert-binding-wizard',
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -36,17 +36,17 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
     <z-card class="flex h-full min-h-[32rem] flex-col overflow-hidden rounded-3xl border border-border shadow-none">
       <z-card-content class="flex min-h-0 flex-1 flex-col p-5">
         <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-          {{ 'PAC.Chat.ClawXpert.Wizard' | translate: { Default: 'Setup Wizard' } }}
+          {{ 'XP.Chat.ClawXpert.Wizard' | translate: { Default: 'Setup Wizard' } }}
         </div>
         <div class="mt-3 text-xl font-semibold text-text-primary">
           {{
-            'PAC.Chat.ClawXpert.WizardTitle'
+            'XP.Chat.ClawXpert.WizardTitle'
               | translate: { Default: 'Choose the published Xpert to use as the agent for your ClawXpert.' }
           }}
         </div>
         <p class="mt-2 max-w-lg text-sm text-text-secondary">
           {{
-            'PAC.Chat.ClawXpert.WizardDesc'
+            'XP.Chat.ClawXpert.WizardDesc'
               | translate: { Default: 'This page only needs one binding. You can change it later at any time.' }
           }}
         </p>
@@ -61,7 +61,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
               [disabled]="creatingXpert()"
               (click)="openCreateWizard()"
             >
-              {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+              {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
             </button>
           </div>
         }
@@ -70,7 +70,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
           <z-card class="mt-4 border border-divider-regular bg-components-card-bg shadow-none">
             <z-card-content class="px-4 py-3 text-sm text-text-secondary">
               {{
-                'PAC.Chat.ClawXpert.BindingUnavailable'
+                'XP.Chat.ClawXpert.BindingUnavailable'
                   | translate
                     : {
                         Default:
@@ -88,12 +88,12 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
             <z-icon zType="smart_toy" class="text-4xl text-text-tertiary"></z-icon>
             <div class="mt-4 text-base font-medium text-text-primary">
               {{
-                'PAC.Chat.ClawXpert.NoAssistants' | translate: { Default: 'No published assistants are available yet' }
+                'XP.Chat.ClawXpert.NoAssistants' | translate: { Default: 'No published assistants are available yet' }
               }}
             </div>
             <div class="mt-2 max-w-sm text-sm text-text-secondary">
               {{
-                'PAC.Chat.ClawXpert.NoAssistantsDesc'
+                'XP.Chat.ClawXpert.NoAssistantsDesc'
                   | translate
                     : { Default: 'Create a new ClawXpert here, or publish an existing Xpert and bind it here later.' }
               }}
@@ -107,10 +107,10 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
                 [disabled]="creatingXpert()"
                 (click)="openCreateWizard()"
               >
-                {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+                {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
               </button>
               <button z-button zType="outline" displayDensity="cosy" type="button" routerLink="/xpert/w">
-                {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
               </button>
             </div>
           </div>
@@ -119,7 +119,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
             <label class="grid gap-2">
               <span class="text-sm text-text-secondary">
                 {{
-                  'PAC.Chat.ClawXpert.SearchPlaceholder'
+                  'XP.Chat.ClawXpert.SearchPlaceholder'
                     | translate: { Default: 'Search your available assistants by title, name, slug, or id' }
                 }}
               </span>
@@ -173,7 +173,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
                   class="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-text-secondary"
                 >
                   {{
-                    'PAC.Chat.ClawXpert.NoMatches' | translate: { Default: 'No assistants match your current search.' }
+                    'XP.Chat.ClawXpert.NoMatches' | translate: { Default: 'No assistants match your current search.' }
                   }}
                 </div>
               }
@@ -188,11 +188,11 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
                 [disabled]="creatingXpert()"
                 (click)="openCreateWizard()"
               >
-                {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+                {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
               </button>
               @if (facade.resolvedPreference()) {
                 <button z-button zType="outline" displayDensity="cosy" type="button" (click)="cancelWizard()">
-                  {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+                  {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
                 </button>
               }
               <button
@@ -203,7 +203,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
                 [disabled]="form.invalid || facade.saving()"
                 (click)="savePreference()"
               >
-                {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+                {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
               </button>
             </div>
           </form>
@@ -289,7 +289,7 @@ export class ClawXpertBindingWizardComponent {
   getXpertDescription(xpert: Partial<IXpert> | null | undefined) {
     return (
       xpert?.description ||
-      this.#translate.instant('PAC.Chat.ClawXpert.NoDescription', {
+      this.#translate.instant('XP.Chat.ClawXpert.NoDescription', {
         Default: 'This assistant does not have a public description yet.'
       })
     )

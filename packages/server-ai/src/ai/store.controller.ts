@@ -93,7 +93,7 @@ export class StoreController {
 				RequestContext.currentTenantId(),
 				RequestContext.getOrganizationId(),
 				copilotModel,
-				{}
+				{ xpertId: namespace?.[0] }
 			)
 		)
 	}

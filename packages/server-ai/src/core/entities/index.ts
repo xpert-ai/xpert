@@ -54,7 +54,18 @@ import {
     Artifact,
     ArtifactVersion,
     ArtifactLink,
-    ArtifactAccessLog
+    ArtifactAccessLog,
+    ModelAccessRequest,
+    UserModelGrant,
+    ModelAccessEvent,
+    MembershipPlan,
+    UserMembership,
+    MembershipPointLedger,
+    MembershipPeriod,
+    ModelGatewayPublication,
+    ModelGatewayApiKey,
+    ModelGatewaySettings,
+    ModelGatewayCall
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
@@ -113,5 +124,16 @@ export const ALL_AI_ENTITIES = [
     Artifact,
     ArtifactVersion,
     ArtifactLink,
-    ArtifactAccessLog
+    ArtifactAccessLog,
+    ModelAccessRequest,
+    UserModelGrant,
+    ModelAccessEvent,
+    MembershipPlan,
+    UserMembership,
+    MembershipPointLedger,
+    MembershipPeriod,
+    ModelGatewayPublication,
+    ModelGatewayApiKey,
+    ModelGatewaySettings,
+    ModelGatewayCall
 ]

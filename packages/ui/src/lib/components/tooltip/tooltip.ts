@@ -30,15 +30,11 @@ import type { ClassValue } from 'clsx'
 
 import { filter, map, of, Subject, switchMap, tap, timer } from 'rxjs'
 
-import { TOOLTIP_POSITIONS_MAP } from '@/shared/components/tooltip/tooltip-positions'
-import {
-  tooltipPositionVariants,
-  tooltipVariants,
-  type ZardTooltipPositionVariants
-} from '@/shared/components/tooltip/tooltip.variants'
-import { ZardIdDirective } from '@/shared/core'
-import { ZardStringTemplateOutletDirective } from '@/shared/core/directives/string-template-outlet/string-template-outlet.directive'
-import { mergeClasses } from '@/shared/utils/merge-classes'
+import { TOOLTIP_POSITIONS_MAP } from './tooltip-positions'
+import { tooltipPositionVariants, tooltipVariants, type ZardTooltipPositionVariants } from './tooltip.variants'
+import { ZardIdDirective } from '../../core'
+import { ZardStringTemplateOutletDirective } from '../../core/directives/string-template-outlet/string-template-outlet.directive'
+import { mergeClasses } from '../../utils/merge-classes'
 
 export type ZardTooltipTriggers = 'click' | 'hover'
 export type ZardTooltipType = string | TemplateRef<void> | null
@@ -116,7 +112,7 @@ export class ZardTooltipDirective implements OnInit, OnDestroy {
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((position) => {
             if (!this.overlayRef.hasAttached()) {
-              return;
+              return
             }
             this.overlayRef?.updatePositionStrategy(
               this.overlayPositionBuilder

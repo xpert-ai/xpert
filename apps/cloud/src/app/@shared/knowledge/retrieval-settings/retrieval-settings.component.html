@@ -9,7 +9,7 @@
       <div class="flex grow flex-col gap-y-0.5 py-px">
         <div class="flex items-center justify-between gap-x-2">
           <span class="system-sm-medium text-text-secondary">
-            {{ 'PAC.Knowledgebase.VectorSearch' | translate: { Default: 'Vector Search' } }}
+            {{ 'XP.Knowledgebase.VectorSearch' | translate: { Default: 'Vector Search' } }}
           </span>
           <div class="flex shrink-0 rounded-lg bg-components-input-bg-normal p-0.5">
             @for (modeOption of retrievalModes; track modeOption) {
@@ -24,13 +24,13 @@
               >
                 @switch (modeOption) {
                   @case ('vector') {
-                    {{ 'PAC.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
+                    {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
                   }
                   @case ('graph') {
-                    {{ 'PAC.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
+                    {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
                   }
                   @case ('hybrid') {
-                    {{ 'PAC.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
+                    {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
                   }
                 }
               </button>
@@ -39,7 +39,7 @@
         </div>
         <div class="system-xs-regular font-body text-text-tertiary">
           {{
-            'PAC.Knowledgebase.VectorSearchDesc'
+            'XP.Knowledgebase.VectorSearchDesc'
               | translate
                 : {
                     Default:
@@ -71,12 +71,12 @@
             <z-switch [(ngModel)]="useRerank" />
             <div class="flex items-center">
               <span class="system-sm-semibold mr-0.5 text-text-secondary">{{
-                'PAC.Knowledgebase.RerankModel' | translate: { Default: 'Rerank Model' }
+                'XP.Knowledgebase.RerankModel' | translate: { Default: 'Rerank Model' }
               }}</span>
               <div
                 class="h-3.5 w-3.5 shrink-0 p-[1px] flex items-center text-text-tertiary hover:text-text-primary"
                 [zTooltip]="
-                  'PAC.Knowledgebase.RerankModelInfo'
+                  'XP.Knowledgebase.RerankModelInfo'
                     | translate
                       : {
                           Default:
@@ -100,9 +100,9 @@
         </div>
         <div class="mt-4 flex gap-4">
           <div class="mt-1 flex min-w-0 flex-1 items-center">
-            <ngm-slider-input
+            <xp-slider-input
               class="block w-full min-w-0"
-              [label]="'PAC.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
+              [label]="'XP.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
               color="accent"
               [(ngModel)]="topK"
               [min]="1"
@@ -111,9 +111,9 @@
             />
           </div>
           <div class="mt-1 flex min-w-0 flex-1 items-center">
-            <ngm-slider-input
+            <xp-slider-input
               class="block w-full min-w-0"
-              [label]="'PAC.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
+              [label]="'XP.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
               color="accent"
               [disabled]="!useScore()"
               [(ngModel)]="score"
@@ -125,7 +125,7 @@
                 class="inline-flex ml-1"
                 [(ngModel)]="useScore"
                 [zTooltip]="
-                  'PAC.Knowledgebase.SimilarityThresholdInfo'
+                  'XP.Knowledgebase.SimilarityThresholdInfo'
                     | translate
                       : {
                           Default:
@@ -134,19 +134,19 @@
                 "
                 zPosition="top"
               />
-            </ngm-slider-input>
+            </xp-slider-input>
           </div>
         </div>
         <div class="mt-4 rounded-lg border border-divider-subtle bg-components-card-bg p-3">
           <div class="mb-3 flex items-center justify-between gap-x-3">
             <div class="flex items-center">
               <span class="system-sm-semibold mr-0.5 text-text-secondary">{{
-                'PAC.Knowledgebase.GraphRAG' | translate: { Default: 'GraphRAG' }
+                'XP.Knowledgebase.GraphRAG' | translate: { Default: 'GraphRAG' }
               }}</span>
               <div
                 class="h-3.5 w-3.5 shrink-0 p-[1px] flex items-center text-text-tertiary hover:text-text-primary"
                 [zTooltip]="
-                  'PAC.Knowledgebase.GraphRAGInfo'
+                  'XP.Knowledgebase.GraphRAGInfo'
                     | translate
                       : {
                           Default:
@@ -163,9 +163,9 @@
 
           @if (graphControlsVisible()) {
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <ngm-slider-input
+              <xp-slider-input
                 class="block min-w-0"
-                [label]="'PAC.Knowledgebase.EntityTopK' | translate: { Default: 'Entity Top K' }"
+                [label]="'XP.Knowledgebase.EntityTopK' | translate: { Default: 'Entity Top K' }"
                 color="accent"
                 [disabled]="!graphEnabled()"
                 [(ngModel)]="entityTopK"
@@ -173,9 +173,9 @@
                 [max]="50"
                 [step]="1"
               />
-              <ngm-slider-input
+              <xp-slider-input
                 class="block min-w-0"
-                [label]="'PAC.Knowledgebase.NeighborHops' | translate: { Default: 'Neighbor Hops' }"
+                [label]="'XP.Knowledgebase.NeighborHops' | translate: { Default: 'Neighbor Hops' }"
                 color="accent"
                 [disabled]="!graphEnabled()"
                 [(ngModel)]="neighborHops"
@@ -183,9 +183,9 @@
                 [max]="2"
                 [step]="1"
               />
-              <ngm-slider-input
+              <xp-slider-input
                 class="block min-w-0"
-                [label]="'PAC.Knowledgebase.GraphWeight' | translate: { Default: 'Graph Weight' }"
+                [label]="'XP.Knowledgebase.GraphWeight' | translate: { Default: 'Graph Weight' }"
                 color="accent"
                 [disabled]="!graphEnabled()"
                 [(ngModel)]="graphWeight"
@@ -201,21 +201,21 @@
   </div>
 
   @if (loading()) {
-    <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+    <xp-spin class="absolute left-0 top-0 w-full h-full" />
   }
 </div>
 
 @if (savable()) {
   <div class="flex justify-end px-2 pt-4 pb-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2 shrink-0" (click)="cancel()">
-      {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
     <button
       type="button"
       class="btn disabled:btn-disabled btn-primary btn-medium shrink-0"
       (click)="saveRetrievalSettings()"
     >
-      {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
     </button>
   </div>
 }

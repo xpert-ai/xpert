@@ -3,7 +3,7 @@ import { renderAsync } from 'docx-preview'
 
 @Component({
   standalone: true,
-  selector: 'pac-file-docx-preview',
+  selector: 'xp-file-docx-preview',
   template: `
     <div class="relative min-h-full bg-components-panel-bg px-4 py-5">
       @if (rendering()) {

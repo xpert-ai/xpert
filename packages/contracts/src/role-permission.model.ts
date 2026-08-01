@@ -1,4 +1,3 @@
-import { AnalyticsPermissionsEnum } from './analytics/index'
 import { AIPermissionsEnum } from './ai/index'
 import { IBasePerTenantEntityModel } from './base-entity.model'
 import { IRole } from './role.model'
@@ -53,12 +52,15 @@ export enum PermissionsEnum {
   ORG_DEMO_EDIT = 'ORG_DEMO_EDIT', // Orgnization demo edit permission
   INTEGRATION_EDIT = 'INTEGRATION_EDIT',
   INTEGRATION_VIEW = 'INTEGRATION_VIEW',
+  DATA_SOURCE_VIEW = 'DATA_SOURCE_VIEW',
+  DATA_SOURCE_EDIT = 'DATA_SOURCE_EDIT',
   FILE_STORAGE_VIEW = 'FILE_STORAGE_VIEW',
   SMS_GATEWAY_VIEW = 'SMS_GATEWAY_VIEW',
   CUSTOM_SMTP_VIEW = 'CUSTOM_SMTP_VIEW',
   VIEW_ALL_ACCOUNTING_TEMPLATES = 'VIEW_ALL_ACCOUNTING_TEMPLATES',
   ACCESS_DELETE_ACCOUNT = 'ACCESS_DELETE_ACCOUNT',
-  ACCESS_DELETE_ALL_DATA = 'ACCESS_DELETE_ALL_DATA'
+  ACCESS_DELETE_ALL_DATA = 'ACCESS_DELETE_ALL_DATA',
+  REFERRAL_VIEW = 'REFERRAL_VIEW'
 }
 
 export const PermissionGroups = {
@@ -82,30 +84,20 @@ export const PermissionGroups = {
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
     AIPermissionsEnum.MEMBERSHIP_EDIT,
+    AIPermissionsEnum.MEMBERSHIP_PURCHASE,
+    AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW,
+    AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT,
+    AIPermissionsEnum.MODEL_GATEWAY_USE,
+    AIPermissionsEnum.MODEL_GATEWAY_MANAGE,
+    AIPermissionsEnum.BILLING_PRODUCT_EDIT,
+    AIPermissionsEnum.BILLING_REFUND,
+    AIPermissionsEnum.PAYMENT_PROVIDER_EDIT,
     AIPermissionsEnum.XPERT_EDIT,
     AIPermissionsEnum.CHAT_VIEW,
 
     // DataSource
-    AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
-    AnalyticsPermissionsEnum.DATA_SOURCE_EDIT,
-    // Semantic Model
-    AnalyticsPermissionsEnum.MODELS_VIEW,
-    AnalyticsPermissionsEnum.MODELS_EDIT,
-    // Story
-    AnalyticsPermissionsEnum.STORIES_VIEW,
-    AnalyticsPermissionsEnum.STORIES_EDIT,
-    // Business Area
-    AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,
-    AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT,
-    // Certification
-    AnalyticsPermissionsEnum.CERTIFICATION_EDIT,
-    // Indicator
-    AnalyticsPermissionsEnum.INDICATOR_VIEW,
-    AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW,
-    AnalyticsPermissionsEnum.INDICATOR_EDIT,
-    // Data Factory
-    AnalyticsPermissionsEnum.DATA_FACTORY_VIEW,
-    AnalyticsPermissionsEnum.DATA_FACTORY_EDIT
+    PermissionsEnum.DATA_SOURCE_VIEW,
+    PermissionsEnum.DATA_SOURCE_EDIT
   ],
 
   //Readonly permissions, are only enabled for admin role
@@ -119,6 +111,7 @@ export const PermissionGroups = {
     PermissionsEnum.SUPER_ADMIN_EDIT,
     PermissionsEnum.INTEGRATION_VIEW,
     PermissionsEnum.ACCESS_DELETE_ACCOUNT,
-    PermissionsEnum.ACCESS_DELETE_ALL_DATA
+    PermissionsEnum.ACCESS_DELETE_ALL_DATA,
+    PermissionsEnum.REFERRAL_VIEW
   ]
 }

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot } from '@angular/router'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { firstValueFrom } from 'rxjs'
 import { AuthStrategy } from './auth-strategy.service'
 

@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
@@ -17,12 +17,12 @@ import {
   ToastrService,
   UsersOrganizationsService
 } from '../../../../@core'
-import { PACEditUserComponent } from '../edit-user/edit-user.component'
+import { XpEditUserComponent } from '../edit-user/edit-user.component'
 import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-user-organizations',
+  selector: 'xp-user-organizations',
   templateUrl: 'organizations.component.html',
   styles: [
     `
@@ -39,10 +39,10 @@ import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     ZardSwitchComponent,
     UserProfileInlineComponent,
-    NgmTableComponent
+    XpTableComponent
   ]
 })
-export class PACUserOrganizationsComponent extends TranslationBaseComponent {
+export class XpUserOrganizationsComponent extends TranslationBaseComponent {
   readonly confirmDelete = injectConfirmDelete()
 
   private readonly refresh$ = new BehaviorSubject<void>(null)
@@ -68,7 +68,7 @@ export class PACUserOrganizationsComponent extends TranslationBaseComponent {
   )
 
   constructor(
-    private readonly userComponent: PACEditUserComponent,
+    private readonly userComponent: XpEditUserComponent,
     private readonly organizationsService: OrganizationsService,
     private readonly userOrganizationsService: UsersOrganizationsService,
     private _toastrService: ToastrService
@@ -83,7 +83,7 @@ export class PACUserOrganizationsComponent extends TranslationBaseComponent {
         await firstValueFrom(
           this.userOrganizationsService.create({ userId: user.id, organizationId: org.id, isActive: true })
         )
-        this._toastrService.success(`PAC.MESSAGE.USER_ORGANIZATION_ADDED`, { Default: 'User Org Added' })
+        this._toastrService.success(`XP.MESSAGE.USER_ORGANIZATION_ADDED`, { Default: 'User Org Added' })
         this.refresh$.next()
       } catch (err) {
         this._toastrService.error(err)
@@ -98,7 +98,7 @@ export class PACUserOrganizationsComponent extends TranslationBaseComponent {
 
     try {
       await firstValueFrom(this.userOrganizationsService.update(membership.id, { isDefault: true }))
-      this._toastrService.success('PAC.Users.DefaultOrganizationUpdated', {
+      this._toastrService.success('XP.Users.DefaultOrganizationUpdated', {
         Default: 'Default organization updated'
       })
       this.refresh$.next()
@@ -114,7 +114,7 @@ export class PACUserOrganizationsComponent extends TranslationBaseComponent {
 
     try {
       await firstValueFrom(this.userOrganizationsService.update(membership.id, { isActive }))
-      this._toastrService.success('PAC.Users.OrganizationStatusUpdated', {
+      this._toastrService.success('XP.Users.OrganizationStatusUpdated', {
         Default: 'Organization membership updated'
       })
       this.refresh$.next()
@@ -145,14 +145,14 @@ export class PACUserOrganizationsComponent extends TranslationBaseComponent {
     this.confirmDelete(
       {
         value: organization?.name,
-        information: this.getTranslation('PAC.USERS_PAGE.RemoveUserFromOrg', {
+        information: this.getTranslation('XP.USERS_PAGE.RemoveUserFromOrg', {
           Default: 'Remove this user from this organization'
         })
       },
       this.userOrganizationsService.removeUserFromOrg(id)
     ).subscribe({
       next: () => {
-        this._toastrService.success(`PAC.MESSAGE.USER_ORGANIZATION_REMOVED`, { Default: 'User Org Removed' })
+        this._toastrService.success(`XP.MESSAGE.USER_ORGANIZATION_REMOVED`, { Default: 'User Org Removed' })
         this.refresh$.next()
       },
       error: (err) => {

@@ -144,7 +144,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-conversation-detail',
+  selector: 'xp-clawxpert-conversation-detail',
   imports: [
     CommonModule,
     TranslateModule,
@@ -213,19 +213,19 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   </span>
                   @switch (tab.kind) {
                     @case ('files') {
-                      <span class="truncate">{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                      <span class="truncate">{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                     }
                     @case ('terminal') {
                       <span class="truncate">
-                        {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                        {{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
                       </span>
                     }
                     @case ('tasks') {
-                      <span class="truncate">{{ 'PAC.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
+                      <span class="truncate">{{ 'XP.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
                     }
                     @case ('browser') {
                       <span class="max-w-[12rem] truncate">
-                        {{ tab.displayUrl || ('PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
+                        {{ tab.displayUrl || ('XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
                       </span>
                     }
                     @case ('fixed-view') {
@@ -268,7 +268,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
               zSize="icon"
               data-add-workspace-tab
               class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:text-text-primary"
-              [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
+              [title]="'XP.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
               z-menu
               [zMenuTriggerFor]="workspaceTabMenu"
             >
@@ -280,34 +280,32 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                 <button type="button" z-menu-item data-add-files-tab (click)="addWorkspaceTab('files')">
                   <span class="flex items-center gap-2">
                     <i class="ri-folder-3-line text-base"></i>
-                    <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                    <span>{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                   </span>
                 </button>
                 <button type="button" z-menu-item data-add-browser-tab (click)="addWorkspaceTab('browser')">
                   <span class="flex items-center gap-2">
                     <i class="ri-global-line text-base"></i>
-                    <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
+                    <span>{{ 'XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
                   </span>
                 </button>
                 <button type="button" z-menu-item data-add-terminal-tab (click)="addWorkspaceTab('terminal')">
                   <span class="flex items-center gap-2">
                     <i class="ri-terminal-window-line text-base"></i>
-                    <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
+                    <span>{{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
                   </span>
                 </button>
                 @if (fixedViewMenuVisible()) {
                   <div class="my-1 border-t border-divider-regular"></div>
                   <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
-                    {{ 'PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
+                    {{ 'XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
                   </div>
                   @if (loadingFixedViews()) {
                     <button type="button" z-menu-item disabled data-fixed-views-loading>
                       <span class="flex items-center gap-2 text-text-tertiary">
                         <i class="ri-loader-4-line text-base"></i>
                         <span>
-                          {{
-                            'PAC.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' }
-                          }}
+                          {{ 'XP.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' } }}
                         </span>
                       </span>
                     </button>
@@ -317,7 +315,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                         <i class="ri-error-warning-line text-base"></i>
                         <span>
                           {{
-                            'PAC.Chat.ClawXpert.FixedViewsLoadFailed'
+                            'XP.Chat.ClawXpert.FixedViewsLoadFailed'
                               | translate: { Default: 'Failed to load fixed views' }
                           }}
                         </span>
@@ -358,8 +356,8 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                 [class.bg-hover-bg]="activeTab()?.kind === 'tasks'"
                 [class.text-text-primary]="activeTab()?.kind === 'tasks'"
                 [disabled]="!facade.xpertId()"
-                [title]="'PAC.Chat.Tasks' | translate: { Default: 'Tasks' }"
-                [zTooltip]="'PAC.Chat.Tasks' | translate: { Default: 'Tasks' }"
+                [title]="'XP.Chat.Tasks' | translate: { Default: 'Tasks' }"
+                [zTooltip]="'XP.Chat.Tasks' | translate: { Default: 'Tasks' }"
                 zPosition="bottom"
                 (click)="openTasksTab()"
               >
@@ -374,13 +372,13 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                 [class]="workspaceMaximizeButtonClasses()"
                 [title]="
                   workbenchMaximized()
-                    ? ('PAC.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
-                    : ('PAC.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
+                    ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
+                    : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
                 "
                 [zTooltip]="
                   workbenchMaximized()
-                    ? ('PAC.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
-                    : ('PAC.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
+                    ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
+                    : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
                 "
                 zPosition="bottom"
                 (click)="toggleWorkspaceMaximized()"
@@ -397,8 +395,8 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   zSize="icon"
                   data-toggle-detail-panel
                   class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-                  [title]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
-                  [zTooltip]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                  [title]="'XP.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                  [zTooltip]="'XP.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
                   zPosition="bottom"
                   (click)="toggleDetailPanel()"
                 >
@@ -426,10 +424,10 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   >
                     <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
                     <div class="mt-4 text-xl font-semibold text-text-primary">
-                      {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
+                      {{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
                     </div>
                     <div class="mt-2 text-lg text-text-secondary">
-                      {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
+                      {{ 'XP.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
                     </div>
                   </button>
                   <button
@@ -440,10 +438,10 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   >
                     <i class="ri-global-line text-3xl text-text-tertiary"></i>
                     <div class="mt-4 text-xl font-semibold text-text-primary">
-                      {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
+                      {{ 'XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
                     </div>
                     <div class="mt-2 text-lg text-text-secondary">
-                      {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
+                      {{ 'XP.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
                     </div>
                   </button>
                   @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
@@ -461,7 +459,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                       <div class="mt-2 text-lg text-text-secondary">
                         {{
                           fixedView.description ||
-                            ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
+                            ('XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
                         }}
                       </div>
                     </button>
@@ -474,11 +472,11 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   >
                     <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
                     <div class="mt-4 text-xl font-semibold text-text-primary">
-                      {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                      {{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
                     </div>
                     <div class="mt-2 text-lg text-text-secondary">
                       {{
-                        'PAC.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
+                        'XP.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
                       }}
                     </div>
                   </button>
@@ -499,12 +497,12 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                 <div
                   class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
                 >
-                  {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
+                  {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
                 </div>
               }
             } @else if (activeTab()?.kind === 'tasks') {
               <div class="h-full min-h-0 overflow-hidden px-4 py-3">
-                <pac-chat-tasks
+                <xp-chat-tasks
                   class="block h-full min-h-0"
                   [embedded]="true"
                   [xpertId]="facade.xpertId()"
@@ -516,7 +514,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
               <div
                 class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
               >
-                {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
+                {{ 'XP.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
               </div>
             } @else {
               @if (!resolvedConversationId()) {
@@ -527,14 +525,14 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                     <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{
-                        'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
+                        'XP.Chat.ClawXpert.DetailPanelEmptyTitle'
                           | translate: { Default: 'Start a conversation to unlock workspace tools' }
                       }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
                       @if (activeTab()?.kind === 'files') {
                         {{
-                          'PAC.Chat.ClawXpert.FilesEmptyDesc'
+                          'XP.Chat.ClawXpert.FilesEmptyDesc'
                             | translate
                               : {
                                   Default:
@@ -543,7 +541,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                         }}
                       } @else if (activeTab()?.kind === 'browser') {
                         {{
-                          'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
+                          'XP.Chat.ClawXpert.PreviewDetailEmptyDesc'
                             | translate
                               : {
                                   Default:
@@ -552,7 +550,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                         }}
                       } @else {
                         {{
-                          'PAC.Chat.ClawXpert.TerminalEmptyDesc'
+                          'XP.Chat.ClawXpert.TerminalEmptyDesc'
                             | translate
                               : {
                                   Default:
@@ -573,7 +571,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                 }
 
                 @if (activeTab()?.kind === 'files') {
-                  <pac-clawxpert-conversation-files
+                  <xp-clawxpert-conversation-files
                     class="h-full p-2 pr-0"
                     [conversationId]="resolvedConversationId()"
                     [xpertId]="facade.xpertId()"
@@ -582,7 +580,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                     (referenceRequest)="handleWorkspaceReference($event)"
                   />
                 } @else if (activeTab()?.kind === 'browser') {
-                  <pac-clawxpert-conversation-preview
+                  <xp-clawxpert-conversation-preview
                     class="h-full p-2 pr-0"
                     [conversationId]="resolvedConversationId()"
                     [serviceId]="activeBrowserTab()?.serviceId"
@@ -616,8 +614,8 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
             zSize="icon"
             data-toggle-detail-panel
             class="absolute left-3 top-3 z-20 flex !h-9 !w-9 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg/90 text-text-secondary shadow-sm backdrop-blur transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-            [title]="'PAC.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
-            [zTooltip]="'PAC.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
+            [title]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
+            [zTooltip]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
             zPosition="bottom"
             (click)="toggleDetailPanel()"
           >
@@ -634,8 +632,8 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
             [attr.aria-valuemin]="chatkitMinWidth"
             [attr.aria-valuemax]="chatkitMaxWidth"
             [attr.aria-valuenow]="chatkitWidthPx()"
-            [title]="'PAC.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
-            [zTooltip]="'PAC.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
+            [title]="'XP.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
+            [zTooltip]="'XP.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
             zPosition="left"
             (pointerdown)="startChatkitResize($event)"
             (keydown.arrowleft)="resizeChatkitFromKeyboard($event, 32)"
@@ -654,7 +652,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
               <div
                 class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
               >
-                {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
+                {{ 'XP.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
               </div>
             } @else {
               @switch (facade.viewState()) {
@@ -665,13 +663,13 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                     <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{
-                        'PAC.Chat.ClawXpert.OrganizationRequired'
+                        'XP.Chat.ClawXpert.OrganizationRequired'
                           | translate: { Default: 'Select an organization to use ClawXpert' }
                       }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
                       {{
-                        'PAC.Chat.ClawXpert.OrganizationRequiredDesc'
+                        'XP.Chat.ClawXpert.OrganizationRequiredDesc'
                           | translate
                             : { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
                       }}
@@ -684,7 +682,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   >
                     <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
-                      {{ 'PAC.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
+                      {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
                       {{ facade.viewErrorMessage() }}
@@ -701,12 +699,12 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                     <z-icon zType="edit_note" class="text-3xl text-text-tertiary"></z-icon>
                     <div class="mt-4 text-base font-medium text-text-primary">
                       {{
-                        'PAC.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' }
+                        'XP.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' }
                       }}
                     </div>
                     <div class="mt-2 max-w-sm text-sm text-text-secondary">
                       {{
-                        'PAC.Chat.ClawXpert.SetupFirstDesc'
+                        'XP.Chat.ClawXpert.SetupFirstDesc'
                           | translate
                             : {
                                 Default:
@@ -1387,7 +1385,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const threadId = normalizeConversationThreadId(conversation.threadId)
     if (!threadId) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Chat.ClawXpert.TaskHistoryThreadMissing', {
+        this.#translate.instant('XP.Chat.ClawXpert.TaskHistoryThreadMissing', {
           Default: 'This task history record has no conversation thread.'
         })
       )
@@ -1397,7 +1395,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const control = this.control()
     if (!control) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Chat.ClawXpert.ChatkitUnavailable', {
+        this.#translate.instant('XP.Chat.ClawXpert.ChatkitUnavailable', {
           Default: 'Chat is not ready yet.'
         })
       )
@@ -1807,7 +1805,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   private async attachComposerReferences(references: ChatKitReference[]) {
     const control = this.control()
     if (!control?.element) {
-      this.#toastr.warning('PAC.Chat.ClawXpert.ReferenceUnavailable', {
+      this.#toastr.warning('XP.Chat.ClawXpert.ReferenceUnavailable', {
         Default: 'Chat composer is not ready yet. Try again in a moment.'
       })
       return
@@ -1821,8 +1819,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       await control.focusComposer()
     } catch (error) {
       this.#toastr.danger(
-        getErrorMessage(error) || 'PAC.Chat.ClawXpert.ReferenceAttachFailed',
-        'PAC.TOASTR.TITLE.ERROR',
+        getErrorMessage(error) || 'XP.Chat.ClawXpert.ReferenceAttachFailed',
+        'XP.TOASTR.TITLE.ERROR',
         {
           Default: 'Failed to attach the selected reference.'
         }
@@ -1847,7 +1845,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Plugin.TryInClawXpertFailed', {
+          this.#translate.instant('XP.Plugin.TryInClawXpertFailed', {
             Default: 'Failed to prepare ClawXpert for this skill.'
           })
       )

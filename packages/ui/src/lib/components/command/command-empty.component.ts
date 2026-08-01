@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, ViewEncapsulation } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { ZardCommandComponent } from '@/shared/components/command/command.component';
-import { commandEmptyVariants } from '@/shared/components/command/command.variants';
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { ZardCommandComponent } from './command.component'
+import { commandEmptyVariants } from './command.variants'
+import { mergeClasses } from '../../utils/merge-classes'
 
 @Component({
   selector: 'z-command-empty',
@@ -17,22 +17,22 @@ import { mergeClasses } from '@/shared/utils/merge-classes';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  exportAs: 'zCommandEmpty',
+  exportAs: 'zCommandEmpty'
 })
 export class ZardCommandEmptyComponent {
-  private readonly commandComponent = inject(ZardCommandComponent, { optional: true });
+  private readonly commandComponent = inject(ZardCommandComponent, { optional: true })
 
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
 
-  protected readonly classes = computed(() => mergeClasses(commandEmptyVariants(), this.class()));
+  protected readonly classes = computed(() => mergeClasses(commandEmptyVariants(), this.class()))
 
   protected readonly shouldShow = computed(() => {
     // Check traditional command component
     if (this.commandComponent) {
-      const filteredOptions = this.commandComponent.filteredOptions();
-      return filteredOptions.length === 0;
+      const filteredOptions = this.commandComponent.filteredOptions()
+      return filteredOptions.length === 0
     }
 
-    return false;
-  });
+    return false
+  })
 }

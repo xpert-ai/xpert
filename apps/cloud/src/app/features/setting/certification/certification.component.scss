@@ -1,9 +1,0 @@
-@reference "../../../../styles/tailwind-reference.css";
-:host {
-    @apply flex h-full min-h-0 w-full flex-col;
-    --mdc-elevated-card-container-color: var(--color-background-body);
-}
-
-.pac-user-profile-inline {
-  @apply px-0;
-}

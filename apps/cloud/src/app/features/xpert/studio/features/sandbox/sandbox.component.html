@@ -1,10 +1,10 @@
 <div class="">
   <div class="text-sm font-medium uppercase mb-1 text-text-tertiary">
-    {{ 'PAC.Xpert.SandboxProvider' | translate: {Default: 'Sandbox Provider'} }}
+    {{ 'XP.Xpert.SandboxProvider' | translate: { Default: 'Sandbox Provider' } }}
   </div>
   @if (providers().length === 0) {
     <div class="text-xs text-text-tertiary">
-      {{ 'PAC.Xpert.NoSandboxProvider' | translate: {Default: 'No sandbox providers available'} }}
+      {{ 'XP.Xpert.NoSandboxProvider' | translate: { Default: 'No sandbox providers available' } }}
     </div>
   } @else {
     <div class="space-y-1">
@@ -26,11 +26,13 @@
               </div>
             </div>
             <z-checkbox
-              class=" shrink-0"
-              [ngModel]="isSelected(item.type)" (ngModelChange)="selectProvider(item.type)"
-              (click)="$event.stopPropagation()"/>
-            </div>
+              class="shrink-0"
+              [ngModel]="isSelected(item.type)"
+              (ngModelChange)="selectProvider(item.type)"
+              (click)="$event.stopPropagation()"
+            />
           </div>
+        </div>
       }
     </div>
   }

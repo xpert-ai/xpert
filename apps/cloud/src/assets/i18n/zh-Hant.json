@@ -9,7 +9,6 @@
     "ORGANIZATION": "公司",
     "DASHBOARD": "儀表盤",
     "INDICATOR": "指標",
-    "INDICATOR_MARKET": "市場",
     "INDICATOR_APP": "指標應用",
     "INDICATOR_REGISTER": "註冊",
     "INDICATOR_GROUPS": "組",
@@ -21,8 +20,36 @@
     "STORY": "故事",
     "USERS": "用戶"
   },
-  "PAC": {
+  "XP": {
     "Title": "元數分析雲",
+    "Referral": {
+      "CopyCode": "複製邀請碼",
+      "Copied": "已複製",
+      "RegenerateCode": "重新產生邀請碼",
+      "RegeneratingCode": "正在重新產生...",
+      "RegenerateConfirmTitle": "重新產生邀請碼？",
+      "RegenerateConfirmDescription": "目前邀請碼將立即失效，已建立的邀請關係不會受到影響。",
+      "RegenerateSuccess": "邀請碼已重新產生。",
+      "RegenerateFailed": "邀請碼重新產生失敗。",
+      "ReferralCode": "邀請碼（選填）",
+      "ReferralCodePlaceholder": "請輸入邀請碼",
+      "ValidatingReferralCode": "正在驗證...",
+      "InvalidReferralCode": "邀請碼無效。",
+      "ValidReferralCode": "邀請碼有效。",
+      "Relationships": "邀請關係",
+      "RelationshipsDescription": "查看目前租戶內唯讀的帳號直接邀請關係。",
+      "SearchPlaceholder": "搜尋帳號或邀請碼",
+      "Referrer": "邀請人",
+      "Referred": "受邀人",
+      "UsedCode": "使用的邀請碼",
+      "BoundAt": "綁定時間",
+      "DeletedAccount": "已刪除帳號",
+      "Empty": "暫無邀請關係。",
+      "LoadError": "邀請關係載入失敗。",
+      "Previous": "上一頁",
+      "Next": "下一頁",
+      "PageSummary": "第 {{page}} / {{pages}} 頁，共 {{total}} 筆"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime 運維",
       "SuperAdminOnly": "超級管理員",
@@ -389,6 +416,7 @@
       "ConfirmPassword": "確認密碼",
       "Save": "保存",
       "Profile": "配置",
+      "PersonalInformation": "個人資料",
       "UpdatedAt": "更新於",
       "NoData": "無數據",
       "Copilot": "智能助理",
@@ -424,7 +452,6 @@
       "PrimaryKey": "主鍵",
       "TableName": "表名",
       "DataAgent": "數據代理",
-      "ServerAgent": "服務器代理",
       "Admin": "管理",
       "Members": "成員",
       "SettingsNavigation": "設置導航欄",
@@ -865,6 +892,7 @@
       "Category_agent": "智能體"
     },
     "MENU": {
+      "ReferralRelationships": "邀請關係",
       "Tasks": "任務",
       "Scheduled": "定時",
       "Plugins": "插件",
@@ -873,7 +901,6 @@
       "IsLatest": "已是最新版本。",
       "Certification": "認證",
       "Chat": "聊天",
-      "ChatBI Assistant": "ChatBI 助手",
       "CodeXpert": "CodeXpert",
       "DeepResearch": "DeepResearch",
       "Data & Ontology": "Data & Ontology",
@@ -908,8 +935,6 @@
       "Knowledgebase": "知識庫",
       "Preview": "預覽",
       "AGENT": "代理",
-      "LOCAL_AGENT": "本地代理",
-      "WASM_DB": "WASM 數據庫",
       "Attributes": "屬性",
       "CALCULATION": "計算",
       "CALCULATED_MEMBERS": "計算成員",
@@ -937,6 +962,8 @@
       "FEATURES": "功能",
       "USERS": "用戶",
       "Membership": "會員",
+      "Model Access": "模型授權",
+      "Model API Gateway": "模型 API 網關",
       "LOCAL_AGENT_STATUS": "本地代理狀態",
       "ENABLED_PERMISSIONS": "角色啟用的權限",
       "MANAGE_USERS": "管理用戶",
@@ -1002,6 +1029,10 @@
         "CHECKPOINT_RETENTION_ENABLED": "啟用清理",
         "CHECKPOINT_RETENTION_DAYS": "保留天數",
         "CHECKPOINT_RETENTION_DAYS_ERROR": "請輸入 1 到 3650 之間的整數",
+        "MODEL_GATEWAY_CALL_RETENTION": "model_gateway_call",
+        "MODEL_GATEWAY_CALL_RETENTION_ENABLED": "啟用清理",
+        "MODEL_GATEWAY_CALL_RETENTION_DAYS": "保留天數",
+        "MODEL_GATEWAY_CALL_RETENTION_DAYS_ERROR": "請輸入 1 到 3650 之間的整數",
         "MEMBERSHIP_MANAGEMENT": "會員管理",
         "MEMBERSHIP_MANAGEMENT_HINT": "配置租戶級會員參數，統一套用於所有個人套餐和組織套餐。",
         "POINT_CONVERSION": "點數換算",
@@ -1020,8 +1051,7 @@
         "SELECT_DATASOURCE_COLUMNS": {
           "Name": "名稱",
           "Type": "類型",
-          "Protocol": "協議",
-          "UseLocalAgent": "使用本地代理"
+          "Protocol": "協議"
         },
         "CATALOG_COLUMNS": {
           "Name": "名稱",
@@ -1052,9 +1082,7 @@
         "REGISTER_INDICATOR": "註冊指標",
         "BATCH_UPLOAD": "批量上傳",
         "Embedding": "嵌入",
-        "DownloadAsTemplate": "下載為模板",
-        "INDICATOR_MARKET": "指標市場",
-        "INDICATOR_MARKET_DESC": "瀏覽指標，申請指標權限"
+        "DownloadAsTemplate": "下載為模板"
       },
       "GENERAL": {
         "TITLE": "通用",
@@ -1068,7 +1096,6 @@
         "CONFIGURATION": "配置",
         "NAME": "名稱",
         "NAME_REQUIRED": "名稱必輸",
-        "USE_LOCAL_AGENT": "使用本地代理",
         "DONE": "完成",
         "AuthType": "授權方式",
         "AuthType_None": "無",
@@ -1186,7 +1213,6 @@
       "USER_ORGANIZATION_ADDED": "用戶組織添加成功",
       "USER_ORGANIZATION_REMOVED": "用戶組織刪除成功",
       "UpdateSuccess": "更新成功",
-      "LocalAgentOffline": "本地代理離線",
       "NameAlreadyExist": "名稱已存在",
       "Required": "必輸",
       "Update": "更新",
@@ -1548,7 +1574,6 @@
       "JoinConfig": "關聯配置",
       "OpenCubeSchema": "打開模型信息",
       "CubeSchema": "模型信息",
-
       "QUERY": {
         "TITLE": "查詢實驗室",
         "SaveAsModel": "另存為模型",
@@ -2146,10 +2171,6 @@
         "Label": "工作區助手",
         "Description": "用於 Xpert 工作區和 Studio Shell 的共享助手。"
       },
-      "ChatBI": {
-        "Label": "ChatBI 助手",
-        "Description": "在 ChatBI 頁面與你的資料分析助手對話。"
-      },
       "ClawXpert": {
         "Label": "ClawXpert",
         "Description": "用於 ClawXpert 頁面的嵌入式助手體驗。"
@@ -2593,6 +2614,8 @@
       "ModelUsageRules": "模型存取和使用規則",
       "ModelUsageRulesHint": "選擇套餐可用模型，並按需設定點數倍率和使用上限。",
       "AllowedModels": "可用模型",
+      "AccountAvailableModelsHint": "根據目前範圍與會員套餐，列出此帳號可以使用的模型。",
+      "NoAccountAvailableModels": "目前帳號沒有可用模型。",
       "AllowedModelsHint": "選擇該套餐成員可以使用的模型。",
       "AllowAllModels": "允許使用全部模型",
       "SelectModels": "選擇可用模型",
@@ -2700,15 +2723,51 @@
       "AdjustPersonalPoints": "調整個人永久點數",
       "PersonalPointsHint": "個人點數永久有效；會員套餐有效時，優先消耗套餐週期點數，用完後再消耗個人永久點數。",
       "PersonalPointsOnlyHint": "會員套餐當前不可用，僅消耗個人永久點數。",
+      "MembershipDetails": "會員詳情",
+      "MembershipDetailsHint": "查看目前權益和後續待生效週期。",
+      "CurrentBenefits": "目前權益",
+      "UpcomingPeriodCount": "{{count}} 個待生效",
+      "AccountUpcomingPeriodsHint": "這些權益會在目前週期結束後自動生效。",
+      "NoUpcomingPeriods": "暫無待生效會員週期。",
       "AssignedUsers": "已分配使用者",
       "AssignedUsersHint": "目前分配到此套餐的啟用和暫停使用者。",
       "NoAssignedUsers": "暫無使用者分配到此套餐。",
+      "UserManagement": "使用者會員管理",
+      "UserManagementHint": "查看目前範圍的全部使用者，包括未分配會員的使用者，並批次執行常用操作。",
+      "SearchUsers": "搜尋使用者",
+      "SearchUsersPlaceholder": "姓名、使用者名稱或信箱",
+      "ExpiringBefore": "到期時間不晚於",
+      "SelectedUsers": "已選擇 {{count}} 人",
+      "BulkAction": "批次操作",
+      "ApplyBulkAction": "執行操作",
+      "BulkActionConfirmTitle": "確認執行會員操作？",
+      "BulkActionConfirmDescription": "對已選擇的 {{count}} 名使用者執行「{{action}}」？",
+      "BulkActionSuccess": "已更新 {{count}} 名使用者。",
+      "BulkActionPartialFailure": "成功 {{succeeded}} 人，失敗 {{failed}} 人。{{message}}",
+      "BulkActions": {
+        "assign": "分配套餐",
+        "renew": "續期",
+        "pause": "暫停",
+        "resume": "恢復",
+        "revoke": "撤銷"
+      },
+      "User": "使用者",
+      "NoUsersFound": "沒有符合篩選條件的使用者。",
+      "ManageUserMembership": "管理使用者會員",
+      "OperationHistory": "操作記錄",
+      "OperationHistoryHint": "最近的分配、點數調整、續期和狀態變更。",
+      "Operator": "操作人",
+      "OperationTime": "操作時間",
+      "SystemActor": "系統",
+      "NoOperationReason": "未填寫原因",
+      "NoOperationHistory": "暫無會員操作記錄。",
       "ReassignUsers": "遷移使用者",
       "ReassignSuccess": "已遷移 {{count}} 名使用者。",
       "MemberStatuses": {
         "active": "啟用",
         "paused": "已暫停",
-        "expired": "已失效"
+        "expired": "已失效",
+        "unassigned": "未分配"
       },
       "Sources": {
         "tenant_default": "租戶預設",
@@ -2727,10 +2786,10 @@
       "TotalPoints": "累計點數",
       "PeakDailyPoints": "單日峰值點數",
       "ActiveDays": "活躍天數",
-      "TokenActivity": "Token 活動",
+      "PointActivity": "點數活動",
       "TokenActivityHint": "當前窗口內每日點數與 token 使用情況。",
       "Last30Days": "最近 30 天",
-      "HeatmapDailyTitle": "{{date}} 使用了 {{tokenUsed}} 個 Token",
+      "HeatmapDailyPointsTitle": "{{date}} 使用了 {{pointsUsed}} 點",
       "NoUsageYet": "該週期暫無使用記錄。",
       "TopModels": "常用模型",
       "TopXperts": "常用 Xpert",
@@ -2750,6 +2809,7 @@
       "NoUsageSummary": "暫無用量匯總。",
       "NoUsageDetails": "暫無用量明細。",
       "Xpert": "Xpert",
+      "ApiCall": "API 呼叫",
       "RecentPointActivity": "最近點數活動",
       "RecentActivityHint": "最近的點數變更和使用記錄。",
       "Source": "來源",
@@ -2757,6 +2817,7 @@
         "assignment": "分配",
         "grant": "發放",
         "renew": "續期",
+        "upgrade": "升級",
         "usage": "使用",
         "adjustment": "調整",
         "status_change": "狀態變更",
@@ -2764,6 +2825,280 @@
         "personal_usage": "個人點數使用"
       },
       "NoPointActivity": "暫無點數活動。"
+    },
+    "ModelAccess": {
+      "Title": "模型權限",
+      "Description": "查看直接可用、方案包含及額外取得個人授權的模型。",
+      "Apply": "申請模型",
+      "ApplyTitle": "申請模型權限",
+      "ApplyDescription": "選擇可申請的模型，並說明使用原因。",
+      "Model": "模型",
+      "RequestScope": "申請範圍",
+      "Reason": "申請原因",
+      "OptionalReason": "撤回原因（可選）",
+      "ReasonPlaceholder": "請說明為什麼需要使用此模型",
+      "Submit": "提交申請",
+      "RequestSubmitted": "模型權限申請已提交。",
+      "WithdrawTitle": "撤回申請",
+      "WithdrawDescription": "確定撤回這筆待審核的模型權限申請嗎？",
+      "Withdraw": "撤回",
+      "PlanModels": "方案模型",
+      "NoPlanModels": "暫無方案模型",
+      "NoPlanModelsDescription": "目前方案未包含可用模型。",
+      "AvailableModels": "可用模型",
+      "NoAvailableModels": "暫無可用模型",
+      "NoAvailableModelsDescription": "目前沒有直接可用或方案包含的模型。",
+      "ExtraGrants": "額外授權",
+      "NoGrants": "暫無個人授權",
+      "NoGrantsDescription": "你尚未取得額外的模型授權。",
+      "MyRequests": "我的申請",
+      "NoRequests": "暫無申請",
+      "NoRequestsDescription": "你提交的模型權限申請會顯示在這裡。",
+      "RequestsUnavailable": "目前範圍未開放模型權限申請。",
+      "LoadFailed": "模型權限載入失敗",
+      "ValidUntil": "有效期至 {{date}}",
+      "Permanent": "長期有效",
+      "SystemActor": "系統",
+      "Source": {
+        "plan": "方案包含",
+        "grant": "額外授權",
+        "direct": "直接可用"
+      },
+      "Scope": {
+        "tenant": "租戶級",
+        "organization": "組織級"
+      },
+      "AdminTitle": "模型權限審核",
+      "AdminDescription": "審核個人模型權限申請，並管理已生效的授權。",
+      "Requests": "申請",
+      "Grants": "授權",
+      "Audit": "稽核記錄",
+      "Search": "使用者或模型",
+      "Channel": "使用渠道",
+      "ChannelValue": {
+        "xpert": "Xpert 平台",
+        "external_api": "外部 API"
+      },
+      "ModelType": "模型類型",
+      "ModelTypeValue": {
+        "llm": "大型語言模型",
+        "text-embedding": "文字嵌入",
+        "rerank": "重新排序",
+        "speech2text": "語音轉文字",
+        "moderation": "內容審核",
+        "tts": "文字轉語音",
+        "text2img": "文字生成圖片"
+      },
+      "Status": "狀態",
+      "ExpiresBefore": "到期時間不晚於",
+      "Applicant": "申請人",
+      "User": "使用者",
+      "SubmittedAt": "申請時間",
+      "Actions": "操作",
+      "ValidUntilLabel": "有效期至",
+      "Availability": "可用狀態",
+      "Available": "可用",
+      "EventType": "事件",
+      "Actor": "操作人",
+      "Details": "詳情",
+      "OccurredAt": "發生時間",
+      "Pagination": "分頁",
+      "PageSummary": "第 {{current}} / {{pages}} 頁，共 {{total}} 筆",
+      "PreviousPage": "上一頁",
+      "NextPage": "下一頁",
+      "Reject": "拒絕",
+      "Approve": "批准",
+      "Revoke": "撤銷",
+      "Extend": "延長",
+      "NoAdminRequests": "暫無申請",
+      "NoAdminGrants": "暫無授權",
+      "NoAudit": "暫無稽核記錄",
+      "Expiration": "到期日期",
+      "ExpirationHint": "授權將在該日期依租戶時區日末到期；留空表示長期有效。",
+      "Note": "備註",
+      "Action": {
+        "approve": {
+          "Title": "批准申請",
+          "Submit": "批准"
+        },
+        "reject": {
+          "Title": "拒絕申請",
+          "Submit": "拒絕"
+        },
+        "extend": {
+          "Title": "延長授權",
+          "Submit": "延長"
+        },
+        "revoke": {
+          "Title": "撤銷授權",
+          "Submit": "撤銷"
+        }
+      },
+      "GrantStatus": {
+        "active": "生效中",
+        "expired": "已過期",
+        "revoked": "已撤銷"
+      },
+      "RequestStatus": {
+        "requested": "待審核",
+        "approved": "已批准",
+        "rejected": "已拒絕",
+        "withdrawn": "已撤回",
+        "closed": "已關閉"
+      },
+      "StatusValue": {
+        "requested": "待審核",
+        "approved": "已批准",
+        "rejected": "已拒絕",
+        "withdrawn": "已撤回",
+        "closed": "已關閉",
+        "active": "生效中",
+        "expired": "已過期",
+        "revoked": "已撤銷"
+      },
+      "Unavailable": {
+        "feature_disabled": "功能已停用，個人模型授權暫時無法使用。",
+        "model_disabled": "此模型已停用。",
+        "model_deleted": "此模型已不存在。",
+        "grant_expired": "此授權已過期。",
+        "grant_revoked": "此授權已撤銷。",
+        "quota_exhausted": "可用點數已用盡。",
+        "membership_required": "需要有效的會員方案。",
+        "technical_user": "技術使用者不能申請個人模型權限。"
+      },
+      "ClosedReason": {
+        "plan_included": "目前套餐已包含此模型。",
+        "model_deleted": "模型設定已刪除。",
+        "user_left_organization": "使用者已退出組織。",
+        "other": "系統已關閉此申請。"
+      },
+      "Event": {
+        "requested": "已提交申請",
+        "withdrawn": "已撤回申請",
+        "approved": "申請已批准",
+        "rejected": "申請已拒絕",
+        "extended": "授權已延長",
+        "revoked": "授權已撤銷",
+        "grant_activated": "授權已生效",
+        "grant_expired": "授權已過期",
+        "system_closed": "系統已關閉申請",
+        "model_suspended": "模型停用，授權已暫停",
+        "model_restored": "模型啟用，授權已恢復",
+        "model_deleted": "模型已刪除",
+        "user_left_organization": "使用者已退出組織"
+      }
+    },
+    "ModelGateway": {
+      "ExternalApi": "外部 API",
+      "AccountDescription": "申請外部模型權限、建立專用 API Key，並在其他平台使用自己的方案與點數。",
+      "Connection": "連線資訊",
+      "OpenAICompatible": "可在 OpenAI 相容客戶端中使用這個位址。Claude Code 直連仍需後續增加 Anthropic 協議。",
+      "Models": "外部模型",
+      "ModelsHint": "每個模型都要單獨申請和審核，方案內模型也一樣。",
+      "NoAvailableApiModels": "目前沒有可申請 API 使用的租戶對話模型。",
+      "Apply": "申請",
+      "ApplyTitle": "申請外部 API 模型權限",
+      "Reason": "申請原因",
+      "ReasonPlaceholder": "請說明要在哪個平台使用以及預計用途。",
+      "Submit": "提交申請",
+      "RequestSubmitted": "外部 API 模型申請已提交。",
+      "Approved": "已授權",
+      "Available": "可用",
+      "TemporarilyUnavailable": "暫不可用",
+      "Pending": "待審核",
+      "Withdraw": "撤回",
+      "PlanPricing": "依方案倍率",
+      "StandardPricing": "依 1 倍計費",
+      "ApiKeys": "API Key",
+      "KeysHint": "Key 本身不包含任何模型權限。",
+      "CreateKey": "建立 API Key",
+      "Create": "建立",
+      "KeyOwnerHint": "這個 Key 的用量會計入你自己的方案和點數餘額。",
+      "KeyName": "Key 名稱",
+      "Lifetime": "有效期",
+      "LifetimeValue": {
+        "30_days": "30 天",
+        "90_days": "90 天",
+        "180_days": "180 天",
+        "permanent": "長期有效"
+      },
+      "Prefix": "前綴",
+      "ApiKey": "API Key",
+      "LegacyKeyUnavailable": "舊 Key 無法恢復完整值，請重新建立。",
+      "Status": "狀態",
+      "KeyStatus": {
+        "active": "生效中",
+        "expired": "已過期",
+        "revoked": "已撤銷"
+      },
+      "CallStatus": {
+        "started": "進行中",
+        "settlement_pending": "等待結算",
+        "succeeded": "成功",
+        "failed": "失敗"
+      },
+      "ExpiresAt": "到期時間",
+      "LastUsedAt": "最近使用",
+      "Actions": "操作",
+      "Revoke": "撤銷",
+      "NoKeys": "尚未建立 API Key。",
+      "ApplicationStatus": "申請狀態",
+      "SubmittedAt": "申請時間",
+      "NoRequests": "尚無外部 API 模型申請。",
+      "RecentCalls": "最近 API 呼叫",
+      "NoCalls": "尚無外部 API 呼叫。",
+      "Model": "模型",
+      "Tokens": "Token 數",
+      "Points": "點數",
+      "StartedAt": "開始時間",
+      "QuickStart": "快速開始",
+      "CopyExample": "複製範例",
+      "SearchModels": "搜尋模型",
+      "SearchModelsPlaceholder": "模型 ID、提供商或模型名稱",
+      "NoMatchingModels": "沒有符合搜尋條件的模型。",
+      "SearchCalls": "搜尋呼叫",
+      "SearchCallsPlaceholder": "請求 ID、使用者 ID、提供商或模型",
+      "SearchKeys": "搜尋 API Key",
+      "SearchKeysPlaceholder": "Key 名稱、前綴或使用者 ID",
+      "ViewBody": "檢視正文",
+      "CallDetails": "呼叫詳情",
+      "RequestBody": "請求正文",
+      "ResponseBody": "回應正文",
+      "BodyExpiresAt": "正文留存至 {{value}}",
+      "PageSummary": "第 {{current}} / {{pages}} 頁，共 {{total}} 筆",
+      "PreviousPage": "上一頁",
+      "NextPage": "下一頁",
+      "AdminTitle": "模型 API 網關",
+      "AdminDescription": "檢視外部 API 呼叫、管理 API Key，並設定閘道限流和留存策略。",
+      "Publications": "已發佈模型",
+      "Calls": "API 呼叫",
+      "NewPublication": "發佈租戶模型",
+      "ImmutableSource": "建立後不能修改來源模型和外部模型 ID；如需替換，請建立新的發佈記錄。",
+      "SourceModel": "來源模型",
+      "ExternalModelId": "外部模型 ID",
+      "ExternalModelIdHint": "留空則使用來源模型名稱",
+      "Capabilities": "聲明能力",
+      "CreateDraft": "建立草稿",
+      "Configuration": "設定",
+      "RequestLimits": "請求限制",
+      "RequestLimitsHint": "限制依同一使用者擁有的全部 API Key 合併計算。超限請求直接回傳 429，不進入排隊。",
+      "RequestsPerMinute": "每分鐘請求數",
+      "RequestsPerMinuteError": "請輸入 1 到 10000 之間的整數",
+      "MaxConcurrentRequests": "最大並行請求數",
+      "MaxConcurrentRequestsError": "請輸入 1 到 100 之間的整數",
+      "Retention": "請求與回應留存",
+      "RetentionHint": "預設關閉。開啟後，請求和回應正文會加密儲存，並在設定天數後自動刪除。",
+      "RetentionDays": "保留天數",
+      "RetentionDaysError": "請輸入 1 到 3650 之間的整數",
+      "StoreBodies": "留存正文",
+      "SettingsSaved": "網關設定已儲存。",
+      "Validation": "驗證狀態",
+      "CreatedAt": "建立時間",
+      "Validate": "驗證",
+      "Open": "開放",
+      "Close": "關閉",
+      "RequestId": "請求 ID",
+      "User": "使用者"
     },
     "Chat": {
       "QuoteSelection": "引用選取內容",
@@ -3045,77 +3380,6 @@
       "NoPublishedXpert": "沒有已發布的數字專家，請在工作空間創建並點擊\"發布\"發布數字專家",
       "GotoWorkspace": "前往工作空間"
     },
-    "ChatBI": {
-      "DeprecationNotes": "ChatBI 功能請使用數字專家中的 ChatBI 工具集！",
-      "Title": "ChatBI-數據分析與洞察",
-      "ComputerTrace": "線程活動",
-      "TraceLoading": "正在載入線程活動...",
-      "TraceLoadFailed": "載入線程活動失敗",
-      "TraceEmpty": "暫無線程活動",
-      "TraceEmptyDesc": "當助手構建圖表、探索文件、運行程式並生成結構化操作時，此 ChatBI 線程中的儀表板輸出和電腦端步驟會顯示在這裡。",
-      "PinDashboard": "固定快照",
-      "UnpinDashboard": "取消固定快照",
-      "DataOntologyGuidePrefix": "建議直接使用",
-      "DataOntologySystem": "數據&本體",
-      "DataOntologyGuideSuffix": "系統的智能體來完成數據分析需求。",
-      "TransformData": "利用人工智能將數據轉化為洞察力。",
-      "InputPlaceholder": "針對數據集詢問問題，按 Enter 發送",
-      "NoSemanticModel": "無語義模型",
-      "NewConversation": "新建對話",
-      "Cubes": "多維數據集",
-      "Slicers": "過濾器",
-      "Empty": "空白",
-      "ShowChart": "顯示圖形",
-      "ShowTable": "顯示表格",
-      "AddtoStory": "添加到故事",
-      "SystemMessage_1": "您好，我是元數分析雲 BI 智能助手，當前數據為《{{value}}》，可點擊頂部切換。",
-      "SystemMessage_2": "你也可以嘗試點擊樣例",
-      "SystemMessage_3": "我能準確識別含時間、條件、維度和指標的問題哦。",
-      "SystemMessage_Samples": [
-        "2023年加拿大客戶每月的銷售額走勢",
-        "2024年所有用戶中消費金額前 10 的用戶",
-        "2023年各個月的消費金額分別是多少",
-        "2023年各渠道用戶的消費金額分布",
-        "2023年各渠道的用戶數分別是多少"
-      ],
-      "SystemMessage_eg": "如",
-      "SystemMessage_Year": "2023年",
-      "SystemMessage_Cloud": "元數分析雲 BI",
-      "SystemMessage_Month": "每個月",
-      "SystemMessage_Revenue": "收入",
-      "SystemMessage_HowMuch": "是多少",
-      "Chart_Line": "線圖",
-      "Chart_Column": "柱形圖",
-      "Chart_Bar": "條形圖",
-      "Chart_Pie": "餅圖",
-      "NewCalculatedMeasures": "新增計算指標",
-      "RenewTokenLimit": "重置 Token 限製",
-      "Save": "保存",
-      "SelectSemanticModel": "選擇語義模型",
-      "SelectCube": "選擇一個數據集",
-      "SelectACube": "選擇一個數據集",
-      "Model": "模型",
-      "Entity": "實體",
-      "Description": "描述",
-      "EditModel": "編輯模型",
-      "DeleteModel": "刪除模型",
-      "SemanticModel": "語義模型",
-      "Caption": "簡要描述",
-      "AddModel": "添加模型",
-      "AnotherBatch": "換一批",
-      "TryFollowing": "您還可以嘗試以下分析",
-      "RolesWithPermission": "有權限的角色",
-      "IntegrationsWithPermission": "有權限的集成",
-      "NewChatBIModel": "新建 ChatBI 模型",
-      "ModelExists": "模型已存在",
-      "EntityNotFound": "未找到模型實體",
-      "PleaseSelectSemanticModel": "請選擇語義模型",
-      "PleaseSelectEntity": "請選擇實體",
-      "NoSemanticModelsAvailable": "沒有可用的語義模型，請先創建語義模型",
-      "NoEntitiesAvailable": "沒有可用的實體，請先添加實體",
-      "AddEntity": "添加實體",
-      "CreateSemanticModel": "創建語義模型"
-    },
     "Home": {
       "Insight": {
         "Title": "💡智慧洞察",
@@ -3160,37 +3424,16 @@
       "Actuallength": "實際長度",
       "ConfirmYourPassword": "確認密碼",
       "PasswordMustMatch": "密碼不一致",
-      "WantGenerateDemo": "是否想要生成演示數據",
-      "GenerateDemoDescription": "系統將從服務器鏈接上下載演示數據文件，並將數據導入至系統數據庫中，然後創建相應的演示樣例",
       "Skip": "跳過",
-      "Generate": "生成",
-      "Retry": "重試",
-      "AddYourData": "添加您的數據",
-      "ReadyExploringYourData": "準備好開始探索您的數據了嗎？在下面添加它吧。",
-      "NotReadySample": "還沒有準備好？跳過並玩玩我們的示例吧。",
-      "DisplayName": "顯示名稱",
-      "NameRequired": "名稱不能為空",
-      "AddDataLater": "我稍後添加我的數據",
-      "ConnectDatabase": "連接數據庫",
       "Done": "完成",
       "AllSetup": "您已經設置好了！",
-      "TakeMetoMetadAnalyticsPlatform": "帶我去 Metad 分析平臺",
       "TakeMetoXpertAiPlatform": "帶我去 Xpert AI 平臺",
-      "SelectNetwork": "選擇所需網絡",
-      "GenerateDemoSuccess": "演示數據和樣例生成成功！",
       "UnknownSystemStatus": "無法獲取系統狀態，請檢查安裝配置的環境參數。",
       "faqs_domain": "常見問題 （域名配置）",
-      "FeatureCategory_ai": "AI 平臺功能",
-      "FeatureCategory_bi": "BI 平臺功能",
-      "FeatureCategoryDesc_ai": "AI 相關的功能，包括工作流，數字專家智能體，知識庫，項目空間等",
-      "FeatureCategoryDesc_bi": "BI 數據分析相關的功能，包括語義模型，指標，故事儀表板等",
       "CreateAdminAndOrg": "創建您的超級管理員賬戶及默認組織。",
-      "EnableFeatures": "啟用功能模塊",
-      "EnableFeaturesDesc": "選擇您想要啟用的功能模塊，稍後也可以在系統設置中進行配置。",
       "ConfigureAiModel": "配置 AI 模型",
       "ConfigureAiModelDesc": "為模型提供商配置主提供商並選擇默認模型。稍後您仍可以在系統設置中繼續完善。",
-      "SaveAndNext": "保存並下一步",
-      "EnableFeaturesSuccess": "功能模塊設置成功！"
+      "SaveAndNext": "保存並下一步"
     },
     "Languages": {
       "en": "English",
@@ -3293,6 +3536,18 @@
           "Name": "會員套餐",
           "Description": "啟用會員套餐配額、點數扣減和用量統計規則"
         },
+        "FEATURE_MODEL_ACCESS_REQUEST": {
+          "Name": "個人模型授權",
+          "Description": "啟用個人模型權限申請和授權管理"
+        },
+        "FEATURE_MODEL_GATEWAY": {
+          "Name": "模型 API 網關",
+          "Description": "將已核准的租戶或組織模型發布為 OpenAI 相容 API"
+        },
+        "FEATURE_REFERRAL": {
+          "Name": "邀請碼",
+          "Description": "啟用帳號邀請碼及租戶內邀請關係管理"
+        },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知識庫",
           "Description": "高效地存儲、檢索和生成與特定領域相關的知識內容。"
@@ -3304,42 +3559,6 @@
         "FEATURE_COPILOT_XPERT": {
           "Name": "數字專家",
           "Description": "利用人工智能技術提供個性化、實時且精準的咨詢、分析和決策支持的虛擬助手。"
-        },
-        "FEATURE_COPILOT_CHATBI": {
-          "Name": "對話 BI",
-          "Description": "對話界面，通過自然語言交互來實現數據查詢、分析和可視化。"
-        },
-        "FEATURE_MODEL": {
-          "Name": "語義模型",
-          "Description": "啟用語義模型功能"
-        },
-        "FEATURE_PROJECT": {
-          "Name": "項目",
-          "Description": "啟用項目工作空間功能"
-        },
-        "FEATURE_STORY": {
-          "Name": "故事",
-          "Description": "啟用故事儀表板功能，製作，分享和瀏覽故事儀表板"
-        },
-        "FEATURE_INDICATOR": {
-          "Name": "指標",
-          "Description": "啟用指標功能，註冊，發布和申請查看業務指標數據"
-        },
-        "FEATURE_INDICATOR_REGISTER": {
-          "Name": "指標註冊",
-          "Description": "啟用指標註冊功能，註冊數據指標"
-        },
-        "FEATURE_INDICATOR_MARKET": {
-          "Name": "指標市場",
-          "Description": "啟用指標市場功能，發布、瀏覽和申請指標"
-        },
-        "FEATURE_INDICATOR_APP": {
-          "Name": "指標應用",
-          "Description": "啟用指標應用程序，瀏覽有權限的指標"
-        },
-        "FEATURE_BUSINESS_AREA": {
-          "Name": "業務域",
-          "Description": "啟用業務域功能，創建和使用業務域"
         },
         "FEATURE_ORGANIZATION": {
           "Name": "組織",
@@ -3381,10 +3600,6 @@
           "Name": "集成",
           "Description": "管理組織內的集成連接"
         },
-        "FEATURE_DATA_FACTORY": {
-          "Name": "數據工廠",
-          "Description": "負責自動化、標準化和高效地處理、轉換和存儲數據，以支持數據分析、應用和決策"
-        },
         "GROUP_XPERT": {
           "Name": "數字專家功能",
           "Description": "管理數字專家及相關入口"
@@ -3396,10 +3611,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左側邊欄中顯示 ClawXpert 入口。"
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "在主導航中顯示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -4743,6 +4954,7 @@
         "PAYMENT_GATEWAY_VIEW": "查看支付網關",
         "SMS_GATEWAY_VIEW": "查看短信網關",
         "CUSTOM_SMTP_VIEW": "查看自定義SMTP",
+        "REFERRAL_VIEW": "查看邀請關係",
         "IMPORT_EXPORT_VIEW": "查看導入/導出",
         "ORG_JOB_EMPLOYEE_VIEW": "查看任務員工",
         "ORG_JOB_MATCHING_VIEW": "查看任務匹配",
@@ -4753,11 +4965,17 @@
         "DATA_SOURCE_VIEW": "查看數據源",
         "DATA_SOURCE_EDIT": "維護數據源",
         "CERTIFICATION_EDIT": "維護認證",
-        "CHATBI_VIEW": "使用 ChatBI",
-        "CHATBI_EDIT": "管理 ChatBI 配置",
         "COPILOT_VIEW": "使用智能助理",
         "COPILOT_EDIT": "管理模型提供商",
         "MEMBERSHIP_EDIT": "管理會員套餐",
+        "MODEL_ACCESS_REQUEST_VIEW": "查看模型授權申請",
+        "MODEL_ACCESS_REQUEST_EDIT": "管理模型授權申請",
+        "MODEL_GATEWAY_USE": "使用模型 API 網關",
+        "MODEL_GATEWAY_MANAGE": "管理模型 API 網關",
+        "MEMBERSHIP_PURCHASE": "購買會員和點數",
+        "BILLING_PRODUCT_EDIT": "管理計費商品",
+        "BILLING_REFUND": "處理計費退款",
+        "PAYMENT_PROVIDER_EDIT": "管理支付提供商",
         "KNOWLEDGEBASE_EDIT": "維護知識庫",
         "CHAT_VIEW": "使用智能對話",
         "INTEGRATION_EDIT": "管理系統集成",
@@ -4994,7 +5212,6 @@
         "Indicators": "明細指標",
         "LookBack": "回顧期間數"
       },
-
       "IFrame": {
         "SRC": "src"
       },
@@ -5091,11 +5308,9 @@
           "FontFamily_Song": "宋體"
         }
       },
-
       "CANVAS": {
         "TITLE": "畫布"
       },
-
       "STORY_PAGE": {
         "PAGE_SIZE": "頁面大小",
         "DefaultBackground": "預設背景",
@@ -5105,7 +5320,6 @@
         "PresetBackground": "預設背景",
         "PageType": "類型"
       },
-
       "ECHARTS": {
         "Common": {
           "Align": "對齊",
@@ -5467,7 +5681,6 @@
             "TITLE": "單個體樣式",
             "OPACITY": "不透明度"
           },
-
           "LABEL": {
             "TITLE": "標簽"
           },
@@ -5815,7 +6028,6 @@
     "ENTITY": {},
     "PROPERTY": {},
     "CALCULATION": {},
-
     "VALUE_HELP": {},
     "SELECTION": {},
     "COUNTDOWN_CONFIRMATION": {
@@ -5840,7 +6052,6 @@
     "EDITOR": {
       "EDIT": "編輯"
     },
-
     "Table": {}
   },
   "FORMLY": {
@@ -6006,7 +6217,6 @@
       "ROLE": "選擇角色"
     }
   },
-
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密碼重置",

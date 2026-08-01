@@ -15,9 +15,5 @@ export const environment: IEnvironment = {
   /**
    * Replace this with the actual ChatKit frame URL in env file
    */
-  CHATKIT_FRAME_URL: 'DOCKER_CHATKIT_FRAME_URL',
-  /**
-	 * @deprecated
-	 */
-  enableLocalAgent: 'DOCKER_ENABLE_LOCAL_AGENT'
+  CHATKIT_FRAME_URL: 'DOCKER_CHATKIT_FRAME_URL'
 }

@@ -7,11 +7,13 @@
       <emoji-avatar [avatar]="avatar()" class="shrink-0 mr-3 rounded-lg shadow-sm overflow-hidden" />
 
       <div class="group">
-        <div class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all">
+        <div
+          class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
           {{ xpert()?.title || xpert()?.name }}
         </div>
         <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-          {{ 'PAC.Xpert.ReadyAIWebApp' | translate: { Default: 'Ready-to-use AI WebApp' } }}
+          {{ 'XP.Xpert.ReadyAIWebApp' | translate: { Default: 'Ready-to-use AI WebApp' } }}
         </div>
         <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
       </div>
@@ -21,21 +23,21 @@
         <div
           class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-text-success bg-components-input-bg-normal mr-2"
         >
-          {{ 'PAC.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}
+          {{ 'XP.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}
         </div>
       } @else {
         <div
           class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-text-warning bg-components-input-bg-normal mr-2"
         >
-          {{ 'PAC.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
+          {{ 'XP.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
         </div>
       }
 
       <label
         class="inline-flex items-center cursor-pointer"
         [zTooltip]="
-          (!published() ? ('PAC.Xpert.AfterPublish' | translate: { Default: 'After publish' }) + ' : ' : '') +
-          ('PAC.Xpert.EnableXpertChatApp' | translate: { Default: 'Enable or disable chat app for xpert' })
+          (!published() ? ('XP.Xpert.AfterPublish' | translate: { Default: 'After publish' }) + ' : ' : '') +
+          ('XP.Xpert.EnableXpertChatApp' | translate: { Default: 'Enable or disable chat app for xpert' })
         "
         zPosition="top"
       >
@@ -56,7 +58,7 @@
   <div class="flex flex-col justify-center py-2">
     <div class="py-1">
       <div class="pb-1 text-sm text-text-tertiary">
-        {{ 'PAC.KEY_WORDS.PublicURL' | translate: { Default: 'Public URL' } }}
+        {{ 'XP.KEY_WORDS.PublicURL' | translate: { Default: 'Public URL' } }}
       </div>
       <div
         class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-components-input-bg-normal rounded-lg border border-(--border) justify-start items-center inline-flex"
@@ -69,7 +71,7 @@
         <div class="border-r border-solid mx-2 border-divider-deep !h-3.5 shrink-0"></div>
         <div
           class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
-          [zTooltip]="'PAC.Xpert.QRCodeSharing' | translate: { Default: 'QR code sharing' }"
+          [zTooltip]="'XP.Xpert.QRCodeSharing' | translate: { Default: 'QR code sharing' }"
           zPosition="top"
           [cdkMenuTriggerFor]="qrcode"
         >
@@ -77,7 +79,7 @@
         </div>
         <div
           class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
-          [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+          [zTooltip]="'XP.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
           zPosition="top"
           (click)="copy(appUrl())"
         >
@@ -95,13 +97,13 @@
     >
       <div class="flex flex-row items-center">
         <i class="ri-slideshow-3-line text-lg mr-1.5"></i>
-        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}</span>
+        <span class="text-[13px]">{{ 'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}</span>
       </div>
     </button>
     <!-- <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2">
       <div class="flex flex-row items-center">
         <i class="ri-quill-pen-ai-line text-lg mr-1.5"></i>
-        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Customize' | translate: {Default: 'Customize'} }}</span>
+        <span class="text-[13px]">{{ 'XP.KEY_WORDS.Customize' | translate: {Default: 'Customize'} }}</span>
       </div>
     </button> -->
     <button
@@ -112,7 +114,7 @@
     >
       <div class="flex flex-row items-center">
         <i class="ri-terminal-window-line text-lg mr-1.5"></i>
-        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Embedded' | translate: { Default: 'Embedded' } }}</span>
+        <span class="text-[13px]">{{ 'XP.KEY_WORDS.Embedded' | translate: { Default: 'Embedded' } }}</span>
       </div>
     </button>
     <button
@@ -123,14 +125,14 @@
     >
       <div class="flex flex-row items-center">
         <i class="ri-settings-4-line text-lg mr-1.5"></i>
-        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}</span>
+        <span class="text-[13px]">{{ 'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}</span>
       </div>
     </button>
   </div>
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 <ng-template #qrcode>
@@ -139,11 +141,11 @@
 
     <div class="flex justify-center items-center">
       <div class="text-sm text-text-tertiary">
-        {{ 'PAC.Xpert.ShareQRCode' | translate: { Default: 'Scan QR to share App' } }}
+        {{ 'XP.Xpert.ShareQRCode' | translate: { Default: 'Scan QR to share App' } }}
       </div>
       <div class="text-sm mx-1 text-text-tertiary">·</div>
       <div class="download cursor-pointer hover:underline" (click)="qrc.downloadQRCode()">
-        {{ 'PAC.Xpert.DownloadQRCode' | translate: { Default: 'Download QR Code' } }}
+        {{ 'XP.Xpert.DownloadQRCode' | translate: { Default: 'Download QR Code' } }}
       </div>
     </div>
   </div>

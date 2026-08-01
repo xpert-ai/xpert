@@ -1,12 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardCardImports,
-  ZardIconComponent,
-  ZardTabsImports
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCardImports, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { countDisplayTextUnits } from '../../../@shared/text-count.utils'
 import { CodeEditorComponent } from '../../../@shared/editors/code-editor/editor.component'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -27,21 +22,21 @@ type PreferenceTab = {
 const PREFERENCE_TABS: PreferenceTab[] = [
   {
     key: 'behavior',
-    labelKey: 'PAC.Chat.ClawXpert.TabBehavior',
+    labelKey: 'XP.Chat.ClawXpert.TabBehavior',
     defaultLabel: 'Behavior Guidelines',
-    titleKey: 'PAC.Chat.ClawXpert.BehaviorEditorTitle',
+    titleKey: 'XP.Chat.ClawXpert.BehaviorEditorTitle',
     defaultTitle: 'SOUL.md',
-    descKey: 'PAC.Chat.ClawXpert.BehaviorEditorDesc',
+    descKey: 'XP.Chat.ClawXpert.BehaviorEditorDesc',
     defaultDesc: `The assistant's name, personality, and identity definition`,
     fileName: 'SOUL.md'
   },
   {
     key: 'userProfile',
-    labelKey: 'PAC.Chat.ClawXpert.TabUserProfile',
+    labelKey: 'XP.Chat.ClawXpert.TabUserProfile',
     defaultLabel: 'User Profile',
-    titleKey: 'PAC.Chat.ClawXpert.UserProfileEditorTitle',
+    titleKey: 'XP.Chat.ClawXpert.UserProfileEditorTitle',
     defaultTitle: 'USER.md',
-    descKey: 'PAC.Chat.ClawXpert.UserProfileEditorDesc',
+    descKey: 'XP.Chat.ClawXpert.UserProfileEditorDesc',
     defaultDesc: 'User preferences, communication style, and long-term memory',
     fileName: 'USER.md'
   }
@@ -49,7 +44,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-preferences-editor',
+  selector: 'xp-clawxpert-preferences-editor',
   imports: [
     ReactiveFormsModule,
     TranslateModule,
@@ -74,7 +69,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
           </div>
         } @else if (facade.loadingUserPreference()) {
           <div class="flex min-h-[24rem] flex-1 items-center justify-center px-6 text-sm text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.LoadingPreference' | translate: { Default: 'Loading markdown documents…' } }}
+            {{ 'XP.Chat.ClawXpert.LoadingPreference' | translate: { Default: 'Loading markdown documents…' } }}
           </div>
         } @else {
           <nav
@@ -107,9 +102,11 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                   </p>
                 </div>
 
-                <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                <span
+                  class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                >
                   {{
-                    'PAC.Chat.ClawXpert.WordCount'
+                    'XP.Chat.ClawXpert.WordCount'
                       | translate
                         : {
                             Default: '{count} words',
@@ -127,31 +124,29 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                       [disabled]="facade.savingUserPreference()"
                       (click)="cancelEdit()"
                     >
-                      {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+                      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
                     </button>
                     <button
                       z-button
                       zType="default"
-
                       type="button"
                       displayDensity="cosy"
                       [disabled]="facade.savingUserPreference() || !form.dirty"
                       (click)="save()"
                     >
-                      {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+                      {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
                     </button>
                   } @else {
                     <button
                       z-button
                       zType="outline"
-
                       type="button"
                       displayDensity="cosy"
                       [disabled]="facade.savingUserPreference()"
                       (click)="startEdit()"
                     >
                       <z-icon zType="edit"></z-icon>
-                      {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                      {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                     </button>
                   }
                 </div>
@@ -159,7 +154,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
 
               <div class="min-h-0 flex-1 overflow-hidden">
                 @if (activeTab() === 'behavior') {
-                  <pac-code-editor
+                  <xp-code-editor
                     class="block w-full"
                     [fileName]="activeTabMeta().fileName"
                     lineNumbers
@@ -168,7 +163,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     [formControl]="form.controls.soul"
                   />
                 } @else {
-                  <pac-code-editor
+                  <xp-code-editor
                     class="block w-full"
                     [fileName]="activeTabMeta().fileName"
                     lineNumbers
@@ -204,26 +199,26 @@ export class ClawXpertPreferencesEditorComponent {
   readonly blockedState = computed(() => {
     if (!this.facade.organizationId()) {
       return {
-        titleKey: 'PAC.Chat.ClawXpert.EditorOrganizationRequiredTitle',
+        titleKey: 'XP.Chat.ClawXpert.EditorOrganizationRequiredTitle',
         defaultTitle: 'Choose an organization first',
-        descKey: 'PAC.Chat.ClawXpert.EditorOrganizationRequiredDesc',
+        descKey: 'XP.Chat.ClawXpert.EditorOrganizationRequiredDesc',
         defaultDesc: 'Select an organization and finish the ClawXpert setup before editing SOUL.md and USER.md.'
       }
     }
 
     if (!this.bindingReady()) {
       return {
-        titleKey: 'PAC.Chat.ClawXpert.EditorBindingRequiredTitle',
+        titleKey: 'XP.Chat.ClawXpert.EditorBindingRequiredTitle',
         defaultTitle: 'Bind ClawXpert before editing',
-        descKey: 'PAC.Chat.ClawXpert.EditorBindingRequiredDesc',
+        descKey: 'XP.Chat.ClawXpert.EditorBindingRequiredDesc',
         defaultDesc: 'Once a ClawXpert binding is created, this editor will load SOUL.md and USER.md.'
       }
     }
 
     return {
-      titleKey: 'PAC.Chat.ClawXpert.EditorUnavailableTitle',
+      titleKey: 'XP.Chat.ClawXpert.EditorUnavailableTitle',
       defaultTitle: 'Markdown editor is temporarily unavailable',
-      descKey: 'PAC.Chat.ClawXpert.EditorUnavailableDesc',
+      descKey: 'XP.Chat.ClawXpert.EditorUnavailableDesc',
       defaultDesc: 'The shell must be in the ready state before these thread-adjacent markdown documents can be edited.'
     }
   })
@@ -289,6 +284,8 @@ export class ClawXpertPreferencesEditorComponent {
   }
 
   getTotalWordCount() {
-    return countDisplayTextUnits(this.form.controls.soul.value) + countDisplayTextUnits(this.form.controls.profile.value)
+    return (
+      countDisplayTextUnits(this.form.controls.soul.value) + countDisplayTextUnits(this.form.controls.profile.value)
+    )
   }
 }

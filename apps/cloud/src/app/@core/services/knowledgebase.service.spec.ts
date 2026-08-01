@@ -1,6 +1,6 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { of } from 'rxjs'
 import { KnowledgebaseService } from './knowledgebase.service'

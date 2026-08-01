@@ -1,4 +1,3 @@
-
 import { booleanAttribute, Component, computed, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -19,7 +18,7 @@ type FileEditorReferenceButtonPosition = {
 @Component({
   standalone: true,
   imports: [FormsModule, TranslateModule, MonacoEditorModule],
-  selector: 'pac-file-editor',
+  selector: 'xp-file-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss']
 })
@@ -196,31 +195,33 @@ function readEditorSelection(editor: {
   }
 }
 
-function readReferenceButtonPosition(editor: {
-  getSelection?: () => {
-    endLineNumber?: number
-    endColumn?: number
-    isEmpty?: () => boolean
-  } | null
-  getScrolledVisiblePosition?: (position: {
-    lineNumber: number
-    column: number
-  }) => { top: number; left: number; height: number } | null
-  getDomNode?: () => {
-    getBoundingClientRect: () => {
-      top: number
-      left: number
-      width: number
-      height: number
-    }
-    querySelector?: (selector: string) => {
+function readReferenceButtonPosition(
+  editor: {
+    getSelection?: () => {
+      endLineNumber?: number
+      endColumn?: number
+      isEmpty?: () => boolean
+    } | null
+    getScrolledVisiblePosition?: (position: {
+      lineNumber: number
+      column: number
+    }) => { top: number; left: number; height: number } | null
+    getDomNode?: () => {
       getBoundingClientRect: () => {
         top: number
         left: number
+        width: number
+        height: number
       }
+      querySelector?: (selector: string) => {
+        getBoundingClientRect: () => {
+          top: number
+          left: number
+        }
+      } | null
     } | null
   } | null
-} | null): FileEditorReferenceButtonPosition | null {
+): FileEditorReferenceButtonPosition | null {
   const selection = editor?.getSelection?.()
   if (!selection || selection.isEmpty?.()) {
     return null

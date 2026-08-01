@@ -2,61 +2,108 @@
   <section class="w-full">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.MENU.TENANT.RETENTION' | translate: { Default: 'Data Management' } }}
+        {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Data Management' } }}
       </h2>
     </div>
 
-    <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
-      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
-        <div class="min-w-0">
-          <div class="text-xs text-text-tertiary">
-            {{ 'PAC.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+    <div class="space-y-4">
+      <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
+          <div class="min-w-0">
+            <div class="text-xs text-text-tertiary">
+              {{ 'XP.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+            </div>
+            <div class="truncate font-mono text-base font-semibold text-text-primary">
+              {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION' | translate: { Default: 'copilot_checkpoint' } }}
+            </div>
           </div>
-          <div class="truncate font-mono text-base font-semibold text-text-primary">
-            {{ 'PAC.MENU.TENANT.CHECKPOINT_RETENTION' | translate: { Default: 'copilot_checkpoint' } }}
-          </div>
+
+          <z-switch formControlName="enabled" zSize="sm" labelPosition="before">
+            {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION_ENABLED' | translate: { Default: 'Enable cleanup' } }}
+          </z-switch>
         </div>
 
-        <z-switch formControlName="enabled" zSize="sm" labelPosition="before">
-          {{ 'PAC.MENU.TENANT.CHECKPOINT_RETENTION_ENABLED' | translate: { Default: 'Enable cleanup' } }}
-        </z-switch>
+        <div class="px-4 py-4">
+          <z-form-field appearance="fill" class="w-full max-w-64">
+            <z-form-label [zRequired]="true">
+              {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
+            </z-form-label>
+            <input
+              z-input
+              type="number"
+              [min]="minRetentionDays"
+              [max]="maxRetentionDays"
+              step="1"
+              formControlName="retentionDays"
+              [zStatus]="retentionDaysCtrl.invalid && retentionDaysCtrl.touched ? 'error' : undefined"
+            />
+            @if (retentionDaysCtrl.invalid && retentionDaysCtrl.touched) {
+              <z-form-message zType="error">
+                {{
+                  'XP.MENU.TENANT.CHECKPOINT_RETENTION_DAYS_ERROR' | translate: { Default: retentionDaysErrorDefault }
+                }}
+              </z-form-message>
+            }
+          </z-form-field>
+        </div>
       </div>
 
-      <div class="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,16rem)_auto] md:items-start">
-        <z-form-field appearance="fill" class="w-full">
-          <z-form-label [zRequired]="true">
-            {{ 'PAC.MENU.TENANT.CHECKPOINT_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
-          </z-form-label>
-          <input
-            z-input
-            type="number"
-            [min]="minRetentionDays"
-            [max]="maxRetentionDays"
-            step="1"
-            formControlName="retentionDays"
-            [zStatus]="retentionDaysCtrl.invalid && retentionDaysCtrl.touched ? 'error' : undefined"
-          />
-          @if (retentionDaysCtrl.invalid && retentionDaysCtrl.touched) {
-            <z-form-message zType="error">
-              {{
-                'PAC.MENU.TENANT.CHECKPOINT_RETENTION_DAYS_ERROR' | translate: { Default: retentionDaysErrorDefault }
-              }}
-            </z-form-message>
-          }
-        </z-form-field>
+      <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
+          <div class="min-w-0">
+            <div class="text-xs text-text-tertiary">
+              {{ 'XP.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+            </div>
+            <div class="truncate font-mono text-base font-semibold text-text-primary">
+              {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION' | translate: { Default: 'model_gateway_call' } }}
+            </div>
+          </div>
 
-        <button
-          z-button
-          class="justify-self-start md:self-end"
-          zType="default"
-          displayDensity="cosy"
-          type="submit"
-          [zLoading]="loading()"
-          [disabled]="loading() || form.pristine || form.invalid"
-        >
-          {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-        </button>
+          <z-switch formControlName="modelGatewayCallRetentionEnabled" zSize="sm" labelPosition="before">
+            {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_ENABLED' | translate: { Default: 'Enable cleanup' } }}
+          </z-switch>
+        </div>
+
+        <div class="px-4 py-4">
+          <z-form-field appearance="fill" class="w-full max-w-64">
+            <z-form-label [zRequired]="true">
+              {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
+            </z-form-label>
+            <input
+              z-input
+              type="number"
+              [min]="minModelGatewayCallRetentionDays"
+              [max]="maxModelGatewayCallRetentionDays"
+              step="1"
+              formControlName="modelGatewayCallRetentionDays"
+              [zStatus]="
+                modelGatewayCallRetentionDaysCtrl.invalid && modelGatewayCallRetentionDaysCtrl.touched
+                  ? 'error'
+                  : undefined
+              "
+            />
+            @if (modelGatewayCallRetentionDaysCtrl.invalid && modelGatewayCallRetentionDaysCtrl.touched) {
+              <z-form-message zType="error">
+                {{
+                  'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS_ERROR'
+                    | translate: { Default: modelGatewayCallRetentionDaysErrorDefault }
+                }}
+              </z-form-message>
+            }
+          </z-form-field>
+        </div>
       </div>
+
+      <button
+        z-button
+        zType="default"
+        displayDensity="cosy"
+        type="submit"
+        [zLoading]="loading()"
+        [disabled]="loading() || form.pristine || form.invalid"
+      >
+        {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+      </button>
     </div>
   </section>
 </form>

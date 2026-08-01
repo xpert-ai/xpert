@@ -3,8 +3,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { UsersService } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent, NgmStepperComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { UsersService } from '@cloud/app/@core/state'
+import { XpSpinComponent, XpStepperComponent, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, IUserUpdateInput } from '../../../@core'
@@ -18,10 +18,10 @@ import { FilesUploadComponent, UploadFile } from '../../files'
     TranslateModule,
     DragDropModule,
     FilesUploadComponent,
-    NgmStepperComponent,
-    NgmTableComponent,
-    NgmSpinComponent
-],
+    XpStepperComponent,
+    XpTableComponent,
+    XpSpinComponent
+  ],
   selector: 'user-upload',
   templateUrl: 'upload.component.html',
   styleUrls: ['upload.component.scss']
@@ -38,13 +38,13 @@ export class UserUploadComponent {
       title: {
         en_US: 'Upload files',
         zh_Hans: '上传文件'
-      },
+      }
     },
     {
       title: {
         en_US: 'Save',
         zh_Hans: '保存'
-      },
+      }
     }
   ]
 
@@ -90,7 +90,7 @@ export class UserUploadComponent {
     this.userService.createBulk(this.users()).subscribe({
       next: (users) => {
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved Successfully' })
+        this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved Successfully' })
         this.#dialogRef.close(users)
       },
       error: (err) => {
@@ -101,17 +101,17 @@ export class UserUploadComponent {
   }
 
   downloadTempl() {
-    const csvContent = 'username,email,hash,firstName,lastName,roleName,thirdPartyId\r\n';
+    const csvContent = 'username,email,hash,firstName,lastName,roleName,thirdPartyId\r\n'
     const bom = '\uFEFF'
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'template.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'template.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   close() {

@@ -1,8 +1,7 @@
-
 import { Component, booleanAttribute, input, output } from '@angular/core'
 
-import { NgmDndDirective } from '@xpert-ai/core'
-import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { XpDndDirective } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
@@ -19,16 +18,15 @@ export type UploadFile = {
     ZardButtonComponent,
     ZardIconComponent,
     ZardProgressBarComponent,
-    AppearanceDirective,
+    XpAppearanceDirective,
     DensityDirective,
-    NgmDndDirective
-],
-  selector: 'pac-upload',
+    XpDndDirective
+  ],
+  selector: 'xp-upload',
   templateUrl: './upload.component.html',
   styleUrls: ['./upload.component.scss']
 })
 export class FilesUploadComponent {
-
   // Inputs
   readonly files = input<UploadFile[]>([])
   readonly description = input<string>()

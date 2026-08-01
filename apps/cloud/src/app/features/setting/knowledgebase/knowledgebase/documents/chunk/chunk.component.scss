@@ -1,5 +1,5 @@
-@use 'packages/angular/core/style/token-utils' as token-utils;
-@use 'packages/angular/core/style/sass-utils';
+@use 'packages/ui/src/lib/ui/compat/core/style/token-utils' as token-utils;
+@use 'packages/ui/src/lib/ui/compat/core/style/sass-utils';
 @reference "../../../../../../../styles/tailwind-reference.css";
 $prefix: (ngm, document-chunk);
 $prefix-color: (#{$prefix}, color);

@@ -21,7 +21,7 @@ jest.mock('../../../@core', () => ({
 jest.mock('../../../@shared/files', () => {
   @Component({
     standalone: true,
-    selector: 'pac-file-workbench',
+    selector: 'xp-file-workbench',
     template: ''
   })
   class MockFileWorkbenchComponentImpl {

@@ -4,30 +4,21 @@ const { execFileSync } = require('child_process')
 const ts = require('typescript')
 
 const repoRoot = process.cwd()
-const scanRoots = [
-  'apps/cloud/src',
-  'libs/apps',
-  'libs/component-angular',
-  'libs/story-angular',
-  'libs/formly',
-  'packages/angular',
-  'packages/ui',
-  'legacies/copilot-angular/src'
-]
+const scanRoots = ['apps/cloud/src', 'libs/apps', 'libs/formly', 'packages/ui']
 const excludedFiles = new Set([
   'apps/cloud/src/styles/themes/base.scss',
   'apps/cloud/src/styles/theme/theme.tokens.css'
 ])
 const excludedPathPrefixes = ['apps/cloud/src/app/@core/theme/echarts/']
-const excludedPathSuffixes = ['packages/angular/core/style/_theme-compat.scss']
+const excludedPathSuffixes = ['packages/ui/src/lib/ui/compat/core/style/_theme-compat.scss']
 const fileExtensions = new Set(['.html', '.scss', '.css', '.ts', '.sass'])
 const maxReportedRegressions = 80
 const explicitLegacyScanFiles = [
   'tailwind.theme.vars.js',
-  'packages/angular/tailwind.config.js',
   'apps/cloud/src/styles/theme/theme.aliases.css',
   'apps/cloud/src/styles/theme/theme.tailwind.css'
 ]
+const migratedHeadPathAliases = [['packages/ui/src/lib/ui/compat/', 'packages/angular/']]
 const hardcodedColorFamilies = [
   'slate',
   'gray',
@@ -327,7 +318,22 @@ function readStagedFile(relativeFile) {
 }
 
 function readHeadFile(relativeFile) {
-  return runGit(['show', `HEAD:${relativeFile}`], { allowFailure: true, stdio: ['ignore', 'pipe', 'ignore'] }) || ''
+  const currentPathContent = runGit(['show', `HEAD:${relativeFile}`], {
+    allowFailure: true,
+    stdio: ['ignore', 'pipe', 'ignore']
+  })
+  if (currentPathContent !== null) {
+    return currentPathContent
+  }
+
+  const alias = migratedHeadPathAliases.find(([currentPrefix]) => relativeFile.startsWith(currentPrefix))
+  if (!alias) {
+    return ''
+  }
+
+  const [currentPrefix, headPrefix] = alias
+  const headPath = `${headPrefix}${relativeFile.slice(currentPrefix.length)}`
+  return runGit(['show', `HEAD:${headPath}`], { allowFailure: true, stdio: ['ignore', 'pipe', 'ignore'] }) || ''
 }
 
 function buildLineStarts(text) {

@@ -9,6 +9,7 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -17,7 +18,8 @@ import { environment } from '@cloud/environments/environment'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective, ZardMenuImports } from '@xpert-ai/headless-ui'
 import { TChatElementReference } from '@xpert-ai/contracts'
-import { injectToastr, resolveAbsoluteApiBaseUrl } from '../../../@core'
+import { firstValueFrom } from 'rxjs'
+import { injectToastr, resolveAbsoluteApiBaseUrl, SandboxService } from '../../../@core'
 import {
   createClawXpertManagedServicesBrowserController,
   type ClawXpertManagedServicesBrowserControllerOptions,
@@ -75,85 +77,85 @@ type DeviceViewportPointer = {
 const DEVICE_VIEWPORT_PRESETS: readonly DeviceViewportPreset[] = [
   {
     id: RESPONSIVE_DEVICE_PRESET_ID,
-    labelKey: 'PAC.Chat.ClawXpert.Responsive',
+    labelKey: 'XP.Chat.ClawXpert.Responsive',
     defaultLabel: 'Responsive',
     width: DEFAULT_DEVICE_VIEWPORT_WIDTH,
     height: DEFAULT_DEVICE_VIEWPORT_HEIGHT
   },
-  { id: '4k', labelKey: 'PAC.Chat.ClawXpert.DevicePreset4K', defaultLabel: '4K', width: 3840, height: 2160 },
+  { id: '4k', labelKey: 'XP.Chat.ClawXpert.DevicePreset4K', defaultLabel: '4K', width: 3840, height: 2160 },
   {
     id: 'laptop-l',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetLaptopL',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetLaptopL',
     defaultLabel: 'Laptop L',
     width: 1440,
     height: 900
   },
   {
     id: 'laptop',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetLaptop',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetLaptop',
     defaultLabel: 'Laptop',
     width: 1280,
     height: 800
   },
   {
     id: 'surface-pro-7',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetSurfacePro7',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetSurfacePro7',
     defaultLabel: 'Surface Pro 7',
     width: 912,
     height: 1368
   },
   {
     id: 'ipad-air',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPadAir',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPadAir',
     defaultLabel: 'iPad Air',
     width: 820,
     height: 1180
   },
   {
     id: 'ipad-mini',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPadMini',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPadMini',
     defaultLabel: 'iPad Mini',
     width: 768,
     height: 1024
   },
   {
     id: 'surface-duo',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetSurfaceDuo',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetSurfaceDuo',
     defaultLabel: 'Surface Duo',
     width: 540,
     height: 720
   },
   {
     id: 'iphone-15-pro-max',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPhone15ProMax',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPhone15ProMax',
     defaultLabel: 'iPhone 15 Pro Max',
     width: 430,
     height: 932
   },
   {
     id: 'pixel-8',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetPixel8',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetPixel8',
     defaultLabel: 'Pixel 8',
     width: 412,
     height: 915
   },
   {
     id: 'iphone-15-pro',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPhone15Pro',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPhone15Pro',
     defaultLabel: 'iPhone 15 Pro',
     width: 393,
     height: 852
   },
   {
     id: 'samsung-galaxy-s24-ultra',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetSamsungGalaxyS24Ultra',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetSamsungGalaxyS24Ultra',
     defaultLabel: 'Samsung Galaxy S24 Ultra',
     width: 384,
     height: 824
   },
   {
     id: 'iphone-se',
-    labelKey: 'PAC.Chat.ClawXpert.DevicePresetIPhoneSE',
+    labelKey: 'XP.Chat.ClawXpert.DevicePresetIPhoneSE',
     defaultLabel: 'iPhone SE',
     width: 375,
     height: 667
@@ -162,6 +164,7 @@ const DEVICE_VIEWPORT_PRESETS: readonly DeviceViewportPreset[] = [
 
 type BrowserNavigationOptions = {
   emitState?: boolean
+  preserveManagedService?: boolean
   pushHistory?: boolean
 }
 
@@ -449,7 +452,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-conversation-preview',
+  selector: 'xp-clawxpert-conversation-preview',
   imports: [CommonModule, FormsModule, TranslateModule, ZardButtonComponent, ZardInputDirective, ...ZardMenuImports],
   template: `
     <div
@@ -493,7 +496,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
                 class="h-8 w-full rounded-xl border-divider-regular bg-components-card-bg pl-3 pr-8 text-center text-sm text-text-primary"
                 [ngModel]="addressValue()"
                 (ngModelChange)="addressValue.set($event)"
-                [placeholder]="'PAC.Chat.ClawXpert.EnterUrl' | translate: { Default: 'Enter URL' }"
+                [placeholder]="'XP.Chat.ClawXpert.EnterUrl' | translate: { Default: 'Enter URL' }"
               />
               <button
                 type="submit"
@@ -565,7 +568,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               name="deviceViewportWidth"
               data-device-width
               class="h-8 w-20 rounded-xl border-divider-regular bg-components-card-bg text-center text-sm text-text-primary"
-              [attr.aria-label]="'PAC.Chat.ClawXpert.DeviceWidth' | translate: { Default: 'Device width' }"
+              [attr.aria-label]="'XP.Chat.ClawXpert.DeviceWidth' | translate: { Default: 'Device width' }"
               [value]="deviceViewportWidthText()"
               (input)="setDeviceViewportWidthFromEvent($event)"
             />
@@ -577,7 +580,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               name="deviceViewportHeight"
               data-device-height
               class="h-8 w-20 rounded-xl border-divider-regular bg-components-card-bg text-center text-sm text-text-primary"
-              [attr.aria-label]="'PAC.Chat.ClawXpert.DeviceHeight' | translate: { Default: 'Device height' }"
+              [attr.aria-label]="'XP.Chat.ClawXpert.DeviceHeight' | translate: { Default: 'Device height' }"
               [value]="deviceViewportHeightText()"
               (input)="setDeviceViewportHeightFromEvent($event)"
             />
@@ -585,7 +588,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               type="button"
               data-device-rotate
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-              [title]="'PAC.Chat.ClawXpert.RotateDevice' | translate: { Default: 'Rotate device' }"
+              [title]="'XP.Chat.ClawXpert.RotateDevice' | translate: { Default: 'Rotate device' }"
               (click)="rotateDeviceViewport()"
             >
               <i class="ri-anticlockwise-2-line text-lg"></i>
@@ -594,7 +597,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               type="button"
               data-device-toolbar-close
               class="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-              [title]="'PAC.Chat.ClawXpert.CloseDeviceToolbar' | translate: { Default: 'Close device toolbar' }"
+              [title]="'XP.Chat.ClawXpert.CloseDeviceToolbar' | translate: { Default: 'Close device toolbar' }"
               (click)="closeDeviceToolbar()"
             >
               <i class="ri-close-line text-xl"></i>
@@ -698,11 +701,11 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <i class="ri-layout-4-line text-3xl text-text-tertiary"></i>
             <div class="mt-4 text-base font-medium text-text-primary">
-              {{ 'PAC.Chat.ClawXpert.BrowserEmptyTitle' | translate: { Default: 'No URL open' } }}
+              {{ 'XP.Chat.ClawXpert.BrowserEmptyTitle' | translate: { Default: 'No URL open' } }}
             </div>
             <div class="mt-2 max-w-md text-sm text-text-secondary">
               {{
-                'PAC.Chat.ClawXpert.BrowserEmptyDesc'
+                'XP.Chat.ClawXpert.BrowserEmptyDesc'
                   | translate
                     : {
                         Default: 'Enter a URL in the address bar or open a preview event to browse it here.'
@@ -717,19 +720,19 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
     <ng-template #browserMenu>
       <div z-menu-content class="w-64">
         <button type="button" z-menu-item (click)="forceReload()">
-          {{ 'PAC.Chat.ClawXpert.ForceReload' | translate: { Default: 'Force reload' } }}
+          {{ 'XP.Chat.ClawXpert.ForceReload' | translate: { Default: 'Force reload' } }}
         </button>
         <button type="button" z-menu-item (click)="toggleDeviceToolbar()">
           @if (deviceToolbar()) {
-            {{ 'PAC.Chat.ClawXpert.HideDeviceToolbar' | translate: { Default: 'Hide device toolbar' } }}
+            {{ 'XP.Chat.ClawXpert.HideDeviceToolbar' | translate: { Default: 'Hide device toolbar' } }}
           } @else {
-            {{ 'PAC.Chat.ClawXpert.ShowDeviceToolbar' | translate: { Default: 'Show device toolbar' } }}
+            {{ 'XP.Chat.ClawXpert.ShowDeviceToolbar' | translate: { Default: 'Show device toolbar' } }}
           }
         </button>
         <div
           class="flex items-center justify-between border-y border-divider-regular px-3 py-2 text-sm text-text-secondary"
         >
-          <span>{{ 'PAC.Chat.ClawXpert.Zoom' | translate: { Default: 'Zoom' } }}</span>
+          <span>{{ 'XP.Chat.ClawXpert.Zoom' | translate: { Default: 'Zoom' } }}</span>
           <div class="flex items-center rounded-lg border border-divider-regular">
             <button type="button" class="h-8 w-8" (click)="zoomOut()">-</button>
             <span class="min-w-14 text-center">{{ zoomLevel() }}%</span>
@@ -737,10 +740,10 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
           </div>
         </div>
         <button type="button" z-menu-item (click)="clearCookies()">
-          {{ 'PAC.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
+          {{ 'XP.Chat.ClawXpert.ClearCookie' | translate: { Default: 'Clear Cookie' } }}
         </button>
         <button type="button" z-menu-item (click)="clearCache()">
-          {{ 'PAC.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
+          {{ 'XP.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
         </button>
       </div>
     </ng-template>
@@ -771,8 +774,11 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
 export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly #sanitizer = inject(DomSanitizer)
   readonly #apiBaseUrl = resolveAbsoluteApiBaseUrl(environment.API_BASE_URL)
+  readonly #sandboxService = inject(SandboxService)
   readonly #toastr = injectToastr()
   readonly #document = inject(DOCUMENT)
+  #managedPreviewRequestId = 0
+  #lastAppliedReloadKey: number | undefined
   #frameCleanup: (() => void) | null = null
   #frameSyncRequestId: number | null = null
   #frameSyncWindow: Window | null = null
@@ -791,8 +797,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly frameRef = viewChild<ElementRef<HTMLIFrameElement>>('previewFrame')
 
   readonly addressValue = signal('')
+  readonly activeServiceId = signal<string | null>(null)
   readonly displayUrl = signal<string | null>(null)
   readonly externalUrl = signal<string | null>(null)
+  readonly managedPreviewUrl = signal<string | null>(null)
   readonly zoomLevel = signal(DEFAULT_ZOOM_LEVEL)
   readonly deviceToolbar = signal(false)
   readonly deviceViewportWidth = signal(DEFAULT_DEVICE_VIEWPORT_WIDTH)
@@ -816,33 +824,64 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     )
   })
   readonly selectedDevicePresetLabelKey = computed(
-    () => this.selectedDevicePreset()?.labelKey ?? 'PAC.Chat.ClawXpert.Responsive'
+    () => this.selectedDevicePreset()?.labelKey ?? 'XP.Chat.ClawXpert.Responsive'
   )
   readonly selectedDevicePresetDefaultLabel = computed(() => this.selectedDevicePreset()?.defaultLabel ?? 'Responsive')
   readonly activeOverlay = computed(() => this.selectedOverlay() ?? this.hoveredOverlay())
-  readonly hasBrowserTarget = computed(() => !!this.externalUrl())
+  readonly hasManagedPreview = computed(
+    () => isNonEmptyString(this.conversationId()) && isNonEmptyString(this.activeServiceId())
+  )
+  readonly hasBrowserTarget = computed(() =>
+    this.hasManagedPreview() ? !!this.managedPreviewUrl() : !!this.externalUrl()
+  )
   readonly canGoBack = computed(() => this.historyIndex() > 0)
   readonly canGoForward = computed(() => this.historyIndex() >= 0 && this.historyIndex() < this.history().length - 1)
   readonly framePercentSize = computed(() => 100 / (this.zoomLevel() / 100))
   readonly frameTransform = computed(() => `scale(${this.zoomLevel() / 100})`)
   readonly externalResourceUrl = computed<SafeResourceUrl | null>(() => {
     const externalUrl = this.externalUrl()
-    const browserUrl = externalUrl ? sameOriginApiProxyUrl(externalUrl, this.#apiBaseUrl) : null
-    const previewUrl = browserUrl ? appendBrowserCacheKey(browserUrl, this.reloadNonce(), this.cacheBustNonce()) : null
+    const managedPreviewUrl = this.hasManagedPreview() ? this.managedPreviewUrl() : null
+    const browserUrl = managedPreviewUrl ?? (externalUrl ? sameOriginApiProxyUrl(externalUrl, this.#apiBaseUrl) : null)
+    const previewUrl = managedPreviewUrl
+      ? managedPreviewUrl
+      : browserUrl
+        ? appendBrowserCacheKey(browserUrl, this.reloadNonce(), this.cacheBustNonce())
+        : null
     return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
   })
   readonly browserResourceUrl = computed(() => this.externalResourceUrl())
-  readonly openableUrl = computed(() => this.externalUrl())
+  readonly openableUrl = computed(() => (this.hasManagedPreview() ? this.managedPreviewUrl() : this.externalUrl()))
 
   constructor() {
     effect(() => {
-      this.conversationId()
-      this.resetFrameState()
-      this.externalUrl.set(null)
-      this.displayUrl.set(null)
-      this.addressValue.set('')
-      this.history.set([])
-      this.historyIndex.set(-1)
+      const conversationId = this.conversationId()
+      const serviceId = this.serviceId()
+      const url = this.url()
+      const normalizedServiceId = isNonEmptyString(serviceId) ? serviceId : null
+
+      untracked(() => {
+        this.#managedPreviewRequestId += 1
+        this.resetFrameState()
+        this.activeServiceId.set(normalizedServiceId)
+        this.externalUrl.set(null)
+        this.managedPreviewUrl.set(null)
+        this.displayUrl.set(null)
+        this.addressValue.set('')
+        this.history.set([])
+        this.historyIndex.set(-1)
+
+        if (isNonEmptyString(url)) {
+          void this.navigateToAddress(url, {
+            emitState: false,
+            preserveManagedService: true,
+            pushHistory: false
+          })
+        }
+
+        if (isNonEmptyString(conversationId) && normalizedServiceId) {
+          void this.loadManagedPreviewSession(conversationId, normalizedServiceId)
+        }
+      })
     })
 
     effect(() => {
@@ -856,26 +895,26 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     effect(() => {
       const reloadKey = this.reloadKey()
       const nextReloadKey = typeof reloadKey === 'number' && Number.isFinite(reloadKey) ? reloadKey : 0
-      if (this.reloadNonce() !== nextReloadKey) {
+      untracked(() => {
+        const reloadAlreadyApplied = this.reloadNonce() === nextReloadKey
+        const shouldReloadManagedPreview = this.#lastAppliedReloadKey !== undefined && !reloadAlreadyApplied
+        this.#lastAppliedReloadKey = nextReloadKey
         this.reloadNonce.set(nextReloadKey)
-      }
-    })
 
-    effect(() => {
-      this.conversationId()
-      const url = this.url()
-      this.serviceId()
-
-      if (isNonEmptyString(url)) {
-        void this.navigateToAddress(url, {
-          emitState: false,
-          pushHistory: false
-        })
-      }
+        if (shouldReloadManagedPreview) {
+          const conversationId = this.conversationId()
+          const serviceId = this.activeServiceId()
+          if (isNonEmptyString(conversationId) && isNonEmptyString(serviceId)) {
+            this.resetFrameState()
+            void this.loadManagedPreviewSession(conversationId, serviceId)
+          }
+        }
+      })
     })
   }
 
   ngOnDestroy(): void {
+    this.#managedPreviewRequestId += 1
     this.stopDeviceViewportResize()
     this.destroyFrameListeners()
   }
@@ -896,6 +935,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   }
 
   async navigateToAddress(rawAddress: string, options: BrowserNavigationOptions = {}) {
+    if (!options.preserveManagedService) {
+      this.clearManagedPreview()
+    }
+
     const address = rawAddress.trim()
     if (!address) {
       this.externalUrl.set(null)
@@ -908,7 +951,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
     const normalizedUrl = normalizeAddressUrl(address)
     if (!normalizedUrl) {
-      this.#toastr.warning('PAC.Chat.ClawXpert.InvalidUrl', {
+      this.#toastr.warning('XP.Chat.ClawXpert.InvalidUrl', {
         Default: 'Enter a valid URL.'
       })
       return
@@ -962,6 +1005,11 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   reloadFrame() {
     this.reloadNonce.update((value) => value + 1)
     this.resetFrameState()
+    const conversationId = this.conversationId()
+    const serviceId = this.activeServiceId()
+    if (isNonEmptyString(conversationId) && isNonEmptyString(serviceId)) {
+      void this.loadManagedPreviewSession(conversationId, serviceId)
+    }
     this.emitBrowserState()
   }
 
@@ -1413,10 +1461,42 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
       deviceToolbarVisible: this.deviceToolbar(),
       displayUrl,
       reloadKey: this.reloadNonce(),
-      serviceId: null,
+      serviceId: this.activeServiceId(),
       url: this.externalUrl() ?? displayUrl,
       zoom: this.zoomLevel()
     })
+  }
+
+  private clearManagedPreview() {
+    this.#managedPreviewRequestId += 1
+    this.activeServiceId.set(null)
+    this.managedPreviewUrl.set(null)
+  }
+
+  private async loadManagedPreviewSession(conversationId: string, serviceId: string) {
+    const requestId = ++this.#managedPreviewRequestId
+    this.managedPreviewUrl.set(null)
+
+    try {
+      const session = await firstValueFrom(
+        this.#sandboxService.createManagedServicePreviewSession(conversationId, serviceId)
+      )
+      if (
+        requestId !== this.#managedPreviewRequestId ||
+        this.conversationId() !== conversationId ||
+        this.activeServiceId() !== serviceId
+      ) {
+        return
+      }
+
+      this.managedPreviewUrl.set(session.previewUrl)
+    } catch {
+      if (requestId !== this.#managedPreviewRequestId) {
+        return
+      }
+
+      this.#toastr.error('XP.Chat.ClawXpert.PreviewUnavailableDesc')
+    }
   }
 
   private readInputEventValue(event: Event, fallback: number) {

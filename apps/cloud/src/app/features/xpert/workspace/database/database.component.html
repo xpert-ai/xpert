@@ -1,14 +1,18 @@
 <div class="flex justify-between items-center gap-2 px-4">
   <div class="grow flex justify-start items-center gap-2">
-    <ngm-select class="w-40" [placeholder]="statusPlaceholder()" [selectOptions]="statusOptions" [(ngModel)]="status" />
-    <ngm-select class="w-40" [placeholder]="databasePlaceholder()" [selectOptions]="databases$ | async" [(ngModel)]="dataSourceId" />
+    <xp-select class="w-40" [placeholder]="statusPlaceholder()" [selectOptions]="statusOptions" [(ngModel)]="status" />
+    <xp-select
+      class="w-40"
+      [placeholder]="databasePlaceholder()"
+      [selectOptions]="databases$ | async"
+      [(ngModel)]="dataSourceId"
+    />
   </div>
-  
+
   <div class="flex space-x-2">
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-      (click)="addTable()">
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium" (click)="addTable()">
       <i class="ri-add-line mr-1"></i>
-      <div>{{ 'PAC.Workspace.NewTable' | translate: {Default: 'New Table'} }}</div>
+      <div>{{ 'XP.Workspace.NewTable' | translate: { Default: 'New Table' } }}</div>
     </button>
     <!-- <div class="relative">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-8 p-0"
@@ -24,13 +28,27 @@
   <table class="min-w-full divide-y divide-divider-deep">
     <thead class="bg-background-default-subtle">
       <tr>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Version' | translate: {Default: 'Version'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.Workspace.ActivatedAt' | translate: {Default: 'Activated At'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Message' | translate: {Default: 'Message'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.Workspace.TableName' | translate: { Default: 'Table Name' } }}
+        </th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
+        </th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+        </th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.KEY_WORDS.Version' | translate: { Default: 'Version' } }}
+        </th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.Workspace.ActivatedAt' | translate: { Default: 'Activated At' } }}
+        </th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.KEY_WORDS.Message' | translate: { Default: 'Message' } }}
+        </th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">
+          {{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
+        </th>
       </tr>
     </thead>
     <tbody class="bg-components-panel-bg divide-y divide-divider-deep">
@@ -39,38 +57,51 @@
           <td class="px-4 py-2 whitespace-nowrap text-sm text-text-primary">{{ table.name }}</td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.description || '-' }}</td>
           <td class="px-4 py-2 whitespace-nowrap text-sm">
-            <span class="px-2 py-1 rounded-full text-xs font-semibold"
+            <span
+              class="px-2 py-1 rounded-full text-xs font-semibold"
               [ngClass]="{
                 'bg-green-100 text-green-800': table.status === eXpertTableStatus.ACTIVE,
                 'bg-yellow-100 text-yellow-800': table.status === eXpertTableStatus.PENDING_ACTIVATION,
                 'bg-red-100 text-red-800': table.status === eXpertTableStatus.DEPRECATED
-              }">
+              }"
+            >
               {{ table.status }}
             </span>
           </td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.version || '-' }}</td>
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.activatedAt ? (table.activatedAt | date:'yyyy-MM-dd HH:mm') : '-' }}</td>
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">
+            {{ table.activatedAt ? (table.activatedAt | date: 'yyyy-MM-dd HH:mm') : '-' }}
+          </td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.message }}</td>
           <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.xpertId }}</td> -->
           <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">
             <div class="flex gap-1">
               <!-- Activate button hidden -->
-              <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg" type="button"
+              <button
+                class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg"
+                type="button"
                 (click)="activate(table.id)"
-                [title]="'PAC.Workspace.ActivateTable' | translate: {Default: 'Activate Table'}"
-                hidden>
+                [title]="'XP.Workspace.ActivateTable' | translate: { Default: 'Activate Table' }"
+                hidden
+              >
                 <i class="ri-magic-line"></i>
               </button>
 
-              <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg" type="button"
+              <button
+                class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg"
+                type="button"
                 (click)="editTable(table)"
-                [title]="'PAC.Workspace.EditTable' | translate: {Default: 'Edit Table'}">
+                [title]="'XP.Workspace.EditTable' | translate: { Default: 'Edit Table' }"
+              >
                 <i class="ri-edit-line"></i>
               </button>
 
-              <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg text-red-500 hover:bg-red-50" type="button"
+              <button
+                class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg text-red-500 hover:bg-red-50"
+                type="button"
                 (click)="deleteTable(table)"
-                [title]="'PAC.Workspace.DeleteTable' | translate: {Default: 'Delete Table'}">
+                [title]="'XP.Workspace.DeleteTable' | translate: { Default: 'Delete Table' }"
+              >
                 <i class="ri-delete-bin-line"></i>
               </button>
             </div>
@@ -82,15 +113,25 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center" />
+  <xp-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center" />
 }
 
 @if (table()) {
-  <div class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-background-default-subtle rounded-2xl border border-solid border-divider-deep shadow-lg max-w-[95vw] mx-auto overflow-auto z-10">
+  <div
+    class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-background-default-subtle rounded-2xl border border-solid border-divider-deep shadow-lg max-w-[95vw] mx-auto overflow-auto z-10"
+  >
     <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold mb-4">{{ (table().id ? 'PAC.Workspace.EditTable' : 'PAC.Workspace.NewTable') | translate: {Default: table().id ? 'Edit Table' : 'New Table'} }}</h2>
-      <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-hover-bg hover:text-text-destructive"
-        (click)="closeTableDialog()">
+      <h2 class="text-xl font-semibold mb-4">
+        {{
+          (table().id ? 'XP.Workspace.EditTable' : 'XP.Workspace.NewTable')
+            | translate: { Default: table().id ? 'Edit Table' : 'New Table' }
+        }}
+      </h2>
+      <button
+        type="button"
+        class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-hover-bg hover:text-text-destructive"
+        (click)="closeTableDialog()"
+      >
         <i class="ri-close-line text-2xl"></i>
       </button>
     </div>
@@ -98,40 +139,58 @@
     <!-- Basic Information -->
     <div class="space-y-4 bg-components-panel-bg p-4 rounded-lg border border-divider-deep">
       <div>
-        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Database' | translate: {Default: 'Database'} }} *</label>
-        <div>
-          <ngm-select [placeholder]="'PAC.Workspace.SelectDatabase' | translate: {Default: 'Select Database'}" [selectOptions]="databases$ | async" [(ngModel)]="database" [nullable]="false" />
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Schema' | translate: {Default: 'Schema'} }} *</label>
-        <div>
-          <ngm-select [placeholder]="'PAC.Workspace.SelectSchema' | translate: {Default: 'Select Schema'}" [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="true" />
-        </div>
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }} *</label>
-        <input z-input type="text"
-          [(ngModel)]="name"
-        />
-      </div>
-      
-
-      <div>
-        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableDescription' | translate: {Default: 'Table Description'} }}</label>
-        <input z-input type="text"
-          [(ngModel)]="description"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.QueryMode' | translate: {Default: 'Query Mode'} }}</label>
-        <z-select [zValue]="'single'"
+        <label class="block text-sm font-medium mb-1"
+          >{{ 'XP.Workspace.Database' | translate: { Default: 'Database' } }} *</label
         >
-          <z-select-item zValue="single">{{ 'PAC.Workspace.SingleUserMode' | translate: {Default: 'Single User Mode'} }}</z-select-item>
-          <z-select-item zValue="multi">{{ 'PAC.Workspace.MultiUserMode' | translate: {Default: 'Multi User Mode'} }}</z-select-item>
+        <div>
+          <xp-select
+            [placeholder]="'XP.Workspace.SelectDatabase' | translate: { Default: 'Select Database' }"
+            [selectOptions]="databases$ | async"
+            [(ngModel)]="database"
+            [nullable]="false"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1"
+          >{{ 'XP.Workspace.Schema' | translate: { Default: 'Schema' } }} *</label
+        >
+        <div>
+          <xp-select
+            [placeholder]="'XP.Workspace.SelectSchema' | translate: { Default: 'Select Schema' }"
+            [selectOptions]="schemasOptions()"
+            [(ngModel)]="schema"
+            [nullable]="true"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1"
+          >{{ 'XP.Workspace.TableName' | translate: { Default: 'Table Name' } }} *</label
+        >
+        <input z-input type="text" [(ngModel)]="name" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">{{
+          'XP.Workspace.TableDescription' | translate: { Default: 'Table Description' }
+        }}</label>
+        <input z-input type="text" [(ngModel)]="description" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">{{
+          'XP.Workspace.QueryMode' | translate: { Default: 'Query Mode' }
+        }}</label>
+        <z-select [zValue]="'single'">
+          <z-select-item zValue="single">{{
+            'XP.Workspace.SingleUserMode' | translate: { Default: 'Single User Mode' }
+          }}</z-select-item>
+          <z-select-item zValue="multi">{{
+            'XP.Workspace.MultiUserMode' | translate: { Default: 'Multi User Mode' }
+          }}</z-select-item>
         </z-select>
       </div>
     </div>
@@ -139,20 +198,24 @@
     <!-- Field Definition -->
     <div class="mt-6 bg-components-panel-bg p-4 rounded-lg border border-divider-deep">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-md font-semibold text-text-primary">{{ 'PAC.Workspace.FieldDefinition' | translate: {Default: 'Field Definition'} }}</h3>
-        <button z-button type="button" zSize="sm" (click)="addColumn()"
-          class=" gap-1"
-        >
-          <i class="ri-add-line"></i> {{ 'PAC.Workspace.AddField' | translate: {Default: 'Add Field'} }}
+        <h3 class="text-md font-semibold text-text-primary">
+          {{ 'XP.Workspace.FieldDefinition' | translate: { Default: 'Field Definition' } }}
+        </h3>
+        <button z-button type="button" zSize="sm" (click)="addColumn()" class="gap-1">
+          <i class="ri-add-line"></i> {{ 'XP.Workspace.AddField' | translate: { Default: 'Add Field' } }}
         </button>
       </div>
 
       <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2 pl-4">
         @for (col of table().columns; track col; let i = $index) {
-          <div class="relative border border-divider-deep rounded-xl p-4 bg-components-card-bg hover:shadow-md hover:border-components-button-primary-border transition-all ml-2">
+          <div
+            class="relative border border-divider-deep rounded-xl p-4 bg-components-card-bg hover:shadow-md hover:border-components-button-primary-border transition-all ml-2"
+          >
             <!-- Field sequence number marker -->
-            <div class="absolute -left-5 top-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
-              {{i + 1}}
+            <div
+              class="absolute -left-5 top-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md"
+            >
+              {{ i + 1 }}
             </div>
 
             <!-- Main content area - use flex layout to ensure single line display -->
@@ -160,35 +223,40 @@
               <!-- Field Name -->
               <div style="width: 160px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                  <i class="ri-text text-blue-500"></i> {{ 'PAC.Workspace.FieldName' | translate: {Default: 'Field Name'} }} <span class="text-red-500">*</span>
+                  <i class="ri-text text-blue-500"></i>
+                  {{ 'XP.Workspace.FieldName' | translate: { Default: 'Field Name' } }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <input
                   z-input
                   type="text"
                   zSize="sm"
                   [(ngModel)]="col.name"
-                  [placeholder]="'PAC.Workspace.FieldNamePlaceholder' | translate: {Default: 'e.g. user_id'}"
+                  [placeholder]="'XP.Workspace.FieldNamePlaceholder' | translate: { Default: 'e.g. user_id' }"
                 />
               </div>
 
               <!-- Description -->
               <div style="width: 180px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                  <i class="ri-file-text-line text-text-tertiary"></i> {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
+                  <i class="ri-file-text-line text-text-tertiary"></i>
+                  {{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
                 </label>
                 <input
                   z-input
                   type="text"
                   zSize="sm"
                   [(ngModel)]="col.label"
-                  [placeholder]="'PAC.Workspace.FieldDescription' | translate: {Default: 'Field description'}"
+                  [placeholder]="'XP.Workspace.FieldDescription' | translate: { Default: 'Field description' }"
                 />
               </div>
 
               <!-- Data Type -->
               <div style="width: 140px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                  <i class="ri-code-box-line text-purple-500"></i> {{ 'PAC.Workspace.DataType' | translate: {Default: 'Data Type'} }} <span class="text-red-500">*</span>
+                  <i class="ri-code-box-line text-purple-500"></i>
+                  {{ 'XP.Workspace.DataType' | translate: { Default: 'Data Type' } }}
+                  <span class="text-red-500">*</span>
                 </label>
                 <z-select zSize="sm" [(ngModel)]="col.type">
                   @for (option of types(); track option.value) {
@@ -200,17 +268,26 @@
               </div>
 
               <!-- Field Length (shown for CHAR, VARCHAR, and TEXT types) -->
-              @if (col.type === 'char' || col.type === 'string' || col.type === 'text' || col.type === 'tinytext' || col.type === 'mediumtext' || col.type === 'longtext') {
+              @if (
+                col.type === 'char' ||
+                col.type === 'string' ||
+                col.type === 'text' ||
+                col.type === 'tinytext' ||
+                col.type === 'mediumtext' ||
+                col.type === 'longtext'
+              ) {
                 <div style="width: 90px">
-                  <label class="text-xs font-medium text-text-secondary block mb-1.5">{{ 'PAC.Workspace.Length' | translate: {Default: 'Length'} }}</label>
+                  <label class="text-xs font-medium text-text-secondary block mb-1.5">{{
+                    'XP.Workspace.Length' | translate: { Default: 'Length' }
+                  }}</label>
                   <input
                     z-input
                     type="number"
                     zSize="sm"
-                    class=" text-center"
+                    class="text-center"
                     [ngModel]="col.length"
                     (ngModelChange)="col.length = $event === '' || $event === null ? undefined : +$event"
-                    [placeholder]="'PAC.Workspace.Length' | translate: {Default: 'Length'}"
+                    [placeholder]="'XP.Workspace.Length' | translate: { Default: 'Length' }"
                   />
                 </div>
               }
@@ -219,17 +296,22 @@
               @if (col.type === 'enum') {
                 <div style="width: 200px">
                   <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                    <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.EnumValues' | translate: {Default: 'Enum Values'} }} <span class="text-red-500">*</span>
+                    <i class="ri-list-check text-purple-500"></i>
+                    {{ 'XP.Workspace.EnumValues' | translate: { Default: 'Enum Values' } }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     z-input
                     type="text"
                     zSize="sm"
-                    [zStatus]="col.type === 'enum' && (!col.enumValues || col.enumValues.length === 0) ? 'error' : undefined
+                    [zStatus]="
+                      col.type === 'enum' && (!col.enumValues || col.enumValues.length === 0) ? 'error' : undefined
                     "
                     [value]="col.enumValues?.join(', ') || ''"
                     (blur)="onEnumValuesChange(col, $event)"
-                    [placeholder]="'PAC.Workspace.EnumValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
+                    [placeholder]="
+                      'XP.Workspace.EnumValuesPlaceholder' | translate: { Default: 'e.g. value1, value2, value3' }
+                    "
                     required
                   />
                 </div>
@@ -239,17 +321,22 @@
               @if (col.type === 'set') {
                 <div style="width: 200px">
                   <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                    <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.SetValues' | translate: {Default: 'Set Values'} }} <span class="text-red-500">*</span>
+                    <i class="ri-list-check text-purple-500"></i>
+                    {{ 'XP.Workspace.SetValues' | translate: { Default: 'Set Values' } }}
+                    <span class="text-red-500">*</span>
                   </label>
                   <input
                     z-input
                     type="text"
                     zSize="sm"
-                    [zStatus]="col.type === 'set' && (!col.setValues || col.setValues.length === 0) ? 'error' : undefined
+                    [zStatus]="
+                      col.type === 'set' && (!col.setValues || col.setValues.length === 0) ? 'error' : undefined
                     "
                     [value]="col.setValues?.join(', ') || ''"
                     (blur)="onSetValuesChange(col, $event)"
-                    [placeholder]="'PAC.Workspace.SetValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
+                    [placeholder]="
+                      'XP.Workspace.SetValuesPlaceholder' | translate: { Default: 'e.g. value1, value2, value3' }
+                    "
                     required
                   />
                 </div>
@@ -258,7 +345,8 @@
               <!-- Constraints -->
               <div style="width: 150px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                  <i class="ri-shield-line text-indigo-500"></i> {{ 'PAC.Workspace.Constraints' | translate: {Default: 'Constraints'} }}
+                  <i class="ri-shield-line text-indigo-500"></i>
+                  {{ 'XP.Workspace.Constraints' | translate: { Default: 'Constraints' } }}
                 </label>
                 <div class="relative">
                   <button
@@ -271,62 +359,96 @@
                   >
                     <div class="flex gap-1 flex-wrap">
                       @if (col.isPrimaryKey) {
-                        <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">{{ getConstraintLabelText('pk') }}</span>
+                        <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">{{
+                          getConstraintLabelText('pk')
+                        }}</span>
                       }
                       @if (col.required) {
-                        <span class="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">{{ getConstraintLabelText('required') }}</span>
+                        <span class="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">{{
+                          getConstraintLabelText('required')
+                        }}</span>
                       }
                       @if (col.isUnique && !col.isPrimaryKey) {
-                        <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">{{ getConstraintLabelText('unique') }}</span>
+                        <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">{{
+                          getConstraintLabelText('unique')
+                        }}</span>
                       }
                       @if (col.autoIncrement) {
-                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">{{ getConstraintLabelText('autoIncrement') }}</span>
+                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">{{
+                          getConstraintLabelText('autoIncrement')
+                        }}</span>
                       }
                       @if (!col.isPrimaryKey && !col.required && !col.isUnique && !col.autoIncrement) {
-                        <span class="text-text-quaternary text-xs">{{ 'PAC.Workspace.NoConstraints' | translate: {Default: 'None'} }}</span>
+                        <span class="text-text-quaternary text-xs">{{
+                          'XP.Workspace.NoConstraints' | translate: { Default: 'None' }
+                        }}</span>
                       }
                     </div>
                     <i class="ri-arrow-down-s-line text-text-tertiary ml-1 flex-shrink-0"></i>
                   </button>
-                  
+
                   <ng-template #constraintMenu>
                     <div cdkMenu class="cdk-menu w-56 p-3 shadow-xl">
                       <div class="space-y-1.5">
-                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group">
+                        <label
+                          class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
+                        >
                           <span class="text-sm flex items-center gap-2">
                             <i class="ri-key-line text-yellow-600 text-base group-hover:scale-110 transition"></i>
-                            <span class="font-medium">{{ 'PAC.Workspace.PrimaryKey' | translate: {Default: 'Primary Key'} }}</span>
+                            <span class="font-medium">{{
+                              'XP.Workspace.PrimaryKey' | translate: { Default: 'Primary Key' }
+                            }}</span>
                           </span>
                           <z-checkbox [(ngModel)]="col.isPrimaryKey" displayDensity="compact" />
                         </label>
-                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group">
+                        <label
+                          class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
+                        >
                           <span class="text-sm flex items-center gap-2">
-                            <i class="ri-error-warning-line text-red-600 text-base group-hover:scale-110 transition"></i>
-                            <span class="font-medium">{{ 'PAC.Workspace.Required' | translate: {Default: 'Required'} }}</span>
+                            <i
+                              class="ri-error-warning-line text-red-600 text-base group-hover:scale-110 transition"
+                            ></i>
+                            <span class="font-medium">{{
+                              'XP.Workspace.Required' | translate: { Default: 'Required' }
+                            }}</span>
                             <span class="text-xs text-text-tertiary">(NOT NULL)</span>
                           </span>
                           <z-checkbox [(ngModel)]="col.required" displayDensity="compact" />
                         </label>
-                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
-                          [class.opacity-50]="col.isPrimaryKey">
+                        <label
+                          class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
+                          [class.opacity-50]="col.isPrimaryKey"
+                        >
                           <span class="text-sm flex items-center gap-2">
-                            <i class="ri-shield-check-line text-blue-600 text-base group-hover:scale-110 transition"></i>
-                            <span class="font-medium">{{ 'PAC.Workspace.Unique' | translate: {Default: 'Unique'} }}</span>
+                            <i
+                              class="ri-shield-check-line text-blue-600 text-base group-hover:scale-110 transition"
+                            ></i>
+                            <span class="font-medium">{{
+                              'XP.Workspace.Unique' | translate: { Default: 'Unique' }
+                            }}</span>
                           </span>
-                          <z-checkbox [(ngModel)]="col.isUnique" [zDisabled]="col.isPrimaryKey"
+                          <z-checkbox
+                            [(ngModel)]="col.isUnique"
+                            [zDisabled]="col.isPrimaryKey"
                             displayDensity="compact"
                           />
                         </label>
-                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
-                          [class.opacity-50]="!isIntegerType(col.type)">
+                        <label
+                          class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
+                          [class.opacity-50]="!isIntegerType(col.type)"
+                        >
                           <span class="text-sm flex items-center gap-2">
                             <i class="ri-add-circle-line text-green-600 text-base group-hover:scale-110 transition"></i>
-                            <span class="font-medium">{{ 'PAC.Workspace.AutoIncrement' | translate: {Default: 'Auto Increment'} }}</span>
+                            <span class="font-medium">{{
+                              'XP.Workspace.AutoIncrement' | translate: { Default: 'Auto Increment' }
+                            }}</span>
                           </span>
-                          <z-checkbox [(ngModel)]="col.autoIncrement"
+                          <z-checkbox
+                            [(ngModel)]="col.autoIncrement"
                             [zDisabled]="!isIntegerType(col.type)"
                             displayDensity="compact"
-                            (checkChange)="onAutoIncrementChange(col)" />
+                            (checkChange)="onAutoIncrementChange(col)"
+                          />
                         </label>
                       </div>
                     </div>
@@ -337,9 +459,14 @@
               <!-- Default Value -->
               <div style="width: 170px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
-                  <i class="ri-layout-column-line text-teal-500"></i> {{ 'PAC.Workspace.DefaultValue' | translate: {Default: 'Default Value'} }}
+                  <i class="ri-layout-column-line text-teal-500"></i>
+                  {{ 'XP.Workspace.DefaultValue' | translate: { Default: 'Default Value' } }}
                   @if (col.type === 'date' || col.type === 'time') {
-                    <span class="text-xs text-orange-500" title="MySQL does not support default value functions for DATE and TIME types">⚠️</span>
+                    <span
+                      class="text-xs text-orange-500"
+                      title="MySQL does not support default value functions for DATE and TIME types"
+                      >⚠️</span
+                    >
                   }
                 </label>
                 @if (col.type === 'datetime' || col.type === 'timestamp') {
@@ -349,8 +476,12 @@
                     (ngModelChange)="applyColumnDefaultValueSelection(col, $event)"
                     [zDisabled]="col.isPrimaryKey || col.autoIncrement"
                   >
-                    <z-select-item [zValue]="columnDefaultValueNone">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</z-select-item>
-                    <z-select-item zValue="CURRENT_TIMESTAMP"> {{ 'PAC.Workspace.CurrentTimestamp' | translate: {Default: 'Current Timestamp'} }}</z-select-item>
+                    <z-select-item [zValue]="columnDefaultValueNone">{{
+                      'XP.Workspace.NoDefault' | translate: { Default: 'None' }
+                    }}</z-select-item>
+                    <z-select-item zValue="CURRENT_TIMESTAMP">
+                      {{ 'XP.Workspace.CurrentTimestamp' | translate: { Default: 'Current Timestamp' } }}</z-select-item
+                    >
                   </z-select>
                 } @else if (isPostgreSQL() && col.type === 'uuid') {
                   <z-select
@@ -359,8 +490,12 @@
                     (ngModelChange)="applyColumnDefaultValueSelection(col, $event)"
                     [zDisabled]="col.isPrimaryKey || col.autoIncrement"
                   >
-                    <z-select-item [zValue]="columnDefaultValueNone">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</z-select-item>
-                    <z-select-item zValue="uuid_generate_v4()"> {{ 'PAC.Workspace.UuidGenerateV4' | translate: {Default: 'uuid_generate_v4()'} }}</z-select-item>
+                    <z-select-item [zValue]="columnDefaultValueNone">{{
+                      'XP.Workspace.NoDefault' | translate: { Default: 'None' }
+                    }}</z-select-item>
+                    <z-select-item zValue="uuid_generate_v4()">
+                      {{ 'XP.Workspace.UuidGenerateV4' | translate: { Default: 'uuid_generate_v4()' } }}</z-select-item
+                    >
                   </z-select>
                 } @else {
                   <input
@@ -368,7 +503,7 @@
                     type="text"
                     zSize="sm"
                     [(ngModel)]="col.defaultValue"
-                    [placeholder]="'PAC.Workspace.DefaultValue' | translate: {Default: 'Default value'}"
+                    [placeholder]="'XP.Workspace.DefaultValue' | translate: { Default: 'Default value' }"
                     [disabled]="col.isPrimaryKey || col.autoIncrement"
                   />
                 }
@@ -376,10 +511,11 @@
 
               <!-- Delete Button -->
               <div class="flex items-center">
-                <button type="button"
+                <button
+                  type="button"
                   (click)="removeColumn(i)"
                   class="px-3 py-2 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-300 rounded-lg transition group"
-                  [title]="'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'}"
+                  [title]="'XP.KEY_WORDS.Delete' | translate: { Default: 'Delete' }"
                 >
                   <i class="ri-delete-bin-line text-lg group-hover:scale-110 transition"></i>
                 </button>
@@ -391,8 +527,12 @@
         @if (table().columns?.length === 0) {
           <div class="text-center py-12 text-text-quaternary">
             <i class="ri-inbox-line text-5xl mb-2"></i>
-            <p class="text-sm">{{ 'PAC.Workspace.NoFields' | translate: {Default: 'No fields'} }}</p>
-            <p class="text-xs mt-1">{{ 'PAC.Workspace.ClickAddField' | translate: {Default: 'Click "Add Field" button above to add fields'} }}</p>
+            <p class="text-sm">{{ 'XP.Workspace.NoFields' | translate: { Default: 'No fields' } }}</p>
+            <p class="text-xs mt-1">
+              {{
+                'XP.Workspace.ClickAddField' | translate: { Default: 'Click "Add Field" button above to add fields' }
+              }}
+            </p>
           </div>
         }
       </div>
@@ -400,11 +540,8 @@
 
     <!-- Save Button -->
     <div class="mt-6 text-right">
-      <button
-        (click)="save()"
-        class="btn btn-primary btn-large transition"
-      >
-        {{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}
+      <button (click)="save()" class="btn btn-primary btn-large transition">
+        {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </div>
@@ -412,10 +549,26 @@
 
 <ng-template #moreMenu>
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-tertiary mr-1" data-icon="FilePlus02" aria-hidden="true"><path d="M13.3333 6.99992V4.53325C13.3333 3.41315 13.3333 2.85309 13.1153 2.42527C12.9236 2.04895 12.6176 1.74299 12.2413 1.55124C11.8135 1.33325 11.2534 1.33325 10.1333 1.33325H5.86666C4.74655 1.33325 4.1865 1.33325 3.75868 1.55124C3.38235 1.74299 3.07639 2.04895 2.88464 2.42527C2.66666 2.85309 2.66666 3.41315 2.66666 4.53325V11.4666C2.66666 12.5867 2.66666 13.1467 2.88464 13.5746C3.07639 13.9509 3.38235 14.2569 3.75868 14.4486C4.1865 14.6666 4.74655 14.6666 5.86666 14.6666H7.99999M9.33332 7.33325H5.33332M6.66666 9.99992H5.33332M10.6667 4.66659H5.33332M12 13.9999V9.99992M9.99999 11.9999H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-      {{ 'PAC.Xpert.BulkImport' | translate: {Default: 'Bulk Import'} }}
+    <div cdkMenuItem>
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4 text-text-tertiary mr-1"
+        data-icon="FilePlus02"
+        aria-hidden="true"
+      >
+        <path
+          d="M13.3333 6.99992V4.53325C13.3333 3.41315 13.3333 2.85309 13.1153 2.42527C12.9236 2.04895 12.6176 1.74299 12.2413 1.55124C11.8135 1.33325 11.2534 1.33325 10.1333 1.33325H5.86666C4.74655 1.33325 4.1865 1.33325 3.75868 1.55124C3.38235 1.74299 3.07639 2.04895 2.88464 2.42527C2.66666 2.85309 2.66666 3.41315 2.66666 4.53325V11.4666C2.66666 12.5867 2.66666 13.1467 2.88464 13.5746C3.07639 13.9509 3.38235 14.2569 3.75868 14.4486C4.1865 14.6666 4.74655 14.6666 5.86666 14.6666H7.99999M9.33332 7.33325H5.33332M6.66666 9.99992H5.33332M10.6667 4.66659H5.33332M12 13.9999V9.99992M9.99999 11.9999H14"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      {{ 'XP.Xpert.BulkImport' | translate: { Default: 'Bulk Import' } }}
     </div>
-
   </div>
 </ng-template>

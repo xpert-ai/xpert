@@ -20,7 +20,7 @@ import { XpertService } from '../xpert.service'
 export class XpertMemoryComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
-  readonly colI18n = injectTranslate('PAC.Xpert.MemoryCols')
+  readonly colI18n = injectTranslate('XP.Xpert.MemoryCols')
   readonly storeService = inject(CopilotStoreService)
   readonly xpertService = inject(XpertService)
 

@@ -6,7 +6,6 @@
 
 - `ghcr.io/<owner>/xpert-api`
 - `ghcr.io/<owner>/xpert-webapp`
-- `ghcr.io/<owner>/xpert-olap`
 
 其中 `<owner>` 来自 `github.repository_owner`。在上游仓库里，这个值是 `xpert-ai`。
 
@@ -24,15 +23,6 @@ git push origin develop
 - `develop-candidate`
 - `sha-<full_commit_sha>`
 
-`olap` 使用单独的 workflow。只有当 `.deploy/olap/**` 或 `packages/olap/**` 有变更时，或者本次 push 的提交消息里包含 `[build olap]` 时，才会发布。
-
-强制构建示例：
-
-```bash
-git commit -m "ci: refresh olap image [build olap]"
-git push origin develop
-```
-
 ### Push `main`
 
 向 `main` push 时，会为 `api` 和 `webapp` 发布 production 镜像：
@@ -47,8 +37,6 @@ git push origin main
 - `main`
 - `latest`
 - `sha-<full_commit_sha>`
-
-`olap` 在被单独 workflow 触发构建时，也遵循同样的 tag 规则。
 
 ### 创建并 push git tag
 
@@ -83,7 +71,7 @@ docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
 
 当前自动化范围：
 
-- CI 目前只自动发布 `@xpert-ai/ocap-core`
+- CI 根据 Changesets 发布受管理的公共包
 - 正式版本使用 `latest` dist-tag
 - 预发布版本如 `3.9.0-beta.0` 会自动使用预发布标识作为 npm dist-tag，例如 `beta`
 
@@ -93,7 +81,7 @@ docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
 pnpm changeset
 ```
 
-在当前 CI 范围内，请只为 `@xpert-ai/ocap-core` 创建 changeset。
+只选择源码或公共 API 确实发生变化的公共包。
 
 ## 将 changeset 合入 `main`
 
@@ -104,7 +92,7 @@ changeset 文件进入 `main` 后，GitHub Actions 会创建或更新一个名�
 release PR 合并后会自动执行：
 
 - `pnpm changeset:version`，写入版本号和 changelog
-- 构建 `dist/packages/core`
+- 将每个变更包构建到其配置的发布目录
 - 通过 trusted publishing 从构建产物发布到 npm
 
 ## 本地校验命令

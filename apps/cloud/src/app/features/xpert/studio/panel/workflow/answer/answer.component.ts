@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectToastr,
@@ -25,7 +25,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmDensityDirective,
+    XpDensityDirective,
     CopilotPromptEditorComponent,
     ZardSwitchComponent
   ],

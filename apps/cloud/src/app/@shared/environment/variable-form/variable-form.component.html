@@ -1,6 +1,6 @@
 <div class="shrink-0 flex items-center justify-between mb-3 p-4 pb-0">
   <div class="text-text-primary system-xl-semibold">
-    {{ 'PAC.Xpert.Variable' | translate: { Default: 'Variable' } }}
+    {{ 'XP.Xpert.Variable' | translate: { Default: 'Variable' } }}
   </div>
 
   <div class="flex items-center justify-center w-6 h-6 cursor-pointer text-text-secondary" (click)="cancel.emit()">
@@ -11,7 +11,7 @@
 <form [formGroup]="form" class="px-4 py-2 max-h-[480px] overflow-y-auto">
   <div class="mb-4">
     <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">
-      {{ 'PAC.Xpert.Name' | translate: { Default: 'Name' } }}
+      {{ 'XP.Xpert.Name' | translate: { Default: 'Name' } }}
     </div>
     <div class="flex">
       <input
@@ -19,7 +19,7 @@
         z-input
         tabindex="0"
         class="block w-full h-8"
-        [placeholder]="'PAC.Xpert.VariableName' | translate: { Default: 'Variable name' }"
+        [placeholder]="'XP.Xpert.VariableName' | translate: { Default: 'Variable name' }"
         type="text"
       />
     </div>
@@ -27,14 +27,14 @@
   <div class="mb-4 flex gap-2">
     <div class="grow flex flex-col">
       <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">
-        {{ 'PAC.Xpert.Type' | translate: { Default: 'Type' } }}
+        {{ 'XP.Xpert.Type' | translate: { Default: 'Type' } }}
       </div>
 
       <z-select
         class="w-full"
         zSize="sm"
         formControlName="type"
-        [zPlaceholder]="'PAC.Xpert.InputType' | translate: { Default: 'Input type' }"
+        [zPlaceholder]="'XP.Xpert.InputType' | translate: { Default: 'Input type' }"
       >
         @for (option of VariableTypeOptions; track option.value) {
           <z-select-item [zValue]="option.value">{{ option.label | i18n }}</z-select-item>
@@ -44,7 +44,7 @@
   </div>
   <div class="mb-4">
     <div class="mb-1 h-6 flex items-center justify-between text-text-secondary system-sm-semibold">
-      <div>{{ 'PAC.Xpert.DefaultValue' | translate: { Default: 'Default Value' } }}</div>
+      <div>{{ 'XP.Xpert.DefaultValue' | translate: { Default: 'Default Value' } }}</div>
     </div>
     <div class="flex">
       <input
@@ -53,7 +53,7 @@
         tabindex="0"
         class="block w-full h-8"
         [type]="type === 'secret' ? 'password' : 'text'"
-        [placeholder]="'PAC.Xpert.DefaultValueEmpty' | translate: { Default: 'Default value, can be empty' }"
+        [placeholder]="'XP.Xpert.DefaultValueEmpty' | translate: { Default: 'Default value, can be empty' }"
       />
     </div>
   </div>
@@ -62,10 +62,10 @@
 <div class="p-4 pt-2 flex flex-row-reverse rounded-b-2xl">
   <div class="flex gap-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="cancel.emit()">
-      {{ 'PAC.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium" (click)="saved.emit(form.value)">
-      {{ 'PAC.Xpert.Save' | translate: { Default: 'Save' } }}
+      {{ 'XP.Xpert.Save' | translate: { Default: 'Save' } }}
     </button>
   </div>
 </div>

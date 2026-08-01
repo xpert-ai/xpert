@@ -5,7 +5,7 @@ import { IXpert, TChatOptions, TChatRequest } from '../@core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { distinctUntilChanged, filter, map, of, withLatestFrom } from 'rxjs'
-import { nonNullable } from '@xpert-ai/core'
+import { nonNullable } from '@xpert-ai/headless-ui'
 import { injectParams } from 'ngxtension/inject-params'
 
 /**
@@ -50,23 +50,32 @@ export class ChatAppService extends ChatService {
     )
     .subscribe((id) => {
       const xpertSlug = this.xpert()?.slug
-      const targetPath = xpertSlug ? (id ? '/x/' + xpertSlug + '/c/' + id : '/x/' + xpertSlug) : id ? '/x/c/' + id : '/x/'
+      const targetPath = xpertSlug
+        ? id
+          ? '/x/' + xpertSlug + '/c/' + id
+          : '/x/' + xpertSlug
+        : id
+          ? '/x/c/' + id
+          : '/x/'
 
       this.#location.replaceState(targetPath)
     })
 
   constructor() {
     super()
-    
+
     this.route.data.pipe(takeUntilDestroyed()).subscribe((data) => {
       this.xpert.set(data.xpert)
       this.conversationId.set(this.paramId())
     })
   }
-  
+
   fetchConversation(id: string) {
-    return this.xpert() ? this.xpertService.getAppConversation(this.xpert().slug, id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
-     : of(null)
+    return this.xpert()
+      ? this.xpertService.getAppConversation(this.xpert().slug, id, {
+          relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages']
+        })
+      : of(null)
   }
 
   getFeedbacks(id: string) {

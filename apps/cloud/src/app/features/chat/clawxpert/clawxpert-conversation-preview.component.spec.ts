@@ -1,7 +1,9 @@
 jest.mock('../../../@core', () => ({
+  SandboxService: class SandboxService {},
   injectApiBaseUrl: () => '',
   resolveAbsoluteApiBaseUrl: () => 'http://localhost:3000',
   injectToastr: () => ({
+    error: jest.fn(),
     warning: jest.fn()
   })
 }))
@@ -9,6 +11,8 @@ jest.mock('../../../@core', () => ({
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
+import { of, Subject } from 'rxjs'
+import { SandboxService } from '../../../@core'
 import type { ClawXpertManagedServicesSandboxApi } from './clawxpert-managed-services-browser'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 
@@ -48,11 +52,28 @@ function dispatchMouse(target: EventTarget, type: string, clientX: number, clien
 
 describe('ClawXpertConversationPreviewComponent', () => {
   let overlayContainer: OverlayContainer
+  let sandboxService: {
+    createManagedServicePreviewSession: jest.Mock
+  }
 
   beforeEach(async () => {
     TestBed.resetTestingModule()
+    sandboxService = {
+      createManagedServicePreviewSession: jest.fn(() =>
+        of({
+          expiresAt: '2026-07-29T09:00:00.000Z',
+          previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
+        })
+      )
+    }
     await TestBed.configureTestingModule({
-      imports: [TranslateModule.forRoot(), ClawXpertConversationPreviewComponent]
+      imports: [TranslateModule.forRoot(), ClawXpertConversationPreviewComponent],
+      providers: [
+        {
+          provide: SandboxService,
+          useValue: sandboxService
+        }
+      ]
     }).compileComponents()
 
     overlayContainer = TestBed.inject(OverlayContainer)
@@ -69,7 +90,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.BrowserEmptyTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.BrowserEmptyTitle')
     expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
   })
 
@@ -109,6 +130,100 @@ describe('ClawXpertConversationPreviewComponent', () => {
       throw new Error('Expected preview iframe to be rendered for a running service.')
     }
     expect(iframe.src).toBe('http://localhost:4173/')
+    expect(iframe.getAttribute('sandbox')).toBeNull()
+    expect(iframe.getAttribute('referrerpolicy')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-browser-inspect]')).not.toBeNull()
+    ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ClearCookie')
+  })
+
+  it('loads managed services through the same-origin preview session', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('serviceId', 'service-1')
+    fixture.componentRef.setInput('url', 'localhost:4173')
+    await settle(fixture)
+
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledTimes(1)
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledWith('conversation-1', 'service-1')
+    expect(fixture.componentInstance.externalUrl()).toBe('http://localhost:4173/')
+    expect(fixture.componentInstance.activeServiceId()).toBe('service-1')
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected the managed service preview iframe to be rendered.')
+    }
+
+    expect(iframe.src).toBe('http://localhost/api/sandbox/conversations/conversation-1/services/service-1/proxy/')
+    expect(iframe.getAttribute('sandbox')).toBeNull()
+    expect(iframe.getAttribute('referrerpolicy')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-browser-inspect]')).not.toBeNull()
+    expect((fixture.nativeElement.querySelector('[data-open-external]') as HTMLButtonElement).disabled).toBe(false)
+    expect(fixture.componentInstance.openableUrl()).toBe(
+      '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
+    )
+    ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ClearCookie')
+
+    fixture.componentInstance.reloadFrame()
+    await settle(fixture)
+
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledTimes(2)
+    expect(fixture.componentInstance.activeServiceId()).toBe('service-1')
+    expect(fixture.componentInstance.reloadNonce()).toBe(1)
+
+    fixture.componentRef.setInput('reloadKey', 10)
+    await settle(fixture)
+
+    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledTimes(3)
+    expect(fixture.componentInstance.reloadNonce()).toBe(10)
+  })
+
+  it('ignores a stale managed preview session after the service binding changes', async () => {
+    const firstSession = new Subject<{ expiresAt: string; previewUrl: string }>()
+    const secondSession = new Subject<{ expiresAt: string; previewUrl: string }>()
+    sandboxService.createManagedServicePreviewSession
+      .mockReturnValueOnce(firstSession)
+      .mockReturnValueOnce(secondSession)
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('serviceId', 'service-1')
+    fixture.componentRef.setInput('url', 'localhost:4173')
+    await settle(fixture)
+
+    fixture.componentRef.setInput('conversationId', 'conversation-2')
+    fixture.componentRef.setInput('serviceId', 'service-2')
+    fixture.componentRef.setInput('url', 'localhost:5173')
+    await settle(fixture)
+
+    firstSession.next({
+      expiresAt: '2026-07-29T09:00:00.000Z',
+      previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/old'
+    })
+    firstSession.complete()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.managedPreviewUrl()).toBeNull()
+
+    secondSession.next({
+      expiresAt: '2026-07-29T09:00:00.000Z',
+      previewUrl: '/api/sandbox/conversations/conversation-2/services/service-2/proxy/new'
+    })
+    secondSession.complete()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.managedPreviewUrl()).toBe(
+      '/api/sandbox/conversations/conversation-2/services/service-2/proxy/new'
+    )
   })
 
   it('renders an external URL from input', async () => {
@@ -120,7 +235,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     expect(fixture.componentInstance.externalUrl()).toBe(
       'http://localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1'
     )
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.BrowserEmptyTitle')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.BrowserEmptyTitle')
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -128,6 +243,8 @@ describe('ClawXpertConversationPreviewComponent', () => {
       throw new Error('Expected preview iframe to be rendered for an external URL.')
     }
     expect(iframe.src).toBe('http://localhost/api/xpert-sites/project-request-dashboard-2?v=1')
+    expect(iframe.getAttribute('sandbox')).toBeNull()
+    expect(iframe.getAttribute('referrerpolicy')).toBeNull()
   })
 
   it('emits element references from an external URL preview in inspect mode', async () => {
@@ -371,7 +488,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const viewport = fixture.nativeElement.querySelector('[data-device-viewport]') as HTMLElement | null
 
     expect(toolbar).not.toBeNull()
-    expect(toolbar?.textContent).toContain('PAC.Chat.ClawXpert.Responsive')
+    expect(toolbar?.textContent).toContain('XP.Chat.ClawXpert.Responsive')
     expect(widthInput?.value).toBe('405')
     expect(heightInput?.value).toBe('506')
     expect(viewport?.style.width).toBe('405px')
@@ -467,16 +584,16 @@ describe('ClawXpertConversationPreviewComponent', () => {
     await Promise.resolve()
     fixture.detectChanges()
 
-    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.ShowDeviceToolbar')
-    expect(overlayContainer.getContainerElement().textContent).not.toContain('PAC.Chat.ClawXpert.ShowLogs')
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.ShowDeviceToolbar')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('XP.Chat.ClawXpert.ShowLogs')
 
     fixture.componentInstance.toggleDeviceToolbar()
     fixture.detectChanges()
     await Promise.resolve()
     fixture.detectChanges()
 
-    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.HideDeviceToolbar')
-    expect(overlayContainer.getContainerElement().textContent).not.toContain('PAC.Chat.ClawXpert.HideLogs')
+    expect(overlayContainer.getContainerElement().textContent).toContain('XP.Chat.ClawXpert.HideDeviceToolbar')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('XP.Chat.ClawXpert.HideLogs')
   })
 
   it('emits element references selected in inspect mode from an address-bar URL', async () => {

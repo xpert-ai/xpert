@@ -2,9 +2,9 @@ import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { effectAction } from '@xpert-ai/ocap-angular/core'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { effectAction } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
@@ -21,7 +21,7 @@ import { CommonModule } from '@angular/common'
 import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-settings-copilot-usages',
+  selector: 'xp-settings-copilot-usages',
   templateUrl: './usages.component.html',
   styleUrls: ['./usages.component.scss'],
   imports: [
@@ -34,7 +34,7 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipI
     ZardButtonComponent,
     ZardIconComponent,
     WaIntersectionObserver,
-    NgmCommonModule,
+    XpCommonModule,
     OrgAvatarComponent,
     DateRelativePipe
   ]

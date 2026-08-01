@@ -1,9 +1,9 @@
-import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { IModelAccessResolution, mapTranslationLanguage } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
-import { MembershipService } from '../../../membership'
+import { ModelAccessService } from '../../../model-access'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotCheckLimitCommand } from '../check-limit.command'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
@@ -13,11 +13,11 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
     constructor(
         private readonly copilotUserService: CopilotUserService,
         private readonly copilotOrganizationService: CopilotOrganizationService,
-        private readonly membershipService: MembershipService,
+        private readonly modelAccessService: ModelAccessService,
         private readonly i18nService: I18nService
     ) {}
 
-    public async execute(command: CopilotCheckLimitCommand): Promise<void> {
+    public async execute(command: CopilotCheckLimitCommand): Promise<IModelAccessResolution> {
         const { input } = command
         const { copilot, tenantId, organizationId, userId, xpertId } = input
 
@@ -29,21 +29,21 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
             )
         }
 
-            await this.membershipService.assertCanUse({
+        const modelAccess = await this.modelAccessService.assertCanUseModel({
                 tenantId,
                 organizationId,
-                copilotOrganizationId: copilot.organizationId ?? null,
                 userId,
                 xpertId,
-                provider: copilot.modelProvider.providerName,
-                model: input.model
-            })
+                copilotId: copilot.id,
+                copilotModelId: input.model,
+                modelType: input.modelType
+        })
 
         const usage = await this.copilotUserService.getUsageSummary({
             tenantId,
             organizationId,
             orgId: copilot.organizationId ?? null,
-            userId,
+            userId: modelAccess.billableUserId,
             provider: copilot.modelProvider.providerName,
             model: input.model
         })
@@ -71,5 +71,6 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
                 })
             )
         }
+        return modelAccess
     }
 }

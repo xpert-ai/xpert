@@ -19,11 +19,11 @@
             </div>
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-text-primary">
-                {{ 'PAC.Xpert.ClientToolWaiting' | translate: { Default: 'Waiting for client tool execution' } }}
+                {{ 'XP.Xpert.ClientToolWaiting' | translate: { Default: 'Waiting for client tool execution' } }}
               </div>
               <div class="mt-1 text-xs leading-relaxed text-text-tertiary">
                 {{
-                  'PAC.Xpert.ClientToolWaitingDesc'
+                  'XP.Xpert.ClientToolWaitingDesc'
                     | translate
                       : {
                           Default:
@@ -61,7 +61,7 @@
             <div class="w-24 shrink-0 whitespace-normal text-sm">
               {{ param.title | i18n }}
               <div>
-                <ngm-slash-svg class="inline-block" /><span class="text-primary-500">{{ param.name }}</span>
+                <xp-slash-svg class="inline-block" /><span class="text-primary-500">{{ param.name }}</span>
               </div>
             </div>
             <textarea
@@ -86,7 +86,7 @@
       [disabled]="readonly()"
       (click)="onConfirm()"
     >
-      <div class="w-full flex justify-center">{{ 'PAC.ACTIONS.Send' | translate: { Default: 'Send' } }}</div>
+      <div class="w-full flex justify-center">{{ 'XP.ACTIONS.Send' | translate: { Default: 'Send' } }}</div>
     </button>
 
     <!-- <button type="button" class="btn disabled:btn-disabled h-8 btn-danger pressable flex-1"
@@ -95,7 +95,7 @@
     >
       <div class="w-full text-center">
         <i class="ri-close-line"></i>
-        {{ 'PAC.Xpert.Reject' | translate: { Default: 'Reject' } }}
+        {{ 'XP.Xpert.Reject' | translate: { Default: 'Reject' } }}
       </div>
     </button> -->
   </div>

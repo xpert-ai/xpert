@@ -1,24 +1,25 @@
 <div class="pt-2">
   <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-    <span class="text-red-500">*</span>{{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.Xpert.ID' | translate: {Default: 'ID'} }}
+    <span class="text-red-500">*</span>{{ 'XP.Xpert.Avatar' | translate: { Default: 'Avatar' } }} &amp;
+    {{ 'XP.Xpert.ID' | translate: { Default: 'ID' } }}
   </div>
   <div class="flex items-center justify-between space-x-2">
     <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
     <div class="relative w-full">
       <input
         class="xp-input w-full grow h-10"
-        [placeholder]="'PAC.Xpert.GiveXpertID' | translate: {Default: 'Give the expert a ID, a-zA-Z0-9-_'}"
+        [placeholder]="'XP.Xpert.GiveXpertID' | translate: { Default: 'Give the expert a ID, a-zA-Z0-9-_' }"
         [(ngModel)]="name"
       />
     </div>
   </div>
   @if (error()) {
     <div class="pl-12 text-sm text-red-500">
-      {{error() || 'Error'}}
+      {{ error() || 'Error' }}
     </div>
   } @else if (checking()) {
     <div class="pl-12 text-sm text-text-secondary">
-      {{ 'PAC.Xpert.Checking' | translate: {Default: 'Checking'} }}...
+      {{ 'XP.Xpert.Checking' | translate: { Default: 'Checking' } }}...
     </div>
   } @else if (name()) {
     <i class="ri-checkbox-circle-fill pl-12 text-text-success"></i>
@@ -26,27 +27,30 @@
 </div>
 
 <div class="pt-2">
-  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</div>
-  <input class="xp-input w-full grow h-10"
-    [placeholder]="'PAC.Xpert.GiveXpertName' | translate: {Default: 'Give the expert a name'}"
+  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+    {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+  </div>
+  <input
+    class="xp-input w-full grow h-10"
+    [placeholder]="'XP.Xpert.GiveXpertName' | translate: { Default: 'Give the expert a name' }"
     [(ngModel)]="title"
   />
 </div>
 
 <div class="mt-2 text-sm font-medium leading-[20px] text-text-primary">
   <span class="text-red-500">*</span>
-  {{ 'PAC.KEY_WORDS.Model' | translate: {Default: 'Model'} }}
+  {{ 'XP.KEY_WORDS.Model' | translate: { Default: 'Model' } }}
 </div>
-<copilot-model-select class="w-full" hiddenLabel
-  [modelType]="eAiModelTypeEnum.LLM"
-  [(ngModel)]="copilotModel"
-/>
+<copilot-model-select class="w-full" hiddenLabel [modelType]="eAiModelTypeEnum.LLM" [(ngModel)]="copilotModel" />
 
 <div class="pt-2">
-  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</div>
-  <textarea z-input
+  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+    {{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
+  </div>
+  <textarea
+    z-input
     class="w-full min-h-20 resize-none"
-    placeholder="{{ 'PAC.Xpert.InputXpertDescription' | translate: {Default: 'Input xpert description'} }}"
+    placeholder="{{ 'XP.Xpert.InputXpertDescription' | translate: { Default: 'Input xpert description' } }}"
     [(ngModel)]="description"
     cdkTextareaAutosize
     cdkAutosizeMinRows="3"

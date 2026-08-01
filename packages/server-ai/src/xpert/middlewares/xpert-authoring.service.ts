@@ -215,14 +215,17 @@ export class XpertAuthoringService {
     async getAvailableCopilotModelsFromContext(
         context: AuthoringAssistantRequestContext
     ): Promise<CopilotModelCatalogResult> {
-        const currentDraftCopilotModel = context.targetXpertId
-            ? await this.getCurrentCopilotModelSelection(context.targetXpertId)
+        const currentModelContext = context.targetXpertId
+            ? await this.getCurrentCopilotModelContext(context.targetXpertId)
             : null
+        const currentDraftCopilotModel = currentModelContext?.selection ?? null
 
         const catalogs = await Promise.all(
             AUTHORING_CATALOG_MODEL_TYPES.map(async (modelType) => ({
                 modelType,
-                copilots: await this.queryBus.execute(new FindCopilotModelsQuery(modelType))
+                copilots: await this.queryBus.execute(
+                    new FindCopilotModelsQuery(modelType, undefined, currentModelContext?.creatorId)
+                )
             }))
         )
 
@@ -2044,21 +2047,23 @@ export class XpertAuthoringService {
         return entries[0] ?? null
     }
 
-    private async getCurrentCopilotModelSelection(xpertId: string) {
+    private async getCurrentCopilotModelContext(xpertId: string) {
         const xpert = await this.loadXpertById(xpertId)
         const copilotModel = xpert.agent?.copilotModel ?? xpert.copilotModel
         const copilotId = copilotModel?.copilotId?.trim() || null
         const provider = copilotModel?.copilot?.modelProvider?.providerName ?? null
         const model = copilotModel?.model?.trim() || copilotModel?.copilot?.copilotModel?.model?.trim() || null
 
-        if (!copilotId && !provider && !model) {
-            return null
-        }
-
         return {
-            copilotId,
-            provider,
-            model
+            creatorId: xpert.createdById ?? null,
+            selection:
+                copilotId || provider || model
+                    ? {
+                          copilotId,
+                          provider,
+                          model
+                      }
+                    : null
         }
     }
 }

@@ -1,8 +1,8 @@
 import { HttpClient, HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { IFileAsset, IStorageFile, TStorageFileAssetDestination } from '@xpert-ai/contracts'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
-import { map } from 'rxjs'
+import { API_PREFIX } from '@cloud/app/@core/state'
+import { filter, map } from 'rxjs'
 import { FileUploadService } from './file-upload.service'
 
 export const C_API_STORAGEFILE = API_PREFIX + '/storage-file'
@@ -52,6 +52,19 @@ export class StorageFileService {
         return response.clone({
           body: this.extractStorageFile(response.body)
         })
+      })
+    )
+  }
+
+  uploadStorageFile(file: File) {
+    return this.uploadFile(file).pipe(
+      filter((event): event is HttpResponse<IStorageFile> => event.type === HttpEventType.Response),
+      map((response) => {
+        if (!response.body) {
+          throw new Error('Unified upload did not return a persisted storage file.')
+        }
+
+        return response.body
       })
     )
   }

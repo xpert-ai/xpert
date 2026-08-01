@@ -1,1 +1,0 @@
-export * from './business-area-user.delete.command';

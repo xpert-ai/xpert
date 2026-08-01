@@ -7,11 +7,11 @@ import { FieldArrayType } from '@ngx-formly/core'
  * @todo 使用 cdkDragList 后数组中使用 property-select 组件弹出窗口的移动会有问题，暂时禁用 array drag 排序
  */
 @Component({
-  selector: 'ngm-formly-array',
+  selector: 'xp-formly-array',
   standalone: false,
   template: `
     @if (to.label) {
-      <div class="ngm-formly__title">
+      <div class="xp-formly__title">
         <span [class.line-through]="deprecated" [zTooltip]="deprecated" zPosition="top">{{ to.label }}</span>
 
         @if (props?.help) {
@@ -28,7 +28,7 @@ import { FieldArrayType } from '@ngx-formly/core'
       </div>
     }
     <div
-      class="ngm-formly-cdk__drag-list flex flex-col justify-start items-stretch"
+      class="xp-formly-cdk__drag-list flex flex-col justify-start items-stretch"
       [class.empty]="!field.fieldGroup?.length"
     >
       @if (!field.fieldGroup?.length) {
@@ -40,7 +40,7 @@ import { FieldArrayType } from '@ngx-formly/core'
       }
 
       @for (field of field.fieldGroup; track field.name; let i = $index) {
-        <div class="ngm-formly__array-row relative" cdkDragBoundary=".ngm-formly-cdk__drag-list" cdkDrag>
+        <div class="xp-formly__array-row relative" cdkDragBoundary=".xp-formly-cdk__drag-list" cdkDrag>
           <div class="text-sm flex justify-between items-center">
             @if (props.labelField) {
               <span>{{ model[i]?.[props.labelField] }}</span>
@@ -53,8 +53,7 @@ import { FieldArrayType } from '@ngx-formly/core'
               zType="ghost"
               zSize="icon"
               zShape="circle"
-              class="ngm-formly__remove text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
-
+              class="xp-formly__remove text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
               displayDensity="compact"
               (click)="remove(i)"
             >
@@ -62,7 +61,7 @@ import { FieldArrayType } from '@ngx-formly/core'
             </button>
           }
           <formly-field class="flex-1" cdkDropList [field]="field"></formly-field>
-          <div class="ngm-formly-cdk__drag-placeholder" *cdkDragPlaceholder></div>
+          <div class="xp-formly-cdk__drag-placeholder" *cdkDragPlaceholder></div>
         </div>
       }
     </div>
@@ -77,11 +76,11 @@ import { FieldArrayType } from '@ngx-formly/core'
     }
   `,
   host: {
-    class: 'ngm-formly-array'
+    class: 'xp-formly-array'
   },
   styleUrls: ['array.type.scss']
 })
-export class NgmFormlyArrayComponent extends FieldArrayType {
+export class XpFormlyArrayComponent extends FieldArrayType {
   get deprecated() {
     return this.props?.deprecated
   }

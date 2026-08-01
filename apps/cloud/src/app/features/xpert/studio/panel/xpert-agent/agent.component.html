@@ -11,8 +11,8 @@
       />
       <div class="flex flex-col items-start min-w-0 flex-1">
         <input
-          class="ngm-input-inline ngm-input-sm min-w-[100px] max-w-full mr-2 text-base field font-semibold text-text-primary"
-          [placeholder]="'PAC.Xpert.EnterTitle' | translate: { Default: 'Enter title' }"
+          class="xp-input-inline xp-input-sm min-w-[100px] max-w-full mr-2 text-base field font-semibold text-text-primary"
+          [placeholder]="'XP.Xpert.EnterTitle' | translate: { Default: 'Enter title' }"
           [ngModel]="title()"
           (ngModelChange)="onTitleChange($event)"
           (blur)="onBlur()"
@@ -24,7 +24,7 @@
       <div class="shrink-0 flex items-center">
         <div
           class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
-          [zTooltip]="'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' }"
+          [zTooltip]="'XP.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' }"
           zPosition="top"
           (click)="openExecution()"
         >
@@ -44,7 +44,7 @@
 
         <div
           class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
-          [zTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
+          [zTooltip]="'XP.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
           zPosition="top"
           #mt1="cdkMenuTriggerFor"
           [cdkMenuTriggerFor]="diagramMenu"
@@ -55,7 +55,7 @@
 
         <div
           class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
-          [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+          [zTooltip]="'XP.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
           zPosition="top"
           (click)="moveToNode()"
         >
@@ -66,7 +66,7 @@
           [href]="helpWebsite() + '/docs/ai/'"
           target="_blank"
           class="flex items-center justify-center mr-1 w-6 h-6"
-          [zTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
+          [zTooltip]="'XP.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
           zPosition="top"
         >
           <svg
@@ -128,23 +128,23 @@
   <div class="px-4 pb-4 space-y-4 mt-2 w-full">
     <div class="py-2 flex flex-col">
       <input
-        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 text-sm font-mono"
-        [ngClass]="{ 'ngm-error': nameError() }"
+        class="xp-input-inline xp-input-sm self-stretch mx-1 mb-1 text-sm font-mono"
+        [ngClass]="{ 'xp-error': nameError() }"
         [ngModel]="name()"
         (ngModelChange)="onNameChange($event)"
         (blur)="onBlur()"
         [zTooltip]="
-          'PAC.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9 _-' }
+          'XP.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9 _-' }
         "
         [zDisabled]="!nameError()"
-        [placeholder]="('PAC.Xpert.NameDefaultUseKey' | translate: { Default: 'Name, default use ' }) + key()"
+        [placeholder]="('XP.Xpert.NameDefaultUseKey' | translate: { Default: 'Name, default use ' }) + key()"
       />
       <div
         class="group flex px-2 py-[5px] rounded-lg overflow-y-auto border border-transparent text-text-secondary hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs"
       >
         <textarea
           class="rc-textarea w-full bg-transparent text-sm font-mono leading-[18px] placeholder:text-muted-foreground outline-none appearance-none"
-          [placeholder]="('PAC.Xpert.AddDescription' | translate: { Default: 'Add description' }) + '...'"
+          [placeholder]="('XP.Xpert.AddDescription' | translate: { Default: 'Add description' }) + '...'"
           [ngModel]="xpertAgent().description"
           (ngModelChange)="onDescChange($event)"
           (blur)="onBlur()"
@@ -162,9 +162,9 @@
     />
 
     <copilot-prompt-editor
-      class="relative shadow-md ngm-card-border-gradient self-stretch"
+      class="relative shadow-md xp-card-border-gradient self-stretch"
       [tooltip]="
-        'PAC.Xpert.SystemPromptTooltip'
+        'XP.Xpert.SystemPromptTooltip'
           | translate
             : {
                 Default:
@@ -181,12 +181,12 @@
       <div class="w-full flex justify-between items-center">
         <div class="flex items-center h-6">
           <div class="uppercase text-sm font-semibold text-text-secondary mr-2">
-            {{ 'PAC.Xpert.MessageHistory' | translate: { Default: 'Message History' } }}
+            {{ 'XP.Xpert.MessageHistory' | translate: { Default: 'Message History' } }}
           </div>
           <i
             class="ri-question-line opacity-50 hover:opacity-90"
             [zTooltip]="
-              'PAC.Xpert.AgentMemoryTip'
+              'XP.Xpert.AgentMemoryTip'
                 | translate: { Default: 'Agent short-term memory, inserting message history into the conversation' }
             "
             zPosition="top"
@@ -212,7 +212,7 @@
         class="prompt-template relative rounded-xl self-stretch border border-solid border-divider-regular"
         [fullscreen]="promptTemplateFullscreen() === template.id"
         [tooltip]="
-          'PAC.Xpert.SystemPromptTooltip'
+          'XP.Xpert.SystemPromptTooltip'
             | translate
               : {
                   Default:
@@ -243,7 +243,7 @@
       (click)="addMessage()"
     >
       <i class="ri-add-line"></i>
-      <div>{{ 'PAC.Xpert.AddMessage' | translate: { Default: 'Add Message' } }}</div>
+      <div>{{ 'XP.Xpert.AddMessage' | translate: { Default: 'Add Message' } }}</div>
     </button>
     <!-- } -->
 
@@ -251,7 +251,7 @@
     <div class="flex flex-col w-full px-2">
       <div class="flex justify-between items-center">
         <div class="uppercase font-semibold text-base">
-          {{ 'PAC.Xpert.Attachments' | translate: { Default: 'Attachments' } }}
+          {{ 'XP.Xpert.Attachments' | translate: { Default: 'Attachments' } }}
         </div>
 
         <z-switch labelPosition="before" [(ngModel)]="attachmentEnabled" zSize="sm" />
@@ -273,7 +273,7 @@
           </div>
           <div class="flex items-center justify-between">
             <div class="mr-2 text-sm font-medium uppercase text-text-secondary">
-              {{ 'PAC.Xpert.Resolution' | translate: { Default: 'Resolution' } }}
+              {{ 'XP.Xpert.Resolution' | translate: { Default: 'Resolution' } }}
             </div>
             <div class="flex items-center space-x-1">
               <div
@@ -281,14 +281,14 @@
                 [class.border-components-option-card-option-selected-border]="attachmentResolution() === 'high'"
                 (click)="attachmentResolution.set('high')"
               >
-                <span>{{ 'PAC.Xpert.High' | translate: { Default: 'High' } }}</span>
+                <span>{{ 'XP.Xpert.High' | translate: { Default: 'High' } }}</span>
               </div>
               <div
                 class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] hover:shadow-xs justify-center hover:text-text-primary"
                 [class.border-components-option-card-option-selected-border]="attachmentResolution() === 'low'"
                 (click)="attachmentResolution.set('low')"
               >
-                <span>{{ 'PAC.Xpert.Low' | translate: { Default: 'Low' } }}</span>
+                <span>{{ 'XP.Xpert.Low' | translate: { Default: 'Low' } }}</span>
               </div>
             </div>
           </div>
@@ -303,21 +303,21 @@
           <i class="ri-git-commit-fill text-orange-600"></i>
         </div>
         <div class="text-sm font-semibold text-text-primary">
-          {{ 'PAC.Xpert.Node' | translate: { Default: 'Node' } }}
+          {{ 'XP.Xpert.Node' | translate: { Default: 'Node' } }}
         </div>
       </div>
 
       @if (!isPrimaryAgent()) {
         <div class="flex justify-end items-center gap-1 w-full">
           <i class="ri-shield-keyhole-fill text-base text-orange-600"></i>
-          <div class="text-sm">{{ 'PAC.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</div>
+          <div class="text-sm">{{ 'XP.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</div>
           <z-switch
             class="flex"
             [ngModel]="isSensitive()"
             (ngModelChange)="updateSensitive($event)"
             labelPosition="before"
             [zTooltip]="
-              'PAC.Xpert.SensitiveAgentTip'
+              'XP.Xpert.SensitiveAgentTip'
                 | translate: { Default: 'Sensitive agents require user confirmation before execution' }
             "
             zPosition="left"
@@ -327,14 +327,14 @@
 
         <div class="flex justify-end items-center gap-1 w-full">
           <i class="ri-stop-circle-line text-base text-text-secondary"></i>
-          <div class="text-sm">{{ 'PAC.Xpert.End' | translate: { Default: 'End' } }}</div>
+          <div class="text-sm">{{ 'XP.Xpert.End' | translate: { Default: 'End' } }}</div>
           <z-switch
             class="flex"
             [ngModel]="isEnd()"
             (ngModelChange)="updateEnd($event)"
             labelPosition="before"
             [zTooltip]="
-              'PAC.Xpert.EndAgentTip'
+              'XP.Xpert.EndAgentTip'
                 | translate: { Default: 'The terminal agent, the conversation ends after agent completion' }
             "
             zPosition="left"
@@ -345,13 +345,13 @@
 
       <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-volume-mute-fill text-base text-sky-700"></i>
-        <div class="text-sm">{{ 'PAC.Xpert.DisableOutput' | translate: { Default: 'Disable Output' } }}</div>
+        <div class="text-sm">{{ 'XP.Xpert.DisableOutput' | translate: { Default: 'Disable Output' } }}</div>
         <z-switch
           class="flex"
           [(ngModel)]="disableOutput"
           labelPosition="before"
           [zTooltip]="
-            'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
+            'XP.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
           "
           zPosition="left"
           zSize="sm"
@@ -360,14 +360,14 @@
 
       <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-file-search-line text-base text-text-secondary"></i>
-        <div class="text-sm">{{ 'PAC.Xpert.FileUnderstanding' | translate: { Default: 'File Understanding' } }}</div>
+        <div class="text-sm">{{ 'XP.Xpert.FileUnderstanding' | translate: { Default: 'File Understanding' } }}</div>
         <z-switch
           class="flex"
           [ngModel]="fileUnderstandingEnabled()"
           (ngModelChange)="updateFileUnderstanding($event)"
           labelPosition="before"
           [zTooltip]="
-            'PAC.Xpert.FileUnderstandingTip'
+            'XP.Xpert.FileUnderstandingTip'
               | translate: { Default: 'Enable built-in tools for searching and reading conversation files' }
           "
           zPosition="left"
@@ -381,7 +381,7 @@
           <i class="ri-error-warning-line mt-0.5 text-sm text-status-warning-fg"></i>
           <span>
             {{
-              'PAC.Xpert.FileUnderstandingEmbeddingUnavailable'
+              'XP.Xpert.FileUnderstandingEmbeddingUnavailable'
                 | translate
                   : {
                       Default:
@@ -394,14 +394,14 @@
 
       <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-git-close-pull-request-fill text-base text-fuchsia-700"></i>
-        <div class="text-sm">{{ 'PAC.Xpert.ParallelToolCalls' | translate: { Default: 'Parallel tool calls' } }}</div>
+        <div class="text-sm">{{ 'XP.Xpert.ParallelToolCalls' | translate: { Default: 'Parallel tool calls' } }}</div>
         <z-switch
           class="flex"
           [ngModel]="parallelToolCalls()"
           (ngModelChange)="updateParallelToolCalls($event)"
           labelPosition="before"
           [zTooltip]="
-            'PAC.Xpert.ParallelToolCallsTip'
+            'XP.Xpert.ParallelToolCallsTip'
               | translate
                 : {
                     Default:
@@ -434,7 +434,7 @@
     <div class="flex flex-col w-full px-2">
       <div class="flex justify-between items-center">
         <div class="uppercase font-semibold text-sm">
-          {{ 'PAC.Xpert.RetryOnFailure' | translate: { Default: 'Retry on failure' } }}
+          {{ 'XP.Xpert.RetryOnFailure' | translate: { Default: 'Retry on failure' } }}
         </div>
 
         <z-switch
@@ -448,11 +448,11 @@
       @if (retryEnabled()) {
         <div class="w-full flex justify-between items-center">
           <div class="grow text-sm">
-            {{ 'PAC.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
+            {{ 'XP.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
             <i
               class="ri-information-line opacity-20 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }
+                'XP.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }
               "
               zPosition="top"
             ></i>
@@ -485,7 +485,7 @@
     <div class="flex flex-col w-full px-2">
       <div class="flex justify-between items-center">
         <div class="uppercase font-semibold text-sm">
-          {{ 'PAC.Xpert.FallbackModel' | translate: { Default: 'Fallback Model' } }}
+          {{ 'XP.Xpert.FallbackModel' | translate: { Default: 'Fallback Model' } }}
         </div>
 
         <z-switch
@@ -493,7 +493,7 @@
           [ngModel]="fallbackEnabled()"
           (ngModelChange)="updateFallback({ enabled: $event })"
           [zTooltip]="
-            'PAC.Xpert.FallbackModelTip'
+            'XP.Xpert.FallbackModelTip'
               | translate: { Default: 'This fallback model is used when the agent model fails' }
           "
           zPosition="top"
@@ -527,7 +527,7 @@
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center h-6">
           <div class="font-semibold uppercase text-sm text-text-primary">
-            {{ 'PAC.Xpert.OutputStructure' | translate: { Default: 'Output Structure' } }}
+            {{ 'XP.Xpert.OutputStructure' | translate: { Default: 'Output Structure' } }}
           </div>
         </div>
 
@@ -550,7 +550,7 @@
           >
             <i class="ri-alarm-warning-line mr-2 text-lg text-text-destructive"></i>
             <span class="text-text-secondary">{{
-              'PAC.Xpert.DonotToolCallingAndStructured'
+              'XP.Xpert.DonotToolCallingAndStructured'
                 | translate: { Default: 'Cannot use tool calls and structured output at the same time!' }
             }}</span>
           </div>
@@ -567,16 +567,16 @@
             <div class="ml-2 system-xs-regular text-text-tertiary">string</div>
           </div>
           <div class="mt-0.5 system-xs-regular text-text-tertiary">
-            {{ 'PAC.Xpert.GenerateContent' | translate: { Default: 'Generate content' } }}
+            {{ 'XP.Xpert.GenerateContent' | translate: { Default: 'Generate content' } }}
           </div>
         </div>
       }
 
       <xpert-variables-assigner
         class="block mt-4"
-        [title]="'PAC.Xpert.WritetoMemory' | translate: { Default: 'Write to memory' }"
+        [title]="'XP.Xpert.WritetoMemory' | translate: { Default: 'Write to memory' }"
         [tooltip]="
-          'PAC.Xpert.WritetoMemoryTooltip'
+          'XP.Xpert.WritetoMemoryTooltip'
             | translate
               : { Default: 'Write output content or parameters of the agent into global memory of the digital expert' }
         "
@@ -591,7 +591,7 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 @if (openedExecution()) {
@@ -613,21 +613,21 @@
 
 <ng-template #moreMenu>
   <div cdkMenu class="cdk-menu__medium w-60">
-    <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left" (click)="openExecution()">
-      <i class="ri-play-line mr-1"></i>{{ 'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' } }}
+    <button cdkMenuItem class="xp-cdk-menu-item px-2 py-1 max-w-full text-left" (click)="openExecution()">
+      <i class="ri-play-line mr-1"></i>{{ 'XP.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' } }}
     </button>
-    <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left" [cdkMenuTriggerFor]="executionsMenu">
+    <button cdkMenuItem class="xp-cdk-menu-item px-2 py-1 max-w-full text-left" [cdkMenuTriggerFor]="executionsMenu">
       <span
         ><i class="ri-history-line mr-1"></i
-        >{{ 'PAC.Xpert.ExecutionsHistories' | translate: { Default: 'Executions Histories' } }}</span
+        >{{ 'XP.Xpert.ExecutionsHistories' | translate: { Default: 'Executions Histories' } }}</span
       >
     </button>
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
 
-    <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left" (click)="synchronous()">
+    <button cdkMenuItem class="xp-cdk-menu-item px-2 py-1 max-w-full text-left" (click)="synchronous()">
       <i class="ri-refresh-line mr-1"></i>
-      <span>{{ 'PAC.Xpert.Synchronous' | translate: { Default: 'Synchronous' } }}</span>
+      <span>{{ 'XP.Xpert.Synchronous' | translate: { Default: 'Synchronous' } }}</span>
     </button>
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
@@ -636,21 +636,21 @@
       cdkMenuItem
       class="danger disabled:opacity-80"
       [disabled]="isPrimaryAgent()"
-      [zTooltip]="'PAC.Xpert.CanntRemovePrimaryAgent' | translate: { Default: 'Cannot remove the primary Agent' }"
+      [zTooltip]="'XP.Xpert.CanntRemovePrimaryAgent' | translate: { Default: 'Cannot remove the primary Agent' }"
       zPosition="left"
       (click)="remove()"
     >
-      {{ 'PAC.Xpert.Remove' | translate: { Default: 'Remove' } }}
+      {{ 'XP.Xpert.Remove' | translate: { Default: 'Remove' } }}
     </button>
   </div>
 </ng-template>
 
 <ng-template #executionsMenu>
-  <div cdkMenu class="ngm-cdk-menu p-2 w-72 overflow-auto">
+  <div cdkMenu class="xp-cdk-menu p-2 w-72 overflow-auto">
     @for (execution of executions(); track execution.id) {
       <button
         cdkMenuItem
-        class="ngm-cdk-menu-item shrink-0 px-2 py-1 max-w-full flex justify-between items-start text-sm"
+        class="xp-cdk-menu-item shrink-0 px-2 py-1 max-w-full flex justify-between items-start text-sm"
         (click)="openExecution(execution)"
       >
         {{ execution.updatedAt | relative }}
@@ -660,7 +660,7 @@
       </button>
     } @empty {
       <div class="text-text-secondary m-2">
-        {{ 'PAC.Xpert.NoExecutionYet' | translate: { Default: 'No execution yet' } }}
+        {{ 'XP.Xpert.NoExecutionYet' | translate: { Default: 'No execution yet' } }}
       </div>
     }
   </div>
@@ -684,7 +684,7 @@
         <div class="text-sm text-text-warning">{{ diagram.error }}</div>
       }
     } @else {
-      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+      <xp-spin class="absolute top-0 left-0 w-full h-full" />
     }
     <button
       type="button"

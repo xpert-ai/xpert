@@ -7,7 +7,6 @@
  */
 
 export * from './general'
-export * from './analytics'
 export * from './operation'
 export * from './handoff'
 export * from './account-binding'
@@ -24,7 +23,6 @@ import type {
   LLMPermission,
   VectorStorePermission
 } from './general'
-import type { AnalyticsPermission } from './analytics'
 import type { AccountBindingPermission } from './account-binding'
 import type { BoundIdentityLoginPermission } from './bound-identity-login'
 import type { HandoffPermission } from './handoff'
@@ -41,7 +39,6 @@ export type Permission =
   | KnowledgePermission
   | FileSystemPermission
   | IntegrationPermission
-  | AnalyticsPermission
   | AccountBindingPermission
   | BoundIdentityLoginPermission
   | SsoBindingPermission

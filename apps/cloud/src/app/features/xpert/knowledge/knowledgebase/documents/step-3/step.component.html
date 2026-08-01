@@ -5,16 +5,16 @@
     <div class="mx-auto max-w-[640px]">
       <div class="pt-10">
         <div class="mb-1 text-xl leading-[22px] font-semibold text-text-primary">
-          🎉 {{ 'PAC.Knowledgebase.DocumentUploaded' | translate: { Default: 'Document uploaded' } }}
+          🎉 {{ 'XP.Knowledgebase.DocumentUploaded' | translate: { Default: 'Document uploaded' } }}
         </div>
         <div class="mb-7 text-[13px] leading-4 text-text-tertiary">
           {{
-            'PAC.Knowledgebase.DocumentUploadedKB'
+            'XP.Knowledgebase.DocumentUploadedKB'
               | translate: { Default: 'Documents have been uploaded to the knowledgebase:' }
           }}
           {{ knowledgebase().name }}
           {{
-            'PAC.Knowledgebase.YouFindItIn'
+            'XP.Knowledgebase.YouFindItIn'
               | translate: { Default: ', you can find it in the document list of the knowledgebase.' }
           }}
         </div>
@@ -26,7 +26,7 @@
               type="button"
               class="btn btn-small pressable danger w-7 h-7 justify-center mr-1"
               [zTooltip]="
-                'PAC.Knowledgebase.StopEmbed'
+                'XP.Knowledgebase.StopEmbed'
                   | translate: { Default: 'Terminate embedding and start from scratch if you need to embed again' }
               "
               zPosition="top"
@@ -34,11 +34,11 @@
             >
               <i class="ri-stop-circle-line text-lg"></i>
             </button>
-            {{ 'PAC.Knowledgebase.Embedding' | translate: { Default: 'Embedding' } }}...
+            {{ 'XP.Knowledgebase.Embedding' | translate: { Default: 'Embedding' } }}...
           } @else if (cancel()) {
-            {{ 'PAC.Knowledgebase.EmbedCancelled' | translate: { Default: 'Embed Cancelled' } }}
+            {{ 'XP.Knowledgebase.EmbedCancelled' | translate: { Default: 'Embed Cancelled' } }}
           } @else {
-            {{ 'PAC.Knowledgebase.EmbedCompleted' | translate: { Default: 'Embed Completed' } }}
+            {{ 'XP.Knowledgebase.EmbedCompleted' | translate: { Default: 'Embed Completed' } }}
           }
         </div>
       </div>
@@ -58,7 +58,13 @@
             </div>
 
             @if (item.status === 'running') {
-              <z-progress-bar class="absolute bottom-0 left-0 w-full" zShape="square" zSize="sm" [progress]="item.progress" [zType]="item.progress === 100 ? 'default' : 'accent'" />
+              <z-progress-bar
+                class="absolute bottom-0 left-0 w-full"
+                zShape="square"
+                zSize="sm"
+                [progress]="item.progress"
+                [zType]="item.progress === 100 ? 'default' : 'accent'"
+              />
             }
           </div>
         } @empty {
@@ -69,20 +75,20 @@
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'PAC.Knowledgebase.ChunkMode' | translate: { Default: 'Chunk Mode' } }}
+            {{ 'XP.Knowledgebase.ChunkMode' | translate: { Default: 'Chunk Mode' } }}
           </div>
           <div class="grow flex items-center gap-1 text-text-secondary">
             @if (chunkModeStandard()) {
-              {{ 'PAC.Knowledgebase.ChunkModeStandard' | translate: { Default: 'Standard' } }}
+              {{ 'XP.Knowledgebase.ChunkModeStandard' | translate: { Default: 'Standard' } }}
             } @else {
-              {{ 'PAC.Knowledgebase.ChunkModeCustom' | translate: { Default: 'Custom' } }}
+              {{ 'XP.Knowledgebase.ChunkModeCustom' | translate: { Default: 'Custom' } }}
             }
           </div>
         </div>
 
         <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'PAC.Knowledgebase.ChunkDelimiter' | translate: { Default: 'Delimiter' } }}
+            {{ 'XP.Knowledgebase.ChunkDelimiter' | translate: { Default: 'Delimiter' } }}
           </div>
           <div class="grow flex items-center gap-1 text-text-secondary">
             {{ parserConfig()?.delimiter }}
@@ -90,7 +96,7 @@
         </div>
         <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' } }}
+            {{ 'XP.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' } }}
           </div>
           <div class="grow flex items-center gap-1 text-text-secondary">
             {{ parserConfig()?.chunkSize }}
@@ -98,7 +104,7 @@
         </div>
         <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' } }}
+            {{ 'XP.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' } }}
           </div>
           <div class="grow flex items-center gap-1 text-text-secondary">
             {{ parserConfig()?.chunkOverlap }}
@@ -107,20 +113,20 @@
 
         <div class="flex gap-1 py-0.5 min-h-5 text-sm !items-start pt-1">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
+            {{ 'XP.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
           </div>
           <div class="grow flex items-center gap-1 text-text-secondary">
             @if (parserConfig()?.replaceWhitespace) {
               <span
                 >{{
-                  'PAC.Knowledgebase.ReplaceWhiteChar'
+                  'XP.Knowledgebase.ReplaceWhiteChar'
                     | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
                 }}.
               </span>
             }
             @if (parserConfig()?.removeSensitive) {
               <span>{{
-                'PAC.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }
+                'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }
               }}</span>
             }
           </div>
@@ -132,7 +138,7 @@
           <span>Access the API</span></button
         > -->
         <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-fit" (click)="apply()">
-          <span>{{ 'PAC.Knowledgebase.GotoDocuments' | translate: { Default: 'Goto documents' } }}</span>
+          <span>{{ 'XP.Knowledgebase.GotoDocuments' | translate: { Default: 'Goto documents' } }}</span>
           <i class="ri-arrow-right-line"></i>
         </button>
       </div>
@@ -144,11 +150,11 @@
         <i class="ri-book-open-line text-xl text-purple-500"></i>
       </div>
       <div class="text-base font-semibold text-text-secondary">
-        {{ 'PAC.Knowledgebase.WhatDoNext' | translate: { Default: 'What to do next' } }}
+        {{ 'XP.Knowledgebase.WhatDoNext' | translate: { Default: 'What to do next' } }}
       </div>
       <div class="text-text-tertiary">
         {{
-          'PAC.Knowledgebase.DoNextDesc'
+          'XP.Knowledgebase.DoNextDesc'
             | translate
               : {
                   Default:
@@ -162,7 +168,7 @@
           [href]="'/xpert/w/' + workspaceId()"
           target="_blank"
         >
-          {{ 'PAC.Knowledgebase.GotoWorkspace' | translate: { Default: 'Goto workspace' } }}
+          {{ 'XP.Knowledgebase.GotoWorkspace' | translate: { Default: 'Goto workspace' } }}
           <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
         </a>
       </div>

@@ -5,7 +5,14 @@ const path = require('node:path')
 const workspaceRoot = path.resolve(__dirname, '../..')
 const nodeModulesRoot = path.join(workspaceRoot, 'node_modules')
 const transformSeedPackages: string[] = ['@xpert-ai/chatkit-types']
-const staticTransformAllowList: string[] = ['lodash-es', 'nanoid', 'marked', '@angular/common/locales']
+const staticTransformAllowList: string[] = [
+  'lodash-es',
+  'nanoid',
+  'marked',
+  'echarts',
+  'zrender',
+  '@angular/common/locales'
+]
 
 const readPackageJson = (packageName: string) => {
   const packagePath = path.join(nodeModulesRoot, ...packageName.split('/'), 'package.json')

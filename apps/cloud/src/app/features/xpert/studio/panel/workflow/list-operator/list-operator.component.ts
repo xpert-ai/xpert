@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent, XpertVariableInputComponent } from '@cloud/app/@shared/agent'
 import { XpertWorkflowConditionFormComponent } from '@cloud/app/@shared/workflow'
-import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getVariableSchema,
@@ -27,7 +27,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmCheckboxComponent,
+    XpCheckboxComponent,
     StateVariableSelectComponent,
     XpertWorkflowConditionFormComponent,
     XpertVariableInputComponent,
@@ -79,13 +79,11 @@ export class XpertWorkflowListOperatorComponent extends XpertWorkflowBaseCompone
   constructor() {
     super()
 
-    effect(
-      () => {
-        if (this.inputVariableItemType()) {
-          this.itemVarType.set(this.inputVariableItemType())
-        }
+    effect(() => {
+      if (this.inputVariableItemType()) {
+        this.itemVarType.set(this.inputVariableItemType())
       }
-    )
+    })
   }
 
   addCondition() {

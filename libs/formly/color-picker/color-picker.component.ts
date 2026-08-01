@@ -1,20 +1,19 @@
-
 import { ChangeDetectionStrategy, Component, HostBinding } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { FieldType } from '@ngx-formly/core'
-import { ColorInputFormat, NgmColorInputComponent } from '@xpert-ai/components/form-field'
-import { DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { ColorInputFormat, XpColorInputComponent } from '@xpert-ai/headless-ui'
+import { DensityDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  selector: 'pac-formly-color-picker',
+  selector: 'xp-formly-color-picker',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './color-picker.component.html',
   styleUrls: ['./color-picker.component.scss'],
-  imports: [FormsModule, ReactiveFormsModule, NgmColorInputComponent, DensityDirective]
+  imports: [FormsModule, ReactiveFormsModule, XpColorInputComponent, DensityDirective]
 })
-export class PACFormlyColorPickerComponent extends FieldType<any> {
-  @HostBinding('class.pac-formly-color-picker') public _formlyColorPickerComponent = true
+export class XpFormlyColorPickerComponent extends FieldType<any> {
+  @HostBinding('class.xp-formly-color-picker') public _formlyColorPickerComponent = true
 
   format: ColorInputFormat = 'hex'
 }

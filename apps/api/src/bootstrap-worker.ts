@@ -1,4 +1,3 @@
-import { AnalyticsModule, preBootstrapApplicationConfig, prepare } from '@xpert-ai/analytics'
 import { ConfigModule, getConfig } from '@xpert-ai/server-config'
 import { initializeApplicationTracingFromEnv, ServerAIModule } from '@xpert-ai/server-ai'
 import {
@@ -19,12 +18,14 @@ import { Logger as NestLogger, Module } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { Logger } from 'nestjs-pino'
 import path from 'node:path'
+import { preBootstrapApplicationConfig } from './bootstrap'
+import { prepare } from './prepare'
 
 /**
  * Application composition for dedicated Xpert API workers.
  *
- * Worker process ownership belongs to @xpert-ai/xpert-api. Analytics remains a
- * domain module and does not control the worker lifecycle or process entrypoint.
+ * Worker process ownership belongs to @xpert-ai/xpert-api and contains only
+ * the generic server and AI runtime modules.
  */
 @Module({
   imports: [
@@ -38,7 +39,6 @@ import path from 'node:path'
     provideScheduleModule(),
     ServerAppModule,
     ServerAIModule,
-    AnalyticsModule,
     SeederModule
   ]
 })

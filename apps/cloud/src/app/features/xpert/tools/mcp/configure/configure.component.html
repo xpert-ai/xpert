@@ -1,47 +1,52 @@
 <form [formGroup]="formGroup" class="flex flex-col space-y-2">
   <div>
     <div class="py-2 leading-5 font-medium">
-      {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+      {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
       <span class="ml-1 text-red-500">*</span>
     </div>
     <div class="flex items-center justify-between gap-3">
-      <emoji-avatar class="rounded-lg overflow-hidden"
-        [(avatar)]="avatar" editable />
-      <input class="ngm-input h-10 px-3 text-base font-normal grow"
-        [placeholder]="'PAC.Xpert.EnterToolsetName' | translate: {Default: 'Enter the toolset name'}"
+      <emoji-avatar class="rounded-lg overflow-hidden" [(avatar)]="avatar" editable />
+      <input
+        class="xp-input h-10 px-3 text-base font-normal grow"
+        [placeholder]="'XP.Xpert.EnterToolsetName' | translate: { Default: 'Enter the toolset name' }"
         formControlName="name"
-        [ngClass]="{error: name.invalid && (name.dirty || name.touched)}">
+        [ngClass]="{ error: name.invalid && (name.dirty || name.touched) }"
+      />
     </div>
 
-    <textarea formControlName="description"
-      class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular
-        bg-background-default-subtle"
-      [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: {Default: 'Enter toolset description'} "
+    <textarea
+      formControlName="description"
+      class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle"
+      [placeholder]="'XP.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
     ></textarea>
   </div>
 
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-      {{'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
+      {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
     </div>
     <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [formControl]="tags" />
   </div>
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-      {{'PAC.Xpert.PrivacyPolicy' | translate: {Default: 'Privacy Policy'} }}
+      {{ 'XP.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
     </div>
-    <input z-input class="w-full h-10 text-sm grow"
-      [placeholder]=" 'PAC.Xpert.EnterPrivacyPolicy' | translate: {Default: 'Please enter privacy policy'} "
+    <input
+      z-input
+      class="w-full h-10 text-sm grow"
+      [placeholder]="'XP.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
       formControlName="privacyPolicy"
-      >
+    />
   </div>
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-      {{'PAC.Xpert.CustomDisclaimer' | translate: {Default: 'Custom Disclaimer'} }}
+      {{ 'XP.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
     </div>
-    <input z-input class="w-full h-10 text-sm grow"
-      [placeholder]=" 'PAC.Xpert.EnterCustomDisclaimer' | translate: {Default: 'Please enter custom disclaimer'} "
+    <input
+      z-input
+      class="w-full h-10 text-sm grow"
+      [placeholder]="'XP.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
       formControlName="customDisclaimer"
-      >
+    />
   </div>
 </form>

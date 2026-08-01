@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
-import { toParams } from '@xpert-ai/core'
+import { API_PREFIX } from '@cloud/app/@core/state'
+import { toParams } from '@xpert-ai/headless-ui'
 import {
   IFeature,
   IFeatureOrganization,
@@ -34,13 +34,13 @@ export class FeatureService {
   }
 
   getFeatureOrganizations(
-		where?: IFeatureOrganizationFindInput,
-		relations?: string[]
-	): Observable<IPagination<IFeatureOrganization>> {
-		return this.http.get<IPagination<IFeatureOrganization>>(`${this.API_URL}/organizations`, {
-			params: toParams({ relations, ...where })
-		});
-	}
+    where?: IFeatureOrganizationFindInput,
+    relations?: string[]
+  ): Observable<IPagination<IFeatureOrganization>> {
+    return this.http.get<IPagination<IFeatureOrganization>>(`${this.API_URL}/organizations`, {
+      params: toParams({ relations, ...where })
+    })
+  }
 
   featureToggle(payload: IFeatureOrganizationUpdateInput): Observable<boolean> {
     return this.http.post<boolean[]>(`${this.API_URL}`, [payload]).pipe(map((res: boolean[]) => res[0]))
@@ -51,7 +51,7 @@ export class FeatureService {
   }
 
   upgrade() {
-	  return this.http.post(`${this.API_FEATURE}/upgrade`, {})
+    return this.http.post(`${this.API_FEATURE}/upgrade`, {})
   }
 
   notifyFeatureDefinitionsRefreshed() {

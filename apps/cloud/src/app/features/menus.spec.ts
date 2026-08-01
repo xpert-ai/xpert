@@ -1,21 +1,20 @@
 import {
   AiFeatureEnum,
   AIPermissionsEnum,
-  AnalyticsFeatures,
   FeatureEnum,
   PermissionsEnum,
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
-import { getFeatureMenus, getSettingsMenuItems, syncMenuParentStateFromChildren } from './menus'
+import { getFeatureMenus, getSettingsMenuItems } from './menus'
 
 describe('getSettingsMenuItems', () => {
-  it('marks legacy settings menus as deprecated', () => {
-    const deprecatedPaths = ['chatbi', 'business-area', 'certification']
+  it('removes legacy Analytics settings menus', () => {
+    const removedPaths = ['chatbi', 'business-area', 'certification']
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
 
-    for (const path of deprecatedPaths) {
-      expect(menus.find((item) => item.path === path)?.deprecated).toBe(true)
+    for (const path of removedPaths) {
+      expect(menus.find((item) => item.path === path)).toBeUndefined()
     }
   })
 
@@ -57,7 +56,8 @@ describe('getSettingsMenuItems', () => {
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
     const dataSources = menus.find((item) => item.path === 'data-sources')
 
-    expect(dataSources?.data?.featureKey).toBe(AnalyticsFeatures.FEATURE_DATA_SOURCE)
+    expect(dataSources?.data?.featureKey).toBe(FeatureEnum.FEATURE_DATA_SOURCE)
+    expect(dataSources?.data?.permissionKeys).toEqual([PermissionsEnum.DATA_SOURCE_EDIT])
   })
 
   it('gates membership settings with the membership plan feature', () => {
@@ -65,7 +65,44 @@ describe('getSettingsMenuItems', () => {
     const membership = menus.find((item) => item.path === 'membership')
 
     expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
-    expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.COPILOT_EDIT])
+    expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
+  })
+
+  it('gates model access approvals with both features and view-or-edit permission', () => {
+    const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
+    const modelAccess = menus.find((item) => item.path === 'model-access')
+
+    expect(modelAccess?.data?.featureKey).toEqual([
+      AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
+      AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST
+    ])
+    expect(modelAccess?.data?.permissionKeys).toEqual([
+      AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW,
+      AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT
+    ])
+  })
+
+  it('shows scope-isolated model gateway management in tenant and organization settings', () => {
+    const tenantGateway = getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'model-gateway')
+    const organizationGateway = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find(
+      (item) => item.path === 'model-gateway'
+    )
+
+    expect(tenantGateway).toMatchObject({
+      icon: 'code-xml',
+      scopeContext: 'dual-scope',
+      data: {
+        featureKey: AiFeatureEnum.FEATURE_MODEL_GATEWAY,
+        permissionKeys: [AIPermissionsEnum.MODEL_GATEWAY_MANAGE]
+      }
+    })
+    expect(organizationGateway).toMatchObject({
+      scopeContext: 'dual-scope',
+      data: {
+        featureKey: AiFeatureEnum.FEATURE_MODEL_GATEWAY,
+        permissionKeys: [AIPermissionsEnum.MODEL_GATEWAY_MANAGE]
+      }
+    })
   })
 
   it('exposes system integrations in tenant and organization settings', () => {
@@ -177,27 +214,10 @@ describe('getFeatureMenus', () => {
     expect(workspace?.data?.onboardingTarget).toBe('workspace')
   })
 
-  it('points the Data parent menu at the first visible child menu', () => {
+  it('does not expose the removed Analytics Data menu', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const data = menus.find((item) => item.title === 'Data')
 
-    data!.children![0].hidden = true
-    data!.children![1].hidden = false
-    syncMenuParentStateFromChildren(data!)
-
-    expect(data?.hidden).toBe(false)
-    expect(data?.link).toBe('/data/models')
-  })
-
-  it('hides the Data parent menu when all child menus are hidden', () => {
-    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
-    const data = menus.find((item) => item.title === 'Data')
-
-    data!.children!.forEach((item) => {
-      item.hidden = true
-    })
-    syncMenuParentStateFromChildren(data!)
-
-    expect(data?.hidden).toBe(true)
+    expect(data).toBeUndefined()
   })
 })

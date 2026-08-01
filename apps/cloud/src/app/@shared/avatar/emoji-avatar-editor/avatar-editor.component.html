@@ -12,7 +12,7 @@
         (click)="type.set('emoji')"
       >
         <span class="text-lg">🤖</span>
-        <span>{{ 'PAC.KEY_WORDS.Emoticons' | translate: { Default: 'Emoticons' } }}</span>
+        <span>{{ 'XP.KEY_WORDS.Emoticons' | translate: { Default: 'Emoticons' } }}</span>
       </button>
 
       <button
@@ -37,7 +37,7 @@
             ></path>
           </g>
         </svg>
-        <span>{{ 'PAC.KEY_WORDS.Picture' | translate: { Default: 'Picture' } }}</span>
+        <span>{{ 'XP.KEY_WORDS.Picture' | translate: { Default: 'Picture' } }}</span>
       </button>
     </div>
   </div>
@@ -66,7 +66,7 @@
 
       <div class="p-3 pb-0">
         <p class="mb-2 text-xs font-medium uppercase">
-          {{ 'PAC.KEY_WORDS.ChooseStyle' | translate: { Default: 'Choose Style' } }}
+          {{ 'XP.KEY_WORDS.ChooseStyle' | translate: { Default: 'Choose Style' } }}
         </p>
         <div class="grid h-full w-full grid-cols-8 gap-1">
           @for (color of colors; track color) {
@@ -133,16 +133,16 @@
 
         <div class="max-w-[18rem] text-center">
           <div class="text-base font-medium text-text-primary">
-            {{ 'PAC.KEY_WORDS.DropImageHereOr' | translate: { Default: 'Drop your image here, or' } }}
+            {{ 'XP.KEY_WORDS.DropImageHereOr' | translate: { Default: 'Drop your image here, or' } }}
           </div>
           <div class="mt-1 text-xs text-text-secondary">
-            {{ 'PAC.KEY_WORDS.Supports' | translate: { Default: 'Supports' } }} PNG, JPG, JPEG, WEBP
-            {{ 'PAC.KEY_WORDS.And' | translate: { Default: 'and' } }} GIF
+            {{ 'XP.KEY_WORDS.Supports' | translate: { Default: 'Supports' } }} PNG, JPG, JPEG, WEBP
+            {{ 'XP.KEY_WORDS.And' | translate: { Default: 'and' } }} GIF
           </div>
         </div>
 
         <button type="button" z-button [zType]="imageUrl() ? 'secondary' : 'default'" (click)="fileUpload.click()">
-          {{ 'PAC.KEY_WORDS.Browse' | translate: { Default: 'browse' } }}
+          {{ 'XP.KEY_WORDS.Browse' | translate: { Default: 'browse' } }}
         </button>
 
         <input
@@ -161,7 +161,7 @@
 <div xpDialogActions align="end" class="!mt-1 pt-0">
   <div class="inline-flex items-center gap-2">
     <button type="button" z-button zType="ghost" xpDialogClose>
-      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button type="button" z-button zType="default" cdkFocusInitial (click)="apply()">
       {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}

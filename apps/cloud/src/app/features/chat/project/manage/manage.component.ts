@@ -7,10 +7,10 @@ import { Router } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
-import { PAC_API_BASE_URL } from '@xpert-ai/cloud/auth'
-import { attrModel } from '@xpert-ai/core'
-import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XP_API_BASE_URL } from '@cloud/app/auth'
+import { attrModel } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -36,10 +36,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     CopilotModelSelectComponent,
-    NgmSpinComponent,
+    XpSpinComponent,
     ChatProjectMembersComponent,
     IntegrationSelectComponent
-],
+  ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss'
 })
@@ -56,7 +56,7 @@ export class ChatProjectManageComponent {
   readonly i18nService = injectI18nService()
   readonly #copilots = injectCopilots()
   // readonly integrationAPI = injectIntegrationAPI()
-  readonly API_BASE_URL = inject(PAC_API_BASE_URL)
+  readonly API_BASE_URL = inject(XP_API_BASE_URL)
 
   // States
   readonly projectId = signal(this.#data.id)
@@ -109,7 +109,7 @@ export class ChatProjectManageComponent {
   deleteProject() {
     this.confirmDelete({
       value: this.name(),
-      information: this.i18nService.instant('PAC.XProject.DeleteProjectAndAll', {
+      information: this.i18nService.instant('XP.XProject.DeleteProjectAndAll', {
         Default: 'Delete the project and all the materials in it'
       })
     })
@@ -142,7 +142,7 @@ export class ChatProjectManageComponent {
 
   connectIntegration() {
     if (!this.integrationId()) {
-      this.#toastr.error(this.i18nService.instant('PAC.XProject.PleaseSelectIntegration'))
+      this.#toastr.error(this.i18nService.instant('XP.XProject.PleaseSelectIntegration'))
       return
     }
     const integration = this.integrations().find((i) => i.id === this.integrationId())

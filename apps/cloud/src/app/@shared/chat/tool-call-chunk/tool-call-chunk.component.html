@@ -37,7 +37,7 @@
     @if (openable()) {
       <button
         class="btn pressable flex justify-center items-center w-6 h-6 rounded-lg border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
-        [zTooltip]="'PAC.Chat.OpenInCanvas' | translate: { Default: 'Open in canvas' }"
+        [zTooltip]="'XP.Chat.OpenInCanvas' | translate: { Default: 'Open in canvas' }"
         zPosition="top"
         (click)="open.emit()"
       >
@@ -78,13 +78,13 @@
   @if (expanded()) {
     <div class="flex flex-col text-xs leading-4 font-mono">
       <div>
-        <label class="font-semibold">{{ 'PAC.Chat.Input' | translate: { Default: 'Input' } }}:</label>
+        <label class="font-semibold">{{ 'XP.Chat.Input' | translate: { Default: 'Input' } }}:</label>
         <ngx-json-viewer [json]="chunk().input" [depth]="1" />
       </div>
 
       @if (output(); as output) {
         <div>
-          <label class="font-semibold">{{ 'PAC.Chat.Output' | translate: { Default: 'Output' } }}:</label>
+          <label class="font-semibold">{{ 'XP.Chat.Output' | translate: { Default: 'Output' } }}:</label>
           <ngx-json-viewer [json]="output" [depth]="1" class="block max-h-56 overflow-auto" />
         </div>
       }
@@ -92,7 +92,7 @@
       @if (chunk().status === 'fail') {
         <div>
           <label class="font-semibold text-text-destructive"
-            >{{ 'PAC.Chat.Error' | translate: { Default: 'Error' } }}:</label
+            >{{ 'XP.Chat.Error' | translate: { Default: 'Error' } }}:</label
           >
           <div class="block max-h-56 overflow-auto text-text-destructive opacity-80 hover:opacity-100">
             {{ chunk().error }}

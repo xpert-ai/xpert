@@ -14,9 +14,9 @@ import {
 } from '@angular/core'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
-import { isEqual, pick } from '@xpert-ai/ocap-core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { isEqual, pick } from 'lodash-es'
 import {
   ApiAuthType,
   IXpertToolset,
@@ -154,32 +154,28 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   constructor() {
     super()
 
-    effect(
-      () => {
-        this.loading() ? this.formGroup.disable() : this.formGroup.enable()
-      }
-    )
+    effect(() => {
+      this.loading() ? this.formGroup.disable() : this.formGroup.enable()
+    })
 
-    effect(
-      () => {
-        if (this.cva.value$() && !this.formGroup.value.id && !isEqual(this.cva.value$(), this.formGroup.value)) {
-          this.formGroup.patchValue({
-            ...pick(
-              this.cva.value$(),
-              'id',
-              'name',
-              'avatar',
-              'description',
-              'options',
-              'category',
-              'tags',
-              'privacyPolicy',
-              'customDisclaimer'
-            )
-          } as any)
-          this.#cdr.detectChanges()
-        }
+    effect(() => {
+      if (this.cva.value$() && !this.formGroup.value.id && !isEqual(this.cva.value$(), this.formGroup.value)) {
+        this.formGroup.patchValue({
+          ...pick(
+            this.cva.value$(),
+            'id',
+            'name',
+            'avatar',
+            'description',
+            'options',
+            'category',
+            'tags',
+            'privacyPolicy',
+            'customDisclaimer'
+          )
+        } as any)
+        this.#cdr.detectChanges()
       }
-    )
+    })
   }
 }

@@ -4,11 +4,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  IWFNSkill,
-} from 'apps/cloud/src/app/@core'
+import { IWFNSkill } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -22,7 +20,6 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   imports: [FormsModule, ClipboardModule, CdkMenuModule, TranslateModule]
 })
 export class XpertWorkflowSkillComponent extends XpertWorkflowBaseComponent {
-
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
@@ -46,5 +43,4 @@ export class XpertWorkflowSkillComponent extends XpertWorkflowBaseComponent {
 
   // Models
   readonly draft = this.studioService.viewModel
-
 }

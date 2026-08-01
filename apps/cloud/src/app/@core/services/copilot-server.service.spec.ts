@@ -8,7 +8,7 @@ const storeMock = {
   selectOrganizationId: jest.fn(() => organizationId$.asObservable())
 }
 
-jest.mock('@xpert-ai/core', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { HttpParams } = require('@angular/common/http')
 
   return {
@@ -19,7 +19,7 @@ jest.mock('@xpert-ai/core', () => {
   }
 })
 
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   const { HttpClient } = require('@angular/common/http')
   const { inject } = require('@angular/core')
 
@@ -52,7 +52,7 @@ jest.mock('../types', () => ({
   }
 }))
 
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { CopilotServerService } from './copilot-server.service'
 import { AiModelTypeEnum, AiProviderRole } from '../types'
 
@@ -129,6 +129,38 @@ describe('CopilotServerService', () => {
     secondRequest.flush(org2Models)
 
     expect(emissions).toEqual([org1Models, org2Models])
+
+    subscription.unsubscribe()
+  })
+
+  it('should load unfiltered models from the management endpoint', () => {
+    const managementModels = [
+      {
+        id: 'copilot-org-1',
+        role: AiProviderRole.Primary,
+        providerWithModels: {
+          models: []
+        }
+      }
+    ]
+
+    const subscription = service.getManagementCopilotModels(AiModelTypeEnum.LLM).subscribe()
+
+    const request = httpMock.expectOne(
+      (item) => item.url.endsWith('/copilot/management-models') && item.params.get('type') === AiModelTypeEnum.LLM
+    )
+    request.flush(managementModels)
+
+    subscription.unsubscribe()
+  })
+
+  it('loads the xpert catalog from the creator-scoped endpoint', () => {
+    const subscription = service.getXpertCopilotModels('xpert-1', AiModelTypeEnum.LLM).subscribe()
+
+    const request = httpMock.expectOne(
+      (item) => item.url.endsWith('/xpert/xpert-1/model-catalog') && item.params.get('type') === AiModelTypeEnum.LLM
+    )
+    request.flush([])
 
     subscription.unsubscribe()
   })

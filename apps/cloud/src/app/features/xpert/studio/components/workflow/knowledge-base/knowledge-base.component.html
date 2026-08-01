@@ -4,7 +4,7 @@
   <div class="flex min-w-0 items-center gap-x-1 rounded-md bg-components-input-bg-normal px-2 py-1 text-text-tertiary">
     <i class="ri-settings-3-line shrink-0"></i>
     <span class="truncate system-xs-medium">
-      {{ 'PAC.Knowledgebase.ModelConfiguration' | translate: { Default: 'Model Configuration' } }}
+      {{ 'XP.Knowledgebase.ModelConfiguration' | translate: { Default: 'Model Configuration' } }}
     </span>
   </div>
 </div>
@@ -12,14 +12,20 @@
 <div class="relative w-full flex h-8 p-1">
   <div class="grow flex justify-end items-center">
     <div class="text-[12px] font-semibold text-text-primary uppercase">
-      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+      {{ 'XP.Xpert.Next' | translate: { Default: 'Next' } }}
     </div>
   </div>
 
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
-    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/edge'"
+    fOutputConnectableSide="right"
+    class="right group"
+    [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  >
     <div class="inner-dot cursor-crosshair">
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
 </div>

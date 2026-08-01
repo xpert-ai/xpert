@@ -5,7 +5,7 @@ import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 
 @Component({
   standalone: false,
-  selector: 'pac-organization',
+  selector: 'xp-organization',
   templateUrl: './organization.component.html',
   styleUrls: ['./organization.component.scss']
 })

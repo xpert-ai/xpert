@@ -1,17 +1,12 @@
 import { Component } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmTableComponent, TreeTableModule } from '@xpert-ai/ocap-angular/common'
+import { XpTableComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [NgmTableComponent],
-  template: `
-    <ngm-table
-      [columns]="columns"
-      [data]="data"
-    />
-  `
+  imports: [XpTableComponent],
+  template: ` <xp-table [columns]="columns" [data]="data" /> `
 })
 class TableHostComponent {
   readonly columns = [
@@ -32,13 +27,8 @@ class TableHostComponent {
 
 @Component({
   standalone: true,
-  imports: [NgmTableComponent],
-  template: `
-    <ngm-table
-      [columns]="columns"
-      [data]="data"
-    />
-  `
+  imports: [XpTableComponent],
+  template: ` <xp-table [columns]="columns" [data]="data" /> `
 })
 class ResizableTableHostComponent {
   readonly columns = [
@@ -55,13 +45,8 @@ class ResizableTableHostComponent {
 
 @Component({
   standalone: true,
-  imports: [NgmTableComponent],
-  template: `
-    <ngm-table
-      [columns]="columns"
-      [data]="data"
-    />
-  `
+  imports: [XpTableComponent],
+  template: ` <xp-table [columns]="columns" [data]="data" /> `
 })
 class DefaultWidthTableHostComponent {
   readonly columns = [
@@ -88,79 +73,8 @@ class DefaultWidthTableHostComponent {
   ]
 }
 
-@Component({
-  standalone: true,
-  imports: [TreeTableModule],
-  template: `
-    <ngm-tree-table
-      [columns]="columns"
-      [data]="data"
-      nameLabel="Name"
-    />
-  `
-})
-class TreeTableHostComponent {
-  readonly columns = [
-    {
-      name: 'title',
-      caption: 'Title',
-      width: '280px',
-      minWidth: '140px',
-      maxWidth: '220px',
-      headerClass: 'header-class',
-      cellClass: 'cell-class',
-      contentClass: 'content-class'
-    }
-  ]
-
-  readonly data = [
-    {
-      key: 'node-1',
-      name: 'node-1',
-      caption: 'Node 1',
-      raw: {
-        title: 'Quarterly forecast'
-      },
-      children: []
-    }
-  ]
-}
-
-@Component({
-  standalone: true,
-  imports: [TreeTableModule],
-  template: `
-    <ngm-tree-table
-      [columns]="columns"
-      [data]="data"
-      nameLabel="Name"
-      [stickyHeaders]="true"
-    />
-  `
-})
-class TreeTableWithoutOptionalClassesHostComponent {
-  readonly columns = [
-    {
-      name: 'title',
-      caption: 'Title'
-    }
-  ]
-
-  readonly data = [
-    {
-      key: 'node-1',
-      name: 'node-1',
-      caption: 'Node 1',
-      raw: {
-        title: 'Quarterly forecast'
-      },
-      children: []
-    }
-  ]
-}
-
 describe('table column options', () => {
-  it('applies sizing and custom classes to ngm-table columns', async () => {
+  it('applies sizing and custom classes to xp-table columns', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), TableHostComponent]
     }).createComponent(TableHostComponent)
@@ -188,7 +102,7 @@ describe('table column options', () => {
     expect(content.textContent?.trim()).toBe('Quarterly forecast')
   })
 
-  it('resizes ngm-table columns from the header handle', async () => {
+  it('resizes xp-table columns from the header handle', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ResizableTableHostComponent]
     }).createComponent(ResizableTableHostComponent)
@@ -199,7 +113,7 @@ describe('table column options', () => {
     const table = nativeElement.querySelector('table[z-table]') as HTMLElement
     const header = nativeElement.querySelector('th[z-table-head]') as HTMLElement
     const cell = nativeElement.querySelector('td[z-table-cell]') as HTMLElement
-    const resizeHandle = header.querySelector('[data-ngm-table-resize-handle]') as HTMLElement
+    const resizeHandle = header.querySelector('[data-xp-table-resize-handle]') as HTMLElement
 
     expect(table.classList.contains('table-fixed')).toBe(true)
     expect(resizeHandle.classList.contains('cursor-col-resize')).toBe(true)
@@ -230,7 +144,7 @@ describe('table column options', () => {
     const header = nativeElement.querySelector('th[z-table-head]') as HTMLElement
     const cell = nativeElement.querySelector('td[z-table-cell]') as HTMLElement
     const content = cell.querySelector('div') as HTMLElement
-    const resizeHandle = header.querySelector('[data-ngm-table-resize-handle]') as HTMLElement
+    const resizeHandle = header.querySelector('[data-xp-table-resize-handle]') as HTMLElement
 
     expect(header.style.maxWidth).toBe('240px')
     expect(cell.style.maxWidth).toBe('240px')
@@ -289,48 +203,5 @@ describe('table column options', () => {
 
     expect(table.style.minWidth).toBe('480px')
     expect(headers.map((header) => header.style.width)).toEqual(['160px', '160px', '160px'])
-  })
-
-  it('applies sizing and custom classes to ngm-tree-table columns', async () => {
-    const fixture = await TestBed.configureTestingModule({
-      imports: [TreeTableHostComponent]
-    }).createComponent(TreeTableHostComponent)
-
-    fixture.detectChanges()
-
-    const nativeElement = fixture.nativeElement as HTMLElement
-    const header = nativeElement.querySelectorAll('th[z-table-head]')[1] as HTMLElement
-    const cell = nativeElement.querySelectorAll('td[z-table-cell]')[1] as HTMLElement
-    const content = cell.querySelector('div') as HTMLElement
-
-    expect(header.style.width).toBe('280px')
-    expect(header.style.minWidth).toBe('140px')
-    expect(header.style.maxWidth).toBe('220px')
-    expect(header.classList.contains('header-class')).toBe(true)
-
-    expect(cell.style.width).toBe('280px')
-    expect(cell.style.minWidth).toBe('140px')
-    expect(cell.style.maxWidth).toBe('220px')
-    expect(cell.classList.contains('cell-class')).toBe(true)
-
-    expect(content.style.maxWidth).toBe('220px')
-    expect(content.classList.contains('content-class')).toBe(true)
-    expect(content.title).toBe('Quarterly forecast')
-    expect(content.textContent?.trim()).toBe('Quarterly forecast')
-  })
-
-  it('renders ngm-tree-table columns without optional classes', async () => {
-    const fixture = await TestBed.configureTestingModule({
-      imports: [TreeTableWithoutOptionalClassesHostComponent]
-    }).createComponent(TreeTableWithoutOptionalClassesHostComponent)
-
-    expect(() => fixture.detectChanges()).not.toThrow()
-
-    const nativeElement = fixture.nativeElement as HTMLElement
-    const header = nativeElement.querySelectorAll('th[z-table-head]')[1] as HTMLElement
-    const cell = nativeElement.querySelectorAll('td[z-table-cell]')[1] as HTMLElement
-
-    expect(header.classList.contains('sticky')).toBe(true)
-    expect(cell.textContent?.trim()).toBe('Quarterly forecast')
   })
 })

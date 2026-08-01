@@ -64,6 +64,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
             new XpertImportCommand(draft, {
                 normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
+                language: command.language,
                 templateId: command.templateId,
                 sourceTemplateId: template.id
             })

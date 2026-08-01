@@ -17,10 +17,10 @@ import {
 } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
-import { effectAction, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
-import { IXpert, PaginationParams } from '@xpert-ai/cloud/state'
+import { XpCommonModule, XpHighlightDirective } from '@xpert-ai/headless-ui'
+import { effectAction, XpI18nPipe } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
+import { IXpert, PaginationParams } from '@cloud/app/@core/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -54,10 +54,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     WaIntersectionObserver,
-    NgmCommonModule,
+    XpCommonModule,
     DateRelativePipe,
-    NgmHighlightDirective,
-    NgmI18nPipe
+    XpHighlightDirective,
+    XpI18nPipe
   ],
   selector: 'xpert-chat-conversations',
   templateUrl: './conversations.component.html',
@@ -121,15 +121,13 @@ export class ChatConversationsComponent {
   constructor() {
     this.onIntersection()
 
-    effect(
-      () => {
-        const cache = this.#cache()
-        if (cache) {
-          this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
-          this._filterXpert.set(cache.xpert ?? null)
-        }
+    effect(() => {
+      const cache = this.#cache()
+      if (cache) {
+        this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
+        this._filterXpert.set(cache.xpert ?? null)
       }
-    )
+    })
   }
 
   selectConversation(item: IChatConversation) {

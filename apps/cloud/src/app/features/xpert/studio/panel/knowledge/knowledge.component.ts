@@ -1,6 +1,5 @@
-
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
-import { CloseSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { CloseSvgComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IKnowledgebase,
@@ -27,10 +26,10 @@ import { Router } from '@angular/router'
 import { KnowledgeRecallParamsComponent, XpertKnowledgeCaseFormComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
-import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
+import { XpSelectPanelComponent } from '@cloud/app/@shared/common'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { CapitalizePipe } from '@xpert-ai/core'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { CapitalizePipe } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-knowledge',
@@ -44,14 +43,14 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     CapitalizePipe,
-    NgmSelectPanelComponent,
+    XpSelectPanelComponent,
     CloseSvgComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     XpertKnowledgeTestComponent,
     KnowledgeRecallParamsComponent,
     XpertKnowledgeCaseFormComponent
-],
+  ],
   host: {
     tabindex: '-1'
   }
@@ -149,22 +148,22 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly filterModeOptions: TSelectOption[] = [
     {
       value: 'disabled',
-      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled', { Default: 'Disabled' }),
-      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled_Description', {
+      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_disabled', { Default: 'Disabled' }),
+      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_disabled_Description', {
         Default: 'No metadata filtering applied.'
       })
     },
     {
       value: 'automatic',
-      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_automatic', { Default: 'Automatic' }),
-      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_automatic_Description', {
+      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_automatic', { Default: 'Automatic' }),
+      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_automatic_Description', {
         Default: 'Automatically apply metadata filtering based on context by Agent.'
       })
     },
     {
       value: 'manual',
-      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual', { Default: 'Manual' }),
-      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual_Description', {
+      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_manual', { Default: 'Manual' }),
+      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_manual_Description', {
         Default: 'Manually configure metadata filtering options by user.'
       })
     }

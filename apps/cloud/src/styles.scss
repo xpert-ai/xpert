@@ -14,7 +14,7 @@
 @import 'remixicon/fonts/remixicon.css';
 @include meta.load-css('app/@core/font-face');
 
-@include meta.load-css('../../../packages/angular/_index.scss');
+@include meta.load-css('../../../packages/ui/src/lib/ui/compat/_index.scss');
 
 @include meta.load-css('styles/theme/theme.tokens.css');
 @include meta.load-css('styles/theme/theme.primary.css');

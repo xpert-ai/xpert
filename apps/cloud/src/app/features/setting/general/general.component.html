@@ -1,25 +1,29 @@
 <div class="blocks four">
   <div class="icon-form-field">
-      <z-icon color="primary" zType="translate"></z-icon>
-      <z-form-field>
-      <z-form-label>{{'PAC.MENU.GENERAL.LANGUAGE' | translate: {Default: "Language"} }}</z-form-label>
-        <ngm-select [placeholder]="'PAC.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: {Default: 'Select Language'} "
-                    [ngModel]="preferredLanguage$ | async"
-                    (ngModelChange)="onLanguageSelect({ value: $event })"
-                    [selectOptions]="languages.map(l => ({ value: l.value, label: l.label }))"
-                    name="language">
-        </ngm-select>
-      </z-form-field>
-    </div>
+    <z-icon color="primary" zType="translate"></z-icon>
+    <z-form-field>
+      <z-form-label>{{ 'XP.MENU.GENERAL.LANGUAGE' | translate: { Default: 'Language' } }}</z-form-label>
+      <xp-select
+        [placeholder]="'XP.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: { Default: 'Select Language' }"
+        [ngModel]="preferredLanguage$ | async"
+        (ngModelChange)="onLanguageSelect({ value: $event })"
+        [selectOptions]="languages.map(l => ({ value: l.value, label: l.label }))"
+        name="language"
+      >
+      </xp-select>
+    </z-form-field>
+  </div>
   <div class="icon-form-field">
     <z-icon color="primary" zType="color_lens"></z-icon>
     <z-form-field>
-      <z-form-label>{{'PAC.MENU.GENERAL.THEME' | translate: {Default: "Theme"} }}</z-form-label>
-      <ngm-select [ngModel]="preferredTheme$()"
-                  (ngModelChange)="onThemeSelect({ value: $event })"
-                  [selectOptions]="themes.map(l => ({ value: l.value, label: l.label }))"
-                  name="theme">
-      </ngm-select>
+      <z-form-label>{{ 'XP.MENU.GENERAL.THEME' | translate: { Default: 'Theme' } }}</z-form-label>
+      <xp-select
+        [ngModel]="preferredTheme$()"
+        (ngModelChange)="onThemeSelect({ value: $event })"
+        [selectOptions]="themes.map(l => ({ value: l.value, label: l.label }))"
+        name="theme"
+      >
+      </xp-select>
     </z-form-field>
   </div>
 </div>

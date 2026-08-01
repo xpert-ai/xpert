@@ -1,21 +1,31 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import { AiFeatureEnum, AIPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
 import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
-import { PACAccountComponent } from './account/account.component'
-import { membershipPlanAccountGate } from './account/membership-access.guard'
-import { PACAccountPasswordComponent } from './account/password.component'
-import { PACAccountProfileComponent } from './account/profile.component'
-import { PACSettingComponent } from './settings.component'
+import { XpAccountComponent } from './account/account.component'
+import {
+  membershipPlanAccountGate,
+  modelAccessAccountGate,
+  modelGatewayAccountGate
+} from './account/membership-access.guard'
+import { XpAccountPasswordComponent } from './account/password.component'
+import { XpAccountProfileComponent } from './account/profile.component'
+import { XpSettingComponent } from './settings.component'
 
 export const membershipPlanSettingsGate = featureGate([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN], ['/settings'])
-export { membershipPlanAccountGate }
+export const modelAccessSettingsGate = featureGate(
+  [AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN, AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST],
+  ['/settings']
+)
+export const modelGatewaySettingsGate = featureGate([AiFeatureEnum.FEATURE_MODEL_GATEWAY], ['/settings'])
+export { membershipPlanAccountGate, modelAccessAccountGate, modelGatewayAccountGate }
+
 export const routes: Routes = [
   {
     path: '',
-    component: PACSettingComponent,
+    component: XpSettingComponent,
     data: { title: 'pac.menu.settings' },
     children: [
       {
@@ -25,7 +35,7 @@ export const routes: Routes = [
       },
       {
         path: 'account',
-        component: PACAccountComponent,
+        component: XpAccountComponent,
         data: {
           title: 'settings/account',
           scopeContext: 'dual-scope'
@@ -38,7 +48,7 @@ export const routes: Routes = [
           },
           {
             path: 'usage',
-            loadComponent: () => import('./account/usage.component').then((m) => m.PACAccountUsageComponent),
+            loadComponent: () => import('./account/usage.component').then((m) => m.XpAccountUsageComponent),
             canActivate: [membershipPlanAccountGate],
             data: {
               title: 'settings/account/usage',
@@ -47,7 +57,7 @@ export const routes: Routes = [
           },
           {
             path: 'billing',
-            loadComponent: () => import('./account/billing.component').then((m) => m.PACAccountBillingComponent),
+            loadComponent: () => import('./account/billing.component').then((m) => m.XpAccountBillingComponent),
             canActivate: [membershipPlanAccountGate],
             data: {
               title: 'settings/account/billing',
@@ -55,8 +65,28 @@ export const routes: Routes = [
             }
           },
           {
+            path: 'models',
+            loadComponent: () =>
+              import('./account/available-models.component').then((m) => m.XpAccountAvailableModelsComponent),
+            canActivate: [modelAccessAccountGate],
+            data: {
+              title: 'settings/account/models',
+              scopeContext: 'dual-scope'
+            }
+          },
+          {
+            path: 'api',
+            loadComponent: () =>
+              import('./account/model-gateway.component').then((m) => m.XpAccountModelGatewayComponent),
+            canActivate: [modelGatewayAccountGate],
+            data: {
+              title: 'settings/account/api',
+              scopeContext: 'dual-scope'
+            }
+          },
+          {
             path: 'profile',
-            component: PACAccountProfileComponent,
+            component: XpAccountProfileComponent,
             data: {
               title: 'settings/account/profile',
               scopeContext: 'dual-scope'
@@ -64,7 +94,7 @@ export const routes: Routes = [
           },
           {
             path: 'password',
-            component: PACAccountPasswordComponent,
+            component: XpAccountPasswordComponent,
             data: {
               title: 'settings/account/password',
               scopeContext: 'dual-scope'
@@ -80,7 +110,7 @@ export const routes: Routes = [
           title: 'settings/data-sources',
           scopeContext: 'dual-scope',
           permissions: {
-            only: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
+            only: [PermissionsEnum.DATA_SOURCE_EDIT],
             redirectTo
           }
         }
@@ -104,6 +134,10 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'referrals',
+        loadChildren: () => import('./referrals/routing').then((m) => m.routes)
+      },
+      {
         path: 'membership',
         loadComponent: () => import('./membership/membership.component').then((m) => m.MembershipAdminComponent),
         canActivate: [NgxPermissionsGuard, membershipPlanSettingsGate],
@@ -111,7 +145,34 @@ export const routes: Routes = [
           title: 'settings/membership',
           scopeContext: 'dual-scope',
           permissions: {
-            only: [AIPermissionsEnum.COPILOT_EDIT],
+            only: [AIPermissionsEnum.MEMBERSHIP_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
+        path: 'model-access',
+        loadComponent: () => import('./model-access/model-access.component').then((m) => m.ModelAccessAdminComponent),
+        canActivate: [NgxPermissionsGuard, modelAccessSettingsGate],
+        data: {
+          title: 'settings/model-access',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW, AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
+        path: 'model-gateway',
+        loadComponent: () =>
+          import('./model-gateway/model-gateway.component').then((m) => m.ModelGatewayAdminComponent),
+        canActivate: [NgxPermissionsGuard, modelGatewaySettingsGate],
+        data: {
+          title: 'settings/model-gateway',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.MODEL_GATEWAY_MANAGE],
             redirectTo
           }
         }
@@ -134,34 +195,6 @@ export const routes: Routes = [
           }
         }
       },
-      {
-        path: 'business-area',
-        loadChildren: () => import('./business-area/').then((m) => m.routes),
-        canActivate: [NgxPermissionsGuard],
-        data: {
-          title: 'settings/business-area',
-          scopeContext: 'organization-only',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-            redirectTo
-          }
-        }
-      },
-      {
-        path: 'certification',
-        loadChildren: () => import('./certification/certification.module').then((m) => m.CertificationModule),
-        canActivate: [NgxPermissionsGuard],
-        data: {
-          title: 'settings/certification',
-          scopeContext: 'organization-only',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-            // only: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT],
-            redirectTo
-          }
-        }
-      },
-
       {
         path: 'roles',
         loadChildren: () => import('./roles/roles.module').then((m) => m.RolesModule),
@@ -265,14 +298,6 @@ export const routes: Routes = [
         ],
         data: {
           title: 'copilot',
-          scopeContext: 'dual-scope'
-        }
-      },
-      {
-        path: 'chatbi',
-        loadChildren: () => import('./chatbi/routing').then((m) => m.default),
-        data: {
-          title: 'settings/chatbi',
           scopeContext: 'dual-scope'
         }
       },

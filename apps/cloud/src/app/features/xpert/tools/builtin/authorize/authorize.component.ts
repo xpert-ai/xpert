@@ -1,4 +1,3 @@
-
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -14,9 +13,9 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   CredentialsType,
@@ -42,13 +41,13 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     TranslateModule,
     ZardDialogModule,
     ...ZardTooltipImports,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     ZardInputDirective,
     TextFieldModule,
     XpertToolBuiltinCredentialComponent,
     ZardSwitchComponent
-],
+  ],
   selector: 'xpert-tool-builtin-authorize',
   templateUrl: './authorize.component.html',
   styleUrl: 'authorize.component.scss',
@@ -105,22 +104,18 @@ export class XpertToolBuiltinAuthorizeComponent {
     //   },
     // )
 
-    effect(
-      () => {
-        if (this.toolsetCredentials()) {
-          this.#credentials.set(this.toolsetCredentials())
-        }
+    effect(() => {
+      if (this.toolsetCredentials()) {
+        this.#credentials.set(this.toolsetCredentials())
       }
-    )
+    })
 
-    effect(
-      () => {
-        if (this.toolset()) {
-          this.toolsetName.set(this.toolset().name)
-          this.toolsetDescription.set(this.toolset().description)
-        }
+    effect(() => {
+      if (this.toolset()) {
+        this.toolsetName.set(this.toolset().name)
+        this.toolsetDescription.set(this.toolset().description)
       }
-    )
+    })
   }
 
   getCredential(name: string) {
@@ -138,7 +133,7 @@ export class XpertToolBuiltinAuthorizeComponent {
     this.loading.set(true)
     this.toolsetService.delete(this.toolsetId()).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         this.loading.set(false)
         this.credentials.set(null)
         this.toolset.set(null)
@@ -173,12 +168,12 @@ export class XpertToolBuiltinAuthorizeComponent {
         next: (toolset) => {
           if (this.toolsetId()) {
             this.#toastr.success(
-              'PAC.Messages.UpdatedSuccessfully',
+              'XP.Messages.UpdatedSuccessfully',
               { Default: 'Updated successfully' },
               this.toolset().type
             )
           } else {
-            this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' }, toolset.type)
+            this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully' }, toolset.type)
           }
           if (toolset) {
             this.toolset.update((state) => ({

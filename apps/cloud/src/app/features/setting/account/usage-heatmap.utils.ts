@@ -64,11 +64,11 @@ export function buildMembershipUsageHeatmap(
     })
   }
 
-  const maxTokens = Math.max(0, ...weeks.flatMap((week) => week.cells).map((cell) => cell?.tokenUsed ?? 0))
+  const maxPoints = Math.max(0, ...weeks.flatMap((week) => week.cells).map((cell) => cell?.pointsUsed ?? 0))
   return {
     weeks: weeks.map((week) => ({
       ...week,
-      cells: week.cells.map((cell) => (cell ? { ...cell, level: getHeatmapLevel(cell.tokenUsed, maxTokens) } : null))
+      cells: week.cells.map((cell) => (cell ? { ...cell, level: getHeatmapLevel(cell.pointsUsed, maxPoints) } : null))
     }))
   }
 }
@@ -86,7 +86,7 @@ function aggregateBuckets(buckets: IMembershipUsageBucket[]) {
     const current = result.get(date)
     result.set(date, {
       date,
-      pointsUsed: (current?.pointsUsed ?? 0) + bucket.pointsUsed,
+      pointsUsed: (current?.pointsUsed ?? 0) + normalizePointsUsed(bucket.pointsUsed),
       tokenUsed: (current?.tokenUsed ?? 0) + normalizeTokenUsed(bucket.tokenUsed)
     })
   }
@@ -98,12 +98,16 @@ function normalizeTokenUsed(tokenUsed: number) {
   return Math.max(0, Math.trunc(tokenUsed))
 }
 
-function getHeatmapLevel(tokenUsed: number, maxTokens: number): MembershipUsageHeatmapLevel {
-  if (tokenUsed <= 0 || maxTokens <= 0) {
+function normalizePointsUsed(pointsUsed: number) {
+  return Math.max(0, pointsUsed)
+}
+
+function getHeatmapLevel(pointsUsed: number, maxPoints: number): MembershipUsageHeatmapLevel {
+  if (pointsUsed <= 0 || maxPoints <= 0) {
     return 0
   }
 
-  const ratio = tokenUsed / maxTokens
+  const ratio = pointsUsed / maxPoints
   if (ratio <= 0.25) {
     return 1
   }

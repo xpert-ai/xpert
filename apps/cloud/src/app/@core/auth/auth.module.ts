@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { PacAuthModule } from '@xpert-ai/cloud/auth'
-import { AuthService } from '@xpert-ai/cloud/state'
+import { XpAuthModule } from '@cloud/app/auth'
+import { AuthService } from '@cloud/app/@core/state'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { AuthStrategy } from './auth-strategy.service'
 import { NoAuthGuard } from './no-auth.guard'
@@ -45,7 +45,7 @@ const enablePublicSignup = environment.deploymentTarget !== 'customer-onprem'
   imports: [CommonModule],
   exports: [SignInSuccessComponent],
   providers: [
-    ...PacAuthModule.forRoot({
+    ...XpAuthModule.forRoot({
       strategies: [AuthStrategy.setup({ name: 'email' })],
       forms: {
         login: { socialLinks },

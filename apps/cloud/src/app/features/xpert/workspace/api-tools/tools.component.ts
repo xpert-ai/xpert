@@ -5,10 +5,10 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
 import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -40,11 +40,11 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    DynamicGridDirective,
-    NgmCommonModule,
+    XpDynamicGridDirective,
+    XpCommonModule,
     CardCreateComponent,
     ToolsetCardComponent
-],
+  ],
   selector: 'xpert-workspace-api-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
@@ -64,7 +64,7 @@ export class XpertWorkspaceApiToolsComponent {
   readonly #translate = inject(TranslateService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly confirmUnique = injectConfirmUnique()
 
   readonly isMobile = this.appService.isMobile

@@ -1,13 +1,13 @@
 <div class="flex h-full w-full flex-col overflow-hidden px-4 py-3">
   <div class="mb-3 flex flex-wrap items-center gap-2">
-    <ngm-select
+    <xp-select
       class="w-44"
       icon="ri-pie-chart-line"
       [selectOptions]="dimensions()"
       [(ngModel)]="dimension"
       (ngModelChange)="reload()"
     />
-    <ngm-select
+    <xp-select
       class="w-48"
       icon="ri-calendar-line"
       [selectOptions]="timeRanges()"
@@ -18,7 +18,7 @@
       z-input
       zSize="sm"
       class="w-44"
-      [placeholder]="'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' }"
+      [placeholder]="'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' }"
       [(ngModel)]="providerFilter"
       (keyup.enter)="reload()"
     />
@@ -26,7 +26,7 @@
       z-input
       zSize="sm"
       class="w-52"
-      [placeholder]="'PAC.Copilot.Model' | translate: { Default: 'Model' }"
+      [placeholder]="'XP.Copilot.Model' | translate: { Default: 'Model' }"
       [(ngModel)]="modelFilter"
       (keyup.enter)="reload()"
     />
@@ -43,7 +43,7 @@
         z-input
         zSize="sm"
         class="w-56"
-        [placeholder]="'PAC.Copilot.OrganizationId' | translate: { Default: 'Organization ID' }"
+        [placeholder]="'XP.Copilot.OrganizationId' | translate: { Default: 'Organization ID' }"
         [(ngModel)]="organizationFilter"
         (keyup.enter)="reload()"
       />
@@ -59,13 +59,13 @@
       z-input
       zSize="sm"
       class="w-32"
-      [placeholder]="'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' }"
+      [placeholder]="'XP.KEY_WORDS.Currency' | translate: { Default: 'Currency' }"
       [(ngModel)]="currencyFilter"
       (keyup.enter)="reload()"
     />
     <button z-button zType="outline" zSize="sm" (click)="reload()">
       <z-icon zType="search"></z-icon>
-      {{ 'PAC.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+      {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
     </button>
   </div>
 
@@ -74,30 +74,30 @@
       <div class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3">
         <div class="mb-2 flex items-center justify-between gap-2">
           <div class="text-sm font-medium text-text-secondary">
-            {{ total.currency || ('PAC.KEY_WORDS.Unknown' | translate: { Default: 'Unknown' }) }}
+            {{ total.currency || ('XP.KEY_WORDS.Unknown' | translate: { Default: 'Unknown' }) }}
           </div>
           <z-icon class="text-text-quaternary" zType="data_usage"></z-icon>
         </div>
         <div class="grid grid-cols-2 gap-2 text-sm">
           <div>
             <div class="text-text-quaternary">
-              {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+              {{ 'XP.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
             </div>
             <div class="font-semibold text-text-primary">{{ total.tokenUsed | number: '0.0-0' }}</div>
           </div>
           <div>
             <div class="text-text-quaternary">
-              {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+              {{ 'XP.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
             </div>
             <div class="font-semibold text-text-primary">{{ total.tokenGrandTotal | number: '0.0-0' }}</div>
           </div>
           <div>
-            <div class="text-text-quaternary">{{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}</div>
+            <div class="text-text-quaternary">{{ 'XP.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}</div>
             <div class="font-semibold text-text-primary">{{ total.priceUsed | number: '0.0-7' }}</div>
           </div>
           <div>
             <div class="text-text-quaternary">
-              {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+              {{ 'XP.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
             </div>
             <div class="font-semibold text-text-primary">{{ total.priceGrandTotal | number: '0.0-7' }}</div>
           </div>
@@ -108,9 +108,9 @@
         class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3 text-text-quaternary"
       >
         @if (totalsLoading()) {
-          <ngm-spin />
+          <xp-spin />
         } @else {
-          {{ 'PAC.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
+          {{ 'XP.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
         }
       </div>
     }
@@ -123,48 +123,48 @@
           <th z-table-head class="sticky top-0 z-10 w-72 bg-background-default-subtle p-3">
             {{
               dimension() === 'model'
-                ? ('PAC.Copilot.Model' | translate: { Default: 'Model' })
+                ? ('XP.Copilot.Model' | translate: { Default: 'Model' })
                 : dimension() === 'organization'
-                  ? ('PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' })
-                  : ('PAC.Copilot.Creator' | translate: { Default: 'Creator' })
+                  ? ('XP.KEY_WORDS.Organization' | translate: { Default: 'Organization' })
+                  : ('XP.Copilot.Creator' | translate: { Default: 'Creator' })
             }}
           </th>
           @if (dimension() === 'user') {
             <th z-table-head class="sticky top-0 z-10 w-60 bg-background-default-subtle p-3">
-              {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
+              {{ 'XP.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
             </th>
           }
           <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
-            {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+            {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-48 bg-background-default-subtle p-3">
-            {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+            {{ 'XP.Copilot.Model' | translate: { Default: 'Model' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
-            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+            {{ 'XP.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
-            {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+            {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
           </th>
           @if (dimension() === 'organization') {
             <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
-              {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
+              {{ 'XP.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
             </th>
           }
           <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
-            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+            {{ 'XP.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
-            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+            {{ 'XP.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
-            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+            {{ 'XP.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-28 bg-background-default-subtle p-3">
-            {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
+            {{ 'XP.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
           </th>
           <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
-            {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+            {{ 'XP.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
           </th>
           <th
             z-table-head
@@ -173,7 +173,7 @@
             [zTableStickyZIndex]="10"
             class="sticky top-0 w-44 border-l border-solid border-divider-regular bg-background-default-subtle p-3"
           >
-            {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+            {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
           </th>
         </tr>
       </thead>
@@ -195,8 +195,8 @@
                   class="shrink-0 text-text-quaternary"
                   [zTooltip]="
                     isExpanded(item)
-                      ? ('PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
-                      : ('PAC.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                      ? ('XP.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+                      : ('XP.ACTIONS.Expand' | translate: { Default: 'Expand' })
                   "
                   (click)="toggleDetails(item); $event.stopPropagation()"
                 >
@@ -205,21 +205,21 @@
                 @if (dimension() === 'user') {
                   <div class="min-w-0">
                     @if (item.user) {
-                      <pac-user-profile-inline class="min-w-0" [user]="item.user" small />
+                      <xp-user-profile-inline class="min-w-0" [user]="item.user" small />
                     } @else {
                       <span class="truncate">{{ item.userId || '-' }}</span>
                     }
                     @if (item.runtimeUserCount || item.xpertCount) {
                       <div class="truncate text-xs text-text-quaternary">
-                        {{ 'PAC.Copilot.RuntimeUsers' | translate: { Default: 'Runtime users' } }}:
-                        {{ item.runtimeUserCount || 0 }} /
-                        {{ 'PAC.Copilot.Xperts' | translate: { Default: 'Xperts' } }}: {{ item.xpertCount || 0 }}
+                        {{ 'XP.Copilot.RuntimeUsers' | translate: { Default: 'Runtime users' } }}:
+                        {{ item.runtimeUserCount || 0 }} / {{ 'XP.Copilot.Xperts' | translate: { Default: 'Xperts' } }}:
+                        {{ item.xpertCount || 0 }}
                       </div>
                     }
                   </div>
                 } @else if (dimension() === 'organization') {
                   @if (item.organization) {
-                    <pac-org-avatar
+                    <xp-org-avatar
                       [organization]="item.organization"
                       class="h-6 w-6 shrink-0 rounded-full overflow-hidden"
                     />
@@ -236,7 +236,7 @@
               <td z-table-cell class="px-4 py-2">
                 @if (item.organization) {
                   <div class="flex items-center gap-2 overflow-hidden">
-                    <pac-org-avatar
+                    <xp-org-avatar
                       [organization]="item.organization"
                       class="h-6 w-6 shrink-0 rounded-full overflow-hidden"
                     />
@@ -279,7 +279,7 @@
                     zType="ghost"
                     zSize="icon"
                     zShape="circle"
-                    [zTooltip]="'PAC.Copilot.SetQuota' | translate: { Default: 'Set quota' }"
+                    [zTooltip]="'XP.Copilot.SetQuota' | translate: { Default: 'Set quota' }"
                     (click)="openQuota(item, 'set'); $event.stopPropagation()"
                   >
                     <z-icon zType="edit"></z-icon>
@@ -289,7 +289,7 @@
                     zType="ghost"
                     zSize="icon"
                     zShape="circle"
-                    [zTooltip]="'PAC.Copilot.IncreaseQuota' | translate: { Default: 'Increase quota' }"
+                    [zTooltip]="'XP.Copilot.IncreaseQuota' | translate: { Default: 'Increase quota' }"
                     (click)="openQuota(item, 'increase'); $event.stopPropagation()"
                   >
                     <z-icon zType="add"></z-icon>
@@ -299,7 +299,7 @@
                     zType="ghost"
                     zSize="icon"
                     zShape="circle"
-                    [zTooltip]="'PAC.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
+                    [zTooltip]="'XP.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
                     (click)="openQuota(item, 'renew'); $event.stopPropagation()"
                   >
                     <z-icon zType="autorenew"></z-icon>
@@ -316,37 +316,37 @@
               <td z-table-cell [attr.colspan]="dimension() === 'model' ? 11 : 12" class="p-0">
                 <div class="px-12 py-3">
                   @if (isLoadingDetails(item)) {
-                    <div class="flex justify-center py-4"><ngm-spin /></div>
+                    <div class="flex justify-center py-4"><xp-spin /></div>
                   } @else if (item.details?.length) {
                     <table z-table zSize="compact" class="w-full table-fixed text-xs text-left text-text-tertiary">
                       <thead z-table-header class="text-text-secondary">
                         <tr z-table-row>
                           <th z-table-head class="w-40 px-3 py-2">
-                            {{ 'PAC.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
+                            {{ 'XP.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
                           </th>
                           <th z-table-head class="w-56 px-3 py-2">
-                            {{ 'PAC.Copilot.RuntimeUser' | translate: { Default: 'Runtime User' } }}
+                            {{ 'XP.Copilot.RuntimeUser' | translate: { Default: 'Runtime User' } }}
                           </th>
                           <th z-table-head class="w-52 px-3 py-2">
-                            {{ 'PAC.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
+                            {{ 'XP.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
                           </th>
                           <th z-table-head class="w-48 px-3 py-2">
-                            {{ 'PAC.KEY_WORDS.Xpert' | translate: { Default: 'Xpert' } }}
+                            {{ 'XP.KEY_WORDS.Xpert' | translate: { Default: 'Xpert' } }}
                           </th>
                           <th z-table-head class="w-48 px-3 py-2">
-                            {{ 'PAC.Copilot.Copilot' | translate: { Default: 'Copilot' } }}
+                            {{ 'XP.Copilot.Copilot' | translate: { Default: 'Copilot' } }}
                           </th>
                           <th z-table-head class="w-32 px-3 py-2">
-                            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+                            {{ 'XP.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
                           </th>
                           <th z-table-head class="w-40 px-3 py-2">
-                            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+                            {{ 'XP.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
                           </th>
                           <th z-table-head class="w-40 px-3 py-2">
-                            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+                            {{ 'XP.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
                           </th>
                           <th z-table-head class="w-40 px-3 py-2">
-                            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+                            {{ 'XP.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
                           </th>
                         </tr>
                       </thead>
@@ -356,7 +356,7 @@
                             <td z-table-cell class="px-3 py-2 truncate">{{ detail.usageHour || '-' }}</td>
                             <td z-table-cell class="px-3 py-2">
                               @if (detail.user) {
-                                <pac-user-profile-inline class="min-w-0" [user]="detail.user" small />
+                                <xp-user-profile-inline class="min-w-0" [user]="detail.user" small />
                               } @else {
                                 <span class="truncate" [title]="detail.userId">{{ detail.userId || '-' }}</span>
                               }
@@ -380,7 +380,7 @@
                     </table>
                   } @else {
                     <div class="py-4 text-center text-text-quaternary">
-                      {{ 'PAC.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
+                      {{ 'XP.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
                     </div>
                   }
                 </div>
@@ -392,7 +392,7 @@
     </table>
 
     @if (loading()) {
-      <div class="flex justify-center py-3"><ngm-spin /></div>
+      <div class="flex justify-center py-3"><xp-spin /></div>
     }
 
     @if (!done()) {
@@ -426,7 +426,7 @@
       <div class="mb-4 grid gap-3">
         <label class="grid gap-1">
           <span class="text-sm text-text-secondary">{{
-            'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' }
+            'XP.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' }
           }}</span>
           <input
             z-input
@@ -438,7 +438,7 @@
         </label>
         <label class="grid gap-1">
           <span class="text-sm text-text-secondary">{{
-            'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }
+            'XP.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }
           }}</span>
           <input
             z-input
@@ -452,11 +452,11 @@
 
       <div class="flex justify-end gap-2">
         <button z-button zType="ghost" [disabled]="quotaSaving()" (click)="closeQuota()">
-          {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
         <button z-button zType="default" [disabled]="quotaSaving()" (click)="saveQuota()">
           <z-icon zType="save"></z-icon>
-          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+          {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
         </button>
       </div>
     </div>

@@ -329,7 +329,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             }
         } as TXpertTeamDraft
 
-        xpert.draft.checklist = await this.validate(xpert.draft)
+        xpert.draft.checklist = await this.validate(xpert.draft, {
+            tenantId: xpert.tenantId,
+            organizationId: xpert.organizationId,
+            xpertId: xpert.id,
+            creatorId: xpert.createdById
+        })
 
         await super.save(xpert)
         return xpert.draft
@@ -361,7 +366,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             nodes: nextDraft.nodes ?? xpert.graph?.nodes ?? [],
             connections: nextDraft.connections ?? xpert.graph?.connections ?? []
         } as TXpertTeamDraft
-        nextDraft.checklist = await this.validate(draftForValidation)
+        nextDraft.checklist = await this.validate(draftForValidation, {
+            tenantId: xpert.tenantId,
+            organizationId: xpert.organizationId,
+            xpertId: xpert.id,
+            creatorId: xpert.createdById
+        })
 
         xpert.draft = nextDraft as TXpertTeamDraft
 
@@ -369,7 +379,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return xpert.draft
     }
 
-    async validate(draft: TXpertTeamDraft) {
+    async validate(draft: TXpertTeamDraft, context?: XpertDraftValidateEvent['context']) {
         const freeNodeValidator = new FreeNodeValidator()
 
         const results: ChecklistItem[] = []
@@ -378,7 +388,10 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         results.push(...res)
 
         // More validators events
-        const validators = await this.eventEmitter.emitAsync(EventNameXpertValidate, new XpertDraftValidateEvent(draft))
+        const validators = await this.eventEmitter.emitAsync(
+            EventNameXpertValidate,
+            new XpertDraftValidateEvent(draft, context)
+        )
         validators.forEach((items) => {
             if (items) {
                 results.push(...items)
@@ -527,6 +540,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         const execution: IXpertAgentExecution = {}
         const embeddings = await this.queryBus.execute(
             new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
+                xpertId,
                 tokenCallback: (token) => {
                     execution.embedTokens += token ?? 0
                 }
@@ -554,6 +568,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         const execution: IXpertAgentExecution = {}
         const embeddings = await this.queryBus.execute(
             new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
+                xpertId,
                 tokenCallback: (token) => {
                     execution.embedTokens += token ?? 0
                 }

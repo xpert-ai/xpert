@@ -1,5 +1,5 @@
 import { inject, signal } from '@angular/core'
-import { CrudService } from '@xpert-ai/cloud/state'
+import { CrudService } from '@cloud/app/@core/state'
 import { omit } from 'lodash-es'
 import { EMPTY } from 'rxjs'
 import { catchError, tap } from 'rxjs/operators'
@@ -22,7 +22,7 @@ export abstract class UpsertEntityComponent<T extends { id?: string }> {
     return this.service.create(entity).pipe(
       tap(() => {
         this.saving.set(false)
-        this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+        this._toastrService.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
       }),
       catchError((error) => {
         this.saving.set(false)
@@ -37,7 +37,7 @@ export abstract class UpsertEntityComponent<T extends { id?: string }> {
     return this.service.update(id, entity).pipe(
       tap(() => {
         this.saving.set(false)
-        this._toastrService.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this._toastrService.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
       }),
       catchError((error) => {
         this.saving.set(false)

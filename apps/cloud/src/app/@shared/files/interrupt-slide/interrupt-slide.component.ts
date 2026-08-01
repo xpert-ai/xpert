@@ -1,8 +1,7 @@
-
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectToastr, SandboxService } from '@cloud/app/@core/'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { AbstractInterruptComponent } from '../../agent'
@@ -11,12 +10,15 @@ import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, FilesUploadComponent, NgmSpinComponent],
+  imports: [FormsModule, TranslateModule, FilesUploadComponent, XpSpinComponent],
   selector: 'xp-file-interrupt-slide',
   templateUrl: 'interrupt-slide.component.html',
   styleUrls: ['interrupt-slide.component.scss']
 })
-export class InterruptSlideComponent extends AbstractInterruptComponent<{ workspace?: string; path?: string; file?: string }, { filePath?: string }> {
+export class InterruptSlideComponent extends AbstractInterruptComponent<
+  { workspace?: string; path?: string; file?: string },
+  { filePath?: string }
+> {
   readonly i18nService = injectI18nService()
   readonly sandboxService = inject(SandboxService)
   readonly #toastr = injectToastr()
@@ -49,17 +51,19 @@ export class InterruptSlideComponent extends AbstractInterruptComponent<{ worksp
   upload() {
     this.loading.set(true)
     const file = this.fileList[0]?.file
-    this.sandboxService.uploadFile(file, {workspace: this.workspace(), conversationId: this.conversationId(), path: this.path()}).subscribe({
-      next: (result) => {
-        this.loading.set(false)
-        if (result) {
-          this.value.set({ filePath: result.filePath })
+    this.sandboxService
+      .uploadFile(file, { workspace: this.workspace(), conversationId: this.conversationId(), path: this.path() })
+      .subscribe({
+        next: (result) => {
+          this.loading.set(false)
+          if (result) {
+            this.value.set({ filePath: result.filePath })
+          }
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.#toastr.error(this.i18nService.t('XP.MODEL.UploadFailed', { Default: 'Upload failed' }))
         }
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(this.i18nService.t('PAC.MODEL.UploadFailed', { Default: 'Upload failed' }))
-      }
-    })
+      })
   }
 }

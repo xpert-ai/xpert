@@ -5,8 +5,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
-import { CdkConfirmDeleteComponent } from '@xpert-ai/ocap-angular/common'
-import { isNil } from '@xpert-ai/ocap-core'
+import { CdkConfirmDeleteComponent } from '@xpert-ai/headless-ui'
+import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
@@ -31,7 +31,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     A11yModule,
     XpertVariableFormComponent,
     ZardSwitchComponent
-]
+  ]
 })
 export class XpertStudioPanelVariablesComponent {
   eVariableOperationEnum = VariableOperationEnum

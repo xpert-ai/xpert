@@ -5,7 +5,7 @@ import { Store } from '../../services/store.service'
 
 @Component({
   standalone: false,
-  selector: 'pac-sign-in-success',
+  selector: 'xp-sign-in-success',
   templateUrl: './sign-in-success.component.html'
 })
 export class SignInSuccessComponent {

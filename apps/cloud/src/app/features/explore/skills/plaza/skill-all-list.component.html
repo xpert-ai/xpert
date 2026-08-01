@@ -2,7 +2,7 @@
   @if (loading() && !items().length) {
     <div class="flex min-h-64 items-center justify-center rounded-lg border border-border bg-card">
       <span class="text-sm text-muted-foreground">
-        {{ 'PAC.Explore.LoadingSkills' | translate: { Default: 'Loading skill indexes...' } }}
+        {{ 'XP.Explore.LoadingSkills' | translate: { Default: 'Loading skill indexes...' } }}
       </span>
     </div>
   } @else if (!items().length) {
@@ -12,11 +12,11 @@
       <div>
         <z-icon zType="search" class="mx-auto size-8 text-muted-foreground" />
         <h4 class="mt-3 text-base font-medium text-foreground">
-          {{ 'PAC.Explore.NoSkills' | translate: { Default: 'No matching skill templates found' } }}
+          {{ 'XP.Explore.NoSkills' | translate: { Default: 'No matching skill templates found' } }}
         </h4>
         <p class="mt-2 max-w-lg text-sm text-muted-foreground">
           {{
-            'PAC.Explore.NoSkillsHint'
+            'XP.Explore.NoSkillsHint'
               | translate: { Default: 'Try adjusting keywords, or switch to another repository.' }
           }}
         </p>
@@ -50,7 +50,7 @@
               <p class="mt-1 line-clamp-1 text-sm text-muted-foreground">
                 {{
                   description(item) ||
-                    ('PAC.Explore.SkillDescriptionFallback'
+                    ('XP.Explore.SkillDescriptionFallback'
                       | translate: { Default: 'This skill does not include additional details yet.' })
                 }}
               </p>
@@ -59,7 +59,7 @@
             <div class="flex shrink-0 items-center gap-3">
               <span class="hidden text-sm text-muted-foreground sm:inline">
                 {{ item.stats?.downloads ?? '--' }}
-                {{ 'PAC.Explore.AddedTimes' | translate: { Default: 'adds' } }}
+                {{ 'XP.Explore.AddedTimes' | translate: { Default: 'adds' } }}
               </span>
               <button z-button zType="ghost" zSize="sm" type="button" (click)="add(item, $event)">
                 <z-icon zType="plus" zSize="sm" />
@@ -86,9 +86,9 @@
         (click)="loadMore.emit()"
       >
         @if (loadingMore()) {
-          {{ 'PAC.Explore.LoadingMoreSkills' | translate: { Default: 'Loading more skills...' } }}
+          {{ 'XP.Explore.LoadingMoreSkills' | translate: { Default: 'Loading more skills...' } }}
         } @else {
-          {{ 'PAC.Explore.LoadMoreSkills' | translate: { Default: 'Scroll down or click to load more' } }}
+          {{ 'XP.Explore.LoadMoreSkills' | translate: { Default: 'Scroll down or click to load more' } }}
         }
       </button>
     }

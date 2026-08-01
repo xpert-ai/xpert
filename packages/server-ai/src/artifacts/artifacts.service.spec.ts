@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { WORKSPACE_FILES_SOURCE } from '@xpert-ai/plugin-sdk'
-import { runWithRequestContext } from '@xpert-ai/server-core'
+import { runWithRequestContext, WORKSPACE_FILES_SOURCE } from '@xpert-ai/plugin-sdk'
+import { runWithRequestContext as runWithServerRequestContext } from '@xpert-ai/server-core'
 import { VolumeHandle } from '../shared/volume'
 import { ArtifactsService } from './artifacts.service'
 
@@ -231,6 +231,82 @@ describe('ArtifactsService', () => {
                 resourceId: input.source.resourceId
             })
         ).resolves.toEqual(expect.objectContaining({ id: first.id, metadata: { revision: 1 } }))
+    })
+
+    it('isolates management content and stable source identity by user and organization', async () => {
+        const html = '<!doctype html><html><body>Live analytics</body></html>'
+        const filePath = 'exports/live-analytics.html'
+        writeWorkspaceFile(filePath, html)
+        const ownerApi = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1'
+        })
+        const artifact = await ownerApi.createArtifact({
+            source: {
+                pluginName: '@xpert-ai/datax-live-artifacts',
+                resourceType: 'live-artifact-draft',
+                resourceId: 'draft-1'
+            },
+            kind: 'html'
+        })
+        const version = await ownerApi.createArtifactVersion({
+            artifactId: artifact.id,
+            workspaceFileRef: workspaceRef(filePath),
+            mimeType: 'text/html',
+            sha256: createHash('sha256').update(html).digest('hex')
+        })
+
+        await expect(
+            runAsUser(
+                { id: 'user-1', tenantId: 'tenant-1' },
+                () =>
+                    service.resolveForManagementAccess({
+                        artifactId: artifact.id,
+                        artifactVersionId: version.id
+                    }),
+                'organization-1'
+            )
+        ).resolves.toEqual(expect.objectContaining({ buffer: Buffer.from(html) }))
+        await expect(
+            runAsUser(
+                { id: 'user-2', tenantId: 'tenant-1' },
+                () =>
+                    service.resolveForManagementAccess({
+                        artifactId: artifact.id,
+                        artifactVersionId: version.id
+                    }),
+                'organization-1'
+            )
+        ).rejects.toThrow('Artifact was not found')
+        await expect(
+            runAsUser(
+                { id: 'user-1', tenantId: 'tenant-1' },
+                () =>
+                    service.resolveForManagementAccess({
+                        artifactId: artifact.id,
+                        artifactVersionId: version.id
+                    }),
+                'organization-2'
+            )
+        ).rejects.toThrow('Artifact was not found')
+
+        const secondUserApi = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-2'
+        })
+        await expect(
+            secondUserApi.createArtifact({
+                source: {
+                    pluginName: '@xpert-ai/datax-live-artifacts',
+                    resourceType: 'live-artifact-draft',
+                    resourceId: 'draft-1'
+                },
+                kind: 'html'
+            })
+        ).resolves.toEqual(expect.objectContaining({ userId: 'user-2' }))
+        expect(artifactRepository.items).toHaveLength(2)
     })
 
     it('ensures Artifact versions by content key and rejects key reuse for different bytes', async () => {
@@ -499,6 +575,7 @@ class MemoryRepository {
                 (item) =>
                     item.tenantId === value.tenantId &&
                     item.organizationId === value.organizationId &&
+                    item.userId === value.userId &&
                     item.pluginName === value.pluginName &&
                     item.resourceType === value.resourceType &&
                     item.resourceId === value.resourceId
@@ -587,10 +664,23 @@ function matchesWhere(candidate: Record<string, unknown>, where: Record<string, 
     return Object.entries(where).every(([key, value]) => candidate[key] === value)
 }
 
-function runAsUser<T>(user: { id: string; tenantId: string }, callback: () => Promise<T>): Promise<T> {
+function runAsUser<T>(
+    user: { id: string; tenantId: string },
+    callback: () => Promise<T>,
+    organizationId?: string
+): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-        runWithRequestContext({ headers: {}, user: user as never }, () => {
-            callback().then(resolve).catch(reject)
+        const request = {
+            headers: {
+                'tenant-id': user.tenantId,
+                ...(organizationId ? { 'organization-id': organizationId } : {})
+            },
+            user: user as never
+        }
+        runWithServerRequestContext(request, () => {
+            runWithRequestContext(request as never, {} as never, () => {
+                callback().then(resolve).catch(reject)
+            })
         })
     })
 }

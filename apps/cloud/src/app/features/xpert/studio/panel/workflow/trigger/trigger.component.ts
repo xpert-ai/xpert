@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -35,7 +35,7 @@ import { createChatTriggerInputParameters } from '../../../../draft'
     TranslateModule,
     JSONSchemaFormComponent,
     XpertParametersEditComponent
-]
+  ]
 })
 export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

@@ -203,7 +203,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly currentXpertDescription = computed(() => {
     return (
       this.currentXpert()?.description ||
-      this.#translate.instant('PAC.Chat.ClawXpert.NoDescription', {
+      this.#translate.instant('XP.Chat.ClawXpert.NoDescription', {
         Default: 'This assistant does not have a public description yet.'
       })
     )
@@ -556,7 +556,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       }
       this.showWizard.set(false)
       if (options?.notifySuccess !== false) {
-        this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+        this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       }
       if (options?.navigateToChat) {
         await this.navigateToChat()
@@ -565,7 +565,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       if (options?.notifyError !== false) {
         this.#toastr.error(
           getErrorMessage(error) ||
-            this.#translate.instant('PAC.Chat.ClawXpert.SaveFailed', {
+            this.#translate.instant('XP.Chat.ClawXpert.SaveFailed', {
               Default: 'Failed to save the ClawXpert binding.'
             })
         )
@@ -611,11 +611,11 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.userPreference.set(null)
       this.showWizard.set(true)
       this.navigateToOverview()
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.DeleteFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.DeleteFailed', {
             Default: 'Failed to clear the ClawXpert binding.'
           })
       )
@@ -681,7 +681,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.triggerDraftErrorMessage.set(null)
       this.triggerDraftSource.set(nextXpert)
       this.triggerDraft.set(buildEditableXpertDraft(nextXpert))
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
 
       return nextXpert
     } catch (error) {
@@ -690,7 +690,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.triggerDraft.set(previousTriggerDraft)
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.CopilotModelSaveFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.CopilotModelSaveFailed', {
             Default: 'Failed to update the ClawXpert model.'
           })
       )
@@ -714,12 +714,12 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       )) as IAssistantBindingUserPreference
 
       this.userPreference.set(this.normalizePersistedUserPreference(preference, previousPreference))
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       return this.userPreference()
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.PreferenceSaveFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.PreferenceSaveFailed', {
             Default: 'Failed to save the ClawXpert markdown documents.'
           })
       )
@@ -779,7 +779,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.userPreference.set(previousPreference ?? null)
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.ToolPreferenceSaveFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.ToolPreferenceSaveFailed', {
             Default: 'Failed to save the ClawXpert tool preferences.'
           })
       )
@@ -821,7 +821,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.userPreference.set(previousPreference ?? null)
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.SkillPreferenceSaveFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.SkillPreferenceSaveFailed', {
             Default: 'Failed to save the ClawXpert skill preferences.'
           })
       )
@@ -843,7 +843,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     } catch (error) {
       if (error instanceof Error && error.message === XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING) {
         this.#toastr.error(
-          this.#translate.instant('PAC.Chat.ClawXpert.TriggerDraftAgentMissing', {
+          this.#translate.instant('XP.Chat.ClawXpert.TriggerDraftAgentMissing', {
             Default: 'Unable to save the trigger draft because the primary agent node could not be resolved.'
           })
         )
@@ -859,13 +859,13 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
       this.triggerDraft.set(savedDraft)
       this.triggerDraftSource.update((state) => (state ? ({ ...state, draft: savedDraft } as IXpert) : state))
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
 
       return savedDraft
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.TriggerDraftSaveFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.TriggerDraftSaveFailed', {
             Default: 'Failed to save the ClawXpert trigger draft.'
           })
       )
@@ -908,7 +908,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.triggerDraftSource.set(nextXpert)
       this.triggerDraft.set(buildEditableXpertDraft(nextXpert))
       this.#toastr.success(
-        'PAC.Xpert.PublishedSuccessfully',
+        'XP.Xpert.PublishedSuccessfully',
         { Default: 'Published successfully' },
         publishedXpert?.version ? `v${publishedXpert.version}` : undefined
       )
@@ -917,7 +917,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.PublishFailed', {
+          this.#translate.instant('XP.Chat.ClawXpert.PublishFailed', {
             Default: 'Failed to publish the current ClawXpert xpert.'
           })
       )
@@ -1067,14 +1067,14 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
   viewErrorMessage() {
     if (!this.chatkitFrameUrl()) {
-      return this.#translate.instant('PAC.Chat.ClawXpert.FrameMissing', {
+      return this.#translate.instant('XP.Chat.ClawXpert.FrameMissing', {
         Default: 'CHATKIT_FRAME_URL is not configured for ClawXpert.'
       })
     }
 
     return (
       this.errorMessage() ||
-      this.#translate.instant('PAC.Chat.ClawXpert.LoadFailedDesc', {
+      this.#translate.instant('XP.Chat.ClawXpert.LoadFailedDesc', {
         Default: 'Check your assistant access and try again.'
       })
     )
@@ -1297,7 +1297,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.userPreference.set(normalizedPreference)
 
       if (options.notifySuccess) {
-        this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+        this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       }
 
       return normalizedPreference
@@ -1309,7 +1309,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       if (options.notifyError) {
         this.#toastr.error(
           getErrorMessage(error) ||
-            this.#translate.instant('PAC.Chat.ClawXpert.ConversationPreferenceSaveFailed', {
+            this.#translate.instant('XP.Chat.ClawXpert.ConversationPreferenceSaveFailed', {
               Default: 'Failed to save the ClawXpert conversation preferences.'
             })
         )
@@ -1375,7 +1375,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
       this.errorMessage.set(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.LoadFailedDesc', {
+          this.#translate.instant('XP.Chat.ClawXpert.LoadFailedDesc', {
             Default: 'Check your assistant access and try again.'
           })
       )
@@ -1485,7 +1485,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.triggerDraft.set(null)
       this.triggerDraftErrorMessage.set(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.TriggerDraftLoadFailedDesc', {
+          this.#translate.instant('XP.Chat.ClawXpert.TriggerDraftLoadFailedDesc', {
             Default: 'Failed to load the bound xpert draft for trigger configuration.'
           })
       )

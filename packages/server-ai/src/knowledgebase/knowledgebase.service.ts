@@ -34,6 +34,7 @@ import {
     TCopilotModel,
     KnowledgeDocumentMetadata,
     IUser,
+    IModelAccessResolution,
     TKBRetrievalSettings,
     KnowledgeGraphStatus
 } from '@xpert-ai/contracts'
@@ -1137,11 +1138,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
 
         let embeddings = null
+        let embeddingModelAccess: IModelAccessResolution | null = null
         if (copilotModel && copilot?.modelProvider) {
             embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
                 new CopilotModelGetEmbeddingsQuery(copilot, copilotModel as TCopilotModel, {
                     tokenCallback: (token) => {
                         // execution.tokens += (token ?? 0)
+                    },
+                    modelAccessCallback: (modelAccess) => {
+                        embeddingModelAccess = modelAccess
                     }
                 })
             )
@@ -1182,7 +1187,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             },
             store,
             rerankModel,
-            embeddingMetadata
+            embeddingMetadata,
+            embeddingModelAccess
         )
 
         // const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings, rerankModel)

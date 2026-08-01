@@ -32,7 +32,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly #translate = inject(TranslateService)
 
   readonly definition = {
-    titleKey: 'PAC.Chat.XpertWorkbench.Title',
+    titleKey: 'XP.Chat.XpertWorkbench.Title',
     defaultTitle: 'Xpert'
   }
 
@@ -115,14 +115,14 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
   viewErrorMessage() {
     if (!this.chatkitFrameUrl()) {
-      return this.#translate.instant('PAC.Chat.ClawXpert.FrameMissing', {
+      return this.#translate.instant('XP.Chat.ClawXpert.FrameMissing', {
         Default: 'CHATKIT_FRAME_URL is not configured for ChatKit.'
       })
     }
 
     return (
       this.errorMessage() ||
-      this.#translate.instant('PAC.Chat.XpertWorkbench.LoadFailedDesc', {
+      this.#translate.instant('XP.Chat.XpertWorkbench.LoadFailedDesc', {
         Default: 'This xpert is unavailable or you do not have access.'
       })
     )
@@ -202,7 +202,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     if (!slug) {
       this.availableXperts.set([])
       this.errorMessage.set(
-        this.#translate.instant('PAC.Chat.XpertWorkbench.MissingSlug', { Default: 'Xpert route is missing.' })
+        this.#translate.instant('XP.Chat.XpertWorkbench.MissingSlug', { Default: 'Xpert route is missing.' })
       )
       this.loading.set(false)
       return
@@ -222,7 +222,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       this.availableXperts.set(normalizedXperts)
       if (!matchedXpert) {
         this.errorMessage.set(
-          this.#translate.instant('PAC.Chat.XpertWorkbench.NotFound', {
+          this.#translate.instant('XP.Chat.XpertWorkbench.NotFound', {
             Default: 'This xpert is unavailable or you do not have access.'
           })
         )
@@ -235,7 +235,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       this.availableXperts.set([])
       this.errorMessage.set(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.XpertWorkbench.LoadFailedDesc', {
+          this.#translate.instant('XP.Chat.XpertWorkbench.LoadFailedDesc', {
             Default: 'This xpert is unavailable or you do not have access.'
           })
       )

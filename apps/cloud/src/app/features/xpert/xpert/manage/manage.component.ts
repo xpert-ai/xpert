@@ -6,9 +6,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
-import { uploadYamlFile } from '@xpert-ai/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { pick } from '@xpert-ai/ocap-core'
+import { uploadYamlFile } from '@xpert-ai/headless-ui'
+import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { pick } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -38,7 +38,7 @@ import { createOverwriteDraftFromDsl, groupImportedDslMemories, TImportedXpertDs
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     EmojiAvatarComponent,
     XpertAppComponent,
     XpertAPIComponent
@@ -84,7 +84,7 @@ export class XpertBasicManageComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: xpert.title,
-          information: this.#translate.instant('PAC.Xpert.DeleteAllDataXpert', {
+          information: this.#translate.instant('XP.Xpert.DeleteAllDataXpert', {
             value: xpert.name,
             Default: `Delete all data of xpert '${xpert.name}'?`
           })
@@ -93,7 +93,7 @@ export class XpertBasicManageComponent {
       .closed.pipe(switchMap((confirm) => (confirm ? this.#xpertService.delete(xpert.id) : EMPTY)))
       .subscribe({
         next: () => {
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
+          this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
           this.#router.navigate(['/xpert/w', xpert.workspaceId])
         },
         error: (error) => {
@@ -129,7 +129,7 @@ export class XpertBasicManageComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: exportedTemplate.filePath,
-          information: this.#translate.instant('PAC.Xpert.DeleteExportedTemplateConfirm', {
+          information: this.#translate.instant('XP.Xpert.DeleteExportedTemplateConfirm', {
             value: exportedTemplate.filePath,
             Default: `Delete exported template '${exportedTemplate.filePath}'?`
           })
@@ -138,7 +138,7 @@ export class XpertBasicManageComponent {
       .closed.pipe(switchMap((confirm) => (confirm ? this.#xpertService.deleteExportedTemplate(xpert.id) : EMPTY)))
       .subscribe({
         next: () => {
-          this.#toastr.success('PAC.Xpert.ExportTemplateDeleted', { Default: 'Exported template deleted' })
+          this.#toastr.success('XP.Xpert.ExportTemplateDeleted', { Default: 'Exported template deleted' })
           this.xpertComponent.xpertService.refresh()
         },
         error: (error) => {
@@ -171,7 +171,7 @@ export class XpertBasicManageComponent {
       groupedMemories = groupImportedDslMemories(importedDsl.memories)
     } catch (error) {
       this.#toastr.error(
-        this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+        this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
           ': ' +
           this.translateImportError(error)
       )
@@ -180,7 +180,7 @@ export class XpertBasicManageComponent {
 
     const confirm = await firstValueFrom(
       this.#toastr.confirm({
-        code: 'PAC.Xpert.ImportOverwriteConfirm',
+        code: 'XP.Xpert.ImportOverwriteConfirm',
         params: {
           name: xpert.title || xpert.name,
           Default:
@@ -216,14 +216,14 @@ export class XpertBasicManageComponent {
       }
 
       this.xpertComponent.xpertService.refresh()
-      this.#toastr.success('PAC.Xpert.ImportOverwriteSuccess', {
+      this.#toastr.success('XP.Xpert.ImportOverwriteSuccess', {
         Default: 'DSL imported into the current draft. Publish is still required for it to take effect.'
       })
     } catch (error) {
       if (draftSaved && groupedMemories) {
         this.xpertComponent.xpertService.refresh()
         this.#toastr.warning(
-          this.#translate.instant('PAC.Xpert.ImportMemoryIncomplete', {
+          this.#translate.instant('XP.Xpert.ImportMemoryIncomplete', {
             Default: 'The draft was imported, but memory replacement did not finish.'
           }) +
             ': ' +
@@ -231,7 +231,7 @@ export class XpertBasicManageComponent {
         )
       } else {
         this.#toastr.error(
-          this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+          this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
             ': ' +
             getErrorMessage(error)
         )
@@ -274,13 +274,13 @@ export class XpertBasicManageComponent {
           this.loading.set(false)
           this.#router.navigate(['/xpert/x/', xpert.id])
           this.#toastr.success(
-            this.#translate.instant('PAC.Xpert.DuplicateSuccess', { Default: 'Duplicate successfully' })
+            this.#translate.instant('XP.Xpert.DuplicateSuccess', { Default: 'Duplicate successfully' })
           )
         },
         error: (err) => {
           this.loading.set(false)
           this.#toastr.error(
-            this.#translate.instant('PAC.Xpert.DuplicateError', { Default: 'Failed to duplicate xpert' }) +
+            this.#translate.instant('XP.Xpert.DuplicateError', { Default: 'Failed to duplicate xpert' }) +
               ': ' +
               getErrorMessage(err)
           )
@@ -306,15 +306,15 @@ export class XpertBasicManageComponent {
     const message = getErrorMessage(error)
     switch (message) {
       case 'Primary agent not found in DSL':
-        return this.#translate.instant('PAC.Xpert.ImportPrimaryAgentMissing', {
+        return this.#translate.instant('XP.Xpert.ImportPrimaryAgentMissing', {
           Default: 'Primary agent not found in the DSL file'
         })
       case 'DSL type does not match the current xpert':
-        return this.#translate.instant('PAC.Xpert.ImportTypeMismatch', {
+        return this.#translate.instant('XP.Xpert.ImportTypeMismatch', {
           Default: 'DSL type does not match the current xpert'
         })
       case 'Current xpert primary agent not found':
-        return this.#translate.instant('PAC.Xpert.ImportCurrentPrimaryAgentMissing', {
+        return this.#translate.instant('XP.Xpert.ImportCurrentPrimaryAgentMissing', {
           Default: 'Current xpert primary agent not found'
         })
       default:

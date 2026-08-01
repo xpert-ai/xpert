@@ -5,11 +5,9 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { AssistantCode, IXpert, RolesEnum, Store } from '../../../@core'
-import { provideOcap } from '../../../@core/providers/ocap'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { ChatService, XpertChatAppComponent, XpertOcapService } from '../../../xpert'
+import { ChatService, XpertChatAppComponent } from '../../../xpert'
 import { TranslateModule } from '@ngx-translate/core'
-import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
 import { injectAssistantBindingRuntimeState } from '../../assistant/assistant-chatkit.runtime'
 import { ChatHomeService } from '../home.service'
@@ -18,7 +16,7 @@ import { ChatCommonService } from './common-chat.service'
 
 @Component({
   standalone: true,
-  selector: 'pac-chat-common-assistant',
+  selector: 'xp-chat-common-assistant',
   imports: [
     CommonModule,
     RouterModule,
@@ -32,13 +30,7 @@ import { ChatCommonService } from './common-chat.service'
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './common.component.html',
-  providers: [
-    ChatCommonService,
-    { provide: ChatService, useExisting: ChatCommonService },
-    provideOcapCore(),
-    provideOcap(),
-    XpertOcapService
-  ]
+  providers: [ChatCommonService, { provide: ChatService, useExisting: ChatCommonService }]
 })
 export class ChatCommonAssistantComponent {
   readonly #homeService = inject(ChatHomeService)
@@ -49,11 +41,11 @@ export class ChatCommonAssistantComponent {
     code: AssistantCode.CHAT_COMMON,
     featureKeys: [],
     management: 'system',
-    labelKey: 'PAC.Assistant.ChatCommon.Label',
+    labelKey: 'XP.Assistant.ChatCommon.Label',
     defaultLabel: 'Common Assistant',
-    titleKey: 'PAC.Chat.Common',
+    titleKey: 'XP.Chat.Common',
     defaultTitle: 'Common',
-    descriptionKey: 'PAC.Assistant.ChatCommon.Description',
+    descriptionKey: 'XP.Assistant.ChatCommon.Description',
     defaultDescription: 'Embedded assistant used by the common chat page.'
   }
   readonly assistantsRoute = ['/settings/assistants']

@@ -1,7 +1,6 @@
-
 import { Component } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from '../../@core'
 
@@ -10,9 +9,8 @@ import { injectHelpWebsite } from '../../@core'
   selector: 'onboarding-unknown',
   templateUrl: './unknown.component.html',
   styleUrls: ['./unknown.component.scss'],
-  imports: [ReactiveFormsModule, TranslateModule, NgmCommonModule]
+  imports: [ReactiveFormsModule, TranslateModule, XpCommonModule]
 })
 export class OnboardingUnknownComponent {
   readonly helpWebsite = injectHelpWebsite()
-
 }

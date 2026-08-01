@@ -27,6 +27,12 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 	const app = await NestFactory.create<NestExpressApplication>(BootstrapModule, {
 		bufferLogs: true
 	})
+	const trustProxy = resolveTrustProxy(env.env?.TRUST_PROXY)
+	if (trustProxy !== undefined) {
+		app.set('trust proxy', trustProxy)
+	} else if (env.deploymentTarget === 'cloud') {
+		app.set('trust proxy', 1)
+	}
 
 	app.useLogger(app.get(Logger))
 	NestLogger.overrideLogger(resolveNestLogLevels())
@@ -89,6 +95,20 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 	})
 
 	return app
+}
+
+function resolveTrustProxy(value?: string): boolean | number | string | undefined {
+	const normalized = value?.trim()
+	if (!normalized) {
+		return undefined
+	}
+	if (normalized === 'true' || normalized === 'false') {
+		return normalized === 'true'
+	}
+	if (/^\d+$/.test(normalized)) {
+		return Number(normalized)
+	}
+	return normalized
 }
 
 /**

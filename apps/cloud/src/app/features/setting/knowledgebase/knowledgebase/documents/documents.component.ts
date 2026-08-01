@@ -2,13 +2,14 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ZardDialogService, ZardPaginatorComponent, ZardProgressCircleComponent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
-  NgmCommonModule,
-  NgmConfirmDeleteService,
-  NgmCountdownConfirmationComponent
-} from '@xpert-ai/ocap-angular/common'
+  ZardDialogService,
+  ZardPaginatorComponent,
+  ZardProgressCircleComponent,
+  type ZardTableSortDirection
+} from '@xpert-ai/headless-ui'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { XpCommonModule, XpConfirmDeleteService, XpCountdownConfirmationComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import {
@@ -45,7 +46,7 @@ import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
  */
 @Component({
   standalone: true,
-  selector: 'pac-settings-knowledgebase-documents',
+  selector: 'xp-settings-knowledgebase-documents',
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
@@ -55,7 +56,7 @@ import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
     SharedUiModule,
     ZardPaginatorComponent,
     ZardProgressCircleComponent,
-    NgmCommonModule
+    XpCommonModule
   ],
   animations: [
     trigger('detailExpand', [
@@ -70,7 +71,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
   readonly #store = inject(Store)
   readonly #dialog = inject(ZardDialogService)
-  readonly #confirmDelete = inject(NgmConfirmDeleteService)
+  readonly #confirmDelete = inject(XpConfirmDeleteService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -156,13 +157,18 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
           })
         )
         .subscribe((data) =>
-          this.data.set(data.map((item) => ({
-            ...item,
-            createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-              locale: getDateLocale(this.translateService.currentLang)
-            }),
-            parserConfig: item.parserConfig ?? {}
-          }) as IKnowledgeDocument))
+          this.data.set(
+            data.map(
+              (item) =>
+                ({
+                  ...item,
+                  createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
+                    locale: getDateLocale(this.translateService.currentLang)
+                  }),
+                  parserConfig: item.parserConfig ?? {}
+                }) as IKnowledgeDocument
+            )
+          )
         )
     })
 
@@ -282,7 +288,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
 
   restartParsing(id: string) {
     this.#dialog
-      .open(NgmCountdownConfirmationComponent, {
+      .open(XpCountdownConfirmationComponent, {
         data: {
           recordType: 'Restart parsing job?'
         }
@@ -301,7 +307,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
 
   stopParsing(id: string) {
     this.#dialog
-      .open(NgmCountdownConfirmationComponent, {
+      .open(XpCountdownConfirmationComponent, {
         data: {
           recordType: 'Stop the parsing job?'
         }

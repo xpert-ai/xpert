@@ -14,7 +14,7 @@
             {{ titleValue() | i18n }}
           </h2>
           <z-badge zType="outline" class="h-5 border-state-success-hover bg-state-success-hover/20 text-text-success">
-            {{ 'PAC.Plugin.MarketplaceContentType_skill' | translate: { Default: 'Skill' } }}
+            {{ 'XP.Plugin.MarketplaceContentType_skill' | translate: { Default: 'Skill' } }}
           </z-badge>
         </div>
         @if (descriptionValue()) {
@@ -35,13 +35,13 @@
         [title]="
           plugin()?.installed
             ? ''
-            : ('PAC.Plugin.InstallPluginBeforeInitializeResource'
+            : ('XP.Plugin.InstallPluginBeforeInitializeResource'
               | translate: { Default: 'Install or load this plugin before initializing the resource.' })
         "
         (click)="installToWorkspace($event)"
       >
         <i class="ri-download-cloud-2-line"></i>
-        <span>{{ 'PAC.Plugin.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}</span>
+        <span>{{ 'XP.Plugin.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}</span>
       </button>
       <button z-button type="button" zType="ghost" zSize="icon" zShape="circle" (click)="close()">
         <i class="ri-close-line"></i>
@@ -53,8 +53,8 @@
     @if (documentLoading()) {
       <div class="flex min-h-[420px] items-center justify-center">
         <div class="flex items-center gap-3 text-sm text-text-tertiary">
-          <ngm-spin small />
-          <span>{{ 'PAC.Plugin.LoadingSkillDocument' | translate: { Default: 'Loading skill document...' } }}</span>
+          <xp-spin small />
+          <span>{{ 'XP.Plugin.LoadingSkillDocument' | translate: { Default: 'Loading skill document...' } }}</span>
         </div>
       </div>
     } @else if (documentError()) {
@@ -63,7 +63,7 @@
       >
         <i class="ri-error-warning-line text-3xl text-text-destructive"></i>
         <div class="text-base font-semibold text-text-primary">
-          {{ 'PAC.Plugin.LoadSkillDocumentFailed' | translate: { Default: 'Failed to load skill document' } }}
+          {{ 'XP.Plugin.LoadSkillDocumentFailed' | translate: { Default: 'Failed to load skill document' } }}
         </div>
         <div class="max-w-2xl break-words text-sm text-text-tertiary">
           {{ documentError() }}
@@ -71,7 +71,7 @@
       </div>
     } @else if (document(); as skillDocument) {
       <markdown
-        class="ngm-copilot-markdown plugin-readme-markdown block min-h-[420px]"
+        class="xp-copilot-markdown plugin-readme-markdown block min-h-[420px]"
         [data]="skillDocument.content || ''"
         (ready)="normalizeMarkdownLinks()"
       />
@@ -79,7 +79,7 @@
       <div
         class="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-divider-regular px-6 text-center text-sm text-text-tertiary"
       >
-        {{ 'PAC.Plugin.NoSkillDocument' | translate: { Default: 'No skill document is available.' } }}
+        {{ 'XP.Plugin.NoSkillDocument' | translate: { Default: 'No skill document is available.' } }}
       </div>
     }
   </main>
@@ -99,11 +99,11 @@
       (click)="tryInClawXpert($event)"
     >
       @if (trialSubmitting()) {
-        <ngm-spin small />
+        <xp-spin small />
       } @else {
         <i class="ri-chat-smile-2-line"></i>
       }
-      <span>{{ 'PAC.Plugin.TryInClawXpert' | translate: { Default: 'Try in ClawXpert' } }}</span>
+      <span>{{ 'XP.Plugin.TryInClawXpert' | translate: { Default: 'Try in ClawXpert' } }}</span>
     </button>
   </footer>
 </div>

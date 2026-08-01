@@ -1,7 +1,7 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import {Clipboard} from '@angular/cdk/clipboard'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -17,13 +17,19 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { CdkConfirmDeleteComponent, NgmSearchComponent, NgmSpinComponent, NgmTableComponent, TableColumn } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
+import {
+  CdkConfirmDeleteComponent,
+  XpSearchComponent,
+  XpSpinComponent,
+  XpTableComponent,
+  TableColumn
+} from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
 import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
-import { json2csv } from 'json-2-csv';
+import { json2csv } from 'json-2-csv'
 import {
   CopilotStoreService,
   DateRelativePipe,
@@ -35,7 +41,7 @@ import {
 } from '../../../../../@core'
 import { UserProfileInlineComponent } from '../../../../../@shared/user'
 import { XpertComponent } from '../../xpert.component'
-import { OverlayAnimation1 } from '@xpert-ai/core'
+import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.component'
 
@@ -50,10 +56,10 @@ import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.compo
     A11yModule,
     CdkMenuModule,
     NgxJsonViewerModule,
-    NgmSelectComponent,
-    NgmTableComponent,
-    NgmSpinComponent,
-    NgmSearchComponent,
+    XpSelectComponent,
+    XpTableComponent,
+    XpSpinComponent,
+    XpSearchComponent,
     UserProfileInlineComponent,
     DateRelativePipe
   ],
@@ -67,7 +73,7 @@ export class XpertMemoryStoreComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
   readonly #translate = inject(TranslateService)
-  readonly colI18n = injectTranslate('PAC.Xpert.MemoryCols')
+  readonly colI18n = injectTranslate('XP.Xpert.MemoryCols')
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly storeService = inject(CopilotStoreService)
@@ -107,7 +113,7 @@ export class XpertMemoryStoreComponent {
       {
         name: 'key',
         caption: i18n.Key || 'Key',
-        width: '200px',
+        width: '200px'
       },
       {
         name: 'value',
@@ -126,15 +132,15 @@ export class XpertMemoryStoreComponent {
   readonly memoryTypesOptions = [
     {
       value: null,
-      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.All', { Default: 'All' })
+      label: this.#translate.instant('XP.Xpert.LongTermMemoryTypeEnum.All', { Default: 'All' })
     },
     {
       value: LongTermMemoryTypeEnum.QA,
-      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.QuestionAnswer', { Default: 'Q&A' })
+      label: this.#translate.instant('XP.Xpert.LongTermMemoryTypeEnum.QuestionAnswer', { Default: 'Q&A' })
     },
     {
       value: LongTermMemoryTypeEnum.PROFILE,
-      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.UserProfile', { Default: 'Profile' })
+      label: this.#translate.instant('XP.Xpert.LongTermMemoryTypeEnum.UserProfile', { Default: 'Profile' })
     }
   ]
 
@@ -169,13 +175,11 @@ export class XpertMemoryStoreComponent {
   private searchSub: Subscription
 
   constructor() {
-    effect(
-      () => {
-        if (this.#memories.value()) {
-          this.data.set(this.#memories.value())
-        }
+    effect(() => {
+      if (this.#memories.value()) {
+        this.data.set(this.#memories.value())
       }
-    )
+    })
   }
 
   // Adding memories
@@ -184,28 +188,35 @@ export class XpertMemoryStoreComponent {
   readonly answer = model<string>()
   readonly context = model<string>()
   readonly profile = model<string>()
-  readonly addMemoryDisabled = computed(() => this.memoryType() === LongTermMemoryTypeEnum.QA 
-    ? !this.question() || !this.answer() : !this.profile() || !this.context())
+  readonly addMemoryDisabled = computed(() =>
+    this.memoryType() === LongTermMemoryTypeEnum.QA
+      ? !this.question() || !this.answer()
+      : !this.profile() || !this.context()
+  )
   addMemory() {
     this.#loading.set(true)
-    this.xpertService.addMemory(this.xpertId(), {
-      type: this.memoryType(),
-      value: this.memoryType() === LongTermMemoryTypeEnum.QA ? {question: this.question(), answer: this.answer()} : {
-        profile: this.profile(),
-        context: this.context()
-      }
-    }).subscribe({
-      next: (result) => {
-        this.#loading.set(false)
-        this.showAddMemory.set(false)
-        this.#refresh$.next()
-      },
-      error: (err) => {
-        this.#loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      },
-    })
-    
+    this.xpertService
+      .addMemory(this.xpertId(), {
+        type: this.memoryType(),
+        value:
+          this.memoryType() === LongTermMemoryTypeEnum.QA
+            ? { question: this.question(), answer: this.answer() }
+            : {
+                profile: this.profile(),
+                context: this.context()
+              }
+      })
+      .subscribe({
+        next: (result) => {
+          this.#loading.set(false)
+          this.showAddMemory.set(false)
+          this.#refresh$.next()
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
   toggleAddMemory() {
     this.showAddMemory.update((value) => !value)
@@ -215,7 +226,7 @@ export class XpertMemoryStoreComponent {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          information: this.#translate.instant('PAC.Xpert.ClearAllMemoryOfXpert', {
+          information: this.#translate.instant('XP.Xpert.ClearAllMemoryOfXpert', {
             Default: 'Clear all memories related to this expert'
           })
         }
@@ -237,11 +248,11 @@ export class XpertMemoryStoreComponent {
         data: {
           value: id,
           information:
-            this.#translate.instant('PAC.Xpert.DeleteTheMemory', { Default: 'Delete the memory' }) +
+            this.#translate.instant('XP.Xpert.DeleteTheMemory', { Default: 'Delete the memory' }) +
             `:\n` +
             JSON.stringify(value, null, 2) +
             `\n` +
-            this.#translate.instant('PAC.Xpert.GainMemoryAgain', { Default: 'Can be retriggered to gain memory.' })
+            this.#translate.instant('XP.Xpert.GainMemoryAgain', { Default: 'Can be retriggered to gain memory.' })
         }
       })
       .closed.pipe(switchMap((confirm) => (confirm ? this._delete(id) : EMPTY)))
@@ -268,16 +279,18 @@ export class XpertMemoryStoreComponent {
 
   onSearch() {
     this.#loading.set(true)
-    this.searchSub = this.xpertService.searchMemory(this.xpertId(), { type: this.memoryType(), text: this.input(), isDraft: true }).subscribe({
-      next: (results) => {
-        this.#loading.set(false)
-        this.data.set(results)
-      },
-      error: (err) => {
-        this.#loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.searchSub = this.xpertService
+      .searchMemory(this.xpertId(), { type: this.memoryType(), text: this.input(), isDraft: true })
+      .subscribe({
+        next: (results) => {
+          this.#loading.set(false)
+          this.data.set(results)
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 
   stop() {
@@ -300,27 +313,29 @@ export class XpertMemoryStoreComponent {
 
   copyValue(id: string, value: any) {
     this.#clipboard.copy(JSON.stringify(value))
-    this.#toastr.success('PAC.Messages.CopiedToClipboard', {Default: 'Copied to clipboard'})
+    this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
   }
 
   bulkImport() {
-    this.#dialog.open(XpertMemoryBulkImportComponent, {
-      data: {
-        xpertId: this.xpertId(),
-        type: this.memoryType() || LongTermMemoryTypeEnum.QA
-      }
-    }).closed.subscribe({
-      next: (upload) => {
-        if (upload) {
-          this.#toastr.success('PAC.Messages.UploadSuccessful', {Default: 'Upload successful'})
-          this.#refresh$.next()
+    this.#dialog
+      .open(XpertMemoryBulkImportComponent, {
+        data: {
+          xpertId: this.xpertId(),
+          type: this.memoryType() || LongTermMemoryTypeEnum.QA
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (upload) => {
+          if (upload) {
+            this.#toastr.success('XP.Messages.UploadSuccessful', { Default: 'Upload successful' })
+            this.#refresh$.next()
+          }
+        }
+      })
   }
 
   bulkExport() {
-    const csvContent = json2csv(this.filterdData().map(({value}) => value))
+    const csvContent = json2csv(this.filterdData().map(({ value }) => value))
 
     const bom = '\uFEFF'
     const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })

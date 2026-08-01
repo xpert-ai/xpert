@@ -1,7 +1,17 @@
 {
   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
   "dest": "../../dist/packages/ui",
-  "assets": ["README.md", "components.json", "styles.css", "src/styles.css"],
+  "assets": [
+    "README.md",
+    "components.json",
+    "styles.css",
+    "src/styles.css",
+    {
+      "glob": "**/*.scss",
+      "input": "src/lib/ui/compat",
+      "output": "ui/compat"
+    }
+  ],
   "allowedNonPeerDependencies": [
     "@ng-icons/core",
     "@ng-icons/lucide",

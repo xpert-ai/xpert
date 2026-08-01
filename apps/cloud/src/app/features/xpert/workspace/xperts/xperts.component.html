@@ -1,16 +1,14 @@
-<div class="xpert-card-container"
-  ngmDynamicGrid colWidth="280"
-  box="content-box"
->
+<div class="xpert-card-container" xpDynamicGrid colWidth="280" box="content-box">
   @if (canWriteWorkspace()) {
-    <a class="ngm-card-shadow relative col-span-1 flex flex-col justify-between min-h-[160px] bg-[var(--sys-surface-subtle)] rounded-xl border-[0.5px] border-components-panel-border">
+    <a
+      class="xp-card-shadow relative col-span-1 flex flex-col justify-between min-h-[160px] bg-[var(--sys-surface-subtle)] rounded-xl border-[0.5px] border-components-panel-border"
+    >
       <div class="grow p-2 rounded-t-xl">
         <div class="px-6 pt-2 pb-1 text-sm font-medium leading-[18px] text-text-tertiary">
-          {{ 'PAC.Xpert.CreateXpert' | translate: {Default: 'Create Xpert'} }}
+          {{ 'XP.Xpert.CreateXpert' | translate: { Default: 'Create Xpert' } }}
         </div>
         <div
-          class="flex items-center mb-1 px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-text-secondary cursor-pointer
-            hover:text-primary-600 hover:bg-hover-bg"
+          class="flex items-center mb-1 px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-text-secondary cursor-pointer hover:text-primary-600 hover:bg-hover-bg"
           (click)="newBlank()"
         >
           <svg
@@ -30,8 +28,9 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               ></path>
-            </g></svg>
-            {{ 'PAC.Xpert.CreateBlankXpert' | translate: {Default: 'Create blank Xpert'} }}
+            </g>
+          </svg>
+          {{ 'XP.Xpert.CreateBlankXpert' | translate: { Default: 'Create blank Xpert' } }}
         </div>
       </div>
       <div class="p-2 border-t-[0.5px] border-components-panel-border rounded-b-xl">
@@ -58,33 +57,36 @@
               ></path>
             </g>
           </svg>
-          {{ 'PAC.Xpert.ImportDSL' | translate: {Default: 'Import DSL file'} }}
+          {{ 'XP.Xpert.ImportDSL' | translate: { Default: 'Import DSL file' } }}
         </div>
       </div>
     </a>
   }
-  
+
   @for (xpert of xperts(); track xpert.name) {
-    <xpert-card class="ngm-card-shadow group relative col-span-1 border-2 border-solid border-transparent rounded-xl min-h-[160px] flex flex-col cursor-pointer
-                        bg-[var(--sys-surface-subtle)]"
+    <xpert-card
+      class="xp-card-shadow group relative col-span-1 border-2 border-solid border-transparent rounded-xl min-h-[160px] flex flex-col cursor-pointer bg-[var(--sys-surface-subtle)]"
       [highlight]="searchText()"
       [xpert]="xpert"
       (delete)="deleteXpert(xpert)"
-      [routerLink]="xpert.type === eXpertTypeEnum.Knowledge ? ['/xpert/knowledges', xpert.knowledgebase?.id, 'xpert', xpert.id] :
-        ['/xpert/x/', xpert.id, xpert.type === eXpertTypeEnum.Copilot ? 'copilot' : 'agents']"
+      [routerLink]="
+        xpert.type === eXpertTypeEnum.Knowledge
+          ? ['/xpert/knowledges', xpert.knowledgebase?.id, 'xpert', xpert.id]
+          : ['/xpert/x/', xpert.id, xpert.type === eXpertTypeEnum.Copilot ? 'copilot' : 'agents']
+      "
     />
   }
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 <ng-template #cardMenu let-xpert="xpert">
-  <div class="ngm-cdk-menu p-2" cdkMenu >
-    <button class="ngm-cdk-menu-item px-2 py-1.5" cdkMenuItem ngmAppearance="danger" (click)="deleteXpert(xpert)">
+  <div class="xp-cdk-menu p-2" cdkMenu>
+    <button class="xp-cdk-menu-item px-2 py-1.5" cdkMenuItem xpAppearance="danger" (click)="deleteXpert(xpert)">
       <i class="ri-delete-bin-line mr-1"></i>
-      {{ 'PAC.KEY_WORDS.Delete' | translate: { Default: 'Delete' } }}
+      {{ 'XP.KEY_WORDS.Delete' | translate: { Default: 'Delete' } }}
     </button>
   </div>
 </ng-template>

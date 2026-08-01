@@ -29,6 +29,25 @@ jest.mock('@xpert-ai/contracts', () => ({
     },
     convertToUrlPath: (value: string) => value?.trim().toLowerCase().replace(/\s+/g, '-'),
     mapTranslationLanguage: (value: string) => value,
+    resolveI18nText: (value: unknown, language = 'en-US') => {
+        if (typeof value === 'string') {
+            return value.trim() || null
+        }
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null
+        }
+
+        const preferredKeys = language.toLowerCase().startsWith('zh')
+            ? [language, language.replace(/-/g, '_'), 'zh_Hans', 'en_US']
+            : [language, language.replace(/-/g, '_'), 'en_US', 'zh_Hans']
+        for (const key of preferredKeys) {
+            const candidate = Reflect.get(value, key)
+            if (typeof candidate === 'string' && candidate.trim()) {
+                return candidate.trim()
+            }
+        }
+        return null
+    },
     omitXpertRelations: (xpert: Record<string, any>) => {
         const { agent, agents, toolsets, knowledgebases, ...rest } = xpert
         return rest
@@ -219,6 +238,94 @@ describe('XpertImportHandler', () => {
             ]
         })
         expect(result.id).toBe('new-xpert')
+    })
+
+    it('resolves localized team and agent metadata before persistence', async () => {
+        const { handler, xpertService } = buildHandler()
+
+        await handler.execute(
+            new XpertImportCommand(
+                {
+                    team: {
+                        name: 'story-studio-assistant',
+                        title: {
+                            en_US: 'Story Studio',
+                            zh_Hans: '故事工作室'
+                        },
+                        description: {
+                            en_US: 'Review-first story production assistant',
+                            zh_Hans: '审核优先的故事制作助手'
+                        },
+                        type: 'agent',
+                        agent: {
+                            key: 'Agent_story'
+                        }
+                    },
+                    nodes: [
+                        {
+                            type: 'agent',
+                            key: 'Agent_story',
+                            entity: {
+                                key: 'Agent_story',
+                                name: 'story-studio-assistant',
+                                title: {
+                                    en_US: 'Story Studio Agent',
+                                    zh_Hans: '故事工作室智能体'
+                                },
+                                description: {
+                                    en_US: 'Plans story production',
+                                    zh_Hans: '规划故事制作'
+                                }
+                            }
+                        },
+                        {
+                            type: 'xpert',
+                            key: 'Xpert_reviewer',
+                            entity: {
+                                name: 'reviewer',
+                                title: {
+                                    en_US: 'Reviewer',
+                                    zh_Hans: '审核员'
+                                },
+                                description: {
+                                    en_US: 'Reviews production plans',
+                                    zh_Hans: '审核制作计划'
+                                }
+                            }
+                        }
+                    ],
+                    connections: []
+                } as unknown as XpertDraftDslDTO,
+                {
+                    language: 'zh-Hans'
+                }
+            )
+        )
+
+        expect(xpertService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                title: '故事工作室',
+                description: '审核优先的故事制作助手',
+                agent: expect.objectContaining({
+                    title: '故事工作室智能体',
+                    description: '规划故事制作'
+                })
+            })
+        )
+        expect(xpertService.saveDraft).toHaveBeenCalledWith(
+            'new-xpert',
+            expect.objectContaining({
+                nodes: expect.arrayContaining([
+                    expect.objectContaining({
+                        type: 'xpert',
+                        entity: expect.objectContaining({
+                            title: '审核员',
+                            description: '审核制作计划'
+                        })
+                    })
+                ])
+            })
+        )
     })
 
     it('replaces an unavailable imported sandbox provider with the first available provider', async () => {

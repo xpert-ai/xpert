@@ -1,8 +1,8 @@
 <div class="p-4">
   <copilot-prompt-editor
-    class="relative shadow-md ngm-card-border-gradient self-stretch"
+    class="relative shadow-md xp-card-border-gradient self-stretch"
     [tooltip]="
-      'PAC.Xpert.SystemPromptTooltip'
+      'XP.Xpert.SystemPromptTooltip'
         | translate
           : {
               Default:
@@ -23,18 +23,18 @@
     <div class="flex items-center justify-center w-6 h-6">
       <i class="ri-git-commit-fill text-orange-600"></i>
     </div>
-    <div class="text-sm font-semibold text-text-primary">{{ 'PAC.Xpert.Node' | translate: { Default: 'Node' } }}</div>
+    <div class="text-sm font-semibold text-text-primary">{{ 'XP.Xpert.Node' | translate: { Default: 'Node' } }}</div>
   </div>
 
   <div class="flex justify-end items-center gap-1 w-full">
     <i class="ri-volume-mute-fill text-base text-sky-700"></i>
-    <div class="text-sm">{{ 'PAC.Xpert.DisableOutput' | translate: { Default: 'Disable Output' } }}</div>
+    <div class="text-sm">{{ 'XP.Xpert.DisableOutput' | translate: { Default: 'Disable Output' } }}</div>
     <z-switch
       class="flex"
       [(ngModel)]="mute"
       labelPosition="before"
       [zTooltip]="
-        'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
+        'XP.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
       "
       zPosition="left"
       zSize="sm"

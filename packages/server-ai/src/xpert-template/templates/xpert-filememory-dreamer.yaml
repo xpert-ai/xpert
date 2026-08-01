@@ -33,7 +33,7 @@ team:
             enabled: true
         sandbox:
             enabled: true
-            provider: local-shell-sandbox
+            provider: nsjail
     version: '3'
     agent:
         key: Agent_vlqADhkkrY

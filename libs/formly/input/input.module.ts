@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { PACFormlyInputComponent } from './input.type'
+import { XpFormlyInputComponent } from './input.type'
 
 @NgModule({
   declarations: [],
@@ -12,11 +12,11 @@ import { PACFormlyInputComponent } from './input.type'
       types: [
         {
           name: 'input-inline',
-          component: PACFormlyInputComponent
+          component: XpFormlyInputComponent
         },
         {
           name: 'input',
-          extends: 'input-inline',
+          extends: 'input-inline'
         },
         {
           name: 'number',
@@ -26,9 +26,9 @@ import { PACFormlyInputComponent } from './input.type'
               type: 'number'
             }
           }
-        },
+        }
       ]
     })
   ]
 })
-export class PACFormlyInputModule {}
+export class XpFormlyInputModule {}

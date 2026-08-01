@@ -2,22 +2,21 @@ import { Component, effect, inject } from '@angular/core'
 import { UntypedFormGroup } from '@angular/forms'
 import { Router } from '@angular/router'
 import { IOrganization } from '@xpert-ai/contracts'
-import { getErrorMessage } from '@xpert-ai/core'
+import { getErrorMessage } from '@xpert-ai/headless-ui'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { OrganizationsService, ToastrService } from '../../../../../@core'
 import { timezones } from '../../../../../@core/constants'
 import { EditOrganizationComponent } from '../edit-organization.component'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FORMLY_W_FULL } from '@xpert-ai/formly'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-
 
 @Component({
   standalone: true,
   imports: [SharedModule, FormlyModule],
-  selector: 'pac-edit-org-main',
+  selector: 'xp-edit-org-main',
   templateUrl: './edit-organization-main.component.html',
   styleUrls: ['./edit-organization-main.component.scss']
 })
@@ -47,7 +46,7 @@ export class EditOrganizationMainComponent {
 
   ngOnInit(): void {
     const className = FORMLY_W_1_2
-    this.translateService.get('PAC.ORGANIZATIONS_PAGE.Organization').subscribe((Organization) => {
+    this.translateService.get('XP.ORGANIZATIONS_PAGE.Organization').subscribe((Organization) => {
       this.fields = [
         {
           fieldGroupClassName: FORMLY_ROW,
@@ -58,7 +57,7 @@ export class EditOrganizationMainComponent {
               type: 'input',
               props: {
                 label: Organization?.Name ?? 'Name',
-                placeholder: Organization?.OrganizationName ?? 'Organization Name',
+                placeholder: Organization?.OrganizationName ?? 'Organization Name'
               }
             },
             {
@@ -86,7 +85,7 @@ export class EditOrganizationMainComponent {
               key: 'profile_link',
               type: 'input',
               props: {
-                label: Organization?.ProfileLink ?? 'Profile Link',
+                label: Organization?.ProfileLink ?? 'Profile Link'
               }
             },
             {
@@ -94,7 +93,7 @@ export class EditOrganizationMainComponent {
               key: 'officialName',
               type: 'input',
               props: {
-                label: Organization?.OfficialName ?? 'Official Name',
+                label: Organization?.OfficialName ?? 'Official Name'
               }
             },
             {
@@ -111,7 +110,7 @@ export class EditOrganizationMainComponent {
               key: 'website',
               type: 'input',
               props: {
-                label: Organization?.Website ?? 'Website',
+                label: Organization?.Website ?? 'Website'
               }
             },
             {
@@ -131,7 +130,7 @@ export class EditOrganizationMainComponent {
               props: {
                 label: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period',
                 placeholder: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period (in Days)',
-                type: 'number',
+                type: 'number'
               }
             },
             {
@@ -141,7 +140,7 @@ export class EditOrganizationMainComponent {
               props: {
                 label: Organization?.Currency ?? 'Currency',
                 placeholder: Organization?.Currency ?? 'Currency',
-                type: 'text',
+                type: 'text'
               }
             },
             {
@@ -174,7 +173,7 @@ export class EditOrganizationMainComponent {
           ...this.form.value
         })
       )
-      this.toastrService.success(`PAC.MESSAGE.MAIN_ORGANIZATION_UPDATED`, { Default: 'Main Org Updated' })
+      this.toastrService.success(`XP.MESSAGE.MAIN_ORGANIZATION_UPDATED`, { Default: 'Main Org Updated' })
       this.goBack()
     } catch (error) {
       this.toastrService.error(getErrorMessage(error))

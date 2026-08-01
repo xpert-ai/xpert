@@ -1,5 +1,6 @@
 import {
   IconDefinition,
+  I18nObject,
   JsonSchemaObjectType,
   PluginMeta,
   PluginTargetApp,
@@ -106,8 +107,8 @@ export interface XpertTemplateContribution {
   key: string
   id?: string
   name?: string
-  title?: string
-  description?: string
+  title?: string | I18nObject
+  description?: string | I18nObject
   category?: string
   copyright?: string | null
   privacyPolicy?: string | null

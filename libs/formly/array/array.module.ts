@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 
-import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmFormlyArrayComponent } from './array.type'
+import { XpFormlyArrayComponent } from './array.type'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @NgModule({
-  declarations: [NgmFormlyArrayComponent],
+  declarations: [XpFormlyArrayComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -16,18 +16,18 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     ZardButtonComponent,
     ...ZardTooltipImports,
     TranslateModule,
-    AppearanceDirective,
+    XpAppearanceDirective,
     DensityDirective,
 
     FormlyModule.forChild({
       types: [
         {
           name: 'array',
-          component: NgmFormlyArrayComponent
+          component: XpFormlyArrayComponent
         }
       ]
     })
   ],
-  exports: [NgmFormlyArrayComponent]
+  exports: [XpFormlyArrayComponent]
 })
-export class NgmFormlyArrayModule {}
+export class XpFormlyArrayModule {}

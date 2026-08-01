@@ -1,15 +1,14 @@
-
 import { Component, computed, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr } from '@cloud/app/@core'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-project-github-login',
   standalone: true,
-  imports: [FormsModule, NgmSelectComponent, NgmSpinComponent],
+  imports: [FormsModule, XpSelectComponent, XpSpinComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })

@@ -2,10 +2,10 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { FormlyModule } from '@ngx-formly/core'
-import { PACFormlyEmptyComponent } from './empty.type'
+import { XpFormlyEmptyComponent } from './empty.type'
 
 @NgModule({
-  declarations: [PACFormlyEmptyComponent],
+  declarations: [XpFormlyEmptyComponent],
   imports: [
     CommonModule,
     FormsModule,
@@ -14,10 +14,10 @@ import { PACFormlyEmptyComponent } from './empty.type'
       types: [
         {
           name: 'empty',
-          component: PACFormlyEmptyComponent
+          component: XpFormlyEmptyComponent
         }
       ]
     })
   ]
 })
-export class PACFormlyEmptyModule {}
+export class XpFormlyEmptyModule {}

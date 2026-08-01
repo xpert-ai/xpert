@@ -11,7 +11,7 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
 import { XpertWorkflowCodeEditorComponent } from '@cloud/app/@shared/xpert'
 import { TranslateModule } from '@ngx-translate/core'
@@ -30,7 +30,7 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     TranslateModule,
     XpertWorkflowCodeEditorComponent,
-    NgmSelectComponent,
+    XpSelectComponent,
     XpertWorkflowErrorHandlingComponent,
     StateVariableSelectComponent,
     ZardSliderComponent,

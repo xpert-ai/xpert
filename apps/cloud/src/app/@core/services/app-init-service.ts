@@ -2,8 +2,13 @@ import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
 import { IUser } from '@xpert-ai/contracts'
-import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_BOOTSTRAP_SELECT, UsersService } from '@xpert-ai/cloud/state'
-import * as Sentry from "@sentry/angular";
+import {
+  CurrentUserHydrationService,
+  CURRENT_USER_BOOTSTRAP_RELATIONS,
+  CURRENT_USER_BOOTSTRAP_SELECT,
+  UsersService
+} from '@cloud/app/@core/state'
+import * as Sentry from '@sentry/angular'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'
 import { AuthStrategy } from '../../@core/auth/auth-strategy.service'
@@ -25,7 +30,7 @@ export class AppInitService {
     private readonly scopeService: ScopeService,
     private readonly currentUserHydrationService: CurrentUserHydrationService,
     private readonly ngxPermissionsService: NgxPermissionsService,
-    @Inject(Ability) private readonly ability: Ability,
+    @Inject(Ability) private readonly ability: Ability
   ) {}
 
   async init() {
@@ -52,13 +57,10 @@ export class AppInitService {
 
         const memberships = (this.user.organizations ?? []).filter(
           (membership) =>
-            membership.isActive !== false &&
-            !!membership.organization?.id &&
-            membership.organization.isActive !== false
+            membership.isActive !== false && !!membership.organization?.id && membership.organization.isActive !== false
         )
         const organizations = memberships.map(({ organization }) => organization)
-        const preferredOrganizationId =
-          memberships.find((membership) => membership.isDefault)?.organizationId ?? null
+        const preferredOrganizationId = memberships.find((membership) => membership.isDefault)?.organizationId ?? null
 
         this.scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
@@ -110,16 +112,14 @@ export class AppInitService {
   }
 
   private hydrateCurrentUserContextInBackground(userId: string) {
-    void this.currentUserHydrationService
-      .getFeatureHydration()
-      .catch((error) => {
-        if (this.store.userId !== userId) {
-          return
-        }
-        this.store.featureContextHydrationFailed = true
-        this.store.featureContextHydrationLoading = false
-        console.warn('Deferred current-user hydration failed', error)
-      })
+    void this.currentUserHydrationService.getFeatureHydration().catch((error) => {
+      if (this.store.userId !== userId) {
+        return
+      }
+      this.store.featureContextHydrationFailed = true
+      this.store.featureContextHydrationLoading = false
+      console.warn('Deferred current-user hydration failed', error)
+    })
   }
 
   private updateAbility(user: IUser) {
@@ -135,7 +135,6 @@ export class AppInitService {
       if (
         user.role.name === RolesEnum.ADMIN ||
         user.role.name === RolesEnum.AI_BUILDER ||
-        user.role.name === RolesEnum.ANALYTICS_BUILDER ||
         user.role.name === RolesEnum.TRIAL
       ) {
         can(AbilityActions.Manage, 'Story')

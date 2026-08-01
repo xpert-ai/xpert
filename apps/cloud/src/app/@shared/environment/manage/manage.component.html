@@ -1,6 +1,6 @@
 <div class="flex w-[44px] flex-col border-r border-divider-burn pl-4 pr-6 sm:w-[224px]">
   <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
-    {{ 'PAC.Environment.Environments' | translate: { Default: 'Environments' } }}
+    {{ 'XP.Environment.Environments' | translate: { Default: 'Environments' } }}
   </div>
   <div class="w-full">
     <div class="mb-2">
@@ -17,12 +17,12 @@
             @if (env.isDefault) {
               <i
                 class="ri-checkbox-circle-fill text-xl text-text-success"
-                [zTooltip]="'PAC.Environment.IsDefault' | translate: { Default: 'Is Default' }"
+                [zTooltip]="'XP.Environment.IsDefault' | translate: { Default: 'Is Default' }"
               ></i>
             } @else {
               <i
                 class="ri-checkbox-circle-line text-xl opacity-0 group-hover:opacity-100"
-                [zTooltip]="'PAC.Environment.SetAsDefault' | translate: { Default: 'Set as Default' }"
+                [zTooltip]="'XP.Environment.SetAsDefault' | translate: { Default: 'Set as Default' }"
                 (click)="setDefault(env)"
               ></i>
             }
@@ -35,7 +35,7 @@
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="addEnvironment()">
         <i class="ri-add-line mr-1"></i>
         <span class="system-sm-medium">
-          {{ 'PAC.Environment.AddEnvironment' | translate: { Default: 'Add Environment' } }}
+          {{ 'XP.Environment.AddEnvironment' | translate: { Default: 'Add Environment' } }}
         </span>
       </button>
     </div>
@@ -53,7 +53,7 @@
   <div class="w-full flex flex-col overflow-y-auto bg-components-panel-bg pb-4">
     <div class="sticky top-0 z-20 mx-8 mb-[18px] flex items-center bg-components-panel-bg pb-2 pt-[27px]">
       <div class="text-2xl font-semibold shrink-0 text-text-primary">
-        {{ 'PAC.Environment.Variables' | translate: { Default: 'Variables' } }}
+        {{ 'XP.Environment.Variables' | translate: { Default: 'Variables' } }}
       </div>
       @if (dirty()) {
         <span
@@ -82,28 +82,28 @@
               }
               <div class="text-sm font-medium mt-1 text-text-tertiary">
                 <div class="flex space-x-1">
-                  <div>{{ 'PAC.Environment.Total' | translate: { Default: 'Total' } }}</div>
+                  <div>{{ 'XP.Environment.Total' | translate: { Default: 'Total' } }}</div>
                   <div class="mx-1">{{ environment.variables?.length || 0 }}</div>
-                  <div>{{ 'PAC.Environment.Variables' | translate: { Default: 'Variables' } }}</div>
+                  <div>{{ 'XP.Environment.Variables' | translate: { Default: 'Variables' } }}</div>
                 </div>
               </div>
             </div>
 
             <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0" (click)="addVar()">
               <i class="ri-add-line mr-1"></i>
-              {{ 'PAC.Environment.AddVariable' | translate: { Default: 'Add Variable' } }}
+              {{ 'XP.Environment.AddVariable' | translate: { Default: 'Add Variable' } }}
             </button>
           </div>
           <div class="overflow-visible lg:overflow-visible">
             <div class="flex min-w-[480px] items-center border-b border-divider-regular py-[7px]">
               <div class="system-xs-medium-uppercase w-[204px] shrink-0 text-text-tertiary">
-                {{ 'PAC.Environment.Name' | translate: { Default: 'Name' } }}
+                {{ 'XP.Environment.Name' | translate: { Default: 'Name' } }}
               </div>
               <div class="system-xs-medium-uppercase w-[104px] shrink-0 text-text-tertiary">
-                {{ 'PAC.Environment.Type' | translate: { Default: 'Type' } }}
+                {{ 'XP.Environment.Type' | translate: { Default: 'Type' } }}
               </div>
               <div class="system-xs-medium-uppercase grow px-3 text-text-tertiary">
-                {{ 'PAC.Environment.Value' | translate: { Default: 'Value' } }}
+                {{ 'XP.Environment.Value' | translate: { Default: 'Value' } }}
               </div>
             </div>
             <div class="relative min-w-[480px]">
@@ -113,7 +113,7 @@
                     <input
                       class="xp-input block h-9 w-full text-sm"
                       [placeholder]="
-                        'PAC.Environment.KeepUniqueInEnv'
+                        'XP.Environment.KeepUniqueInEnv'
                           | translate: { Default: 'Keep it unique within the environment' }
                       "
                       type="text"
@@ -122,7 +122,7 @@
                     />
                   </div>
                   <div class="system-sm-regular flex w-[104px] shrink-0 items-center py-2 text-text-secondary">
-                    <ngm-select
+                    <xp-select
                       class="mx-2 w-36"
                       [selectOptions]="VariableTypeOptions"
                       [nullable]="false"
@@ -156,13 +156,13 @@
     <div class="flex justify-start items-center px-4">
       @if (environment()) {
         <button type="button" class="btn disabled:btn-disabled btn-danger btn-large" (click)="delete()">
-          {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+          {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
         </button>
       }
     </div>
   </div>
 
   @if (loading()) {
-    <ngm-spin class="absolute w-full h-full left-0 top-0" />
+    <xp-spin class="absolute w-full h-full left-0 top-0" />
   }
 </div>

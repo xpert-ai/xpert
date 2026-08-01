@@ -39,11 +39,11 @@
    - `tools/workspace/projects.manifest.json`（显式声明项目、构建器、依赖顺序、输出路径、资产拷贝规则）。
 2. 核心项目构建映射固定如下（决策完成，实施不再二次选型）：
    - `rollup`: `adapter, contracts, copilot, core, sql, store, xmla, plugin-sdk, retriever-common, textsplitter-common, transformer-common, trigger-schedule, vlm-default, ocr-paddle, vstore-chroma, vstore-weaviate`
-   - `tsc`: `auth, common, config, server, server-ai, analytics, duckdb, echarts`
-   - `ng-packagr`: `ngx-echarts, ocap-angular, copilot-angular, component-angular, formly, story-angular, core-angular`
+   - `tsc`: `auth, common, config, server, server-ai`
+   - `ng-packagr`: `ocap-angular, copilot-angular, component-angular, formly, core-angular`
    - `app`: `api(webpack)`, `cloud(angular cli)`
 3. 固定核心构建顺序（替代 Nx dependsOn）：
-   - `contracts -> common -> config -> auth -> server -> server-ai -> adapter -> analytics -> plugins(全部) -> store -> core -> echarts -> sql -> xmla -> duckdb -> copilot -> ngx-echarts -> ocap-angular -> api`
+   - `contracts -> common -> config -> auth -> server -> server-ai -> adapter -> plugins(全部) -> store -> core -> sql -> xmla -> copilot -> ocap-angular -> api`
    - Cloud 在 `localpack` 和 webapp Docker 中单独执行生产构建。
 4. 修改 `apps/api/config/webpack.config.js`：
    - 删除 `@nx/webpack` 的 `composePlugins/withNx` 依赖。
@@ -96,8 +96,8 @@
    - `.changeset/config.json`
    - 根脚本：`changeset`、`changeset:version`。
 2. 发布策略固定为“核心包”：
-   - CI 发布目标保持 `dist/packages/core`。
-   - 增加校验脚本 `tools/release/verify-core-only-changeset.mjs`，只允许 `@metad/ocap-core` 的 changeset 进入发布流程。
+   - CI 发布目标由各公共包的 publish directory 配置决定。
+   - 通过 Changesets 管理需要发布的公共包。
 3. 文档改造：
    - `docs/release.md` 从 `nx release` 全量改为 `changeset` 流程（创建 changeset、版本落盘、打 tag、触发发布）。
 4. `tools/scripts/publish.mjs` 去 Nx：
@@ -147,5 +147,5 @@
 1. 保持严格兼容：脚本名、核心产物目录、Docker/CI 入口不变。
 2. 第 1 阶段核心链路禁止任何 Nx 运行时依赖。
 3. 不引入新编排器，仅使用 pnpm workspace/脚本。
-4. 发布采用 Changesets，但 CI 仅发布核心包 `@metad/ocap-core`。
+4. 发布采用 Changesets，并由变更集选择需要发布的公共包。
 5. 若 `mjml/cheerio/domhandler` 运行时冲突仍存在，作为独立依赖修复（`pnpm.overrides`）并行处理，不改变本计划的去 Nx 路径。

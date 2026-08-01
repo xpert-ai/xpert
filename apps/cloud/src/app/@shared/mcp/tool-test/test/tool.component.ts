@@ -11,8 +11,8 @@ import {
   signal
 } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -36,8 +36,8 @@ import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xp
     ReactiveFormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    NgmDensityDirective,
-    NgmSpinComponent,
+    XpDensityDirective,
+    XpSpinComponent,
     JSONSchemaFormComponent,
     ZardSwitchComponent,
     ZardInputDirective

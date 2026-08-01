@@ -5,12 +5,23 @@
   "description": "Shared UI primitives and design tokens for Angular apps",
   "license": "AGPL-3.0",
   "peerDependencies": {
+    "@angular/animations": "^21.1.0",
     "@angular/cdk": "^21.0.0",
     "@angular/common": "^21.1.0",
     "@angular/core": "^21.1.0",
     "@angular/forms": "^21.1.0",
     "@angular/platform-browser": "^21.1.0",
-    "i18next": "^23.14.0"
+    "@ngx-formly/core": "^6.0.0",
+    "@ngx-translate/core": "^17.0.0",
+    "@ng-web-apis/resize-observer": "^4.11.1",
+    "date-fns": "^3.0.4",
+    "i18next": "^23.14.0",
+    "immer": "^10.0.1",
+    "lodash-es": "^4.17.21",
+    "ngxtension": "^4.0.0",
+    "rxjs": "~7.8.0",
+    "xlsx": "^0.18.5",
+    "yaml": "^2.6.1"
   },
   "dependencies": {
     "@ng-icons/core": "^33.2.0",
@@ -24,7 +35,8 @@
     "tslib": "^2.3.0"
   },
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "**/*.scss"
   ],
   "devDependencies": {
     "@angular/core": "^21.1.4",

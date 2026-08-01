@@ -7,8 +7,8 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpHighlightDirective, XpSearchComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IToolProvider, IXpertToolset, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
 import { ToolProviderCardComponent, ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -33,9 +33,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     OverlayModule,
     ...ZardTooltipImports,
 
-    NgmSearchComponent,
-    NgmHighlightDirective,
-    NgmI18nPipe,
+    XpSearchComponent,
+    XpHighlightDirective,
+    XpI18nPipe,
     EmojiAvatarComponent,
     ToolsetCardComponent,
     ToolProviderCardComponent
@@ -52,7 +52,7 @@ export class XpertStudioToolsetMenuComponent {
   readonly #dialog = inject(Dialog)
   private root = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
 
   // Inputs
   readonly onSelect = input<(event: { toolset: IXpertToolset; provider: IToolProvider }) => void>()

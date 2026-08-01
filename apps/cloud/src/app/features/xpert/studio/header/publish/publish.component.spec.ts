@@ -19,8 +19,8 @@ describe('XpertPublishVersionComponent layout', () => {
 
   it('keeps marketplace information last and collapsed by default', () => {
     const marketplaceIndex = template.indexOf('data-marketplace-section')
-    const versionHistoryIndex = template.indexOf('PAC.Xpert.VersionHistory')
-    const publishBindingIndex = template.indexOf('PAC.Xpert.PublishBinding')
+    const versionHistoryIndex = template.indexOf('XP.Xpert.VersionHistory')
+    const publishBindingIndex = template.indexOf('XP.Xpert.PublishBinding')
 
     expect(marketplaceIndex).toBeGreaterThan(versionHistoryIndex)
     expect(marketplaceIndex).toBeGreaterThan(publishBindingIndex)

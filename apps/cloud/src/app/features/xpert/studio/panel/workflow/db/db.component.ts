@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, Directive, effect, inject, signal } from '@angular/core'
-import { attrModel, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { Dialog } from '@angular/cdk/dialog'
 import { WorkspaceSelectDatabaseComponent } from '@cloud/app/@shared/workspace'
 import { IWorkflowNodeDBOperation, TXpertTableColumn } from '@xpert-ai/contracts'

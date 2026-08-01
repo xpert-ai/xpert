@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input } from '@angular/core'
 import { XpertStatsViewSchema } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardCardImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'xp-stats-view-renderer',
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, ...ZardCardImports],
+  imports: [CommonModule, TranslateModule, XpI18nPipe, ...ZardCardImports],
   template: `
     <div class="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
       @for (item of schema().items; track item.key) {

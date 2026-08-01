@@ -1,5 +1,6 @@
-import { FormulaSchema } from "@xpert-ai/ocap-core"
 import { z } from 'zod'
+
+const FormulaSchema = z.string().describe('MDX expression for the calculated measure in cube')
 
 /**
  * @deprecated use chatkit instead

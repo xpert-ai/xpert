@@ -5,7 +5,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
@@ -39,7 +39,7 @@ import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless
     ZardProgressBarComponent,
     ...ZardTooltipImports,
     KnowledgeDocIdComponent
-]
+  ]
 })
 export class KnowledgeDocumentCreateStep3Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -101,15 +101,13 @@ export class KnowledgeDocumentCreateStep3Component {
   readonly delayRefresh$ = new Subject<boolean>()
 
   constructor() {
-    effect(
-      () => {
-        if (this.#task.value() && !this.#task.value()?.documents?.length) {
-          setTimeout(() => {
-            this.#task.reload()
-          }, 2000)
-        }
+    effect(() => {
+      if (this.#task.value() && !this.#task.value()?.documents?.length) {
+        setTimeout(() => {
+          this.#task.reload()
+        }, 2000)
       }
-    )
+    })
 
     effect(() => {
       if (

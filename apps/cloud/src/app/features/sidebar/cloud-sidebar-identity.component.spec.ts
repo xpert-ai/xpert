@@ -9,7 +9,7 @@ jest.mock('@cloud/app/@shared/i18n', () => ({
   })
 }))
 
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   class CurrentUserHydrationService {}
   class UsersService {}
 
@@ -25,39 +25,41 @@ jest.mock('@xpert-ai/cloud/state', () => {
   }
 })
 
-jest.mock('@xpert-ai/core', () => ({
-  nonNullable: <T>(value: T | null | undefined): value is T => value != null,
-  OverlayAnimation1: []
-}))
-
-jest.mock('@xpert-ai/ocap-angular/common', () => {
+jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
-    selector: 'ngm-search',
+    selector: 'xp-search',
     template: ''
   })
-  class NgmSearchComponent {}
+  class XpSearchComponent {}
 
   @Directive({
     standalone: true,
-    selector: '[ngmHighlight]'
+    selector: '[xpHighlight]'
   })
-  class NgmHighlightDirective {
-    @Input() ngmHighlight?: string
+  class XpHighlightDirective {
+    @Input() xpHighlight?: string
     @Input() content?: string
   }
 
+  @Directive({
+    standalone: true,
+    // eslint-disable-next-line @angular-eslint/directive-selector
+    selector: '[z-button]'
+  })
+  class ZardButtonComponent {}
+
   return {
-    NgmHighlightDirective,
-    NgmSearchComponent
+    debouncedSignal: (value: unknown) => value,
+    XpHighlightDirective,
+    XpSearchComponent,
+    nonNullable: <T>(value: T | null | undefined): value is T => value != null,
+    OverlayAnimation1: [],
+    ZardButtonComponent
   }
 })
-
-jest.mock('@xpert-ai/ocap-angular/core', () => ({
-  debouncedSignal: (value: unknown) => value
-}))
 
 jest.mock('../../@core', () => {
   class OrganizationsService {}
@@ -84,7 +86,7 @@ jest.mock('../../@shared/organization', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-org-avatar',
+    selector: 'xp-org-avatar',
     template: ''
   })
   class OrgAvatarComponent {
@@ -169,11 +171,11 @@ describe('CloudSidebarIdentityComponent', () => {
           useValue: organizationsService
         },
         {
-          provide: jest.requireMock('@xpert-ai/cloud/state').UsersService,
+          provide: jest.requireMock('@cloud/app/@core/state').UsersService,
           useValue: usersService
         },
         {
-          provide: jest.requireMock('@xpert-ai/cloud/state').CurrentUserHydrationService,
+          provide: jest.requireMock('@cloud/app/@core/state').CurrentUserHydrationService,
           useValue: currentUserHydrationService
         }
       ]
@@ -298,11 +300,11 @@ describe('CloudSidebarIdentityComponent', () => {
           }
         },
         {
-          provide: jest.requireMock('@xpert-ai/cloud/state').UsersService,
+          provide: jest.requireMock('@cloud/app/@core/state').UsersService,
           useValue: usersService
         },
         {
-          provide: jest.requireMock('@xpert-ai/cloud/state').CurrentUserHydrationService,
+          provide: jest.requireMock('@cloud/app/@core/state').CurrentUserHydrationService,
           useValue: currentUserHydrationService
         }
       ]

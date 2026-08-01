@@ -11,24 +11,27 @@
     (click)="openAiProviders()"
   >
     <div class="mr-2 grow leading-5">
-      {{ 'PAC.Copilot.SelectAiModelProvider' | translate: { Default: 'Select an AI model provider' } }}
+      {{ 'XP.Copilot.SelectAiModelProvider' | translate: { Default: 'Select an AI model provider' } }}
     </div>
     <i class="ri-folder-open-line"></i>
   </div>
 }
 
-<form [formGroup]="formGroup" class="relative flex w-full flex-col items-start gap-4 overflow-hidden rounded-xl border-[0.5px] border-solid border-divider-deep bg-background-default-subtle p-4 shadow-sm">
+<form
+  [formGroup]="formGroup"
+  class="relative flex w-full flex-col items-start gap-4 overflow-hidden rounded-xl border-[0.5px] border-solid border-divider-deep bg-background-default-subtle p-4 shadow-sm"
+>
   <copilot-model-select
     class="w-full"
     formControlName="copilotModel"
     [copilot]="copilot()"
     [modelType]="defaultModelType()"
-    [label]="'PAC.Copilot.DefaultModel' | translate: { Default: 'Default Model' }"
+    [label]="'XP.Copilot.DefaultModel' | translate: { Default: 'Default Model' }"
   />
 
   <ng-content />
 
   @if (saving()) {
-    <ngm-spin class="absolute top-0 left-0 h-full w-full" />
+    <xp-spin class="absolute top-0 left-0 h-full w-full" />
   }
 </form>

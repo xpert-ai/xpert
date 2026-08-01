@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { FormlyModule } from '@ngx-formly/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { PACFormlyJsonComponent } from './json.type'
+import { XpFormlyJsonComponent } from './json.type'
 import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @NgModule({
-  declarations: [PACFormlyJsonComponent],
+  declarations: [XpFormlyJsonComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -19,10 +19,10 @@ import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
       types: [
         {
           name: 'json',
-          component: PACFormlyJsonComponent
+          component: XpFormlyJsonComponent
         }
       ]
     })
   ]
 })
-export class PACFormlyJsonModule {}
+export class XpFormlyJsonModule {}

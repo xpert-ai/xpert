@@ -1,7 +1,9 @@
 <div class="shrink-0 flex justify-between items-center pl-4 pr-3 py-3">
-  <div class="flex-1 text-lg font-semibold text-text-primary truncate">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }} {{ knowledgebase().name || ('PAC.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' }) }}</div>
-  <div class="ml-2 shrink-0 p-1 cursor-pointer action-btn rounded-lg"
-    (click)="onClose()">
+  <div class="flex-1 text-lg font-semibold text-text-primary truncate">
+    {{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}
+    {{ knowledgebase().name || ('XP.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' }) }}
+  </div>
+  <div class="ml-2 shrink-0 p-1 cursor-pointer action-btn rounded-lg" (click)="onClose()">
     <i class="ri-close-line w-4 h-4 text-base leading-4"></i>
   </div>
 </div>
@@ -9,30 +11,31 @@
 <div class="h-0 grow overflow-y-auto px-4 flex flex-col items-stretch">
   <div class="space-y-2">
     <div class="h-6 mb-1 flex items-center gap-1 text-text-secondary font-semibold">
-      <div class="truncate">{{'PAC.Xpert.Query' | translate: {Default: 'Query'} }}</div>
+      <div class="truncate">{{ 'XP.Xpert.Query' | translate: { Default: 'Query' } }}</div>
     </div>
     <div class="grow">
       <textarea
         class="w-full px-3 py-1 text-sm leading-[18px] text-text-primary border-0 rounded-lg grow h-[120px] bg-background-default-subtle focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-        [placeholder]="'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} "
+        [placeholder]="'XP.Xpert.PleaseEnter' | translate: { Default: 'Please enter' }"
         [(ngModel)]="query"
       ></textarea>
     </div>
   </div>
   <div class="mt-4 flex justify-between space-x-2">
-    <button type="button" class="btn disabled:btn-disabled btn-primary h-10 w-0 grow space-x-2 justify-center"
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary h-10 w-0 grow space-x-2 justify-center"
       [disabled]="running()"
-      (click)="onTest()">
-      {{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}
+      (click)="onTest()"
+    >
+      {{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}
     </button>
 
     @if (running()) {
-      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable"
-        (click)="stopTest()"
-      >
+      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable" (click)="stopTest()">
         <div class="w-full text-center">
           <i class="ri-stop-line"></i>
-          {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
+          {{ 'XP.Xpert.Stop' | translate: { Default: 'Stop' } }}
         </div>
       </button>
     }
@@ -40,22 +43,40 @@
 
   <div class="grow flex flex-col items-stretch gap-4 mt-4 pb-4">
     @for (item of docs(); track $index) {
-      <div class="group rounded-xl border border-solid border-transparent cursor-pointer overflow-hidden hover:shadow-lg
-                  bg-background-default-subtle hover:bg-hover-bg hover:border-divider-deep"
+      <div
+        class="group rounded-xl border border-solid border-transparent cursor-pointer overflow-hidden hover:shadow-lg bg-background-default-subtle hover:bg-hover-bg hover:border-divider-deep"
         (click)="openChunk(item)"
       >
-        <div class="h-[140px] p-4 overflow-hidden text-ellipsis text-sm font-normal text-text-secondary">{{item.pageContent}}</div>
+        <div class="h-[140px] p-4 overflow-hidden text-ellipsis text-sm font-normal text-text-secondary">
+          {{ item.pageContent }}
+        </div>
 
         <div class="w-full h-[1px] bg-components-input-bg-normal"></div>
         <div class="w-full bg-background-default-subtle group-hover:bg-hover-bg p-2">
           <div class="relative flex items-center w-full pb-1">
-            <div class="flex items-center justify-start flex-1 gap-2 w-full text-sm text-text-tertiary group-hover:text-text-primary">
-              <div class="font-semibold px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle">{{(item.metadata.score) | number: '0.2-2'}}</div>
-              <div class=" px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle">{{item.metadata.blobType}}</div>
+            <div
+              class="flex items-center justify-start flex-1 gap-2 w-full text-sm text-text-tertiary group-hover:text-text-primary"
+            >
+              <div
+                class="font-semibold px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle"
+              >
+                {{ item.metadata.score | number: '0.2-2' }}
+              </div>
+              <div
+                class="px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle"
+              >
+                {{ item.metadata.blobType }}
+              </div>
               @if (item.metadata.loc?.lines) {
-                <div class=" px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle">Lines: {{item.metadata.loc.lines.from}}-{{item.metadata.loc.lines.to}}</div>
+                <div
+                  class="px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle"
+                >
+                  Lines: {{ item.metadata.loc.lines.from }}-{{ item.metadata.loc.lines.to }}
+                </div>
               }
-              <span class="px-2 font-semibold ml-1 text-xs text-text-secondary overflow-hidden whitespace-nowrap text-ellipsis">
+              <span
+                class="px-2 font-semibold ml-1 text-xs text-text-secondary overflow-hidden whitespace-nowrap text-ellipsis"
+              >
               </span>
             </div>
           </div>
@@ -64,7 +85,11 @@
     } @empty {
       <div class="w-full h-full flex flex-col justify-center items-center gap-2 text-text-tertiary">
         <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="running()"></i>
-        <div class="">{{'PAC.Knowledgebase.RetrievalTestingResultsHere' | translate: {Default: 'Retrieval Testing results will show here'} }}
+        <div class="">
+          {{
+            'XP.Knowledgebase.RetrievalTestingResultsHere'
+              | translate: { Default: 'Retrieval Testing results will show here' }
+          }}
         </div>
       </div>
     }

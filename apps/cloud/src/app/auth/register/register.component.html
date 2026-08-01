@@ -1,0 +1,142 @@
+<form [formGroup]="form" (ngSubmit)="register()" role="form" class="flex flex-col justify-start items-stretch">
+  <div class="flex flex-col justify-start items-stretch p-2 mt-2 gap-2">
+    @if (showMessages.error && errors?.length && !loading) {
+      @for (error of errors; track error; let i = $index) {
+        <div
+          class="flex items-center gap-2 p-3 mb-2 bg-[var(--color-status-warning-bg)] border border-[var(--color-status-warning-indicator-border)] rounded"
+        >
+          <span class="text-[var(--color-status-warning-fg)] text-sm">{{
+            'Auth.' + error | translate: { Default: error }
+          }}</span>
+          <button
+            type="button"
+            (click)="errors.splice(i, 1)"
+            class="ml-auto text-[var(--color-status-warning-fg)] hover:opacity-70"
+          >
+            <span class="text-lg">×</span>
+          </button>
+        </div>
+      }
+    }
+
+    @for (message of messages; track message; let i = $index) {
+      <div
+        class="flex items-center gap-2 p-3 mb-2 bg-[var(--color-status-success-bg)] border border-[var(--color-status-success-indicator-border)] rounded"
+      >
+        <span class="text-[var(--color-status-success-fg)] text-sm">{{ message }}</span>
+        <button
+          type="button"
+          (click)="messages.splice(i, 1)"
+          class="ml-auto text-[var(--color-status-success-fg)] hover:opacity-70"
+        >
+          <span class="text-lg">×</span>
+        </button>
+      </div>
+    }
+
+    <div>
+      <label for="email" class="block mb-2 text-base font-medium text-text-primary">
+        {{ 'AUTH.REGISTER.EMAIL' | translate: { Default: 'Email' } }}
+      </label>
+      <input
+        type="email"
+        name="email"
+        id="email"
+        formControlName="email"
+        class="xp-input w-full text-text-primary"
+        [placeholder]="'AUTH.REGISTER.EMAIL' | translate: { Default: 'Email' }"
+      />
+    </div>
+
+    <div>
+      <label for="password" class="block mb-2 text-base font-medium text-text-primary">
+        {{ 'AUTH.REGISTER.PASSWORD' | translate: { Default: 'Password' } }}
+      </label>
+      <input
+        type="password"
+        name="password"
+        id="password"
+        formControlName="password"
+        class="xp-input w-full text-text-primary"
+        [placeholder]="'XP.KEY_WORDS.EnterPassword' | translate: { Default: 'Enter password' }"
+      />
+      <div class="my-2 h-1 bg-background-default-subtle rounded-full overflow-hidden">
+        <div
+          class="h-full transition-all duration-300"
+          [style.width.%]="passwordProgressMap[status]?.progress ?? 0"
+          [ngClass]="
+            passwordProgressMap[status]?.color === 'warn'
+              ? 'bg-[var(--color-status-warning-indicator-bg)]'
+              : 'bg-[var(--color-status-success-indicator-bg)]'
+          "
+        ></div>
+      </div>
+    </div>
+
+    <div>
+      <label for="confirm_password" class="block mb-2 text-base font-medium text-text-primary">
+        {{ 'AUTH.REGISTER.CONFIRM_PASSWORD' | translate: { Default: 'Confirm Password' } }}
+      </label>
+      <input
+        type="password"
+        name="confirm_password"
+        id="confirm_password"
+        formControlName="confirm"
+        class="xp-input w-full text-text-primary"
+        [placeholder]="'XP.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm password' }"
+      />
+
+      @if (mismatch) {
+        <span class="text-text-destructive text-sm mt-1 block">{{
+          'Auth.Mismatch' | translate: { Default: 'Mismatch' }
+        }}</span>
+      }
+    </div>
+
+    @if (referralEnabled) {
+      <div>
+        <label for="referral_code" class="block mb-2 text-base font-medium text-text-primary">
+          {{ 'XP.Referral.ReferralCode' | translate: { Default: 'Invitation code (optional)' } }}
+        </label>
+        <input
+          z-input
+          type="text"
+          name="referral_code"
+          id="referral_code"
+          formControlName="referralCode"
+          class="w-full uppercase"
+          maxlength="10"
+          autocomplete="off"
+          [placeholder]="'XP.Referral.ReferralCodePlaceholder' | translate: { Default: 'Enter invitation code' }"
+        />
+        @if (referralValidationLoading) {
+          <span class="text-text-secondary text-sm mt-1 block">
+            {{ 'XP.Referral.ValidatingReferralCode' | translate: { Default: 'Validating...' } }}
+          </span>
+        } @else if (referralCode.hasError('invalidReferralCode')) {
+          <span class="text-text-destructive text-sm mt-1 block">
+            {{ 'XP.Referral.InvalidReferralCode' | translate: { Default: 'The invitation code is invalid.' } }}
+          </span>
+        } @else if (referralValid) {
+          <span class="text-text-success text-sm mt-1 block">
+            {{ 'XP.Referral.ValidReferralCode' | translate: { Default: 'Invitation code is valid.' } }}
+          </span>
+        }
+      </div>
+    }
+
+    <div class="flex justify-between items-center p-1">
+      <button
+        type="submit"
+        class="btn disabled:btn-disabled btn-primary btn-medium mb-2"
+        [disabled]="form.invalid || loading || submitted || referralAvailabilityLoading || referralValidationLoading"
+      >
+        {{ 'AUTH.REGISTER.SUBMIT' | translate: { Default: 'Submit' } }}
+      </button>
+
+      <a class="text-[var(--sys-primary)] hover:underline" routerLink="/auth/login">{{
+        'AUTH.REGISTER.SIGN-IN' | translate: { Default: 'Sign-in' }
+      }}</a>
+    </div>
+  </div>
+</form>

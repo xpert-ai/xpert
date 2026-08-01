@@ -41,6 +41,35 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 link: 'settings/membership',
                 isEnabled: features.FEATURE_MEMBERSHIP_PLAN,
                 icon: 'credit_card',
+                status: 'info',
+                children: [
+                    {
+                        name: 'Membership Purchase',
+                        code: AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE,
+                        description: 'Enable membership plan and personal point purchases',
+                        link: 'settings/purchase',
+                        isEnabled: false,
+                        icon: 'payments',
+                        status: 'info'
+                    }
+                ]
+            },
+            {
+                name: 'Personal Model Access',
+                code: AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST,
+                description: 'Enable personal model access requests and grants',
+                link: 'settings/model-access',
+                isEnabled: false,
+                icon: 'approval',
+                status: 'info'
+            },
+            {
+                name: 'Model API Gateway',
+                code: AiFeatureEnum.FEATURE_MODEL_GATEWAY,
+                description: 'Publish approved tenant or organization models through an OpenAI-compatible API',
+                link: 'settings/model-gateway',
+                isEnabled: false,
+                icon: 'api',
                 status: 'info'
             }
         ]
@@ -71,15 +100,6 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 link: 'chat/clawxpert',
                 isEnabled: true,
                 icon: 'account-circle',
-                status: 'info'
-            },
-            {
-                name: 'ChatBI',
-                code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
-                description: 'Show the ChatBI entry in main navigation',
-                link: 'chatbi',
-                isEnabled: true,
-                icon: 'chat',
                 status: 'info'
             },
             {

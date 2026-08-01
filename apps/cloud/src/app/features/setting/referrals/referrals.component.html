@@ -1,0 +1,107 @@
+<div class="flex w-full min-w-0 flex-col p-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-text-primary">
+        {{ 'XP.Referral.Relationships' | translate: { Default: 'Invitation relationships' } }}
+      </h1>
+      <p class="mt-1 text-sm text-text-secondary">
+        {{
+          'XP.Referral.RelationshipsDescription'
+            | translate: { Default: 'Read-only direct account invitation relationships in this tenant.' }
+        }}
+      </p>
+    </div>
+
+    <form [formGroup]="filterForm" class="flex items-center gap-2" (ngSubmit)="search()">
+      <input
+        z-input
+        formControlName="search"
+        class="w-72"
+        [placeholder]="'XP.Referral.SearchPlaceholder' | translate: { Default: 'Search user or code' }"
+      />
+      <button z-button zType="secondary" type="submit">
+        {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
+      </button>
+    </form>
+  </div>
+
+  <div class="mt-6 overflow-x-auto rounded-xl border border-divider-regular bg-components-card-bg">
+    <table z-table zSize="compact" class="min-w-[52rem]">
+      <thead z-table-header>
+        <tr z-table-row>
+          <th z-table-head>{{ 'XP.Referral.Referrer' | translate: { Default: 'Inviter' } }}</th>
+          <th z-table-head>{{ 'XP.Referral.Referred' | translate: { Default: 'Invitee' } }}</th>
+          <th z-table-head>{{ 'XP.Referral.UsedCode' | translate: { Default: 'Used code' } }}</th>
+          <th z-table-head>{{ 'XP.Referral.BoundAt' | translate: { Default: 'Bound at' } }}</th>
+        </tr>
+      </thead>
+      <tbody z-table-body>
+        @for (relation of relations(); track relation.id) {
+          <tr z-table-row>
+            <td z-table-cell>
+              <div class="font-medium text-text-primary">{{ accountLabel(relation.referrer) }}</div>
+              @if (!relation.referrer.deleted && relation.referrer.email) {
+                <div class="text-xs text-text-secondary">{{ relation.referrer.email }}</div>
+              }
+            </td>
+            <td z-table-cell>
+              <div class="font-medium text-text-primary">{{ accountLabel(relation.referred) }}</div>
+              @if (!relation.referred.deleted && relation.referred.email) {
+                <div class="text-xs text-text-secondary">{{ relation.referred.email }}</div>
+              }
+            </td>
+            <td z-table-cell>
+              <code>{{ relation.usedCode }}</code>
+            </td>
+            <td z-table-cell class="whitespace-nowrap">{{ relation.boundAt | date: 'medium' }}</td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell colspan="4" class="py-10 text-center text-text-secondary">
+              @if (loading()) {
+                {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+              } @else if (loadFailed()) {
+                {{ 'XP.Referral.LoadError' | translate: { Default: 'Invitation relationships could not be loaded.' } }}
+              } @else {
+                {{ 'XP.Referral.Empty' | translate: { Default: 'No invitation relationships found.' } }}
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-4 flex items-center justify-end gap-3 text-sm text-text-secondary">
+    <span>
+      {{
+        'XP.Referral.PageSummary'
+          | translate
+            : {
+                page: pageIndex() + 1,
+                pages: pageCount(),
+                total: total(),
+                Default: 'Page ' + (pageIndex() + 1) + ' of ' + pageCount() + ' · ' + total() + ' total'
+              }
+      }}
+    </span>
+    <button
+      z-button
+      zType="secondary"
+      type="button"
+      [zDisabled]="loading() || pageIndex() === 0"
+      (click)="previousPage()"
+    >
+      {{ 'XP.Referral.Previous' | translate: { Default: 'Previous' } }}
+    </button>
+    <button
+      z-button
+      zType="secondary"
+      type="button"
+      [zDisabled]="loading() || pageIndex() + 1 >= pageCount()"
+      (click)="nextPage()"
+    >
+      {{ 'XP.Referral.Next' | translate: { Default: 'Next' } }}
+    </button>
+  </div>
+</div>

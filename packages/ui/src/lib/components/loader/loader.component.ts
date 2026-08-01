@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, numberAttribute, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, numberAttribute, ViewEncapsulation } from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
 
-import { loaderVariants, type ZardLoaderVariants } from './loader.variants';
+import { loaderVariants, type ZardLoaderVariants } from './loader.variants'
 
 @Component({
   selector: 'z-loader',
@@ -15,7 +15,7 @@ import { loaderVariants, type ZardLoaderVariants } from './loader.variants';
           class="animate-spinner absolute -top-[3.9%] -left-[10%] h-[8%] w-[24%] rounded-md bg-black dark:bg-white"
           [style]="{
             animationDelay: animationDelay($index),
-            transform: transform($index),
+            transform: transform($index)
           }"
         ></div>
       }
@@ -42,20 +42,20 @@ import { loaderVariants, type ZardLoaderVariants } from './loader.variants';
   host: {
     '[class]': 'classes()',
     '[style.width.px]': 'diameter()',
-    '[style.height.px]': 'diameter()',
+    '[style.height.px]': 'diameter()'
   },
-  exportAs: 'zLoader',
+  exportAs: 'zLoader'
 })
 export class ZardLoaderComponent {
-  readonly class = input<ClassValue>('');
-  readonly zSize = input<ZardLoaderVariants['zSize']>('default');
-  readonly diameter = input<number | undefined, unknown>(undefined, { transform: numberAttribute });
+  readonly class = input<ClassValue>('')
+  readonly zSize = input<ZardLoaderVariants['zSize']>('default')
+  readonly diameter = input<number | undefined, unknown>(undefined, { transform: numberAttribute })
 
-  protected readonly bars = Array.from({ length: 12 });
-  protected readonly animationDelay = (index: number) => `-${1.3 - index * 0.1}s`;
-  protected readonly transform = (index: number) => `rotate(${30 * index}deg) translate(146%)`;
+  protected readonly bars = Array.from({ length: 12 })
+  protected readonly animationDelay = (index: number) => `-${1.3 - index * 0.1}s`
+  protected readonly transform = (index: number) => `rotate(${30 * index}deg) translate(146%)`
 
   protected readonly classes = computed(() =>
-    mergeClasses(loaderVariants({ zSize: this.diameter() ? null : this.zSize() }), this.class()),
-  );
+    mergeClasses(loaderVariants({ zSize: this.diameter() ? null : this.zSize() }), this.class())
+  )
 }

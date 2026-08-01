@@ -1,10 +1,10 @@
-<div class="pac-page-header">
+<div class="xp-page-header">
   <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
     <div class="min-w-0">
-      <div class="pac-page-title">{{ 'PAC.Membership.AdminTitle' | translate: { Default: 'Membership Plans' } }}</div>
+      <div class="xp-page-title">{{ 'XP.Membership.AdminTitle' | translate: { Default: 'Membership Plans' } }}</div>
       <div class="mt-1 text-sm text-text-tertiary">
         {{
-          'PAC.Membership.AdminDescription'
+          'XP.Membership.AdminDescription'
             | translate
               : { Default: 'Configure current-scope membership plans, point allowances, and model usage rules.' }
         }}
@@ -13,12 +13,12 @@
 
     <button z-button zType="default" type="button" class="self-start lg:self-auto" (click)="create()">
       <z-icon zType="add"></z-icon>
-      {{ 'PAC.Membership.NewPlan' | translate: { Default: 'New plan' } }}
+      {{ 'XP.Membership.NewPlan' | translate: { Default: 'New plan' } }}
     </button>
   </div>
 </div>
 
-<div class="pac-page-body flex flex-1 flex-col gap-4 p-4">
+<div class="xp-page-body flex min-h-0 flex-1 flex-col gap-4 p-4">
   @if (scopeStatus(); as status) {
     <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
       <z-card-content class="flex flex-col gap-4 p-4 xl:flex-row xl:items-center xl:justify-between">
@@ -32,15 +32,15 @@
             <div class="min-w-0">
               <div class="text-base font-semibold text-text-primary">
                 @if (status.scope === 'organization') {
-                  {{ 'PAC.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
+                  {{ 'XP.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
                 } @else {
-                  {{ 'PAC.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
+                  {{ 'XP.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
                 }
               </div>
               <div class="mt-1 text-sm text-text-tertiary">
                 @if (status.scope === 'organization') {
                   {{
-                    'PAC.Membership.OrganizationScopeHint'
+                    'XP.Membership.OrganizationScopeHint'
                       | translate
                         : {
                             Default:
@@ -49,7 +49,7 @@
                   }}
                 } @else {
                   {{
-                    'PAC.Membership.TenantScopeHint'
+                    'XP.Membership.TenantScopeHint'
                       | translate: { Default: 'Tenant plans control tenant Copilot models and tenant fallback access.' }
                   }}
                 }
@@ -74,7 +74,7 @@
         <div class="grid shrink-0 grid-cols-2 gap-2 text-sm md:grid-cols-4">
           <div class="rounded-lg bg-components-card-bg px-3 py-2">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.DefaultPlanLabel' | translate: { Default: 'Default plan' } }}
+              {{ 'XP.Membership.DefaultPlanLabel' | translate: { Default: 'Default plan' } }}
             </div>
             <div class="mt-1 truncate font-semibold text-text-primary" [title]="scopeDefaultPlanLabel(status)">
               {{ scopeDefaultPlanLabel(status) }}
@@ -82,14 +82,14 @@
           </div>
           <div class="rounded-lg bg-components-card-bg px-3 py-2">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
+              {{ 'XP.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
             </div>
             <div class="mt-1 font-semibold text-text-primary">{{ status.activePlanCount | number }}</div>
           </div>
           @if (status.scope === 'organization') {
             <div class="rounded-lg bg-components-card-bg px-3 py-2">
               <div class="text-xs text-text-tertiary">
-                {{ 'PAC.Membership.AssignedMembers' | translate: { Default: 'Assigned members' } }}
+                {{ 'XP.Membership.AssignedMembers' | translate: { Default: 'Assigned members' } }}
               </div>
               <div class="mt-1 font-semibold text-text-primary">
                 {{ status.assignedMemberCount ?? 0 | number }} / {{ status.activeMemberCount ?? 0 | number }}
@@ -97,7 +97,7 @@
             </div>
             <div class="rounded-lg bg-components-card-bg px-3 py-2">
               <div class="text-xs text-text-tertiary">
-                {{ 'PAC.Membership.LocalCopilots' | translate: { Default: 'Local Copilots' } }}
+                {{ 'XP.Membership.LocalCopilots' | translate: { Default: 'Local Copilots' } }}
               </div>
               <div class="mt-1 font-semibold text-text-primary">{{ status.localCopilotCount ?? 0 | number }}</div>
             </div>
@@ -115,10 +115,10 @@
           >
             <z-icon zType="settings_backup_restore"></z-icon>
             @if (status.activePlanCount > 0) {
-              {{ 'PAC.Membership.RepairAssignments' | translate: { Default: 'Repair assignments' } }}
+              {{ 'XP.Membership.RepairAssignments' | translate: { Default: 'Repair assignments' } }}
             } @else {
               {{
-                'PAC.Membership.InitializeOrganization' | translate: { Default: 'Initialize organization membership' }
+                'XP.Membership.InitializeOrganization' | translate: { Default: 'Initialize organization membership' }
               }}
             }
           </button>
@@ -137,7 +137,7 @@
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
-            {{ 'PAC.Membership.TotalPlans' | translate: { Default: 'Total plans' } }}
+            {{ 'XP.Membership.TotalPlans' | translate: { Default: 'Total plans' } }}
           </div>
           <div class="mt-1 text-xl font-semibold text-text-primary">{{ plans().length | number }}</div>
         </div>
@@ -153,7 +153,7 @@
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
-            {{ 'PAC.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
+            {{ 'XP.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
           </div>
           <div class="mt-1 text-xl font-semibold text-text-primary">{{ activePlanCount() | number }}</div>
         </div>
@@ -169,7 +169,7 @@
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
-            {{ 'PAC.Membership.ArchivedPlans' | translate: { Default: 'Archived plans' } }}
+            {{ 'XP.Membership.ArchivedPlans' | translate: { Default: 'Archived plans' } }}
           </div>
           <div class="mt-1 text-xl font-semibold text-text-primary">{{ archivedPlanCount() | number }}</div>
         </div>
@@ -177,23 +177,23 @@
     </z-card>
   </div>
 
-  <div class="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-12">
+  <div class="grid shrink-0 grid-cols-1 items-start gap-4 xl:grid-cols-12">
     <z-card
       class="min-w-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-4"
     >
       <z-card-header class="items-center border-b border-divider-regular py-5">
         <div class="flex w-full items-center justify-between gap-3">
           <div class="min-w-0">
-            <z-card-title>{{ 'PAC.Membership.PlanCatalog' | translate: { Default: 'Plan catalog' } }}</z-card-title>
+            <z-card-title>{{ 'XP.Membership.PlanCatalog' | translate: { Default: 'Plan catalog' } }}</z-card-title>
             <z-card-subtitle class="mt-1">
               {{
-                'PAC.Membership.PlanCatalogHint' | translate: { Default: 'Select a plan to review or edit its rules.' }
+                'XP.Membership.PlanCatalogHint' | translate: { Default: 'Select a plan to review or edit its rules.' }
               }}
             </z-card-subtitle>
           </div>
           @if (loading()) {
             <z-badge zType="secondary" zShape="pill">
-              {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
             </z-badge>
           }
         </div>
@@ -228,7 +228,7 @@
                 <div class="flex shrink-0 flex-wrap justify-end gap-1">
                   @if (plan.isDefault) {
                     <z-badge zType="secondary" zShape="pill">
-                      {{ 'PAC.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
+                      {{ 'XP.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
                     </z-badge>
                   }
                   <z-badge
@@ -240,7 +240,7 @@
                         : 'border-divider-regular text-text-tertiary'
                     "
                   >
-                    {{ 'PAC.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
+                    {{ 'XP.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
                   </z-badge>
                 </div>
               </div>
@@ -248,11 +248,11 @@
               <div class="mt-4 grid grid-cols-1 gap-2 text-sm">
                 <div class="rounded-lg bg-components-panel-bg px-3 py-2">
                   <div class="text-xs text-text-tertiary">
-                    {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
+                    {{ 'XP.Membership.Points' | translate: { Default: 'Points' } }}
                   </div>
                   <div class="mt-1 font-semibold text-text-primary">
                     @if (plan.includedPoints === null) {
-                      {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                      {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                     } @else {
                       {{ plan.includedPoints | number }}
                     }
@@ -265,7 +265,7 @@
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
                     {{ plan.priceAmount | number: '1.0-4' }}
                   } @else {
-                    {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
+                    {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
                   }
                 </div>
 
@@ -278,7 +278,7 @@
                     (click)="$event.stopPropagation(); edit(plan)"
                   >
                     <z-icon zType="edit"></z-icon>
-                    {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                    {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                   </button>
                   @if (plan.status === MembershipPlanStatusEnum.Archived) {
                     <button
@@ -289,7 +289,7 @@
                       (click)="$event.stopPropagation(); deletePlan(plan)"
                     >
                       <z-icon zType="delete"></z-icon>
-                      {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+                      {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
                     </button>
                   } @else {
                     <button
@@ -301,7 +301,7 @@
                       (click)="$event.stopPropagation(); archive(plan)"
                     >
                       <z-icon zType="archive"></z-icon>
-                      {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
+                      {{ 'XP.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
                     </button>
                   }
                 </div>
@@ -317,11 +317,11 @@
                 <z-icon zType="credit-card"></z-icon>
               </span>
               <div class="text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.NoPlans' | translate: { Default: 'No membership plans yet.' } }}
+                {{ 'XP.Membership.NoPlans' | translate: { Default: 'No membership plans yet.' } }}
               </div>
               <button z-button zType="default" type="button" (click)="create()">
                 <z-icon zType="add"></z-icon>
-                {{ 'PAC.Membership.NewPlan' | translate: { Default: 'New plan' } }}
+                {{ 'XP.Membership.NewPlan' | translate: { Default: 'New plan' } }}
               </button>
             </div>
           }
@@ -332,242 +332,242 @@
     <div class="min-w-0 xl:col-span-8">
       @if (editing()) {
         <form [formGroup]="planForm" (ngSubmit)="save()">
-        <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-          <z-card-header class="items-center border-b border-divider-regular py-5">
-            <div class="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div class="min-w-0">
-                <z-card-title>
-                  {{
-                    (draft.id ? 'PAC.Membership.EditPlan' : 'PAC.Membership.CreatePlan')
-                      | translate: { Default: draft.id ? 'Edit plan' : 'Create plan' }
-                  }}
-                </z-card-title>
-                <z-card-subtitle class="mt-1">
-                  {{
-                    'PAC.Membership.PlanFormHint'
-                      | translate: { Default: 'Define the allowance, exchange rate, and optional model rules.' }
-                  }}
-                </z-card-subtitle>
-              </div>
+          <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+            <z-card-header class="items-center border-b border-divider-regular py-5">
+              <div class="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div class="min-w-0">
+                  <z-card-title>
+                    {{
+                      (draft.id ? 'XP.Membership.EditPlan' : 'XP.Membership.CreatePlan')
+                        | translate: { Default: draft.id ? 'Edit plan' : 'Create plan' }
+                    }}
+                  </z-card-title>
+                  <z-card-subtitle class="mt-1">
+                    {{
+                      'XP.Membership.PlanFormHint'
+                        | translate: { Default: 'Define the allowance, exchange rate, and optional model rules.' }
+                    }}
+                  </z-card-subtitle>
+                </div>
 
-              <div class="flex shrink-0 items-center gap-2">
-                <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="cancel()">
-                  {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-                </button>
+                <div class="flex shrink-0 items-center gap-2">
+                  <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="cancel()">
+                    {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+                  </button>
                   <button z-button zType="default" type="submit" [disabled]="loading() || planForm.invalid">
-                  <z-icon zType="save"></z-icon>
-                  {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
-                </button>
+                    <z-icon zType="save"></z-icon>
+                    {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+                  </button>
+                </div>
               </div>
-            </div>
-          </z-card-header>
+            </z-card-header>
 
-          <z-card-content class="space-y-5 p-4">
-            <section class="rounded-lg bg-components-panel-bg p-4">
-              <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.PlanIdentity' | translate: { Default: 'Plan identity' } }}
-              </div>
+            <z-card-content class="space-y-5 p-4">
+              <section class="rounded-lg bg-components-panel-bg p-4">
+                <div class="mb-3 text-sm font-semibold text-text-primary">
+                  {{ 'XP.Membership.PlanIdentity' | translate: { Default: 'Plan identity' } }}
+                </div>
 
-              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <z-form-field class="w-full">
-                    <z-form-label>{{ 'PAC.Membership.Code' | translate: { Default: 'Code' } }}</z-form-label>
+                    <z-form-label>{{ 'XP.Membership.Code' | translate: { Default: 'Code' } }}</z-form-label>
                     <input z-input formControlName="code" />
                   </z-form-field>
 
                   <z-form-field class="w-full">
-                    <z-form-label>{{ 'PAC.Membership.Name' | translate: { Default: 'Name' } }}</z-form-label>
+                    <z-form-label>{{ 'XP.Membership.Name' | translate: { Default: 'Name' } }}</z-form-label>
                     <input z-input formControlName="name" />
                   </z-form-field>
 
                   <z-form-field class="w-full">
-                    <z-form-label>{{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
+                    <z-form-label>{{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
                     <z-select class="w-full" formControlName="status" (zSelectionChange)="setDraftStatus($event)">
-                    <z-select-item [zValue]="MembershipPlanStatusEnum.Active">
-                      {{ 'PAC.Membership.Statuses.active' | translate: { Default: 'Active' } }}
-                    </z-select-item>
-                    <z-select-item [zValue]="MembershipPlanStatusEnum.Archived">
-                      {{ 'PAC.Membership.Statuses.archived' | translate: { Default: 'Archived' } }}
-                    </z-select-item>
-                  </z-select>
+                      <z-select-item [zValue]="MembershipPlanStatusEnum.Active">
+                        {{ 'XP.Membership.Statuses.active' | translate: { Default: 'Active' } }}
+                      </z-select-item>
+                      <z-select-item [zValue]="MembershipPlanStatusEnum.Archived">
+                        {{ 'XP.Membership.Statuses.archived' | translate: { Default: 'Archived' } }}
+                      </z-select-item>
+                    </z-select>
                   </z-form-field>
 
-                <div class="flex items-end">
-                  <z-checkbox
-                    class="min-h-9 items-center"
-                    displayDensity="cosy"
+                  <div class="flex items-end">
+                    <z-checkbox
+                      class="min-h-9 items-center"
+                      displayDensity="cosy"
                       formControlName="isDefault"
                       [zDisabled]="planForm.controls.status.value === MembershipPlanStatusEnum.Archived"
                       (checkChange)="setDraftDefault($event)"
-                  >
-                    {{ 'PAC.Membership.SetDefaultPlan' | translate: { Default: 'Set as default plan' } }}
-                  </z-checkbox>
+                    >
+                      {{ 'XP.Membership.SetDefaultPlan' | translate: { Default: 'Set as default plan' } }}
+                    </z-checkbox>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-            <section class="rounded-lg bg-components-panel-bg p-4">
-              <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.PointRules' | translate: { Default: 'Point rules' } }}
-              </div>
+              <section class="rounded-lg bg-components-panel-bg p-4">
+                <div class="mb-3 text-sm font-semibold text-text-primary">
+                  {{ 'XP.Membership.PointRules' | translate: { Default: 'Point rules' } }}
+                </div>
 
-              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <z-form-field class="w-full">
                     <z-form-label>
-                    {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
+                      {{ 'XP.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
                     </z-form-label>
-                  <input
-                    z-input
-                    type="number"
+                    <input
+                      z-input
+                      type="number"
                       min="0"
                       formControlName="includedPoints"
                       [disabled]="planForm.controls.unlimited.value"
-                  />
-                  <z-checkbox
-                    class="mt-1 min-h-8 items-center"
-                    displayDensity="cosy"
+                    />
+                    <z-checkbox
+                      class="mt-1 min-h-8 items-center"
+                      displayDensity="cosy"
                       formControlName="unlimited"
-                    (checkChange)="setDraftUnlimited($event)"
-                  >
-                    {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-                  </z-checkbox>
+                      (checkChange)="setDraftUnlimited($event)"
+                    >
+                      {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                    </z-checkbox>
                   </z-form-field>
 
                   <z-form-field class="w-full">
                     <z-form-label>
-                    {{ 'PAC.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
+                      {{ 'XP.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
                     </z-form-label>
                     <input z-input type="number" min="0" formControlName="priceAmount" />
                   </z-form-field>
-              </div>
-            </section>
+                </div>
+              </section>
 
-            <section class="rounded-lg bg-components-panel-bg p-4">
-              <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.Description' | translate: { Default: 'Description' } }}
-              </div>
+              <section class="rounded-lg bg-components-panel-bg p-4">
+                <div class="mb-3 text-sm font-semibold text-text-primary">
+                  {{ 'XP.Membership.Description' | translate: { Default: 'Description' } }}
+                </div>
                 <z-form-field class="w-full">
                   <textarea z-input class="min-h-24 resize-y" formControlName="description"></textarea>
                 </z-form-field>
-            </section>
+              </section>
 
-            <section class="rounded-lg bg-components-panel-bg p-4">
-              <div class="mb-1 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.ModelUsageRules' | translate: { Default: 'Model access and usage rules' } }}
-              </div>
-              <div class="mb-4 text-xs text-text-tertiary">
-                {{
-                  'PAC.Membership.ModelUsageRulesHint'
-                    | translate
-                      : {
-                          Default:
-                            'Choose available models and optionally customize point multipliers and usage limits.'
-                        }
-                }}
-              </div>
-
-              <div class="space-y-5">
-                <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
-                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div class="text-sm font-medium text-text-primary">
-                        {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
-                      </div>
-                      <div class="mt-1 text-xs text-text-tertiary">
-                        {{
-                          'PAC.Membership.AllowedModelsHint'
-                            | translate: { Default: 'Choose which models members of this plan can use.' }
-                        }}
-                      </div>
-                    </div>
-                    <z-checkbox
-                      class="min-h-8 shrink-0 items-center"
-                      displayDensity="cosy"
-                        formControlName="allowAllModels"
-                      (checkChange)="setAllowAllModels($event)"
-                    >
-                      {{ 'PAC.Membership.AllowAllModels' | translate: { Default: 'Allow all models' } }}
-                    </z-checkbox>
-                  </div>
-
-                    @if (!planForm.controls.allowAllModels.value) {
-                    <div class="mt-4">
-                      <z-select
-                        class="w-full"
-                        [zMultiple]="true"
-                        [zMaxLabelCount]="3"
-                        [zValue]="allowedModelValues()"
-                          [zPlaceholder]="
-                            'PAC.Membership.SelectModels' | translate: { Default: 'Select allowed models' }
-                          "
-                        (zSelectionChange)="setAllowedModelValues($event)"
-                      >
-                        @for (option of modelOptions(); track option.value) {
-                          <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
-                        }
-                      </z-select>
-                      @if (!modelOptions().length) {
-                        <div class="mt-2 text-xs text-text-tertiary">
-                          {{
-                            'PAC.Membership.NoModelsAvailable'
-                              | translate: { Default: 'No configured Copilot models are available in this scope.' }
-                          }}
-                        </div>
-                      }
-                    </div>
-                  }
+              <section class="rounded-lg bg-components-panel-bg p-4">
+                <div class="mb-1 text-sm font-semibold text-text-primary">
+                  {{ 'XP.Membership.ModelUsageRules' | translate: { Default: 'Model access and usage rules' } }}
+                </div>
+                <div class="mb-4 text-xs text-text-tertiary">
+                  {{
+                    'XP.Membership.ModelUsageRulesHint'
+                      | translate
+                        : {
+                            Default:
+                              'Choose available models and optionally customize point multipliers and usage limits.'
+                          }
+                  }}
                 </div>
 
-                <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <div class="text-sm font-medium text-text-primary">
-                        {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                <div class="space-y-5">
+                  <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div class="text-sm font-medium text-text-primary">
+                          {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
+                        </div>
+                        <div class="mt-1 text-xs text-text-tertiary">
+                          {{
+                            'XP.Membership.AllowedModelsHint'
+                              | translate: { Default: 'Choose which models members of this plan can use.' }
+                          }}
+                        </div>
                       </div>
-                      <div class="mt-1 text-xs text-text-tertiary">
-                        {{
-                          'PAC.Membership.ModelMultipliersHint'
-                            | translate
-                              : {
-                                  Default:
-                                    'Adjust how many points selected models consume. The default multiplier is 1.'
-                                }
-                        }}
-                      </div>
+                      <z-checkbox
+                        class="min-h-8 shrink-0 items-center"
+                        displayDensity="cosy"
+                        formControlName="allowAllModels"
+                        (checkChange)="setAllowAllModels($event)"
+                      >
+                        {{ 'XP.Membership.AllowAllModels' | translate: { Default: 'Allow all models' } }}
+                      </z-checkbox>
                     </div>
-                    <button z-button zType="outline" zSize="sm" type="button" (click)="addModelMultiplier()">
-                      <z-icon zType="add"></z-icon>
-                      {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
-                    </button>
+
+                    @if (!planForm.controls.allowAllModels.value) {
+                      <div class="mt-4">
+                        <z-select
+                          class="w-full"
+                          [zMultiple]="true"
+                          [zMaxLabelCount]="3"
+                          [zValue]="allowedModelValues()"
+                          [zPlaceholder]="
+                            'XP.Membership.SelectModels' | translate: { Default: 'Select allowed models' }
+                          "
+                          (zSelectionChange)="setAllowedModelValues($event)"
+                        >
+                          @for (option of modelOptions(); track option.value) {
+                            <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
+                          }
+                        </z-select>
+                        @if (!modelOptions().length) {
+                          <div class="mt-2 text-xs text-text-tertiary">
+                            {{
+                              'XP.Membership.NoModelsAvailable'
+                                | translate: { Default: 'No configured Copilot models are available in this scope.' }
+                            }}
+                          </div>
+                        }
+                      </div>
+                    }
                   </div>
 
-                  @if (modelMultipliers.length) {
-                    <div class="mt-4 space-y-3">
-                      @for (rule of modelMultipliers; track $index) {
-                        <div
-                          class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 md:grid-cols-[minmax(0,1fr)_10rem_auto]"
-                        >
-                          <label class="flex min-w-0 flex-col gap-1">
-                            <span class="text-xs text-text-tertiary">
-                              {{ 'PAC.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
-                            </span>
-                            <z-select
-                              class="w-full"
-                              [zValue]="modelMultiplierTargetValue(rule)"
-                              (zSelectionChange)="setModelMultiplierTarget($index, $event)"
-                            >
-                              <z-select-item [zValue]="globalModelTargetValue">
-                                {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
-                              </z-select-item>
-                              @for (option of modelOptions(); track option.value) {
-                                <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
-                              }
-                            </z-select>
-                          </label>
+                  <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <div class="text-sm font-medium text-text-primary">
+                          {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                        </div>
+                        <div class="mt-1 text-xs text-text-tertiary">
+                          {{
+                            'XP.Membership.ModelMultipliersHint'
+                              | translate
+                                : {
+                                    Default:
+                                      'Adjust how many points selected models consume. The default multiplier is 1.'
+                                  }
+                          }}
+                        </div>
+                      </div>
+                      <button z-button zType="outline" zSize="sm" type="button" (click)="addModelMultiplier()">
+                        <z-icon zType="add"></z-icon>
+                        {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+                      </button>
+                    </div>
 
-                          <label class="flex flex-col gap-1">
-                            <span class="text-xs text-text-tertiary">
-                              {{ 'PAC.Membership.Multiplier' | translate: { Default: 'Multiplier' } }}
-                            </span>
+                    @if (modelMultipliers.length) {
+                      <div class="mt-4 space-y-3">
+                        @for (rule of modelMultipliers; track $index) {
+                          <div
+                            class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 md:grid-cols-[minmax(0,1fr)_10rem_auto]"
+                          >
+                            <label class="flex min-w-0 flex-col gap-1">
+                              <span class="text-xs text-text-tertiary">
+                                {{ 'XP.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
+                              </span>
+                              <z-select
+                                class="w-full"
+                                [zValue]="modelMultiplierTargetValue(rule)"
+                                (zSelectionChange)="setModelMultiplierTarget($index, $event)"
+                              >
+                                <z-select-item [zValue]="globalModelTargetValue">
+                                  {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
+                                </z-select-item>
+                                @for (option of modelOptions(); track option.value) {
+                                  <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
+                                }
+                              </z-select>
+                            </label>
+
+                            <label class="flex flex-col gap-1">
+                              <span class="text-xs text-text-tertiary">
+                                {{ 'XP.Membership.Multiplier' | translate: { Default: 'Multiplier' } }}
+                              </span>
                               <input
                                 z-input
                                 type="number"
@@ -576,100 +576,100 @@
                                 [attr.value]="rule.multiplier"
                                 (input)="setModelMultiplierValue($index, $event)"
                               />
-                          </label>
+                            </label>
 
-                          <button
-                            z-button
-                            zType="ghost"
-                            zSize="icon"
-                            zShape="circle"
-                            type="button"
-                            class="text-text-tertiary hover:text-text-destructive"
-                            [attr.aria-label]="'PAC.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
-                            (click)="removeModelMultiplier($index)"
-                          >
-                            <z-icon zType="delete"></z-icon>
-                          </button>
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <div
-                      class="mt-4 rounded-lg border border-dashed border-divider-regular px-4 py-5 text-center text-sm text-text-tertiary"
-                    >
-                      {{
-                        'PAC.Membership.NoModelMultipliers'
-                          | translate: { Default: 'No custom multipliers. All models use a multiplier of 1.' }
-                      }}
-                    </div>
-                  }
-                </div>
-
-                <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <div class="text-sm font-medium text-text-primary">
-                        {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
+                            <button
+                              z-button
+                              zType="ghost"
+                              zSize="icon"
+                              zShape="circle"
+                              type="button"
+                              class="text-text-tertiary hover:text-text-destructive"
+                              [attr.aria-label]="'XP.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
+                              (click)="removeModelMultiplier($index)"
+                            >
+                              <z-icon zType="delete"></z-icon>
+                            </button>
+                          </div>
+                        }
                       </div>
-                      <div class="mt-1 text-xs text-text-tertiary">
+                    } @else {
+                      <div
+                        class="mt-4 rounded-lg border border-dashed border-divider-regular px-4 py-5 text-center text-sm text-text-tertiary"
+                      >
                         {{
-                          'PAC.Membership.RateLimitsHint'
-                              | translate
-                                : { Default: 'Limit the number of points members can consume within a period.' }
+                          'XP.Membership.NoModelMultipliers'
+                            | translate: { Default: 'No custom multipliers. All models use a multiplier of 1.' }
                         }}
                       </div>
-                    </div>
-                    <button z-button zType="outline" zSize="sm" type="button" (click)="addRateLimit()">
-                      <z-icon zType="add"></z-icon>
-                      {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
-                    </button>
+                    }
                   </div>
 
-                  @if (rateLimits.length) {
-                    <div class="mt-4 space-y-3">
-                      @for (rule of rateLimits; track $index) {
-                        <div
-                          class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 md:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]"
-                        >
-                          <label class="flex min-w-0 flex-col gap-1">
-                            <span class="text-xs text-text-tertiary">
-                              {{ 'PAC.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
-                            </span>
-                            <z-select
-                              class="w-full"
-                              [zValue]="rateLimitTargetValue(rule)"
-                              (zSelectionChange)="setRateLimitTarget($index, $event)"
-                            >
-                              <z-select-item [zValue]="globalModelTargetValue">
-                                {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
-                              </z-select-item>
-                              @for (option of modelOptions(); track option.value) {
-                                <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
-                              }
-                            </z-select>
-                          </label>
+                  <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <div class="text-sm font-medium text-text-primary">
+                          {{ 'XP.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
+                        </div>
+                        <div class="mt-1 text-xs text-text-tertiary">
+                          {{
+                            'XP.Membership.RateLimitsHint'
+                              | translate
+                                : { Default: 'Limit the number of points members can consume within a period.' }
+                          }}
+                        </div>
+                      </div>
+                      <button z-button zType="outline" zSize="sm" type="button" (click)="addRateLimit()">
+                        <z-icon zType="add"></z-icon>
+                        {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+                      </button>
+                    </div>
 
-                          <label class="flex flex-col gap-1">
-                            <span class="text-xs text-text-tertiary">
-                              {{ 'PAC.Membership.Period' | translate: { Default: 'Period' } }}
-                            </span>
-                            <z-select
-                              class="w-full"
-                              [zValue]="rule.period"
-                              (zSelectionChange)="setRateLimitPeriod($index, $event)"
-                            >
-                              @for (period of rateLimitPeriods; track period) {
-                                <z-select-item [zValue]="period">
-                                  {{ 'PAC.Membership.RateLimitPeriods.' + period | translate: { Default: period } }}
+                    @if (rateLimits.length) {
+                      <div class="mt-4 space-y-3">
+                        @for (rule of rateLimits; track $index) {
+                          <div
+                            class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 md:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]"
+                          >
+                            <label class="flex min-w-0 flex-col gap-1">
+                              <span class="text-xs text-text-tertiary">
+                                {{ 'XP.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
+                              </span>
+                              <z-select
+                                class="w-full"
+                                [zValue]="rateLimitTargetValue(rule)"
+                                (zSelectionChange)="setRateLimitTarget($index, $event)"
+                              >
+                                <z-select-item [zValue]="globalModelTargetValue">
+                                  {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
                                 </z-select-item>
-                              }
-                            </z-select>
-                          </label>
+                                @for (option of modelOptions(); track option.value) {
+                                  <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
+                                }
+                              </z-select>
+                            </label>
 
-                          <label class="flex flex-col gap-1">
-                            <span class="text-xs text-text-tertiary">
-                              {{ 'PAC.Membership.PointLimit' | translate: { Default: 'Point limit' } }}
-                            </span>
+                            <label class="flex flex-col gap-1">
+                              <span class="text-xs text-text-tertiary">
+                                {{ 'XP.Membership.Period' | translate: { Default: 'Period' } }}
+                              </span>
+                              <z-select
+                                class="w-full"
+                                [zValue]="rule.period"
+                                (zSelectionChange)="setRateLimitPeriod($index, $event)"
+                              >
+                                @for (period of rateLimitPeriods; track period) {
+                                  <z-select-item [zValue]="period">
+                                    {{ 'XP.Membership.RateLimitPeriods.' + period | translate: { Default: period } }}
+                                  </z-select-item>
+                                }
+                              </z-select>
+                            </label>
+
+                            <label class="flex flex-col gap-1">
+                              <span class="text-xs text-text-tertiary">
+                                {{ 'XP.Membership.PointLimit' | translate: { Default: 'Point limit' } }}
+                              </span>
                               <input
                                 z-input
                                 type="number"
@@ -678,35 +678,35 @@
                                 [attr.value]="rule.pointLimit"
                                 (input)="setRateLimitValue($index, $event)"
                               />
-                          </label>
+                            </label>
 
-                          <button
-                            z-button
-                            zType="ghost"
-                            zSize="icon"
-                            zShape="circle"
-                            type="button"
-                            class="text-text-tertiary hover:text-text-destructive"
-                            [attr.aria-label]="'PAC.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
-                            (click)="removeRateLimit($index)"
-                          >
-                            <z-icon zType="delete"></z-icon>
-                          </button>
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <div
-                      class="mt-4 rounded-lg border border-dashed border-divider-regular px-4 py-5 text-center text-sm text-text-tertiary"
-                    >
-                      {{ 'PAC.Membership.NoRateLimits' | translate: { Default: 'No additional usage limits.' } }}
-                    </div>
-                  }
+                            <button
+                              z-button
+                              zType="ghost"
+                              zSize="icon"
+                              zShape="circle"
+                              type="button"
+                              class="text-text-tertiary hover:text-text-destructive"
+                              [attr.aria-label]="'XP.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
+                              (click)="removeRateLimit($index)"
+                            >
+                              <z-icon zType="delete"></z-icon>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <div
+                        class="mt-4 rounded-lg border border-dashed border-divider-regular px-4 py-5 text-center text-sm text-text-tertiary"
+                      >
+                        {{ 'XP.Membership.NoRateLimits' | translate: { Default: 'No additional usage limits.' } }}
+                      </div>
+                    }
+                  </div>
                 </div>
-              </div>
-            </section>
-          </z-card-content>
-        </z-card>
+              </section>
+            </z-card-content>
+          </z-card>
         </form>
       } @else if (selectedPlan(); as plan) {
         <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
@@ -717,7 +717,7 @@
                   <z-card-title class="truncate text-2xl">{{ plan.name }}</z-card-title>
                   @if (plan.isDefault) {
                     <z-badge zType="secondary" zShape="pill">
-                      {{ 'PAC.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
+                      {{ 'XP.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
                     </z-badge>
                   }
                 </div>
@@ -727,17 +727,17 @@
               <div class="flex shrink-0 items-center gap-2">
                 <button z-button zType="secondary" type="button" (click)="edit(plan)">
                   <z-icon zType="edit"></z-icon>
-                  {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                  {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                 </button>
                 @if (plan.status === MembershipPlanStatusEnum.Archived) {
                   <button z-button zType="destructive" type="button" (click)="deletePlan(plan)">
                     <z-icon zType="delete"></z-icon>
-                    {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+                    {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
                   </button>
                 } @else {
                   <button z-button zType="outline" type="button" [disabled]="plan.isDefault" (click)="archive(plan)">
                     <z-icon zType="archive"></z-icon>
-                    {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
+                    {{ 'XP.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
                   </button>
                 }
               </div>
@@ -748,7 +748,7 @@
             <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}
+                  {{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}
                 </div>
                 <div class="mt-2">
                   <z-badge
@@ -760,18 +760,18 @@
                         : 'border-divider-regular text-text-tertiary'
                     "
                   >
-                    {{ 'PAC.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
+                    {{ 'XP.Membership.Statuses.' + plan.status | translate: { Default: plan.status } }}
                   </z-badge>
                 </div>
               </div>
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
+                  {{ 'XP.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">
                   @if (plan.includedPoints === null) {
-                    {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                    {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                   } @else {
                     {{ plan.includedPoints | number }}
                   }
@@ -780,14 +780,14 @@
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Price' | translate: { Default: 'Price' } }}
+                  {{ 'XP.Membership.Price' | translate: { Default: 'Price' } }}
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
                     {{ plan.priceAmount | number: '1.0-4' }}
                   } @else {
                     <span class="text-base font-medium text-text-tertiary">
-                      {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
+                      {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
                     </span>
                   }
                 </div>
@@ -797,7 +797,7 @@
             @if (plan.description) {
               <section class="rounded-lg border border-divider-subtle px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Description' | translate: { Default: 'Description' } }}
+                  {{ 'XP.Membership.Description' | translate: { Default: 'Description' } }}
                 </div>
                 <div class="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">{{ plan.description }}</div>
               </section>
@@ -808,14 +808,14 @@
                 <div class="flex items-center justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-text-primary">
-                      {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
+                      {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
                     </div>
                     <div class="mt-1 text-sm text-text-tertiary">
                       @if (allowedModelCount(plan)) {
                         {{ allowedModelCount(plan) | number }}
-                        {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+                        {{ 'XP.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                       } @else {
-                        {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
+                        {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
                       }
                     </div>
                   </div>
@@ -827,11 +827,11 @@
                 <div class="flex items-center justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-text-primary">
-                      {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                      {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
                     </div>
                     <div class="mt-1 text-sm text-text-tertiary">
                       {{ modelMultiplierCount(plan) | number }}
-                      {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+                      {{ 'XP.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                     </div>
                   </div>
                   <z-icon zType="tune" class="size-6 text-text-tertiary"></z-icon>
@@ -842,11 +842,11 @@
                 <div class="flex items-center justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-text-primary">
-                      {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
+                      {{ 'XP.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
                     </div>
                     <div class="mt-1 text-sm text-text-tertiary">
                       {{ rateLimitCount(plan) | number }}
-                      {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+                      {{ 'XP.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                     </div>
                   </div>
                   <z-icon zType="activity" class="size-6 text-text-tertiary"></z-icon>
@@ -860,11 +860,11 @@
               >
                 <div>
                   <div class="text-sm font-semibold text-text-primary">
-                    {{ 'PAC.Membership.AssignedUsers' | translate: { Default: 'Assigned users' } }}
+                    {{ 'XP.Membership.AssignedUsers' | translate: { Default: 'Assigned users' } }}
                   </div>
                   <div class="mt-1 text-xs text-text-tertiary">
                     {{
-                      'PAC.Membership.AssignedUsersHint'
+                      'XP.Membership.AssignedUsersHint'
                         | translate: { Default: 'Active and paused users currently assigned to this plan.' }
                     }}
                   </div>
@@ -888,7 +888,7 @@
                       [disabled]="loading() || !migrationTargetPlanId"
                       (click)="reassignMembers(plan)"
                     >
-                      {{ 'PAC.Membership.ReassignUsers' | translate: { Default: 'Reassign users' } }}
+                      {{ 'XP.Membership.ReassignUsers' | translate: { Default: 'Reassign users' } }}
                     </button>
                   </div>
                 }
@@ -907,7 +907,7 @@
                     </div>
                     <div class="flex shrink-0 items-center gap-2 text-xs text-text-tertiary">
                       <z-badge zType="outline" zShape="pill">
-                        {{ 'PAC.Membership.MemberStatuses.' + member.status | translate: { Default: member.status } }}
+                        {{ 'XP.Membership.MemberStatuses.' + member.status | translate: { Default: member.status } }}
                       </z-badge>
                       <span>{{ member.currentPeriodEnd | date: 'mediumDate' }}</span>
                     </div>
@@ -915,15 +915,29 @@
                 } @empty {
                   <div class="px-4 py-8 text-center text-sm text-text-tertiary">
                     @if (planMembersLoading()) {
-                      {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+                      {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
                     } @else {
                       {{
-                        'PAC.Membership.NoAssignedUsers' | translate: { Default: 'No users are assigned to this plan.' }
+                        'XP.Membership.NoAssignedUsers' | translate: { Default: 'No users are assigned to this plan.' }
                       }}
                     }
                   </div>
                 }
               </div>
+              @if (planMemberCount() > planMemberPageSize()) {
+                <z-paginator
+                  class="border-t border-divider-subtle px-2 py-1"
+                  displayDensity="compact"
+                  [disabled]="planMembersLoading()"
+                  [hidePageSizeLabel]="true"
+                  [length]="planMemberCount()"
+                  [pageIndex]="planMemberPageIndex()"
+                  [pageSize]="planMemberPageSize()"
+                  [pageSizeOptions]="[10, 20, 50, 100]"
+                  [showFirstLastButtons]="true"
+                  (page)="onPlanMemberPage($event)"
+                />
+              }
             </section>
           </z-card-content>
         </z-card>
@@ -934,21 +948,290 @@
               <z-icon zType="credit-card"></z-icon>
             </span>
             <div class="text-lg font-semibold text-text-primary">
-              {{ 'PAC.Membership.NoPlanSelected' | translate: { Default: 'No plan selected' } }}
+              {{ 'XP.Membership.NoPlanSelected' | translate: { Default: 'No plan selected' } }}
             </div>
             <div class="max-w-md text-sm text-text-tertiary">
               {{
-                'PAC.Membership.SelectPlanHint'
+                'XP.Membership.SelectPlanHint'
                   | translate: { Default: 'Create a plan or select one from the catalog to manage it.' }
               }}
             </div>
             <button z-button zType="default" type="button" (click)="create()">
               <z-icon zType="add"></z-icon>
-              {{ 'PAC.Membership.NewPlan' | translate: { Default: 'New plan' } }}
+              {{ 'XP.Membership.NewPlan' | translate: { Default: 'New plan' } }}
             </button>
           </z-card-content>
         </z-card>
       }
     </div>
   </div>
+
+  <z-card class="shrink-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+    <z-card-header class="border-b border-divider-regular py-4">
+      <div>
+        <z-card-title>{{ 'XP.Membership.UserManagement' | translate: { Default: 'User memberships' } }}</z-card-title>
+        <div class="mt-1 text-sm text-text-tertiary">
+          {{
+            'XP.Membership.UserManagementHint'
+              | translate
+                : {
+                    Default:
+                      'View every user in the current scope, including users without a membership, and apply common actions in batches.'
+                  }
+          }}
+        </div>
+      </div>
+    </z-card-header>
+
+    <z-card-content class="flex flex-col gap-4 p-4">
+      <form
+        [formGroup]="memberFilterForm"
+        class="grid gap-3 rounded-lg bg-components-panel-bg p-4 md:grid-cols-2 xl:grid-cols-[minmax(14rem,2fr)_minmax(9rem,1fr)_minmax(10rem,1fr)_minmax(12rem,1fr)_auto]"
+        (ngSubmit)="applyMemberFilters()"
+      >
+        <z-form-field class="w-full">
+          <z-form-label>{{ 'XP.Membership.SearchUsers' | translate: { Default: 'Search users' } }}</z-form-label>
+          <input
+            z-input
+            formControlName="search"
+            [placeholder]="'XP.Membership.SearchUsersPlaceholder' | translate: { Default: 'Name, username, or email' }"
+          />
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-form-label>{{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
+          <z-select class="w-full" formControlName="status" (zSelectionChange)="setMemberStatusFilter($event)">
+            <z-select-item zValue="">
+              {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
+            </z-select-item>
+            @for (
+              status of [
+                MembershipAdminUserStatusEnum.Active,
+                MembershipAdminUserStatusEnum.Paused,
+                MembershipAdminUserStatusEnum.Expired,
+                MembershipAdminUserStatusEnum.Unassigned
+              ];
+              track status
+            ) {
+              <z-select-item [zValue]="status">
+                {{ 'XP.Membership.MemberStatuses.' + status | translate: { Default: status } }}
+              </z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-form-label>{{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}</z-form-label>
+          <z-select class="w-full" formControlName="planId">
+            <z-select-item zValue="">
+              {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
+            </z-select-item>
+            @for (plan of plans(); track plan.id) {
+              <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-form-label>
+            {{ 'XP.Membership.ExpiringBefore' | translate: { Default: 'Expiring before' } }}
+          </z-form-label>
+          <z-date-picker class="w-full" zFormat="yyyy-MM-dd" formControlName="expiringBefore" />
+        </z-form-field>
+        <div class="flex items-end justify-end gap-2 px-3 pb-3 xl:ml-2">
+          <button z-button zType="default" type="submit" [disabled]="adminMembersLoading()">
+            {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            [disabled]="adminMembersLoading()"
+            (click)="resetMemberFilters()"
+          >
+            {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+          </button>
+        </div>
+      </form>
+
+      <form
+        [formGroup]="bulkActionForm"
+        class="flex flex-col gap-3 rounded-lg border border-divider-regular p-3 xl:flex-row xl:items-end"
+      >
+        <div class="flex min-w-36 items-center gap-2 self-start pb-2 xl:self-end">
+          <z-checkbox
+            displayDensity="cosy"
+            [ngModel]="allVisibleUsersSelected()"
+            [ngModelOptions]="{ standalone: true }"
+            [indeterminate]="selectedUserCount() > 0 && !allVisibleUsersSelected()"
+            (checkChange)="toggleVisibleUsers($event)"
+          >
+            {{
+              'XP.Membership.SelectedUsers'
+                | translate: { count: selectedUserCount(), Default: selectedUserCount() + ' selected' }
+            }}
+          </z-checkbox>
+        </div>
+        <z-form-field class="w-full xl:w-44">
+          <z-form-label>{{ 'XP.Membership.BulkAction' | translate: { Default: 'Batch action' } }}</z-form-label>
+          <z-select class="w-full" formControlName="action" (zSelectionChange)="setBulkAction($event)">
+            @for (
+              action of [
+                MembershipBulkActionEnum.Assign,
+                MembershipBulkActionEnum.Renew,
+                MembershipBulkActionEnum.Pause,
+                MembershipBulkActionEnum.Resume,
+                MembershipBulkActionEnum.Revoke
+              ];
+              track action
+            ) {
+              <z-select-item [zValue]="action">
+                {{ 'XP.Membership.BulkActions.' + action | translate: { Default: action } }}
+              </z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        @if (bulkActionRequiresPlan()) {
+          <z-form-field class="w-full xl:w-56">
+            <z-form-label>{{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}</z-form-label>
+            <z-select class="w-full" formControlName="planId">
+              @for (plan of plans(); track plan.id) {
+                @if (plan.status === MembershipPlanStatusEnum.Active) {
+                  <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+                }
+              }
+            </z-select>
+          </z-form-field>
+          <z-form-field class="w-full xl:w-44">
+            <z-form-label>
+              {{ 'XP.Membership.RenewalMode' | translate: { Default: 'Renewal mode' } }}
+            </z-form-label>
+            <z-select class="w-full" formControlName="renewalMode">
+              <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
+                {{ 'XP.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
+              </z-select-item>
+              <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
+                {{ 'XP.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
+              </z-select-item>
+            </z-select>
+          </z-form-field>
+          <z-form-field class="min-w-0 flex-1">
+            <z-form-label>{{ 'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' } }}</z-form-label>
+            <input z-input formControlName="note" />
+          </z-form-field>
+        }
+        <button
+          z-button
+          zType="secondary"
+          type="button"
+          class="shrink-0 xl:mb-3"
+          [disabled]="
+            adminMembersLoading() ||
+            !selectedUserCount() ||
+            (bulkActionRequiresPlan() && !bulkActionForm.controls.planId.value)
+          "
+          (click)="applyBulkAction()"
+        >
+          {{ 'XP.Membership.ApplyBulkAction' | translate: { Default: 'Apply action' } }}
+        </button>
+      </form>
+
+      <div class="overflow-hidden rounded-lg border border-divider-regular">
+        <div
+          class="hidden grid-cols-[2rem_minmax(12rem,1.5fr)_minmax(8rem,1fr)_8rem_9rem_8rem_3rem] gap-3 border-b border-divider-regular bg-components-panel-bg px-4 py-3 text-xs font-medium text-text-tertiary lg:grid"
+        >
+          <span></span>
+          <span>{{ 'XP.Membership.User' | translate: { Default: 'User' } }}</span>
+          <span>{{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}</span>
+          <span>{{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}</span>
+          <span>{{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}</span>
+          <span>{{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}</span>
+          <span></span>
+        </div>
+
+        <div class="divide-y divide-divider-subtle">
+          @for (member of adminMembers(); track member.user.id) {
+            <div
+              class="grid gap-3 px-4 py-3 lg:grid-cols-[2rem_minmax(12rem,1.5fr)_minmax(8rem,1fr)_8rem_9rem_8rem_3rem] lg:items-center"
+            >
+              <z-checkbox
+                displayDensity="cosy"
+                [ngModel]="selectedUserIds().has(member.user.id)"
+                [ngModelOptions]="{ standalone: true }"
+                (checkChange)="toggleUserSelection(member.user.id, $event)"
+              ></z-checkbox>
+              <div class="min-w-0">
+                <div class="truncate text-sm font-medium text-text-primary" [title]="adminMemberLabel(member)">
+                  {{ adminMemberLabel(member) }}
+                </div>
+                <div class="truncate text-xs text-text-tertiary">{{ member.user.email || member.user.username }}</div>
+              </div>
+              <div class="min-w-0 text-sm text-text-secondary">
+                <div class="truncate">{{ member.membership?.plan?.name || '-' }}</div>
+                @if (member.scheduledPeriodCount) {
+                  <div class="mt-1 text-xs text-text-tertiary">
+                    {{
+                      'XP.Membership.UpcomingPeriodCount'
+                        | translate
+                          : {
+                              count: member.scheduledPeriodCount,
+                              Default: member.scheduledPeriodCount + ' upcoming'
+                            }
+                    }}
+                  </div>
+                }
+              </div>
+              <div>
+                <z-badge zType="outline" zShape="pill">
+                  {{
+                    'XP.Membership.MemberStatuses.' + adminMemberStatus(member)
+                      | translate: { Default: adminMemberStatus(member) }
+                  }}
+                </z-badge>
+              </div>
+              <div class="text-sm text-text-secondary">
+                @if (!member.membership) {
+                  -
+                } @else if (member.membership.pointsGranted === null) {
+                  {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                } @else {
+                  {{ adminMemberRemainingPoints(member) | number: '1.0-10' }}
+                }
+              </div>
+              <div class="text-sm text-text-secondary">
+                {{
+                  member.membership?.currentPeriodEnd ? (member.membership?.currentPeriodEnd | date: 'mediumDate') : '-'
+                }}
+              </div>
+              <a
+                z-button
+                zType="ghost"
+                zSize="sm"
+                [routerLink]="['/settings/users', member.user.id]"
+                [queryParams]="{ tab: 'membership' }"
+                [attr.aria-label]="'XP.Membership.ManageUserMembership' | translate: { Default: 'Manage membership' }"
+                [title]="'XP.Membership.ManageUserMembership' | translate: { Default: 'Manage membership' }"
+              >
+                <z-icon zType="chevron-right"></z-icon>
+              </a>
+            </div>
+          } @empty {
+            <div class="px-4 py-10 text-center text-sm text-text-tertiary">
+              @if (adminMembersLoading()) {
+                {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+              } @else {
+                {{ 'XP.Membership.NoUsersFound' | translate: { Default: 'No users match these filters.' } }}
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <z-paginator
+        [length]="adminMemberCount()"
+        [pageIndex]="adminMemberPageIndex()"
+        [pageSize]="adminMemberPageSize()"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [showFirstLastButtons]="true"
+        (page)="onAdminMemberPage($event)"
+      />
+    </z-card-content>
+  </z-card>
 </div>

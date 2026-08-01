@@ -15,7 +15,7 @@
 
   <div class="h-full flex justify-center items-center">
     <span>{{
-      selectedWorkspace()?.name || ('PAC.KEY_WORDS.SelectWorkspace' | translate: { Default: 'Select Workspace' })
+      selectedWorkspace()?.name || ('XP.KEY_WORDS.SelectWorkspace' | translate: { Default: 'Select Workspace' })
     }}</span>
     <i class="ri-arrow-down-s-line mr-1"></i>
   </div>
@@ -23,7 +23,7 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large" @overlayAnimation1>
-    <div class="px-2 py-1">{{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</div>
+    <div class="px-2 py-1">{{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</div>
     @for (item of workspaces(); track item.id) {
       <div
         cdkMenuItem
@@ -35,7 +35,7 @@
           @if (me().id === item.ownerId) {
             <i
               class="ri-user-2-fill mr-1 text-text-secondary"
-              [zTooltip]="'PAC.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
+              [zTooltip]="'XP.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
               zPosition="left"
             ></i>
           }

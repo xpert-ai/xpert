@@ -1,6 +1,6 @@
 {
 	"name": "@xpert-ai/server-core",
-	"version": "3.9.34",
+	"version": "3.9.36",
 	"private": true,
 	"type": "commonjs",
 	"license": "AGPL-3.0",
@@ -26,6 +26,8 @@
 		"@sentry/node": "^6.13.2",
 		"@xpert-ai/contracts": "workspace:*",
 		"@xpert-ai/plugin-sdk": "workspace:*",
+		"@xpert-ai/server-common": "workspace:*",
+		"@xpert-ai/server-config": "workspace:*",
 		"ali-oss": "6.17.1",
 		"apollo-server-core": "^3.3.0",
 		"aws-sdk": "^2.995.0",

@@ -71,9 +71,9 @@ import {
 } from 'apps/cloud/src/app/@shared/xpert'
 import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
-import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@xpert-ai/core'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@xpert-ai/headless-ui'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { ATTACHMENT_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
@@ -96,8 +96,8 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     ZardSliderComponent,
     DateRelativePipe,
 
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     EmojiAvatarComponent,
     StateVariableSelectComponent,
     XpertStudioPanelToolsetSectionComponent,

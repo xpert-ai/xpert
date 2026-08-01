@@ -1,24 +1,11 @@
 import { CommonModule } from '@angular/common'
-import {
-  HttpClient,
-  provideHttpClient,
-  withInterceptorsFromDi
-} from '@angular/common/http'
-import {
-  ModuleWithProviders,
-  NgModule,
-  Optional,
-  SkipSelf
-} from '@angular/core'
+import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { ModuleWithProviders, NgModule, Optional, SkipSelf } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import {
-  MissingTranslationHandler,
-  TranslateLoader,
-  TranslateModule
-} from '@ngx-translate/core'
+import { MissingTranslationHandler, TranslateLoader, TranslateModule } from '@ngx-translate/core'
 import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
-import { NgmMissingTranslationHandler } from '@xpert-ai/ocap-angular/core'
+import { XpMissingTranslationHandler } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -30,7 +17,7 @@ import { NgmMissingTranslationHandler } from '@xpert-ai/ocap-angular/core'
     TranslateModule.forRoot({
       missingTranslationHandler: {
         provide: MissingTranslationHandler,
-        useClass: NgmMissingTranslationHandler
+        useClass: XpMissingTranslationHandler
       },
       loader: {
         provide: TranslateLoader,
@@ -40,8 +27,7 @@ import { NgmMissingTranslationHandler } from '@xpert-ai/ocap-angular/core'
     })
   ],
   // providers: [provideHttpClient(withInterceptorsFromDi())],
-  declarations: [
-  ]
+  declarations: []
 })
 export class CoreModule {
   constructor(@Optional() @SkipSelf() parentModule: CoreModule) {

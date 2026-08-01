@@ -1,4 +1,3 @@
-
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps, FormlyModule } from '@ngx-formly/core'
@@ -22,10 +21,10 @@ export interface FormlyRadioFieldConfig extends FormlyFieldConfig<RadioProps> {
 
 @Component({
   standalone: true,
-  selector: 'ngm-formly-radio',
+  selector: 'xp-formly-radio',
   imports: [ReactiveFormsModule, FormlyModule, ...ZardFormImports],
   template: `
-    <div class="ngm-formly-radio flex max-w-full flex-col gap-2">
+    <div class="xp-formly-radio flex max-w-full flex-col gap-2">
       @if (props.label && props.hideLabel !== true) {
         <label [attr.for]="id" class="text-sm font-medium text-foreground">
           {{ props.label }}
@@ -34,14 +33,14 @@ export interface FormlyRadioFieldConfig extends FormlyFieldConfig<RadioProps> {
           }
         </label>
       }
-    
+
       <z-radio-group
-        class="ngm-formly-radio__group flex max-w-full flex-wrap gap-x-4 gap-y-2"
+        class="xp-formly-radio__group flex max-w-full flex-wrap gap-x-4 gap-y-2"
         [id]="id"
         [formControl]="formControl"
         [formlyAttributes]="field"
         [displayDensity]="props.displayDensity ?? 'default'"
-        >
+      >
         @for (option of radioOptions; track trackByValue($index, option)) {
           <z-radio [value]="option.value">
             {{ option.label }}
@@ -49,13 +48,13 @@ export interface FormlyRadioFieldConfig extends FormlyFieldConfig<RadioProps> {
         }
       </z-radio-group>
     </div>
-    `,
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'ngm-formly-radio-field'
+    class: 'xp-formly-radio-field'
   }
 })
-export class NgmFormlyRadioComponent extends FieldType<FieldTypeConfig<RadioProps>> {
+export class XpFormlyRadioComponent extends FieldType<FieldTypeConfig<RadioProps>> {
   get radioOptions(): RadioOption[] {
     return this.props.options ?? []
   }

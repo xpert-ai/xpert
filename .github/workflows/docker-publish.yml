@@ -28,6 +28,9 @@ jobs:
           - dockerfile: .deploy/webapp/Dockerfile
             image_name: xpert-webapp
             node_options: --max-old-space-size=4096
+          - dockerfile: .deploy/nsjail-runner/Dockerfile
+            image_name: xpert-nsjail-runner
+            node_options: ''
     env:
       DOCKER_TARGET: ${{ github.ref == 'refs/heads/develop' && 'candidate' || 'production' }}
     steps:
@@ -79,7 +82,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
-          target: ${{ env.DOCKER_TARGET }}
+          target: ${{ matrix.service.image_name != 'xpert-nsjail-runner' && env.DOCKER_TARGET || '' }}
           build-args: |
             NODE_OPTIONS=${{ matrix.service.node_options }}
           platforms: linux/amd64

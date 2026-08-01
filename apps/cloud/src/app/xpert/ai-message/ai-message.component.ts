@@ -16,10 +16,10 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { nonNullable, stringifyMessageContent } from '@xpert-ai/copilot'
-import { ListHeightStaggerAnimation } from '@xpert-ai/core'
-import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { omit } from '@xpert-ai/ocap-core'
+import { nonNullable, stringifyMessageContent } from '@xpert-ai/contracts'
+import { ListHeightStaggerAnimation } from '@xpert-ai/headless-ui'
+import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { omit } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
@@ -75,7 +75,7 @@ import {
     CdkMenuModule,
     MarkdownModule,
     ...ZardTooltipImports,
-    NgmCommonModule,
+    XpCommonModule,
     EmojiAvatarComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
@@ -83,7 +83,7 @@ import {
     ChatThoughtComponent,
     ChatMessageAvatarComponent
   ],
-  selector: 'pac-ai-message',
+  selector: 'xp-ai-message',
   templateUrl: './ai-message.component.html',
   styleUrl: 'ai-message.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -328,7 +328,7 @@ export class ChatAiMessageComponent {
   agentRunStatusLabel(node: AgentRunRenderNode) {
     const status = normalizeRunStatus(node.info.status)
     if (status === XpertAgentExecutionStatusEnum.PENDING && getAgentRunCounts(node).text > 0) {
-      return this.#translate.instant('PAC.Xpert.AgentRunStatusReplied', { Default: 'Replied' })
+      return this.#translate.instant('XP.Xpert.AgentRunStatusReplied', { Default: 'Replied' })
     }
     return status
   }
@@ -429,7 +429,7 @@ export class ChatAiMessageComponent {
             ...(state ?? {}),
             [message.id]: feedback
           }))
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         },
         error: (error) => {
           this.#toastr.error(getErrorMessage(error))
@@ -444,7 +444,7 @@ export class ChatAiMessageComponent {
           ...(state ?? {}),
           [message.id]: null
         }))
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))

@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectWorkspace } from '@cloud/app/@core/state'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -30,8 +30,8 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     FormsModule,
     CdkMenuModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     IntegrationSelectComponent,
     ZardSwitchComponent
   ],

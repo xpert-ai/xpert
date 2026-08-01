@@ -1,37 +1,41 @@
-<div class="flex items-center px-12 py-4 text-lg font-semibold text-text-tertiary uppercase
-  sticky top-0 pb-3 pt-5 bg-background-body z-30">
-  <div class="mr-3">{{ 'PAC.Xpert.BuiltinToolsets' | translate: { Default: 'Builtin Toolsets' } }}</div>
+<div
+  class="flex items-center px-12 py-4 text-lg font-semibold text-text-tertiary uppercase sticky top-0 pb-3 pt-5 bg-background-body z-30"
+>
+  <div class="mr-3">{{ 'XP.Xpert.BuiltinToolsets' | translate: { Default: 'Builtin Toolsets' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
-<div class="xpert-card-container"
-  ngmDynamicGrid colWidth="280"
-  box="content-box">
+<div class="xpert-card-container" xpDynamicGrid colWidth="280" box="content-box">
   @for (toolset of builtinToolsets(); track toolset.id) {
-    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
+    <xpert-toolset-card
+      class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
       [toolset]="toolset"
       (click)="navigateTo(toolset)"
     />
   } @empty {
     <div class="px-4 text-text-secondary">
       <i class="ri-information-2-line text-lg mr-1"></i>
-      <span>{{'PAC.Xpert.CreateBuiltinToolsetTip' | translate: { Default: 'Select a tool provider below to configure.' } }}</span>
+      <span>{{
+        'XP.Xpert.CreateBuiltinToolsetTip' | translate: { Default: 'Select a tool provider below to configure.' }
+      }}</span>
     </div>
   }
 </div>
 
-<div class="flex items-center px-12 text-lg font-semibold text-text-tertiary uppercase
-  sticky top-0 pb-3 pt-5 bg-background-body z-30">
-  <div class="mr-3">{{ 'PAC.Xpert.ToolProviders' | translate: { Default: 'Tool Providers' } }}</div>
+<div
+  class="flex items-center px-12 text-lg font-semibold text-text-tertiary uppercase sticky top-0 pb-3 pt-5 bg-background-body z-30"
+>
+  <div class="mr-3">{{ 'XP.Xpert.ToolProviders' | translate: { Default: 'Tool Providers' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
-<div class="xpert-card-container"
-  ngmDynamicGrid colWidth="280"
-  box="content-box">
+<div class="xpert-card-container" xpDynamicGrid colWidth="280" box="content-box">
   @for (provider of builtinToolProviders(); track provider.name) {
-    <xpert-tool-provider-card class="bg-[var(--sys-surface-subtle)]" [provider]="provider"
+    <xpert-tool-provider-card
+      class="bg-[var(--sys-surface-subtle)]"
+      [provider]="provider"
       [builtinTags]="builtinTags()"
-      (click)="configureToolBuiltin(provider)" />
+      (click)="configureToolBuiltin(provider)"
+    />
   }
 </div>

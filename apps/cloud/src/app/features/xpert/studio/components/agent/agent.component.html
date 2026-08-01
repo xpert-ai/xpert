@@ -12,10 +12,10 @@
   >
     <div
       class="inner-dot cursor-crosshair"
-      [zTooltip]="'PAC.Xpert.ConnectAgents' | translate: { Default: 'Connect Agents' }"
+      [zTooltip]="'XP.Xpert.ConnectAgents' | translate: { Default: 'Connect Agents' }"
       zPosition="top"
     >
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
   <div
@@ -27,10 +27,10 @@
   >
     <div
       class="inner-dot cursor-crosshair"
-      [zTooltip]="'PAC.Xpert.ConnectXperts' | translate: { Default: 'Connect Xperts' }"
+      [zTooltip]="'XP.Xpert.ConnectXperts' | translate: { Default: 'Connect Xperts' }"
       zPosition="top"
     >
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
   <div class="relative">
@@ -43,10 +43,10 @@
     >
       <div
         class="inner-dot cursor-crosshair"
-        [zTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: { Default: 'Connect Knowledgebases' }"
+        [zTooltip]="'XP.Xpert.ConnectKnowledgebases' | translate: { Default: 'Connect Knowledgebases' }"
         zPosition="top"
       >
-        <ngm-plus-svg class="w-2 h-2 text-white" />
+        <xp-plus-svg class="w-2 h-2 text-white" />
       </div>
     </div>
     <div
@@ -59,10 +59,10 @@
     >
       <div
         class="inner-dot cursor-crosshair"
-        [zTooltip]="'PAC.Xpert.ConnectToolsets' | translate: { Default: 'Connect Toolsets' }"
+        [zTooltip]="'XP.Xpert.ConnectToolsets' | translate: { Default: 'Connect Toolsets' }"
         zPosition="top"
       >
-        <ngm-plus-svg class="w-2 h-2 text-white" />
+        <xp-plus-svg class="w-2 h-2 text-white" />
       </div>
     </div>
   </div>
@@ -76,10 +76,10 @@
   >
     <div
       class="inner-dot cursor-crosshair"
-      [zTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: { Default: 'Connect Knowledgebases' }"
+      [zTooltip]="'XP.Xpert.ConnectKnowledgebases' | translate: { Default: 'Connect Knowledgebases' }"
       zPosition="top"
     >
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
 </div>
@@ -90,7 +90,7 @@
     @if (isRoot()) {
       <div
         class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-components-input-bg-normal shadow-md"
-        [zTooltip]="'PAC.Xpert.MainAgentTip' | translate: { Default: 'Main agent, responsible for receiving messages' }"
+        [zTooltip]="'XP.Xpert.MainAgentTip' | translate: { Default: 'Main agent, responsible for receiving messages' }"
         zPosition="top"
       >
         <i class="ri-vip-crown-2-fill text-sm text-amber-500"></i>
@@ -99,7 +99,7 @@
     @if (isStart()) {
       <div
         class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-components-input-bg-normal shadow-md"
-        [zTooltip]="'PAC.Xpert.StartNodeTip' | translate: { Default: 'Start node, agent pre-processing logic entry' }"
+        [zTooltip]="'XP.Xpert.StartNodeTip' | translate: { Default: 'Start node, agent pre-processing logic entry' }"
         zPosition="top"
       >
         <i class="ri-run-line text-primary-500"></i>
@@ -109,7 +109,7 @@
       <i
         class="ri-shield-keyhole-line mr-1 text-lg text-text-warning"
         [zTooltip]="
-          'PAC.Xpert.SensitiveAgentTip'
+          'XP.Xpert.SensitiveAgentTip'
             | translate: { Default: 'Sensitive agents require user confirmation before execution' }
         "
         zPosition="top"
@@ -120,7 +120,7 @@
       <i
         class="ri-stop-circle-line mr-1 text-lg text-text-secondary"
         [zTooltip]="
-          'PAC.Xpert.EndAgentTip'
+          'XP.Xpert.EndAgentTip'
             | translate: { Default: 'The terminal agent, the run of chat ends after agent completed' }
         "
         zPosition="top"
@@ -131,7 +131,7 @@
       <i
         class="ri-volume-mute-fill mr-1 text-lg text-sky-500"
         [zTooltip]="
-          'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
+          'XP.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
         "
         zPosition="top"
       >
@@ -171,10 +171,10 @@
     >
       <div
         class="inner-dot cursor-crosshair"
-        [zTooltip]="'PAC.Xpert.ConnectWorkflow' | translate: { Default: 'Connect Workflow' }"
+        [zTooltip]="'XP.Xpert.ConnectWorkflow' | translate: { Default: 'Connect Workflow' }"
         zPosition="top"
       >
-        <ngm-plus-svg class="text-white" />
+        <xp-plus-svg class="text-white" />
       </div>
     </div>
   </div>
@@ -186,7 +186,7 @@
       >
         <div class="flex items-center">
           {{
-            'PAC.Xpert.RetryTimes'
+            'XP.Xpert.RetryTimes'
               | translate
                 : {
                     Default: 'Retry ' + (retry().stopAfterAttempt - 1) + ' times on failure',
@@ -200,7 +200,7 @@
 
   @if (fallback()?.enabled) {
     <div class="w-full px-3 flex flex-col items-start">
-      <div class="px-1 text-sm">{{ 'PAC.Xpert.FallbackModel' | translate: { Default: 'Fallback Model' } }}:</div>
+      <div class="px-1 text-sm">{{ 'XP.Xpert.FallbackModel' | translate: { Default: 'Fallback Model' } }}:</div>
       <copilot-model-select
         readonly
         hiddenLabel

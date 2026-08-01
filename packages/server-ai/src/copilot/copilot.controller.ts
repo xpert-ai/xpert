@@ -50,7 +50,12 @@ import {
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
-import { CopilotOneByRoleQuery, FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
+import {
+	CopilotModelCatalogMode,
+	CopilotOneByRoleQuery,
+	FindCopilotModelsQuery,
+	ModelParameterRulesQuery
+} from './queries'
 import { GeneratePromptCommand } from './commands/'
 import { MembershipService } from '../membership'
 
@@ -203,14 +208,23 @@ export class CopilotController extends CrudController<Copilot> {
 
 	@Get('membership-models')
 	@UseGuards(PermissionGuard)
-    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
 	async getMembershipModels(@Query('type') type: AiModelTypeEnum = AiModelTypeEnum.LLM) {
 		if (!(await this.membershipService.isMembershipPlanEnabled())) {
 			return []
 		}
 
 		return this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
-			new FindCopilotModelsQuery(type, true)
+			new FindCopilotModelsQuery(type, CopilotModelCatalogMode.MembershipManagement)
+		)
+	}
+
+	@Get('management-models')
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
+	async getManagementModels(@Query('type') type: AiModelTypeEnum) {
+		return this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
+			new FindCopilotModelsQuery(type, CopilotModelCatalogMode.Management)
 		)
 	}
 

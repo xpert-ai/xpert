@@ -5,15 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, ViewConta
 import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { injectProjectService, IXpertProject } from '@cloud/app/@core'
-import { provideOcap } from '@cloud/app/@core/providers/ocap'
-import {
-  ChatConversationsComponent,
-  ChatService,
-  XpertChatAppComponent,
-  XpertHomeService,
-  XpertOcapService
-} from '@cloud/app/xpert'
-import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
+import { ChatConversationsComponent, ChatService, XpertChatAppComponent, XpertHomeService } from '@cloud/app/xpert'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { ChatProjectService } from '../chat-project.service'
@@ -27,25 +19,12 @@ import { readNavigationInput } from '@cloud/app/@shared/chat/references'
  */
 @Component({
   standalone: true,
-  imports: [
-    RouterModule,
-    FormsModule,
-    CdkMenuModule,
-    ...ZardTooltipImports,
-    TranslateModule,
-    XpertChatAppComponent
-],
-  selector: 'pac-chat-project-conv',
+  imports: [RouterModule, FormsModule, CdkMenuModule, ...ZardTooltipImports, TranslateModule, XpertChatAppComponent],
+  selector: 'xp-chat-project-conv',
   templateUrl: './conversation.component.html',
   styleUrl: 'conversation.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    ChatProjectService,
-    { provide: ChatService, useExisting: ChatProjectService },
-    provideOcapCore(),
-    provideOcap(),
-    XpertOcapService
-  ]
+  providers: [ChatProjectService, { provide: ChatService, useExisting: ChatProjectService }]
 })
 export class ChatProjectConversationComponent {
   readonly #projectComponent = inject(ChatProjectComponent)
@@ -78,11 +57,9 @@ export class ChatProjectConversationComponent {
       })
     }
 
-    effect(
-      () => {
-        this.chatSercice.project.set(this.project() as IXpertProject)
-      }
-    )
+    effect(() => {
+      this.chatSercice.project.set(this.project() as IXpertProject)
+    })
   }
 
   routeProject() {

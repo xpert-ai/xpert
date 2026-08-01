@@ -40,6 +40,8 @@ import { XpertFrequentQuestionsService } from './xpert-frequent-questions.servic
 import { XpertPrincipalService } from './xpert-principal.service'
 import { ScheduleTriggerStrategies } from './plugins'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
+import { ModelAccessModule } from '../model-access'
+import { XpertModelAccessValidator } from './model-access-validator'
 
 @Module({
     imports: [
@@ -61,6 +63,7 @@ import { XpertTemplateWorkspaceInitializer } from './template-workspace-initiali
         XpertTemplateModule,
         SkillPackageModule,
         PromptWorkflowModule,
+        ModelAccessModule,
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
@@ -83,6 +86,7 @@ import { XpertTemplateWorkspaceInitializer } from './template-workspace-initiali
         RuntimeCapabilitiesService,
         XpertFrequentQuestionsService,
         XpertTemplateWorkspaceInitializer,
+        XpertModelAccessValidator,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers

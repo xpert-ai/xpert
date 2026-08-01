@@ -1,24 +1,26 @@
 <div class="relative overflow-x-auto">
   <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
-    <thead class="text-base text-text-secondary uppercase bg-background-default-subtle dark:bg-gray-700 dark:text-text-quaternary">
+    <thead
+      class="text-base text-text-secondary uppercase bg-background-default-subtle dark:bg-gray-700 dark:text-text-quaternary"
+    >
       <tr>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' } }}
+          {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
+          {{ 'XP.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
+          {{ 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}
+          {{ 'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'TimeZone' } }}
+          {{ 'XP.KEY_WORDS.TimeZone' | translate: { Default: 'TimeZone' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+          {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
         </th>
       </tr>
     </thead>
@@ -29,12 +31,12 @@
             @if (row.isDefault) {
               <i
                 class="ri-shield-star-line text-lg text-text-tertiary"
-                [zTooltip]="'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' }"
+                [zTooltip]="'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' }"
               ></i>
             }
           </th>
           <td class="px-4 py-2">
-            <pac-org-avatar [organization]="row" class="block w-8 h-8 rounded-full overflow-hidden" />
+            <xp-org-avatar [organization]="row" class="block w-8 h-8 rounded-full overflow-hidden" />
           </td>
           <td class="px-4 py-2">
             {{ row.name }}

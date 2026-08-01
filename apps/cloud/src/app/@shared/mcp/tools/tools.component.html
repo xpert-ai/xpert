@@ -2,10 +2,10 @@
   <thead class="text-text-tertiary uppercase">
     <tr class="border-divider-deep">
       <th class="p-0"></th>
-      <th class="">{{ 'PAC.KEY_WORDS.Enabled' | translate: { Default: 'Enabled' } }}</th>
-      <th class="">{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</th>
-      <th class="w-[236px]">{{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</th>
-      <th class="w-[54px]">{{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}</th>
+      <th class="">{{ 'XP.KEY_WORDS.Enabled' | translate: { Default: 'Enabled' } }}</th>
+      <th class="">{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</th>
+      <th class="w-[236px]">{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</th>
+      <th class="w-[54px]">{{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}</th>
     </tr>
   </thead>
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
@@ -31,7 +31,7 @@
         </td>
         <td class="p-2 pl-3 font-medium">
           <input
-            class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
+            class="w-full xp-input-inline xp-input-sm hover:bg-hover-bg"
             [ngModel]="tool.description"
             (ngModelChange)="updateTool(i, 'description', $event)"
           />
@@ -43,12 +43,12 @@
               class="btn disabled:btn-disabled btn-secondary btn-small space-x-1 shrink-0"
               (click)="openToolTest(tool)"
             >
-              <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}</div>
+              <div class="text-sm font-medium">{{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}</div>
             </button>
             <button
               type="button"
               class="btn disabled:btn-disabled btn-secondary btn-small danger space-x-1 shrink-0"
-              [zTooltip]="'PAC.Xpert.Remove' | translate: { Default: 'Remove' }"
+              [zTooltip]="'XP.Xpert.Remove' | translate: { Default: 'Remove' }"
               zPosition="right"
               (click)="remove(tool)"
             >

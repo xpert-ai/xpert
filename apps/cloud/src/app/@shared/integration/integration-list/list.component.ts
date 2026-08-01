@@ -16,8 +16,8 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardIconComponent,
     EmojiAvatarComponent
-],
-  selector: 'pac-integration-list',
+  ],
+  selector: 'xp-integration-list',
   templateUrl: 'list.component.html',
   styleUrls: ['list.component.scss']
 })

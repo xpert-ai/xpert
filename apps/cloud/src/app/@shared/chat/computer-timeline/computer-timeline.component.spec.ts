@@ -119,7 +119,7 @@ jest.mock('@cloud/app/@shared/files', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-file-editor',
+    selector: 'xp-file-editor',
     template: ''
   })
   class FileEditorComponent {
@@ -150,7 +150,10 @@ describe('ChatComputerTimelineComponent', () => {
 
   it('follows the latest computer step when not pinned', () => {
     const fixture = TestBed.createComponent(ChatComputerTimelineComponent)
-    fixture.componentRef.setInput('conversation', createConversation([createMessage([createComputerStep('step-1', 'First step')])]))
+    fixture.componentRef.setInput(
+      'conversation',
+      createConversation([createMessage([createComputerStep('step-1', 'First step')])])
+    )
     fixture.detectChanges()
 
     expect(fixture.nativeElement.textContent).toContain('First step')
@@ -172,10 +175,7 @@ describe('ChatComputerTimelineComponent', () => {
     fixture.componentRef.setInput(
       'conversation',
       createConversation([
-        createMessage([
-          createComputerStep('step-1', 'First step'),
-          createComputerStep('step-2', 'Second step')
-        ])
+        createMessage([createComputerStep('step-1', 'First step'), createComputerStep('step-2', 'Second step')])
       ])
     )
     fixture.componentRef.setInput('componentId', 'step-1')
@@ -190,7 +190,7 @@ describe('ChatComputerTimelineComponent', () => {
     fixture.componentRef.setInput('conversation', createConversation([createMessage([])]))
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ComputerTimelineEmptyTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ComputerTimelineEmptyTitle')
   })
 })
 
@@ -203,9 +203,7 @@ function createConversation(messages: IChatMessage[]): IChatConversation {
   }
 }
 
-function createMessage(
-  content: Array<TMessageContentComponent<TMessageComponentStep>>
-): IChatMessage {
+function createMessage(content: Array<TMessageContentComponent<TMessageComponentStep>>): IChatMessage {
   return {
     id: `message-${content.length}`,
     role: 'ai',
@@ -213,10 +211,7 @@ function createMessage(
   }
 }
 
-function createComputerStep(
-  id: string,
-  title: string
-): TMessageContentComponent<TMessageComponentStep> {
+function createComputerStep(id: string, title: string): TMessageContentComponent<TMessageComponentStep> {
   return {
     id,
     type: 'component',

@@ -66,7 +66,7 @@
       <div
         class="truncate"
         [title]="xpert().title || xpert().name"
-        [ngmHighlight]="highlight()"
+        [xpHighlight]="highlight()"
         [content]="xpert().title || xpert().name"
       >
         {{ xpert().title || xpert().name }}
@@ -81,11 +81,11 @@
         }
       </div>
       <div class="truncate">
-        {{ 'PAC.Xpert.PublishAt' | translate: { Default: 'Publish at' } }}&nbsp;{{ xpert().publishAt | relative }}
+        {{ 'XP.Xpert.PublishAt' | translate: { Default: 'Publish at' } }}&nbsp;{{ xpert().publishAt | relative }}
       </div>
       <span class="flex items-center mx-1">·</span>
       <div class="truncate">
-        {{ 'PAC.KEY_WORDS.By' | translate: { Default: 'By' } }}&nbsp;{{ xpert().createdBy | user }}
+        {{ 'XP.KEY_WORDS.By' | translate: { Default: 'By' } }}&nbsp;{{ xpert().createdBy | user }}
       </div>
     </div>
   </div>
@@ -94,7 +94,7 @@
 <div
   class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-text-tertiary line-clamp-2"
   title="{{ xpert().description }}"
-  [ngmHighlight]="highlight()"
+  [xpHighlight]="highlight()"
   [content]="xpert().description"
 >
   {{ xpert().description }}
@@ -159,7 +159,7 @@
     <button
       type="button"
       class="btn rounded-xl justify-center w-8 h-8"
-      [zTooltip]="'PAC.Xpert.EditXpert' | translate: { Default: 'Edit Xpert' }"
+      [zTooltip]="'XP.Xpert.EditXpert' | translate: { Default: 'Edit Xpert' }"
       zPosition="top"
       (click)="edit()"
     >
@@ -170,9 +170,9 @@
 </div>
 
 <ng-template #cardMenu let-xpert="xpert">
-  <div class="ngm-cdk-menu p-2" cdkMenu>
-    <button class="ngm-cdk-menu-item p-2 danger" cdkMenuItem (click)="delete.emit(xpert.id)">
-      <i class="ri-delete-bin-line mr-1"></i>{{ 'PAC.KEY_WORDS.Delete' | translate: { Default: 'Delete' } }}
+  <div class="xp-cdk-menu p-2" cdkMenu>
+    <button class="xp-cdk-menu-item p-2 danger" cdkMenuItem (click)="delete.emit(xpert.id)">
+      <i class="ri-delete-bin-line mr-1"></i>{{ 'XP.KEY_WORDS.Delete' | translate: { Default: 'Delete' } }}
     </button>
   </div>
 </ng-template>

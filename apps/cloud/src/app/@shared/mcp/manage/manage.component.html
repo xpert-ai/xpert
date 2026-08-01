@@ -1,50 +1,50 @@
 <div class="shrink-0 flex w-[44px] flex-col border-r border-divider-burn bg-components-panel-bg sm:w-[324px]">
   <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
-    {{ 'PAC.Xpert.Toolset' | translate: { Default: 'Toolset' } }}
+    {{ 'XP.Xpert.Toolset' | translate: { Default: 'Toolset' } }}
   </div>
   <div class="w-full grow flex flex-col px-4 overflow-auto">
     <div>
       <div class="py-2 leading-5 font-medium">
-        {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+        {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
         <span class="ml-1 text-red-500">*</span>
       </div>
       <div class="flex items-center justify-between gap-3">
         <emoji-avatar class="rounded-lg overflow-hidden" [(avatar)]="avatar" editable />
         <input
-          class="ngm-input h-10 px-3 text-base font-normal grow"
-          [placeholder]="'PAC.Xpert.EnterToolsetName' | translate: { Default: 'Enter the toolset name' }"
+          class="xp-input h-10 px-3 text-base font-normal grow"
+          [placeholder]="'XP.Xpert.EnterToolsetName' | translate: { Default: 'Enter the toolset name' }"
           [(ngModel)]="name"
         />
       </div>
 
       <textarea
         class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle"
-        [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
+        [placeholder]="'XP.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
         [(ngModel)]="description"
       ></textarea>
       <div>
         <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-          {{ 'PAC.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
+          {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
         </div>
         <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [(ngModel)]="tags" />
       </div>
       <div>
         <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-          {{ 'PAC.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
+          {{ 'XP.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
         </div>
         <input
           class="xp-input w-full h-10 text-sm grow"
-          [placeholder]="'PAC.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
+          [placeholder]="'XP.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
           [(ngModel)]="privacyPolicy"
         />
       </div>
       <div>
         <div class="py-2 leading-5 text-sm font-medium text-text-primary">
-          {{ 'PAC.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
+          {{ 'XP.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
         </div>
         <input
           class="xp-input w-full h-10 text-sm grow"
-          [placeholder]="'PAC.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
+          [placeholder]="'XP.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
           [(ngModel)]="customDisclaimer"
         />
       </div>
@@ -86,7 +86,7 @@
           </defs>
         </svg>
         <div class="leading-5 text-sm font-medium text-text-secondary">
-          {{ 'PAC.Xpert.Configure' | translate: { Default: 'Configure' } }}
+          {{ 'XP.Xpert.Configure' | translate: { Default: 'Configure' } }}
         </div>
       </button>
     </div>
@@ -96,10 +96,10 @@
         class="sticky top-0 flex justify-between items-center text-sm font-medium leading-6 px-2 border-b-[0.5px] border-divider-regular text-text-tertiary bg-components-panel-bg"
       >
         <span class="uppercase"
-          >{{ tools()?.length }} {{ 'PAC.Xpert.ToolsIncluded' | translate: { Default: 'Tools Included' } }}</span
+          >{{ tools()?.length }} {{ 'XP.Xpert.ToolsIncluded' | translate: { Default: 'Tools Included' } }}</span
         >
         <div>
-          <span class="mr-1">{{ 'PAC.Xpert.DisableToolDefault' | translate: { Default: 'Disable by default' } }}</span>
+          <span class="mr-1">{{ 'XP.Xpert.DisableToolDefault' | translate: { Default: 'Disable by default' } }}</span>
           <z-switch [(ngModel)]="disableToolDefault" zSize="sm" />
         </div>
       </div>
@@ -128,7 +128,7 @@
             <i class="ri-information-2-line text-lg"></i>
             <span>
               {{
-                'PAC.Xpert.ConnectMCPTools' | translate: { Default: 'Connect to the MCP service to get the tool list' }
+                'XP.Xpert.ConnectMCPTools' | translate: { Default: 'Connect to the MCP service to get the tool list' }
               }}
             </span>
           </div>
@@ -139,7 +139,7 @@
     @if (!atLeastOne()) {
       <div class="flex items-center gap-1 mr-2 text-sm text-text-warning">
         <i class="ri-alarm-warning-line"></i>
-        {{ 'PAC.Xpert.AtLeastOneTool' | translate: { Default: 'Enable at least one tool' } }}
+        {{ 'XP.Xpert.AtLeastOneTool' | translate: { Default: 'Enable at least one tool' } }}
       </div>
     }
     <div class="flex justify-between items-center mb-4">
@@ -149,7 +149,7 @@
         [disabled]="!toolset()?.id"
         (click)="deleteToolset()"
       >
-        {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+        {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
       </button>
       <button
         type="button"
@@ -159,7 +159,7 @@
       >
         <i class="ri-save-line mr-1"></i>
         <span class="system-sm-medium">
-          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+          {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
         </span>
       </button>
     </div>
@@ -193,18 +193,18 @@
               <z-switch
                 [ngModel]="!(tool.disabled ?? disableToolDefault())"
                 (ngModelChange)="updateTool({ disabled: !$event })"
-                >{{ 'PAC.Xpert.Enabled' | translate: { Default: 'Enabled' } }}</z-switch
+                >{{ 'XP.Xpert.Enabled' | translate: { Default: 'Enabled' } }}</z-switch
               >
             </div>
           </div>
         </div>
         <div class="flex flex-col px-4 mt-4">
           <div class="py-1 leading-5 text-base font-medium text-text-tertiary">
-            {{ 'PAC.Xpert.Description' | translate: { Default: 'Description' } }}
+            {{ 'XP.Xpert.Description' | translate: { Default: 'Description' } }}
           </div>
           <textarea
             class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular text-text-tertiary bg-background-default-subtle"
-            [placeholder]="'PAC.Xpert.EnterToolDescription' | translate: { Default: 'Please enter tool description' }"
+            [placeholder]="'XP.Xpert.EnterToolDescription' | translate: { Default: 'Please enter tool description' }"
             [ngModel]="tool.description"
             (ngModelChange)="updateTool({ description: $event })"
           ></textarea>
@@ -213,13 +213,13 @@
         <div class="flex flex-col p-4">
           <!-- <div class="mt-6">
             <div class="flex items-center mb-4 leading-5 text-base font-semibold text-text-tertiary uppercase">
-              <div class="mr-3">{{'PAC.Xpert.Parameters' | translate: {Default: 'Parameters'} }}</div>
+              <div class="mr-3">{{'XP.Xpert.Parameters' | translate: {Default: 'Parameters'} }}</div>
               <div class="grow w-0 h-px bg-gradient-to-r from-divider-deep to-transparent"></div>
             </div>
             <div class="px-2 space-y-4 max-h-60 overflow-y-auto">
               @for (parameter of tool.schema?.parameters; track parameter.name) {
                 <div class="flex justify-start items-start">
-                  <z-switch [zTooltip]="'PAC.Xpert.IsVisible' | translate: {Default: 'Is visible'}"
+                  <z-switch [zTooltip]="'XP.Xpert.IsVisible' | translate: {Default: 'Is visible'}"
  [ngModel]="parameter.visible" 
  (ngModelChange)="updateParameter(parameter.name, {visible: $event})" zSize="sm"/>
   
@@ -229,7 +229,7 @@
                       <div class="text-sm font-medium text-text-tertiary">{{parameter.type}}</div>
                       @if (parameter.required) {
                         <div class="text-sm font-medium text-[#EC4A0A]">
-                          {{'PAC.Xpert.Required' | translate: {Default: 'Required'} }}
+                          {{'XP.Xpert.Required' | translate: {Default: 'Required'} }}
                         </div>
                       }
                     </div>
@@ -244,7 +244,7 @@
 
           <div class="flex items-center mt-6">
             <div class="mr-3 shrink-0 leading-5 font-semibold uppercase text-text-tertiary">
-              {{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}
+              {{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}
             </div>
             <div class="grow h-px bg-gradient-to-r from-divider-deep to-transparent"></div>
           </div>
@@ -260,7 +260,7 @@
     } @else {
       <div class="sticky top-0 z-20 mx-8 mb-[18px] flex items-center bg-components-panel-bg pb-2 pt-[27px]">
         <div class="text-2xl font-semibold shrink-0 text-text-primary">
-          {{ 'PAC.Xpert.Configure' | translate: { Default: 'Configure' } }}
+          {{ 'XP.Xpert.Configure' | translate: { Default: 'Configure' } }}
         </div>
       </div>
       <div class="px-4 pt-2 sm:px-8">
@@ -279,6 +279,6 @@
   </div>
 
   @if (loading()) {
-    <ngm-spin class="absolute w-full h-full left-0 top-0" />
+    <xp-spin class="absolute w-full h-full left-0 top-0" />
   }
 </div>

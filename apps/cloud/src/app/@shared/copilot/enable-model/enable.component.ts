@@ -1,9 +1,8 @@
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
-import { TranslatePipe } from '@xpert-ai/core'
+import { TranslatePipe } from '@xpert-ai/headless-ui'
 import { AiProviderRole, injectCopilotServer } from '../../../@core'
-
 
 @Component({
   standalone: true,

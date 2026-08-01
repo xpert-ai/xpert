@@ -132,6 +132,9 @@ describe('assistant chatkit runtime helpers', () => {
     const layout = {
       maxWidth: '960px'
     }
+    const workbench = {
+      enabled: true
+    }
 
     TestBed.configureTestingModule({
       providers: [
@@ -180,7 +183,8 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
-        titleKey: 'PAC.Xpert.Assistant',
+        workbench,
+        titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
       })
     })
@@ -191,6 +195,7 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        workbench,
         messageNavigation: {
           enabled: true
         },
@@ -223,6 +228,7 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        workbench,
         messageNavigation: {
           enabled: true
         },
@@ -294,7 +300,7 @@ describe('assistant chatkit runtime helpers', () => {
         identity: signal('xpert_shared'),
         assistantId: signal('assistant-1'),
         frameUrl: signal('/chatkit'),
-        titleKey: 'PAC.Xpert.Assistant',
+        titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
       })
     })
@@ -364,7 +370,7 @@ describe('assistant chatkit runtime helpers', () => {
         frameUrl: signal('/chatkit'),
         getClientSecret,
         title: signal('Public Assistant'),
-        titleKey: 'PAC.Xpert.Assistant',
+        titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
       })
     })

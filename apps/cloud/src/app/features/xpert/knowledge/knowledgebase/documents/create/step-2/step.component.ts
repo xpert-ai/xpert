@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { linkedModel } from '@xpert-ai/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { BehaviorSubject } from 'rxjs'
@@ -35,7 +35,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ...ZardTooltipImports,
     KnowledgeDocumentCreateSettingsComponent
-]
+  ]
 })
 export class KnowledgeDocumentCreateStep2Component {
   eKDocumentSourceType = KDocumentSourceType

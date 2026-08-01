@@ -1,4 +1,4 @@
-import { inject, input, signal } from '@angular/core'
+import { inject, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -6,18 +6,17 @@ import { BehaviorSubject } from 'rxjs'
 import { ChatCommonAssistantComponent } from './common.component'
 import { ChatCommonService } from './common-chat.service'
 import { ChatHomeService } from '../home.service'
+import { ChatService } from '../../../xpert'
 
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi',
       CLAWXPERT: 'clawxpert'
     },
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
       FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
     },
     RolesEnum: {
@@ -28,13 +27,24 @@ jest.mock('apps/cloud/src/app/@core', () => {
   }
 })
 
-jest.mock('../../../@core/providers/ocap', () => ({
-  provideOcap: jest.fn(() => [])
-}))
+jest.mock('@xpert-ai/headless-ui', () => {
+  const angularCore = jest.requireActual('@angular/core')
 
-jest.mock('@xpert-ai/ocap-angular/core', () => ({
-  provideOcapCore: jest.fn(() => [])
-}))
+  class XpShortNumberPipe {
+    transform(value: unknown) {
+      return value
+    }
+  }
+
+  angularCore.Pipe({
+    name: 'shortNumber',
+    standalone: true
+  })(XpShortNumberPipe)
+
+  return {
+    XpShortNumberPipe
+  }
+})
 
 jest.mock('../../../xpert', () => {
   const angularCore = jest.requireActual('@angular/core')
@@ -43,17 +53,18 @@ jest.mock('../../../xpert', () => {
     readonly conversationId = signal<string | null>(null)
     readonly messages = signal<unknown[]>([])
   }
-  class XpertOcapService {}
+  class XpertHomeService {}
   class XpertChatAppComponent {
-    readonly idleLayout = input<'xpert' | 'welcome'>('xpert')
+    idleLayout: 'xpert' | 'welcome' = 'xpert'
     readonly chatService = inject(ChatService)
   }
 
   angularCore.Component({
     selector: 'xpert-webapp',
     standalone: true,
+    inputs: ['idleLayout'],
     template: `
-      <div data-testid="xpert-webapp" [attr.data-idle-layout]="idleLayout()">
+      <div data-testid="xpert-webapp" [attr.data-idle-layout]="idleLayout">
         <div data-testid="xpert-webapp-content">
           @if (!chatService.conversationId() && !chatService.messages().length) {
             <ng-content></ng-content>
@@ -70,8 +81,8 @@ jest.mock('../../../xpert', () => {
 
   return {
     ChatService,
-    XpertChatAppComponent,
-    XpertOcapService
+    XpertHomeService,
+    XpertChatAppComponent
   }
 })
 
@@ -97,7 +108,7 @@ jest.mock('../xperts/xperts.component', () => {
   class ChatXpertsComponent {}
 
   angularCore.Component({
-    selector: 'pac-chat-xperts',
+    selector: 'xp-chat-xperts',
     standalone: true,
     template: ''
   })(ChatXpertsComponent)
@@ -185,8 +196,22 @@ describe('ChatCommonAssistantComponent', () => {
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
     user$ = new BehaviorSubject(null)
+    service = new (ChatCommonService as any)() as typeof service
 
-    TestBed.resetTestingModule()
+    TestBed.overrideComponent(ChatCommonAssistantComponent, {
+      set: {
+        providers: [
+          {
+            provide: ChatCommonService,
+            useValue: service
+          },
+          {
+            provide: ChatService,
+            useExisting: ChatCommonService
+          }
+        ]
+      }
+    })
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ChatCommonAssistantComponent],
       providers: [
@@ -207,7 +232,6 @@ describe('ChatCommonAssistantComponent', () => {
     })
 
     router = TestBed.inject(Router)
-    service = TestBed.inject(ChatCommonService) as typeof service
     Object.defineProperty(router, 'url', {
       configurable: true,
       get: () => '/chat/x/common'
@@ -225,7 +249,7 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.MissingTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.MissingTitle')
   })
 
   it('renders a disabled assistant empty state', () => {
@@ -234,7 +258,7 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.DisabledTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.DisabledTitle')
   })
 
   it('renders an error empty state when the assistant config fails to load', () => {
@@ -243,7 +267,7 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.LoadFailed')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.LoadFailed')
   })
 
   it('renders the merged common shell with welcome content when ready', () => {
@@ -266,8 +290,8 @@ describe('ChatCommonAssistantComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="xpert-webapp"]').getAttribute('data-idle-layout')).toBe(
       'welcome'
     )
-    expect(fixture.nativeElement.querySelector('pac-chat-xperts')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.CommonWelcomeDescription')
+    expect(fixture.nativeElement.querySelector('xp-chat-xperts')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.CommonWelcomeDescription')
   })
 
   it('starts a new assistant thread without leaving the common route', () => {
@@ -291,7 +315,7 @@ describe('ChatCommonAssistantComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.componentInstance.canManageAssistantSettings()).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.textContent).toContain('XP.Assistant.ChangeSettings')
   })
 
   it('hides the change settings action from members in the idle welcome content', () => {
@@ -306,7 +330,7 @@ describe('ChatCommonAssistantComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.componentInstance.canManageAssistantSettings()).toBe(false)
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Assistant.ChangeSettings')
   })
 
   it('hides the projected welcome content once a conversation is active', () => {
@@ -322,8 +346,8 @@ describe('ChatCommonAssistantComponent', () => {
     service.conversationId.set('conv-1')
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('pac-chat-xperts')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('PAC.Assistant.ChangeSettings')
+    expect(fixture.nativeElement.querySelector('xp-chat-xperts')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Assistant.ChangeSettings')
     expect(fixture.nativeElement.querySelector('[data-testid="conversation-view"]')).not.toBeNull()
   })
 })

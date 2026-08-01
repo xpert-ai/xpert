@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common'
 import { FormlyModule } from '@ngx-formly/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { NgmFormlyCheckboxComponent } from './checkbox.type'
+import { XpFormlyCheckboxComponent } from './checkbox.type'
 import { TranslateModule } from '@ngx-translate/core'
 
 @NgModule({
-  declarations: [NgmFormlyCheckboxComponent],
+  declarations: [XpFormlyCheckboxComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -17,7 +17,7 @@ import { TranslateModule } from '@ngx-translate/core'
       types: [
         {
           name: 'checkbox',
-          component: NgmFormlyCheckboxComponent
+          component: XpFormlyCheckboxComponent
           // wrappers: ['form-field'],
         },
         {
@@ -28,4 +28,4 @@ import { TranslateModule } from '@ngx-translate/core'
     })
   ]
 })
-export class NgmFormlyCheckboxModule {}
+export class XpFormlyCheckboxModule {}

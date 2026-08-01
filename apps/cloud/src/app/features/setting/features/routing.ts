@@ -1,11 +1,13 @@
 import { Routes } from '@angular/router'
+import { Store } from '@cloud/app/@core/state'
 import { FeatureToggleComponent } from '../../../@shared/features/feature-toggle'
-import { PACFeaturesComponent } from './features.component'
+import { XpFeaturesComponent } from './features.component'
+import { OrganizationFeatureToggleStore } from './organization-feature-toggle.store'
 
 export default [
   {
     path: '',
-    component: PACFeaturesComponent,
+    component: XpFeaturesComponent,
     children: [
       {
         path: '',
@@ -23,6 +25,7 @@ export default [
       {
         path: 'organization',
         component: FeatureToggleComponent,
+        providers: [{ provide: Store, useClass: OrganizationFeatureToggleStore }],
         data: {
           isOrganization: true,
           scopeContext: 'organization-only'

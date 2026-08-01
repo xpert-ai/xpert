@@ -45,19 +45,22 @@ const TERMINAL_EMPTY_OUTPUT = 'No output was captured for this run.'
         <div class="flex items-center gap-2 text-sm font-medium text-text-primary">
           <i class="ri-terminal-window-line text-base text-text-secondary"></i>
           @if (mode() === 'interactive') {
-            <span>{{ 'PAC.Chat.Terminal' | translate: { Default: 'Terminal' } }}</span>
+            <span>{{ 'XP.Chat.Terminal' | translate: { Default: 'Terminal' } }}</span>
           } @else {
-            <span>{{ 'PAC.Chat.TerminalReplay' | translate: { Default: 'Terminal Replay' } }}</span>
+            <span>{{ 'XP.Chat.TerminalReplay' | translate: { Default: 'Terminal Replay' } }}</span>
           }
         </div>
 
         @if (mode() === 'interactive') {
-          <span class="rounded-full border border-divider-regular px-2 py-0.5 text-xs font-medium" [class]="statusClasses()">
+          <span
+            class="rounded-full border border-divider-regular px-2 py-0.5 text-xs font-medium"
+            [class]="statusClasses()"
+          >
             {{ statusLabel() | translate: { Default: statusLabelDefault() } }}
           </span>
         } @else if (replayStep()?.error) {
           <div class="text-xs font-medium text-text-destructive">
-            {{ 'PAC.Chat.Error' | translate: { Default: 'Error' } }}
+            {{ 'XP.Chat.Error' | translate: { Default: 'Error' } }}
           </div>
         }
       </div>
@@ -68,25 +71,31 @@ const TERMINAL_EMPTY_OUTPUT = 'No output was captured for this run.'
             <div #terminalHost class="h-full min-h-0 w-full"></div>
           </div>
         } @else {
-          <div class="flex h-full min-h-[14rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center text-sm text-text-secondary">
+          <div
+            class="flex h-full min-h-[14rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center text-sm text-text-secondary"
+          >
             {{
-              'PAC.Chat.TerminalNoThread'
-                | translate
-                  : { Default: 'Start a conversation first, then commands will run in the current workspace.' }
+              'XP.Chat.TerminalNoThread'
+                | translate: { Default: 'Start a conversation first, then commands will run in the current workspace.' }
             }}
           </div>
         }
       } @else if (replayStep()) {
-        <div class="flex h-full min-h-[14rem] overflow-hidden rounded-2xl border border-divider-regular bg-(--background) p-3">
+        <div
+          class="flex h-full min-h-[14rem] overflow-hidden rounded-2xl border border-divider-regular bg-(--background) p-3"
+        >
           <div #terminalHost class="h-full min-h-0 w-full"></div>
         </div>
       } @else {
-        <div class="flex h-full min-h-[14rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center text-sm text-text-secondary">
+        <div
+          class="flex h-full min-h-[14rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center text-sm text-text-secondary"
+        >
           {{
-            'PAC.Chat.TerminalReplayEmpty'
+            'XP.Chat.TerminalReplayEmpty'
               | translate
                 : {
-                    Default: 'Select a bash tool result first, then this panel can replay the captured command and output.'
+                    Default:
+                      'Select a bash tool result first, then this panel can replay the captured command and output.'
                   }
           }}
         </div>
@@ -123,19 +132,19 @@ export class ChatSharedTerminalComponent {
   readonly statusLabel = computed(() => {
     switch (this.status()) {
       case 'connected':
-        return 'PAC.Chat.TerminalConnected'
+        return 'XP.Chat.TerminalConnected'
       case 'connecting':
-        return 'PAC.Chat.TerminalConnecting'
+        return 'XP.Chat.TerminalConnecting'
       case 'disconnected':
-        return 'PAC.Chat.TerminalDisconnected'
+        return 'XP.Chat.TerminalDisconnected'
       case 'unsupported':
-        return 'PAC.Chat.TerminalUnsupportedProvider'
+        return 'XP.Chat.TerminalUnsupportedProvider'
       case 'error':
-        return 'PAC.Chat.TerminalOpenFailed'
+        return 'XP.Chat.TerminalOpenFailed'
       case 'closed':
-        return 'PAC.Chat.TerminalSessionClosed'
+        return 'XP.Chat.TerminalSessionClosed'
       default:
-        return 'PAC.Chat.TerminalIdle'
+        return 'XP.Chat.TerminalIdle'
     }
   })
   readonly statusLabelDefault = computed(() => {
@@ -212,14 +221,14 @@ export class ChatSharedTerminalComponent {
             this.setupReplayTerminal(host, replayStep)
           }
 
-        onCleanup(() => {
-          this.destroyTerminalSession()
-        })
-      },
-      {
-        allowSignalWrites: true,
-        injector: this.#injector
-      }
+          onCleanup(() => {
+            this.destroyTerminalSession()
+          })
+        },
+        {
+          allowSignalWrites: true,
+          injector: this.#injector
+        }
       )
     })
 
@@ -234,7 +243,8 @@ export class ChatSharedTerminalComponent {
     const terminal = new Terminal({
       cursorBlink: !options.disableStdin,
       disableStdin: options.disableStdin,
-      fontFamily: 'var(--font-xp-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace)',
+      fontFamily:
+        'var(--font-xp-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace)',
       fontSize: 13,
       scrollback: 4000,
       theme: this.resolveTerminalTheme()
@@ -290,6 +300,16 @@ export class ChatSharedTerminalComponent {
         this.setTerminalInteractivity(false)
         this.status.set('disconnected')
         this.statusMessage.set('Terminal connection lost. Reconnecting will start a new session.')
+      })
+    )
+    this.#socketSubscription.add(
+      this.#sandboxTerminalSocketService.connectionError$.subscribe((message) => {
+        this.#sessionId = null
+        this.#terminalOpenRequestId = null
+        this.setTerminalInteractivity(false)
+        this.status.set('error')
+        this.statusMessage.set(message)
+        this.#terminal?.writeln(`[${message}]`)
       })
     )
 
@@ -411,8 +431,7 @@ export class ChatSharedTerminalComponent {
           return
         }
 
-        const nextStatus =
-          message.data.code === SandboxTerminalErrorCode.UnsupportedProvider ? 'unsupported' : 'error'
+        const nextStatus = message.data.code === SandboxTerminalErrorCode.UnsupportedProvider ? 'unsupported' : 'error'
         this.#terminalOpenRequestId = null
         this.#sessionId = message.data.sessionId ?? null
         this.setTerminalInteractivity(false)
@@ -438,8 +457,10 @@ export class ChatSharedTerminalComponent {
             this.statusMessage.set('The current sandbox provider does not support terminal sessions.')
             break
           case SandboxTerminalClosedReason.OpenFailed:
-            this.status.set('error')
-            this.statusMessage.set('Failed to open the terminal session.')
+            if (this.status() !== 'error' || !this.statusMessage()) {
+              this.status.set('error')
+              this.statusMessage.set('Failed to open the terminal session.')
+            }
             break
           case SandboxTerminalClosedReason.ProcessExited:
           case SandboxTerminalClosedReason.ClientClosed:
@@ -449,6 +470,12 @@ export class ChatSharedTerminalComponent {
           case SandboxTerminalClosedReason.SocketDisconnected:
             this.status.set('disconnected')
             this.statusMessage.set('Terminal connection lost. Reconnecting will start a new session.')
+            break
+          case SandboxTerminalClosedReason.Error:
+            if (this.status() !== 'error' || !this.statusMessage()) {
+              this.status.set('error')
+              this.statusMessage.set('Terminal session closed because of an unexpected error.')
+            }
             break
           default:
             this.status.set('error')
@@ -461,9 +488,17 @@ export class ChatSharedTerminalComponent {
   }
 
   private closeInteractiveSession(notifyServer: boolean) {
-    if (notifyServer && this.#sessionId) {
+    if (!notifyServer) {
+      return
+    }
+
+    if (this.#sessionId) {
       this.#sandboxTerminalSocketService.close({
         sessionId: this.#sessionId
+      })
+    } else if (this.#terminalOpenRequestId) {
+      this.#sandboxTerminalSocketService.close({
+        requestId: this.#terminalOpenRequestId
       })
     }
   }

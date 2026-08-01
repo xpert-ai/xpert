@@ -11,7 +11,7 @@
           [zTooltip]="
             meta.deprecationMessage
               ? (meta.deprecationMessage | i18n)
-              : ('PAC.Xpert.DeprecatedMiddleware'
+              : ('XP.Xpert.DeprecatedMiddleware'
                 | translate
                   : {
                       Default:
@@ -32,7 +32,7 @@
 
 <div class="p-4 space-y-4">
   <div class="font-bold mb-2">
-    {{ 'PAC.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
+    {{ 'XP.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
   </div>
 
   <label class="flex items-start gap-3 rounded-lg border border-divider-subtle p-3 text-sm">
@@ -44,11 +44,11 @@
     />
     <span class="min-w-0 flex-1">
       <span class="block font-medium text-text-primary">
-        {{ 'PAC.Xpert.SystemMiddleware' | translate: { Default: 'System middleware' } }}
+        {{ 'XP.Xpert.SystemMiddleware' | translate: { Default: 'System middleware' } }}
       </span>
       <span class="mt-1 block text-xs leading-5 text-text-tertiary">
         {{
-          'PAC.Xpert.SystemMiddlewareTooltip'
+          'XP.Xpert.SystemMiddlewareTooltip'
             | translate
               : {
                   Default:
@@ -74,7 +74,7 @@
     />
   } @else {
     <div class="text-sm text-text-tertiary">
-      {{ 'PAC.Xpert.NoConfigurationRequired' | translate: { Default: 'No configuration required' } }}
+      {{ 'XP.Xpert.NoConfigurationRequired' | translate: { Default: 'No configuration required' } }}
     </div>
   }
 </div>
@@ -83,12 +83,12 @@
 
 <div class="p-4 space-y-3">
   <div class="font-bold mb-2">
-    {{ 'PAC.Common.Tools' | translate: { Default: 'Tools' } }}
+    {{ 'XP.Common.Tools' | translate: { Default: 'Tools' } }}
   </div>
 
   @if (loadingTools()) {
     <div class="text-sm text-text-tertiary">
-      {{ 'PAC.Common.Loading' | translate: { Default: 'Loading...' } }}
+      {{ 'XP.Common.Loading' | translate: { Default: 'Loading...' } }}
     </div>
   } @else if (toolError()) {
     <div class="text-sm text-red-500">
@@ -96,7 +96,7 @@
     </div>
   } @else if (!middlewareTools().length) {
     <div class="text-sm text-text-tertiary">
-      {{ 'PAC.Common.NoTools' | translate: { Default: 'No tools' } }}
+      {{ 'XP.Common.NoTools' | translate: { Default: 'No tools' } }}
     </div>
   } @else {
     <div class="w-full flex flex-col gap-2">
@@ -128,7 +128,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{ 'PAC.Common.Enabled' | translate: { Default: 'Enabled' } }}</span>
+                <span>{{ 'XP.Common.Enabled' | translate: { Default: 'Enabled' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -139,14 +139,14 @@
             </div>
 
             <div class="px-2 font-semibold">
-              {{ 'PAC.Xpert.ToolDescription' | translate: { Default: 'Tool Description' } }}
+              {{ 'XP.Xpert.ToolDescription' | translate: { Default: 'Tool Description' } }}
             </div>
             <div
               class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono"
             >
               <textarea
                 class="xp-input w-full text-sm text-text-primary leading-[18px]"
-                placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
+                placeholder="{{ 'XP.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
                 [ngModel]="getToolDescription(item.name, item.description)"
                 (ngModelChange)="updateToolDescription(item.name, $event)"
               ></textarea>
@@ -154,7 +154,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{ 'PAC.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</span>
+                <span>{{ 'XP.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -166,7 +166,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{ 'PAC.Xpert.End' | translate: { Default: 'End' } }}</span>
+                <span>{{ 'XP.Xpert.End' | translate: { Default: 'End' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -178,7 +178,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{ 'PAC.Xpert.ToolMemory' | translate: { Default: 'Tool Memory' } }}</span>
+                <span>{{ 'XP.Xpert.ToolMemory' | translate: { Default: 'Tool Memory' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -191,9 +191,9 @@
             @if (toolMemory(item.name)) {
               <xpert-variables-assigner
                 class="p-2"
-                [title]="'PAC.Xpert.WritetoMemory' | translate: { Default: 'Write to memory' }"
+                [title]="'XP.Xpert.WritetoMemory' | translate: { Default: 'Write to memory' }"
                 [tooltip]="
-                  'PAC.Xpert.WriteToolResultToMemoryTooltip'
+                  'XP.Xpert.WriteToolResultToMemoryTooltip'
                     | translate: { Default: 'Write tool output to global memory of the digital expert' }
                 "
                 type="tool"

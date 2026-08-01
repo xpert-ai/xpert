@@ -4,6 +4,10 @@ import { XpertDraftDslDTO } from '../dto'
 export type XpertImportCommandOptions = {
     targetXpertId?: string
     /**
+     * Locale used to resolve localized template metadata before persistence.
+     */
+    language?: string
+    /**
      * Runs the managed import normalization path for primary and middleware LLM models.
      */
     normalizeCopilotModels?: boolean

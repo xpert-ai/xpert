@@ -3,14 +3,14 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, forwardRef, input, model } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { SafePipe } from '@xpert-ai/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ITag } from '../../../@core'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, CdkListboxModule, CdkMenuModule, NgmI18nPipe, SafePipe],
+  imports: [FormsModule, TranslateModule, CdkListboxModule, CdkMenuModule, XpI18nPipe, SafePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-filter',
   templateUrl: './tag-filter.component.html',

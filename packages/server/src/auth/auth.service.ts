@@ -22,7 +22,8 @@ import {
 	IUserEmailInput,
 	IUserRegistrationInput,
 	LanguagesEnum,
-	mapTranslationLanguage
+	mapTranslationLanguage,
+	RolesEnum
 } from '@xpert-ai/contracts'
 import { SocialAuthService } from '@xpert-ai/server-auth'
 import { environment as env, environment, IEnvironment } from '@xpert-ai/server-config'
@@ -31,7 +32,8 @@ import { StringValue } from 'ms'
 import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
-import { FindOptionsWhere, Repository } from 'typeorm'
+import { t } from 'i18next'
+import { DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { User } from '../user/user.entity'
@@ -40,6 +42,8 @@ import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
 import { OrganizationService } from '../organization/organization.service'
+import { Organization } from '../organization/organization.entity'
+import { ReferralService } from '../referral'
 
 @Injectable()
 export class AuthService extends SocialAuthService {
@@ -56,7 +60,9 @@ export class AuthService extends SocialAuthService {
 		private userOrganizationService: UserOrganizationService,
 		private readonly i18n: I18nService,
 		private readonly _configService: ConfigService<IEnvironment>,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly dataSource: DataSource,
+		private readonly referralService: ReferralService
 	) {
 		super()
 	}
@@ -290,37 +296,12 @@ export class AuthService extends SocialAuthService {
 	 */
 	async signup(input: IUserRegistrationInput, languageCode: LanguagesEnum) {
 		const emailVerificationToken = nanoid()
-		const _user = await this.userService.create({
-			...input.user,
-			...(input.password
-				? {
-						hash: await this.getPasswordHash(input.password)
-					}
-				: {}),
-			emailVerification: {
-				tenantId: input.user.tenantId,
-				token: emailVerificationToken,
-				validUntil: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 2) // 2 days later
-			}
+		const user = await this.createRegisteredUser(input, languageCode, {
+			emailVerified: false,
+			emailVerificationToken
 		})
-
-		this.logger.debug(`Created user '${_user.email}'`)
-
-		const user = await this.userService.findOne(_user.id, {
-			relations: ['role']
-		})
-
-		if (input.organizationId) {
-			await this.userOrganizationService.addUserToOrganization(user, input.organizationId)
-		}
-
-		this.logger.debug(`Added user '${user.email}' to organization '${input.organizationId}'`)
-
 		const url = `${environment.clientBaseUrl}/auth/verify?token=${emailVerificationToken}`
 		await this.emailService.sendVerifyEmailMail(user, languageCode, url, input.organizationId, input.originalUrl)
-
-		this.logger.debug(`Sent email varify mail`)
-
 		return user
 	}
 
@@ -336,8 +317,6 @@ export class AuthService extends SocialAuthService {
 	 */
 	async register(input: IUserRegistrationInput, languageCode: LanguagesEnum): Promise<User> {
 		let tenant = input.user.tenant
-		const normalizedEmail = input.user.email?.trim().toLowerCase()
-		const normalizedUsername = input.user.username?.trim().toLowerCase()
 
 		if (input.createdById) {
 			const creatingUser = await this.userService.findOne(input.createdById, {
@@ -346,72 +325,160 @@ export class AuthService extends SocialAuthService {
 			tenant = creatingUser.tenant
 		}
 
+		const user = await this.createRegisteredUser(
+			{
+				...input,
+				referralCode: input.createdById || input.isImporting ? undefined : input.referralCode,
+				user: {
+					...input.user,
+					tenant
+				}
+			},
+			languageCode
+		)
 		const resolvedOrganizationId = input.organizationId ?? (await this.resolveDefaultOrganizationId(tenant?.id))
+		this.emailService.welcomeUser(user, languageCode, resolvedOrganizationId, input.originalUrl)
+		return user
+	}
 
-		// Uniqueness Check
-		const where: FindOptionsWhere<User>[] = []
-		if (normalizedEmail) {
-			where.push({
-				tenantId: tenant.id,
-				email: normalizedEmail
-			})
+	private async createRegisteredUser(
+		input: IUserRegistrationInput,
+		languageCode: LanguagesEnum,
+		options?: {
+			emailVerified?: boolean
+			emailVerificationToken?: string
 		}
-		if (normalizedUsername) {
-			where.push({
-				tenantId: tenant.id,
-				email: normalizedUsername
-			})
-		}
-		const exist = await this.userService.findOneOrFailByOptions({
-			where
-		})
-
-		if (exist.success) {
+	): Promise<User> {
+		const normalizedEmail = input.user.email?.trim().toLowerCase()
+		const normalizedUsername = input.user.username?.trim().toLowerCase()
+		const tenantId = input.user.tenant?.id ?? input.user.tenantId
+		if (!tenantId) {
 			throw new BadRequestException(
-				await this.i18n.translate('core.User.Error.AccountAlreadyExists', {
-					lang: mapTranslationLanguage(languageCode)
+				t('server-ai:Error.RegistrationTenantRequired', {
+					defaultValue: 'Tenant is required for registration.'
 				})
 			)
 		}
+		const hash = input.password ? await this.getPasswordHash(input.password) : input.user.hash
 
-		// Create User
-		const _user = await this.userService.create({
-			...input.user,
-			email: normalizedEmail,
-			username: normalizedUsername,
-			tenant,
-			...(input.password
-				? {
-						hash: await this.getPasswordHash(input.password)
+		const registration = await this.dataSource.transaction(async (manager) => {
+			const userRepository = manager.getRepository(User)
+			const where: FindOptionsWhere<User>[] = []
+			if (normalizedEmail) {
+				where.push({
+					tenantId,
+					email: normalizedEmail
+				})
+			}
+			if (normalizedUsername) {
+				where.push({
+					tenantId,
+					username: normalizedUsername
+				})
+			}
+
+			const existingUser = where.length
+				? await userRepository.findOne({
+						where
+					})
+				: null
+			const isUpdatingPendingSignup =
+				!!input.user.id && existingUser?.id === input.user.id && options?.emailVerified === false
+			if (existingUser && !isUpdatingPendingSignup) {
+				throw new BadRequestException(
+					await this.i18n.translate('core.User.Error.AccountAlreadyExists', {
+						lang: mapTranslationLanguage(languageCode)
+					})
+				)
+			}
+
+			const user = await userRepository.save(
+				userRepository.create({
+					...input.user,
+					email: normalizedEmail,
+					username: normalizedUsername,
+					tenantId,
+					tenant: input.user.tenant ?? { id: tenantId },
+					hash,
+					emailVerified: options?.emailVerified ?? true,
+					...(options?.emailVerificationToken
+						? {
+								emailVerification: {
+									tenantId,
+									token: options.emailVerificationToken,
+									validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2)
+								}
+							}
+						: {})
+				})
+			)
+			const hydratedUser = await userRepository.findOne({
+				where: { id: user.id },
+				relations: {
+					role: true,
+					tenant: true
+				}
+			})
+			if (!hydratedUser) {
+				throw new InternalServerErrorException(
+					t('server-ai:Error.RegisteredUserLoadFailed', {
+						defaultValue: 'Registered user could not be loaded.'
+					})
+				)
+			}
+
+			const organizationId =
+				input.organizationId ?? (await this.resolveDefaultOrganizationIdWithManager(manager, tenantId))
+			let membershipCreation: {
+				organizationId: string
+				tenantId: string
+				userId: string
+			} | null = null
+			if (organizationId && hydratedUser.role?.name !== RolesEnum.SUPER_ADMIN) {
+				const membership = await this.userOrganizationService.ensureMembershipInTransaction(manager, {
+					organizationId,
+					tenantId,
+					userId: String(hydratedUser.id)
+				})
+				if (membership.created) {
+					membershipCreation = {
+						organizationId,
+						tenantId,
+						userId: String(hydratedUser.id)
 					}
-				: {}),
-			emailVerified: true
+				}
+			}
+			await this.referralService.bindRegistration(manager, {
+				tenantId,
+				referredUserId: String(hydratedUser.id),
+				referralCode: input.referralCode
+			})
+
+			return {
+				user: hydratedUser,
+				membershipCreation
+			}
 		})
 
-		const user = await this.userService.findOne(_user.id, {
-			relations: ['role', 'tenant']
-		})
-
-		if (resolvedOrganizationId) {
-			await this.userOrganizationService.addUserToOrganization(user, resolvedOrganizationId)
+		if (registration.membershipCreation) {
+			await this.userOrganizationService.completeMembershipCreation(registration.membershipCreation)
 		}
 
-		//6. Create Import Records while migrating for relative user.
-		// const { isImporting = false, sourceId = null } = input
-		// if (isImporting && sourceId) {
-		// 	const { sourceId } = input
-		// 	await this.commandBus.execute(
-		// 		new ImportRecordUpdateOrCreateCommand({
-		// 			entityType: getManager().getRepository(User).metadata.tableName,
-		// 			sourceId,
-		// 			destinationId: user.id,
-		// 		})
-		// 	)
-		// }
+		return registration.user
+	}
 
-		this.emailService.welcomeUser(user, languageCode, resolvedOrganizationId, input.originalUrl)
-
-		return user
+	private async resolveDefaultOrganizationIdWithManager(manager: EntityManager, tenantId: string) {
+		const organization = await manager.getRepository(Organization).findOne({
+			select: {
+				id: true
+			},
+			where: {
+				tenantId,
+				isDefault: true,
+				isActive: true
+			}
+		})
+		return organization?.id ? String(organization.id) : undefined
 	}
 
 	private async resolveDefaultOrganizationId(tenantId?: string): Promise<string | undefined> {

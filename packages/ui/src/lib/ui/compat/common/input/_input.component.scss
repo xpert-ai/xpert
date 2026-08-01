@@ -1,0 +1,76 @@
+@reference "../../../tailwind-workspace-reference.css";
+
+.xp-input-element[z-input] {
+  @apply flex box-border w-full max-w-full min-w-[6rem] rounded-md border border-input bg-transparent px-2.5 py-1 text-sm
+    font-normal text-foreground file:border-0 file:bg-transparent file:font-medium file:text-foreground
+    placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-ring/50
+    focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50;
+
+  &:focus {
+    @apply z-10;
+  }
+
+  &:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  &.xp-input__searching {
+    &:focus {
+      @apply bg-transparent;
+    }
+  }
+}
+
+.xp-input__suffix {
+  @apply absolute right-2;
+}
+
+.xp-density__cosy {
+  .xp-input-element[z-input] {
+    @apply h-8 rounded-md px-2 py-1 text-sm;
+  }
+  .xp-input__suffix {
+    @apply absolute right-1;
+  }
+  .xp-input-element__clear {
+    @apply w-6 h-6;
+    .z-icon,
+    i {
+      font-size: 20px;
+    }
+  }
+}
+
+.xp-density__compact {
+  .xp-input-label {
+    @apply text-sm;
+  }
+  .xp-input-element[z-input] {
+    @apply h-8 rounded-md px-2 py-1 text-xs;
+  }
+  .xp-input__suffix {
+    @apply absolute right-0;
+  }
+}
+
+.xp-input-element[z-input].xp-w-full {
+  @apply w-full;
+}
+
+.xp-input-label {
+  @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
+}
+
+.xp-form-field__subscript-wrapper {
+  @apply w-full h-2;
+}
+
+.xp-input-error {
+  .xp-input-element {
+    border-color: var(--destructive);
+  }
+}
+
+textarea.xp-input-element {
+  @apply h-auto min-h-20 bg-background px-3 py-2 text-base;
+}

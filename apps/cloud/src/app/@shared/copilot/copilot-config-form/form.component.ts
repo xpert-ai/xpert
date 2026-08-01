@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, input, output, signal } from '@ang
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { auditTime, distinctUntilChanged, firstValueFrom, startWith } from 'rxjs'
 import { CopilotAiProvidersComponent } from '../ai-providers/providers.component'
@@ -13,12 +13,18 @@ import { getErrorMessage, ICopilotProviderModel, injectCopilotServer, ToastrServ
 
 @Component({
   standalone: true,
-  selector: 'pac-copilot-config-form',
+  selector: 'xp-copilot-config-form',
   templateUrl: './form.component.html',
   host: {
     class: 'block overflow-hidden'
   },
-  imports: [TranslateModule, ReactiveFormsModule, NgmSpinComponent, CopilotProviderComponent, CopilotModelSelectComponent]
+  imports: [
+    TranslateModule,
+    ReactiveFormsModule,
+    XpSpinComponent,
+    CopilotProviderComponent,
+    CopilotModelSelectComponent
+  ]
 })
 export class CopilotConfigFormComponent {
   readonly #copilotServer = injectCopilotServer()
@@ -92,7 +98,7 @@ export class CopilotConfigFormComponent {
         })
       )
       this.formGroup.markAsPristine()
-      this.#toastrService.success('PAC.ACTIONS.Save', { Default: 'Save' })
+      this.#toastrService.success('XP.ACTIONS.Save', { Default: 'Save' })
       this.#copilotServer.refresh()
       this.saved.emit()
       return true
@@ -120,13 +126,17 @@ export class CopilotConfigFormComponent {
       }
     })
 
-    dialogRef.closed.subscribe(() => {
+    dialogRef.closed.subscribe((copilotProvider) => {
       this.#copilotServer.refresh()
+      if (copilotProvider) {
+        this.saved.emit()
+      }
     })
   }
 
   removedModelProvider() {
     this.#copilotServer.refresh()
+    this.saved.emit()
   }
 
   onAddedModel(model: ICopilotProviderModel) {

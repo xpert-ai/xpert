@@ -3,8 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { SafePipe } from '@xpert-ai/core'
-import { attrModel, linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { SafePipe } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNChunker, IWorkflowNode, KnowledgebaseService } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
@@ -22,7 +22,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     TranslateModule,
     SafePipe,
-    NgmI18nPipe,
+    XpI18nPipe,
     JSONSchemaFormComponent,
     StateVariableSelectComponent,
     IconComponent

@@ -16,8 +16,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
       [content]="options"
       [zTooltip]="
         copy.copied()
-          ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-          : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+          ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+          : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
       "
       zPosition="top"
     />
