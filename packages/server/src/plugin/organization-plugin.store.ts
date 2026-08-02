@@ -5,13 +5,16 @@
  * - Cache state is published only after copying and dependency installation succeed.
  */
 import { getConfig } from '@xpert-ai/server-config'
-import { execSync } from 'child_process'
+import { execFile as execFileCallback, execSync } from 'node:child_process'
 import { createHash, type Hash } from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { promisify } from 'node:util'
 import chalk from 'chalk'
 import { normalizePluginName } from './types'
 import { getPluginScopeLogLabel, resolvePluginScope, safePluginScopePathSegment } from './plugin-scope'
+
+const execFile = promisify(execFileCallback)
 
 export interface OrganizationPluginStoreOptions {
 	/** Base directory to keep organization plugin workspaces, defaults to `<repo>/data/plugins` */
@@ -159,7 +162,10 @@ function readExecFailureOutput(value: unknown) {
 	return ''
 }
 
-function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, packageJson: WorkspacePluginPackageJson) {
+async function installStagedWorkspaceRuntimeDependencies(
+	targetPackageDir: string,
+	packageJson: WorkspacePluginPackageJson
+): Promise<void> {
 	if (!hasRuntimeDependencies(packageJson)) {
 		return
 	}
@@ -175,11 +181,20 @@ function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, pac
 		fs.writeFileSync(packageJsonPath, JSON.stringify(runtimePackageJson, null, 2))
 		// Startup staging is not an update workflow: avoid audit/funding network work while
 		// allowing npm to validate cached registry metadata before dependency resolution.
-		execSync(
-			'npm install --omit=dev --omit=peer --ignore-scripts --no-save --legacy-peer-deps --no-audit --no-fund',
+		await execFile(
+			'npm',
+			[
+				'install',
+				'--omit=dev',
+				'--omit=peer',
+				'--ignore-scripts',
+				'--no-save',
+				'--legacy-peer-deps',
+				'--no-audit',
+				'--no-fund'
+			],
 			{
 				cwd: targetPackageDir,
-				stdio: 'pipe',
 				env: {
 					...process.env,
 					npm_config_package_lock: 'false',
@@ -597,7 +612,7 @@ export function writeOrganizationManifest(
 	fs.writeFileSync(manifestPath, JSON.stringify(normalizeManifestPlugins(plugins), null, 2))
 }
 
-export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string {
+export async function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): Promise<string> {
 	const startedAt = Date.now()
 	if (!opts.workspacePath) {
 		throw new Error('workspacePath is required')
@@ -721,7 +736,7 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 		if (reuseRuntimeDependencies) {
 			dependencyAction = 'runtime dependencies reused'
 		} else {
-			installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
+			await installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
 			dependencyAction = 'runtime dependencies installed'
 		}
 	}
@@ -738,7 +753,7 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 	return pluginDir
 }
 
-export function stagePackageDirectoryPlugin(opts: StagePackageDirectoryPluginOptions): string {
+export async function stagePackageDirectoryPlugin(opts: StagePackageDirectoryPluginOptions): Promise<string> {
 	if (!opts.packageDir) {
 		throw new Error('packageDir is required')
 	}
@@ -799,7 +814,7 @@ export function stagePackageDirectoryPlugin(opts: StagePackageDirectoryPluginOpt
 		}
 	})
 
-	installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
+	await installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
 
 	return pluginDir
 }

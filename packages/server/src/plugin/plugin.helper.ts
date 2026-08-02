@@ -418,7 +418,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		const packageDir = getCodePackageDir(plugin.sourceConfig)
 		if (packageDir) {
 			try {
-				stagePackageDirectoryPlugin({
+				await stagePackageDirectoryPlugin({
 					organizationId,
 					pluginName: plugin.runtimeName ?? plugin.name,
 					expectedPackageName: normalizePluginName(plugin.name),
@@ -448,7 +448,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		}
 
 		try {
-			stageWorkspacePlugin({
+			await stageWorkspacePlugin({
 				organizationId,
 				pluginName: plugin.runtimeName ?? plugin.name,
 				expectedPackageName: normalizePluginName(plugin.name),
