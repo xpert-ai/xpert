@@ -59,6 +59,17 @@ export const ZhHans = {
       CONFLICT: '绑定冲突，请联系管理员处理。',
       FAIL: '绑定失败，请稍后重试。'
     },
+    SSO_REGISTER: {
+      LOADING: '正在加载 SSO 账号信息...',
+      INVALID_TITLE: '注册会话不可用',
+      INVALID_SESSION: '注册会话无效，请重新发起第三方登录。',
+      BACK_TO_LOGIN: '返回登录页',
+      TITLE: '完成 {{ provider }} 注册',
+      DESCRIPTION: '设置密码以完成 Xpert 账号创建。',
+      VERIFIED_EMAIL: '该邮箱已经通过 {{ provider }} 验证，无法在此修改。',
+      PASSWORD_MIN_LENGTH: '密码至少需要 6 个字符。',
+      SUBMIT: '完成注册并登录'
+    },
     ACCEPT_INVITE: {
       HEADING: '接受 {{ organizationName }} 的邀请',
       SUB_HEADING: '完善注册信息 {{ email }}',

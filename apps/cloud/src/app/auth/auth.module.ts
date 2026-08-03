@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
   ZardCheckboxComponent,
+  ZardFormImports,
   ZardInputDirective,
   ZardTabComponent,
   ZardTabGroupComponent
@@ -75,6 +76,7 @@ export function nbOptionsFactory(options) {
     RouterModule,
     XpAuthRoutingModule,
     TranslateModule,
+    ...ZardFormImports,
     ZardButtonComponent,
     ZardInputDirective,
     ZardTabGroupComponent,

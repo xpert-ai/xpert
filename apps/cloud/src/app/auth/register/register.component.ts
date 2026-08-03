@@ -19,6 +19,25 @@ type CompleteSsoBindingResponse = {
   location: string
 }
 
+type SsoRegistrationChallengeBase = {
+  provider: string
+  displayName?: string
+  avatarUrl?: string
+  tenantScoped: true
+  expiresAt: string
+}
+
+type AnonymousSsoRegistrationChallenge = SsoRegistrationChallengeBase & {
+  flow?: 'anonymous_bind'
+}
+
+type VerifiedEmailSignupChallenge = SsoRegistrationChallengeBase & {
+  flow: 'verified_email_signup'
+  email: string
+}
+
+type SsoRegistrationChallengeView = AnonymousSsoRegistrationChallenge | VerifiedEmailSignupChallenge
+
 type SSOProviderDescriptor = {
   provider: string
   displayName: string
@@ -48,6 +67,9 @@ export class UserRegisterComponent implements OnDestroy {
   messages: string[] = []
   socialLinks: NbAuthSocialLink[] = []
   ssoTicket = ''
+  ssoChallenge: SsoRegistrationChallengeView | null = null
+  ssoChallengeLoading = false
+  ssoChallengeLoadError = ''
   enablePublicSignup = true
   referralEnabled = false
   referralAvailabilityLoading = true
@@ -89,6 +111,7 @@ export class UserRegisterComponent implements OnDestroy {
     this.strategy = this.getConfigValue('forms.register.strategy')
     this.socialLinks = this.getConfigValue('forms.login.socialLinks')
     this.ssoTicket = this.route.snapshot.queryParamMap.get('ticket')?.trim() ?? ''
+    this.ssoChallengeLoading = Boolean(this.ssoTicket)
     const queryReferralCode = this.route.snapshot.queryParamMap.get('ref')?.trim() ?? ''
     if (queryReferralCode) {
       saveRegistrationReferralCode(queryReferralCode)
@@ -97,6 +120,9 @@ export class UserRegisterComponent implements OnDestroy {
     this.enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
     void this.loadReferralAvailability()
     void this.loadSsoProviders()
+    if (this.ssoTicket) {
+      void this.loadSsoRegistrationChallenge()
+    }
 
     if (!this.ssoTicket && !this.enablePublicSignup) {
       void this.router.navigate(['/auth/login'])
@@ -116,6 +142,12 @@ export class UserRegisterComponent implements OnDestroy {
   }
   get referralCode(): AbstractControl {
     return this.form.controls.referralCode
+  }
+  get verifiedEmailSignup(): boolean {
+    return this.ssoChallenge?.flow === 'verified_email_signup'
+  }
+  get emailLocked(): boolean {
+    return this.verifiedEmailSignup
   }
   get mobile(): AbstractControl {
     return this.form.controls.mobile
@@ -190,6 +222,9 @@ export class UserRegisterComponent implements OnDestroy {
 
   async register(): Promise<void> {
     this.errors = this.messages = []
+    if (this.ssoTicket && (!this.ssoChallenge || this.ssoChallengeLoading || this.ssoChallengeLoadError)) {
+      return
+    }
     this.submitted = true
     if (!(await this.validateReferralCode())) {
       this.submitted = false
@@ -211,7 +246,7 @@ export class UserRegisterComponent implements OnDestroy {
         )
 
         clearRegistrationReferralCode()
-        window.location.assign(result.location)
+        this.redirectToLocation(result.location)
         return
       } catch (error) {
         this.submitted = false
@@ -304,6 +339,62 @@ export class UserRegisterComponent implements OnDestroy {
     const code = this.referralCode.value?.trim()
     saveRegistrationReferralCode(this.referralEnabled ? code : '')
     window.location.assign(new URL(provider.startUrl, window.location.origin).toString())
+  }
+
+  navigateToLogin(): void {
+    void this.router.navigate(['/auth/login'])
+  }
+
+  protected redirectToLocation(location: string): void {
+    window.location.assign(location)
+  }
+
+  providerLabel(provider?: string | null): string {
+    const providerId = provider?.trim()
+    if (!providerId) {
+      return 'SSO'
+    }
+
+    const displayName = this.ssoProviders.find((item) => item.provider === providerId)?.displayName.trim()
+
+    return displayName || providerId
+  }
+
+  private async loadSsoRegistrationChallenge(): Promise<void> {
+    this.ssoChallengeLoading = true
+    this.ssoChallengeLoadError = ''
+    this.ssoChallenge = null
+    this.cdr.markForCheck()
+
+    try {
+      const challenge = await firstValueFrom(
+        this.http.get<SsoRegistrationChallengeView>('/api/auth/sso/bind/challenge', {
+          params: {
+            ticket: this.ssoTicket
+          }
+        })
+      )
+
+      if (challenge.flow === 'verified_email_signup') {
+        const email = challenge.email?.trim().toLowerCase()
+        if (!email) {
+          this.ssoChallengeLoadError = this.getTranslation('Auth.SSO_REGISTER.INVALID_SESSION', {
+            Default: 'This registration session is invalid. Please start SSO sign-in again.'
+          })
+          return
+        }
+        this.email.setValue(email)
+        this.email.markAsPristine()
+        this.email.updateValueAndValidity({ emitEvent: false })
+      }
+
+      this.ssoChallenge = challenge
+    } catch (error) {
+      this.ssoChallengeLoadError = this.resolveErrorMessage(error)
+    } finally {
+      this.ssoChallengeLoading = false
+      this.cdr.markForCheck()
+    }
   }
 
   private async loadReferralAvailability() {
