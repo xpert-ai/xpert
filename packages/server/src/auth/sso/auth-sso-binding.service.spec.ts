@@ -20,6 +20,7 @@ const { RequestContext } = require('../../core/context')
 describe('AuthSsoBindingService', () => {
 	const pendingSsoBindingChallengeService = {
 		get: jest.fn(),
+		consume: jest.fn(),
 		delete: jest.fn().mockResolvedValue(undefined)
 	}
 	const accountBindingService = {
@@ -29,7 +30,8 @@ describe('AuthSsoBindingService', () => {
 	}
 	const authService = {
 		issueTokensForUser: jest.fn(),
-		register: jest.fn()
+		register: jest.fn(),
+		registerVerifiedExternalIdentity: jest.fn()
 	}
 	const userService = {
 		findOneByOptions: jest.fn()
@@ -39,6 +41,9 @@ describe('AuthSsoBindingService', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks()
+		pendingSsoBindingChallengeService.consume.mockImplementation((ticket) =>
+			pendingSsoBindingChallengeService.get(ticket)
+		)
 		RequestContext.currentUserId.mockReturnValue('user-ctx')
 		RequestContext.getScope.mockReturnValue({
 			tenantId: 'tenant-1',
@@ -66,7 +71,32 @@ describe('AuthSsoBindingService', () => {
 		})
 
 		await expect(service.getChallenge('ticket-1')).resolves.toEqual({
+			flow: 'anonymous_bind',
 			provider: 'lark',
+			displayName: 'Alice',
+			avatarUrl: 'https://example.com/avatar.png',
+			tenantScoped: true,
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+	})
+
+	it('returns the trusted email only for a verified-email signup challenge', async () => {
+		pendingSsoBindingChallengeService.get.mockResolvedValue({
+			ticket: 'ticket-1',
+			flow: 'verified_email_signup',
+			provider: 'github-sso',
+			subjectId: '123',
+			tenantId: 'tenant-1',
+			verifiedEmail: 'alice@example.com',
+			displayName: 'Alice',
+			avatarUrl: 'https://example.com/avatar.png',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+
+		await expect(service.getChallenge('ticket-1')).resolves.toEqual({
+			flow: 'verified_email_signup',
+			provider: 'github-sso',
+			email: 'alice@example.com',
 			displayName: 'Alice',
 			avatarUrl: 'https://example.com/avatar.png',
 			tenantScoped: true,
@@ -224,6 +254,157 @@ describe('AuthSsoBindingService', () => {
 		)
 	})
 
+	it('completes verified-email signup using only the email stored in the ticket', async () => {
+		pendingSsoBindingChallengeService.get.mockResolvedValue({
+			ticket: 'ticket-1',
+			flow: 'verified_email_signup',
+			provider: 'github-sso',
+			subjectId: '123',
+			tenantId: 'tenant-1',
+			verifiedEmail: 'alice@example.com',
+			displayName: 'Alice',
+			avatarUrl: 'https://example.com/avatar.png',
+			profile: {
+				login: 'alice'
+			},
+			returnTo: '/projects/demo',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+		authService.registerVerifiedExternalIdentity.mockResolvedValue({
+			user: {
+				id: 'user-1'
+			},
+			created: true
+		})
+		authService.issueTokensForUser.mockResolvedValue({
+			jwt: 'jwt-token',
+			refreshToken: 'refresh-token',
+			userId: 'user-1'
+		})
+
+		await expect(
+			service.registerAndBind(
+				{
+					ticket: 'ticket-1',
+					email: 'ALICE@example.com',
+					password: 'secret',
+					confirmPassword: 'secret',
+					referralCode: 'ABC234DEFG'
+				},
+				LanguagesEnum.English
+			)
+		).resolves.toEqual({
+			location:
+				'/sign-in/success?jwt=jwt-token&refreshToken=refresh-token&userId=user-1&returnTo=%2Fprojects%2Fdemo'
+		})
+
+		expect(authService.registerVerifiedExternalIdentity).toHaveBeenCalledWith(
+			{
+				provider: 'github-sso',
+				subjectId: '123',
+				tenantId: 'tenant-1',
+				verifiedEmail: 'alice@example.com',
+				displayName: 'Alice',
+				avatarUrl: 'https://example.com/avatar.png',
+				profile: {
+					login: 'alice'
+				},
+				returnTo: '/projects/demo',
+				password: 'secret',
+				confirmPassword: 'secret',
+				referralCode: 'ABC234DEFG'
+			},
+			LanguagesEnum.English
+		)
+		expect(pendingSsoBindingChallengeService.consume).toHaveBeenCalledWith('ticket-1')
+		expect(authService.issueTokensForUser).toHaveBeenCalledTimes(1)
+	})
+
+	it('rejects a changed email and preserves the verified-email signup ticket', async () => {
+		pendingSsoBindingChallengeService.get.mockResolvedValue({
+			ticket: 'ticket-1',
+			flow: 'verified_email_signup',
+			provider: 'github-sso',
+			subjectId: '123',
+			tenantId: 'tenant-1',
+			verifiedEmail: 'alice@example.com',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+
+		await expect(
+			service.registerAndBind(
+				{
+					ticket: 'ticket-1',
+					email: 'mallory@example.com',
+					password: 'secret',
+					confirmPassword: 'secret'
+				},
+				LanguagesEnum.English
+			)
+		).rejects.toBeInstanceOf(BadRequestException)
+		expect(authService.registerVerifiedExternalIdentity).not.toHaveBeenCalled()
+		expect(pendingSsoBindingChallengeService.consume).not.toHaveBeenCalled()
+	})
+
+	it('preserves the verified-email signup ticket when registration validation fails', async () => {
+		pendingSsoBindingChallengeService.get.mockResolvedValue({
+			ticket: 'ticket-1',
+			flow: 'verified_email_signup',
+			provider: 'github-sso',
+			subjectId: '123',
+			tenantId: 'tenant-1',
+			verifiedEmail: 'alice@example.com',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+		authService.registerVerifiedExternalIdentity.mockRejectedValue(
+			new BadRequestException('The invitation code is invalid.')
+		)
+
+		await expect(
+			service.registerAndBind(
+				{
+					ticket: 'ticket-1',
+					password: 'secret',
+					confirmPassword: 'secret',
+					referralCode: 'INVALID'
+				},
+				LanguagesEnum.English
+			)
+		).rejects.toBeInstanceOf(BadRequestException)
+		expect(pendingSsoBindingChallengeService.consume).not.toHaveBeenCalled()
+	})
+
+	it('rejects a concurrent replay before issuing another login token', async () => {
+		pendingSsoBindingChallengeService.get.mockResolvedValue({
+			ticket: 'ticket-1',
+			flow: 'verified_email_signup',
+			provider: 'github-sso',
+			subjectId: '123',
+			tenantId: 'tenant-1',
+			verifiedEmail: 'alice@example.com',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		})
+		pendingSsoBindingChallengeService.consume.mockResolvedValue(null)
+		authService.registerVerifiedExternalIdentity.mockResolvedValue({
+			user: {
+				id: 'user-1'
+			},
+			created: false
+		})
+
+		await expect(
+			service.registerAndBind(
+				{
+					ticket: 'ticket-1',
+					password: 'secret',
+					confirmPassword: 'secret'
+				},
+				LanguagesEnum.English
+			)
+		).rejects.toBeInstanceOf(BadRequestException)
+		expect(authService.issueTokensForUser).not.toHaveBeenCalled()
+	})
+
 	it('returns a minimal current-user challenge view for the authenticated tenant', async () => {
 		pendingSsoBindingChallengeService.get.mockResolvedValue({
 			ticket: 'ticket-1',
@@ -237,6 +418,7 @@ describe('AuthSsoBindingService', () => {
 		})
 
 		await expect(service.getCurrentUserChallenge('ticket-1')).resolves.toEqual({
+			flow: 'current_user_confirm',
 			provider: 'lark',
 			displayName: 'Alice',
 			avatarUrl: 'https://example.com/avatar.png',

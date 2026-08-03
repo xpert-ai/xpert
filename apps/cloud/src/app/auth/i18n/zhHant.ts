@@ -59,6 +59,17 @@ export const ZhHant = {
       CONFLICT: '綁定衝突，請聯繫管理員處理。',
       FAIL: '綁定失敗，請稍後重試。'
     },
+    SSO_REGISTER: {
+      LOADING: '正在加載 SSO 賬號信息...',
+      INVALID_TITLE: '註冊會話不可用',
+      INVALID_SESSION: '註冊會話無效，請重新發起第三方登錄。',
+      BACK_TO_LOGIN: '返回登錄頁',
+      TITLE: '完成 {{ provider }} 註冊',
+      DESCRIPTION: '設置密碼以完成 Xpert 賬號創建。',
+      VERIFIED_EMAIL: '該郵箱已經通過 {{ provider }} 驗證，無法在此修改。',
+      PASSWORD_MIN_LENGTH: '密碼至少需要 6 個字符。',
+      SUBMIT: '完成註冊並登錄'
+    },
     ACCEPT_INVITE: {
       HEADING: '接受 {{ organizationName }} 的邀請',
       SUB_HEADING: '完善註冊信息 {{ email }}',

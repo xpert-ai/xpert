@@ -1,5 +1,6 @@
 import {
 	BadRequestException,
+	ConflictException,
 	ForbiddenException,
 	Injectable,
 	InternalServerErrorException,
@@ -9,9 +10,12 @@ import {
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { buildQueryString } from '@xpert-ai/server-common'
 import {
+	CurrenciesEnum,
+	DefaultValueDateTypeEnum,
 	IChangePasswordRequest,
 	ID,
 	IPasswordReset,
@@ -23,8 +27,10 @@ import {
 	IUserRegistrationInput,
 	LanguagesEnum,
 	mapTranslationLanguage,
-	RolesEnum
+	RolesEnum,
+	UserType
 } from '@xpert-ai/contracts'
+import type { VerifiedEmailLoginInput } from '@xpert-ai/plugin-sdk'
 import { SocialAuthService } from '@xpert-ai/server-auth'
 import { environment as env, environment, IEnvironment } from '@xpert-ai/server-config'
 import bcrypt from 'bcryptjs'
@@ -33,7 +39,7 @@ import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
 import { t } from 'i18next'
-import { DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm'
+import { DataSource, EntityManager, FindOptionsWhere, QueryFailedError, Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { User } from '../user/user.entity'
@@ -44,6 +50,22 @@ import { RoleService } from '../role/role.service'
 import { OrganizationService } from '../organization/organization.service'
 import { Organization } from '../organization/organization.entity'
 import { ReferralService } from '../referral'
+import { ExternalIdentityBinding } from '../account-binding/external-identity-binding.entity'
+import { Role } from '../role/role.entity'
+import { RequestContext } from '../core/context'
+import { Tenant } from '../tenant/tenant.entity'
+import { EVENT_ORGANIZATION_CREATED, OrganizationCreatedEvent } from '../organization/events'
+
+export interface RegisterVerifiedExternalIdentityInput extends VerifiedEmailLoginInput {
+	password?: string
+	confirmPassword?: string
+	referralCode?: string
+}
+
+export interface RegisterVerifiedExternalIdentityResult {
+	user: User
+	created: boolean
+}
 
 @Injectable()
 export class AuthService extends SocialAuthService {
@@ -62,9 +84,379 @@ export class AuthService extends SocialAuthService {
 		private readonly _configService: ConfigService<IEnvironment>,
 		private readonly commandBus: CommandBus,
 		private readonly dataSource: DataSource,
-		private readonly referralService: ReferralService
+		private readonly referralService: ReferralService,
+		private readonly eventEmitter: EventEmitter2
 	) {
 		super()
+	}
+
+	async resolveOrBindVerifiedEmail(input: VerifiedEmailLoginInput): Promise<User | null> {
+		const normalizedInput = this.normalizeVerifiedEmailLoginInput(input)
+		try {
+			return await this.dataSource.transaction((manager) =>
+				this.resolveOrBindVerifiedEmailWithManager(manager, normalizedInput)
+			)
+		} catch (error) {
+			this.rethrowVerifiedIdentityConflict(error)
+		}
+	}
+
+	async registerVerifiedExternalIdentity(
+		input: RegisterVerifiedExternalIdentityInput,
+		languageCode: LanguagesEnum
+	): Promise<RegisterVerifiedExternalIdentityResult> {
+		const normalizedInput = this.normalizeVerifiedEmailLoginInput(input)
+		const password = this.requireVerifiedSignupValue(input?.password, 'password')
+		const confirmPassword = this.requireVerifiedSignupValue(input?.confirmPassword, 'confirmPassword')
+		if (password.length < 6) {
+			throw new BadRequestException('The password must contain at least 6 characters.')
+		}
+		if (password !== confirmPassword) {
+			throw new BadRequestException('The password and confirmation password must match.')
+		}
+		const hash = await this.getPasswordHash(password)
+
+		let membershipCreation: {
+			organizationId: string
+			tenantId: string
+			userId: string
+		} | null = null
+		let organizationCreation: {
+			tenantId: string
+			organizationId: string
+			ownerUserId: string
+		} | null = null
+		let registrationOrganizationId: string | null = null
+
+		let result: RegisterVerifiedExternalIdentityResult
+		try {
+			result = await this.dataSource.transaction(async (manager) => {
+				const existingUser = await this.resolveOrBindVerifiedEmailWithManager(manager, normalizedInput)
+				if (existingUser) {
+					return {
+						user: existingUser,
+						created: false
+					}
+				}
+
+				const role = await manager.getRepository(Role).findOne({
+					where: {
+						tenantId: normalizedInput.tenantId,
+						name: RolesEnum.TRIAL
+					}
+				})
+				if (!role) {
+					throw new InternalServerErrorException(
+						`The TRIAL role is not configured for tenant '${normalizedInput.tenantId}'.`
+					)
+				}
+
+				const organizationRepository = manager.getRepository(Organization)
+				const organization = await organizationRepository.save(
+					organizationRepository.create({
+						name: normalizedInput.displayName ?? normalizedInput.verifiedEmail,
+						tenantId: normalizedInput.tenantId,
+						currency: CurrenciesEnum.CNY,
+						defaultValueDateType: DefaultValueDateTypeEnum.TODAY,
+						isDefault: false,
+						isActive: true,
+						show_profits: false,
+						show_bonuses_paid: false,
+						show_income: false,
+						show_total_hours: false,
+						show_projects_count: true,
+						show_minimum_project_size: true,
+						show_clients_count: true,
+						show_clients: true,
+						show_employees_count: true
+					})
+				)
+				const resolvedOrganizationId = String(organization.id)
+				registrationOrganizationId = resolvedOrganizationId
+
+				const userRepository = manager.getRepository(User)
+				const user = await userRepository.save(
+					userRepository.create({
+						type: UserType.USER,
+						tenantId: normalizedInput.tenantId,
+						email: normalizedInput.verifiedEmail,
+						emailVerified: true,
+						firstName: this.normalizeOptionalVerifiedIdentityValue(normalizedInput.displayName),
+						imageUrl: this.normalizeOptionalVerifiedIdentityValue(normalizedInput.avatarUrl),
+						hash,
+						role
+					})
+				)
+
+				const membership = await this.userOrganizationService.ensureMembershipInTransaction(manager, {
+					organizationId: resolvedOrganizationId,
+					tenantId: normalizedInput.tenantId,
+					userId: String(user.id)
+				})
+				if (membership.created) {
+					membershipCreation = {
+						organizationId: resolvedOrganizationId,
+						tenantId: normalizedInput.tenantId,
+						userId: String(user.id)
+					}
+				}
+				organizationCreation = {
+					tenantId: normalizedInput.tenantId,
+					organizationId: resolvedOrganizationId,
+					ownerUserId: String(user.id)
+				}
+
+				await this.referralService.bindRegistration(manager, {
+					tenantId: normalizedInput.tenantId,
+					referredUserId: String(user.id),
+					referralCode: input.referralCode
+				})
+
+				await this.createStrictVerifiedIdentityBinding(manager, {
+					...normalizedInput,
+					userId: String(user.id)
+				})
+
+				return {
+					user,
+					created: true
+				}
+			})
+		} catch (error) {
+			this.rethrowVerifiedIdentityConflict(error)
+		}
+
+		if (organizationCreation) {
+			this.eventEmitter.emit(
+				EVENT_ORGANIZATION_CREATED,
+				new OrganizationCreatedEvent(
+					organizationCreation.tenantId,
+					organizationCreation.organizationId,
+					organizationCreation.ownerUserId
+				)
+			)
+		}
+		if (membershipCreation) {
+			await this.userOrganizationService.completeMembershipCreation(membershipCreation)
+		}
+		if (result.created) {
+			this.emailService.welcomeUser(result.user, languageCode, registrationOrganizationId ?? undefined, undefined)
+		}
+		return result
+	}
+
+	private async resolveOrBindVerifiedEmailWithManager(
+		manager: EntityManager,
+		input: VerifiedEmailLoginInput
+	): Promise<User | null> {
+		const bindingRepository = manager.getRepository(ExternalIdentityBinding)
+		const userRepository = manager.getRepository(User)
+		const existingBinding = await bindingRepository.findOne({
+			where: {
+				tenantId: input.tenantId,
+				provider: input.provider,
+				subjectId: input.subjectId
+			}
+		})
+
+		if (existingBinding) {
+			const boundUser = await userRepository.findOne({
+				where: {
+					id: existingBinding.userId,
+					tenantId: input.tenantId
+				},
+				withDeleted: true
+			})
+			this.assertEligibleVerifiedIdentityUser(boundUser)
+
+			if (input.profile !== undefined) {
+				existingBinding.profile = this.normalizeVerifiedIdentityProfile(input.profile) ?? null
+				await bindingRepository.save(existingBinding)
+			}
+			return boundUser
+		}
+
+		await this.lockTenantRegistrationScope(manager, input.tenantId)
+
+		const matchingUsers = await userRepository
+			.createQueryBuilder('user')
+			.where('user.tenantId = :tenantId', { tenantId: input.tenantId })
+			.andWhere('LOWER(user.email) = :verifiedEmail', {
+				verifiedEmail: input.verifiedEmail
+			})
+			.orderBy('user.createdAt', 'ASC')
+			.take(2)
+			.getMany()
+
+		if (matchingUsers.length > 1) {
+			throw new ConflictException('Multiple Xpert accounts use this verified email in the current tenant.')
+		}
+		if (matchingUsers.length === 0) {
+			return null
+		}
+
+		const [matchedUser] = matchingUsers
+		this.assertEligibleVerifiedIdentityUser(matchedUser)
+		const existingUserBinding = await bindingRepository.findOne({
+			where: {
+				tenantId: input.tenantId,
+				provider: input.provider,
+				userId: matchedUser.id
+			}
+		})
+		if (existingUserBinding && existingUserBinding.subjectId !== input.subjectId) {
+			throw new ConflictException(`This Xpert account is already bound to another ${input.provider} identity.`)
+		}
+
+		if (!matchedUser.emailVerified) {
+			matchedUser.emailVerified = true
+			await userRepository.save(matchedUser)
+		}
+		await this.createStrictVerifiedIdentityBinding(manager, {
+			...input,
+			userId: String(matchedUser.id)
+		})
+		return matchedUser
+	}
+
+	private async createStrictVerifiedIdentityBinding(
+		manager: EntityManager,
+		input: VerifiedEmailLoginInput & {
+			userId: string
+		}
+	): Promise<ExternalIdentityBinding> {
+		const bindingRepository = manager.getRepository(ExternalIdentityBinding)
+		const [subjectBinding, userBinding] = await Promise.all([
+			bindingRepository.findOne({
+				where: {
+					tenantId: input.tenantId,
+					provider: input.provider,
+					subjectId: input.subjectId
+				}
+			}),
+			bindingRepository.findOne({
+				where: {
+					tenantId: input.tenantId,
+					provider: input.provider,
+					userId: input.userId
+				}
+			})
+		])
+
+		if (subjectBinding && subjectBinding.userId !== input.userId) {
+			throw new ConflictException(`This ${input.provider} identity is already bound to another Xpert account.`)
+		}
+		if (userBinding && userBinding.subjectId !== input.subjectId) {
+			throw new ConflictException(`This Xpert account is already bound to another ${input.provider} identity.`)
+		}
+
+		const binding = subjectBinding ?? userBinding
+		if (binding) {
+			if (input.profile !== undefined) {
+				binding.profile = this.normalizeVerifiedIdentityProfile(input.profile) ?? null
+				return bindingRepository.save(binding)
+			}
+			return binding
+		}
+
+		return bindingRepository.save(
+			bindingRepository.create({
+				tenantId: input.tenantId,
+				userId: input.userId,
+				provider: input.provider,
+				subjectId: input.subjectId,
+				profile: this.normalizeVerifiedIdentityProfile(input.profile) ?? null,
+				createdById: RequestContext.currentUserId() ?? undefined,
+				updatedById: RequestContext.currentUserId() ?? undefined
+			})
+		)
+	}
+
+	private normalizeVerifiedEmailLoginInput(input: VerifiedEmailLoginInput): VerifiedEmailLoginInput {
+		const provider = this.requireVerifiedSignupValue(input?.provider, 'provider')
+		const subjectId = this.requireVerifiedSignupValue(input?.subjectId, 'subjectId')
+		const tenantId = this.requireVerifiedSignupValue(input?.tenantId, 'tenantId')
+		const verifiedEmail = this.requireVerifiedSignupValue(input?.verifiedEmail, 'verifiedEmail').toLowerCase()
+		if (!verifiedEmail.includes('@') || /\s/.test(verifiedEmail)) {
+			throw new BadRequestException("'verifiedEmail' must be a valid email address.")
+		}
+
+		return {
+			provider,
+			subjectId,
+			tenantId,
+			verifiedEmail,
+			displayName: this.normalizeOptionalVerifiedIdentityValue(input?.displayName),
+			avatarUrl: this.normalizeOptionalVerifiedIdentityValue(input?.avatarUrl),
+			profile: this.normalizeVerifiedIdentityProfile(input?.profile),
+			returnTo: this.normalizeOptionalVerifiedIdentityValue(input?.returnTo)
+		}
+	}
+
+	private assertEligibleVerifiedIdentityUser(user: User | null): asserts user is User {
+		if (
+			!user ||
+			user.deletedAt ||
+			user.type !== UserType.USER ||
+			typeof user.hash !== 'string' ||
+			user.hash.trim().length === 0
+		) {
+			throw new ConflictException(
+				'The verified email or external identity belongs to an account that cannot use SSO login.'
+			)
+		}
+	}
+
+	private requireVerifiedSignupValue(value: string | null | undefined, field: string): string {
+		const normalized = this.normalizeOptionalVerifiedIdentityValue(value)
+		if (!normalized) {
+			throw new BadRequestException(`'${field}' is required.`)
+		}
+		return normalized
+	}
+
+	private normalizeOptionalVerifiedIdentityValue(value: string | null | undefined): string | undefined {
+		return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
+	}
+
+	private normalizeVerifiedIdentityProfile(
+		profile: Record<string, unknown> | null | undefined
+	): Record<string, any> | undefined {
+		if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+			return undefined
+		}
+		return JSON.parse(JSON.stringify(profile))
+	}
+
+	private rethrowVerifiedIdentityConflict(error: unknown): never {
+		if (
+			error instanceof QueryFailedError &&
+			(error as QueryFailedError & { driverError?: { code?: string } }).driverError?.code === '23505'
+		) {
+			throw new ConflictException('The external identity or Xpert account was bound by another request.')
+		}
+		throw error
+	}
+
+	private async lockTenantRegistrationScope(manager: EntityManager, tenantId: string): Promise<void> {
+		const tenant = await manager.getRepository(Tenant).findOne({
+			select: {
+				id: true
+			},
+			where: {
+				id: tenantId
+			},
+			lock: {
+				mode: 'pessimistic_write'
+			}
+		})
+		if (!tenant?.id) {
+			throw new BadRequestException(
+				t('server-ai:Error.RegistrationTenantRequired', {
+					defaultValue: 'Tenant is required for registration.'
+				})
+			)
+		}
 	}
 
 	async validateUser(email: string, password: string): Promise<any> {
@@ -363,6 +755,7 @@ export class AuthService extends SocialAuthService {
 
 		const registration = await this.dataSource.transaction(async (manager) => {
 			const userRepository = manager.getRepository(User)
+			await this.lockTenantRegistrationScope(manager, tenantId)
 			const where: FindOptionsWhere<User>[] = []
 			if (normalizedEmail) {
 				where.push({
