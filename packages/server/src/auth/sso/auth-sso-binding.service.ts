@@ -1,6 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { LanguagesEnum } from '@xpert-ai/contracts'
-import type { PendingSsoBindingFlow } from '@xpert-ai/plugin-sdk'
 import bcrypt from 'bcryptjs'
 import { AccountBindingService } from '../../account-binding'
 import { RequestContext } from '../../core/context'
@@ -8,13 +7,16 @@ import { UserService } from '../../user'
 import { AuthService } from '../auth.service'
 import {
 	PendingSsoBindingChallengeRecord,
-	PendingSsoBindingChallengeService
+	PendingSsoBindingChallengeService,
+	PendingSsoChallengeFlow
 } from './pending-sso-binding-challenge.service'
 
 export interface AuthSsoBindChallengeView {
+	flow: PendingSsoChallengeFlow
 	provider: string
 	displayName?: string
 	avatarUrl?: string
+	email?: string
 	tenantScoped: true
 	expiresAt: string
 }
@@ -51,7 +53,7 @@ export class AuthSsoBindingService {
 	) {}
 
 	async getChallenge(ticket?: string): Promise<AuthSsoBindChallengeView> {
-		const challenge = await this.getRequiredChallenge(ticket, 'anonymous_bind')
+		const challenge = await this.getRequiredPublicChallenge(ticket)
 		return this.toChallengeView(challenge)
 	}
 
@@ -114,7 +116,11 @@ export class AuthSsoBindingService {
 		input: RegisterAndBindSsoInput,
 		languageCode: LanguagesEnum
 	): Promise<CompletedSsoBindingResult> {
-		const challenge = await this.getRequiredChallenge(input?.ticket, 'anonymous_bind')
+		const challenge = await this.getRequiredRegistrationChallenge(input?.ticket)
+		if (challenge.flow === 'verified_email_signup') {
+			return this.registerVerifiedEmailIdentity(input, challenge, languageCode)
+		}
+
 		const email = this.requireValue(input?.email, 'email').toLowerCase()
 		const password = this.requireValue(input?.password, 'password')
 		const confirmPassword = this.requireValue(input?.confirmPassword, 'confirmPassword')
@@ -161,7 +167,52 @@ export class AuthSsoBindingService {
 		}
 	}
 
-	private async getRequiredChallenge(ticket: string | undefined, expectedFlow: PendingSsoBindingFlow) {
+	private async registerVerifiedEmailIdentity(
+		input: RegisterAndBindSsoInput,
+		challenge: PendingSsoBindingChallengeRecord,
+		languageCode: LanguagesEnum
+	): Promise<CompletedSsoBindingResult> {
+		const verifiedEmail = this.requireValue(challenge.verifiedEmail ?? undefined, 'verifiedEmail').toLowerCase()
+		const submittedEmail = typeof input?.email === 'string' ? input.email.trim().toLowerCase() : ''
+		if (submittedEmail && submittedEmail !== verifiedEmail) {
+			throw new BadRequestException('The verified email cannot be changed.')
+		}
+
+		const registration = await this.authService.registerVerifiedExternalIdentity(
+			{
+				provider: challenge.provider,
+				subjectId: challenge.subjectId,
+				tenantId: challenge.tenantId,
+				verifiedEmail,
+				displayName: challenge.displayName ?? undefined,
+				avatarUrl: challenge.avatarUrl ?? undefined,
+				profile: challenge.profile ?? undefined,
+				returnTo: challenge.returnTo ?? undefined,
+				password: input.password,
+				confirmPassword: input.confirmPassword,
+				referralCode: input.referralCode
+			},
+			languageCode
+		)
+
+		const consumedChallenge = await this.pendingSsoBindingChallengeService.consume(challenge.ticket)
+		if (
+			!consumedChallenge ||
+			consumedChallenge.flow !== 'verified_email_signup' ||
+			consumedChallenge.provider !== challenge.provider ||
+			consumedChallenge.subjectId !== challenge.subjectId ||
+			consumedChallenge.tenantId !== challenge.tenantId
+		) {
+			throw new BadRequestException('SSO binding session has expired. Please sign in again.')
+		}
+
+		const tokens = await this.authService.issueTokensForUser(registration.user.id)
+		return {
+			location: this.buildSignInSuccessLocation(tokens, challenge.returnTo ?? undefined)
+		}
+	}
+
+	private async getRequiredChallenge(ticket: string | undefined, expectedFlow: PendingSsoChallengeFlow) {
 		const normalizedTicket = this.requireValue(ticket, 'ticket')
 		const challenge = await this.pendingSsoBindingChallengeService.get(normalizedTicket)
 
@@ -174,6 +225,19 @@ export class AuthSsoBindingService {
 		}
 
 		return challenge
+	}
+
+	private async getRequiredPublicChallenge(ticket?: string) {
+		const normalizedTicket = this.requireValue(ticket, 'ticket')
+		const challenge = await this.pendingSsoBindingChallengeService.get(normalizedTicket)
+		if (!challenge || (challenge.flow !== 'anonymous_bind' && challenge.flow !== 'verified_email_signup')) {
+			throw new BadRequestException('SSO binding session has expired. Please sign in again.')
+		}
+		return challenge
+	}
+
+	private async getRequiredRegistrationChallenge(ticket?: string) {
+		return this.getRequiredPublicChallenge(ticket)
 	}
 
 	private async getRequiredCurrentUserChallenge(ticket?: string) {
@@ -194,9 +258,15 @@ export class AuthSsoBindingService {
 
 	private toChallengeView(challenge: PendingSsoBindingChallengeRecord): AuthSsoBindChallengeView {
 		return {
+			flow: challenge.flow,
 			provider: challenge.provider,
 			displayName: challenge.displayName ?? undefined,
 			avatarUrl: challenge.avatarUrl ?? undefined,
+			...(challenge.flow === 'verified_email_signup' && challenge.verifiedEmail
+				? {
+						email: challenge.verifiedEmail
+					}
+				: {}),
 			tenantScoped: true,
 			expiresAt: challenge.expiresAt
 		}

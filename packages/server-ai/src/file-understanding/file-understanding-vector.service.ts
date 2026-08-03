@@ -32,6 +32,26 @@ type StoredFileEmbeddingMetadata = {
     collectionScope?: FileVectorCollectionScope
 }
 
+const MAX_EMBEDDING_BATCH_CHARACTERS = 12_000
+
+export class FileUnderstandingVectorUnavailableError extends Error {
+    readonly code = 'file_understanding_embedding_unavailable'
+
+    constructor() {
+        super('An enabled Embedding model is required for deep file understanding')
+        this.name = 'FileUnderstandingVectorUnavailableError'
+    }
+}
+
+export class FileUnderstandingVectorIndexError extends Error {
+    readonly code = 'file_understanding_vector_index_failed'
+
+    constructor(message: string) {
+        super(message)
+        this.name = 'FileUnderstandingVectorIndexError'
+    }
+}
+
 @Injectable()
 export class FileUnderstandingVectorService {
     readonly #logger = new Logger(FileUnderstandingVectorService.name)
@@ -60,6 +80,9 @@ export class FileUnderstandingVectorService {
         })
         if (!target) {
             this.#logger.debug(`[FILE_VECTOR_DEBUG][index:skip] fileAssetId=${asset.id} reason=no-vector-target`)
+            if (asset.parseMode === 'deep') {
+                throw new FileUnderstandingVectorUnavailableError()
+            }
             return []
         }
 
@@ -120,6 +143,12 @@ export class FileUnderstandingVectorService {
             )
         } catch (error) {
             this.#logger.warn(`Failed to index file vectors for ${asset.id}: ${getErrorMessage(error)}`)
+            if (asset.parseMode === 'deep') {
+                if (error instanceof FileUnderstandingVectorUnavailableError) {
+                    throw error
+                }
+                throw new FileUnderstandingVectorIndexError(getErrorMessage(error))
+            }
             return []
         }
     }
@@ -136,6 +165,9 @@ export class FileUnderstandingVectorService {
         })
         if (!target) {
             this.#logger.debug(`[FILE_VECTOR_DEBUG][search:skip] fileAssetId=${asset.id} reason=no-vector-target`)
+            if (asset.parseMode === 'deep') {
+                throw new FileUnderstandingVectorUnavailableError()
+            }
             return []
         }
 
@@ -160,6 +192,11 @@ export class FileUnderstandingVectorService {
             this.#logger.debug(
                 `[FILE_VECTOR_DEBUG][search:skip] fileAssetId=${asset.id} collectionName=${target.collectionName} reason=no-indexed-chunks-for-collection`
             )
+            if (asset.parseMode === 'deep') {
+                throw new FileUnderstandingVectorIndexError(
+                    'The deep-understanding file does not have a usable semantic index'
+                )
+            }
             return []
         }
 
@@ -186,6 +223,15 @@ export class FileUnderstandingVectorService {
             return chunkIds
         } catch (error) {
             this.#logger.warn(`Failed to search file vectors for ${asset.id}: ${getErrorMessage(error)}`)
+            if (asset.parseMode === 'deep') {
+                if (
+                    error instanceof FileUnderstandingVectorUnavailableError ||
+                    error instanceof FileUnderstandingVectorIndexError
+                ) {
+                    throw error
+                }
+                throw new FileUnderstandingVectorIndexError(getErrorMessage(error))
+            }
             return []
         }
     }
@@ -238,6 +284,8 @@ export class FileUnderstandingVectorService {
         }
 
         const dimensions = await this.resolveEmbeddingDimensions(embeddings.embeddings, embeddings.copilotModel)
+        applyEmbeddingDimensions(embeddings.embeddings, dimensions)
+        const validatedEmbeddings = createValidatedFileEmbeddings(embeddings.embeddings, dimensions)
         const provider = getEmbeddingProviderName(embeddings.copilotModel)
         const model = getEmbeddingModelName(embeddings.copilotModel)
         const fingerprint = createEmbeddingFingerprint({
@@ -260,7 +308,7 @@ export class FileUnderstandingVectorService {
             dimensions,
             provider,
             model,
-            embeddings: embeddings.embeddings
+            embeddings: validatedEmbeddings
         }
     }
 
@@ -343,6 +391,78 @@ function readConfiguredDimensions(copilotModel: TCopilotModel) {
     }
     const dimension = copilotModel.options?.dimension
     return typeof dimension === 'number' ? dimension : null
+}
+
+function applyEmbeddingDimensions(embeddings: EmbeddingsInterface, dimensions: number | null) {
+    if (!dimensions) {
+        return
+    }
+
+    const configurable = embeddings as EmbeddingsInterface & { dimensions?: number }
+    configurable.dimensions = dimensions
+}
+
+function createValidatedFileEmbeddings(
+    embeddings: EmbeddingsInterface,
+    expectedDimensions: number | null
+): EmbeddingsInterface {
+    return {
+        async embedQuery(document: string) {
+            return validateEmbeddingVector(await embeddings.embedQuery(document), expectedDimensions)
+        },
+        async embedDocuments(documents: string[]) {
+            const vectors: number[][] = []
+            for (const batch of createEmbeddingBatches(documents)) {
+                const batchVectors = await embeddings.embedDocuments(batch)
+                if (batchVectors.length !== batch.length) {
+                    throw new Error(
+                        `Embedding model returned ${batchVectors.length} vectors for ${batch.length} documents`
+                    )
+                }
+                vectors.push(...batchVectors.map((vector) => validateEmbeddingVector(vector, expectedDimensions)))
+            }
+            return vectors
+        }
+    }
+}
+
+function createEmbeddingBatches(documents: string[]) {
+    const batches: string[][] = []
+    let batch: string[] = []
+    let batchCharacters = 0
+    for (const document of documents) {
+        if (batch.length && batchCharacters + document.length > MAX_EMBEDDING_BATCH_CHARACTERS) {
+            batches.push(batch)
+            batch = []
+            batchCharacters = 0
+        }
+        batch.push(document)
+        batchCharacters += document.length
+    }
+    if (batch.length) {
+        batches.push(batch)
+    }
+    return batches
+}
+
+function validateEmbeddingVector(vector: number[], expectedDimensions: number | null) {
+    if (!Array.isArray(vector) || !vector.length) {
+        throw new Error('Embedding model returned an empty vector')
+    }
+    if (expectedDimensions && vector.length !== expectedDimensions) {
+        throw new Error(`Embedding model returned ${vector.length} dimensions; expected ${expectedDimensions}`)
+    }
+    let squaredNorm = 0
+    for (const value of vector) {
+        if (!Number.isFinite(value)) {
+            throw new Error('Embedding model returned a non-finite vector value')
+        }
+        squaredNorm += value * value
+    }
+    if (squaredNorm === 0) {
+        throw new Error('Embedding model returned a zero vector')
+    }
+    return vector
 }
 
 function readCollectionName(metadata?: Record<string, unknown>) {

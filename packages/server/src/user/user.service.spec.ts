@@ -39,6 +39,10 @@ jest.mock('../feature/feature-organization.entity', () => ({
 	FeatureOrganization: class FeatureOrganization {}
 }))
 
+jest.mock('../account-binding/external-identity-binding.entity', () => ({
+	ExternalIdentityBinding: class ExternalIdentityBinding {}
+}))
+
 jest.mock('./dto', () => ({
 	UserPublicDTO: class UserPublicDTO {
 		constructor(input?: Record<string, unknown>) {
@@ -65,6 +69,8 @@ jest.mock('./events', () => ({
 const { RequestContext } = require('../core/context')
 const { BadRequestException } = require('@nestjs/common')
 const { RolesEnum, UserType } = require('@xpert-ai/contracts')
+const { ExternalIdentityBinding } = require('../account-binding/external-identity-binding.entity')
+const { User } = require('./user.entity')
 const { UserService } = require('./user.service')
 
 describe('UserService', () => {
@@ -74,7 +80,18 @@ describe('UserService', () => {
 		findOne: jest.fn(),
 		createQueryBuilder: jest.fn(),
 		softDelete: jest.fn(),
+		manager: {
+			transaction: jest.fn()
+		}
+	}
+	const transactionalUserRepository = {
+		softDelete: jest.fn()
+	}
+	const externalIdentityBindingRepository = {
 		delete: jest.fn()
+	}
+	const transactionManager = {
+		getRepository: jest.fn()
 	}
 	const emailVerificationRepository = {}
 	const userOrganizationService = {
@@ -100,6 +117,16 @@ describe('UserService', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks()
+		transactionManager.getRepository.mockImplementation((entity) => {
+			if (entity === User) {
+				return transactionalUserRepository
+			}
+			if (entity === ExternalIdentityBinding) {
+				return externalIdentityBindingRepository
+			}
+			throw new Error(`Unexpected transaction repository: ${entity?.name}`)
+		})
+		userRepository.manager.transaction.mockImplementation(async (callback) => callback(transactionManager))
 		RequestContext.currentUserId.mockReturnValue('requester-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
 		RequestContext.currentRoleId.mockReturnValue('role-1')
@@ -512,7 +539,7 @@ describe('UserService', () => {
 		})
 	})
 
-	it('removes user organizations through the service and emits deletion events before soft deleting the user', async () => {
+	it('removes memberships and external identity bindings before soft deleting the user', async () => {
 		userRepository.findOne.mockResolvedValue({
 			id: 'user-1',
 			tenantId: 'tenant-1',
@@ -528,7 +555,8 @@ describe('UserService', () => {
 			getCount: jest.fn().mockResolvedValue(1)
 		}
 		userRepository.createQueryBuilder.mockReturnValue(queryBuilder)
-		userRepository.softDelete.mockResolvedValue({ affected: 1 })
+		transactionalUserRepository.softDelete.mockResolvedValue({ affected: 1 })
+		externalIdentityBindingRepository.delete.mockResolvedValue({ affected: 1 })
 
 		userOrganizationService.findAll.mockResolvedValue({
 			items: [
@@ -581,7 +609,15 @@ describe('UserService', () => {
 				userId: 'user-1'
 			})
 		)
-		expect(userRepository.softDelete).toHaveBeenCalledWith('user-1')
+		expect(userRepository.manager.transaction).toHaveBeenCalledTimes(1)
+		expect(externalIdentityBindingRepository.delete).toHaveBeenCalledWith({
+			tenantId: 'tenant-1',
+			userId: 'user-1'
+		})
+		expect(transactionalUserRepository.softDelete).toHaveBeenCalledWith({
+			id: 'user-1',
+			tenantId: 'tenant-1'
+		})
 	})
 
 	it('rejects profile updates for technical users', async () => {

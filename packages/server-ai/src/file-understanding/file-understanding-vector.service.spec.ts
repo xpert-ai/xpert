@@ -26,7 +26,8 @@ function createService(options?: { addDocuments?: jest.Mock }) {
         })
     }
     const embeddings = {
-        embedQuery: jest.fn().mockResolvedValue([0.1, 0.2, 0.3])
+        embedQuery: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+        embedDocuments: jest.fn(async (documents: string[]) => documents.map(() => [0.1, 0.2, 0.3]))
     }
     const copilot = {
         id: 'copilot-1',
@@ -111,7 +112,7 @@ function expectedFingerprint() {
 
 describe('FileUnderstandingVectorService', () => {
     it('uses xpert and embedding fingerprint for the collection when xpertId exists', async () => {
-        const { service, commandBus, fileEmbeddingRepository } = createService()
+        const { service, commandBus, fileEmbeddingRepository, embeddings } = createService()
 
         await service.indexChunks(asset({ xpertId: 'xpert-1', projectId: 'project-1' }), [chunk('chunk-1')])
 
@@ -123,6 +124,7 @@ describe('FileUnderstandingVectorService', () => {
             fingerprint: expectedFingerprint(),
             dimensions: 3
         })
+        expect((embeddings as typeof embeddings & { dimensions?: number }).dimensions).toBe(3)
     })
 
     it('falls back to project scope and then tenant scope for collection names', async () => {
@@ -146,5 +148,29 @@ describe('FileUnderstandingVectorService', () => {
 
         await expect(service.indexChunks(asset({ xpertId: 'xpert-1' }), [chunk('chunk-1')])).resolves.toEqual([])
         expect(fileEmbeddingRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('bounds embedding requests by aggregate document size and validates the vectors', async () => {
+        const { service, commandBus, embeddings } = createService()
+
+        await service.indexChunks(asset({ xpertId: 'xpert-1', parseMode: 'deep' }), [chunk('chunk-1')])
+
+        const configuredEmbeddings = (commandBus.execute.mock.calls[0][0] as RagCreateVStoreCommand).embeddings
+        const documents = ['a'.repeat(6_000), 'b'.repeat(6_000), 'c'.repeat(6_000)]
+        await expect(configuredEmbeddings.embedDocuments(documents)).resolves.toHaveLength(3)
+        expect(embeddings.embedDocuments).toHaveBeenCalledTimes(2)
+        expect(embeddings.embedDocuments.mock.calls.map(([batch]) => batch.length)).toEqual([2, 1])
+    })
+
+    it('rejects invalid vectors before they can be written or searched', async () => {
+        const { service, commandBus, embeddings } = createService()
+        embeddings.embedDocuments.mockResolvedValue([[0, 0, 0]])
+
+        await service.indexChunks(asset({ xpertId: 'xpert-1', parseMode: 'deep' }), [chunk('chunk-1')])
+
+        const configuredEmbeddings = (commandBus.execute.mock.calls[0][0] as RagCreateVStoreCommand).embeddings
+        await expect(configuredEmbeddings.embedDocuments(['content'])).rejects.toThrow(
+            'Embedding model returned a zero vector'
+        )
     })
 })
