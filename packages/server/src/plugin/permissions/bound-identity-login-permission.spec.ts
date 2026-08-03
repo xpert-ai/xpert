@@ -71,10 +71,10 @@ describe('Bound identity login plugin permissions', () => {
 
 	it('denies calls when bound_identity_login.create is not declared', () => {
 		const guardedService = createGuardedBoundIdentityLoginPermissionService('demo-plugin', service, [
-			{
-				type: 'bound_identity_login',
-				operations: ['read' as any]
-			}
+				{
+					type: 'bound_identity_login',
+					operations: ['read' as any]
+				}
 		] as Permissions)
 
 		expect(() =>
@@ -106,11 +106,11 @@ describe('Bound identity login plugin permissions', () => {
 
 	it('denies calls for undeclared providers', async () => {
 		const guardedService = createGuardedBoundIdentityLoginPermissionService('demo-plugin', service, [
-			{
-				type: 'bound_identity_login',
-				operations: ['create'],
-				providers: ['github']
-			}
+				{
+					type: 'bound_identity_login',
+					operations: ['create'],
+					providers: ['github']
+				}
 		] as Permissions)
 
 		expect(() =>
@@ -137,11 +137,11 @@ describe('Bound identity login plugin permissions', () => {
 
 	it('issues tokens only after resolving the bound user in the host', async () => {
 		const guardedService = createGuardedBoundIdentityLoginPermissionService('demo-plugin', service, [
-			{
-				type: 'bound_identity_login',
-				operations: ['create'],
-				providers: ['lark']
-			}
+				{
+					type: 'bound_identity_login',
+					operations: ['create'],
+					providers: ['lark']
+				}
 		] as Permissions)
 
 		await expect(
@@ -179,7 +179,7 @@ describe('Bound identity login plugin permissions', () => {
 				subjectId: '123',
 				tenantId: 'tenant-1',
 				verifiedEmail: 'alice@example.com'
-			})
+})
 		).toThrow(/without declaring it in 'bound_identity_login.providers'/)
 
 		await expect(

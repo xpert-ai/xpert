@@ -56,8 +56,8 @@ export function createGuardedBoundIdentityLoginPermissionService(
 	permissions: Permissions
 ): BoundIdentityLoginPermissionService {
 	const operationGuardedService = createOperationGuardedPermissionService<
-		BoundIdentityLoginPermissionOperation,
-		BoundIdentityLoginPermissionService
+			BoundIdentityLoginPermissionOperation,
+			BoundIdentityLoginPermissionService
 	>(pluginName, 'bound_identity_login', service, permissions, resolveBoundIdentityLoginOperations)
 	const allowedProviders = resolveAllowedProviders(permissions)
 
@@ -165,7 +165,7 @@ export class PluginBoundIdentityLoginPermissionService implements BoundIdentityL
 			})
 			if (!service) {
 				throw new Error('PendingSsoBindingChallengeService is not available.')
-			}
+}
 			return service
 		} catch {
 			throw new Error('PendingSsoBindingChallengeService is not available.')
