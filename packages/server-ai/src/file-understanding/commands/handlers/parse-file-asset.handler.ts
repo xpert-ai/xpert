@@ -15,6 +15,10 @@ import {
 import { ParsedFileArtifact } from '../../domain/types'
 import { FileArtifact, FileAsset, FileChunk } from '../../entities'
 import { FileWorkspaceProjectionService } from '../../file-workspace-projection.service'
+import {
+    FileUnderstandingVectorIndexError,
+    FileUnderstandingVectorUnavailableError
+} from '../../file-understanding-vector.service'
 import { FileParserRegistry } from '../../parsers'
 import { normalizeRelativePath } from '../../../shared/file-upload-targets/utils'
 import { IndexFileChunksCommand } from '../index-file-chunks.command'
@@ -103,6 +107,15 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
             )
             asset.status = 'failed'
             asset.error = error instanceof Error ? error.message : String(error)
+            asset.metadata = {
+                ...(asset.metadata ?? {}),
+                understandingErrorCode:
+                    error instanceof FileUnderstandingVectorUnavailableError
+                        ? error.code
+                        : error instanceof FileUnderstandingVectorIndexError
+                          ? error.code
+                          : 'file_understanding_parse_failed'
+            }
             asset.failedAt = new Date()
             return this.fileAssetRepository.save(asset)
         }

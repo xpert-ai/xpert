@@ -14,6 +14,7 @@ export const WORKSPACE_FILES_SOURCE = 'platform.workspace.files' as const
  */
 export type WorkspaceFileScope = {
   tenantId?: string | null
+  organizationId?: string | null
   userId?: string | null
   catalog?: WorkspaceFileCatalog | null
   scopeId?: string | null
@@ -168,6 +169,45 @@ export type WorkspaceUnderstoodFile = WorkspaceFile & {
   summary?: string
 }
 
+export type WorkspaceUnderstandingVectorStatus = 'pending' | 'ready' | 'failed' | 'unavailable'
+
+export type WorkspaceUnderstandingStatusInput = WorkspaceFileScope & {
+  fileAssetId: string
+}
+
+/** Compact readiness DTO for an understood file. It never contains parsed text. */
+export type WorkspaceUnderstandingStatus = {
+  fileAssetId: string
+  status: string
+  parseMode: string
+  capabilities: string[]
+  chunkCount: number
+  indexedChunkCount: number
+  vectorIndexStatus: WorkspaceUnderstandingVectorStatus
+  errorCode?: string
+  parsedAt?: string
+}
+
+export type WorkspaceRetryUnderstandingInput = WorkspaceUnderstandingStatusInput
+
+export type WorkspaceUnderstandingReferenceInput = {
+  fileAssetId: string
+  chunkId: string
+}
+
+export type WorkspaceValidateUnderstandingReferencesInput = WorkspaceFileScope & {
+  references: WorkspaceUnderstandingReferenceInput[]
+  excerptLength?: number
+}
+
+export type WorkspaceValidatedUnderstandingReference = {
+  fileAssetId: string
+  chunkId: string
+  orderNo: number
+  anchor?: Record<string, unknown>
+  excerpt: string
+}
+
 /**
  * Runtime capability contract for reading, writing, uploading, deleting, and
  * understanding files in Xpert workspace Volumes.
@@ -178,6 +218,17 @@ export interface WorkspaceFilesApi {
 
   /** Register an existing workspace file with the platform understanding pipeline. */
   understandFile(input: WorkspaceUnderstandFileInput): Promise<WorkspaceUnderstoodFile>
+
+  /** Return compact parsing and semantic-index readiness for one scoped FileAsset. */
+  getUnderstandingStatus(input: WorkspaceUnderstandingStatusInput): Promise<WorkspaceUnderstandingStatus>
+
+  /** Retry parsing and semantic indexing for one failed scoped FileAsset. */
+  retryUnderstanding(input: WorkspaceRetryUnderstandingInput): Promise<WorkspaceUnderstandingStatus>
+
+  /** Validate bounded FileAsset/chunk evidence without returning complete file contents. */
+  validateUnderstandingReferences(
+    input: WorkspaceValidateUnderstandingReferencesInput
+  ): Promise<WorkspaceValidatedUnderstandingReference[]>
 
   /**
    * Resolve metadata and an openable URL for an explicitly scoped workspace

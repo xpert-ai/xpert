@@ -87,6 +87,7 @@
         "turndown": "7.2.0",
         "typeorm": "^0.3.24",
         "uuid": "^10.0.0",
+        "word-extractor": "1.0.4",
         "xlsx": "^0.18.5",
         "xmldom": "^0.6.0",
         "yjs": "13.6.31",

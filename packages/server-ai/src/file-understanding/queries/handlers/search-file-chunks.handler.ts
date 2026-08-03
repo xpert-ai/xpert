@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Logger } from '@nestjs/common'
-import { ILike, In, Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { FileAsset, FileChunk } from '../../entities'
 import { FileUnderstandingVectorService } from '../../file-understanding-vector.service'
 import { SearchFileChunksQuery } from '../search-file-chunks.query'
@@ -37,18 +37,15 @@ export class SearchFileChunksHandler implements IQueryHandler<SearchFileChunksQu
             })
         }
 
-        const vectorChunks = await this.searchVectorChunks(query.input.fileId, search, limit)
-        if (vectorChunks.length) {
-            this.#logger.debug(
-                `[FILE_VECTOR_DEBUG][search:return] fileAssetId=${query.input.fileId} source=vector chunks=${vectorChunks.length} query="${search}"`
-            )
-            return vectorChunks
-        }
-
+        const [vectorChunks, textChunks] = await Promise.all([
+            this.searchVectorChunks(query.input.fileId, search, limit * 2),
+            this.searchTextChunks(query.input.fileId, search, limit * 2)
+        ])
+        const chunks = reciprocalRankMerge(vectorChunks, textChunks).slice(0, limit)
         this.#logger.debug(
-            `[FILE_VECTOR_DEBUG][search:return] fileAssetId=${query.input.fileId} source=text-fallback query="${search}" limit=${limit}`
+            `[FILE_VECTOR_DEBUG][search:return] fileAssetId=${query.input.fileId} source=hybrid vector=${vectorChunks.length} keyword=${textChunks.length} chunks=${chunks.length} query="${search}"`
         )
-        return this.searchTextChunks(query.input.fileId, search, limit)
+        return chunks
     }
 
     private async searchVectorChunks(fileId: string, search: string, limit: number) {
@@ -80,13 +77,41 @@ export class SearchFileChunksHandler implements IQueryHandler<SearchFileChunksQu
     }
 
     private searchTextChunks(fileId: string, search: string, limit: number) {
-        return this.repository.find({
-            where: {
-                fileAssetId: fileId,
-                content: ILike(`%${search}%`)
-            },
-            order: { orderNo: 'ASC' },
-            take: limit
+        const terms = tokenizeSearch(search)
+        const query = this.repository
+            .createQueryBuilder('chunk')
+            .where('chunk.fileAssetId = :fileId', { fileId })
+            .orderBy('chunk.orderNo', 'ASC')
+            .take(limit)
+        if (terms.length) {
+            query.andWhere(
+                `(${terms.map((_, index) => `chunk.content ILIKE :term${index}`).join(' OR ')})`,
+                Object.fromEntries(terms.map((term, index) => [`term${index}`, `%${term}%`]))
+            )
+        }
+        return query.getMany()
+    }
+}
+
+function tokenizeSearch(search: string) {
+    const tokens = search
+        .split(/[\s,，。;；:：、]+/)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 2)
+    return [...new Set(tokens.length ? tokens : [search])].slice(0, 6)
+}
+
+function reciprocalRankMerge(vectorChunks: FileChunk[], textChunks: FileChunk[]) {
+    const scores = new Map<string, number>()
+    const chunks = new Map<string, FileChunk>()
+    for (const list of [vectorChunks, textChunks]) {
+        list.forEach((chunk, index) => {
+            chunks.set(chunk.id, chunk)
+            scores.set(chunk.id, (scores.get(chunk.id) ?? 0) + 1 / (60 + index + 1))
         })
     }
+    return [...chunks.values()].sort((left, right) => {
+        const scoreDifference = (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0)
+        return scoreDifference || left.orderNo - right.orderNo
+    })
 }
