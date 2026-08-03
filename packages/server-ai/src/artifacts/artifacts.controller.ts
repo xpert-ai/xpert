@@ -318,7 +318,7 @@ function buildHtmlCsp(profile?: 'strict' | 'interactive' | null) {
             "frame-src 'none'",
             "base-uri 'none'",
             "form-action 'none'",
-            "frame-ancestors 'none'"
+            'frame-ancestors *'
         ].join('; ')
     }
     return [
@@ -333,7 +333,7 @@ function buildHtmlCsp(profile?: 'strict' | 'interactive' | null) {
         "frame-src 'none'",
         "base-uri 'none'",
         "form-action 'none'",
-        "frame-ancestors 'none'"
+        'frame-ancestors *'
     ].join('; ')
 }
 

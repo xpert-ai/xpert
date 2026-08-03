@@ -119,6 +119,8 @@ describe('Artifact share controllers', () => {
         expect(csp).toContain("form-action 'none'")
         expect(csp).toContain("base-uri 'none'")
         expect(csp).toContain("frame-src 'none'")
+        expect(csp).toContain('frame-ancestors *')
+        expect(csp).not.toContain("frame-ancestors 'none'")
     })
 
     it('redirects an unauthenticated private share to the auth handshake without rendering content', async () => {
@@ -163,6 +165,8 @@ describe('Artifact share controllers', () => {
         expect(csp).not.toContain('script-src')
         expect(csp).toContain("style-src 'unsafe-inline' https:")
         expect(csp).toContain('font-src data: https:')
+        expect(csp).toContain('frame-ancestors *')
+        expect(csp).not.toContain("frame-ancestors 'none'")
     })
 
     it('returns a share descriptor without redirecting to the raw HTML viewer', async () => {
