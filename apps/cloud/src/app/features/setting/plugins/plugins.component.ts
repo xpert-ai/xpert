@@ -101,6 +101,8 @@ export class PluginsComponent {
   readonly #toolsetService = inject(XpertToolsetService)
   readonly runtimeRestart = inject(PluginRuntimeRestartService)
   readonly marketplace = viewChild(PluginsMarketplaceComponent)
+  readonly reloadInstalledPluginsCallback = () => this.reload()
+  readonly refreshStrategyCachesCallback = () => this.refreshStrategyCaches()
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
   readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
   readonly archiveInstallDialog = viewChild('archiveInstallDialog', { read: TemplateRef })
