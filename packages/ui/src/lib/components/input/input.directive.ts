@@ -41,14 +41,14 @@ import {
 })
 export class ZardInputDirective implements ControlValueAccessor {
   private readonly elementRef = inject(ElementRef);
-  private onChange: (value: string) => void = () => undefined;
+  private onChange: (value: string | number | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
   readonly class = input<ClassValue>('');
   readonly zBorderless = input(false, { transform: booleanAttribute });
   readonly zSize = input<ZardInputSizeVariants>('default');
   readonly zStatus = input<ZardInputStatusVariants>();
-  readonly value = model<string>('');
+  readonly value = model<string | number>('');
 
   readonly size = linkedSignal<ZardInputSizeVariants>(() => this.zSize());
 
@@ -78,11 +78,11 @@ export class ZardInputDirective implements ControlValueAccessor {
     this.elementRef.nativeElement.disabled = b;
   }
 
-  writeValue(value: string | null | undefined): void {
+  writeValue(value: string | number | null | undefined): void {
     this.value.set(value ?? '');
   }
 
-  registerOnChange(fn: (value: string) => void): void {
+  registerOnChange(fn: (value: string | number | null) => void): void {
     this.onChange = fn;
   }
 
@@ -104,7 +104,7 @@ export class ZardInputDirective implements ControlValueAccessor {
     const el = target as HTMLInputElement | HTMLTextAreaElement | null;
     const value = el?.value ?? '';
     this.value.set(value);
-    this.onChange(value);
+    this.onChange(el instanceof HTMLInputElement && el.type === 'number' ? (value === '' ? null : el.valueAsNumber) : value);
   }
 
   protected markAsTouched(): void {
