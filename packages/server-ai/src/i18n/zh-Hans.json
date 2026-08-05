@@ -196,7 +196,8 @@
         "WorkspaceFileAccessNotFound": "未找到 Workspace 文件。",
         "WorkspaceFileAccessDenied": "Workspace 文件访问被拒绝。",
         "WorkspaceFileAccessInvalidReference": "View 文件访问需要限定作用域的 Workspace Files 引用。",
-        "WorkspaceFileAccessUnavailable": "Workspace 文件访问功能尚未配置。"
+        "WorkspaceFileAccessUnavailable": "Workspace 文件访问功能尚未配置。",
+        "WorkspaceFileUploadRequired": "必须提供 Workspace 文件。"
     },
     "ModelGateway": {
         "PrivilegedRequestApproved": "模型审批管理员申请后自动通过。"

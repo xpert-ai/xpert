@@ -234,8 +234,8 @@ describe('ArtifactsService', () => {
     })
 
     it('isolates management content and stable source identity by user and organization', async () => {
-        const html = '<!doctype html><html><body>Live analytics</body></html>'
-        const filePath = 'exports/live-analytics.html'
+        const html = '<!doctype html><html><body>Organization report</body></html>'
+        const filePath = 'exports/organization-report.html'
         writeWorkspaceFile(filePath, html)
         const ownerApi = service.createScopedApi({
             tenantId: 'tenant-1',
@@ -244,9 +244,9 @@ describe('ArtifactsService', () => {
         })
         const artifact = await ownerApi.createArtifact({
             source: {
-                pluginName: '@xpert-ai/datax-live-artifacts',
-                resourceType: 'live-artifact-draft',
-                resourceId: 'draft-1'
+                pluginName: '@xpert-ai/plugin-report-studio',
+                resourceType: 'report',
+                resourceId: 'report-1'
             },
             kind: 'html'
         })
@@ -299,9 +299,9 @@ describe('ArtifactsService', () => {
         await expect(
             secondUserApi.createArtifact({
                 source: {
-                    pluginName: '@xpert-ai/datax-live-artifacts',
-                    resourceType: 'live-artifact-draft',
-                    resourceId: 'draft-1'
+                    pluginName: '@xpert-ai/plugin-report-studio',
+                    resourceType: 'report',
+                    resourceId: 'report-1'
                 },
                 kind: 'html'
             })
