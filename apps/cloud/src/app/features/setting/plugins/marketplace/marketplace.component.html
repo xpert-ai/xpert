@@ -277,6 +277,8 @@
                 class="group relative rounded-xl hover:bg-hover-bg"
                 [plugin]="plugin"
                 [publicCatalog]="publicCatalog()"
+                [reloadInstalledPlugins]="reloadInstalledPlugins()"
+                [refreshStrategies]="refreshStrategies()"
                 (pluginInstalled)="markPluginInstalled($event)"
               />
             }

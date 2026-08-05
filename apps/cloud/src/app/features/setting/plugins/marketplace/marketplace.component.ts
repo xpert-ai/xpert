@@ -101,6 +101,8 @@ export class PluginsMarketplaceComponent {
   readonly i18nService = inject(I18nService)
   readonly i18n = new XpI18nPipe()
   readonly publicCatalog = input(false)
+  readonly reloadInstalledPlugins = input<() => void>(() => undefined)
+  readonly refreshStrategies = input<(() => void) | undefined>()
 
   readonly addSourceDialog = viewChild('addSourceDialog', { read: TemplateRef })
   readonly registryDialog = viewChild('registryDialog', { read: TemplateRef })
