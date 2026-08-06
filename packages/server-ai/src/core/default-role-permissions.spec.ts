@@ -9,7 +9,7 @@ describe('AI default role permissions', () => {
         expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_EDIT)
     })
 
-    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.ANALYTICS_BUILDER, RolesEnum.VIEWER])(
+    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
         'does not give %s membership administration permissions',
         (role) => {
             expect(permissionsFor(role)).not.toContain(AIPermissionsEnum.MEMBERSHIP_EDIT)
@@ -27,14 +27,11 @@ describe('AI default role permissions', () => {
 
     it.each([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])('allows %s to use and manage the model gateway', (role) => {
         expect(permissionsFor(role)).toEqual(
-            expect.arrayContaining([
-                AIPermissionsEnum.MODEL_GATEWAY_USE,
-                AIPermissionsEnum.MODEL_GATEWAY_MANAGE
-            ])
+            expect.arrayContaining([AIPermissionsEnum.MODEL_GATEWAY_USE, AIPermissionsEnum.MODEL_GATEWAY_MANAGE])
         )
     })
 
-    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.ANALYTICS_BUILDER, RolesEnum.VIEWER])(
+    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
         'does not enable model gateway access for %s by default',
         (role) => {
             expect(permissionsFor(role)).not.toContain(AIPermissionsEnum.MODEL_GATEWAY_USE)
@@ -42,7 +39,7 @@ describe('AI default role permissions', () => {
         }
     )
 
-    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.ANALYTICS_BUILDER, RolesEnum.VIEWER])(
+    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
         'does not give %s model access administration permissions',
         (role) => {
             expect(permissionsFor(role)).not.toContain(AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW)
@@ -50,16 +47,12 @@ describe('AI default role permissions', () => {
         }
     )
 
-    it.each([
-        RolesEnum.SUPER_ADMIN,
-        RolesEnum.ADMIN,
-        RolesEnum.TRIAL,
-        RolesEnum.AI_BUILDER,
-        RolesEnum.ANALYTICS_BUILDER,
-        RolesEnum.VIEWER
-    ])('allows %s to purchase membership products', (role) => {
-        expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_PURCHASE)
-    })
+    it.each([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
+        'allows %s to purchase membership products',
+        (role) => {
+            expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_PURCHASE)
+        }
+    )
 
     it.each([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])('allows %s to administer billing', (role) => {
         expect(permissionsFor(role)).toEqual(
@@ -71,7 +64,7 @@ describe('AI default role permissions', () => {
         )
     })
 
-    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.ANALYTICS_BUILDER, RolesEnum.VIEWER])(
+    it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
         'does not give %s billing administration permissions',
         (role) => {
             expect(permissionsFor(role)).not.toEqual(

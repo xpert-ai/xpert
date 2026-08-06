@@ -11,7 +11,6 @@ import { injectScopeLevel, Store } from '@cloud/app/@core/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { PluginInstallComponent, PluginInstallResult } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
-import { PluginsComponent } from '../plugins.component'
 import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-detail.component'
 import { pluginMarketplaceDetailCommands } from '../plugin-marketplace-navigation'
 
@@ -24,7 +23,6 @@ import { pluginMarketplaceDetailCommands } from '../plugin-marketplace-navigatio
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class SettingsPluginComponent {
-  readonly pluginsComponent = inject(PluginsComponent, { optional: true })
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #store = inject(Store)
@@ -33,6 +31,8 @@ export class SettingsPluginComponent {
 
   readonly plugin = input<TPluginWithDownloads>()
   readonly publicCatalog = input(false)
+  readonly reloadInstalledPlugins = input<() => void>(() => undefined)
+  readonly refreshStrategies = input<(() => void) | undefined>()
   readonly pluginInstalled = output<TPluginWithDownloads>()
   readonly installed = computed(() => this.plugin()?.installed === true)
   readonly hasMarketplaceDetails = computed(() => !!this.plugin()?.contributions?.length)
@@ -59,14 +59,8 @@ export class SettingsPluginComponent {
       .open(PluginInstallComponent, {
         data: {
           plugin,
-          reload: () => {
-            this.pluginsComponent?.reload()
-          },
-          ...(this.pluginsComponent
-            ? {
-                refreshStrategies: this.pluginsComponent.refreshStrategyCaches.bind(this.pluginsComponent)
-              }
-            : {})
+          reload: this.reloadInstalledPlugins(),
+          refreshStrategies: this.refreshStrategies()
         },
         disableClose: true
       })

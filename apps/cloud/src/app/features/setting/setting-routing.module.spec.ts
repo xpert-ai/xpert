@@ -50,6 +50,19 @@ jest.mock('./settings.component', () => ({
   XpSettingComponent: class XpSettingComponent {}
 }))
 
+jest.mock('../../../environments/environment', () => ({
+  environment: {
+    settingsExtensions: {
+      routes: [
+        {
+          path: 'extension-settings',
+          redirectTo: 'account'
+        }
+      ]
+    }
+  }
+}))
+
 import { NgxPermissionsGuard } from 'ngx-permissions'
 import {
   modelAccessAccountGate,
@@ -80,6 +93,12 @@ describe('setting routes', () => {
 
     expect(usageRoute?.canActivate).toEqual([membershipPlanAccountGate])
     expect(billingRoute?.canActivate).toEqual([membershipPlanAccountGate])
+  })
+
+  it('includes settings routes from the active environment', () => {
+    expect(settingChildren.find((route) => route.path === 'extension-settings')).toMatchObject({
+      redirectTo: 'account'
+    })
   })
 
   it('keeps available models open to regular users without requiring a membership', () => {

@@ -41,18 +41,16 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 link: 'settings/membership',
                 isEnabled: features.FEATURE_MEMBERSHIP_PLAN,
                 icon: 'credit_card',
-                status: 'info',
-                children: [
-                    {
-                        name: 'Membership Purchase',
-                        code: AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE,
-                        description: 'Enable membership plan and personal point purchases',
-                        link: 'settings/purchase',
-                        isEnabled: false,
-                        icon: 'payments',
-                        status: 'info'
-                    }
-                ]
+                status: 'info'
+            },
+            {
+                name: 'Membership Purchase',
+                code: AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE,
+                description: 'Enable membership plan and personal point purchases',
+                link: 'settings/purchase',
+                isEnabled: false,
+                icon: 'payments',
+                status: 'info'
             },
             {
                 name: 'Personal Model Access',

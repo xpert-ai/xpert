@@ -21,6 +21,12 @@ import { z } from 'zod/v3'
 
 export type ClientToolMessageTransformer = (message: ToolMessage, toolCall: ToolCall) => PromiseOrValue<ToolMessage>
 
+export type ClientToolMessageResolver = (
+    message: ClientToolMessageInput | ToolMessage,
+    toolCall: ToolCall,
+    executeClientTool: (toolCall: ToolCall) => Promise<ClientToolMessageInput | ToolMessage>
+) => PromiseOrValue<ClientToolMessageInput | ToolMessage>
+
 const contextSchema = z.object({
     /**
      * Client-side tool names.
@@ -47,6 +53,7 @@ const contextSchema = z.object({
 
 export type ClientToolMiddlewareConfig = InferInteropZodInput<typeof contextSchema> & {
     transformToolMessage?: ClientToolMessageTransformer
+    resolveClientToolMessage?: ClientToolMessageResolver
 }
 
 export const CLIENT_TOOL_MIDDLEWARE_NAME = 'ClientToolMiddleware'
@@ -524,19 +531,24 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                 }
 
                 try {
-                    const clientRequest: ClientToolRequest = {
-                        clientToolCalls: [request.toolCall]
+                    const executeClientTool = async (toolCall: ToolCall) => {
+                        const clientRequest: ClientToolRequest = {
+                            clientToolCalls: [toolCall]
+                        }
+                        const response = (await interrupt(clientRequest)) as ClientToolResponse
+                        const message = selectClientToolMessage(response?.toolMessages, toolCall)
+                        if (message?.tool_call_id && toolCall.id && message.tool_call_id !== toolCall.id) {
+                            throw new Error(
+                                `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${toolCall.id}".`
+                            )
+                        }
+                        return message
                     }
 
-                    const response = (await interrupt(clientRequest)) as ClientToolResponse
-                    const toolMessages = response?.toolMessages
-
-                    const message = selectClientToolMessage(toolMessages, request.toolCall)
-                    if (message?.tool_call_id && request.toolCall.id && message.tool_call_id !== request.toolCall.id) {
-                        throw new Error(
-                            `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${request.toolCall.id}".`
-                        )
-                    }
+                    const clientMessage = await executeClientTool(request.toolCall)
+                    const message = options.resolveClientToolMessage
+                        ? await options.resolveClientToolMessage(clientMessage, request.toolCall, executeClientTool)
+                        : clientMessage
 
                     const toolMessage = toToolMessage(message, request.toolCall)
                     const preparedToolMessage = options.transformToolMessage

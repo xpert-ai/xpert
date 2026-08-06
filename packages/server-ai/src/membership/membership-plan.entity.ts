@@ -18,6 +18,10 @@ const bigintNumberTransformer = {
 @Entity('membership_plan')
 @Index('IDX_membership_plan_scope_code', ['tenantId', 'organizationId', 'code'], { unique: true })
 @Index('IDX_membership_plan_scope_default', ['tenantId', 'organizationId', 'isDefault'])
+@Index('IDX_membership_plan_scope_catalog_source', ['tenantId', 'organizationId', 'catalogSourcePlanId'], {
+    unique: true,
+    where: '"catalogSourcePlanId" IS NOT NULL'
+})
 export class MembershipPlan extends TenantOrganizationBaseEntity implements IMembershipPlan {
     @ApiPropertyOptional({ type: () => String })
     @Column({ length: 100 })
@@ -30,6 +34,14 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
     @ApiPropertyOptional({ type: () => String })
     @Column({ type: 'varchar', nullable: true })
     description?: string | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'int', default: 0 })
+    level: number
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'uuid', nullable: true })
+    catalogSourcePlanId?: string | null
 
     @ApiPropertyOptional({ enum: MembershipPlanStatusEnum })
     @Column({ type: 'varchar', default: MembershipPlanStatusEnum.Active })

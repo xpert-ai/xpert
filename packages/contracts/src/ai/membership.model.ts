@@ -32,6 +32,7 @@ export enum MembershipRenewalModeEnum {
 
 export enum MembershipPeriodStatusEnum {
   Scheduled = 'scheduled',
+  RefundPending = 'refund_pending',
   Active = 'active',
   Completed = 'completed',
   Cancelled = 'cancelled'
@@ -92,6 +93,8 @@ export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityMode
   code: string
   name: string
   description?: string | null
+  level: number
+  catalogSourcePlanId?: string | null
   status: MembershipPlanStatusEnum
   isDefault?: boolean
   period: MembershipPeriodEnum
@@ -109,6 +112,8 @@ export interface IMembershipPlanSnapshot {
   code: string
   name: string
   description?: string | null
+  level: number
+  catalogSourcePlanId?: string | null
   period: MembershipPeriodEnum
   includedPoints: number | null
   tokensPerPoint: number
@@ -315,6 +320,7 @@ export type TMembershipPointAdjustInput = {
 export type TMembershipPersonalPointsAdjustmentInput = {
   tenantId: string
   userId: string
+  actorId?: string | null
   pointDelta: number
   sourceReference: string
   reason?: string | null
@@ -328,6 +334,7 @@ export type TMembershipPeriodsAppendInput = {
   tenantId: string
   organizationId?: string | null
   userId: string
+  actorId?: string | null
   planId: string
   count: number
   source?: MembershipSourceEnum
@@ -345,10 +352,26 @@ export type TMembershipPeriodCancelInput = {
   sourceReference?: string | null
 }
 
+export type TMembershipPeriodsRefundReservationInput = {
+  tenantId: string
+  organizationId?: string | null
+  userId: string
+  sourceReference: string
+}
+
+export type TMembershipOrganizationPurchasePlanInput = {
+  tenantId: string
+  organizationId: string
+  userId: string
+  catalogSourcePlanId: string
+  planSnapshot: IMembershipPlanSnapshot
+}
+
 export type TMembershipCurrentPeriodUpgradeInput = {
   tenantId: string
   organizationId?: string | null
   userId: string
+  actorId?: string | null
   planId: string
   pointsDelta: number
   sourceReference: string
