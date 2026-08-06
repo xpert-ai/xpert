@@ -231,6 +231,9 @@
                       {{ 'XP.Membership.DefaultPlan' | translate: { Default: 'Default' } }}
                     </z-badge>
                   }
+                  <z-badge zType="outline" zShape="pill">
+                    {{ 'XP.Membership.Level' | translate: { Default: 'Level' } }} {{ plan.level }}
+                  </z-badge>
                   <z-badge
                     zType="outline"
                     zShape="pill"
@@ -263,7 +266,7 @@
               <div class="mt-3 flex items-center justify-between gap-2 border-t border-divider-subtle pt-3">
                 <div class="min-w-0 truncate text-sm text-text-tertiary">
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
-                    {{ plan.priceAmount | number: '1.0-4' }}
+                    {{ plan.priceAmount | currency: plan.priceCurrency || 'CNY' : 'symbol-narrow' }}
                   } @else {
                     {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
                   }
@@ -380,6 +383,28 @@
                   </z-form-field>
 
                   <z-form-field class="w-full">
+                    <z-form-label>{{ 'XP.Membership.Level' | translate: { Default: 'Level' } }}</z-form-label>
+                    <input
+                      z-input
+                      type="number"
+                      min="0"
+                      step="1"
+                      formControlName="level"
+                      [zStatus]="
+                        planForm.controls.level.invalid && planForm.controls.level.touched ? 'error' : undefined
+                      "
+                    />
+                    @if (planForm.controls.level.invalid && planForm.controls.level.touched) {
+                      <z-form-message zType="error">
+                        {{
+                          'XP.Membership.LevelValidation'
+                            | translate: { Default: 'Level must be a whole number of zero or greater.' }
+                        }}
+                      </z-form-message>
+                    }
+                  </z-form-field>
+
+                  <z-form-field class="w-full">
                     <z-form-label>{{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
                     <z-select class="w-full" formControlName="status" (zSelectionChange)="setDraftStatus($event)">
                       <z-select-item [zValue]="MembershipPlanStatusEnum.Active">
@@ -437,6 +462,30 @@
                       {{ 'XP.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
                     </z-form-label>
                     <input z-input type="number" min="0" formControlName="priceAmount" />
+                  </z-form-field>
+
+                  <z-form-field class="w-full">
+                    <z-form-label [zRequired]="true">
+                      {{ 'XP.Membership.PriceCurrency' | translate: { Default: 'Currency' } }}
+                    </z-form-label>
+                    <input
+                      z-input
+                      maxlength="12"
+                      formControlName="priceCurrency"
+                      [zStatus]="
+                        planForm.controls.priceCurrency.invalid && planForm.controls.priceCurrency.touched
+                          ? 'error'
+                          : undefined
+                      "
+                    />
+                    @if (planForm.controls.priceCurrency.invalid && planForm.controls.priceCurrency.touched) {
+                      <z-form-message zType="error">
+                        {{
+                          'XP.Membership.PriceCurrencyValidation'
+                            | translate: { Default: 'Enter a currency code of up to 12 characters.' }
+                        }}
+                      </z-form-message>
+                    }
                   </z-form-field>
                 </div>
               </section>
@@ -745,7 +794,14 @@
           </z-card-header>
 
           <z-card-content class="space-y-5 p-4">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+              <div class="rounded-lg bg-components-panel-bg px-4 py-3">
+                <div class="text-xs font-medium text-text-tertiary">
+                  {{ 'XP.Membership.Level' | translate: { Default: 'Level' } }}
+                </div>
+                <div class="mt-1 text-xl font-semibold text-text-primary">{{ plan.level }}</div>
+              </div>
+
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
                   {{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}
@@ -784,7 +840,7 @@
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
-                    {{ plan.priceAmount | number: '1.0-4' }}
+                    {{ plan.priceAmount | currency: plan.priceCurrency || 'CNY' : 'symbol-narrow' }}
                   } @else {
                     <span class="text-base font-medium text-text-tertiary">
                       {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}

@@ -1095,6 +1095,10 @@
     },
     "Membership": {
       "AdminTitle": "Membership Plans",
+      "Level": "Level",
+      "LevelValidation": "Level must be a non-negative integer.",
+      "PriceCurrency": "Currency",
+      "PriceCurrencyValidation": "Enter a currency code of up to 12 characters.",
       "AdminDescription": "Configure current-scope membership plans, point allowances, and model usage rules.",
       "TenantScope": "Tenant membership",
       "OrganizationScope": "Organization membership",

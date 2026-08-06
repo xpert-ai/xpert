@@ -13,6 +13,7 @@ import {
 import { XpAccountPasswordComponent } from './account/password.component'
 import { XpAccountProfileComponent } from './account/profile.component'
 import { XpSettingComponent } from './settings.component'
+import { environment } from '../../../environments/environment'
 
 export const membershipPlanSettingsGate = featureGate([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN], ['/settings'])
 export const modelAccessSettingsGate = featureGate(
@@ -102,6 +103,7 @@ export const routes: Routes = [
           }
         ]
       },
+      ...(environment.settingsExtensions?.routes ?? []),
       {
         path: 'data-sources',
         loadChildren: () => import('./data-sources/routing').then((m) => m.default),

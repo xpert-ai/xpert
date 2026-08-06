@@ -7,6 +7,7 @@ import {
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
+import { environment } from '../../environments/environment'
 import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
 export type MenuScope = 'tenant-only' | 'organization-only' | 'dual-scope'
@@ -44,6 +45,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       icon: 'account_circle',
       scopeContext: 'dual-scope'
     },
+    ...(environment.settingsExtensions?.menus ?? []),
     {
       path: 'data-sources',
       label: 'Data Sources',

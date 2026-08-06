@@ -130,6 +130,11 @@ export class MembershipAdminComponent implements OnInit {
   readonly planForm = this.#formBuilder.group({
     code: this.#formBuilder.nonNullable.control('', Validators.required),
     name: this.#formBuilder.nonNullable.control('', Validators.required),
+    level: this.#formBuilder.nonNullable.control(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.pattern(/^\d+$/)
+    ]),
     status: this.#formBuilder.nonNullable.control<MembershipPlanStatusEnum>(
       MembershipPlanStatusEnum.Active,
       Validators.required
@@ -138,6 +143,11 @@ export class MembershipAdminComponent implements OnInit {
     includedPoints: new FormControl<number | null>(1000, Validators.min(0)),
     unlimited: this.#formBuilder.nonNullable.control(false),
     priceAmount: new FormControl<number | null>(null, Validators.min(0)),
+    priceCurrency: this.#formBuilder.nonNullable.control('CNY', [
+      Validators.required,
+      Validators.maxLength(12),
+      Validators.pattern(/\S/)
+    ]),
     description: this.#formBuilder.nonNullable.control(''),
     allowAllModels: this.#formBuilder.nonNullable.control(true)
   })
@@ -170,12 +180,13 @@ export class MembershipAdminComponent implements OnInit {
       models: this.#membership.getModelOptions()
     }).subscribe({
       next: ({ status, plans, models }) => {
+        const editablePlans = plans.filter((plan) => !plan.catalogSourcePlanId)
         this.scopeStatus.set(status)
-        this.plans.set(plans)
+        this.plans.set(editablePlans)
         this.modelOptions.set(this.toModelOptions(models))
         const selectedPlanId = this.selectedPlanId()
-        if (!selectedPlanId || !plans.some((plan) => plan.id === selectedPlanId)) {
-          this.selectedPlanId.set(plans.find((plan) => plan.isDefault)?.id ?? plans[0]?.id ?? null)
+        if (!selectedPlanId || !editablePlans.some((plan) => plan.id === selectedPlanId)) {
+          this.selectedPlanId.set(editablePlans.find((plan) => plan.isDefault)?.id ?? editablePlans[0]?.id ?? null)
         }
         this.loadPlanMembers(this.selectedPlanId())
         this.loadAdminMembers()
@@ -224,11 +235,13 @@ export class MembershipAdminComponent implements OnInit {
     this.planForm.reset({
       code: plan.code,
       name: plan.name,
+      level: plan.level,
       status: plan.status,
       isDefault: !!plan.isDefault,
       includedPoints: plan.includedPoints ?? 1000,
       unlimited: plan.includedPoints === null,
       priceAmount: plan.priceAmount ?? null,
+      priceCurrency: plan.priceCurrency ?? 'CNY',
       description: plan.description ?? '',
       allowAllModels: !(plan.allowedModels ?? []).length
     })
@@ -832,11 +845,13 @@ export class MembershipAdminComponent implements OnInit {
     return {
       code: form.code,
       name: form.name,
+      level: Number(form.level),
       status: form.status,
       isDefault: form.isDefault,
       period: MembershipPeriodEnum.Monthly,
       includedPoints: form.unlimited ? null : Number(form.includedPoints ?? 0),
       priceAmount: form.priceAmount === null ? null : Number(form.priceAmount),
+      priceCurrency: form.priceCurrency.trim().toUpperCase(),
       description: form.description,
       allowedModels: allowAllModels ? [] : this.allowedModels.map((item) => ({ ...item })),
       modelMultipliers: [...this.modelMultipliers]
@@ -850,11 +865,13 @@ export class MembershipAdminComponent implements OnInit {
     this.planForm.reset({
       code: '',
       name: '',
+      level: 0,
       status: MembershipPlanStatusEnum.Active,
       isDefault: false,
       includedPoints: 1000,
       unlimited: false,
       priceAmount: null,
+      priceCurrency: 'CNY',
       description: '',
       allowAllModels: true
     })

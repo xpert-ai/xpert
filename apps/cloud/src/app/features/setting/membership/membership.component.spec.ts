@@ -20,6 +20,7 @@ describe('MembershipAdminComponent', () => {
     id: 'plan-source',
     code: 'source',
     name: 'Source',
+    level: 1,
     status: MembershipPlanStatusEnum.Active,
     period: MembershipPeriodEnum.Monthly,
     includedPoints: 100
@@ -28,6 +29,7 @@ describe('MembershipAdminComponent', () => {
     id: 'plan-target',
     code: 'target',
     name: 'Target',
+    level: 2,
     status: MembershipPlanStatusEnum.Active,
     period: MembershipPeriodEnum.Monthly,
     includedPoints: 200
@@ -91,6 +93,42 @@ describe('MembershipAdminComponent', () => {
 
     expect(alertDialog.confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }))
     expect(membershipService.archivePlan).not.toHaveBeenCalled()
+  })
+
+  it('round-trips the explicit plan level in the edit form', () => {
+    component.edit(targetPlan)
+
+    expect(component.planForm.controls.level.value).toBe(2)
+    component.planForm.controls.level.setValue(1.5)
+    expect(component.planForm.controls.level.valid).toBe(false)
+    component.planForm.controls.level.setValue(3)
+    expect(component.planForm.controls.level.valid).toBe(true)
+  })
+
+  it('rejects an empty or oversized price currency code', () => {
+    component.planForm.controls.priceCurrency.setValue('   ')
+    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
+
+    component.planForm.controls.priceCurrency.setValue('TOO-LONG-CURRENCY')
+    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
+
+    component.planForm.controls.priceCurrency.setValue('USD')
+    expect(component.planForm.controls.priceCurrency.valid).toBe(true)
+  })
+
+  it('hides purchase-managed organization plan clones from editable plan management', () => {
+    const managedClone = {
+      ...sourcePlan,
+      id: 'managed-plan',
+      catalogSourcePlanId: 'tenant-catalog-plan'
+    }
+    membershipService.getPlans.mockReturnValue(of([managedClone, targetPlan]))
+    component.selectedPlanId.set(managedClone.id)
+
+    component.load()
+
+    expect(component.plans()).toEqual([targetPlan])
+    expect(component.selectedPlanId()).toBe(targetPlan.id)
   })
 
   it('archives a plan only after confirmation', async () => {

@@ -6,6 +6,7 @@ import {
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
+import { environment } from '../../environments/environment'
 import { getFeatureMenus, getSettingsMenuItems } from './menus'
 
 describe('getSettingsMenuItems', () => {
@@ -66,6 +67,31 @@ describe('getSettingsMenuItems', () => {
 
     expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
     expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
+  })
+
+  it('includes settings menu extensions from the active environment', () => {
+    const originalExtensions = environment.settingsExtensions
+    environment.settingsExtensions = {
+      menus: [
+        {
+          path: 'extension-settings',
+          label: 'Extension settings',
+          icon: 'extension',
+          scopeContext: 'organization-only'
+        }
+      ]
+    }
+
+    try {
+      expect(
+        getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find((item) => item.path === 'extension-settings')
+      ).toMatchObject({ scopeContext: 'organization-only' })
+      expect(
+        getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'extension-settings')
+      ).toBeUndefined()
+    } finally {
+      environment.settingsExtensions = originalExtensions
+    }
   })
 
   it('gates model access approvals with both features and view-or-edit permission', () => {

@@ -1983,6 +1983,10 @@
     },
     "Membership": {
       "AdminTitle": "会员套餐",
+      "Level": "等级",
+      "LevelValidation": "等级必须为非负整数。",
+      "PriceCurrency": "币种",
+      "PriceCurrencyValidation": "请输入不超过 12 个字符的币种代码。",
       "AdminDescription": "配置当前范围的会员套餐、点数额度和模型使用规则。",
       "TenantScope": "租户会员",
       "OrganizationScope": "组织会员",
