@@ -83,6 +83,10 @@ export class MembershipService {
     })
   }
 
+  getAdminUserScopeMemberships(userId: string) {
+    return this.#http.get<IUserMembership[]>(`${API_MEMBERSHIP}/admin/users/${userId}/scope-memberships`)
+  }
+
   getAdminMembers(params?: IMembershipAdminUsersQuery) {
     return this.#http.get<IPagination<IMembershipAdminUser>>(`${API_MEMBERSHIP}/admin/members`, {
       params: this.toParams(params)

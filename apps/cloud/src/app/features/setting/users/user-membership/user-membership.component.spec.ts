@@ -4,7 +4,10 @@ import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import {
   AIPermissionsEnum,
+  IMembershipPointLedger,
+  IUserMembership,
   IUserMembershipPeriod,
+  MembershipLedgerSourceEnum,
   MembershipPeriodEnum,
   MembershipPeriodStatusEnum,
   MembershipRenewalModeEnum,
@@ -25,6 +28,7 @@ describe('UserMembershipComponent', () => {
     cancelAdminUserPeriod: jest.Mock
     getPlans: jest.Mock
     getAdminUsers: jest.Mock
+    getAdminUserScopeMemberships: jest.Mock
     getAdminUserPeriods: jest.Mock
     getAdminUserAudit: jest.Mock
     getPersonalPoints: jest.Mock
@@ -68,6 +72,7 @@ describe('UserMembershipComponent', () => {
       cancelAdminUserPeriod: jest.fn().mockReturnValue(of({ id: 'period-1', status: 'cancelled' })),
       getPlans: jest.fn().mockReturnValue(of([])),
       getAdminUsers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
+      getAdminUserScopeMemberships: jest.fn().mockReturnValue(of([])),
       getAdminUserPeriods: jest.fn().mockReturnValue(of([])),
       getAdminUserAudit: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
       getPersonalPoints: jest.fn().mockReturnValue(of({ balance: 10 }))
@@ -196,7 +201,70 @@ describe('UserMembershipComponent', () => {
     component.load()
 
     expect(membershipService.getPersonalPoints).not.toHaveBeenCalled()
+    expect(membershipService.getAdminUserScopeMemberships).not.toHaveBeenCalled()
     expect(component.personalPointsBalance()).toBe(0)
+  })
+
+  it('loads tenant and organization memberships for the tenant overview', () => {
+    const tenantMembership = {
+      id: 'membership-tenant',
+      organizationId: null,
+      plan: { name: 'Tenant plan' }
+    } as IUserMembership
+    const organizationMembership = {
+      id: 'membership-org',
+      organizationId: 'org-1',
+      organization: { id: 'org-1', name: 'Organization 1' },
+      plan: { name: 'Organization plan' }
+    } as IUserMembership
+    membershipService.getAdminUserScopeMemberships.mockReturnValue(of([tenantMembership, organizationMembership]))
+
+    component.load()
+
+    expect(membershipService.getAdminUserScopeMemberships).toHaveBeenCalledWith('user-1')
+    expect(component.scopeMemberships()).toEqual([tenantMembership, organizationMembership])
+  })
+
+  it('groups upcoming periods under their membership scope', () => {
+    const tenantPeriod = createPeriod({ id: 'period-tenant', membershipId: 'membership-tenant' })
+    const organizationPeriod = createPeriod({
+      id: 'period-org',
+      membershipId: 'membership-org',
+      organizationId: 'org-1'
+    })
+    component.periods.set([tenantPeriod, organizationPeriod])
+
+    expect(component.upcomingPeriodsForMembership('membership-tenant')).toEqual([tenantPeriod])
+    expect(component.upcomingPeriodsForMembership('membership-org')).toEqual([organizationPeriod])
+  })
+
+  it('does not infer the operator for historical self-purchase entries', () => {
+    const entry = {
+      source: MembershipLedgerSourceEnum.Assignment,
+      sourceReference: 'order-1',
+      membership: { source: MembershipSourceEnum.External },
+      user: { email: 'buyer@example.com' }
+    } as IMembershipPointLedger
+
+    expect(component.auditActorLabel(entry)).toBe('XP.Membership.SystemActor')
+  })
+
+  it('keeps free-form membership audit reasons unchanged', () => {
+    const entry = {
+      reason: 'Membership period activated'
+    } as IMembershipPointLedger
+
+    expect(component.auditReason(entry)).toBe('Membership period activated')
+  })
+
+  it('labels personal point audit entries separately from tenant memberships', () => {
+    const entry = {
+      source: MembershipLedgerSourceEnum.PersonalAdjustment,
+      membershipId: null,
+      organizationId: null
+    } as IMembershipPointLedger
+
+    expect(component.auditScopeLabel(entry)).toBe('XP.Membership.PersonalPoints')
   })
 
   it('accepts point adjustments with up to three decimal places', () => {

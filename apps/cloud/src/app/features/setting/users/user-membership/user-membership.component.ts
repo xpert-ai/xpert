@@ -14,6 +14,7 @@ import {
   IMembershipPlan,
   IUserMembership,
   IUserMembershipPeriod,
+  MembershipLedgerSourceEnum,
   MembershipPeriodStatusEnum,
   MembershipRenewalModeEnum,
   MembershipSourceEnum,
@@ -66,17 +67,10 @@ export class UserMembershipComponent implements OnChanges {
 
   readonly plans = signal<IMembershipPlan[]>([])
   readonly membership = signal<IUserMembership | null>(null)
+  readonly scopeMemberships = signal<IUserMembership[]>([])
   readonly periods = signal<IUserMembershipPeriod[]>([])
   readonly scheduledPeriods = computed(() =>
     this.periods().filter((period) => period.status === MembershipPeriodStatusEnum.Scheduled)
-  )
-  readonly lastScheduledPeriodId = computed(
-    () =>
-      this.scheduledPeriods().reduce<IUserMembershipPeriod | null>(
-        (latest, period) =>
-          !latest || new Date(period.periodEnd).getTime() > new Date(latest.periodEnd).getTime() ? period : latest,
-        null
-      )?.id ?? null
   )
   readonly personalPointsBalance = signal(0)
   readonly auditEntries = signal<IMembershipPointLedger[]>([])
@@ -110,7 +104,11 @@ export class UserMembershipComponent implements OnChanges {
   }
 
   get canManagePersonalPoints() {
-    return this.canManage && this.#store.activeScope.level === RequestScopeLevel.TENANT
+    return this.canManage && this.isTenantScope
+  }
+
+  get isTenantScope() {
+    return this.#store.activeScope.level === RequestScopeLevel.TENANT
   }
 
   ngOnChanges() {
@@ -124,16 +122,18 @@ export class UserMembershipComponent implements OnChanges {
     forkJoin({
       plans: this.#membership.getPlans(),
       memberships: this.#membership.getAdminUsers({ userId: this.userId, take: 1 }),
+      scopeMemberships: this.isTenantScope ? this.#membership.getAdminUserScopeMemberships(this.userId) : of([]),
       periods: this.#membership.getAdminUserPeriods(this.userId),
       audit: this.#membership.getAdminUserAudit(this.userId, { take: 20 }),
       personalPoints: this.canManagePersonalPoints
         ? this.#membership.getPersonalPoints(this.userId)
         : of({ balance: 0 })
     }).subscribe({
-      next: ({ plans, memberships, periods, audit, personalPoints }) => {
+      next: ({ plans, memberships, scopeMemberships, periods, audit, personalPoints }) => {
         this.plans.set(plans.filter((plan) => plan.status === 'active'))
         const membership = memberships.items?.[0] ?? null
         this.membership.set(membership)
+        this.scopeMemberships.set(scopeMemberships)
         this.periods.set(periods)
         this.auditEntries.set(audit.items ?? [])
         this.personalPointsBalance.set(personalPoints.balance)
@@ -145,6 +145,26 @@ export class UserMembershipComponent implements OnChanges {
       },
       error: (error) => this.handleError(error)
     })
+  }
+
+  scopeMembershipLabel(membership: IUserMembership) {
+    return (
+      membership.organization?.name ||
+      membership.organizationId ||
+      this.#translate.instant('XP.Membership.TenantScope', { Default: 'Tenant membership' })
+    )
+  }
+
+  isCurrentScopeMembership(membership: IUserMembership) {
+    return this.isTenantScope && !membership.organizationId
+  }
+
+  upcomingPeriodsForMembership(membershipId: string) {
+    return this.scheduledPeriods().filter((period) => period.membershipId === membershipId)
+  }
+
+  isEffectiveInScope(membership: IUserMembership) {
+    return membership.status === MembershipStatusEnum.Active
   }
 
   assign() {
@@ -326,9 +346,32 @@ export class UserMembershipComponent implements OnChanges {
   auditActorLabel(entry: IMembershipPointLedger) {
     const actor = entry.actor
     if (!actor) {
-      return this.#translate.instant('XP.Membership.SystemActor', { Default: 'System' })
+      return entry.actorId || this.#translate.instant('XP.Membership.SystemActor', { Default: 'System' })
     }
     return actor.email || actor.username || [actor.firstName, actor.lastName].filter(Boolean).join(' ') || entry.actorId
+  }
+
+  auditScopeLabel(entry: IMembershipPointLedger) {
+    if (entry.source === MembershipLedgerSourceEnum.PersonalAdjustment && !entry.membershipId) {
+      return this.#translate.instant('XP.Membership.PersonalPoints', { Default: 'Personal points' })
+    }
+    if (!entry.organizationId) {
+      return this.#translate.instant('XP.Membership.TenantScope', { Default: 'Tenant membership' })
+    }
+    return (
+      entry.membership?.organization?.name ||
+      this.scopeMemberships().find(({ organizationId }) => organizationId === entry.organizationId)?.organization
+        ?.name ||
+      entry.organizationId
+    )
+  }
+
+  auditReason(entry: IMembershipPointLedger) {
+    const reason = entry.reason?.trim()
+    if (!reason) {
+      return this.#translate.instant('XP.Membership.NoOperationReason', { Default: 'No reason provided' })
+    }
+    return reason
   }
 
   canAdjustCyclePoints() {
@@ -340,9 +383,19 @@ export class UserMembershipComponent implements OnChanges {
   }
 
   canCancelPeriod(period: IUserMembershipPeriod) {
+    const lastPeriodId = this.scheduledPeriods()
+      .filter(({ membershipId }) => membershipId === period.membershipId)
+      .reduce<IUserMembershipPeriod | null>(
+        (latest, candidate) =>
+          !latest || new Date(candidate.periodEnd).getTime() > new Date(latest.periodEnd).getTime()
+            ? candidate
+            : latest,
+        null
+      )?.id
     return (
       period.status === MembershipPeriodStatusEnum.Scheduled &&
-      period.id === this.lastScheduledPeriodId() &&
+      period.id === lastPeriodId &&
+      (!this.isTenantScope || !period.organizationId) &&
       !this.isExternallyManagedPeriod(period)
     )
   }
