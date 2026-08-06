@@ -229,6 +229,9 @@ describe('BrowserAutomationMiddleware', () => {
                 snapshotId: expect.objectContaining({
                     type: 'string'
                 }),
+                pageStateId: expect.objectContaining({
+                    type: 'string'
+                }),
                 includeIndex: expect.objectContaining({
                     type: 'boolean'
                 })
@@ -397,18 +400,26 @@ describe('BrowserAutomationMiddleware', () => {
         const clickSchema = JSON.parse(clickTool?.schema ?? '{}')
         expect(clickSchema.properties).toEqual(
             expect.objectContaining({
+                pageStateId: expect.any(Object),
+                documentRef: expect.any(Object),
                 axRef: expect.any(Object),
                 role: expect.any(Object),
                 name: expect.any(Object),
                 testId: expect.any(Object),
                 strategy: expect.any(Object),
+                expectation: expect.any(Object),
                 message: expect.objectContaining({
                     type: 'string'
                 })
             })
         )
+        expect(clickSchema.properties).not.toHaveProperty('x')
+        expect(clickSchema.properties).not.toHaveProperty('y')
+        expect(clickSchema.properties).not.toHaveProperty('actionToken')
+        expect(clickSchema.properties.expectation.properties.target.properties.identity.required).toEqual(['role'])
         expect(clickSchema.required).toContain('message')
         const fillSchema = JSON.parse(fillTool?.schema ?? '{}')
+        expect(fillSchema.properties).not.toHaveProperty('actionToken')
         expect(fillSchema.properties.message).toEqual(
             expect.objectContaining({
                 type: 'string'
@@ -429,6 +440,22 @@ describe('BrowserAutomationMiddleware', () => {
         expect(selectSchema.properties).not.toHaveProperty('value')
         expect(selectSchema.required).toEqual(['values'])
         const pointerSchema = JSON.parse(pointerTool?.schema ?? '{}')
+        expect(pointerSchema.properties).not.toHaveProperty('actionToken')
+        expect(pointerSchema.properties).toEqual(
+            expect.objectContaining({
+                pageStateId: expect.any(Object),
+                documentRef: expect.any(Object),
+                x: expect.any(Object),
+                y: expect.any(Object),
+                coordinateSpace: expect.objectContaining({
+                    enum: ['viewport-css-px', 'viewport_normalized']
+                }),
+                targetText: expect.any(Object),
+                targetRole: expect.any(Object),
+                targetContext: expect.any(Object),
+                expectation: expect.any(Object)
+            })
+        )
         expect(pointerSchema.properties.button).toEqual(
             expect.objectContaining({
                 type: 'string',
@@ -447,6 +474,637 @@ describe('BrowserAutomationMiddleware', () => {
             })
         )
         expect(pointerSchema.required).toContain('message')
+    })
+
+    it('rejects a v2 action without the latest snapshot page state before interrupting the client', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'click-call-missing-state',
+                    name: 'host_page_click',
+                    status: 'success',
+                    content: { ok: true, result: { clicked: { name: 'Save' } } }
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const snapshotMessage = new ToolMessage({
+            name: 'host_page_snapshot',
+            tool_call_id: 'snapshot-call-v2',
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    pageStateId: 'ps-v2',
+                    capabilities: {
+                        targetingVersion: 2,
+                        strictRefs: true,
+                        freshState: true
+                    }
+                }
+            })
+        })
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'click-call-missing-state',
+                    name: 'host_page_click',
+                    args: {
+                        documentRef: 'd1',
+                        ref: 'e1',
+                        message: 'Click Save'
+                    }
+                },
+                tool: getTool(middleware, 'host_page_click'),
+                state: { messages: [snapshotMessage] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_click',
+                    tool_call_id: 'click-call-missing-state'
+                })
+        )
+
+        expect(mockInterrupt).not.toHaveBeenCalled()
+        expect(readStringField(result, 'status')).toBe('error')
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                code: 'stale_page_state',
+                dispatched: false,
+                outcome: 'rejected_before_execution',
+                requiresFreshSnapshot: true,
+                invalidatedPageStateId: 'ps-v2'
+            })
+        )
+    })
+
+    it('binds the latest fresh v2 page state to navigation when the model omits it', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'navigate-call-missing-state',
+                    name: 'host_page_navigate',
+                    status: 'success',
+                    content: {
+                        ok: true,
+                        result: {
+                            navigated: 'https://xpertai.cn/apps/',
+                            outcome: 'executed_unverified'
+                        }
+                    }
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const snapshotMessage = new ToolMessage({
+            name: 'host_page_snapshot',
+            tool_call_id: 'snapshot-before-navigation',
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    pageStateId: 'ps-before-navigation',
+                    capabilities: { targetingVersion: 2 }
+                }
+            })
+        })
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'navigate-call-missing-state',
+                    name: 'host_page_navigate',
+                    args: {
+                        url: 'https://xpertai.cn/apps/'
+                    }
+                },
+                tool: getTool(middleware, 'host_page_navigate'),
+                state: { messages: [snapshotMessage] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_navigate',
+                    tool_call_id: 'navigate-call-missing-state'
+                })
+        )
+
+        expect(mockInterrupt).toHaveBeenCalledTimes(1)
+        expect(mockInterrupt).toHaveBeenCalledWith({
+            clientToolCalls: [
+                {
+                    type: 'tool_call',
+                    id: 'navigate-call-missing-state',
+                    name: 'host_page_navigate',
+                    args: {
+                        url: 'https://xpertai.cn/apps/',
+                        pageStateId: 'ps-before-navigation'
+                    }
+                }
+            ]
+        })
+        expect(readStringField(result, 'status')).toBe('success')
+    })
+
+    it('rejects navigation with an explicit page state that does not match the latest v2 snapshot', async () => {
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const snapshotMessage = new ToolMessage({
+            name: 'host_page_snapshot',
+            tool_call_id: 'snapshot-before-mismatched-navigation',
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    pageStateId: 'ps-latest-navigation',
+                    capabilities: { targetingVersion: 2 }
+                }
+            })
+        })
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'navigate-call-mismatched-state',
+                    name: 'host_page_navigate',
+                    args: {
+                        url: 'https://xpertai.cn/apps/',
+                        pageStateId: 'ps-old-navigation'
+                    }
+                },
+                tool: getTool(middleware, 'host_page_navigate'),
+                state: { messages: [snapshotMessage] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_navigate',
+                    tool_call_id: 'navigate-call-mismatched-state'
+                })
+        )
+
+        expect(mockInterrupt).not.toHaveBeenCalled()
+        expect(readStringField(result, 'status')).toBe('error')
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                code: 'stale_page_state',
+                dispatched: false,
+                outcome: 'rejected_before_execution',
+                requiresFreshSnapshot: true,
+                invalidatedPageStateId: 'ps-latest-navigation'
+            })
+        )
+    })
+
+    it('rejects a v2 target action without a document scope before interrupting the client', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'click-call-missing-document',
+                    name: 'host_page_click',
+                    status: 'success',
+                    content: { ok: true, result: { clicked: { name: 'Save' } } }
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const snapshotMessage = new ToolMessage({
+            name: 'host_page_snapshot',
+            tool_call_id: 'snapshot-call-v2-document',
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    pageStateId: 'ps-v2-document',
+                    capabilities: { targetingVersion: 2 }
+                }
+            })
+        })
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'click-call-missing-document',
+                    name: 'host_page_click',
+                    args: {
+                        pageStateId: 'ps-v2-document',
+                        ref: 'e1',
+                        message: 'Click Save'
+                    }
+                },
+                tool: getTool(middleware, 'host_page_click'),
+                state: { messages: [snapshotMessage] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_click',
+                    tool_call_id: 'click-call-missing-document'
+                })
+        )
+
+        expect(mockInterrupt).not.toHaveBeenCalled()
+        expect(readStringField(result, 'status')).toBe('error')
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                code: 'unsupported_target_scope',
+                dispatched: false,
+                outcome: 'rejected_before_execution'
+            })
+        )
+    })
+
+    it('requires a fresh v2 snapshot after a dispatched browser action', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'fill-call-after-action',
+                    name: 'host_page_fill',
+                    status: 'success',
+                    content: { ok: true, result: { filled: { name: 'Name' } } }
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const snapshotMessage = new ToolMessage({
+            name: 'host_page_snapshot',
+            tool_call_id: 'snapshot-call-before-action',
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    pageStateId: 'ps-before-action',
+                    capabilities: { targetingVersion: 2 }
+                }
+            })
+        })
+        const priorActionMessage = new ToolMessage({
+            name: 'host_page_click',
+            tool_call_id: 'click-call-before-fill',
+            content: JSON.stringify({
+                ok: true,
+                result: {
+                    dispatched: true,
+                    outcome: 'executed_unverified',
+                    requiresFreshSnapshot: true,
+                    invalidatedPageStateId: 'ps-before-action'
+                }
+            })
+        })
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'fill-call-after-action',
+                    name: 'host_page_fill',
+                    args: {
+                        pageStateId: 'ps-before-action',
+                        documentRef: 'd1',
+                        ref: 'e2',
+                        value: 'Grace',
+                        message: 'Fill Name'
+                    }
+                },
+                tool: getTool(middleware, 'host_page_fill'),
+                state: { messages: [snapshotMessage, priorActionMessage] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_fill',
+                    tool_call_id: 'fill-call-after-action'
+                })
+        )
+
+        expect(mockInterrupt).not.toHaveBeenCalled()
+        expect(readStringField(result, 'status')).toBe('error')
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                code: 'stale_page_state',
+                requiresFreshSnapshot: true,
+                invalidatedPageStateId: 'ps-before-action'
+            })
+        )
+    })
+
+    it('keeps legacy actions available after a snapshot without v2 capabilities', async () => {
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'legacy-click-after-snapshot',
+                    name: 'host_page_click',
+                    status: 'success',
+                    content: { ok: true, result: { clicked: { name: 'Save' } } }
+                }
+            ]
+        })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const legacySnapshotMessage = new ToolMessage({
+            name: 'host_page_snapshot',
+            tool_call_id: 'legacy-snapshot-call',
+            content: JSON.stringify({
+                ok: true,
+                result: { url: 'https://example.com', elements: [] }
+            })
+        })
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'legacy-click-after-snapshot',
+                    name: 'host_page_click',
+                    args: { ref: 'e1', message: 'Click Save' }
+                },
+                tool: getTool(middleware, 'host_page_click'),
+                state: { messages: [legacySnapshotMessage] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_click',
+                    tool_call_id: 'legacy-click-after-snapshot'
+                })
+        )
+
+        expect(mockInterrupt).toHaveBeenCalledTimes(1)
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    outcome: 'executed_unverified',
+                    legacyUnverified: true
+                })
+            })
+        )
+    })
+
+    it('runs browser approval_required through HITL and retries the unchanged client action', async () => {
+        const secret = 'correct horse battery staple'
+        mockInterrupt
+            .mockResolvedValueOnce({
+                toolMessages: [
+                    {
+                        tool_call_id: 'password-call-1',
+                        name: 'host_page_fill',
+                        status: 'error',
+                        content: {
+                            ok: false,
+                            code: 'approval_required',
+                            actionToken: 'action-token-1',
+                            approvalReason: 'approval_required',
+                            risks: ['password_input'],
+                            expiresAt: '2026-08-05T12:30:00.000Z',
+                            dispatched: false,
+                            outcome: 'rejected_before_execution'
+                        }
+                    }
+                ]
+            })
+            .mockResolvedValueOnce({ decisions: [{ type: 'approve' }] })
+            .mockResolvedValueOnce({
+                toolMessages: [
+                    {
+                        tool_call_id: 'password-call-1',
+                        name: 'host_page_fill',
+                        status: 'success',
+                        content: {
+                            ok: true,
+                            result: {
+                                dispatched: true,
+                                outcome: 'executed_unverified',
+                                requiresFreshSnapshot: true
+                            }
+                        }
+                    }
+                ]
+            })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const toolCall = {
+            type: 'tool_call' as const,
+            id: 'password-call-1',
+            name: 'host_page_fill',
+            args: {
+                pageStateId: 'ps-1',
+                documentRef: 'd1',
+                ref: 'e1',
+                value: secret,
+                message: 'Fill password'
+            }
+        }
+
+        const result = await wrapToolCall(
+            {
+                toolCall,
+                tool: getTool(middleware, 'host_page_fill'),
+                state: { messages: [] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: toolCall.name,
+                    tool_call_id: toolCall.id
+                })
+        )
+
+        expect(readStringField(result, 'status')).toBe('success')
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                ok: true,
+                result: expect.objectContaining({
+                    outcome: 'executed_unverified'
+                })
+            })
+        )
+        expect(mockInterrupt).toHaveBeenCalledTimes(3)
+        const hitlRequest = mockInterrupt.mock.calls[1]?.[0]
+        expect(hitlRequest).toEqual(
+            expect.objectContaining({
+                actionRequests: [
+                    expect.objectContaining({
+                        name: 'host_page_fill',
+                        args: expect.objectContaining({
+                            value: '[REDACTED]'
+                        })
+                    })
+                ],
+                reviewConfigs: [
+                    expect.objectContaining({
+                        actionName: 'host_page_fill',
+                        allowedDecisions: ['approve', 'reject']
+                    })
+                ]
+            })
+        )
+        expect(JSON.stringify(hitlRequest)).not.toContain(secret)
+        expect(mockInterrupt.mock.calls[2]?.[0]).toEqual({
+            clientToolCalls: [
+                {
+                    ...toolCall,
+                    args: {
+                        ...toolCall.args,
+                        actionToken: 'action-token-1'
+                    }
+                }
+            ]
+        })
+    })
+
+    it('returns a rejected tool result without retrying the client action', async () => {
+        mockInterrupt
+            .mockResolvedValueOnce({
+                toolMessages: [
+                    {
+                        tool_call_id: 'submit-call-1',
+                        name: 'host_page_click',
+                        status: 'error',
+                        content: {
+                            ok: false,
+                            code: 'approval_required',
+                            actionToken: 'action-token-submit',
+                            risks: ['form_submit'],
+                            dispatched: false,
+                            outcome: 'rejected_before_execution'
+                        }
+                    }
+                ]
+            })
+            .mockResolvedValueOnce({ decisions: [{ type: 'reject', message: 'Do not submit this form.' }] })
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+
+        const result = await wrapToolCall(
+            {
+                toolCall: {
+                    type: 'tool_call',
+                    id: 'submit-call-1',
+                    name: 'host_page_click',
+                    args: {
+                        pageStateId: 'ps-1',
+                        documentRef: 'd1',
+                        ref: 'e1',
+                        message: 'Submit the form'
+                    }
+                },
+                tool: getTool(middleware, 'host_page_click'),
+                state: { messages: [] },
+                runtime: {}
+            },
+            async () =>
+                new ToolMessage({
+                    content: 'unused',
+                    name: 'host_page_click',
+                    tool_call_id: 'submit-call-1'
+                })
+        )
+
+        expect(mockInterrupt).toHaveBeenCalledTimes(2)
+        expect(readStringField(result, 'status')).toBe('error')
+        expect(parseJsonContent(result)).toEqual(
+            expect.objectContaining({
+                code: 'approval_rejected',
+                message: 'Do not submit this form.',
+                dispatched: false,
+                outcome: 'rejected_before_execution'
+            })
+        )
+    })
+
+    it('marks legacy action success as unverified without rewriting v2 outcomes', async () => {
+        const strategy = new BrowserAutomationMiddleware()
+        const middleware = await strategy.createMiddleware({}, createContext())
+        const wrapToolCall = getWrapToolCall(middleware)
+        const runClick = () =>
+            wrapToolCall(
+                {
+                    toolCall: {
+                        type: 'tool_call',
+                        id: 'legacy-click-1',
+                        name: 'host_page_click',
+                        args: { ref: 'e1', message: 'Click Save' }
+                    },
+                    tool: getTool(middleware, 'host_page_click'),
+                    state: { messages: [] },
+                    runtime: {}
+                },
+                async () =>
+                    new ToolMessage({
+                        content: 'unused',
+                        name: 'host_page_click',
+                        tool_call_id: 'legacy-click-1'
+                    })
+            )
+
+        mockInterrupt.mockResolvedValueOnce({
+            toolMessages: [
+                {
+                    tool_call_id: 'legacy-click-1',
+                    content: { ok: true, result: { clicked: { name: 'Save' } } },
+                    status: 'success'
+                }
+            ]
+        })
+        const legacyResult = await runClick()
+        expect(parseJsonContent(legacyResult)).toEqual(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    outcome: 'executed_unverified',
+                    legacyUnverified: true
+                })
+            })
+        )
+
+        mockInterrupt.mockResolvedValueOnce({
+            toolMessages: [
+                {
+                    tool_call_id: 'legacy-click-1',
+                    content: {
+                        ok: true,
+                        result: {
+                            dispatched: true,
+                            outcome: 'verified',
+                            requiresFreshSnapshot: true,
+                            resolution: { strategy: 'ref', pageStateId: 'ps-1' },
+                            verification: { status: 'passed' }
+                        }
+                    },
+                    status: 'success'
+                }
+            ]
+        })
+        const v2Result = await runClick()
+        const v2Payload = parseJsonContent(v2Result)
+        const v2Action = readRecordField(v2Payload, 'result')
+        expect(v2Action).toEqual(
+            expect.objectContaining({
+                outcome: 'verified',
+                resolution: { strategy: 'ref', pageStateId: 'ps-1' },
+                verification: { status: 'passed' }
+            })
+        )
+        expect(v2Action).not.toHaveProperty('legacyUnverified')
     })
 
     it('emits default localized display messages for host page tools without model messages', async () => {
@@ -581,6 +1239,7 @@ describe('BrowserAutomationMiddleware', () => {
 
     it('paginates large host_page_snapshot results and keeps critical controls in the index', async () => {
         const textElements = Array.from({ length: 64 }, (_, index) => ({
+            documentRef: 'd1',
             ref: `e${index}`,
             role: 'textbox',
             name: `Field ${index} ${'label '.repeat(60)}`,
@@ -607,6 +1266,7 @@ describe('BrowserAutomationMiddleware', () => {
         const elements = [
             ...textElements,
             {
+                documentRef: 'd1',
                 ref: 'e64',
                 role: 'checkbox',
                 name: '我已阅读并确认遵守公司差旅政策',
@@ -635,6 +1295,8 @@ describe('BrowserAutomationMiddleware', () => {
             result: {
                 url: 'https://www.fnbank.net/get-in-touch/careers',
                 title: 'Careers',
+                pageStateId: 'page-state-1',
+                documents: [{ documentRef: 'd1', sameOrigin: true }],
                 capabilities: {
                     accessibility: true,
                     cdp: true,
@@ -703,6 +1365,7 @@ describe('BrowserAutomationMiddleware', () => {
         const pagination = readRecordField(resultPayload, '_xpertPagination')
         expect(pagination).toEqual(
             expect.objectContaining({
+                pageStateId: 'page-state-1',
                 page: 1,
                 pageSize: 30,
                 pageCount: 3,
@@ -713,6 +1376,11 @@ describe('BrowserAutomationMiddleware', () => {
         expect(typeof Reflect.get(pagination, 'snapshotId')).toBe('string')
         expect(readArrayField(resultPayload, 'pages')).toHaveLength(3)
         expect(readArrayField(resultPayload, 'elements')).toHaveLength(30)
+        expect(Reflect.get(resultPayload, 'pageStateId')).toBe('page-state-1')
+        expect(readArrayField(resultPayload, 'documents')).toEqual([
+            expect.objectContaining({ documentRef: 'd1', sameOrigin: true })
+        ])
+        expect(readArrayField(resultPayload, 'elements')[0]).toEqual(expect.objectContaining({ documentRef: 'd1' }))
         expect(JSON.stringify(readArrayField(resultPayload, 'elements'))).not.toContain('#promisePolicy')
         expect(JSON.stringify(readArrayField(resultPayload, 'criticalElements'))).toContain('#promisePolicy')
 
