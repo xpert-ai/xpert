@@ -2,6 +2,21 @@ import { BaseMessage, isAIMessage, isToolMessage, ToolMessage } from '@langchain
 import { ToolCall } from '@langchain/core/messages/tool'
 
 /**
+ * Build the declared destinations for the agent decision branch.
+ *
+ * LangGraph validates every `Send` target against this list. Middleware tools
+ * are added to the graph dynamically, so their node names must be declared
+ * alongside the ordinary workflow/model destinations.
+ */
+export function buildAgentDecisionPathMap(
+    baseDecisionPathMap: string[],
+    modelLoopEntryNode: string,
+    toolNames: string[]
+): string[] {
+    return [...new Set([...baseDecisionPathMap, modelLoopEntryNode, ...toolNames])]
+}
+
+/**
  * Find tool calls from the latest assistant tool-call block that do not yet have
  * a tool response. This supports HITL resumes where a middleware appends
  * synthetic ToolMessages for rejected calls before the approved calls run.

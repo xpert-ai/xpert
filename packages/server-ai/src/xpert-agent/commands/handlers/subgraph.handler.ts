@@ -130,7 +130,7 @@ import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hoo
 import { parseXmlString } from './types'
 import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './subgraph-entry-routing'
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
-import { getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
+import { buildAgentDecisionPathMap, getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
 
@@ -1553,7 +1553,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 : nextNodeKey.length
                   ? pathMap
                   : [...pathMap, END]
-            const decisionPathMap = uniq([...baseDecisionPathMap, modelLoopEntryNode])
+            const decisionPathMap = buildAgentDecisionPathMap(baseDecisionPathMap, modelLoopEntryNode, toolNames)
 
             subgraphBuilder.addConditionalEdges(
                 agentDecisionNode,
