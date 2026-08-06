@@ -3,6 +3,7 @@ jest.mock('../xpert/xpert.entity', () => ({
 }))
 
 import { MembershipService } from './membership.service'
+import { ForbiddenException } from '@nestjs/common'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPeriod } from './membership-period.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
@@ -291,6 +292,127 @@ describe('MembershipService', () => {
 
         expect(queryBuilder.orderBy).toHaveBeenCalledWith('membership.updatedAt', 'DESC')
         expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('membership.id', 'DESC')
+    })
+
+    it('lists the current tenant and organization memberships for a tenant administrator', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const tenantMembership = createMembership({
+            id: 'membership-tenant',
+            organizationId: null,
+            plan: createPlan({ id: 'plan-tenant', name: 'Tenant plan' })
+        })
+        const organizationMembership = createMembership({
+            id: 'membership-org',
+            organizationId: 'org-1',
+            organization: { id: 'org-1', name: 'Organization 1' } as UserMembership['organization'],
+            plan: createPlan({ id: 'plan-org', organizationId: 'org-1', name: 'Organization plan' })
+        })
+        const duplicateOrganizationMembership = createMembership({
+            id: 'membership-org-older',
+            organizationId: 'org-1',
+            organization: { id: 'org-1', name: 'Organization 1' } as UserMembership['organization'],
+            status: MembershipStatusEnum.Paused
+        })
+        const queryBuilder = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            getMany: jest
+                .fn()
+                .mockResolvedValue([tenantMembership, organizationMembership, duplicateOrganizationMembership])
+        }
+        const membershipRepository = {
+            createQueryBuilder: jest.fn(() => queryBuilder)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+
+        const memberships = await service.findAdminUserScopeMemberships('owner-user')
+
+        expect(memberships.map(({ id }) => id)).toEqual(['membership-tenant', 'membership-org'])
+        expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('membership.organization', 'organization')
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('membership.status IN (:...statuses)', {
+            statuses: [MembershipStatusEnum.Active, MembershipStatusEnum.Paused]
+        })
+    })
+
+    it('does not expose cross-organization memberships from organization scope', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const service = createMembershipService()
+
+        await expect(service.findAdminUserScopeMemberships('owner-user')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('lists membership periods from every scope for a tenant administrator', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const periodRepository = {
+            find: jest.fn().mockResolvedValue([])
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            periodRepository as never
+        )
+
+        await service.findAdminUserPeriods('owner-user')
+
+        expect(periodRepository.find).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                userId: 'owner-user'
+            },
+            relations: ['plan'],
+            order: { periodStart: 'ASC' }
+        })
+    })
+
+    it('lists membership audit entries from every scope for a tenant administrator', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const queryBuilder = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+        }
+        const ledgerRepository = {
+            createQueryBuilder: jest.fn(() => queryBuilder)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            ledgerRepository as never,
+            {} as never
+        )
+
+        await service.findAdminUserAudit('owner-user')
+
+        expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('ledger.user', 'user')
+        expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('ledger.membership', 'membership')
+        expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('membership.organization', 'organization')
+        expect(queryBuilder.andWhere).not.toHaveBeenCalledWith('ledger.organizationId IS NULL')
     })
 
     it('calculates fractional points directly from token usage without rounding per call', () => {
@@ -1002,6 +1124,19 @@ describe('MembershipService', () => {
         await service.updatePlan(plan.id, { includedPoints: null })
 
         expect(memberships[0].pointsGranted).toBeNull()
+    })
+
+    it('does not synchronize assigned memberships when the plan allowance is unchanged', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { ledgers, memberships, service } = createScopeInitializationHarness()
+        const plan = await service.createPlan({ code: 'assigned', name: 'Assigned', includedPoints: 1000 })
+        memberships.push(createMembership({ planId: plan.id, pointsGranted: 1000, pointsUsed: 100 }))
+
+        await service.updatePlan(plan.id, { description: 'Updated description', includedPoints: 1000 })
+
+        expect(memberships[0].pointsGranted).toBe(1000)
+        expect(ledgers).not.toContainEqual(expect.objectContaining({ reason: 'Membership plan allowance updated' }))
     })
 
     it('does not allow an archived plan to remain the default plan', async () => {
@@ -1819,6 +1954,7 @@ describe('MembershipService', () => {
             userId: 'user-1',
             pointDelta: 25,
             sourceReference: 'point-order-1',
+            actorId: 'buyer-1',
             reason: 'External point fulfillment'
         }
         const first = await service.applyPersonalPointsAdjustment(input)
@@ -1839,6 +1975,7 @@ describe('MembershipService', () => {
                 membershipId: null,
                 source: MembershipLedgerSourceEnum.PersonalAdjustment,
                 sourceReference: 'point-order-1',
+                actorId: 'buyer-1',
                 pointsDelta: 25
             })
         )
@@ -4458,7 +4595,7 @@ describe('MembershipService', () => {
     })
 
     it('appends multiple idempotent periods with immutable plan snapshots', async () => {
-        const { periods, plans, service } = createScopeInitializationHarness()
+        const { ledgers, periods, plans, service } = createScopeInitializationHarness()
         const plan = createPlan({
             id: 'plan-prepaid',
             name: 'Original plan',
@@ -4473,7 +4610,8 @@ describe('MembershipService', () => {
             planId: plan.id,
             count: 3,
             source: MembershipSourceEnum.External,
-            sourceReference: 'order-1'
+            sourceReference: 'order-1',
+            actorId: 'buyer-1'
         })
         plan.name = 'Changed plan'
         plan.includedPoints = 9999
@@ -4483,7 +4621,8 @@ describe('MembershipService', () => {
             planId: plan.id,
             count: 3,
             source: MembershipSourceEnum.External,
-            sourceReference: 'order-1'
+            sourceReference: 'order-1',
+            actorId: 'buyer-1'
         })
 
         expect(firstResult).toHaveLength(3)
@@ -4501,6 +4640,12 @@ describe('MembershipService', () => {
         })
         expect(periods[1].periodStart).toEqual(periods[0].periodEnd)
         expect(periods[2].periodStart).toEqual(periods[1].periodEnd)
+        expect(ledgers).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ actorId: 'buyer-1', reason: 'Membership period activated' }),
+                expect.objectContaining({ actorId: 'buyer-1', reason: '3 membership periods scheduled' })
+            ])
+        )
     })
 
     it('lets admins cancel assigned future periods without deleting them', async () => {
@@ -4608,7 +4753,7 @@ describe('MembershipService', () => {
     })
 
     it('upgrades only the current period and keeps future prepaid periods unchanged', async () => {
-        const { memberships, periods, plans, service } = createScopeInitializationHarness()
+        const { ledgers, memberships, periods, plans, service } = createScopeInitializationHarness()
         const plusPlan = createPlan({ id: 'plan-plus', name: 'Plus', includedPoints: 1000 })
         const proPlan = createPlan({ id: 'plan-pro', name: 'Pro', includedPoints: 5000 })
         plans.push(plusPlan, proPlan)
@@ -4625,14 +4770,16 @@ describe('MembershipService', () => {
             userId: 'user-1',
             planId: proPlan.id,
             pointsDelta: 1200,
-            sourceReference: 'upgrade-1'
+            sourceReference: 'upgrade-1',
+            actorId: 'buyer-1'
         })
         const repeated = await service.upgradeCurrentMembershipPeriod({
             tenantId: 'tenant-1',
             userId: 'user-1',
             planId: proPlan.id,
             pointsDelta: 1200,
-            sourceReference: 'upgrade-1'
+            sourceReference: 'upgrade-1',
+            actorId: 'buyer-1'
         })
 
         expect(upgraded.plan.name).toBe('Pro')
@@ -4647,6 +4794,13 @@ describe('MembershipService', () => {
         })
         expect(periods.find(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)?.planSnapshot.name).toBe(
             'Plus'
+        )
+        expect(ledgers).toContainEqual(
+            expect.objectContaining({
+                actorId: 'buyer-1',
+                source: MembershipLedgerSourceEnum.Upgrade,
+                sourceReference: 'upgrade-1'
+            })
         )
     })
 

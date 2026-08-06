@@ -5,7 +5,7 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <div>
             <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+              {{ 'XP.Membership.CurrentScopePlan' | translate: { Default: 'Current management-scope plan' } }}
             </div>
             <div class="font-medium">{{ currentMembership.plan?.name || currentMembership.planId }}</div>
           </div>
@@ -121,7 +121,165 @@
       </div>
     }
 
-    @if (scheduledPeriods().length) {
+    @if (isTenantScope && scopeMemberships().length) {
+      <section class="flex flex-col gap-4 rounded-lg border border-divider-regular p-4">
+        <div>
+          <div class="font-semibold text-text-primary">
+            {{ 'XP.Membership.MembershipsByScope' | translate: { Default: 'Current plans by scope' } }}
+          </div>
+          <div class="text-sm text-text-tertiary">
+            {{
+              'XP.Membership.MembershipsByScopeHint'
+                | translate
+                  : {
+                      Default: "View the tenant plan, each organization's current plan, and upcoming periods."
+                    }
+            }}
+          </div>
+        </div>
+
+        <div class="divide-y divide-divider-subtle">
+          @for (scopeMembership of scopeMemberships(); track scopeMembership.id) {
+            <div class="flex flex-col gap-3 py-3 first:pt-0 last:pb-0">
+              <div class="grid grid-cols-1 items-center gap-3 md:grid-cols-[1.2fr_1fr_auto_1fr]">
+                <div class="min-w-0">
+                  <div class="truncate font-medium text-text-primary">{{ scopeMembershipLabel(scopeMembership) }}</div>
+                  <z-badge zType="outline" zShape="pill" class="mt-1">
+                    @if (scopeMembership.organizationId) {
+                      {{ 'XP.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
+                    } @else {
+                      {{ 'XP.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
+                    }
+                  </z-badge>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-sm text-text-tertiary">
+                    {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+                  </div>
+                  <div class="flex min-w-0 flex-wrap items-center gap-2">
+                    <span class="truncate font-medium text-text-primary">
+                      {{ scopeMembership.plan?.name || scopeMembership.planId }}
+                    </span>
+                    @if (isEffectiveInScope(scopeMembership)) {
+                      <z-badge zType="secondary" zShape="pill">
+                        {{ 'XP.Membership.EffectiveInScope' | translate: { Default: 'Effective in this scope' } }}
+                      </z-badge>
+                    }
+                    @if (isCurrentScopeMembership(scopeMembership)) {
+                      <z-badge zType="outline" zShape="pill">
+                        {{
+                          'XP.Membership.CurrentManagementScope' | translate: { Default: 'Current management scope' }
+                        }}
+                      </z-badge>
+                    }
+                  </div>
+                </div>
+                <z-badge zType="outline" zShape="pill">
+                  {{
+                    'XP.Membership.MemberStatuses.' + scopeMembership.status
+                      | translate: { Default: scopeMembership.status }
+                  }}
+                </z-badge>
+                <div>
+                  <div class="text-sm text-text-tertiary">
+                    {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
+                  </div>
+                  <div class="font-medium text-text-primary">
+                    {{ scopeMembership.currentPeriodEnd | date: 'medium' }}
+                  </div>
+                </div>
+              </div>
+
+              @if (upcomingPeriodsForMembership(scopeMembership.id).length) {
+                <div class="rounded-lg bg-components-panel-bg px-3">
+                  <div class="flex items-center justify-between gap-3 border-b border-divider-subtle py-3">
+                    <div class="text-sm font-medium text-text-primary">
+                      {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
+                    </div>
+                    <z-badge zType="secondary" zShape="pill">
+                      {{ upcomingPeriodsForMembership(scopeMembership.id).length }}
+                    </z-badge>
+                  </div>
+                  @for (period of upcomingPeriodsForMembership(scopeMembership.id); track period.id) {
+                    <div
+                      class="grid grid-cols-1 items-center gap-3 border-b border-divider-subtle py-3 last:border-b-0 md:grid-cols-[1fr_1.5fr_1fr_auto]"
+                    >
+                      <div>
+                        <div class="text-sm text-text-tertiary">
+                          {{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}
+                        </div>
+                        <div class="font-medium text-text-primary">{{ period.planSnapshot.name }}</div>
+                      </div>
+                      <div>
+                        <div class="text-sm text-text-tertiary">
+                          {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
+                        </div>
+                        <div class="font-medium text-text-primary">
+                          {{ period.periodStart | date: 'medium' }} – {{ period.periodEnd | date: 'medium' }}
+                        </div>
+                      </div>
+                      <div>
+                        <div class="text-sm text-text-tertiary">
+                          {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
+                        </div>
+                        <div class="font-medium text-text-primary">
+                          @if (period.pointsGranted === null) {
+                            <span
+                              [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                              [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                              >∞</span
+                            >
+                          } @else {
+                            {{ period.pointsGranted | number: '1.0-10' }}
+                          }
+                        </div>
+                      </div>
+                      <div class="flex justify-end">
+                        @if (isExternallyManagedPeriod(period)) {
+                          <span class="text-sm text-text-tertiary">
+                            {{
+                              'XP.Membership.ExternalPeriodManagedHint'
+                                | translate: { Default: 'Refund and cancel in the billing system' }
+                            }}
+                          </span>
+                        } @else if (period.organizationId) {
+                          <span class="text-sm text-text-tertiary">
+                            {{
+                              'XP.Membership.ManageInOrganizationScope'
+                                | translate: { Default: 'Switch to the organization scope to manage' }
+                            }}
+                          </span>
+                        } @else if (!canCancelPeriod(period)) {
+                          <span class="text-sm text-text-tertiary">
+                            {{
+                              'XP.Membership.CancelLaterPeriodsFirst'
+                                | translate: { Default: 'Cancel later periods first' }
+                            }}
+                          </span>
+                        } @else {
+                          <button
+                            z-button
+                            zType="destructive"
+                            zSize="sm"
+                            type="button"
+                            [disabled]="loading()"
+                            (click)="cancelPeriod(period)"
+                          >
+                            {{ 'XP.Membership.CancelPeriod' | translate: { Default: 'Cancel period' } }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (!isTenantScope && scheduledPeriods().length) {
       <section class="flex flex-col gap-4 rounded-lg border border-divider-regular p-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -377,14 +535,15 @@
                 <span class="text-sm font-medium text-text-primary">
                   {{ 'XP.Membership.LedgerSource.' + entry.source | translate: { Default: entry.source } }}
                 </span>
+                <z-badge zType="outline" zShape="pill">{{ auditScopeLabel(entry) }}</z-badge>
                 @if (entry.pointsDelta) {
                   <z-badge [zType]="entry.pointsDelta > 0 ? 'secondary' : 'outline'" zShape="pill">
                     {{ entry.pointsDelta > 0 ? '+' : '' }}{{ entry.pointsDelta | number: '1.0-10' }}
                   </z-badge>
                 }
               </div>
-              <div class="mt-1 truncate text-sm text-text-tertiary" [title]="entry.reason || ''">
-                {{ entry.reason || ('XP.Membership.NoOperationReason' | translate: { Default: 'No reason provided' }) }}
+              <div class="mt-1 truncate text-sm text-text-tertiary" [title]="auditReason(entry)">
+                {{ auditReason(entry) }}
               </div>
             </div>
             <div>

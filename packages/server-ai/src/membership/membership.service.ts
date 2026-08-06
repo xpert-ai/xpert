@@ -315,6 +315,12 @@ export class MembershipService {
             const wasActiveDefault = plan.status === MembershipPlanStatusEnum.Active && plan.isDefault
             const nextStatus = input.status ?? plan.status
             const nextIsDefault = input.isDefault ?? plan.isDefault
+            const nextIncludedPoints =
+                input.includedPoints === undefined
+                    ? plan.includedPoints
+                    : this.nonNegativeNumberOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS)
+            const includedPointsChanged =
+                input.includedPoints !== undefined && nextIncludedPoints !== plan.includedPoints
             this.assertDefaultPlanIsActive(nextStatus, nextIsDefault)
             if (
                 input.status === MembershipPlanStatusEnum.Archived &&
@@ -362,7 +368,7 @@ export class MembershipService {
                 plan.period = input.period
             }
             if (input.includedPoints !== undefined) {
-                plan.includedPoints = this.nonNegativeNumberOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS)
+                plan.includedPoints = nextIncludedPoints
             }
             if (input.priceAmount !== undefined) {
                 plan.priceAmount = this.optionalNonNegativeNumber(input.priceAmount)
@@ -387,7 +393,7 @@ export class MembershipService {
             }
 
             const saved = await repository.save(plan)
-            if (input.includedPoints !== undefined) {
+            if (includedPointsChanged) {
                 await this.synchronizeAssignedPlanPoints(manager, saved)
             }
             return {
@@ -1098,6 +1104,40 @@ export class MembershipService {
         return { items, total }
     }
 
+    async findAdminUserScopeMemberships(userId: string): Promise<UserMembership[]> {
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        if (scope.organizationId) {
+            throw new ForbiddenException()
+        }
+        await this.assertMembershipEligibleUser(scope.tenantId, userId)
+
+        const memberships = await this.membershipRepository
+            .createQueryBuilder('membership')
+            .leftJoinAndSelect('membership.plan', 'plan')
+            .leftJoinAndSelect('membership.organization', 'organization')
+            .where('membership.tenantId = :tenantId', { tenantId: scope.tenantId })
+            .andWhere('membership.userId = :userId', { userId })
+            .andWhere('membership.status IN (:...statuses)', {
+                statuses: [MembershipStatusEnum.Active, MembershipStatusEnum.Paused]
+            })
+            .orderBy('CASE WHEN membership.organizationId IS NULL THEN 0 ELSE 1 END', 'ASC')
+            .addOrderBy('organization.name', 'ASC')
+            .addOrderBy(`CASE membership.status WHEN '${MembershipStatusEnum.Active}' THEN 0 ELSE 1 END`, 'ASC')
+            .addOrderBy('membership.updatedAt', 'DESC')
+            .addOrderBy('membership.id', 'DESC')
+            .getMany()
+
+        const currentMemberships = new Map<string, UserMembership>()
+        for (const membership of memberships) {
+            const scopeKey = membership.organizationId || 'tenant'
+            if (!currentMemberships.has(scopeKey)) {
+                currentMemberships.set(scopeKey, membership)
+            }
+        }
+        return Array.from(currentMemberships.values())
+    }
+
     async findAdminMembers(options: IMembershipAdminUsersQuery = {}): Promise<IPagination<IMembershipAdminUser>> {
         const scope = this.requireCurrentScope()
         await this.assertMembershipPlanFeatureEnabled(scope)
@@ -1302,14 +1342,19 @@ export class MembershipService {
         const skip = Math.max(Number(pagination.skip ?? 0), 0)
         const query = this.ledgerRepository
             .createQueryBuilder('ledger')
+            .leftJoinAndSelect('ledger.user', 'user')
             .leftJoinAndSelect('ledger.actor', 'actor')
             .leftJoinAndSelect('ledger.plan', 'plan')
+            .leftJoinAndSelect('ledger.membership', 'membership')
+            .leftJoinAndSelect('membership.organization', 'organization')
             .where('ledger.tenantId = :tenantId', { tenantId: scope.tenantId })
             .andWhere('ledger.userId = :userId', { userId })
             .andWhere('ledger.source NOT IN (:...usageSources)', {
                 usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
             })
-        this.applyScopeFilter(query, 'ledger.organizationId', scope.organizationId)
+        if (scope.organizationId) {
+            this.applyScopeFilter(query, 'ledger.organizationId', scope.organizationId)
+        }
         const [items, total] = await query.orderBy('ledger.createdAt', 'DESC').take(take).skip(skip).getManyAndCount()
         return { items, total }
     }
@@ -1722,6 +1767,7 @@ export class MembershipService {
                 planId: plan.id,
                 source: MembershipLedgerSourceEnum.Upgrade,
                 sourceReference,
+                actorId: input.actorId,
                 pointsDelta,
                 reason: 'Current membership period upgraded'
             })
@@ -1769,7 +1815,8 @@ export class MembershipService {
     async findAdminUserPeriods(userId: string): Promise<MembershipPeriod[]> {
         const scope = this.requireCurrentScope()
         await this.assertMembershipPlanFeatureEnabled(scope)
-        return this.findMembershipPeriods(scope.tenantId, scope.organizationId, userId)
+        await this.assertMembershipEligibleUser(scope.tenantId, userId)
+        return this.findMembershipPeriods(scope.tenantId, scope.organizationId || undefined, userId)
     }
 
     async cancelAdminUserPeriod(userId: string, periodId: string): Promise<MembershipPeriod> {
@@ -2196,6 +2243,7 @@ export class MembershipService {
                 planId: null,
                 source: MembershipLedgerSourceEnum.PersonalAdjustment,
                 sourceReference,
+                actorId: input.actorId,
                 pointsDelta: pointDelta,
                 reason: input.reason ?? null
             })
@@ -3721,6 +3769,7 @@ export class MembershipService {
                 membershipId: membership.id,
                 planId: plan.id,
                 source: MembershipLedgerSourceEnum.Assignment,
+                actorId: input.actorId,
                 pointsDelta: periods[0].pointsGranted ?? 0,
                 reason: 'Membership period activated'
             })
@@ -3733,6 +3782,7 @@ export class MembershipService {
                 membershipId: membership.id,
                 planId: plan.id,
                 source: MembershipLedgerSourceEnum.Renew,
+                actorId: input.actorId,
                 pointsDelta: 0,
                 reason: `${input.count} membership period${input.count === 1 ? '' : 's'} scheduled`
             })
@@ -3743,13 +3793,14 @@ export class MembershipService {
 
     private async findMembershipPeriods(
         tenantId: string,
-        organizationId: string | null,
+        organizationId: string | null | undefined,
         userId: string
     ): Promise<MembershipPeriod[]> {
         const repository = this.requirePeriodRepository()
         return repository.find({
             where: {
-                ...this.scopeWhere(tenantId, organizationId),
+                tenantId,
+                ...(organizationId === undefined ? {} : this.scopeWhere(tenantId, organizationId)),
                 userId
             },
             relations: ['plan'],

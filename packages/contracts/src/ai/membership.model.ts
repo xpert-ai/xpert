@@ -320,6 +320,7 @@ export type TMembershipPointAdjustInput = {
 export type TMembershipPersonalPointsAdjustmentInput = {
   tenantId: string
   userId: string
+  actorId?: string | null
   pointDelta: number
   sourceReference: string
   reason?: string | null
@@ -333,6 +334,7 @@ export type TMembershipPeriodsAppendInput = {
   tenantId: string
   organizationId?: string | null
   userId: string
+  actorId?: string | null
   planId: string
   count: number
   source?: MembershipSourceEnum
@@ -369,6 +371,7 @@ export type TMembershipCurrentPeriodUpgradeInput = {
   tenantId: string
   organizationId?: string | null
   userId: string
+  actorId?: string | null
   planId: string
   pointsDelta: number
   sourceReference: string

@@ -135,6 +135,13 @@ export class MembershipController {
         return this.service.findAdminUsers({ userId, planId, take, skip })
     }
 
+    @Get('admin/users/:userId/scope-memberships')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
+    async getAdminUserScopeMemberships(@Param('userId') userId: string) {
+        return this.service.findAdminUserScopeMemberships(userId)
+    }
+
     @Get('admin/members')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
