@@ -375,6 +375,10 @@
           "Name": "Membership Plans",
           "Description": "Enable membership plan quotas, point deduction, and usage statistics."
         },
+        "FEATURE_MEMBERSHIP_PURCHASE": {
+          "Name": "Membership Purchase",
+          "Description": "Enable membership plan and personal point purchases."
+        },
         "FEATURE_MODEL_ACCESS_REQUEST": {
           "Name": "Personal Model Access",
           "Description": "Enable personal model access requests and grants."
@@ -1204,6 +1208,7 @@
       "NoUserMembership": "No membership has been created for this user yet.",
       "AssignNote": "Assignment note",
       "AssignPlan": "Assign plan",
+      "ExternallyManagedMembershipHint": "This membership is managed by an external workflow and cannot be replaced or renewed here.",
       "PointDelta": "Point delta",
       "Points": "Points",
       "Increase": "Increase",

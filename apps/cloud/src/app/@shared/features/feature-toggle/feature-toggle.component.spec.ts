@@ -739,6 +739,24 @@ describe('FeatureToggleComponent', () => {
     })
   })
 
+  it('ships membership purchase feature translations for every supported locale', () => {
+    const locales = [
+      ['en', 'Membership Purchase', 'Enable membership plan and personal point purchases.'],
+      ['en-US', 'Membership Purchase', 'Enable membership plan and personal point purchases.'],
+      ['zh-CN', '会员购买', '启用会员套餐和个人积分购买。'],
+      ['zh-Hans', '会员购买', '启用会员套餐和个人积分购买。'],
+      ['zh-Hant', '會員購買', '啟用會員套餐和個人積分購買。']
+    ]
+
+    locales.forEach(([locale, expectedName, expectedDescription]) => {
+      const messages = JSON.parse(readFileSync(join(__dirname, '../../../../assets/i18n', `${locale}.json`), 'utf8'))
+      const feature = messages.XP?.Feature?.Features?.[AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE]
+
+      expect(feature?.Name).toBe(expectedName)
+      expect(feature?.Description).toBe(expectedDescription)
+    })
+  })
+
   it('ships management overview translations for every supported locale', () => {
     const locales = ['en', 'en-US', 'zh-CN', 'zh-Hans', 'zh-Hant']
 

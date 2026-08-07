@@ -3600,6 +3600,7 @@
       "NoUserMembership": "该用户尚未创建会员。",
       "AssignNote": "分配备注",
       "AssignPlan": "分配套餐",
+      "ExternallyManagedMembershipHint": "该会员由外部流程管理，不能在此覆盖或续期。",
       "PointDelta": "点数调整",
       "Points": "点数",
       "Increase": "上调",
@@ -4699,6 +4700,10 @@
         "FEATURE_MEMBERSHIP_PLAN": {
           "Name": "会员套餐",
           "Description": "启用会员套餐配额、点数扣减和用量统计规则"
+        },
+        "FEATURE_MEMBERSHIP_PURCHASE": {
+          "Name": "会员购买",
+          "Description": "启用会员套餐和个人积分购买。"
         },
         "FEATURE_MODEL_ACCESS_REQUEST": {
           "Name": "个人模型授权",
