@@ -1,5 +1,6 @@
 export * from './knowledgebase'
 export * from './knowledgebase-documents'
+export * from './actor-token'
 export * from './artifacts'
 export * from './workspace-files'
 export * from './sandbox-jobs'
