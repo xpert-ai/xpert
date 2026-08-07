@@ -53,7 +53,7 @@ describe('CopilotService', () => {
             findModelAccess: jest.fn().mockResolvedValue({
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
-                membership: {}
+                membership: { plan: {} }
             })
         }
         modelAccessService = {
@@ -199,6 +199,113 @@ describe('CopilotService', () => {
         expect(result).toHaveLength(1)
         expect(result[0].id).toBe('copilot-2')
         expect(result[0].modelProvider?.id).toBe('tenant-provider')
+    })
+
+    it('keeps an organization membership purchased from the tenant catalog in organization model scope', async () => {
+        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
+        membershipService.findModelAccess.mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership: {
+                plan: {
+                    catalogSourcePlanId: 'tenant-catalog-plan'
+                }
+            }
+        } as never)
+        repository.find.mockResolvedValue([
+            createCopilot({
+                id: 'organization-copilot',
+                organizationId: 'org-1',
+                role: AiProviderRole.Primary,
+                modelProvider: createProvider({
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'openai'
+                })
+            })
+        ])
+        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(
+            new Map([
+                [
+                    'organization-copilot',
+                    createProvider({
+                        id: 'organization-provider',
+                        copilotId: 'organization-copilot',
+                        organizationId: 'org-1',
+                        providerName: 'openai'
+                    })
+                ]
+            ])
+        )
+
+        const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
+
+        expect(repository.find).toHaveBeenCalledWith({
+            where: [
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    enabled: true
+                }
+            ],
+            relations: ['modelProvider']
+        })
+        expect(result).toHaveLength(1)
+        expect(result[0].id).toBe('organization-copilot')
+    })
+
+    it('uses tenant catalog copilots for an organization catalog membership without organization models', async () => {
+        membershipService.findModelAccess.mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership: {
+                plan: {
+                    catalogSourcePlanId: 'tenant-catalog-plan'
+                }
+            }
+        } as never)
+        repository.find.mockResolvedValue([
+            createCopilot({
+                id: 'tenant-copilot',
+                organizationId: null,
+                role: AiProviderRole.Primary,
+                modelProvider: createProvider({
+                    id: 'tenant-provider',
+                    organizationId: null,
+                    providerName: 'deepseek'
+                })
+            })
+        ])
+        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(
+            new Map([
+                [
+                    'tenant-copilot',
+                    createProvider({
+                        id: 'tenant-provider',
+                        copilotId: 'tenant-copilot',
+                        organizationId: null,
+                        providerName: 'deepseek'
+                    })
+                ]
+            ])
+        )
+
+        const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
+
+        expect(membershipService.findModelAccess).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        expect(repository.find).toHaveBeenCalledWith({
+            where: [
+                expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    enabled: true
+                })
+            ],
+            relations: ['modelProvider']
+        })
+        expect(result.map((copilot) => copilot.id)).toEqual(['tenant-copilot'])
     })
 
     it('uses only tenant-global copilots when no organization scope is provided', async () => {
@@ -375,7 +482,7 @@ describe('CopilotService', () => {
             role: AiProviderRole.Primary
         })
 
-        expect(membershipService.countEnabledOrganizationCopilots).not.toHaveBeenCalled()
+        expect(membershipService.countEnabledOrganizationCopilots).toHaveBeenCalledWith('tenant-1', 'org-1')
         expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
         expect(membershipService.findModelAccess).not.toHaveBeenCalled()
         expect(repository.find).toHaveBeenCalledTimes(1)
@@ -398,13 +505,9 @@ describe('CopilotService', () => {
         expect(result.map((copilot) => copilot.id)).toEqual(['org-copilot'])
     })
 
-    it('lists direct organization copilots together with tenant plan copilots', async () => {
+    it('lists only direct organization copilots when organization membership is disabled', async () => {
         membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
-        membershipService.findModelAccess.mockResolvedValue({
-            tenantId: 'tenant-1',
-            organizationId: null,
-            membership: {}
-        } as never)
+        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
         repository.find.mockResolvedValue([
             createCopilot({
                 id: 'org-copilot',
@@ -419,7 +522,8 @@ describe('CopilotService', () => {
 
         const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
 
-        expect(result.map((copilot) => copilot.id)).toEqual(['org-copilot', 'tenant-copilot'])
+        expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+        expect(result.map((copilot) => copilot.id)).toEqual(['org-copilot'])
     })
 
     it('lists only tenant enabled copilots without membership access in tenant scope when membership plans are disabled', async () => {

@@ -4813,7 +4813,11 @@ export class MembershipService {
 
     private assertCopilotScopeMatches(access: MembershipModelAccess, copilotOrganizationId?: string | null) {
         const normalizedCopilotOrganizationId = this.normalizeScopeOrganizationId(copilotOrganizationId)
-        if (normalizedCopilotOrganizationId !== access.organizationId) {
+        const usesTenantCatalog =
+            normalizedCopilotOrganizationId === null &&
+            !!access.organizationId &&
+            !!access.membership.plan.catalogSourcePlanId
+        if (normalizedCopilotOrganizationId !== access.organizationId && !usesTenantCatalog) {
             throw new ExceedingLimitException(
                 this.translateMembershipError(
                     'server-ai:Error.CopilotModelUnavailableForMembershipPlan',

@@ -3267,6 +3267,36 @@ describe('MembershipService', () => {
         ).rejects.toThrow('Copilot model is not available for the current membership plan.')
     })
 
+    it('allows tenant copilots for an organization membership purchased from the tenant catalog', async () => {
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const membership = createMembership({
+            organizationId: 'org-1',
+            pointsUsed: 0,
+            source: MembershipSourceEnum.External,
+            plan: {
+                ...createMembership().plan,
+                organizationId: 'org-1',
+                catalogSourcePlanId: 'tenant-catalog-plan'
+            }
+        } as never)
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership
+        })
+
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: null,
+                userId: 'assistant-tech-user',
+                provider: 'tongyi',
+                model: 'qwen3.6-plus'
+            })
+        ).resolves.toBeUndefined()
+    })
+
     it('rejects models not explicitly allowed by the active membership plan', async () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         jest.spyOn(service, 'findModelAccess').mockResolvedValue({
