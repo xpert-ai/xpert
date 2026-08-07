@@ -101,17 +101,17 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (!tenantId) {
             return []
         }
-        const [tenantMembershipEnabled, organizationMembershipEnabled] = await Promise.all([
+        const [tenantMembershipEnabled, organizationMembershipEnabled, organizationCopilotCount] = await Promise.all([
             this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
             organizationId
                 ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
-                : Promise.resolve(false)
+                : Promise.resolve(false),
+            organizationId
+                ? this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)
+                : Promise.resolve(0)
         ])
-        if (
-            organizationId &&
-            organizationMembershipEnabled &&
-            (await this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)) > 0
-        ) {
+        const organizationModelsConfigured = organizationCopilotCount > 0
+        if (organizationId && organizationMembershipEnabled && organizationModelsConfigured) {
             await this.membershipService.ensureScopeInitialized({
                 tenantId,
                 organizationId,
@@ -119,21 +119,29 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
             })
         }
 
-        const access =
-            organizationMembershipEnabled || tenantMembershipEnabled
-                ? await this.membershipService.findModelAccess({
-                      tenantId,
-                      organizationId
-                  })
-                : null
+        const membershipEnabled = organizationId
+            ? organizationModelsConfigured
+                ? organizationMembershipEnabled
+                : organizationMembershipEnabled || tenantMembershipEnabled
+            : tenantMembershipEnabled
+        const access = membershipEnabled
+            ? await this.membershipService.findModelAccess({
+                  tenantId,
+                  organizationId
+              })
+            : null
         const allowedScopes = new Set<string | null>()
         if (!organizationId) {
             if (!tenantMembershipEnabled || access?.organizationId === null) {
                 allowedScopes.add(null)
             }
+        } else if (organizationModelsConfigured) {
+            if (!organizationMembershipEnabled || access?.organizationId === organizationId) {
+                allowedScopes.add(organizationId)
+            }
         } else if (organizationMembershipEnabled) {
             if (access?.organizationId === organizationId) {
-                allowedScopes.add(organizationId)
+                allowedScopes.add(access.membership.plan.catalogSourcePlanId ? null : organizationId)
             } else if (tenantMembershipEnabled && access?.organizationId === null) {
                 allowedScopes.add(null)
             }
