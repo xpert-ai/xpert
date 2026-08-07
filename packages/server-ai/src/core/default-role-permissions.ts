@@ -55,7 +55,12 @@ export const DEFAULT_ROLE_PERMISSIONS = [
     },
     {
         role: RolesEnum.TRIAL,
-        defaultEnabledPermissions: [...FULL_AI_PERMISSIONS, ...MEMBER_PURCHASE_PERMISSIONS]
+        defaultEnabledPermissions: [
+            AIPermissionsEnum.COPILOT_EDIT,
+            AIPermissionsEnum.XPERT_EDIT,
+            AIPermissionsEnum.CHAT_VIEW,
+            ...MEMBER_PURCHASE_PERMISSIONS
+        ]
     },
     {
         role: RolesEnum.AI_BUILDER,

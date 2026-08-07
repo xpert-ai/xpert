@@ -75,6 +75,10 @@ export class UserMembershipComponent implements OnChanges {
   readonly personalPointsBalance = signal(0)
   readonly auditEntries = signal<IMembershipPointLedger[]>([])
   readonly loading = signal(false)
+  readonly isExternallyManagedMembership = computed(() => {
+    const membership = this.membership()
+    return membership?.source === MembershipSourceEnum.External || !!membership?.plan?.catalogSourcePlanId
+  })
 
   readonly MembershipRenewalModeEnum = MembershipRenewalModeEnum
   readonly MembershipSourceEnum = MembershipSourceEnum
@@ -130,7 +134,7 @@ export class UserMembershipComponent implements OnChanges {
         : of({ balance: 0 })
     }).subscribe({
       next: ({ plans, memberships, scopeMemberships, periods, audit, personalPoints }) => {
-        this.plans.set(plans.filter((plan) => plan.status === 'active'))
+        this.plans.set(plans.filter((plan) => plan.status === 'active' && !plan.catalogSourcePlanId))
         const membership = memberships.items?.[0] ?? null
         this.membership.set(membership)
         this.scopeMemberships.set(scopeMemberships)
@@ -168,6 +172,9 @@ export class UserMembershipComponent implements OnChanges {
   }
 
   assign() {
+    if (this.isExternallyManagedMembership()) {
+      return
+    }
     if (this.assignmentForm.invalid) {
       this.assignmentForm.markAllAsTouched()
       return
@@ -190,6 +197,9 @@ export class UserMembershipComponent implements OnChanges {
   }
 
   async renew() {
+    if (this.isExternallyManagedMembership()) {
+      return
+    }
     if (
       await this.confirmMembershipAction({
         titleKey: 'XP.Membership.RenewConfirmTitle',

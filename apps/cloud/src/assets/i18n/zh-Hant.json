@@ -2695,6 +2695,7 @@
       "NoUserMembership": "該用戶尚未創建會員。",
       "AssignNote": "分配備註",
       "AssignPlan": "分配套餐",
+      "ExternallyManagedMembershipHint": "該會員由外部流程管理，不能在此覆蓋或續期。",
       "PointDelta": "點數調整",
       "Points": "點數",
       "Increase": "上調",
@@ -3545,6 +3546,10 @@
         "FEATURE_MEMBERSHIP_PLAN": {
           "Name": "會員套餐",
           "Description": "啟用會員套餐配額、點數扣減和用量統計規則"
+        },
+        "FEATURE_MEMBERSHIP_PURCHASE": {
+          "Name": "會員購買",
+          "Description": "啟用會員套餐和個人積分購買。"
         },
         "FEATURE_MODEL_ACCESS_REQUEST": {
           "Name": "個人模型授權",

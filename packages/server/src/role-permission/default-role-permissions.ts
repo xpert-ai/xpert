@@ -70,31 +70,10 @@ const ADMIN_PLATFORM_PERMISSIONS = [
 const TRIAL_PLATFORM_PERMISSIONS = [
 	...DATA_SOURCE_PLATFORM_PERMISSIONS,
 	PermissionsEnum.PROFILE_EDIT,
-	PermissionsEnum.ADMIN_DASHBOARD_VIEW,
-	PermissionsEnum.ORG_EMPLOYEES_VIEW,
-	PermissionsEnum.ORG_EMPLOYEES_EDIT,
-	PermissionsEnum.ORG_HELP_CENTER_EDIT,
-	PermissionsEnum.ORG_USERS_VIEW,
-	PermissionsEnum.ORG_USERS_EDIT,
-	PermissionsEnum.ALL_ORG_VIEW,
-	PermissionsEnum.ALL_ORG_EDIT,
-	PermissionsEnum.INTEGRATION_VIEW,
+	PermissionsEnum.ORG_INVITE_EDIT,
 	PermissionsEnum.INTEGRATION_EDIT,
 	PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
-	PermissionsEnum.CHANGE_ROLES_PERMISSIONS,
-	PermissionsEnum.ORG_INVITE_VIEW,
-	PermissionsEnum.ORG_INVITE_EDIT,
-	PermissionsEnum.PUBLIC_PAGE_EDIT,
-	PermissionsEnum.ORG_TAGS_EDIT,
-	PermissionsEnum.VIEW_ALL_EMAILS,
-	PermissionsEnum.VIEW_ALL_EMAIL_TEMPLATES,
-	PermissionsEnum.ORG_CONTACT_EDIT,
-	PermissionsEnum.ORG_CONTACT_VIEW,
-	PermissionsEnum.ORG_DEMO_EDIT,
-	PermissionsEnum.FILE_STORAGE_VIEW,
-	PermissionsEnum.SMS_GATEWAY_VIEW,
-	PermissionsEnum.CUSTOM_SMTP_VIEW,
-	PermissionsEnum.VIEW_ALL_ACCOUNTING_TEMPLATES
+	PermissionsEnum.INTEGRATION_VIEW
 ]
 
 const AI_BUILDER_PLATFORM_PERMISSIONS = [

@@ -5,6 +5,17 @@ const permissionsFor = (role: RolesEnum) =>
     DEFAULT_ROLE_PERMISSIONS.find((item) => item.role === role)?.defaultEnabledPermissions ?? []
 
 describe('AI default role permissions', () => {
+    it('grants TRIAL only the selected AI permissions by default', () => {
+        expect([...permissionsFor(RolesEnum.TRIAL)].sort()).toEqual(
+            [
+                AIPermissionsEnum.COPILOT_EDIT,
+                AIPermissionsEnum.MEMBERSHIP_PURCHASE,
+                AIPermissionsEnum.XPERT_EDIT,
+                AIPermissionsEnum.CHAT_VIEW
+            ].sort()
+        )
+    })
+
     it.each([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])('allows %s to administer memberships', (role) => {
         expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_EDIT)
     })

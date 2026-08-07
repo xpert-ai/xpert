@@ -106,7 +106,7 @@
               {{ 'XP.Membership.Revoke' | translate: { Default: 'Revoke' } }}
             </button>
           }
-          @if (currentMembership.source !== MembershipSourceEnum.External) {
+          @if (!isExternallyManagedMembership()) {
             <button z-button zType="outline" type="button" [disabled]="loading()" (click)="renew()">
               {{ 'XP.Membership.Renew' | translate: { Default: 'Renew' } }}
             </button>
@@ -366,46 +366,58 @@
       </section>
     }
 
-    <form [formGroup]="assignmentForm" class="flex flex-col gap-3 rounded-lg bg-components-panel-bg p-4">
-      <div class="font-semibold text-text-primary">
-        {{ 'XP.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+    @if (isExternallyManagedMembership()) {
+      <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4 text-sm text-text-tertiary">
+        {{
+          'XP.Membership.ExternallyManagedMembershipHint'
+            | translate
+              : {
+                  Default: 'This membership is managed by an external workflow and cannot be replaced or renewed here.'
+                }
+        }}
       </div>
-      <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_minmax(240px,1fr)_auto]">
-        <z-form-field class="w-full">
-          <z-select class="w-full" formControlName="planId">
-            @for (plan of plans(); track plan.id) {
-              <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
-            }
-          </z-select>
-        </z-form-field>
-        <z-form-field class="w-full">
-          <z-select class="w-full" formControlName="renewalMode">
-            <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
-              {{ 'XP.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
-            </z-select-item>
-            <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
-              {{ 'XP.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
-            </z-select-item>
-          </z-select>
-        </z-form-field>
-        <z-form-field class="w-full">
-          <input
-            z-input
-            formControlName="note"
-            [placeholder]="'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
-          />
-        </z-form-field>
-        <button
-          z-button
-          zType="default"
-          type="button"
-          [disabled]="loading() || assignmentForm.invalid"
-          (click)="assign()"
-        >
-          {{ 'XP.Membership.Assign' | translate: { Default: 'Assign' } }}
-        </button>
-      </div>
-    </form>
+    } @else {
+      <form [formGroup]="assignmentForm" class="flex flex-col gap-3 rounded-lg bg-components-panel-bg p-4">
+        <div class="font-semibold text-text-primary">
+          {{ 'XP.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+        </div>
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_minmax(240px,1fr)_auto]">
+          <z-form-field class="w-full">
+            <z-select class="w-full" formControlName="planId">
+              @for (plan of plans(); track plan.id) {
+                <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+              }
+            </z-select>
+          </z-form-field>
+          <z-form-field class="w-full">
+            <z-select class="w-full" formControlName="renewalMode">
+              <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
+                {{ 'XP.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
+              </z-select-item>
+              <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
+                {{ 'XP.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
+              </z-select-item>
+            </z-select>
+          </z-form-field>
+          <z-form-field class="w-full">
+            <input
+              z-input
+              formControlName="note"
+              [placeholder]="'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
+            />
+          </z-form-field>
+          <button
+            z-button
+            zType="default"
+            type="button"
+            [disabled]="loading() || assignmentForm.invalid"
+            (click)="assign()"
+          >
+            {{ 'XP.Membership.Assign' | translate: { Default: 'Assign' } }}
+          </button>
+        </div>
+      </form>
+    }
 
     <section class="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <form [formGroup]="cyclePointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
