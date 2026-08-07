@@ -1,13 +1,13 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, computed, inject, viewChild } from '@angular/core'
+import { Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ActivatedRoute, RouterModule } from '@angular/router'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { getErrorMessage } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { IPluginMarketplaceDetailItem, injectPluginAPI, PluginMarketplaceItem } from '@cloud/app/@core/state'
-import { JSONValue } from '@xpert-ai/contracts'
+import { JSONValue, XpertTypeEnum } from '@xpert-ai/contracts'
 import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
@@ -20,6 +20,7 @@ import { pluginNameFromMarketplaceRoute } from '../plugin-marketplace-navigation
 import { getPluginMarketplaceSourceI18nKey, TPluginWithDownloads } from '../types'
 import { PluginMarketplaceDetailComponent } from './marketplace-detail.component'
 import { PLUGIN_MARKETPLACE_TARGET_APP } from '../plugin-marketplace-categories'
+import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 
 @Component({
   standalone: true,
@@ -41,6 +42,7 @@ import { PLUGIN_MARKETPLACE_TARGET_APP } from '../plugin-marketplace-categories'
 export class PluginMarketplaceReadmePageComponent {
   readonly #route = inject(ActivatedRoute)
   readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
   readonly #pluginAPI = injectPluginAPI()
   readonly #i18n = inject(I18nService)
 
@@ -60,6 +62,17 @@ export class PluginMarketplaceReadmePageComponent {
   readonly sourceId = toSignal(this.#route.queryParamMap.pipe(map((params) => params.get('sourceId'))), {
     initialValue: null
   })
+  readonly requestedTemplateName = toSignal(
+    this.#route.queryParamMap.pipe(
+      map((params) => (params.get('action') === 'initialize-template' ? params.get('template') : null))
+    ),
+    {
+      initialValue:
+        this.#route.snapshot.queryParamMap.get('action') === 'initialize-template'
+          ? this.#route.snapshot.queryParamMap.get('template')
+          : null
+    }
+  )
 
   readonly #detail = myRxResource({
     request: () => ({
@@ -87,6 +100,28 @@ export class PluginMarketplaceReadmePageComponent {
     return detail ? toPluginWithDownloads(detail) : null
   })
   readonly hasSetupContent = computed(() => !!this.pluginForDialog()?.contributions?.length)
+  #openedTemplateId: string | null = null
+
+  readonly #openRequestedTemplate = effect(() => {
+    const templateName = this.requestedTemplateName()?.trim()
+    const plugin = this.pluginForDialog()
+    if (!templateName || !plugin?.installed) {
+      return
+    }
+
+    const pluginName = plugin.packageName || plugin.name
+    if (!pluginName) {
+      return
+    }
+
+    const templateId = templateName.includes(':') ? templateName : `${pluginName}:${templateName}`
+    if (this.#openedTemplateId === templateId) {
+      return
+    }
+
+    this.#openedTemplateId = templateId
+    this.openAssistantTemplate(templateId)
+  })
 
   openInstall() {
     const plugin = this.pluginForDialog()
@@ -115,6 +150,28 @@ export class PluginMarketplaceReadmePageComponent {
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
+  }
+
+  private openAssistantTemplate(templateId: string) {
+    this.#dialog
+      .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        disableClose: true,
+        data: {
+          type: XpertTypeEnum.Agent,
+          allowedModes: [XpertTypeEnum.Agent],
+          allowWorkspaceSelection: true,
+          initialStartMode: 'template',
+          initialTemplateId: templateId,
+          lockStartMode: true,
+          lockType: true,
+          completionMode: 'create'
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result?.xpert?.id) {
+          this.#router.navigate(['/xpert/x/', result.xpert.id])
+        }
+      })
   }
 
   reload() {
