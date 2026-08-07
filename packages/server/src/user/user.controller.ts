@@ -27,12 +27,19 @@ import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { CommandBus } from '@nestjs/cqrs'
-import { IPagination, PermissionsEnum, IUserCreateInput, IUserUpdateInput, UserType, RolesEnum } from '@xpert-ai/contracts'
+import {
+	IPagination,
+	PermissionsEnum,
+	IUserCreateInput,
+	IUserUpdateInput,
+	UserType,
+	RolesEnum
+} from '@xpert-ai/contracts'
 import { CrudController, PaginationParams } from './../core/crud'
 import { RequestContext } from '../core/context'
 import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes'
-import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
-import { Permissions, Roles } from './../shared/decorators'
+import { ApiKeyOrClientSecretAuthGuard, PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
+import { Permissions, Public, Roles } from './../shared/decorators'
 import { User, UserPreferredLanguageDTO } from './user.entity'
 import { CurrentUserFindOptions, UserService } from './user.service'
 import { UserBulkCreateCommand, UserCreateCommand } from './commands'
@@ -72,7 +79,11 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@Get('/me')
-	async findMe(@Query('data', ParseJsonPipe) data: ({ relations?: string[] } & CurrentUserFindOptions) | null): Promise<User> {
+	@Public()
+	@UseGuards(ApiKeyOrClientSecretAuthGuard)
+	async findMe(
+		@Query('data', ParseJsonPipe) data: ({ relations?: string[] } & CurrentUserFindOptions) | null
+	): Promise<User> {
 		const id = RequestContext.currentUserId()
 		return await this.userService.findCurrentUser(id, data?.relations, data ?? undefined)
 	}
@@ -190,9 +201,7 @@ export class UserController extends CrudController<User> {
 		const requestedTypes = Array.isArray(types)
 			? types.filter((type): type is UserType => Object.values(UserType).includes(type))
 			: []
-		const typeFilter = requestedTypes.length
-			? { type: In(requestedTypes) }
-			: { type: Not(UserType.COMMUNICATION) }
+		const typeFilter = requestedTypes.length ? { type: In(requestedTypes) } : { type: Not(UserType.COMMUNICATION) }
 
 		return this.userService.findAll({
 			where: {

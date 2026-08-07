@@ -5,6 +5,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     IKnowledgebaseTask,
+    IUser,
     isNil,
     KnowledgebaseChannel,
     KnowledgeTask,
@@ -29,9 +30,9 @@ import {
     getXpertAgentRecursionLimit,
     IXpert
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { OutboundActorTokenProvider, RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
-import { Logger } from '@nestjs/common'
+import { Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
@@ -70,6 +71,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly i18nService: I18nService,
         private readonly executionCancelService: ExecutionCancelService,
         private readonly workAreaResolver: XpertWorkAreaResolver,
+        @Optional()
+        private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
         @InjectRepository(ChatMessage)
         private readonly chatMessageRepository: Repository<ChatMessage>
     ) {}
@@ -168,6 +171,17 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const workspaceUrl = workArea.workspaceUrl
 
         // Env
+        options.context = this.withOutboundOidcTokenEnv(options.context, {
+            tenantId,
+            organizationId,
+            user,
+            xpertId: xpert.id,
+            xpertName: xpert.name,
+            threadId,
+            conversationId: options.conversationId,
+            executionId: execution?.id,
+            agentKey: agentKeyOrName
+        })
         if (!options.environment && xpert.environmentId) {
             const environment = await this.envService.findOne(xpert.environmentId)
             options.environment = environment
@@ -514,6 +528,56 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         })
     }
 
+    private withOutboundOidcTokenEnv(
+        context: unknown,
+        input: {
+            tenantId?: string | null
+            organizationId?: string | null
+            user?: IUser | null
+            xpertId?: string | null
+            xpertName?: string | null
+            threadId?: string | null
+            conversationId?: string | null
+            executionId?: string | null
+            agentKey?: string | null
+        }
+    ): Record<string, unknown> | undefined {
+        const baseContext = isRecord(context) ? { ...context } : {}
+        const envState = isRecord(baseContext.env) ? { ...baseContext.env } : {}
+        if (normalizeString(envState.oidc_token) || !this.outboundActorTokenProvider?.isAvailable()) {
+            return isRecord(context) ? context : undefined
+        }
+
+        try {
+            const result = this.outboundActorTokenProvider.mint({
+                user: input.user,
+                tenantId: input.tenantId,
+                organizationId: input.organizationId,
+                act: {
+                    sub: 'xpert_agent',
+                    xpert_id: normalizeString(input.xpertId),
+                    xpert_name: normalizeString(input.xpertName),
+                    thread_id: normalizeString(input.threadId),
+                    conversation_id: normalizeString(input.conversationId),
+                    execution_id: normalizeString(input.executionId),
+                    agent_key: normalizeString(input.agentKey)
+                }
+            })
+            return {
+                ...baseContext,
+                env: {
+                    ...envState,
+                    oidc_token: result.token
+                }
+            }
+        } catch (error) {
+            this.#logger.debug(
+                `Outbound actor token was not injected: ${error instanceof Error ? error.message : String(error)}`
+            )
+            return isRecord(context) ? context : undefined
+        }
+    }
+
     /**
      * @deprecated use `rejectGraph` instead
      * @param graph
@@ -695,4 +759,8 @@ function resolveWorkspaceXpertId(
 
 function isRecord(value: unknown): value is Record<string, any> {
     return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }

@@ -70,7 +70,7 @@ const CURRENT_USER_FEATURE_HYDRATION_ALLOWED_RELATIONS: ReadonlySet<string> = ne
 	...CURRENT_USER_BOOTSTRAP_RELATIONS,
 	...CURRENT_USER_FEATURE_RELATIONS
 ])
-const AUTHENTICATED_USER_RELATIONS = ['role', 'employee'] as const
+const AUTHENTICATED_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
 type CurrentUserFeatureContext = {
 	tenantFeatureOrganizations: IFeatureOrganization[]

@@ -126,6 +126,7 @@ describe('XpertAgentInvokeHandler', () => {
             i18nService as unknown as I18nService,
             executionCancelService as unknown as ExecutionCancelService,
             workAreaResolver as unknown as XpertWorkAreaResolver,
+            undefined,
             chatMessageRepository as any
         )
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')

@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { IApiPrincipal, IUser } from '@xpert-ai/contracts'
-import { RequestContext, type ActorTokenAct, type ActorTokenRequest, type ActorTokenResult } from '@xpert-ai/plugin-sdk'
+import { type ActorTokenAct, type ActorTokenRequest, type ActorTokenResult } from '@xpert-ai/plugin-sdk'
 import { environment as env } from '@xpert-ai/server-config'
 import { randomUUID } from 'crypto'
 import { sign } from 'jsonwebtoken'
+import { RequestContext } from '../core/context'
 
 const DEFAULT_TOKEN_TTL_SECONDS = 15 * 60
 const DEFAULT_ACTOR_TOKEN_AUDIENCE = 'xpert'

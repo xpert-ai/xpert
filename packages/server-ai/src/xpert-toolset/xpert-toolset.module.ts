@@ -41,6 +41,6 @@ import { ChatMessageModule } from '../chat-message'
         ...QueryHandlers,
         ...CommandHandlers
     ],
-    exports: [XpertToolsetService]
+    exports: [XpertToolsetService, ToolsetRegistry]
 })
 export class XpertToolsetModule {}

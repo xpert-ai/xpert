@@ -1,4 +1,4 @@
-import { RedisModule, TenantModule } from '@xpert-ai/server-core'
+import { ActorTokenModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -33,6 +33,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         TypeOrmModule.forFeature([XpertAgent, ChatMessage]),
         TenantModule,
         RedisModule,
+        ActorTokenModule,
         CqrsModule,
         DiscoveryModule,
 

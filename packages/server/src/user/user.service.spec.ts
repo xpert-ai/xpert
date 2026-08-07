@@ -144,6 +144,19 @@ describe('UserService', () => {
 		)
 	})
 
+	it('loads authenticated users with role permissions for permission-gated actions', async () => {
+		const user = { id: 'user-1' }
+
+		service.findOne = jest.fn().mockResolvedValue(user)
+
+		const result = await service.getIfExists('user-1')
+
+		expect(service.findOne).toHaveBeenCalledWith('user-1', {
+			relations: ['role', 'role.rolePermissions', 'employee']
+		})
+		expect(result).toBe(user)
+	})
+
 	it('loads current user with core relations by default', async () => {
 		const user = { id: 'user-1' }
 
