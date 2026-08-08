@@ -53,6 +53,19 @@ Xpert AI 让团队可以在同一平台中设计数字专家、连接企业知�
 - **可人工复核的工作台**：工具调用可以打开聚焦的 UI 视图，让用户检查、修正、审批或提交结果。
 - **可扩展的应用运行时**：把模型、集成、中间件、Skills、MCP 工具、Remote Component、Workbench 视图和 Assistant 模板封装为插件。
 
+## 官方应用
+
+在[官方 App 目录](https://xpertai.cn/zh-CN/apps/)中探索 Xpert 的官方 Agentic Apps：
+
+- [Presentation Studio](https://xpertai.cn/showcase/presentation-studio/)
+- [Sites](https://xpertai.cn/showcase/sites/)
+- [DOCX Editor](https://xpertai.cn/showcase/docx-editor/)
+- [Canvas](https://xpertai.cn/showcase/canvas/)
+- [Pencil](https://xpertai.cn/showcase/pencil/)
+- [draw.io](https://xpertai.cn/showcase/drawio/)
+- [Excalidraw](https://xpertai.cn/showcase/excalidraw/)
+- [Lucidchart](https://xpertai.cn/showcase/lucidchart/)
+
 ## 快速开始
 
 Docker 部署至少需要 **2 核 CPU**、**4 GiB 内存**，并安装 Docker 与 Docker Compose。

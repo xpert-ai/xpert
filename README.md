@@ -53,6 +53,19 @@ This is a live Agent Studio configuration for **Motion Assistant**. One agent is
 - **Human-reviewable workbenches** — let tool calls open focused UI views where users can inspect, correct, approve, or submit results.
 - **An extensible application runtime** — package models, integrations, middleware, Skills, MCP tools, Remote Components, Workbench views, and Assistant templates as plugins.
 
+## Official Apps
+
+Explore Xpert's first-party Agentic Apps in the [official App catalog](https://xpertai.cn/apps/):
+
+- [Presentation Studio](https://xpertai.cn/showcase/presentation-studio/)
+- [Sites](https://xpertai.cn/showcase/sites/)
+- [DOCX Editor](https://xpertai.cn/showcase/docx-editor/)
+- [Canvas](https://xpertai.cn/showcase/canvas/)
+- [Pencil](https://xpertai.cn/showcase/pencil/)
+- [draw.io](https://xpertai.cn/showcase/drawio/)
+- [Excalidraw](https://xpertai.cn/showcase/excalidraw/)
+- [Lucidchart](https://xpertai.cn/showcase/lucidchart/)
+
 ## Quick Start
 
 The Docker path requires at least **2 CPU cores**, **4 GiB RAM**, Docker, and Docker Compose.
