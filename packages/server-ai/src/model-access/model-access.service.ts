@@ -172,7 +172,7 @@ export class ModelAccessService {
             organizationFeatureEnabled,
             tenantMembershipEnabled,
             organizationMembershipEnabled,
-            organizationCopilotCount
+            organizationModelsConfigured
         ] = await Promise.all([
             this.loadVisibleCatalogTargets(organizationId),
             this.findUserRequestsForCurrentContext(tenantId, userId, organizationId),
@@ -187,9 +187,7 @@ export class ModelAccessService {
             organizationId
                 ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
                 : Promise.resolve(false),
-            organizationId
-                ? this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)
-                : Promise.resolve(0)
+            organizationId ? this.hasConfiguredOrganizationModels(tenantId, organizationId) : Promise.resolve(false)
         ])
         let grantStateChanged = false
         for (const grant of initialGrants.filter((item) => item.status === UserModelGrantStatusEnum.Active)) {
@@ -233,7 +231,7 @@ export class ModelAccessService {
                     organizationFeatureEnabled,
                     tenantMembershipEnabled,
                     organizationMembershipEnabled,
-                    organizationModelsConfigured: organizationCopilotCount > 0,
+                    organizationModelsConfigured,
                     runtimeOrganizationId: organizationId
                 })
             )
@@ -2058,11 +2056,53 @@ export class ModelAccessService {
         )
     }
 
+    async hasConfiguredOrganizationModels(tenantId: string, organizationId: string): Promise<boolean> {
+        const copilots = await this.copilotRepository.find({
+            where: {
+                tenantId,
+                organizationId,
+                enabled: true
+            },
+            relations: ['modelProvider']
+        })
+
+        for (const copilot of copilots) {
+            const modelProvider = copilot.modelProvider
+            if (!modelProvider?.id || !modelProvider.providerName || modelProvider.isValid === false) {
+                continue
+            }
+
+            const provider = this.providersService.getProvider(modelProvider.providerName, false, organizationId)
+            if (!provider) {
+                continue
+            }
+
+            if (provider.getProviderModels()?.some((model) => !!model.model && model.deprecated !== true)) {
+                return true
+            }
+            if (copilot.copilotModel?.model) {
+                return true
+            }
+
+            const customModels = await this.providerModelRepository.find({
+                where: {
+                    tenantId,
+                    providerId: modelProvider.id
+                }
+            })
+            if (customModels.some((model) => !!model.modelName && model.isValid !== false)) {
+                return true
+            }
+        }
+
+        return false
+    }
+
     private async resolveMembershipFeatureState(
         tenantId: string,
         runtimeOrganizationId: string | null
     ): Promise<MembershipFeatureState> {
-        const [tenantEnabled, organizationEnabled, organizationCopilotCount] = await Promise.all([
+        const [tenantEnabled, organizationEnabled, organizationModelsConfigured] = await Promise.all([
             this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
             runtimeOrganizationId
                 ? this.membershipService.isMembershipPlanEnabled({
@@ -2071,13 +2111,13 @@ export class ModelAccessService {
                   })
                 : Promise.resolve(false),
             runtimeOrganizationId
-                ? this.membershipService.countEnabledOrganizationCopilots(tenantId, runtimeOrganizationId)
-                : Promise.resolve(0)
+                ? this.hasConfiguredOrganizationModels(tenantId, runtimeOrganizationId)
+                : Promise.resolve(false)
         ])
         return {
             tenantEnabled,
             organizationEnabled,
-            organizationModelsConfigured: organizationCopilotCount > 0
+            organizationModelsConfigured
         }
     }
 

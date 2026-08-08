@@ -1,9 +1,9 @@
-import { AiProviderRole } from '@xpert-ai/contracts'
+import { AiProviderRole, AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
+import { RequestContext } from '@xpert-ai/server-core'
 import { QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
 import { CopilotProvider } from '../copilot-provider/copilot-provider.entity'
 import { CopilotProviderService } from '../copilot-provider/copilot-provider.service'
 import { MembershipService } from '../membership'
@@ -20,25 +20,29 @@ jest.mock('../ai-model', () => ({
 
 describe('CopilotService', () => {
     let moduleRef: TestingModule
-    let repository: jest.Mocked<Pick<Repository<Copilot>, 'find'>>
+    let repository: {
+        create: jest.Mock
+        find: jest.Mock
+        findOneByOrFail: jest.Mock
+        save: jest.Mock
+    }
     let queryBus: jest.Mocked<Pick<QueryBus, 'execute'>>
     let copilotProviderService: jest.Mocked<Pick<CopilotProviderService, 'findVisibleByCopilotIds'>>
     let membershipService: jest.Mocked<
-        Pick<
-            MembershipService,
-            | 'findModelAccess'
-            | 'countEnabledOrganizationCopilots'
-            | 'ensureScopeInitialized'
-            | 'isMembershipPlanEnabled'
-        >
+        Pick<MembershipService, 'findModelAccess' | 'ensureScopeInitialized' | 'isMembershipPlanEnabled'>
     >
-    let modelAccessService: jest.Mocked<Pick<ModelAccessService, 'handleCopilotStateChanged'>>
+    let modelAccessService: jest.Mocked<
+        Pick<ModelAccessService, 'handleCopilotStateChanged' | 'hasConfiguredOrganizationModels'>
+    >
     let configService: jest.Mocked<Pick<ConfigService, 'get'>>
     let service: CopilotService
 
     beforeEach(async () => {
         repository = {
-            find: jest.fn().mockResolvedValue([])
+            create: jest.fn((entity) => createCopilot(entity)),
+            find: jest.fn().mockResolvedValue([]),
+            findOneByOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            save: jest.fn(async (entity) => entity as Copilot)
         }
         queryBus = {
             execute: jest.fn()
@@ -47,7 +51,6 @@ describe('CopilotService', () => {
             findVisibleByCopilotIds: jest.fn().mockResolvedValue(new Map())
         }
         membershipService = {
-            countEnabledOrganizationCopilots: jest.fn().mockResolvedValue(0),
             ensureScopeInitialized: jest.fn().mockResolvedValue({} as never),
             isMembershipPlanEnabled: jest.fn().mockResolvedValue(true),
             findModelAccess: jest.fn().mockResolvedValue({
@@ -57,7 +60,8 @@ describe('CopilotService', () => {
             })
         }
         modelAccessService = {
-            handleCopilotStateChanged: jest.fn().mockResolvedValue(undefined)
+            handleCopilotStateChanged: jest.fn().mockResolvedValue(undefined),
+            hasConfiguredOrganizationModels: jest.fn().mockResolvedValue(false)
         }
         configService = {
             get: jest.fn().mockReturnValue('http://localhost')
@@ -202,7 +206,7 @@ describe('CopilotService', () => {
     })
 
     it('keeps an organization membership purchased from the tenant catalog in organization model scope', async () => {
-        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
+        modelAccessService.hasConfiguredOrganizationModels.mockResolvedValue(true)
         membershipService.findModelAccess.mockResolvedValue({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -482,7 +486,7 @@ describe('CopilotService', () => {
             role: AiProviderRole.Primary
         })
 
-        expect(membershipService.countEnabledOrganizationCopilots).toHaveBeenCalledWith('tenant-1', 'org-1')
+        expect(modelAccessService.hasConfiguredOrganizationModels).toHaveBeenCalledWith('tenant-1', 'org-1')
         expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
         expect(membershipService.findModelAccess).not.toHaveBeenCalled()
         expect(repository.find).toHaveBeenCalledTimes(1)
@@ -507,7 +511,7 @@ describe('CopilotService', () => {
 
     it('lists only direct organization copilots when organization membership is disabled', async () => {
         membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
-        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
+        modelAccessService.hasConfiguredOrganizationModels.mockResolvedValue(true)
         repository.find.mockResolvedValue([
             createCopilot({
                 id: 'org-copilot',
@@ -540,7 +544,7 @@ describe('CopilotService', () => {
             role: AiProviderRole.Secondary
         })
 
-        expect(membershipService.countEnabledOrganizationCopilots).not.toHaveBeenCalled()
+        expect(modelAccessService.hasConfiguredOrganizationModels).not.toHaveBeenCalled()
         expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
         expect(membershipService.findModelAccess).not.toHaveBeenCalled()
         expect(repository.find).toHaveBeenCalledTimes(1)
@@ -562,21 +566,67 @@ describe('CopilotService', () => {
         expect(result).toHaveLength(1)
     })
 
-    it('initializes organization membership before listing local copilots', async () => {
-        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
-        repository.find.mockResolvedValue([])
-        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(new Map())
-
-        await service.findAllAvailablesCopilots('tenant-1', 'org-1')
-
-        expect(membershipService.ensureScopeInitialized).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
-            organizationId: 'org-1',
-            assignedById: null
+    describe('organization membership initialization', () => {
+        beforeEach(() => {
+            jest.spyOn(RequestContext, 'isOrganizationScope').mockReturnValue(true)
+            jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+            repository.find.mockResolvedValue([])
+            copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(new Map())
         })
-        expect(membershipService.findModelAccess).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
-            organizationId: 'org-1'
+
+        afterEach(() => {
+            jest.restoreAllMocks()
+        })
+
+        it('allows a Trial user to enable organization Primary without membership edit permission', async () => {
+            await expect(service.enableRole(AiProviderRole.Primary)).resolves.toMatchObject({
+                role: AiProviderRole.Primary,
+                enabled: true
+            })
+
+            expect(repository.save).toHaveBeenCalled()
+            expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
+        })
+
+        it('does not initialize organization membership while listing available copilots', async () => {
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+
+            await service.findAllAvailablesCopilots('tenant-1', 'org-1')
+
+            expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
+            expect(membershipService.findModelAccess).toHaveBeenCalledWith({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            })
+        })
+
+        it('initializes organization membership when an authorized manager enables Primary', async () => {
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+
+            await service.enableRole(AiProviderRole.Primary)
+
+            expect(RequestContext.hasPermission).toHaveBeenCalledWith(AIPermissionsEnum.MEMBERSHIP_EDIT, false)
+            expect(membershipService.isMembershipPlanEnabled).toHaveBeenCalledWith({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            })
+            expect(membershipService.ensureScopeInitialized).toHaveBeenCalledWith({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                assignedById: 'user-1'
+            })
+        })
+
+        it('does not initialize organization membership when the feature is disabled', async () => {
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+            membershipService.isMembershipPlanEnabled.mockResolvedValue(false)
+
+            await service.enableRole(AiProviderRole.Primary)
+
+            expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
         })
     })
 })
