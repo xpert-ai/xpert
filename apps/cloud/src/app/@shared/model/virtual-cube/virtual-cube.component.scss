@@ -1,9 +1,0 @@
-@reference "../../../../styles/tailwind-reference.css";
-:host {
-  --z-drawer-content-bg: var(--color-components-panel-bg);
-  @apply flex flex-col h-full overflow-hidden bg-components-panel-bg;
-}
-
-z-drawer-content {
-  padding: 1rem;
-}

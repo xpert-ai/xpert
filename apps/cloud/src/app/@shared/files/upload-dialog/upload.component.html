@@ -1,21 +1,30 @@
-<div class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group">
+<div
+  class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group"
+>
   <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
-      {{ 'PAC.Project.Files' | translate: { Default: 'Files' } }}
+      {{ 'XP.Project.Files' | translate: { Default: 'Files' } }}
     </span>
   </div>
-  
-  <ngm-search class="my-2" [formControl]="searchControl"></ngm-search>
-  
-  <ul class="ngm-nav-list flex-1 overflow-auto"></ul>
+
+  <xp-search class="my-2" [formControl]="searchControl"></xp-search>
+
+  <ul class="xp-nav-list flex-1 overflow-auto"></ul>
 
   <div class="flex justify-end items-center">
-    <div ngmButtonGroup>
-      <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" (click)="upload()">
+    <div xpButtonGroup>
+      <button
+        class="text-text-accent hover:text-text-accent"
+        z-button
+        zType="outline"
+        xpAppearance="dashed"
+        displayDensity="cosy"
+        (click)="upload()"
+      >
         <div class="flex justify-start items-center">
           <z-icon zType="upload"></z-icon>
-          {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
+          {{ 'Story.Common.Upload' | translate: { Default: 'Upload' } }}
         </div>
       </button>
     </div>
@@ -23,7 +32,8 @@
 </div>
 
 <div class="flex-1 min-w-[300px] flex flex-col justify-center items-center overflow-hidden">
-  <pac-upload class="w-full flex-1"
+  <xp-upload
+    class="w-full flex-1"
     [files]="fileList"
     (filesChange)="onFileListChange($event)"
     (removeFileChange)="removeFiles($event)"

@@ -17,6 +17,7 @@ import type { XpertFrequentQuestionsService } from './xpert-frequent-questions.s
 import type { XpertPrincipalService } from './xpert-principal.service'
 import type { XpertService } from './xpert.service'
 import type { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
+import type { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import type { XpertDraftDslDTO } from './dto'
 import { FindCopilotModelsQuery } from '../copilot/queries'
 
@@ -88,6 +89,10 @@ jest.mock('./xpert-principal.service', () => ({
 
 jest.mock('./template-workspace-initializer.service', () => ({
     XpertTemplateWorkspaceInitializer: class {}
+}))
+
+jest.mock('./xpert-workspace-files.service', () => ({
+    XpertWorkspaceFilesService: class {}
 }))
 
 jest.mock('../copilot-store/copilot-store.service', () => ({
@@ -253,6 +258,7 @@ describe('XpertController', () => {
             xpertPrincipalService as unknown as XpertPrincipalService,
             {} as unknown as XpertFrequentQuestionsService,
             templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
+            {} as unknown as XpertWorkspaceFilesService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )

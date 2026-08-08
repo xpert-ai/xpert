@@ -1,8 +1,0 @@
-@reference "../../../../styles/tailwind-reference.css";
-:host {
-    @apply w-full;
-}
-
-.type-option.active {
-  @apply shadow-sm border-2 border-primary-400 bg-primary-25;
-}

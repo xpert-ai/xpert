@@ -3,7 +3,7 @@
     @if (onlySheet()) {
       <div class="flex px-4 py-2 font-body bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-text-secondary">
         {{
-          'PAC.Knowledgebase.OnlyIndexedFields'
+          'XP.Knowledgebase.OnlyIndexedFields'
             | translate
               : { Default: 'Only indexed fields can be searched, other full fields are displayed in metadata.' }
         }}
@@ -11,12 +11,12 @@
     } @else {
       <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
         <div class="flex-1">
-          <span>{{ 'PAC.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
+          <span>{{ 'XP.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
 
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
             [zTooltip]="
-              'PAC.Knowledgebase.TransformerSettingsDesc'
+              'XP.Knowledgebase.TransformerSettingsDesc'
                 | translate: { Default: 'Configure the document transformer to extract the file content.' }
             "
             zPosition="top"
@@ -30,14 +30,14 @@
             rel="noopener noreferrer"
             class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
           >
-            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+            {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
             <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
             <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
           </a>
         }
-        <ngm-select
+        <xp-select
           class="flex-1 w-52"
-          [placeholder]="'PAC.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
+          [placeholder]="'XP.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
           [(ngModel)]="transformerType"
           [selectOptions]="documentTransformerStrategies()"
         >
@@ -62,7 +62,7 @@
               </div>
             </div>
           </ng-template>
-        </ngm-select>
+        </xp-select>
       </div>
 
       <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
@@ -97,7 +97,7 @@
                 <xp-integration-select
                   class="grow"
                   [placeholder]="
-                    'PAC.Knowledgebase.NoIntegrationUseEnv'
+                    'XP.Knowledgebase.NoIntegrationUseEnv'
                       | translate: { Default: 'Default environment configuration will be used' }
                   "
                   [provider]="transformerIntegrationProvider()"
@@ -127,11 +127,11 @@
       <div class="system-md-semibold mb-1 flex justify-between items-center">
         <div class="flex-1">
           <span>
-            {{ 'PAC.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
+            {{ 'XP.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
           </span>
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [zTooltip]="'PAC.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }"
+            [zTooltip]="'XP.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }"
             zPosition="top"
           ></i>
         </div>
@@ -143,12 +143,12 @@
             rel="noopener noreferrer"
             class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
           >
-            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+            {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
             <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
             <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
           </a>
         }
-        <ngm-select
+        <xp-select
           class="w-52"
           [(ngModel)]="textSplitterType"
           [selectOptions]="textSplitterStrategies()"
@@ -175,7 +175,7 @@
               </div>
             </div>
           </ng-template>
-        </ngm-select>
+        </xp-select>
       </div>
 
       <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
@@ -219,12 +219,12 @@
       <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
         <div class="flex-1">
           <z-switch class="inline-flex items-center mr-1" [(ngModel)]="enableImageUnderstanding" />
-          <span>{{ 'PAC.Knowledgebase.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}</span>
+          <span>{{ 'XP.Knowledgebase.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}</span>
 
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
             [zTooltip]="
-              'PAC.Knowledgebase.ImageUnderstandingDesc'
+              'XP.Knowledgebase.ImageUnderstandingDesc'
                 | translate
                   : { Default: 'Extract text and metadata from images using OCR and image recognition technologies.' }
             "
@@ -239,15 +239,15 @@
             rel="noopener noreferrer"
             class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
           >
-            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+            {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
             <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
             <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
           </a>
         }
-        <ngm-select
+        <xp-select
           class="flex-1 w-52"
           [placeholder]="
-            'PAC.Knowledgebase.SelectImageUnderstandingTool'
+            'XP.Knowledgebase.SelectImageUnderstandingTool'
               | translate: { Default: 'Select a image understanding tool' }
           "
           [(ngModel)]="imageUnderstandingType"
@@ -275,7 +275,7 @@
               </div>
             </div>
           </ng-template>
-        </ngm-select>
+        </xp-select>
       </div>
 
       @if (enableImageUnderstanding()) {
@@ -311,7 +311,7 @@
                   <xp-integration-select
                     class="grow"
                     [placeholder]="
-                      'PAC.Knowledgebase.NoIntegrationUseEnv'
+                      'XP.Knowledgebase.NoIntegrationUseEnv'
                         | translate: { Default: 'Default environment configuration will be used' }
                     "
                     [provider]="imageUnderstandingIntegrationProvider()"
@@ -329,7 +329,7 @@
             @if (requireVisionModel()) {
               <div>
                 <div>
-                  {{ 'PAC.Pipeline.VisionModel' | translate: { Default: 'Vision Model' } }}
+                  {{ 'XP.Pipeline.VisionModel' | translate: { Default: 'Vision Model' } }}
                   <span class="text-text-destructive">*</span>
                 </div>
                 <copilot-model-select
@@ -357,13 +357,12 @@
       <div class="system-md-semibold mb-1 flex justify-between items-center">
         <div class="flex-1">
           <span>
-            {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
+            {{ 'XP.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
           </span>
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
             [zTooltip]="
-              'PAC.Knowledgebase.TextPreprocessingRulesDesc'
-                | translate: { Default: 'Configure text processing rules.' }
+              'XP.Knowledgebase.TextPreprocessingRulesDesc' | translate: { Default: 'Configure text processing rules.' }
             "
             zPosition="top"
           ></i>
@@ -373,34 +372,32 @@
       <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4">
         <!-- <div class="flex gap-3">
           <div class="space-y-2 flex-1">
-            <ngm-input [label]="'PAC.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}"
-              [placeholder]="'PAC.Knowledgebase.ChunkDelimiterDefault' | translate: {Default: '\\n\\n \\n &quot; &quot;'}"
+            <xp-input [label]="'XP.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}"
+              [placeholder]="'XP.Knowledgebase.ChunkDelimiterDefault' | translate: {Default: '\\n\\n \\n &quot; &quot;'}"
               [(ngModel)]="delimiter" />
           </div>
           <div class="space-y-2 flex-1">
-            <ngm-input [label]="'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}" type="number" 
-              [placeholder]="'PAC.Knowledgebase.ChunkSizeDefault' | translate: {Default: 'default 1000'}"
+            <xp-input [label]="'XP.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}" type="number"
+              [placeholder]="'XP.Knowledgebase.ChunkSizeDefault' | translate: {Default: 'default 1000'}"
               [(ngModel)]="chunkSize" />
           </div>
           <div class="space-y-2 flex-1">
-            <ngm-input [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}" type="number" 
-              [placeholder]="'PAC.Knowledgebase.ChunkOverlapDefault' | translate: {Default: 'default 100'}"
+            <xp-input [label]="'XP.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}" type="number"
+              [placeholder]="'XP.Knowledgebase.ChunkOverlapDefault' | translate: {Default: 'default 100'}"
               [(ngModel)]="chunkOverlap" />
           </div>
         </div> -->
         <div class="mt-1">
-          <ngm-checkbox
+          <xp-checkbox
             [label]="
-              'PAC.Knowledgebase.ReplaceWhiteChar'
+              'XP.Knowledgebase.ReplaceWhiteChar'
                 | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
             "
             class="mb-4"
             [(ngModel)]="replaceWhitespace"
           />
-          <ngm-checkbox
-            [label]="
-              'PAC.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }
-            "
+          <xp-checkbox
+            [label]="'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }"
             class="mb-2"
             [(ngModel)]="removeSensitive"
           />
@@ -410,7 +407,7 @@
       <div class="flex justify-end gap-2 mt-4">
         <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium" (click)="onPreview()">
           <i class="ri-search-eye-line"></i>
-          {{ 'PAC.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
+          {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
         </button>
       </div>
     }
@@ -423,7 +420,7 @@
     <header class="py-2 pr-4 border-b border-divider-subtle">
       <div>
         <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
-          {{ 'PAC.Knowledgebase.Preview' | translate: { Default: 'Preview' } }}
+          {{ 'XP.Knowledgebase.Preview' | translate: { Default: 'Preview' } }}
         </div>
         <div class="flex items-center gap-1">
           <div
@@ -438,7 +435,7 @@
                 <knowledge-doc-id [doc]="doc" />
               } @else {
                 <div>
-                  {{ 'PAC.Knowledgebase.SelectFilePreview' | translate: { Default: 'Select file to preview' } }}
+                  {{ 'XP.Knowledgebase.SelectFilePreview' | translate: { Default: 'Select file to preview' } }}
                 </div>
               }
               <i class="ri-arrow-down-s-line"></i>
@@ -446,14 +443,14 @@
           </div>
           <!-- @if (estimateFile()) {
             <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">
-              {{estimateFile().docs.length}} {{'PAC.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
+              {{estimateFile().docs.length}} {{'XP.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
             </div>
           } -->
 
           <i
             class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
             [class.!text-primary-500]="preview()"
-            [zTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
+            [zTooltip]="'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
             zPosition="top"
             (click)="toggleAllPreview()"
           ></i>

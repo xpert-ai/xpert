@@ -1,17 +1,13 @@
 import { DOCUMENT } from '@angular/common'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
-import { Store } from '@xpert-ai/cloud/state'
-import {
-  AiModelTypeEnum,
-  IModelGatewayCatalogItem,
-  ModelGatewayApiKeyStatusEnum
-} from '@xpert-ai/contracts'
+import { Store } from '@cloud/app/@core/state'
+import { AiModelTypeEnum, IModelGatewayCatalogItem, ModelGatewayApiKeyStatusEnum } from '@xpert-ai/contracts'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
-import { PACAccountModelGatewayComponent } from './model-gateway.component'
+import { XpAccountModelGatewayComponent } from './model-gateway.component'
 
 function gatewayItem(id: string, input: Partial<IModelGatewayCatalogItem> = {}): IModelGatewayCatalogItem {
   return {
@@ -32,7 +28,7 @@ function gatewayItem(id: string, input: Partial<IModelGatewayCatalogItem> = {}):
   }
 }
 
-describe('PACAccountModelGatewayComponent', () => {
+describe('XpAccountModelGatewayComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
   })
@@ -119,7 +115,7 @@ describe('PACAccountModelGatewayComponent', () => {
         }
       ]
     })
-    const component = TestBed.runInInjectionContext(() => new PACAccountModelGatewayComponent())
+    const component = TestBed.runInInjectionContext(() => new XpAccountModelGatewayComponent())
 
     await component.load()
 

@@ -14,7 +14,7 @@ import {
   RolesEnum
 } from '../../../../@core/types'
 import { TranslateService } from '@ngx-translate/core'
-import { AuthService, InviteService } from '@xpert-ai/cloud/state'
+import { AuthService, InviteService } from '@cloud/app/@core/state'
 import { firstValueFrom } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
 import { EmailValidator } from '../../../../@core/validators'
@@ -24,14 +24,13 @@ import { Store } from './../../../../@core/services'
 
 @Component({
   standalone: false,
-  selector: 'pac-email-invite-form',
+  selector: 'xp-email-invite-form',
   templateUrl: 'email-invite-form.component.html',
   styleUrls: ['email-invite-form.component.scss']
 })
 export class EmailInviteFormComponent extends TranslationBaseComponent implements OnInit, OnDestroy {
-
   readonly destroyRef = inject(DestroyRef)
-  
+
   FormHelpers: typeof FormHelpers = FormHelpers
 
   invitationTypeEnum = InvitationTypeEnum
@@ -141,23 +140,23 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
   renderInvitationExpiryOptions() {
     this.invitationExpiryOptions = [
       {
-        label: this.getTranslation('PAC.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.DAY', { Default: '1 Day' }),
+        label: this.getTranslation('XP.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.DAY', { Default: '1 Day' }),
         value: InvitationExpirationEnum.DAY
       },
       {
-        label: this.getTranslation('PAC.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.WEEK', { Default: '1 Week' }),
+        label: this.getTranslation('XP.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.WEEK', { Default: '1 Week' }),
         value: InvitationExpirationEnum.WEEK
       },
       {
-        label: this.getTranslation('PAC.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.TWO_WEEK', { Default: '2 Week' }),
+        label: this.getTranslation('XP.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.TWO_WEEK', { Default: '2 Week' }),
         value: InvitationExpirationEnum.TWO_WEEK
       },
       {
-        label: this.getTranslation('PAC.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.MONTH', { Default: '1 Month' }),
+        label: this.getTranslation('XP.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.MONTH', { Default: '1 Month' }),
         value: InvitationExpirationEnum.MONTH
       },
       {
-        label: this.getTranslation('PAC.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.NEVER', { Default: 'Never' }),
+        label: this.getTranslation('XP.INVITE_PAGE.INVITATION_EXPIRATION_OPTIONS.NEVER', { Default: 'Never' }),
         value: InvitationExpirationEnum.NEVER
       }
     ]
@@ -216,7 +215,7 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
 
     if (!organization?.id) {
       throw new Error(
-        this.getTranslation('PAC.Scope.SelectOrganization', {
+        this.getTranslation('XP.Scope.SelectOrganization', {
           Default: 'Select an organization before sending invites'
         })
       )

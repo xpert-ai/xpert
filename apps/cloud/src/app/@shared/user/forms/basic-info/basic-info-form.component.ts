@@ -13,11 +13,11 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { AuthService } from '@xpert-ai/cloud/state'
+import { AuthService } from '@cloud/app/@core/state'
 import { IRole, ITag, IUser } from '@xpert-ai/contracts'
 import { FORMLY_W_FULL } from '@xpert-ai/formly'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { timezones } from 'apps/cloud/src/app/@core/constants'
@@ -26,7 +26,7 @@ import { LANGUAGES, RoleService, Store } from '../../../../@core'
 
 @Component({
   standalone: false,
-  selector: 'pac-user-basic-info-form',
+  selector: 'xp-user-basic-info-form',
   templateUrl: 'basic-info-form.component.html',
   styleUrls: ['basic-info-form.component.scss'],
   providers: [
@@ -99,7 +99,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   }
 
   ngOnInit() {
-    const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
+    const TRANSLATES = this.#translate.instant('XP.SHARED.USER_BASIC')
 
     this.#roleService
       .getAll()
@@ -147,7 +147,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
                   return password === confirmPassword
                 },
                 message: (error, field: FormlyFieldConfig) =>
-                  this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
+                  this.#translate.instant('XP.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
             }
           }
@@ -208,7 +208,8 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
                   const emailPattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
                   return emailPattern.test(control.value)
                 },
-                message: () => this.#translate.instant('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
+                message: () =>
+                  this.#translate.instant('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
               }
             }
           },
@@ -314,16 +315,16 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   }
 
   private syncRoleOptions() {
-    const nextOptions = this.roles
-      .map(({ id, name }) => ({
-        key: id,
-        caption: name
-      }))
+    const nextOptions = this.roles.map(({ id, name }) => ({
+      key: id,
+      caption: name
+    }))
 
     if (
       nextOptions.length === this.roleOptionsCache.length &&
-      nextOptions.every((option, index) =>
-        option.key === this.roleOptionsCache[index]?.key && option.caption === this.roleOptionsCache[index]?.caption
+      nextOptions.every(
+        (option, index) =>
+          option.key === this.roleOptionsCache[index]?.key && option.caption === this.roleOptionsCache[index]?.caption
       )
     ) {
       return
@@ -336,7 +337,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   async registerUser(organizationId?: string, createdById?: string) {
     // Mark all fields as touched to trigger validation display on save
     this.form.markAllAsTouched()
-    
+
     if (this.form.valid) {
       const { tenant } = this.#store.user
       const user: IUser = {

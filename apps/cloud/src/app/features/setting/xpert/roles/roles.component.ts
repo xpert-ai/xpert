@@ -2,11 +2,18 @@ import { Component, TemplateRef, inject, signal, viewChild } from '@angular/core
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule, NgmConfirmDeleteService, TableColumn } from '@xpert-ai/ocap-angular/common'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { XpCommonModule, XpConfirmDeleteService, TableColumn } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, catchError, map, switchMap, tap } from 'rxjs'
-import { XpertAPIService, IXpertRole, OrderTypeEnum, ToastrService, getErrorMessage, omitSystemProperty } from '../../../../@core'
+import {
+  XpertAPIService,
+  IXpertRole,
+  OrderTypeEnum,
+  ToastrService,
+  getErrorMessage,
+  omitSystemProperty
+} from '../../../../@core'
 import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
@@ -15,7 +22,7 @@ type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
 
 @Component({
   standalone: true,
-  selector: 'pac-settings-xpert-roles',
+  selector: 'xp-settings-xpert-roles',
   templateUrl: './roles.component.html',
   styleUrls: ['./roles.component.scss'],
   imports: [
@@ -24,7 +31,7 @@ type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
     SharedUiModule,
     FormsModule,
     ReactiveFormsModule,
-    NgmCommonModule,
+    XpCommonModule,
     AvatarComponent
   ]
 })
@@ -35,7 +42,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #confirmDelete = inject(NgmConfirmDeleteService)
+  readonly #confirmDelete = inject(XpConfirmDeleteService)
 
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
 
@@ -72,7 +79,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
 
   private itemsSub = this.#refresh$
     .pipe(
-      switchMap(() => this.roleService.getAllInOrg({ order: {updatedAt: OrderTypeEnum.DESC } })),
+      switchMap(() => this.roleService.getAllInOrg({ order: { updatedAt: OrderTypeEnum.DESC } })),
       map(({ items }) => items),
       takeUntilDestroyed()
     )
@@ -94,7 +101,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
     if (item.id) {
       this.roleService.update(item.id, omitSystemProperty(item)).subscribe({
         next: () => {
-          this._toastrService.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this._toastrService.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
           this.dataSource.update((items) => {
             const index = items.indexOf(item)
             items[index] = { ...item, __edit__: false }
@@ -109,7 +116,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
     } else {
       this.roleService.create(omitSystemProperty(item)).subscribe({
         next: (result) => {
-          this._toastrService.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
+          this._toastrService.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
           this.dataSource.update((items) => {
             const index = items.indexOf(item)
             items[index] = { ...item, __edit__: false, id: result.id }
@@ -129,7 +136,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
       this.#confirmDelete
         .confirm({
           value: item.title,
-          information: this.getTranslation('PAC.Copilot.Roles.SureDeleteRole', {
+          information: this.getTranslation('XP.Copilot.Roles.SureDeleteRole', {
             Default: 'Are you sure you want to delete this role?'
           })
         })
@@ -138,7 +145,7 @@ export class XpertRolesComponent extends TranslationBaseComponent {
             if (result) {
               return this.roleService.delete(item.id).pipe(
                 tap(() => {
-                  this._toastrService.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+                  this._toastrService.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
                   this.dataSource.update((items) => items.filter((x) => x !== item))
                   // this.refresh$.next()
                 }),

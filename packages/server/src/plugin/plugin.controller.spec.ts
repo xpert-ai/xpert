@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, RequestMethod } from '@nestjs/common'
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -115,6 +116,7 @@ describe('PluginController', () => {
 
 	const pluginMarketplaceService = {
 		listMarketplace: jest.fn(),
+		listPublicMarketplace: jest.fn(),
 		listSources: jest.fn(),
 		createSource: jest.fn(),
 		refreshSources: jest.fn(),
@@ -222,6 +224,30 @@ describe('PluginController', () => {
 		expect((pluginManagementService as any).installPlugin).toHaveBeenCalledWith({
 			pluginName: '@xpert-ai/plugin-org-demo'
 		})
+	})
+
+	it('exposes the builtin marketplace catalog as a public read-only route', async () => {
+		pluginMarketplaceService.listPublicMarketplace.mockResolvedValue({
+			updatedAt: null,
+			total: 0,
+			items: [],
+			sources: [],
+			errors: []
+		})
+
+		await expect(controller.getPublicMarketplace('xpert')).resolves.toEqual(
+			expect.objectContaining({
+				total: 0,
+				items: []
+			})
+		)
+		expect(pluginMarketplaceService.listPublicMarketplace).toHaveBeenCalledWith({
+			targetApp: 'xpert'
+		})
+		expect(Reflect.getMetadata(PATH_METADATA, controller.constructor)).toBe('plugin')
+		expect(Reflect.getMetadata(PATH_METADATA, controller.getPublicMarketplace)).toBe('marketplace/public')
+		expect(Reflect.getMetadata(METHOD_METADATA, controller.getPublicMarketplace)).toBe(RequestMethod.GET)
+		expect(Reflect.getMetadata('isPublic', controller.getPublicMarketplace)).toBe(true)
 	})
 
 	it('returns plugin-managed component definitions for a plugin', async () => {

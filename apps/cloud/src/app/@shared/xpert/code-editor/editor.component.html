@@ -1,6 +1,7 @@
 <div class="container grow flex flex-col rounded-xl bg-background-default-subtle">
   <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-background-default-subtle rounded-t-xl">
-    <div class="rounded-md p-1 leading-none uppercase font-medium cursor-pointer flex items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
+    <div
+      class="rounded-md p-1 leading-none uppercase font-medium cursor-pointer flex items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
       [cdkMenuTriggerFor]="langMenu"
     >
       @switch (language()) {
@@ -15,7 +16,9 @@
     </div>
 
     <div class="flex items-center">
-      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-components-input-bg-normal text-xs text-text-tertiary">{{codeLength()}}</div>
+      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-components-input-bg-normal text-xs text-text-tertiary">
+        {{ codeLength() }}
+      </div>
 
       <!-- <div class="flex space-x-1 items-center px-2 py-0.5 rounded-lg text-sm cursor-pointer group hover:bg-hover-bg"
         (click)="generate()">
@@ -39,26 +42,24 @@
           ></path>
         </svg>
         <span class="font-semibold text-indigo-500 group-hover:text-indigo-600">
-          {{'PAC.Copilot.Generate' | translate: {Default: 'Generate'} }}
+          {{'XP.Copilot.Generate' | translate: {Default: 'Generate'} }}
         </span>
       </div> -->
 
-      <button type="button" class="action-btn action-btn-m w-7 h-7"
+      <button
+        type="button"
+        class="action-btn action-btn-m w-7 h-7"
         [class.text-primary-500]="editorOptions().wordWrap"
         (click)="toggleWrap()"
       >
         <i class="ri-text-wrap"></i>
       </button>
 
-      <button type="button" class="action-btn action-btn-m danger w-7 h-7"
-        (click)="remove()"
-      >
+      <button type="button" class="action-btn action-btn-m danger w-7 h-7" (click)="remove()">
         <i class="ri-delete-bin-2-line"></i>
       </button>
 
-      <button type="button" class="action-btn action-btn-m w-7 h-7"
-        (click)="copy()"
-      >
+      <button type="button" class="action-btn action-btn-m w-7 h-7" (click)="copy()">
         @if (copied()) {
           <i class="ri-clipboard-fill"></i>
         } @else {
@@ -72,17 +73,20 @@
 
   <div class="content gow relative">
     @if (language() === 'javascript') {
-      <div class="px-2 text-text-secondary">function main(&#123; <span class="font-semibold text-text-primary">{{argNames()}}</span> &#125;) &#123;</div>
+      <div class="px-2 text-text-secondary">
+        function main(&#123; <span class="font-semibold text-text-primary">{{ argNames() }}</span> &#125;) &#123;
+      </div>
     } @else if (language() === 'python') {
-      <div class="px-2 text-text-secondary">def main( <span class="font-semibold text-text-primary">{{argsNameType()}}</span> ) -> dict:</div>
+      <div class="px-2 text-text-secondary">
+        def main( <span class="font-semibold text-text-primary">{{ argsNameType() }}</span> ) -> dict:
+      </div>
     }
-    <div class="edit-container pt-2 rounded-t-xl text-sm text-text-secondary"
-      [style.height.px]="height"
-      >
-      <ngx-monaco-editor class="!h-full w-full max-h-full"
+    <div class="edit-container pt-2 rounded-t-xl text-sm text-text-secondary" [style.height.px]="height">
+      <ngx-monaco-editor
+        class="!h-full w-full max-h-full"
         [options]="editorOptions()"
         [ngModel]="code()"
-        (ngModelChange)="code.set($event);elementRef.nativeElement.blur()"
+        (ngModelChange)="code.set($event); elementRef.nativeElement.blur()"
         (resized)="onResized()"
         (onInit)="onInit($event)"
       />
@@ -91,8 +95,10 @@
       <div class="px-2 text-text-secondary">&#125;</div>
     }
 
-    <div class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
-      (mousedown)="onMouseDown($event)">
+    <div
+      class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
+      (mousedown)="onMouseDown($event)"
+    >
       <div class="w-5 h-[3px] rounded-sm bg-components-card-bg"></div>
     </div>
   </div>
@@ -100,11 +106,7 @@
 
 <ng-template #langMenu>
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="setLanguage('javascript')">
-      JavaScript
-    </div>
-    <div cdkMenuItem (click)="setLanguage('python')">
-      Python3
-    </div>
+    <div cdkMenuItem (click)="setLanguage('javascript')">JavaScript</div>
+    <div cdkMenuItem (click)="setLanguage('python')">Python3</div>
   </div>
 </ng-template>

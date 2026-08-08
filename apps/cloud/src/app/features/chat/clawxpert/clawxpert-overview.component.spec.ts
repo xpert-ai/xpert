@@ -3,7 +3,7 @@ jest.mock('./clawxpert-binding-wizard.component', () => {
 
   @Component({
     standalone: true,
-    selector: 'pac-clawxpert-binding-wizard',
+    selector: 'xp-clawxpert-binding-wizard',
     template: '<div data-testid="clawxpert-inline-binding-wizard"></div>'
   })
   class ClawXpertBindingWizardComponent {}
@@ -140,19 +140,19 @@ function mockOverviewChild(selector: string) {
 }
 
 jest.mock('./clawxpert-preferences-editor.component', () => ({
-  ClawXpertPreferencesEditorComponent: mockOverviewChild('pac-clawxpert-preferences-editor')
+  ClawXpertPreferencesEditorComponent: mockOverviewChild('xp-clawxpert-preferences-editor')
 }))
 
 jest.mock('./clawxpert-scheduled-tasks.component', () => ({
-  ClawXpertScheduledTasksComponent: mockOverviewChild('pac-clawxpert-scheduled-tasks')
+  ClawXpertScheduledTasksComponent: mockOverviewChild('xp-clawxpert-scheduled-tasks')
 }))
 
 jest.mock('./clawxpert-trigger-config-editor.component', () => ({
-  ClawXpertTriggerConfigEditorComponent: mockOverviewChild('pac-clawxpert-trigger-config-editor')
+  ClawXpertTriggerConfigEditorComponent: mockOverviewChild('xp-clawxpert-trigger-config-editor')
 }))
 
 jest.mock('./clawxpert-tool-preferences.component', () => ({
-  ClawXpertToolPreferencesComponent: mockOverviewChild('pac-clawxpert-tool-preferences')
+  ClawXpertToolPreferencesComponent: mockOverviewChild('xp-clawxpert-tool-preferences')
 }))
 
 import { signal } from '@angular/core'

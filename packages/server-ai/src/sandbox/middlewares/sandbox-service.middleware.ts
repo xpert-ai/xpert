@@ -1,5 +1,8 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import {
+  ChatMessageEventTypeEnum,
+  ISandboxManagedService,
   SandboxManagedServiceErrorCode,
   TAgentMiddlewareMeta,
   TAgentRunnableConfigurable
@@ -26,6 +29,7 @@ const SANDBOX_SERVICE_LIST_TOOL_NAME = 'sandbox_service_list'
 const SANDBOX_SERVICE_LOGS_TOOL_NAME = 'sandbox_service_logs'
 const SANDBOX_SERVICE_STOP_TOOL_NAME = 'sandbox_service_stop'
 const SANDBOX_SERVICE_RESTART_TOOL_NAME = 'sandbox_service_restart'
+const WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE = 'workbench.browser.preview'
 
 const serviceStartToolSchema = z.object({
   command: z.string().min(1, 'Command is required.'),
@@ -34,7 +38,13 @@ const serviceStartToolSchema = z.object({
   name: z.string().min(1, 'Service name is required.'),
   port: z.number().int().positive().optional(),
   previewPath: z.string().min(1).optional(),
-  readyPattern: z.string().min(1).optional(),
+  readyPattern: z
+    .string()
+    .min(1)
+    .max(4096)
+    .refine((value) => Buffer.byteLength(value, 'utf8') <= 4096, 'Readiness text must not exceed 4096 UTF-8 bytes.')
+    .describe('Literal text that must appear in stdout or stderr before the service is considered ready.')
+    .optional(),
   replaceExisting: z.boolean().optional()
 })
 
@@ -102,6 +112,24 @@ function stringifyToolResult(value: unknown): string {
   }
 }
 
+async function emitManagedServicePreviewEvent(service: ISandboxManagedService) {
+  if (!service.id || service.transportMode !== 'http' || !service.previewUrl) {
+    return
+  }
+
+  const port = service.actualPort ?? service.requestedPort
+  const displayUrl = typeof port === 'number' ? `localhost:${port}` : service.previewUrl
+
+  await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+    type: WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE,
+    source: SANDBOX_SERVICE_START_TOOL_NAME,
+    serviceId: service.id,
+    displayUrl,
+    url: displayUrl,
+    previewUrl: service.previewUrl
+  }).catch(() => undefined)
+}
+
 @Injectable()
 @AgentMiddlewareStrategy(SANDBOX_SERVICE_MIDDLEWARE_NAME)
 export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
@@ -143,25 +171,25 @@ export class SandboxServiceMiddleware implements IAgentMiddlewareStrategy {
         }
 
         try {
-          return stringifyToolResult(
-            await this.commandBus.execute(
-              new SandboxStartManagedServiceCommand({
-                agentKey: configurable?.rootAgentKey ?? configurable?.agentKey ?? null,
-                executionId: configurable?.rootExecutionId ?? configurable?.executionId ?? null,
-                input: {
-                  command,
-                  ...(cwd ? { cwd } : {}),
-                  ...(env ? { env: normalizeEnvEntries(env) } : {}),
-                  name,
-                  ...(port ? { port } : {}),
-                  ...(previewPath ? { previewPath } : {}),
-                  ...(readyPattern ? { readyPattern } : {}),
-                  ...(replaceExisting ? { replaceExisting } : {})
-                },
-                threadId
-              })
-            )
+          const service: ISandboxManagedService = await this.commandBus.execute(
+            new SandboxStartManagedServiceCommand({
+              agentKey: configurable?.rootAgentKey ?? configurable?.agentKey ?? null,
+              executionId: configurable?.rootExecutionId ?? configurable?.executionId ?? null,
+              input: {
+                command,
+                ...(cwd ? { cwd } : {}),
+                ...(env ? { env: normalizeEnvEntries(env) } : {}),
+                name,
+                ...(port ? { port } : {}),
+                ...(previewPath ? { previewPath } : {}),
+                ...(readyPattern ? { readyPattern } : {}),
+                ...(replaceExisting ? { replaceExisting } : {})
+              },
+              threadId
+            })
           )
+          await emitManagedServicePreviewEvent(service)
+          return stringifyToolResult(service)
         } catch (error) {
           return stringifyToolResult(normalizeManagedServiceError(error))
         }

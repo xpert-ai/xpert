@@ -5,11 +5,11 @@
         <div
           class="leading-[28px] text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text"
         >
-          {{ 'PAC.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' } }}
+          {{ 'XP.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' } }}
         </div>
         <div class="mt-1 text-sm font-normal text-text-secondary">
           {{
-            'PAC.Copilot.PromptGeneratorDesc'
+            'XP.Copilot.PromptGeneratorDesc'
               | translate
                 : {
                     Default:
@@ -28,7 +28,7 @@
       <div>
         <div class="flex items-center">
           <div class="mr-3 shrink-0 leading-[18px] text-sm font-semibold text-text-tertiary uppercase">
-            {{ 'PAC.Copilot.TryIt' | translate: { Default: 'Try it' } }}
+            {{ 'XP.Copilot.TryIt' | translate: { Default: 'Try it' } }}
           </div>
           <div
             class="grow h-px"
@@ -45,7 +45,7 @@
               <div
                 class="ml-1 text-sm hover:bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:text-transparent bg-clip-text"
               >
-                {{ 'PAC.Copilot.PromptGenerator.' + item.key + '.name' | translate: { Default: item.name } }}
+                {{ 'XP.Copilot.PromptGenerator.' + item.key + '.name' | translate: { Default: item.name } }}
               </div>
             </div>
           }
@@ -54,12 +54,12 @@
       <div class="mt-6">
         <div class="text-[0px]">
           <div class="mb-2 leading-5 text-sm font-medium text-text-primary">
-            {{ 'PAC.Copilot.Instructions' | translate: { Default: 'Instructions' } }}
+            {{ 'XP.Copilot.Instructions' | translate: { Default: 'Instructions' } }}
           </div>
           <textarea
             class="xp-input w-full h-[200px] overflow-y-auto text-sm"
             [placeholder]="
-              'PAC.Copilot.WriteClearInstructions' | translate: { Default: 'Write clear and specific instructions.' }
+              'XP.Copilot.WriteClearInstructions' | translate: { Default: 'Write clear and specific instructions.' }
             "
             [(ngModel)]="instructions"
           ></textarea>
@@ -74,7 +74,7 @@
             <i class="ri-sparkling-2-fill mr-1 text-current"></i>
 
             <span class="text-sm font-semibold text-current">
-              {{ 'PAC.ACTIONS.Generate' | translate: { Default: 'Generate' } }}
+              {{ 'XP.ACTIONS.Generate' | translate: { Default: 'Generate' } }}
             </span>
           </button>
         </div>
@@ -94,14 +94,14 @@
         class="btn disabled:btn-disabled btn-medium flex space-x-1 shrink-0 mr-2"
         [class.btn-secondary]="!show()"
         [class.btn-primary]="show()"
-        [zTooltip]="'PAC.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' }"
+        [zTooltip]="'XP.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' }"
         zPosition="top"
         (click)="toggleGen()"
       >
         <i class="ri-sparkling-2-fill"></i>
       </button>
       <span class="leading-[160%] text-xl font-semibold">
-        {{ 'PAC.Copilot.Prompt' | translate: { Default: 'Prompt' } }}
+        {{ 'XP.Copilot.Prompt' | translate: { Default: 'Prompt' } }}
       </span>
     </div>
 
@@ -109,7 +109,7 @@
 
     <div class="flex justify-end pt-2 sticky bottom-0">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="cancel()">
-        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
@@ -117,12 +117,12 @@
         [disabled]="!instruction() || loading()"
         (click)="apply()"
       >
-        {{ 'PAC.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+        {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
       </button>
     </div>
 
     @if (loading()) {
-      <ngm-spin
+      <xp-spin
         class="absolute top-0 left-0 w-full h-full transition-all backdrop-blur-sm bg-background-default-subtle/60"
       />
     }

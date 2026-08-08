@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { HttpParams } from '@angular/common/http'
-import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
+import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { IXpertTask, TXpertTaskScheduleCapabilities } from '../types'
 

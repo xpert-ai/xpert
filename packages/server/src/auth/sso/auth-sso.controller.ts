@@ -8,47 +8,52 @@ import { AuthSsoDiscoveryService } from './auth-sso-discovery.service'
 
 @Controller('sso')
 export class AuthSsoController {
-  constructor(
-    private readonly authSsoDiscoveryService: AuthSsoDiscoveryService,
-    private readonly authSsoBindingService: AuthSsoBindingService
-  ) {}
+	constructor(
+		private readonly authSsoDiscoveryService: AuthSsoDiscoveryService,
+		private readonly authSsoBindingService: AuthSsoBindingService
+	) {}
 
-  @Public()
-  @Get('providers')
-  async getProviders(@Req() request: Request) {
-    return this.authSsoDiscoveryService.discover(request)
-  }
+	@Public()
+	@Get('providers')
+	async getProviders(@Req() request: Request) {
+		return this.authSsoDiscoveryService.discover(request)
+	}
 
-  @Public()
-  @Get('bind/challenge')
-  async getBindChallenge(@Query('ticket') ticket?: string) {
-    return this.authSsoBindingService.getChallenge(ticket)
-  }
+	@Public()
+	@Get('bind/challenge')
+	async getBindChallenge(@Query('ticket') ticket?: string) {
+		return this.authSsoBindingService.getChallenge(ticket)
+	}
 
-  @Get('bind/current-user/challenge')
-  async getCurrentUserBindChallenge(@Query('ticket') ticket?: string) {
-    return this.authSsoBindingService.getCurrentUserChallenge(ticket)
-  }
+	@Get('bind/current-user/challenge')
+	async getCurrentUserBindChallenge(@Query('ticket') ticket?: string) {
+		return this.authSsoBindingService.getCurrentUserChallenge(ticket)
+	}
 
-  @Public()
-  @Post('bind/complete')
-  async completeBinding(
-    @Body() body: { ticket?: string; userName?: string; password?: string }
-  ) {
-    return this.authSsoBindingService.completeBinding(body)
-  }
+	@Public()
+	@Post('bind/complete')
+	async completeBinding(@Body() body: { ticket?: string; userName?: string; password?: string }) {
+		return this.authSsoBindingService.completeBinding(body)
+	}
 
-  @Post('bind/current-user/complete')
-  async completeCurrentUserBinding(@Body() body: { ticket?: string }) {
-    return this.authSsoBindingService.completeCurrentUserBinding(body)
-  }
+	@Post('bind/current-user/complete')
+	async completeCurrentUserBinding(@Body() body: { ticket?: string }) {
+		return this.authSsoBindingService.completeCurrentUserBinding(body)
+	}
 
-  @Public()
-  @Post('bind/register')
-  async registerAndCompleteBinding(
-    @Body() body: { ticket?: string; email?: string; password?: string; confirmPassword?: string },
-    @I18nLang() languageCode: LanguagesEnum
-  ) {
-    return this.authSsoBindingService.registerAndBind(body, languageCode)
-  }
+	@Public()
+	@Post('bind/register')
+	async registerAndCompleteBinding(
+		@Body()
+		body: {
+			ticket?: string
+			email?: string
+			password?: string
+			confirmPassword?: string
+			referralCode?: string
+		},
+		@I18nLang() languageCode: LanguagesEnum
+	) {
+		return this.authSsoBindingService.registerAndBind(body, languageCode)
+	}
 }

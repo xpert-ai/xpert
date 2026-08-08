@@ -14,7 +14,7 @@
       ></i>
     </span>
     @if (!collapsed()) {
-      <span>{{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</span>
+      <span>{{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</span>
     }
   </button>
 
@@ -27,7 +27,7 @@
       (cdkMenuOpened)="loadXperts()"
     >
       <span class="flex-1 truncate text-left">
-        {{ currentXpertName() || ('PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' }) }}
+        {{ currentXpertName() || ('XP.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' }) }}
       </span>
       <i class="ri-arrow-down-s-line text-base text-text-secondary"></i>
     </button>
@@ -40,7 +40,7 @@
       @if (xpertsLoading()) {
         <div class="flex items-center gap-2.5 rounded-md px-2.5 py-3 text-sm text-text-tertiary">
           <i class="ri-loader-2-line text-base animate-spin"></i>
-          <span>{{ 'PAC.Common.Loading' | translate: { Default: 'Loading...' } }}</span>
+          <span>{{ 'XP.Common.Loading' | translate: { Default: 'Loading...' } }}</span>
         </div>
       } @else {
         @for (item of switchableXperts(); track item.id) {
@@ -59,11 +59,11 @@
               </div>
               <div class="truncate text-xs text-text-tertiary">
                 @if (item.id === xpert()?.id) {
-                  {{ 'PAC.Xpert.CurrentDigitalExpert' | translate: { Default: 'Current Digital Expert' } }}
+                  {{ 'XP.Xpert.CurrentDigitalExpert' | translate: { Default: 'Current Digital Expert' } }}
                 } @else {
                   {{
                     item.description ||
-                      ('PAC.Xpert.SwitchDigitalExpert' | translate: { Default: 'Switch to this digital expert' })
+                      ('XP.Xpert.SwitchDigitalExpert' | translate: { Default: 'Switch to this digital expert' })
                   }}
                 }
               </div>
@@ -96,11 +96,11 @@
 
         <div class="min-w-0 flex-1">
           <div class="truncate text-sm font-medium">
-            {{ 'PAC.Xpert.CreateDigitalExpert' | translate: { Default: 'Create Digital Expert' } }}
+            {{ 'XP.Xpert.CreateDigitalExpert' | translate: { Default: 'Create Digital Expert' } }}
           </div>
           <div class="truncate text-xs text-text-tertiary">
             {{
-              'PAC.Xpert.CreateDigitalExpertDesc'
+              'XP.Xpert.CreateDigitalExpertDesc'
                 | translate: { Default: 'Quickly create a new digital expert and enter the studio' }
             }}
           </div>

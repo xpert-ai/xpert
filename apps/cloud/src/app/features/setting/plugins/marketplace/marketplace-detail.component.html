@@ -45,7 +45,7 @@
           @if (plugin.artifactNamespace) {
             <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
               <span>
-                {{ 'PAC.Plugin.ArtifactNamespace' | translate: { Default: 'Artifact namespace' } }}
+                {{ 'XP.Plugin.ArtifactNamespace' | translate: { Default: 'Artifact namespace' } }}
               </span>
               <z-badge zType="outline" class="font-mono">
                 {{ plugin.artifactNamespace }}
@@ -90,7 +90,7 @@
                       class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-components-panel-bg text-text-secondary transition group-hover:bg-hover-bg group-hover:text-text-primary"
                     >
                       @if (activeTrialShortcutId() === shortcut.id) {
-                        <ngm-spin small />
+                        <xp-spin small />
                       } @else {
                         <i class="ri-arrow-right-line"></i>
                       }
@@ -106,7 +106,7 @@
       <section>
         <div class="flex items-center justify-between">
           <h3 class="text-base font-semibold text-text-primary">
-            {{ 'PAC.Plugin.IncludedContent' | translate: { Default: 'Included content' } }}
+            {{ 'XP.Plugin.IncludedContent' | translate: { Default: 'Included content' } }}
           </h3>
           <span class="text-xs text-text-tertiary">
             {{ contents().length }}
@@ -141,7 +141,7 @@
                       {{ content.displayName || content.name | i18n }}
                     </span>
                     <z-badge zType="outline" [class]="contentTypeBadgeClass(content.type)">
-                      {{ 'PAC.Plugin.MarketplaceContentType_' + content.type | translate: { Default: content.type } }}
+                      {{ 'XP.Plugin.MarketplaceContentType_' + content.type | translate: { Default: content.type } }}
                     </z-badge>
                   </span>
                   @if (content.description) {
@@ -156,7 +156,7 @@
                     [title]="
                       plugin.installed
                         ? ''
-                        : ('PAC.Plugin.InstallPluginBeforeInitializeResource'
+                        : ('XP.Plugin.InstallPluginBeforeInitializeResource'
                           | translate: { Default: 'Install or load this plugin before initializing the resource.' })
                     "
                   >
@@ -172,7 +172,7 @@
                       >
                         <i class="ri-apps-2-add-line"></i>
                         <span>
-                          {{ 'PAC.Plugin.InstallResource' | translate: { Default: 'Install' } }}
+                          {{ 'XP.Plugin.InstallResource' | translate: { Default: 'Install' } }}
                         </span>
                       </button>
                     } @else {
@@ -187,7 +187,7 @@
                       >
                         <i class="ri-apps-2-add-line"></i>
                         <span>
-                          {{ 'PAC.Plugin.InstallResource' | translate: { Default: 'Install' } }}
+                          {{ 'XP.Plugin.InstallResource' | translate: { Default: 'Install' } }}
                         </span>
                       </button>
                     }
@@ -198,7 +198,7 @@
                     [title]="
                       plugin.installed
                         ? ''
-                        : ('PAC.Plugin.InstallPluginBeforeInitialize'
+                        : ('XP.Plugin.InstallPluginBeforeInitialize'
                           | translate: { Default: 'Install or load this plugin before initializing the assistant.' })
                     "
                   >
@@ -213,7 +213,7 @@
                     >
                       <i class="ri-play-circle-line"></i>
                       <span>
-                        {{ 'PAC.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' } }}
+                        {{ 'XP.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' } }}
                       </span>
                     </button>
                   </span>
@@ -224,7 +224,7 @@
         } @else {
           <div class="mt-3 rounded-2xl border border-divider-regular px-4 py-6 text-center text-sm text-text-tertiary">
             {{
-              'PAC.Plugin.NoExecutableContent'
+              'XP.Plugin.NoExecutableContent'
                 | translate: { Default: 'No assistant templates or installable resources were declared.' }
             }}
           </div>
@@ -235,7 +235,7 @@
         <section class="mt-6">
           <div class="flex items-center justify-between">
             <h3 class="text-base font-semibold text-text-primary">
-              {{ 'PAC.Plugin.Applications' | translate: { Default: 'Applications' } }}
+              {{ 'XP.Plugin.Applications' | translate: { Default: 'Applications' } }}
             </h3>
             <span class="text-xs text-text-tertiary">
               {{ appContents().length }}
@@ -265,12 +265,12 @@
                       {{ app.displayName || app.name | i18n }}
                     </span>
                     <z-badge zType="outline" [class]="contentTypeBadgeClass(app.type)">
-                      {{ 'PAC.Plugin.MarketplaceContentType_app' | translate: { Default: 'App' } }}
+                      {{ 'XP.Plugin.MarketplaceContentType_app' | translate: { Default: 'App' } }}
                     </z-badge>
                     @if (appCapabilities(app).length) {
                       <z-badge zType="secondary">
                         {{
-                          'PAC.Plugin.CapabilityCount'
+                          'XP.Plugin.CapabilityCount'
                             | translate
                               : {
                                   Default: appCapabilities(app).length + ' capabilities',
@@ -291,7 +291,7 @@
                     class="ml-3 mt-0.5 shrink-0"
                     [title]="
                       appActionRequiresInstalledPlugin(action) && !plugin.installed
-                        ? ('PAC.Plugin.InstallPluginBeforeUseApp'
+                        ? ('XP.Plugin.InstallPluginBeforeUseApp'
                           | translate: { Default: 'Install or load this plugin before using the app.' })
                         : ''
                     "
@@ -308,21 +308,21 @@
                       @switch (action.type) {
                         @case ('install-app') {
                           <i class="ri-apps-2-add-line"></i>
-                          <span>{{ 'PAC.Plugin.InstallApp' | translate: { Default: 'Install app' } }}</span>
+                          <span>{{ 'XP.Plugin.InstallApp' | translate: { Default: 'Install app' } }}</span>
                         }
                         @case ('initialize-template') {
                           <i class="ri-play-circle-line"></i>
                           <span>{{
-                            'PAC.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
+                            'XP.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
                           }}</span>
                         }
                         @case ('select-template') {
                           <i class="ri-list-check-2"></i>
-                          <span>{{ 'PAC.Plugin.ChooseTemplate' | translate: { Default: 'Choose template' } }}</span>
+                          <span>{{ 'XP.Plugin.ChooseTemplate' | translate: { Default: 'Choose template' } }}</span>
                         }
                         @default {
                           <i class="ri-arrow-right-s-line"></i>
-                          <span>{{ 'PAC.Plugin.ViewDetails' | translate: { Default: 'View details' } }}</span>
+                          <span>{{ 'XP.Plugin.ViewDetails' | translate: { Default: 'View details' } }}</span>
                         }
                       }
                     </button>
@@ -342,12 +342,12 @@
                 {{ app.displayName || app.name | i18n }}
               </h3>
               <p class="mt-1 text-sm text-text-tertiary">
-                {{ 'PAC.Plugin.AppUsage' | translate: { Default: 'Usage' } }}
+                {{ 'XP.Plugin.AppUsage' | translate: { Default: 'Usage' } }}
               </p>
             </div>
             <z-badge zType="secondary">
               {{
-                'PAC.Plugin.CapabilityCount'
+                'XP.Plugin.CapabilityCount'
                   | translate
                     : { Default: appCapabilities(app).length + ' capabilities', count: appCapabilities(app).length }
               }}
@@ -366,7 +366,7 @@
                 class="mt-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-tertiary"
               >
                 {{
-                  'PAC.Plugin.RuntimeAppNoInstallRequired'
+                  'XP.Plugin.RuntimeAppNoInstallRequired'
                     | translate
                       : {
                           Default:
@@ -380,7 +380,7 @@
           @if (appTemplates(app).length > 1) {
             <div class="mt-4">
               <h4 class="text-sm font-semibold text-text-primary">
-                {{ 'PAC.Plugin.AssistantTemplates' | translate: { Default: 'Assistant templates' } }}
+                {{ 'XP.Plugin.AssistantTemplates' | translate: { Default: 'Assistant templates' } }}
               </h4>
               <div class="mt-2 grid gap-2 md:grid-cols-2">
                 @for (template of appTemplates(app); track template.type + ':' + template.name) {
@@ -398,7 +398,7 @@
                           </span>
                           <z-badge zType="outline" [class]="contentTypeBadgeClass(template.type)">
                             {{
-                              'PAC.Plugin.MarketplaceContentType_' + template.type
+                              'XP.Plugin.MarketplaceContentType_' + template.type
                                 | translate: { Default: template.type }
                             }}
                           </z-badge>
@@ -420,7 +420,7 @@
                           >
                             <i class="ri-play-circle-line"></i>
                             <span>{{
-                              'PAC.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
+                              'XP.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
                             }}</span>
                           </button>
                         }
@@ -436,7 +436,7 @@
             @if (capabilities.length) {
               <div class="mt-4">
                 <h4 class="text-sm font-semibold text-text-primary">
-                  {{ 'PAC.Plugin.AppCapabilities' | translate: { Default: 'Included capabilities' } }}
+                  {{ 'XP.Plugin.AppCapabilities' | translate: { Default: 'Included capabilities' } }}
                 </h4>
                 <div class="mt-2 grid gap-2 md:grid-cols-2">
                   @for (capability of capabilities; track capability.type + ':' + capability.name) {
@@ -454,7 +454,7 @@
                             </span>
                             <z-badge zType="outline" [class]="contentTypeBadgeClass(capability.type)">
                               {{
-                                'PAC.Plugin.MarketplaceContentType_' + capability.type
+                                'XP.Plugin.MarketplaceContentType_' + capability.type
                                   | translate: { Default: capability.type }
                               }}
                             </z-badge>
@@ -474,7 +474,7 @@
               <div
                 class="mt-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-6 text-center text-sm text-text-tertiary"
               >
-                {{ 'PAC.Plugin.NoAppCapabilities' | translate: { Default: 'No app capabilities were declared.' } }}
+                {{ 'XP.Plugin.NoAppCapabilities' | translate: { Default: 'No app capabilities were declared.' } }}
               </div>
             }
           }

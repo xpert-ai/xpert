@@ -2,13 +2,13 @@
   <div class="flex items-center gap-2 w-full">
     <button
       class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [zTooltip]="'PAC.Chat.ExpandCanvas' | translate: { Default: 'Expand canvas' }"
+      [zTooltip]="'XP.Chat.ExpandCanvas' | translate: { Default: 'Expand canvas' }"
       (click)="toggleExpand()"
     >
       <i class="ri-expand-left-line transition-transform" [class.rotate-180]="expand()"></i>
     </button>
     <div class="text-text-primary text-lg font-semibold">
-      {{ 'PAC.Chat.WhosComputer' | translate: { value: 'Xpert', Default: "Xpert's Computer" } }}
+      {{ 'XP.Chat.WhosComputer' | translate: { value: 'Xpert', Default: "Xpert's Computer" } }}
     </div>
 
     <div class="flex flex-1 justify-start items-center gap-1">
@@ -21,17 +21,17 @@
           @switch (item) {
             @case ('sandbox') {
               <div class="text-sm">
-                {{ 'PAC.Chat.Terminal' | translate: { Default: 'Terminal' } }}
+                {{ 'XP.Chat.Terminal' | translate: { Default: 'Terminal' } }}
               </div>
             }
             @case ('files') {
               <div class="text-sm">
-                {{ 'PAC.Chat.FileSystem' | translate: { Default: 'File System' } }}
+                {{ 'XP.Chat.FileSystem' | translate: { Default: 'File System' } }}
               </div>
             }
             @case ('timeline') {
               <div class="text-sm">
-                {{ 'PAC.Chat.Timeline' | translate: { Default: 'Timeline' } }}
+                {{ 'XP.Chat.Timeline' | translate: { Default: 'Timeline' } }}
               </div>
             }
             @default {
@@ -44,7 +44,7 @@
 
     <button
       class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [zTooltip]="'PAC.Chat.FileList' | translate: { Default: 'File list' }"
+      [zTooltip]="'XP.Chat.FileList' | translate: { Default: 'File list' }"
       (click)="openFiles()"
     >
       <i class="ri-file-list-3-line"></i>
@@ -52,7 +52,7 @@
 
     <button
       class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
-      [zTooltip]="'PAC.Chat.CloseCanvas' | translate: { Default: 'Close canvas' }"
+      [zTooltip]="'XP.Chat.CloseCanvas' | translate: { Default: 'Close canvas' }"
       (click)="close()"
     >
       <i class="ri-collapse-diagonal-line"></i>

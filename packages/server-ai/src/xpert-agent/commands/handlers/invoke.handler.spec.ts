@@ -12,11 +12,6 @@ jest.mock('@xpert-ai/server-core', () => ({
     }
 }))
 
-jest.mock('@xpert-ai/copilot', () => ({
-    AgentRecursionLimit: 25,
-    isNil: (value: unknown) => value == null
-}))
-
 jest.mock('../../../copilot-checkpoint', () => ({
     CopilotCheckpointSaver: class CopilotCheckpointSaver {},
     GetCopilotCheckpointsByParentQuery: class GetCopilotCheckpointsByParentQuery {
@@ -131,6 +126,7 @@ describe('XpertAgentInvokeHandler', () => {
             i18nService as unknown as I18nService,
             executionCancelService as unknown as ExecutionCancelService,
             workAreaResolver as unknown as XpertWorkAreaResolver,
+            undefined,
             chatMessageRepository as any
         )
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')

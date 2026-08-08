@@ -1,16 +1,18 @@
 <xpert-agent-execution-status class="w-full" [execution]="execution()" />
 
-<div class="flex flex-col rounded-xl min-h-[40px] max-h-52 w-full overflow-hidden text-sm bg-components-input-bg-normal">
+<div
+  class="flex flex-col rounded-xl min-h-[40px] max-h-52 w-full overflow-hidden text-sm bg-components-input-bg-normal"
+>
   <div class="flex justify-between items-center p-2">
-    <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: { Default: 'Input' } }}</span>
+    <span class="uppercase">{{ 'XP.Xpert.Input' | translate: { Default: 'Input' } }}</span>
 
     <copy
       #copy
       [content]="execution().inputs"
       [zTooltip]="
         copy.copied()
-          ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-          : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+          ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+          : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
       "
       zPosition="top"
     />
@@ -20,17 +22,19 @@
 </div>
 
 @if (execution().outputs) {
-  <div class="flex flex-col rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-hidden bg-components-input-bg-normal">
+  <div
+    class="flex flex-col rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-hidden bg-components-input-bg-normal"
+  >
     <div class="flex justify-between items-center p-2">
-      <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: { Default: 'Output' } }}</span>
+      <span class="uppercase">{{ 'XP.Xpert.Output' | translate: { Default: 'Output' } }}</span>
 
       <copy
         #copy
         [content]="execution().outputs"
         [zTooltip]="
           copy.copied()
-            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
-            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+            ? ('XP.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('XP.Xpert.Copy' | translate: { Default: 'Copy' })
         "
         zPosition="top"
       />
@@ -44,12 +48,12 @@
 
 <div class="relative">
   <div class="h-6 leading-6 text-text-tertiary text-sm font-medium">
-    {{ 'PAC.Xpert.Metadata' | translate: { Default: 'Metadata' } }}
+    {{ 'XP.Xpert.Metadata' | translate: { Default: 'Metadata' } }}
   </div>
   <div class="py-1">
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.Status' | translate: { Default: 'Status' } }}
+        {{ 'XP.Xpert.Status' | translate: { Default: 'Status' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
         <span class="uppercase">{{ execution().status }}</span>
@@ -57,7 +61,7 @@
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.Executor' | translate: { Default: 'Executor' } }}
+        {{ 'XP.Xpert.Executor' | translate: { Default: 'Executor' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
         <span>{{ execution().createdBy | user }}</span>
@@ -65,7 +69,7 @@
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.StartTime' | translate: { Default: 'Start Time' } }}
+        {{ 'XP.Xpert.StartTime' | translate: { Default: 'Start Time' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
         <span>{{ execution().createdAt | relative }}</span>
@@ -73,7 +77,7 @@
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.ElapsedTime' | translate: { Default: 'Elapsed Time' } }}
+        {{ 'XP.Xpert.ElapsedTime' | translate: { Default: 'Elapsed Time' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
         <span>{{ execution().elapsedTime / 1000 | number: '0.0-3' }}s</span>
@@ -81,15 +85,15 @@
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.TotalTokens' | translate: { Default: 'Total Tokens' } }}
+        {{ 'XP.Xpert.TotalTokens' | translate: { Default: 'Total Tokens' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
-        <span>{{ execution().tokens }} {{ 'PAC.Xpert.Tokens' | translate: { Default: 'Tokens' } }}</span>
+        <span>{{ execution().tokens }} {{ 'XP.Xpert.Tokens' | translate: { Default: 'Tokens' } }}</span>
       </div>
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.AIProvider' | translate: { Default: 'AI Provider' } }}
+        {{ 'XP.Xpert.AIProvider' | translate: { Default: 'AI Provider' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
         <span>{{ execution().metadata?.provider || '' }}</span>
@@ -97,7 +101,7 @@
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-text-tertiary text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.AIModel' | translate: { Default: 'AI Model' } }}
+        {{ 'XP.Xpert.AIModel' | translate: { Default: 'AI Model' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
         <span>{{ execution().metadata?.model || '' }}</span>

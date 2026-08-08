@@ -60,6 +60,7 @@ function createFixture() {
         assertCanUse: jest.fn().mockResolvedValue(undefined)
     }
     const copilotRepository = {
+        find: jest.fn().mockResolvedValue([]),
         findOne: jest.fn().mockResolvedValue({
             id: 'copilot-1',
             tenantId: 'tenant-1',
@@ -74,6 +75,7 @@ function createFixture() {
         })
     }
     const providerModelRepository = {
+        find: jest.fn().mockResolvedValue([]),
         findOne: jest.fn().mockResolvedValue(null)
     }
     const grantRepository = {
@@ -170,6 +172,43 @@ function createFixture() {
     }
 }
 
+describe('ModelAccessService organization model configuration', () => {
+    it('ignores an enabled organization Copilot after its Provider has been deleted', async () => {
+        const { copilotRepository, providersService, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                modelProvider: null
+            }
+        ])
+
+        await expect(service.hasConfiguredOrganizationModels('tenant-1', 'org-1')).resolves.toBe(false)
+        expect(providersService.getProvider).not.toHaveBeenCalled()
+    })
+
+    it('recognizes an enabled organization Copilot with a valid Provider model', async () => {
+        const { copilotRepository, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                modelProvider: {
+                    id: 'provider-1',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
+
+        await expect(service.hasConfiguredOrganizationModels('tenant-1', 'org-1')).resolves.toBe(true)
+    })
+})
+
 describe('ModelAccessService model resolution', () => {
     it('allows an organization model directly when organization membership is disabled', async () => {
         const { copilotRepository, input, membershipService, service } = createFixture()
@@ -210,6 +249,61 @@ describe('ModelAccessService model resolution', () => {
             organizationId: null,
             scope: ModelAccessOwnershipScopeEnum.Tenant,
             unavailableReason: ModelAccessUnavailableReasonEnum.FeatureDisabled
+        })
+    })
+
+    it('blocks tenant models when the organization has configured its own models', async () => {
+        const { copilotRepository, input, membershipService, service } = createFixture()
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                tenantId: 'tenant-1',
+                organizationId: 'runtime-org',
+                enabled: true,
+                modelProvider: {
+                    id: 'organization-provider',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
+
+        await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+            allowed: false,
+            organizationId: null,
+            scope: ModelAccessOwnershipScopeEnum.Tenant,
+            unavailableReason: ModelAccessUnavailableReasonEnum.FeatureDisabled
+        })
+        expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+    })
+
+    it('falls back to tenant membership models when only an empty organization Copilot remains', async () => {
+        const { copilotRepository, input, membershipService, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                tenantId: 'tenant-1',
+                organizationId: 'runtime-org',
+                enabled: true,
+                modelProvider: null
+            }
+        ])
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: null,
+            membership: {
+                planId: 'tenant-plan',
+                plan: { id: 'tenant-plan' }
+            }
+        })
+        membershipService.isModelAllowed.mockReturnValue(true)
+
+        await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+            allowed: true,
+            accessSource: ModelAccessSourceEnum.Plan,
+            organizationId: null,
+            scope: ModelAccessOwnershipScopeEnum.Tenant
         })
     })
 
@@ -285,6 +379,29 @@ describe('ModelAccessService model resolution', () => {
         })
         expect(result.grantId).toBeUndefined()
         expect(membershipService.resolveModelMultiplierForPlan).toHaveBeenCalledWith(plan, 'openai', 'gpt-4.1')
+    })
+
+    it('uses an organization catalog membership for tenant catalog models', async () => {
+        const { input, membershipService, service } = createFixture()
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !!organizationId)
+        const plan = {
+            id: 'organization-catalog-plan',
+            catalogSourcePlanId: 'tenant-catalog-plan'
+        }
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: 'runtime-org',
+            membership: { planId: 'organization-catalog-plan', plan }
+        })
+        membershipService.isModelAllowed.mockReturnValue(true)
+
+        await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+            allowed: true,
+            accessSource: ModelAccessSourceEnum.Plan,
+            planId: 'organization-catalog-plan',
+            organizationId: null,
+            scope: ModelAccessOwnershipScopeEnum.Tenant
+        })
+        expect(membershipService.isModelAllowed).toHaveBeenCalledWith(plan, 'openai', 'gpt-4.1')
     })
 
     it('restores the same personal grant after the plan stops including the model', async () => {
@@ -1154,6 +1271,95 @@ describe('ModelAccessService catalog', () => {
                 })
             ]),
             canRequest: true
+        })
+    })
+
+    it('does not include tenant models when an organization has its own membership models', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('creator-user')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        const { copilotRepository, membershipService, providersService, queryBus, service } = createFixture()
+        copilotRepository.findOne.mockResolvedValue({
+            id: 'copilot-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            name: 'Tenant Provider',
+            enabled: true,
+            modelProvider: {
+                id: 'provider-1',
+                providerName: 'openai',
+                isValid: true
+            }
+        })
+        providersService.getProvider.mockReturnValue({
+            getProviderModels: jest.fn().mockReturnValue([
+                {
+                    model: 'plan-model',
+                    model_type: AiModelTypeEnum.LLM
+                }
+            ]),
+            getProviderSchema: jest.fn().mockReturnValue({
+                provider: 'openai',
+                label: { en_US: 'OpenAI', zh_Hans: 'OpenAI' }
+            })
+        })
+        membershipService.findModelAccess.mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership: {
+                plan: {
+                    catalogSourcePlanId: 'tenant-catalog-plan',
+                    allowedModels: [{ provider: 'openai', model: 'plan-model' }]
+                }
+            }
+        })
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                modelProvider: {
+                    id: 'organization-provider',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
+        membershipService.isModelAllowed.mockReturnValue(true)
+        queryBus.execute.mockImplementation(async (query: FindCopilotModelsQuery) =>
+            query.type === AiModelTypeEnum.LLM
+                ? [
+                      {
+                          id: 'copilot-1',
+                          organizationId: null,
+                          providerWithModels: {
+                              provider: 'openai',
+                              models: [
+                                  {
+                                      model: 'plan-model',
+                                      model_type: AiModelTypeEnum.LLM
+                                  }
+                              ]
+                          }
+                      }
+                  ]
+                : []
+        )
+
+        await expect(service.getCatalog()).resolves.toMatchObject({
+            items: [
+                expect.objectContaining({
+                    copilotModelId: 'plan-model',
+                    ownershipScope: ModelAccessOwnershipScopeEnum.Tenant,
+                    organizationId: null,
+                    planIncluded: false,
+                    allowed: false,
+                    requestable: false,
+                    unavailableReason: ModelAccessUnavailableReasonEnum.FeatureDisabled
+                })
+            ]
         })
     })
 })

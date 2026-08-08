@@ -4,11 +4,11 @@ import { ChangeDetectionStrategy, Component, effect, inject, model, signal } fro
 
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
-import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
+import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
-import { ScreenshotService, TAvatar } from '../../../@core'
+import { StorageFileService, TAvatar } from '../../../@core'
 import {
   Z_MODAL_DATA,
   ZardButtonComponent,
@@ -24,7 +24,7 @@ import {
   templateUrl: './avatar-editor.component.html',
   styleUrl: './avatar-editor.component.scss',
   host: {
-    class: 'ngm-dialog-container'
+    class: 'xp-dialog-container'
   },
   imports: [
     CommonModule,
@@ -33,13 +33,13 @@ import {
     ZardButtonComponent,
     ZardDialogModule,
     TranslateModule,
-    AppearanceDirective,
+    XpAppearanceDirective,
     PickerComponent,
     EmojiComponent
   ]
 })
 export class EmojiAvatarEditorComponent {
-  readonly screenshotService = inject(ScreenshotService)
+  readonly storageFileService = inject(StorageFileService)
   readonly #dialogRef = inject(ZardDialogRef)
   readonly avatar = inject<TAvatar>(Z_MODAL_DATA)
 
@@ -95,9 +95,7 @@ export class EmojiAvatarEditorComponent {
   }
 
   async uploadScreenshot(fileUpload: File) {
-    const formData = new FormData()
-    formData.append('file', fileUpload)
-    return await firstValueFrom(this.screenshotService.create(formData))
+    return await firstValueFrom(this.storageFileService.uploadStorageFile(fileUpload))
   }
 
   async handleFileDrop(event: DragEvent) {

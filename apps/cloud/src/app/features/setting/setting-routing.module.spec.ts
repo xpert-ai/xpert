@@ -13,14 +13,11 @@ jest.mock('../../@core', () => ({
     MODEL_ACCESS_REQUEST_EDIT: 'MODEL_ACCESS_REQUEST_EDIT',
     MODEL_GATEWAY_MANAGE: 'MODEL_GATEWAY_MANAGE'
   },
-  AnalyticsPermissionsEnum: {
-    BUSINESS_AREA_EDIT: 'BUSINESS_AREA_EDIT',
-    DATA_SOURCE_EDIT: 'DATA_SOURCE_EDIT'
-  },
   PermissionsEnum: {
     ALL_ORG_EDIT: 'ALL_ORG_EDIT',
     ALL_ORG_VIEW: 'ALL_ORG_VIEW',
     CHANGE_ROLES_PERMISSIONS: 'CHANGE_ROLES_PERMISSIONS',
+    DATA_SOURCE_EDIT: 'DATA_SOURCE_EDIT',
     INTEGRATION_EDIT: 'INTEGRATION_EDIT',
     ORG_USERS_EDIT: 'ORG_USERS_EDIT',
     ORG_USERS_VIEW: 'ORG_USERS_VIEW'
@@ -38,19 +35,32 @@ jest.mock('../feature-gate', () => ({
 }))
 
 jest.mock('./account/account.component', () => ({
-  PACAccountComponent: class PACAccountComponent {}
+  XpAccountComponent: class XpAccountComponent {}
 }))
 
 jest.mock('./account/password.component', () => ({
-  PACAccountPasswordComponent: class PACAccountPasswordComponent {}
+  XpAccountPasswordComponent: class XpAccountPasswordComponent {}
 }))
 
 jest.mock('./account/profile.component', () => ({
-  PACAccountProfileComponent: class PACAccountProfileComponent {}
+  XpAccountProfileComponent: class XpAccountProfileComponent {}
 }))
 
 jest.mock('./settings.component', () => ({
-  PACSettingComponent: class PACSettingComponent {}
+  XpSettingComponent: class XpSettingComponent {}
+}))
+
+jest.mock('../../../environments/environment', () => ({
+  environment: {
+    settingsExtensions: {
+      routes: [
+        {
+          path: 'extension-settings',
+          redirectTo: 'account'
+        }
+      ]
+    }
+  }
 }))
 
 import { NgxPermissionsGuard } from 'ngx-permissions'
@@ -85,6 +95,12 @@ describe('setting routes', () => {
     expect(billingRoute?.canActivate).toEqual([membershipPlanAccountGate])
   })
 
+  it('includes settings routes from the active environment', () => {
+    expect(settingChildren.find((route) => route.path === 'extension-settings')).toMatchObject({
+      redirectTo: 'account'
+    })
+  })
+
   it('keeps available models open to regular users without requiring a membership', () => {
     const modelsRoute = accountChildren.find((route) => route.path === 'models')
 
@@ -105,5 +121,14 @@ describe('setting routes', () => {
       redirectTo: expect.any(Function)
     })
   })
+  it('keeps invitation code access inline instead of using a separate account route', () => {
+    expect(accountChildren.find((route) => route.path === 'configuration')).toBeUndefined()
+  })
 
+  it('loads referral settings through its feature-local routes', () => {
+    const referralRoute = settingChildren.find((route) => route.path === 'referrals')
+
+    expect(referralRoute?.loadChildren).toBeDefined()
+    expect(referralRoute?.loadComponent).toBeUndefined()
+  })
 })

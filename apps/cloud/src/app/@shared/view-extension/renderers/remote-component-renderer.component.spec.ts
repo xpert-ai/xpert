@@ -146,6 +146,9 @@ describe('RemoteComponentRendererComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
     delete document.documentElement.dataset.theme
+    for (const name of ['--accent', '--accent-foreground', '--secondary', '--secondary-foreground', '--ring']) {
+      document.documentElement.style.removeProperty(name)
+    }
     if (originalCreateObjectURL) {
       Object.defineProperty(URL, 'createObjectURL', {
         configurable: true,
@@ -223,6 +226,11 @@ describe('RemoteComponentRendererComponent', () => {
 
   it('passes the current host theme to the iframe init message', async () => {
     document.documentElement.dataset.theme = 'dark'
+    document.documentElement.style.setProperty('--accent', 'oklch(0.31 0.08 276)')
+    document.documentElement.style.setProperty('--accent-foreground', 'oklch(0.79 0.1 275)')
+    document.documentElement.style.setProperty('--secondary', 'oklch(0.27 0.01 286)')
+    document.documentElement.style.setProperty('--secondary-foreground', 'oklch(0.98 0 0)')
+    document.documentElement.style.setProperty('--ring', 'oklch(0.68 0.16 277)')
 
     const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
     fixture.componentRef.setInput('hostType', 'agent')
@@ -257,7 +265,12 @@ describe('RemoteComponentRendererComponent', () => {
           mode: 'dark',
           tokens: expect.objectContaining({
             colorBackground: expect.any(String),
-            colorForeground: expect.any(String)
+            colorForeground: expect.any(String),
+            colorAccent: 'oklch(0.31 0.08 276)',
+            colorAccentForeground: 'oklch(0.79 0.1 275)',
+            colorSecondary: 'oklch(0.27 0.01 286)',
+            colorSecondaryForeground: 'oklch(0.98 0 0)',
+            colorRing: 'oklch(0.68 0.16 277)'
           })
         })
       }),

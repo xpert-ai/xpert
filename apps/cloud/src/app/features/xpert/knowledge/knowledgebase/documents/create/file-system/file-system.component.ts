@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
@@ -9,7 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
   selector: 'xp-knowledge-file-system',
   templateUrl: './file-system.component.html',
   styleUrl: './file-system.component.scss',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSpinComponent]
+  imports: [CommonModule, FormsModule, TranslateModule, XpSpinComponent]
 })
 export class KnowledgeFileSystemComponent {
   readonly items = input<FileSystemItem[]>()

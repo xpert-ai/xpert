@@ -6,46 +6,44 @@ import {
   ElementRef,
   inject,
   input,
-  ViewEncapsulation,
-} from '@angular/core';
+  ViewEncapsulation
+} from '@angular/core'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { resizablePanelVariants } from '@/src/lib/components/resizable/resizable.variants';
-import { mergeClasses } from '@/shared/utils/merge-classes';
+import { resizablePanelVariants } from './resizable.variants'
+import { mergeClasses } from '../../utils/merge-classes'
 
 @Component({
   selector: 'z-resizable-panel',
   standalone: true,
-  template: `
-    <ng-content />
-  `,
+  template: ` <ng-content /> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class]': 'classes()',
-    '[attr.data-collapsed]': 'isCollapsed()',
+    '[attr.data-collapsed]': 'isCollapsed()'
   },
-  exportAs: 'zResizablePanel',
+  exportAs: 'zResizablePanel'
 })
 export class ZardResizablePanelComponent {
-  readonly elementRef = inject(ElementRef);
+  readonly elementRef = inject(ElementRef)
 
-  readonly zDefaultSize = input<number | string | undefined>(undefined);
-  readonly zMin = input<number | string>(0);
-  readonly zMax = input<number | string>(100);
-  readonly zCollapsible = input(false, { transform: booleanAttribute });
-  readonly zResizable = input(true, { transform: booleanAttribute });
-  readonly class = input<ClassValue>('');
+  readonly zDefaultSize = input<number | string | undefined>(undefined)
+  readonly zMin = input<number | string>(0)
+  readonly zMax = input<number | string>(100)
+  readonly zCollapsible = input(false, { transform: booleanAttribute })
+  readonly zResizable = input(true, { transform: booleanAttribute })
+  readonly class = input<ClassValue>('')
 
   protected readonly isCollapsed = computed(() => {
-    const element = this.elementRef.nativeElement as HTMLElement;
-    const width = Number.parseFloat(element.style.width || '0');
-    const height = Number.parseFloat(element.style.height || '0');
-    return width === 0 || height === 0;
-  });
+    const element = this.elementRef.nativeElement as HTMLElement
+    const width = Number.parseFloat(element.style.width || '0')
+    const height = Number.parseFloat(element.style.height || '0')
+    return width === 0 || height === 0
+  })
 
   protected readonly classes = computed(() =>
-    mergeClasses(resizablePanelVariants({ zCollapsed: this.isCollapsed() }), this.class()),
-  );
+    mergeClasses(resizablePanelVariants({ zCollapsed: this.isCollapsed() }), this.class())
+  )
 }

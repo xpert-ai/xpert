@@ -1,0 +1,100 @@
+<div class="xp-auth-shell">
+  <section class="xp-auth-brand" aria-labelledby="xp-auth-platform-title">
+    <div class="xp-auth-brand__identity">
+      <span class="xp-auth-brand__logo-frame">
+        <img class="h-7 w-7 rounded-lg" [src]="appConfig()?.app_logo || 'assets/logo.png'" alt="" />
+      </span>
+      <span class="xp-auth-brand__name">
+        {{ title() || appConfig()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}
+      </span>
+    </div>
+
+    <div class="xp-auth-brand__copy">
+      <p class="xp-auth-brand__eyebrow">
+        <span aria-hidden="true"></span>
+        XPERTAI AGENT PLATFORM
+      </p>
+      <h1 id="xp-auth-platform-title">
+        {{ 'Auth.PlatformTitle' | translate: { Default: 'Build, orchestrate, and deliver enterprise agent systems.' } }}
+      </h1>
+      <p class="xp-auth-brand__description">
+        {{
+          'Auth.PlatformDescription'
+            | translate
+              : {
+                  Default:
+                    'Bring models, tools, business context, and human review together in one observable workspace.'
+                }
+        }}
+      </p>
+
+      <div class="xp-auth-signal" aria-hidden="true">
+        <div class="xp-auth-signal__line"></div>
+        <div class="xp-auth-signal__node xp-auth-signal__node--plugin">
+          <span>01</span>
+          <strong>PLUGIN</strong>
+        </div>
+        <div class="xp-auth-signal__node xp-auth-signal__node--agent">
+          <span>02</span>
+          <strong>AGENT</strong>
+        </div>
+        <div class="xp-auth-signal__node xp-auth-signal__node--workbench">
+          <span>03</span>
+          <strong>WORKBENCH</strong>
+        </div>
+        <div class="xp-auth-signal__node xp-auth-signal__node--outcome">
+          <span>04</span>
+          <strong>OUTCOME</strong>
+        </div>
+      </div>
+
+      <div class="xp-auth-brand__capabilities">
+        <span><i aria-hidden="true"></i>Agent + Workflow</span>
+        <span><i aria-hidden="true"></i>Knowledge + MCP</span>
+        <span>
+          <i aria-hidden="true"></i>
+          {{ 'Auth.ObservableExecution' | translate: { Default: 'Observable execution' } }}
+        </span>
+      </div>
+    </div>
+
+    <p class="xp-auth-brand__footer">
+      {{ 'Auth.EnterpriseReady' | translate: { Default: 'Open platform · Enterprise ready' } }}
+    </p>
+  </section>
+
+  <main class="xp-auth-panel">
+    <div class="xp-auth-panel__content">
+      <div class="xp-auth-card">
+        <header class="xp-auth__header">
+          <img class="h-9 w-9 rounded-xl" [src]="appConfig()?.app_logo || 'assets/logo.png'" alt="" />
+          <div>
+            <p>{{ title() || appConfig()?.app_name || ('Auth.AppName' | translate: { Default: 'Xpert AI Cloud' }) }}</p>
+            <span>{{ 'Auth.WorkspaceAccess' | translate: { Default: 'Workspace access' } }}</span>
+          </div>
+        </header>
+
+        <router-outlet></router-outlet>
+      </div>
+
+      <footer class="xp-auth-panel__footer">
+        <z-select
+          class="w-32"
+          id="countries"
+          [ngModel]="language()"
+          (ngModelChange)="onLanguage($event)"
+          [attr.aria-label]="'Auth.Language' | translate: { Default: 'Language' }"
+        >
+          <z-select-item zValue="en">English</z-select-item>
+          <z-select-item zValue="zh-Hans">中文简体</z-select-item>
+          <z-select-item zValue="zh-Hant">中文繁体</z-select-item>
+        </z-select>
+
+        <div class="xp-auth__copyright">
+          <span>© 2026</span>
+          <a href="https://xpertai.cn" target="_blank" rel="noopener noreferrer">XpertAI Inc.</a>
+        </div>
+      </footer>
+    </div>
+  </main>
+</div>

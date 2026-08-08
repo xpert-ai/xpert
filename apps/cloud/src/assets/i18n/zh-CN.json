@@ -4,7 +4,6 @@
     "ORGANIZATION": "公司",
     "DASHBOARD": "仪表盘",
     "INDICATOR": "指标",
-    "INDICATOR_MARKET": "市场",
     "INDICATOR_APP": "指标应用",
     "INDICATOR_REGISTER": "注册",
     "INDICATOR_GROUPS": "组",
@@ -16,8 +15,36 @@
     "STORY": "故事",
     "USERS": "用户"
   },
-  "PAC": {
+  "XP": {
     "Title": "元数分析云",
+    "Referral": {
+      "CopyCode": "复制邀请码",
+      "Copied": "已复制",
+      "RegenerateCode": "重新生成邀请码",
+      "RegeneratingCode": "正在重新生成...",
+      "RegenerateConfirmTitle": "重新生成邀请码？",
+      "RegenerateConfirmDescription": "当前邀请码将立即失效，已建立的邀请关系不会受到影响。",
+      "RegenerateSuccess": "邀请码已重新生成。",
+      "RegenerateFailed": "邀请码重新生成失败。",
+      "ReferralCode": "邀请码（选填）",
+      "ReferralCodePlaceholder": "请输入邀请码",
+      "ValidatingReferralCode": "正在验证...",
+      "InvalidReferralCode": "邀请码无效。",
+      "ValidReferralCode": "邀请码有效。",
+      "Relationships": "邀请关系",
+      "RelationshipsDescription": "查看当前租户内只读的账号直接邀请关系。",
+      "SearchPlaceholder": "搜索账号或邀请码",
+      "Referrer": "邀请人",
+      "Referred": "被邀请人",
+      "UsedCode": "使用的邀请码",
+      "BoundAt": "绑定时间",
+      "DeletedAccount": "已删除账号",
+      "Empty": "暂无邀请关系。",
+      "LoadError": "邀请关系加载失败。",
+      "Previous": "上一页",
+      "Next": "下一页",
+      "PageSummary": "第 {{page}} / {{pages}} 页，共 {{total}} 条"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime 运维",
       "SuperAdminOnly": "超级管理员",
@@ -676,6 +703,7 @@
       }
     },
     "MENU": {
+      "ReferralRelationships": "邀请关系",
       "Tasks": "任务",
       "Scheduled": "定时",
       "Plugins": "插件",
@@ -706,8 +734,6 @@
       "Email Template": "邮件模板",
       "Custom SMTP": "自定义 SMTP",
       "AGENT": "代理",
-      "LOCAL_AGENT": "本地代理",
-      "WASM_DB": "WASM 数据库",
       "Attributes": "属性",
       "CALCULATION": "计算",
       "CALCULATED_MEMBERS": "计算成员",
@@ -821,8 +847,7 @@
         "SELECT_DATASOURCE_COLUMNS": {
           "Name": "名称",
           "Type": "类型",
-          "Protocol": "协议",
-          "UseLocalAgent": "使用本地代理"
+          "Protocol": "协议"
         },
         "CATALOG_COLUMNS": {
           "Name": "名称",
@@ -852,9 +877,7 @@
       "INDICATOR": {
         "REGISTER_INDICATOR": "注册指标",
         "BATCH_UPLOAD": "批量上传",
-        "DownloadAsTemplate": "下载为模板",
-        "INDICATOR_MARKET": "指标市场",
-        "INDICATOR_MARKET_DESC": "浏览指标，申请指标权限"
+        "DownloadAsTemplate": "下载为模板"
       },
       "GENERAL": {
         "TITLE": "通用",
@@ -868,7 +891,6 @@
         "CONFIGURATION": "配置",
         "NAME": "名称",
         "NAME_REQUIRED": "名称必输",
-        "USE_LOCAL_AGENT": "使用本地代理",
         "DONE": "完成",
         "AuthType": "授权方式",
         "AuthType_None": "无",
@@ -961,7 +983,6 @@
       "USER_ORGANIZATION_ADDED": "用户组织添加成功",
       "USER_ORGANIZATION_REMOVED": "用户组织删除成功",
       "UpdateSuccess": "更新成功",
-      "LocalAgentOffline": "本地代理离线",
       "NameAlreadyExist": "名称已存在",
       "Required": "必输",
       "Update": "更新",
@@ -1155,7 +1176,6 @@
       "DescriptionPlaceholder": "可选，语义模型的详细描述",
       "UploadModel": "上载模型",
       "SaveAsDefaultCube": "保存为默认数据集",
-
       "QUERY": {
         "TITLE": "查询",
         "SaveAsModel": "另存为模型",
@@ -1963,6 +1983,10 @@
     },
     "Membership": {
       "AdminTitle": "会员套餐",
+      "Level": "等级",
+      "LevelValidation": "等级必须为非负整数。",
+      "PriceCurrency": "币种",
+      "PriceCurrencyValidation": "请输入不超过 12 个字符的币种代码。",
       "AdminDescription": "配置当前范围的会员套餐、点数额度和模型使用规则。",
       "TenantScope": "租户会员",
       "OrganizationScope": "组织会员",
@@ -2056,6 +2080,11 @@
       "InvalidJson": "JSON 配置无效",
       "UserMembership": "会员",
       "CurrentPlan": "当前套餐",
+      "CurrentScopePlan": "当前管理范围套餐",
+      "CurrentManagementScope": "当前管理范围",
+      "EffectiveInScope": "在该范围内生效",
+      "MembershipsByScope": "各范围当前套餐",
+      "MembershipsByScopeHint": "同时查看该用户的租户套餐、各组织当前套餐和待生效周期。",
       "PlanExpired": "套餐已到期",
       "RemainingPoints": "剩余点数",
       "UsedPoints": "已用点数",
@@ -2063,6 +2092,7 @@
       "NoUserMembership": "该用户尚未创建会员。",
       "AssignNote": "分配备注",
       "AssignPlan": "分配套餐",
+      "ExternallyManagedMembershipHint": "该会员由外部流程管理，不能在此覆盖或续期。",
       "PointDelta": "点数调整",
       "Points": "点数",
       "Increase": "上调",
@@ -2088,6 +2118,7 @@
       "CancelPeriodConfirmTitle": "确认取消待生效周期？",
       "CancelPeriodConfirmDescription": "取消后该未来权益不再生效，当前周期和其他待生效周期不受影响。",
       "ExternalPeriodManagedHint": "请在付费系统完成退款并取消",
+      "ManageInOrganizationScope": "请切换到对应组织范围管理",
       "CancelLaterPeriodsFirst": "请先取消更晚的周期",
       "Assign": "分配",
       "Adjust": "调整",
@@ -2501,25 +2532,12 @@
       "Actuallength": "实际长度",
       "ConfirmYourPassword": "确认密码",
       "PasswordMustMatch": "密码不一致",
-      "WantGenerateDemo": "是否想要生成演示数据",
-      "GenerateDemoDescription": "系统将从服务器链接上下载演示数据文件，并将数据导入至系统数据库中，然后创建相应的演示样例",
       "Skip": "跳过",
-      "Generate": "生成",
-      "Retry": "重试",
-      "AddYourData": "添加您的数据",
-      "ReadyExploringYourData": "准备好开始探索您的数据了吗？在下面添加它吧。",
-      "NotReadySample": "还没有准备好？跳过并玩玩我们的示例吧。",
-      "DisplayName": "显示名称",
-      "NameRequired": "名称不能为空",
-      "AddDataLater": "我稍后添加我的数据",
-      "ConnectDatabase": "连接数据库",
       "ConfigureAiModel": "配置 AI 模型",
       "ConfigureAiModelDesc": "为模型提供商配置主提供商并选择默认模型。稍后您仍可以在系统设置中继续完善。",
       "Done": "完成",
       "AllSetup": "您已经设置好了！",
-      "TakeMetoMetadAnalyticsPlatform": "带我去 Metad 分析平台",
-      "SelectNetwork": "选择所需网络",
-      "GenerateDemoSuccess": "演示数据和样例生成成功！"
+      "TakeMetoXpertAiPlatform": "带我去 Xpert AI 平台"
     },
     "Languages": {
       "en": "英文",
@@ -2789,6 +2807,10 @@
           "Name": "监测",
           "Description": "查看模型提供商的用户使用量和监测信息"
         },
+        "FEATURE_MEMBERSHIP_PURCHASE": {
+          "Name": "会员购买",
+          "Description": "启用会员套餐和个人积分购买。"
+        },
         "FEATURE_MODEL_ACCESS_REQUEST": {
           "Name": "个人模型授权",
           "Description": "启用个人模型权限申请和授权管理"
@@ -2797,6 +2819,10 @@
           "Name": "模型 API 网关",
           "Description": "将已批准的租户或组织模型发布为 OpenAI 兼容 API"
         },
+        "FEATURE_REFERRAL": {
+          "Name": "邀请码",
+          "Description": "启用账号邀请码及租户内邀请关系管理"
+        },
         "FEATURE_MODEL": {
           "Name": "语义模型",
           "Description": "启用语义模型功能"
@@ -2804,34 +2830,6 @@
         "FEATURE_DATA_SOURCE": {
           "Name": "数据源",
           "Description": "启用数据源配置功能"
-        },
-        "FEATURE_PROJECT": {
-          "Name": "BI项目",
-          "Description": "启用BI项目工作空间功能"
-        },
-        "FEATURE_STORY": {
-          "Name": "故事",
-          "Description": "启用故事仪表板功能，制作，分享和浏览故事仪表板"
-        },
-        "FEATURE_INDICATOR": {
-          "Name": "指标",
-          "Description": "启用指标功能，注册，发布和申请查看业务指标数据"
-        },
-        "FEATURE_INDICATOR_REGISTER": {
-          "Name": "指标注册",
-          "Description": "启用指标注册功能，注册数据指标"
-        },
-        "FEATURE_INDICATOR_MARKET": {
-          "Name": "指标市场",
-          "Description": "启用指标市场功能，发布、浏览和申请指标"
-        },
-        "FEATURE_INDICATOR_APP": {
-          "Name": "指标应用",
-          "Description": "启用指标应用程序，浏览有权限的指标"
-        },
-        "FEATURE_BUSINESS_AREA": {
-          "Name": "业务域",
-          "Description": "启用业务域功能，创建和使用业务域"
         },
         "FEATURE_USER": {
           "Name": "用户",
@@ -2856,10 +2854,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "在主导航中显示 ChatBI 入口。"
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -2914,7 +2908,6 @@
         "connections": "系统连接"
       }
     },
-
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
         "ADMIN_DASHBOARD_VIEW": "查看 Admin 仪表盘",
@@ -3022,6 +3015,7 @@
         "PAYMENT_GATEWAY_VIEW": "View Payment Gateway",
         "SMS_GATEWAY_VIEW": "View SMS Gateway",
         "CUSTOM_SMTP_VIEW": "View Custom SMTP",
+        "REFERRAL_VIEW": "查看邀请关系",
         "IMPORT_EXPORT_VIEW": "View Import/Export",
         "ORG_JOB_EMPLOYEE_VIEW": "查看任务员工",
         "ORG_JOB_MATCHING_VIEW": "查看任务匹配",
@@ -3034,7 +3028,7 @@
         "MODEL_ACCESS_REQUEST_EDIT": "管理模型授权申请",
         "MODEL_GATEWAY_USE": "使用模型 API 网关",
         "MODEL_GATEWAY_MANAGE": "管理模型 API 网关",
-        "MEMBERSHIP_PURCHASE": "购买会员和点数",
+        "MEMBERSHIP_USE": "使用会员套餐",
         "BILLING_PRODUCT_EDIT": "管理计费商品",
         "BILLING_REFUND": "处理计费退款",
         "PAYMENT_PROVIDER_EDIT": "管理支付提供商"
@@ -3254,7 +3248,6 @@
         "Indicators": "明细指标",
         "LookBack": "回顾期间数"
       },
-
       "IFrame": {
         "SRC": "src"
       },
@@ -3351,11 +3344,9 @@
           "FontFamily_Song": "宋体"
         }
       },
-
       "CANVAS": {
         "TITLE": "画布"
       },
-
       "STORY_PAGE": {
         "PAGE_SIZE": "页面大小",
         "DefaultBackground": "预设背景",
@@ -3365,7 +3356,6 @@
         "PresetBackground": "预设背景",
         "PageType": "类型"
       },
-
       "ECHARTS": {
         "Common": {
           "Align": "对齐",
@@ -3727,7 +3717,6 @@
             "TITLE": "单个体样式",
             "OPACITY": "不透明度"
           },
-
           "LABEL": {
             "TITLE": "标签"
           },
@@ -4178,7 +4167,6 @@
       "Compare": "比",
       "To": "较",
       "BaseDimension": "基准维度",
-
       "SetNoDataasZero": "将无数据当作零",
       "CalculateasPercentage": "计算为百分比",
       "DirectDivide": "直接除",
@@ -4518,7 +4506,6 @@
       "ROLE": "选择角色"
     }
   },
-
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密码重置",

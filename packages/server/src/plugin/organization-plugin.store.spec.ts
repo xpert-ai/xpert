@@ -24,6 +24,7 @@ const {
 	getOrganizationPluginRoot,
 	installOrganizationPlugins,
 	readOrganizationManifest,
+	stagePackageDirectoryPlugin,
 	stageWorkspacePlugin,
 	writeOrganizationManifest
 } = require('./organization-plugin.store')
@@ -98,8 +99,8 @@ describe('organization-plugin.store', () => {
 		).toBe(path.join(pluginRoot, 'system_global'))
 	})
 
-	it('copies the workspace by default', () => {
-		const pluginDir = stageWorkspacePlugin({
+	it('copies the workspace by default', async () => {
+		const pluginDir = await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -112,7 +113,7 @@ describe('organization-plugin.store', () => {
 		expect(fs.existsSync(path.join(targetPackageDir, 'dist', 'index.js'))).toBe(true)
 	})
 
-	it('skips restaging when copied inputs have not changed', () => {
+	it('skips restaging when copied inputs have not changed', async () => {
 		const options = {
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
@@ -120,17 +121,17 @@ describe('organization-plugin.store', () => {
 			workspacePath: workspaceRoot,
 			rootDir: pluginRoot
 		}
-		const pluginDir = stageWorkspacePlugin(options)
+		const pluginDir = await stageWorkspacePlugin(options)
 		const targetPackageDir = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark')
 		const sentinelPath = path.join(targetPackageDir, 'cache-hit-sentinel')
 		fs.writeFileSync(sentinelPath, 'preserved on cache hit\n')
 
-		stageWorkspacePlugin(options)
+		await stageWorkspacePlugin(options)
 
 		expect(fs.existsSync(sentinelPath)).toBe(true)
 
 		fs.writeFileSync(path.join(workspaceRoot, 'dist', 'index.js'), 'module.exports = { changed: true }\n')
-		stageWorkspacePlugin(options)
+		await stageWorkspacePlugin(options)
 
 		expect(fs.existsSync(sentinelPath)).toBe(false)
 		expect(fs.readFileSync(path.join(targetPackageDir, 'dist', 'index.js'), 'utf8')).toContain('changed: true')
@@ -139,17 +140,17 @@ describe('organization-plugin.store', () => {
 		fs.mkdirSync(path.dirname(legacyOutputPath), { recursive: true })
 		fs.writeFileSync(legacyOutputPath, 'stale legacy output\n')
 		fs.rmSync(path.join(pluginDir, '.xpert-workspace-stage.json'))
-		stageWorkspacePlugin(options)
+		await stageWorkspacePlugin(options)
 
 		expect(fs.existsSync(legacyOutputPath)).toBe(false)
 	})
 
-	it('copies monorepo build output beside the staged package for root index.cjs wrappers', () => {
+	it('copies monorepo build output beside the staged package for root index.cjs wrappers', async () => {
 		const monorepoDist = path.join(tempRoot, 'workspace', 'dist', 'plugin-lark')
 		fs.mkdirSync(monorepoDist, { recursive: true })
 		fs.writeFileSync(path.join(monorepoDist, 'index.cjs.js'), 'module.exports = { compiled: true }\n')
 
-		const pluginDir = stageWorkspacePlugin({
+		const pluginDir = await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -160,7 +161,7 @@ describe('organization-plugin.store', () => {
 		expect(fs.existsSync(path.join(pluginDir, 'dist', 'plugin-lark', 'index.cjs.js'))).toBe(true)
 	})
 
-	it('resolves Nx outputPath from the monorepo root when allowed roots point at packages/plugins', () => {
+	it('resolves Nx outputPath from the monorepo root when allowed roots point at packages/plugins', async () => {
 		const monorepoRoot = path.join(tempRoot, 'monorepo')
 		const pluginsRoot = path.join(monorepoRoot, 'packages', 'plugins')
 		workspaceRoot = path.join(pluginsRoot, 'plugin-lark')
@@ -195,7 +196,7 @@ describe('organization-plugin.store', () => {
 		fs.mkdirSync(monorepoDist, { recursive: true })
 		fs.writeFileSync(path.join(monorepoDist, 'index.cjs.js'), 'module.exports = { compiled: true }\n')
 
-		const pluginDir = stageWorkspacePlugin({
+		const pluginDir = await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -208,7 +209,7 @@ describe('organization-plugin.store', () => {
 		)
 	})
 
-	it('does not build missing Nx workspace plugin output during staging', () => {
+	it('does not build missing Nx workspace plugin output during staging', async () => {
 		fs.rmSync(path.join(tempRoot, 'workspace', 'dist'), { recursive: true, force: true })
 		fs.mkdirSync(path.join(workspaceRoot, 'src'), { recursive: true })
 		fs.writeFileSync(path.join(workspaceRoot, 'src', 'index.ts'), 'export default {}\n')
@@ -226,7 +227,7 @@ describe('organization-plugin.store', () => {
 			})
 		)
 
-		const pluginDir = stageWorkspacePlugin({
+		const pluginDir = await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -240,7 +241,55 @@ describe('organization-plugin.store', () => {
 		)
 	})
 
-	it('rejects Nx build output paths outside the workspace root', () => {
+	it('does not block the event loop while installing uploaded package runtime dependencies', async () => {
+		const fakeBin = path.join(tempRoot, 'fake-bin')
+		const fakeNpm = path.join(fakeBin, 'npm')
+		const originalPath = process.env.PATH
+		fs.mkdirSync(fakeBin, { recursive: true })
+		fs.writeFileSync(fakeNpm, '#!/usr/bin/env node\nsetTimeout(() => process.exit(0), 100)\n')
+		fs.chmodSync(fakeNpm, 0o755)
+		fs.writeFileSync(
+			path.join(workspaceRoot, 'package.json'),
+			JSON.stringify(
+				{
+					name: '@xpert-ai/plugin-lark',
+					version: '0.0.1',
+					dependencies: {
+						'xpert-delayed-runtime-dependency': '1.0.0'
+					}
+				},
+				null,
+				2
+			)
+		)
+		process.env.PATH = `${fakeBin}${path.delimiter}${originalPath ?? ''}`
+
+		try {
+			let stagingResolved = false
+			const staging = stagePackageDirectoryPlugin({
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-lark',
+				expectedPackageName: '@xpert-ai/plugin-lark',
+				packageDir: workspaceRoot,
+				rootDir: pluginRoot
+			}).then((pluginDir) => {
+				stagingResolved = true
+				return pluginDir
+			})
+
+			await new Promise<void>((resolve) => setImmediate(resolve))
+			expect(stagingResolved).toBe(false)
+			await expect(staging).resolves.toContain(pluginRoot)
+		} finally {
+			if (originalPath == null) {
+				delete process.env.PATH
+			} else {
+				process.env.PATH = originalPath
+			}
+		}
+	})
+
+	it('rejects Nx build output paths outside the workspace root', async () => {
 		fs.rmSync(path.join(tempRoot, 'workspace', 'dist'), { recursive: true, force: true })
 		fs.mkdirSync(path.join(workspaceRoot, 'src'), { recursive: true })
 		fs.writeFileSync(path.join(workspaceRoot, 'src', 'index.ts'), 'export default {}\n')
@@ -258,7 +307,7 @@ describe('organization-plugin.store', () => {
 			})
 		)
 
-		expect(() =>
+		await expect(
 			stageWorkspacePlugin({
 				organizationId: 'org-1',
 				pluginName: '@xpert-ai/plugin-lark',
@@ -266,10 +315,10 @@ describe('organization-plugin.store', () => {
 				workspacePath: workspaceRoot,
 				rootDir: pluginRoot
 			})
-		).toThrow(/resolves outside workspace root/)
+		).rejects.toThrow(/resolves outside workspace root/)
 	})
 
-	it('keeps staged code plugins loadable when they declare runtime dependencies', () => {
+	it('keeps staged code plugins loadable when they declare runtime dependencies', async () => {
 		const runtimeDependencyRoot = path.join(tempRoot, 'workspace', 'runtime-dependency')
 		fs.mkdirSync(runtimeDependencyRoot, { recursive: true })
 		fs.writeFileSync(
@@ -314,7 +363,7 @@ describe('organization-plugin.store', () => {
 			["const dependency = require('xpert-runtime-dependency')", 'module.exports = dependency'].join('\n')
 		)
 
-		const pluginDir = stageWorkspacePlugin({
+		const pluginDir = await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -350,7 +399,7 @@ describe('organization-plugin.store', () => {
 			].join('\n')
 		)
 
-		stageWorkspacePlugin({
+		await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -364,7 +413,7 @@ describe('organization-plugin.store', () => {
 			path.join(runtimeDependencyRoot, 'index.js'),
 			"module.exports = { runtimeDependencyName: 'xpert-runtime-dependency-v2' }\n"
 		)
-		stageWorkspacePlugin({
+		await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -413,10 +462,10 @@ describe('organization-plugin.store', () => {
 		expect(readOrganizationManifest('org-1', { rootDir: pluginRoot })).toEqual([pluginSpec])
 	})
 
-	it('rejects workspace paths outside allowed roots', () => {
+	it('rejects workspace paths outside allowed roots', async () => {
 		process.env.PLUGIN_WORKSPACE_ROOTS = path.join(tempRoot, 'allowed')
 
-		expect(() =>
+		await expect(
 			stageWorkspacePlugin({
 				organizationId: 'org-1',
 				pluginName: '@xpert-ai/plugin-lark',
@@ -424,16 +473,16 @@ describe('organization-plugin.store', () => {
 				workspacePath: workspaceRoot,
 				rootDir: pluginRoot
 			})
-		).toThrow(/outside allowed roots/)
+		).rejects.toThrow(/outside allowed roots/)
 	})
 
-	it('rejects workspace package name mismatches', () => {
+	it('rejects workspace package name mismatches', async () => {
 		fs.writeFileSync(
 			path.join(workspaceRoot, 'package.json'),
 			JSON.stringify({ name: '@xpert-ai/plugin-other', version: '0.0.1' }, null, 2)
 		)
 
-		expect(() =>
+		await expect(
 			stageWorkspacePlugin({
 				organizationId: 'org-1',
 				pluginName: '@xpert-ai/plugin-lark',
@@ -441,14 +490,14 @@ describe('organization-plugin.store', () => {
 				workspacePath: workspaceRoot,
 				rootDir: pluginRoot
 			})
-		).toThrow(/workspace package name mismatch/)
+		).rejects.toThrow(/workspace package name mismatch/)
 	})
 
-	it('accepts a precompiled root entry without dist or src/index.ts', () => {
+	it('accepts a precompiled root entry without dist or src/index.ts', async () => {
 		fs.rmSync(path.join(workspaceRoot, 'dist'), { recursive: true, force: true })
 		fs.writeFileSync(path.join(workspaceRoot, 'index.cjs.js'), 'module.exports = {}\n')
 
-		const pluginDir = stageWorkspacePlugin({
+		const pluginDir = await stageWorkspacePlugin({
 			organizationId: 'org-1',
 			pluginName: '@xpert-ai/plugin-lark',
 			expectedPackageName: '@xpert-ai/plugin-lark',
@@ -460,11 +509,11 @@ describe('organization-plugin.store', () => {
 		expect(fs.existsSync(path.join(targetPackageDir, 'index.cjs.js'))).toBe(true)
 	})
 
-	it('includes plugin details when workspacePath is not loadable', () => {
+	it('includes plugin details when workspacePath is not loadable', async () => {
 		fs.rmSync(path.join(workspaceRoot, 'dist'), { recursive: true, force: true })
 		const realWorkspaceRoot = fs.realpathSync.native(workspaceRoot)
 
-		expect(() =>
+		await expect(
 			stageWorkspacePlugin({
 				organizationId: 'org-1',
 				pluginName: '@xpert-ai/plugin-lark',
@@ -472,7 +521,7 @@ describe('organization-plugin.store', () => {
 				workspacePath: workspaceRoot,
 				rootDir: pluginRoot
 			})
-		).toThrow(
+		).rejects.toThrow(
 			`Plugin "@xpert-ai/plugin-lark" (expected package "@xpert-ai/plugin-lark") has an invalid workspacePath "${realWorkspaceRoot}"`
 		)
 	})

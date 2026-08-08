@@ -16,11 +16,11 @@ import {
 import { KnowledgebaseCardComponent } from '@cloud/app/@shared/knowledge'
 import {
   DisappearFadeOut,
-  DynamicGridDirective,
+  XpDynamicGridDirective,
   listAnimation,
   listEnterAnimation,
   ListSlideStaggerAnimation
-} from '@xpert-ai/core'
+} from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
@@ -43,9 +43,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    DynamicGridDirective,
+    XpDynamicGridDirective,
     KnowledgebaseCardComponent
-],
+  ],
   selector: 'chat-project-knowledges',
   templateUrl: './knowledges.component.html',
   styleUrl: 'knowledges.component.scss',

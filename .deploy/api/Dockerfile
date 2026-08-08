@@ -17,17 +17,12 @@ USER node:node
 
 WORKDIR /srv/xpert
 
-COPY --chown=node:node legacies/adapter/package.json ./legacies/adapter/
-COPY --chown=node:node legacies/copilot/package.json ./legacies/copilot/
-COPY --chown=node:node packages/store/package.json ./packages/store/
-COPY --chown=node:node packages/core/package.json ./packages/core/
 COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
 COPY --chown=node:node packages/common/package.json ./packages/common/
 COPY --chown=node:node packages/config/package.json ./packages/config/
 COPY --chown=node:node packages/auth/package.json ./packages/auth/
 COPY --chown=node:node packages/server/package.json ./packages/server/
 COPY --chown=node:node packages/server-ai/package.json ./packages/server-ai/
-COPY --chown=node:node packages/analytics/package.json ./packages/analytics/
 COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
 COPY --chown=node:node packages/shadcn-ui/package.json ./packages/shadcn-ui/
 
@@ -43,8 +38,6 @@ RUN pnpm install --no-frozen-lockfile
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
-COPY --chown=node:node legacies/adapter ./legacies/adapter
-COPY --chown=node:node legacies/copilot ./legacies/copilot
 COPY --chown=node:node apps/api ./apps/api
 RUN rm -rf packages/angular packages/ui
 
@@ -96,7 +89,6 @@ COPY --chown=node:node wait ./
 # Keep production workspace layout aligned with pnpm lockfile links.
 # Some packages publish from nested dist dirs, so pnpm links workspace deps to
 # those publish roots instead of the package root when publishConfig.directory is set.
-COPY --chown=node:node --from=build /srv/xpert/dist/legacies ./legacies
 COPY --chown=node:node --from=build /srv/xpert/dist/packages ./packages
 COPY --chown=node:node --from=build /srv/xpert/dist/packages ./dist/packages
 COPY --chown=node:node --from=build /srv/xpert/packages/contracts/package.json ./packages/contracts/package.json

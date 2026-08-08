@@ -10,17 +10,17 @@
         <div class="flex items-center">
           <i class="ri-text-block mr-1 text-text-tertiary"></i>
           <div class="system-xs-medium">
-            {{ 'PAC.Knowledgebase.Chunk' | translate: { Default: 'Chunk' } }}-{{ displayIndex() }}
+            {{ 'XP.Knowledgebase.Chunk' | translate: { Default: 'Chunk' } }}-{{ displayIndex() }}
           </div>
         </div>
         <div class="system-xs-medium text-text-quaternary">·</div>
         <div class="text-text-tertiary system-xs-medium">
-          {{ chunk().pageContent?.length }} {{ 'PAC.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}
+          {{ chunk().pageContent?.length }} {{ 'XP.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}
         </div>
         @if (chunk().metadata.tokens; as tokens) {
           <div class="system-xs-medium text-text-tertiary">·</div>
           <div class="text-text-tertiary system-xs-medium">
-            {{ tokens }} {{ 'PAC.Knowledgebase.Tokens' | translate: { Default: 'Tokens' } }}
+            {{ tokens }} {{ 'XP.Knowledgebase.Tokens' | translate: { Default: 'Tokens' } }}
           </div>
         }
         <div class="system-xs-medium text-text-quaternary">·</div>
@@ -42,7 +42,7 @@
             ></div>
             <div class="relative flex h-full items-center space-x-0.5">
               <div class="text-xs font-medium uppercase">
-                {{ 'PAC.Knowledgebase.RelevanceScore' | translate: { Default: 'Relevance Score' } }}
+                {{ 'XP.Knowledgebase.RelevanceScore' | translate: { Default: 'Relevance Score' } }}
               </div>
               <div class="text-xs font-semibold">{{ relevanceScore | number: '0.0-2' }}</div>
             </div>
@@ -66,12 +66,12 @@
             @if (enabled()) {
               <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
               <span class="text-sm text-text-tertiary system-xs-regular">
-                {{ 'PAC.Knowledgebase.Enabled' | translate: { Default: 'Enabled' } }}
+                {{ 'XP.Knowledgebase.Enabled' | translate: { Default: 'Enabled' } }}
               </span>
             } @else {
               <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-components-card-bg flex"></span>
               <span class="text-sm text-text-tertiary system-xs-regular">
-                {{ 'PAC.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}
+                {{ 'XP.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}
               </span>
             }
           </div>
@@ -81,7 +81,7 @@
     <div class="font-body !mt-0.5 text-text-primary">
       @if (_preview()) {
         <markdown
-          class="ngm-copilot-markdown"
+          class="xp-copilot-markdown"
           [disableSanitizer]="true"
           lineNumbers
           [start]="5"
@@ -99,7 +99,7 @@
             <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer" (click)="expanded.set(!expanded())">
               <i class="ri-arrow-right-s-line mr-0.5 text-text-secondary" [class.rotate-90]="expanded()"></i>
               <span class="system-sm-semibold-uppercase text-text-secondary"
-                >{{ children.length }} {{ 'PAC.Knowledgebase.ChildChunks' | translate: { Default: 'Children' } }}</span
+                >{{ children.length }} {{ 'XP.Knowledgebase.ChildChunks' | translate: { Default: 'Children' } }}</span
               >
               @if (editable()) {
                 <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block"
@@ -109,7 +109,7 @@
                   type="button"
                   class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block"
                 >
-                  {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+                  {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
                 </button>
               }
             </div>

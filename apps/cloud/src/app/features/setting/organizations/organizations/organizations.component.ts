@@ -2,7 +2,7 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { getErrorMessage, IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
@@ -12,7 +12,7 @@ import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  selector: 'pac-all-organizations',
+  selector: 'xp-all-organizations',
   templateUrl: './organizations.component.html',
   styleUrls: ['./organizations.component.scss'],
   imports: [CommonModule, TranslateModule, RouterModule, ...ZardTooltipImports, OrgAvatarComponent]
@@ -66,7 +66,7 @@ export class AllOrganizationsComponent extends TranslationBaseComponent {
   async deleteOrganization(id: string) {
     const organizations = await firstValueFrom(this.organizations$)
     const organization = organizations.find((item) => item.id === id)
-    const information = this.#translate.instant('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
+    const information = this.#translate.instant('XP.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
       Default: 'Confirm to delete the org from server?'
     })
     this.confirmDelete(
@@ -77,7 +77,7 @@ export class AllOrganizationsComponent extends TranslationBaseComponent {
       this.organizationsService.delete(organization.id)
     ).subscribe({
       next: () => {
-        this._toastrService.success('PAC.NOTES.ORGANIZATIONS.DELETE_ORGANIZATION', {
+        this._toastrService.success('XP.NOTES.ORGANIZATIONS.DELETE_ORGANIZATION', {
           Default: `Organization '{{ name }}' was removed`,
           name: organization.name
         })

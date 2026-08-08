@@ -1,10 +1,11 @@
-import { DisplayBehaviour, TreeNodeInterface } from '@xpert-ai/ocap-core'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import {
   displayTreeSelectText,
   findTreeSelectNode,
   filterTreeSelectNodes,
   getInitialExpandedKeys,
-  normalizeTreeSelectValue
+  normalizeTreeSelectValue,
+  TreeNodeInterface
 } from './tree-select.utils'
 
 const TREE_NODES: TreeNodeInterface<unknown>[] = [

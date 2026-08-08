@@ -157,14 +157,20 @@ export abstract class LargeLanguageModel extends AIModel {
           this.startedAt = performance.now()
         },
         handleLLMEnd: (output) => {
-          const tokenUsage: TTokenUsage =
-            output.llmOutput?.tokenUsage ?? output.llmOutput?.estimatedTokenUsage ?? calcTokenUsage(output)
+          const tokenUsage = resolveTokenUsage(output)
           if (handleLLMTokens) {
+            const usage = this.calcResponseUsage(
+              model,
+              credentials,
+              tokenUsage.promptTokens,
+              tokenUsage.completionTokens
+            )
+            usage.totalTokens = tokenUsage.totalTokens
             handleLLMTokens({
               copilot,
               model,
-              usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
-              tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
+              usage,
+              tokenUsed: tokenUsage.totalTokens
             })
           }
         }
@@ -331,6 +337,47 @@ export function calcTokenUsage(output: LLMResult) {
     })
   })
   return tokenUsage
+}
+
+export function resolveTokenUsage(output: LLMResult): TTokenUsage {
+  return (
+    normalizeTokenUsage(calcTokenUsage(output)) ??
+    normalizeTokenUsage(output.llmOutput?.['tokenUsage']) ??
+    normalizeTokenUsage(output.llmOutput?.['estimatedTokenUsage']) ??
+    normalizeTokenUsage({ totalTokens: output.llmOutput?.['totalTokens'] }) ?? {
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0
+    }
+  )
+}
+
+function normalizeTokenUsage(candidate?: Partial<TTokenUsage> | null): TTokenUsage | null {
+  if (!candidate) {
+    return null
+  }
+
+  if (
+    !isValidTokenCount(candidate.promptTokens) ||
+    !isValidTokenCount(candidate.completionTokens) ||
+    !isValidTokenCount(candidate.totalTokens)
+  ) {
+    return null
+  }
+
+  const promptTokens = candidate.promptTokens ?? 0
+  const completionTokens = candidate.completionTokens ?? 0
+  const totalTokens = candidate.totalTokens || promptTokens + completionTokens
+
+  if (promptTokens === 0 && completionTokens === 0 && totalTokens === 0) {
+    return null
+  }
+
+  return { promptTokens, completionTokens, totalTokens }
+}
+
+function isValidTokenCount(value?: number): boolean {
+  return value === undefined || (Number.isFinite(value) && value >= 0)
 }
 
 /**

@@ -1,13 +1,14 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, Injector, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
 import { getErrorMessage, injectHelpWebsite } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
-import { injectActiveScope, injectPluginAPI, injectScopeLevel } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectPluginAPI, injectScopeLevel, Store } from '@cloud/app/@core/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { PluginRuntimeRestartService } from '../plugin-runtime-restart.service'
 
@@ -26,7 +27,7 @@ type PluginInstallDialogData = {
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
+  imports: [TranslateModule, FormsModule, XpSpinComponent, PluginComponent],
   selector: 'xp-settings-plugin-install',
   templateUrl: './install.component.html',
   styleUrls: ['./install.component.scss']
@@ -34,23 +35,26 @@ type PluginInstallDialogData = {
 export class PluginInstallComponent {
   readonly #dialogRef = inject<DialogRef<PluginInstallResult | undefined>>(DialogRef)
   readonly #data = inject<PluginInstallDialogData>(DIALOG_DATA)
+  readonly #injector = inject(Injector)
+  readonly #router = inject(Router)
+  readonly #store = inject(Store)
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
   readonly pluginAPI = injectPluginAPI()
   readonly #activeScope = injectActiveScope()
   readonly scopeLevel = injectScopeLevel()
-  readonly runtimeRestart = inject(PluginRuntimeRestartService)
 
   readonly plugin = signal(this.#data.plugin)
   readonly pluginName = computed(() => this.plugin()?.name)
   readonly #installedPlugin = myRxResource({
     request: () => {
       return {
+        authenticated: !!this.#store.token,
         scope: this.#activeScope(),
         name: this.pluginName()
       }
     },
     loader: ({ request }) => {
-      return request.name ? this.pluginAPI.getByNames([request.name]) : null
+      return request.authenticated && request.name ? this.pluginAPI.getByNames([request.name]) : null
     }
   })
   readonly installed = computed(() => this.#installedPlugin.value()?.[0])
@@ -59,6 +63,7 @@ export class PluginInstallComponent {
   readonly pluginVersion = computed(() => this.latestVersion() ?? this.plugin()?.version)
   readonly systemPluginUnavailableInCurrentScope = computed(
     () =>
+      !!this.#store.token &&
       (this.plugin()?.level === PLUGIN_LEVEL.SYSTEM || this.plugin()?.level === PLUGIN_LEVEL.TENANT) &&
       this.scopeLevel() !== RequestScopeLevel.TENANT
   )
@@ -101,6 +106,15 @@ export class PluginInstallComponent {
   }
 
   install() {
+    if (!this.#store.token) {
+      const returnUrl = '/plugins?category=marketplace'
+      this.#dialogRef.close()
+      void this.#router.navigate(['/auth/login'], {
+        queryParams: { returnUrl }
+      })
+      return
+    }
+
     if (this.systemPluginUnavailableInCurrentScope()) {
       return
     }
@@ -135,6 +149,10 @@ export class PluginInstallComponent {
   restartNow() {
     this.close()
     setTimeout(() => void this.runtimeRestart.confirmAndRestart())
+  }
+
+  get runtimeRestart() {
+    return this.#injector.get(PluginRuntimeRestartService)
   }
 
   private hasInstalledPlugin() {

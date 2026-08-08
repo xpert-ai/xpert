@@ -15,8 +15,8 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TXpertVariablesOptions, XpertAPIService } from '@cloud/app/@core'
-import { NgmHighlightDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { debouncedSignal, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpHighlightDirective, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
@@ -27,7 +27,7 @@ export { TXpertVariablesOptions } from '@cloud/app/@core/services'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, NgmHighlightDirective, NgmSpinComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, XpI18nPipe, XpHighlightDirective, XpSpinComponent],
   selector: 'xpert-variable-panel',
   templateUrl: './variable.component.html',
   styleUrls: ['./variable.component.scss'],
@@ -41,7 +41,7 @@ export class XpertVariablePanelComponent {
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
   readonly xpertAPI = inject(XpertAPIService)
-  readonly i18nPipe = new NgmI18nPipe()
+  readonly i18nPipe = new XpI18nPipe()
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
@@ -93,16 +93,14 @@ export class XpertVariablePanelComponent {
         let variables = group.variables
         if (searchTerm || types) {
           variables = variables?.filter((variable) => {
-              const description = variable.description
-              return (types.length
-                ? types.some(type => variable.type?.startsWith(type))
-                : true) &&
-                    (
-                      variable.name.toLowerCase().includes(searchTerm) ||
-                      (this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm)) ||
-                      this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm)
-                    )
-            })
+            const description = variable.description
+            return (
+              (types.length ? types.some((type) => variable.type?.startsWith(type)) : true) &&
+              (variable.name.toLowerCase().includes(searchTerm) ||
+                this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm) ||
+                this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm))
+            )
+          })
         }
 
         return {
@@ -126,13 +124,11 @@ export class XpertVariablePanelComponent {
       }, 1000)
     })
 
-    effect(
-      () => {
-        if (this.#variables.value()) {
-          this.variables.set(this.#variables.value())
-        }
+    effect(() => {
+      if (this.#variables.value()) {
+        this.variables.set(this.#variables.value())
       }
-    )
+    })
   }
 
   isSelectedGroup(name: string) {

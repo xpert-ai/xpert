@@ -12,6 +12,8 @@ const ANONYMOUS_AUTH_PATHS = new Set([
   '/api/auth/sso/bind/challenge',
   '/api/auth/sso/bind/complete',
   '/api/auth/sso/bind/register',
+  '/api/referral/availability',
+  '/api/referral/validate',
   '/api/tenant/onboard'
 ])
 

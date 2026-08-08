@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { AiFeatureEnum } from '@xpert-ai/contracts'
 import { map } from 'rxjs'
 

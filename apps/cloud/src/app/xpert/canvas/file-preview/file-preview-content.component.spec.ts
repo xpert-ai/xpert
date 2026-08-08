@@ -4,30 +4,47 @@ import { DomSanitizer } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatCanvasFilePreviewContentComponent } from './file-preview-content.component'
 
-jest.mock('@xpert-ai/ocap-angular/common', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
+jest.mock('@xpert-ai/headless-ui', () => {
+  const { Component, Input, Pipe, inject } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
-    selector: 'ngm-spin',
+    selector: 'xp-spin',
     template: '<div class="mock-spin"></div>'
   })
-  class NgmSpinComponent {}
+  class XpSpinComponent {}
 
   @Component({
     standalone: true,
-    selector: 'ngm-table',
+    selector: 'xp-table',
     template:
       '<div class="mock-table" [attr.data-rows]="data?.length ?? 0" [attr.data-columns]="columns?.length ?? 0"></div>'
   })
-  class NgmTableComponent {
+  class XpTableComponent {
     @Input() columns: unknown[] | null = null
     @Input() data: unknown[] | null = null
   }
 
+  @Pipe({
+    standalone: true,
+    name: 'safe'
+  })
+  class SafePipe implements PipeTransform {
+    readonly #sanitizer = inject(DomSanitizer)
+
+    transform(value: string, type?: string) {
+      if (type === 'resourceUrl') {
+        return this.#sanitizer.bypassSecurityTrustResourceUrl(value)
+      }
+
+      return value
+    }
+  }
+
   return {
-    NgmSpinComponent,
-    NgmTableComponent
+    XpSpinComponent,
+    XpTableComponent,
+    SafePipe
   }
 })
 
@@ -55,30 +72,6 @@ jest.mock('ngx-markdown', () => {
   return {
     MarkdownModule,
     MarkdownComponent
-  }
-})
-
-jest.mock('@xpert-ai/core', () => {
-  const { Pipe, inject } = jest.requireActual('@angular/core')
-
-  @Pipe({
-    standalone: true,
-    name: 'safe'
-  })
-  class SafePipe implements PipeTransform {
-    readonly #sanitizer = inject(DomSanitizer)
-
-    transform(value: string, type?: string) {
-      if (type === 'resourceUrl') {
-        return this.#sanitizer.bypassSecurityTrustResourceUrl(value)
-      }
-
-      return value
-    }
-  }
-
-  return {
-    SafePipe
   }
 })
 
@@ -163,7 +156,6 @@ describe('ChatCanvasFilePreviewContentComponent', () => {
 
     const table = fixture.nativeElement.querySelector('.mock-table')
     expect(table?.getAttribute('data-rows')).toBe('200')
-
     ;(fixture.nativeElement.querySelectorAll('button')[1] as HTMLButtonElement).click()
     fixture.detectChanges()
 
@@ -198,6 +190,6 @@ describe('ChatCanvasFilePreviewContentComponent', () => {
     fixture.componentRef.setInput('previewKind', 'unsupported')
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.FormatCannotPreviewed')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.FormatCannotPreviewed')
   })
 })

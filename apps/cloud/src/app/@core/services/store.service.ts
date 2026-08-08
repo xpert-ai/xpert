@@ -8,4 +8,4 @@ export {
   PersistState,
   PersistStore,
   Store
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'

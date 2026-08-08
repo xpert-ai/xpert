@@ -47,6 +47,7 @@ import { UserOrganizationService } from '../user-organization/user-organization.
 import { UserOrganization } from '../user-organization/user-organization.entity'
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
 import { FeatureOrganization } from '../feature/feature-organization.entity'
+import { ExternalIdentityBinding } from '../account-binding/external-identity-binding.entity'
 import {
 	buildCurrentUserFeatureCacheKey,
 	CURRENT_USER_FEATURE_CACHE_TTL_MS,
@@ -69,7 +70,7 @@ const CURRENT_USER_FEATURE_HYDRATION_ALLOWED_RELATIONS: ReadonlySet<string> = ne
 	...CURRENT_USER_BOOTSTRAP_RELATIONS,
 	...CURRENT_USER_FEATURE_RELATIONS
 ])
-const AUTHENTICATED_USER_RELATIONS = ['role', 'employee'] as const
+const AUTHENTICATED_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
 type CurrentUserFeatureContext = {
 	tenantFeatureOrganizations: IFeatureOrganization[]
@@ -715,7 +716,17 @@ export class UserService extends TenantAwareCrudService<User> {
 		const { tenantId } = await this.ensureDeleteWithGuards(id)
 		await this.deleteUserOrganizations(id, tenantId)
 
-		return this.softDelete(id)
+		return this.repository.manager.transaction(async (manager) => {
+			await manager.getRepository(ExternalIdentityBinding).delete({
+				tenantId,
+				userId: id
+			})
+
+			return manager.getRepository(User).softDelete({
+				id,
+				tenantId
+			})
+		})
 	}
 
 	async deleteHardWithGuards(id: string): Promise<DeleteResult> {

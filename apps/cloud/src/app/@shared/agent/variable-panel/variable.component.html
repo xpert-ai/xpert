@@ -3,7 +3,7 @@
     <i class="ri-search-2-line absolute left-1.5 top-1"></i>
     <input
       class="xp-input w-full pl-[26px]"
-      [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
+      [placeholder]="'XP.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
       tabindex="0"
       [(ngModel)]="searchTerm"
     />
@@ -15,14 +15,14 @@
     @if (g.group) {
       <div
         class="p-1 mt-2 text-sm font-semibold text-text-secondary uppercase"
-        [ngmHighlight]="searchTerm()"
+        [xpHighlight]="searchTerm()"
         [content]="g.group.description | i18n"
       >
         {{ g.group.description | i18n }}
       </div>
     } @else {
       <div class="p-1 mt-2 text-sm font-semibold text-text-secondary">
-        {{ 'PAC.Copilot.SystemVariables' | translate: { Default: 'System Variables' } }}
+        {{ 'XP.Copilot.SystemVariables' | translate: { Default: 'System Variables' } }}
       </div>
     }
     @for (item of g.variables; track item.name) {
@@ -72,10 +72,10 @@
                 </g>
               </g>
             </svg>
-            <span class="text-sm" [ngmHighlight]="searchTerm()" [content]="item.displayName || item.name"></span>
+            <span class="text-sm" [xpHighlight]="searchTerm()" [content]="item.displayName || item.name"></span>
             <span
               class="flex-1 text-xs italic truncate opacity-60"
-              [ngmHighlight]="searchTerm()"
+              [xpHighlight]="searchTerm()"
               [content]="item.description | i18n"
               >{{ item.description | i18n }}</span
             >
@@ -91,5 +91,5 @@
 </ul>
 
 @if (loading()) {
-  <ngm-spin class="w-full" />
+  <xp-spin class="w-full" />
 }

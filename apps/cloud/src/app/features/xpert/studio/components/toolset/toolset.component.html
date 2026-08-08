@@ -3,7 +3,7 @@
 @if (status() === 'template') {
   <i
     class="ri-spam-2-line absolute right-3 top-3 text-xl leading-5 text-orange-500"
-    [zTooltip]="'PAC.Xpert.NeedReconfigure' | translate: { Default: 'Need to reconfigure' }"
+    [zTooltip]="'XP.Xpert.NeedReconfigure' | translate: { Default: 'Need to reconfigure' }"
   ></i>
 }
 
@@ -12,7 +12,7 @@
   @if (isSandbox() || needSandbox()) {
     <div
       class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-components-card-bg"
-      [zTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: { Default: 'Tools that to be run in a sandbox' }"
+      [zTooltip]="'XP.Xpert.SandboxToolsetTip' | translate: { Default: 'Tools that to be run in a sandbox' }"
     >
       <i class="ri-instance-line text-text-success"></i>
     </div>
@@ -22,7 +22,7 @@
     <div
       class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-components-card-bg"
       [zTooltip]="
-        'PAC.Xpert.NeedSandboxToolsetTip'
+        'XP.Xpert.NeedSandboxToolsetTip'
           | translate
             : {
                 Default:
@@ -62,7 +62,7 @@
           <i
             class="ri-shield-keyhole-line shrink-0 text-lg leading-4 text-text-warning"
             [zTooltip]="
-              'PAC.Xpert.SensitiveToolsTip'
+              'XP.Xpert.SensitiveToolsTip'
                 | translate: { Default: 'Sensitive tools require user confirmation before execution' }
             "
             zPosition="top"
@@ -81,7 +81,7 @@
           <i
             class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"
             [zTooltip]="
-              'PAC.Xpert.ToolMemoryTip'
+              'XP.Xpert.ToolMemoryTip'
                 | translate: { Default: 'Tool memory, storing tool results in agent state variables' }
             "
             zPosition="top"
@@ -91,7 +91,7 @@
           <i
             class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
             [zTooltip]="
-              'PAC.Xpert.EndTool' | translate: { Default: 'Terminal tool, the run of chat ends when tool completed' }
+              'XP.Xpert.EndTool' | translate: { Default: 'Terminal tool, the run of chat ends when tool completed' }
             "
             zPosition="top"
           ></i>
@@ -103,7 +103,7 @@
           <div>
             @switch (execution.status) {
               @case ('running') {
-                <ngm-spin class="shrink-0 scale-90 origin-center" small />
+                <xp-spin class="shrink-0 scale-90 origin-center" small />
               }
               @case ('fail') {
                 <div
@@ -127,9 +127,7 @@
 
             <float-ui-content #popperContent>
               <div class="text-sm text-left w-96 max-h-80 overflow-auto">
-                <div class="px-2 py-1 font-semibold">
-                  {{ 'PAC.KEY_WORDS.Input' | translate: { Default: 'Input' } }}:
-                </div>
+                <div class="px-2 py-1 font-semibold">{{ 'XP.KEY_WORDS.Input' | translate: { Default: 'Input' } }}:</div>
                 <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap" />
               </div>
             </float-ui-content>
@@ -144,7 +142,7 @@
       class="flex items-center gap-1 px-2 py-0.5 border-[0.5px] border-solid border-text-destructive rounded-lg text-sm text-text-destructive"
     >
       <i class="ri-spam-2-line text-lg"></i>
-      {{ 'PAC.Xpert.AtLeastOneTool' | translate: { Default: 'Enable at least one tool' } }}
+      {{ 'XP.Xpert.AtLeastOneTool' | translate: { Default: 'Enable at least one tool' } }}
     </div>
   }
 </div>

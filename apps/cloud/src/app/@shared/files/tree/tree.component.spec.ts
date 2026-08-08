@@ -96,9 +96,7 @@ describe('FileTreeComponent', () => {
     ])
     fixture.detectChanges()
 
-    expect(
-      fixture.nativeElement.querySelector<HTMLButtonElement>('button[aria-label="PAC.Files.Download"]')
-    ).toBeNull()
+    expect(fixture.nativeElement.querySelector<HTMLButtonElement>('button[aria-label="XP.Files.Download"]')).toBeNull()
   })
 
   it('shows download actions for folders when directory downloads are enabled', () => {
@@ -121,7 +119,7 @@ describe('FileTreeComponent', () => {
     fixture.detectChanges()
 
     const downloadButton = fixture.nativeElement.querySelector<HTMLButtonElement>(
-      'button[aria-label="PAC.Files.Download"]'
+      'button[aria-label="XP.Files.Download"]'
     )
     downloadButton?.click()
 

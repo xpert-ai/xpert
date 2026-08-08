@@ -5,7 +5,7 @@ import { SharedModule } from '../../shared.module'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormFieldEmailsComponent } from '../../form-fields'
 import { RoleFormFieldComponent } from '../../user/forms/fields/role'
-import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSelectComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -16,7 +16,7 @@ import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
     SharedModule,
     FormFieldEmailsComponent,
     RoleFormFieldComponent,
-    NgmSelectComponent
+    XpSelectComponent
   ],
   exports: [EmailInviteFormComponent],
   declarations: [EmailInviteFormComponent]

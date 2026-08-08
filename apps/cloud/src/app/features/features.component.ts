@@ -27,9 +27,9 @@ import {
   CURRENT_USER_BOOTSTRAP_SELECT,
   injectUserPreferences,
   UsersService
-} from '@xpert-ai/cloud/state'
-import type { IUserOrganization } from '@xpert-ai/cloud/state'
-import { isNotEmpty, nonNullable } from '@xpert-ai/core'
+} from '@cloud/app/@core/state'
+import type { IUserOrganization } from '@cloud/app/@core/state'
+import { isNotEmpty, nonNullable } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
@@ -77,7 +77,7 @@ function isWorkspaceRoute(url?: string | null) {
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-features',
+  selector: 'xp-features',
   templateUrl: './features.component.html',
   styleUrls: ['./features.component.scss'],
   animations: [routeAnimations]
@@ -159,31 +159,14 @@ export class FeaturesComponent implements OnInit {
   public readonly isAuthenticated$ = this.#store.user$
   public readonly navigation$ = this.#appService.navigation$.pipe(
     filter(nonNullable),
-    combineLatestWith(this.#translateService.stream('PAC.KEY_WORDS')),
+    combineLatestWith(this.#translateService.stream('XP.KEY_WORDS')),
     map(([navigation, i18n]) => {
       let catalogName: string
       let icon: string
       switch (navigation.catalog) {
-        case MenuCatalog.Project:
-          catalogName = i18n?.['Project'] ?? 'Project'
-          icon = 'auto_stories'
-          break
-        case MenuCatalog.Stories:
-          catalogName = i18n?.['STORY'] || 'Story'
-          icon = 'auto_stories'
-          break
-        case MenuCatalog.Models:
-          catalogName = i18n?.['MODEL'] || 'Model'
-          // icon = 'database'
-          icon = 'database'
-          break
         case MenuCatalog.Settings:
           catalogName = i18n?.['SETTINGS'] || 'Settings'
           icon = 'manage_accounts'
-          break
-        case MenuCatalog.IndicatorApp:
-          catalogName = i18n?.['IndicatorApp'] || 'Indicator App'
-          icon = 'storefront'
           break
       }
 
@@ -396,7 +379,7 @@ export class FeaturesComponent implements OnInit {
   }
 
   refreshMenuItem(item: CloudMenuItem) {
-    item.title = this.#translateService.instant('PAC.MENU.' + item.data.translationKey, {
+    item.title = this.#translateService.instant('XP.MENU.' + item.data.translationKey, {
       Default: item.title || item.data.translationKey
     })
     if (item.data.permissionKeys || item.data.hide) {
@@ -769,15 +752,6 @@ export class FeaturesComponent implements OnInit {
 
   navigate(link: MenuCatalog) {
     switch (link) {
-      case MenuCatalog.Project:
-        this.#router.navigate(['/data/project'])
-        break
-      case MenuCatalog.Stories:
-        this.#router.navigate(['/data/project'])
-        break
-      case MenuCatalog.Models:
-        this.#router.navigate(['/data/models'])
-        break
       case MenuCatalog.Settings:
         this.#router.navigate(['/settings'])
         break
@@ -814,28 +788,10 @@ export class FeaturesComponent implements OnInit {
         this.#store.featureContextHydrationFailed = false
         void this.hydrateCurrentUserContextInBackground(this.#store.userId)
       }
-      if (url.match(/^\/data\/project(?:\/|$)/)) {
-        this.#appService.setCatalog({
-          catalog: MenuCatalog.Project,
-          id: !url.match(/^\/data\/project\/?$/)
-        })
-      } else if (url.match(/^\/story(?:\/|$)/)) {
-        this.#appService.setCatalog({
-          catalog: MenuCatalog.Stories
-        })
-      } else if (url.match(/^\/data\/models(?:\/|$)/)) {
-        this.#appService.setCatalog({
-          catalog: MenuCatalog.Models,
-          id: !url.match(/^\/data\/models\/?$/)
-        })
-      } else if (url.match(/^\/settings(?:\/|$)/)) {
+      if (url.match(/^\/settings(?:\/|$)/)) {
         this.#appService.setCatalog({
           catalog: MenuCatalog.Settings,
           id: !url.match(/^\/settings\/?$/)
-        })
-      } else if (url.match(/^\/indicator-app(?:\/|$)/)) {
-        this.#appService.setCatalog({
-          catalog: MenuCatalog.IndicatorApp
         })
       } else {
         this.#appService.setCatalog({ catalog: null })

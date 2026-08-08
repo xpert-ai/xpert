@@ -584,7 +584,14 @@ describe('XpertTemplateService', () => {
                             {
                                 key: 'business',
                                 name: 'Plugin Business',
-                                description: 'Plugin contributed template',
+                                title: {
+                                    en_US: 'Plugin Business Assistant',
+                                    zh_Hans: '插件业务助手'
+                                },
+                                description: {
+                                    en_US: 'Plugin contributed template',
+                                    zh_Hans: '插件贡献的模板'
+                                },
                                 category: 'Plugin',
                                 type: XpertTypeEnum.Agent,
                                 dslContent: pluginDsl,
@@ -624,6 +631,7 @@ describe('XpertTemplateService', () => {
 
         expect(catalog.recommendedApps.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
         expect(chineseCatalog.recommendedApps[0]).toMatchObject({
+            title: '插件业务助手',
             description: '中文插件描述',
             avatar: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' }
         })
@@ -635,6 +643,7 @@ describe('XpertTemplateService', () => {
             type: XpertTypeEnum.Agent,
             source: 'plugin',
             pluginDisplayName: 'Demo Plugin',
+            title: 'Plugin Business Assistant',
             description: 'English plugin description',
             avatar: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' },
             export_data: pluginDsl,

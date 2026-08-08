@@ -1,6 +1,8 @@
 @if (chunkerStrategy(); as chunkerStrategy) {
   <div class="flex items-start p-4">
-    <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal">
+    <div
+      class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+    >
       @if (chunkerStrategy.icon; as icon) {
         <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
       } @else {
@@ -21,31 +23,26 @@
 
 <div class="p-4 space-y-4">
   <div class="font-bold my-2">
-    {{ 'PAC.Pipeline.Parameters' | translate: {Default: 'Parameters'} }}
+    {{ 'XP.Pipeline.Parameters' | translate: { Default: 'Parameters' } }}
   </div>
 
   <div>
     <div>
-      {{ 'PAC.Pipeline.InputVariable' | translate: {Default: 'Input variable'} }}
+      {{ 'XP.Pipeline.InputVariable' | translate: { Default: 'Input variable' } }}
       <span class="text-text-destructive">*</span>
     </div>
-    <xpert-state-variable-select
-      [variables]="variables()"
-      [(ngModel)]="input"
-    />
+    <xpert-state-variable-select [variables]="variables()" [(ngModel)]="input" />
   </div>
 
   <div class="font-bold mb-2">
-    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
+    {{ 'XP.Pipeline.Configuration' | translate: { Default: 'Configuration' } }}
   </div>
 
   @if (chunkerConfigSchema(); as chunkerConfigSchema) {
-    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="chunkerConfigSchema" 
-      [(ngModel)]="chunkerConfig"
-    />
+    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="chunkerConfigSchema" [(ngModel)]="chunkerConfig" />
   } @else {
     <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
-      {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+      {{ 'XP.Pipeline.NoPluginConfig' | translate: { Default: 'No configuration required for this plugin.' } }}
     </div>
   }
 </div>

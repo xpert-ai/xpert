@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, HostBinding } from '@angular/core'
 import { FieldType } from '@ngx-formly/core'
 
 @Component({
-  selector: 'pac-formly-empty',
+  selector: 'xp-formly-empty',
   standalone: false,
   template: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,6 +15,6 @@ import { FieldType } from '@ngx-formly/core'
     `
   ]
 })
-export class PACFormlyEmptyComponent extends FieldType {
-  @HostBinding('class.pac-formly-empty') public _formlyEmptyComponent = true
+export class XpFormlyEmptyComponent extends FieldType {
+  @HostBinding('class.xp-formly-empty') public _formlyEmptyComponent = true
 }

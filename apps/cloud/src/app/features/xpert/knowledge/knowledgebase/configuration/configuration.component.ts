@@ -2,11 +2,11 @@ import { ChangeDetectorRef, Component, computed, DestroyRef, effect, inject, sig
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardFormImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
@@ -51,7 +51,7 @@ function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseSt
     TranslateModule,
     ...ZardFormImports,
     ...ZardTooltipImports,
-    NgmSelectComponent,
+    XpSelectComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     ZardSwitchComponent,
@@ -127,15 +127,15 @@ export class KnowledgeConfigurationComponent {
     return [
       {
         value: KnowledgebasePermission.Private,
-        label: this.#translate.instant('PAC.Knowledgebase.Permission_Private', { Default: 'Private' })
+        label: this.#translate.instant('XP.Knowledgebase.Permission_Private', { Default: 'Private' })
       },
       {
         value: KnowledgebasePermission.Organization,
-        label: this.#translate.instant('PAC.Knowledgebase.Permission_Organization', { Default: 'Organization' })
+        label: this.#translate.instant('XP.Knowledgebase.Permission_Organization', { Default: 'Organization' })
       },
       {
         value: KnowledgebasePermission.Public,
-        label: this.#translate.instant('PAC.Knowledgebase.Permission_Public', { Default: 'Public' })
+        label: this.#translate.instant('XP.Knowledgebase.Permission_Public', { Default: 'Public' })
       }
     ]
   })
@@ -213,7 +213,7 @@ export class KnowledgeConfigurationComponent {
     this.knowledgebaseService.update(this.knowledgebase().id, payload).subscribe({
       next: (knowledgebase) => {
         this.loading.set(false)
-        this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+        this._toastrService.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
         this.knowledgebaseComponent.refresh()
         this.refreshGraphStatus()
         this.pristine.set(true)
@@ -299,7 +299,7 @@ export class KnowledgeConfigurationComponent {
       )
       .subscribe({
         next: () => {
-          this._toastrService.success('PAC.Knowledgebase.GraphRebuildStarted', { Default: 'Graph rebuild started' })
+          this._toastrService.success('XP.Knowledgebase.GraphRebuildStarted', { Default: 'Graph rebuild started' })
           this.refreshGraphStatus()
           this.pollGraphStatus()
         },

@@ -117,7 +117,7 @@ team:
   features:
     sandbox:
       enabled: true
-      provider: local-shell-sandbox
+      provider: nsjail
   version: "1"
   agent:
     key: Agent_xtcQNJthR8

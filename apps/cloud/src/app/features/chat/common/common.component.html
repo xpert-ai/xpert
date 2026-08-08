@@ -9,14 +9,14 @@
                 class="inline-flex shrink-0 items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
                 [routerLink]="assistantsRoute"
               >
-                {{ 'PAC.Assistant.ChangeSettings' | translate: { Default: 'Change Settings' } }}
+                {{ 'XP.Assistant.ChangeSettings' | translate: { Default: 'Change Settings' } }}
               </a>
             </div>
           }
 
           <div class="max-w-3xl text-center text-sm leading-6 text-text-secondary">
             {{
-              'PAC.Chat.CommonWelcomeDescription'
+              'XP.Chat.CommonWelcomeDescription'
                 | translate
                   : {
                       Default: 'Choose a digital expert from your workspace, or start directly in the common chat.'
@@ -24,7 +24,7 @@
             }}
           </div>
 
-          <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
+          <xp-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
         </div>
         <button
           action
@@ -37,7 +37,7 @@
           @if (currentXpert()) {
             <div class="truncate">{{ currentXpert()?.title || currentXpert()?.name }}</div>
           } @else {
-            <div class="truncate">{{ 'PAC.Chat.Common' | translate: { Default: 'Common' } }}</div>
+            <div class="truncate">{{ 'XP.Chat.Common' | translate: { Default: 'Common' } }}</div>
           }
           <i class="ri-arrow-down-s-line text-text-primary transition-transform" [class.rotate-180]="cmt.isOpen()"></i>
         </button>
@@ -45,18 +45,18 @@
     }
     @case ('loading') {
       <div class="flex h-full min-h-0 items-center justify-center px-6 text-sm text-text-secondary">
-        {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
+        {{ 'XP.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
       </div>
     }
     @case ('disabled') {
       <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
         <i class="ri-pause-circle-line text-3xl text-text-tertiary"></i>
         <div class="mt-4 text-base font-medium text-text-primary">
-          {{ 'PAC.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
+          {{ 'XP.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
         </div>
         <div class="mt-2 max-w-sm text-sm text-text-secondary">
           {{
-            'PAC.Assistant.DisabledDesc'
+            'XP.Assistant.DisabledDesc'
               | translate
                 : { Default: 'This assistant is configured but currently disabled for the active organization.' }
           }}
@@ -65,7 +65,7 @@
           class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
           [routerLink]="assistantsRoute"
         >
-          {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
+          {{ 'XP.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
         </a>
       </div>
     }
@@ -73,20 +73,19 @@
       <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
         <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
         <div class="mt-4 text-base font-medium text-text-primary">
-          {{ 'PAC.Assistant.LoadFailed' | translate: { Default: 'Failed to load assistant configuration.' } }}
+          {{ 'XP.Assistant.LoadFailed' | translate: { Default: 'Failed to load assistant configuration.' } }}
         </div>
         <div class="mt-2 max-w-sm text-sm text-text-secondary">
           {{
-            'PAC.Assistant.ErrorDesc'
-              | translate
-                : { Default: 'Check the assistant configuration and try again from the common chat page.' }
+            'XP.Assistant.ErrorDesc'
+              | translate: { Default: 'Check the assistant configuration and try again from the common chat page.' }
           }}
         </div>
         <a
           class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
           [routerLink]="assistantsRoute"
         >
-          {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
+          {{ 'XP.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
         </a>
       </div>
     }
@@ -94,14 +93,15 @@
       <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
         <i class="ri-settings-3-line text-3xl text-text-tertiary"></i>
         <div class="mt-4 text-base font-medium text-text-primary">
-          {{ 'PAC.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
+          {{ 'XP.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
         </div>
         <div class="mt-2 max-w-sm text-sm text-text-secondary">
           {{
-            'PAC.Assistant.MissingDesc'
+            'XP.Assistant.MissingDesc'
               | translate
                 : {
-                    Default: 'Configure the Common assistant in Settings / Assistants before starting a conversation here.'
+                    Default:
+                      'Configure the Common assistant in Settings / Assistants before starting a conversation here.'
                   }
           }}
         </div>
@@ -109,7 +109,7 @@
           class="mt-4 inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
           [routerLink]="assistantsRoute"
         >
-          {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
+          {{ 'XP.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
         </a>
       </div>
     }
@@ -143,13 +143,13 @@
           stroke-linecap="square"
         ></path>
       </svg>
-      {{ 'PAC.Xpert.NewChat' | translate: { Default: 'New Chat' } }}
+      {{ 'XP.Xpert.NewChat' | translate: { Default: 'New Chat' } }}
     </button>
 
     <div class="mb-2 border-b border-border bg-components-card-bg px-2 py-2" (click)="$event.stopPropagation()">
       <div class="relative">
         <input
-          [placeholder]="('PAC.Chat.SearchXpert' | translate: { Default: 'Search digital experts' }) + '...'"
+          [placeholder]="('XP.Chat.SearchXpert' | translate: { Default: 'Search digital experts' }) + '...'"
           class="xp-input w-full border-input-border text-sm focus:ring-1 focus:ring-primary"
           type="text"
           [formControl]="searchControl"
@@ -159,14 +159,14 @@
 
     @if (filteredXperts().length > 0) {
       @for (item of filteredXperts(); track item.id) {
-        <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
+        <button class="xp-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
           <emoji-avatar [avatar]="item.avatar" xs class="mr-1 shrink-0 overflow-hidden rounded-lg shadow-sm" />
           <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{ item.title || item.name }}</p>
         </button>
       }
     } @else if (searchControl.value) {
       <div class="p-4 text-center text-text-secondary">
-        {{ 'PAC.Chat.NoXpertFound' | translate: { Default: 'No matching digital experts found' } }}
+        {{ 'XP.Chat.NoXpertFound' | translate: { Default: 'No matching digital experts found' } }}
       </div>
     }
 
@@ -176,7 +176,7 @@
           <i class="ri-robot-line text-4xl text-text-tertiary"></i>
           <div class="max-w-xs text-sm text-text-secondary">
             {{
-              'PAC.Chat.NoPublishedXpert'
+              'XP.Chat.NoPublishedXpert'
                 | translate: { Default: 'No published agents yet. Create one in your workspace and click Publish' }
             }}
           </div>
@@ -185,7 +185,7 @@
             class="flex items-center gap-1 text-sm text-primary hover:underline"
             (click)="$event.stopPropagation()"
           >
-            {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+            {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
             <i class="ri-arrow-right-line"></i>
           </a>
         </div>

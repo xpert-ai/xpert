@@ -1,4 +1,5 @@
-<div tabindex="0"
+<div
+  tabindex="0"
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
   class="select-trigger group flex w-full items-center cursor-pointer"
@@ -11,10 +12,10 @@
     </div>
   }
   <ng-content select="[icon]"></ng-content>
-  
+
   <div class="grow mr-2 truncate text-sm text-foreground" [class.text-muted-foreground]="_disabled()">
     @for (option of selectedOptions(); track option.value; let last = $last) {
-      {{(option.label | i18n) || option.value}}
+      {{ (option.label | i18n) || option.value }}
       @if (!last) {
         ,
       }
@@ -25,7 +26,10 @@
   <i class="ri-arrow-down-s-line w-4 h-4 flex justify-center items-center text-muted-foreground"></i>
 
   @if (nullable() && values()?.length) {
-    <div class="w-4 h-4 flex justify-center items-center cursor-pointer text-muted-foreground hover:text-foreground" (click)="clear();$event.stopPropagation()">
+    <div
+      class="w-4 h-4 flex justify-center items-center cursor-pointer text-muted-foreground hover:text-foreground"
+      (click)="clear(); $event.stopPropagation()"
+    >
       <i class="ri-close-circle-line"></i>
     </div>
   }
@@ -39,38 +43,57 @@
   >
     @if (searchable()) {
       <div class="relative w-full mb-2">
-        <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
-        <input class="xp-input w-full pl-[26px]"
-          [placeholder]="'PAC.MODEL.Search' | translate: {Default: 'Search'}"
+        <i
+          class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        ></i>
+        <input
+          class="xp-input w-full pl-[26px]"
+          [placeholder]="'XP.MODEL.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="search"
-        >
+        />
         @if (search()) {
-          <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            (click)="search.set('')"></i>
+          <i
+            class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            (click)="search.set('')"
+          ></i>
         }
       </div>
     }
-    <ul class="space-y-1" cdkListbox useActiveDescendant [cdkListboxMultiple]="multiple()"
+    <ul
+      class="space-y-1"
+      cdkListbox
+      useActiveDescendant
+      [cdkListboxMultiple]="multiple()"
       [cdkListboxDisabled]="readonly()"
       [cdkListboxValue]="values()"
-      (cdkListboxValueChange)="selectValues($event)">
+      (cdkListboxValueChange)="selectValues($event)"
+    >
       @for (option of filteredOptions(); track option.key) {
-        <li #opElem="cdkOption" class="relative rounded-sm py-1.5 pl-2 pr-6 text-sm outline-none cursor-pointer hover:bg-accent hover:text-accent-foreground"
+        <li
+          #opElem="cdkOption"
+          class="relative rounded-sm py-1.5 pl-2 pr-6 text-sm outline-none cursor-pointer hover:bg-accent hover:text-accent-foreground"
           [class.bg-accent]="opElem.isSelected()"
           [class.text-accent-foreground]="opElem.isSelected()"
           [cdkOption]="option.value"
           (click)="selectOption(trigger, option.value)"
         >
           @if (optionTemplate()) {
-            <ng-container *ngTemplateOutlet="optionTemplate(); context: { $implicit: option, search: search() }"></ng-container>
+            <ng-container
+              *ngTemplateOutlet="optionTemplate(); context: { $implicit: option, search: search() }"
+            ></ng-container>
           } @else {
             <div class="relative">
-              <div class="text-sm leading-5"
-                [ngmHighlight]="search()" [content]="option.label | i18n"
-              >{{ option.label | i18n }}</div>
-              <div class="text-muted-foreground text-xs leading-3 line-clamp-3" [title]="option.description | i18n"
-                [ngmHighlight]="search()" [content]="option.description | i18n"
-              >{{ option.description | i18n }}</div>
+              <div class="text-sm leading-5" [xpHighlight]="search()" [content]="option.label | i18n">
+                {{ option.label | i18n }}
+              </div>
+              <div
+                class="text-muted-foreground text-xs leading-3 line-clamp-3"
+                [title]="option.description | i18n"
+                [xpHighlight]="search()"
+                [content]="option.description | i18n"
+              >
+                {{ option.description | i18n }}
+              </div>
             </div>
           }
           @if (opElem.isSelected()) {

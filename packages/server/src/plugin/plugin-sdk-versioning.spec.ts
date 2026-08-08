@@ -334,7 +334,7 @@ describe('plugin sdk versioning', () => {
 		const originalCwd = process.cwd()
 
 		try {
-			process.chdir(join(originalCwd, 'packages', 'analytics'))
+			process.chdir(join(originalCwd, 'packages', 'server'))
 
 			expect(
 				readInstalledPluginManifest(

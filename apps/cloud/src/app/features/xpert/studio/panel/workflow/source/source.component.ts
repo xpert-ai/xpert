@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectIntegrationAPI,
@@ -15,7 +15,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -32,9 +32,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     XpertParametersEditComponent,
     JSONSchemaFormComponent,
-    NgmSelectComponent,
+    XpSelectComponent,
     IntegrationSelectComponent
-]
+  ]
 })
 export class XpertWorkflowSourceComponent extends XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)

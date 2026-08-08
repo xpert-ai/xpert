@@ -1,5 +1,5 @@
-import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, Optional } from '@nestjs/common'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
 import {
@@ -15,11 +15,19 @@ import {
     WorkspaceFilesApi,
     WorkspaceUnderstandFileInput,
     WorkspaceUnderstoodFile,
-    WorkspaceUploadBufferInput
+    WorkspaceUploadBufferInput,
+    WorkspaceUnderstandingStatus,
+    WorkspaceUnderstandingStatusInput,
+    WorkspaceRetryUnderstandingInput,
+    WorkspaceValidateUnderstandingReferencesInput,
+    WorkspaceValidatedUnderstandingReference
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import {
     CreateWorkspaceFileAssetCommand,
+    EnqueueFileParseCommand,
+    GetFileUnderstandingStatusQuery,
+    ValidateFileUnderstandingReferencesQuery,
     isWorkspaceFileCatalog,
     resolveWorkspaceFileCatalog,
     resolveWorkspaceVolumeScope,
@@ -62,7 +70,10 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         @Inject(CommandBus)
         private readonly commandBus: Pick<CommandBus, 'execute'>,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: Pick<VolumeClient, 'resolve'>
+        private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
+        @Optional()
+        @Inject(QueryBus)
+        private readonly queryBus?: Pick<QueryBus, 'execute'>
     ) {}
 
     /**
@@ -75,6 +86,10 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         return {
             uploadBuffer: (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
             understandFile: (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
+            getUnderstandingStatus: (input) => this.getUnderstandingStatus(applyRuntimeScopeDefaults(input, defaults)),
+            retryUnderstanding: (input) => this.retryUnderstanding(applyRuntimeScopeDefaults(input, defaults)),
+            validateUnderstandingReferences: (input) =>
+                this.validateUnderstandingReferences(applyRuntimeScopeDefaults(input, defaults)),
             resolveFile: (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
             readBuffer: (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
             deleteFile: (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
@@ -180,6 +195,47 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             summary: fileAsset.summary,
             metadata: fileAsset.metadata
         }
+    }
+
+    async getUnderstandingStatus(input: WorkspaceUnderstandingStatusInput): Promise<WorkspaceUnderstandingStatus> {
+        const queryBus = this.requireQueryBus()
+        const status = await queryBus.execute(
+            new GetFileUnderstandingStatusQuery(input.fileAssetId, this.resolveUnderstandingScope(input))
+        )
+        const { parsedAt, ...rest } = status
+        return {
+            ...rest,
+            ...(parsedAt ? { parsedAt: parsedAt instanceof Date ? parsedAt.toISOString() : parsedAt } : {})
+        }
+    }
+
+    async retryUnderstanding(input: WorkspaceRetryUnderstandingInput): Promise<WorkspaceUnderstandingStatus> {
+        const current = await this.getUnderstandingStatus(input)
+        if (
+            current.status !== 'failed' &&
+            current.vectorIndexStatus !== 'failed' &&
+            current.vectorIndexStatus !== 'unavailable'
+        ) {
+            throw new BadRequestException('Only failed or unavailable file understanding can be retried')
+        }
+        await this.commandBus.execute(new EnqueueFileParseCommand(input.fileAssetId))
+        return this.getUnderstandingStatus(input)
+    }
+
+    async validateUnderstandingReferences(
+        input: WorkspaceValidateUnderstandingReferencesInput
+    ): Promise<WorkspaceValidatedUnderstandingReference[]> {
+        if (!Array.isArray(input.references) || !input.references.length || input.references.length > 120) {
+            throw new BadRequestException('references must contain between 1 and 120 items')
+        }
+        const excerptLength = Math.min(Math.max(input.excerptLength ?? 320, 80), 800)
+        return this.requireQueryBus().execute(
+            new ValidateFileUnderstandingReferencesQuery(
+                input.references,
+                excerptLength,
+                this.resolveUnderstandingScope(input)
+            )
+        )
     }
 
     /** Resolve a locator without Agent-specific defaults. Prefer scoped APIs in middleware runtimes. */
@@ -433,6 +489,26 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             throw new BadRequestException(resolveWorkspaceVolumeScopeError(input, 'workspace file access'))
         }
         return resolved
+    }
+
+    private resolveUnderstandingScope(input: WorkspaceFileScope) {
+        const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
+        if (!tenantId) {
+            throw new BadRequestException('tenantId is required for file understanding access')
+        }
+        return {
+            tenantId,
+            organizationId: normalizeOptionalString(input.organizationId) ?? RequestContext.getOrganizationId() ?? null,
+            projectId: normalizeOptionalString(input.projectId),
+            xpertId: normalizeOptionalString(input.xpertId)
+        }
+    }
+
+    private requireQueryBus() {
+        if (!this.queryBus) {
+            throw new InternalServerErrorException('File understanding queries are unavailable')
+        }
+        return this.queryBus
     }
 }
 

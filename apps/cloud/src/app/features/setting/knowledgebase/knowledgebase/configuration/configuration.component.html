@@ -1,16 +1,16 @@
 <div class="w-full lg:w-[400px] lg:max-w-[400px] flex flex-col">
   <form [formGroup]="formGroup" class="flex flex-col gap-4">
-    <!-- <pac-avatar-editor formControlName="avatar" class="w-48 h-48 self-center" /> -->
+    <!-- <xp-avatar-editor formControlName="avatar" class="w-48 h-48 self-center" /> -->
     <emoji-avatar formControlName="avatar" editable class="knowledgebase-avatar self-center shadow-md" />
 
-    <ngm-input [label]="'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name" />
+    <xp-input [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name" />
 
     <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{
-        'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' }
+      <label class="xp-input-label shrink-0">{{
+        'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
       }}</label>
       <textarea
-        class="ngm-input-element"
+        class="xp-input-element"
         z-input
         formControlName="description"
         cdkTextareaAutosize
@@ -20,8 +20,8 @@
       </textarea>
     </div>
 
-    <ngm-select
-      [label]="'PAC.KEY_WORDS.Language' | translate: { Default: 'Language' }"
+    <xp-select
+      [label]="'XP.KEY_WORDS.Language' | translate: { Default: 'Language' }"
       formControlName="language"
       valueKey="key"
       [selectOptions]="[
@@ -36,32 +36,32 @@
       ]"
     />
     <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{
-        'PAC.KEY_WORDS.Permission' | translate: { Default: 'Permission' }
+      <label class="xp-input-label shrink-0">{{
+        'XP.KEY_WORDS.Permission' | translate: { Default: 'Permission' }
       }}</label>
       <z-radio-group formControlName="permission" aria-label="Select an permission">
         <z-radio [value]="KnowledgebasePermission.Private">{{
-          'PAC.Knowledgebase.Permission_Private' | translate: { Default: 'Private' }
+          'XP.Knowledgebase.Permission_Private' | translate: { Default: 'Private' }
         }}</z-radio>
         <z-radio [value]="KnowledgebasePermission.Organization">{{
-          'PAC.Knowledgebase.Permission_Organization' | translate: { Default: 'Organization' }
+          'XP.Knowledgebase.Permission_Organization' | translate: { Default: 'Organization' }
         }}</z-radio>
         <z-radio [value]="KnowledgebasePermission.Public">{{
-          'PAC.Knowledgebase.Permission_Public' | translate: { Default: 'Public' }
+          'XP.Knowledgebase.Permission_Public' | translate: { Default: 'Public' }
         }}</z-radio>
       </z-radio-group>
     </div>
 
     <copilot-model-select class="" [modelType]="eModelType.TEXT_EMBEDDING" formControlName="copilotModel" />
 
-    <!-- <ngm-select [label]=" 'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} "
+    <!-- <xp-select [label]=" 'XP.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} "
       formControlName="copilotId"
       valueKey="key"
       [displayBehaviour]="DisplayBehaviour.descriptionOnly"
       [selectOptions]="copilotOptions()"
     />
 
-    <ngm-select [label]=" 'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'} " formControlName="embeddingModelId"
+    <xp-select [label]=" 'XP.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'} " formControlName="embeddingModelId"
       valueKey="key"
       searchable
       allowInput
@@ -69,22 +69,22 @@
     /> -->
 
     <div formGroupName="parserConfig">
-      <ngm-input
-        [label]="'PAC.Knowledgebase.EmbeddingBatchSize' | translate: { Default: 'Embedding Batch Size' }"
+      <xp-input
+        [label]="'XP.Knowledgebase.EmbeddingBatchSize' | translate: { Default: 'Embedding Batch Size' }"
         formControlName="embeddingBatchSize"
       />
-      <ngm-input
-        [label]="'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
+      <xp-input
+        [label]="'XP.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
         formControlName="chunkSize"
       />
-      <ngm-input
-        [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
+      <xp-input
+        [label]="'XP.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
         formControlName="chunkOverlap"
       />
     </div>
 
-    <ngm-slider-input
-      [label]="'PAC.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
+    <xp-slider-input
+      [label]="'XP.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
       formControlName="similarityThreshold"
       [min]="0"
       [max]="1"
@@ -93,7 +93,7 @@
       <span
         class="font-notoColorEmoji"
         [zTooltip]="
-          'PAC.Knowledgebase.SimilarityThresholdInfo'
+          'XP.Knowledgebase.SimilarityThresholdInfo'
             | translate
               : {
                   Default:
@@ -102,20 +102,19 @@
         "
         >💡</span
       >
-    </ngm-slider-input>
+    </xp-slider-input>
 
     <div class="flex justify-end gap-2">
       <button z-button zType="secondary" type="button" (click)="cancel()">
-        {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+        {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         z-button
         zType="default"
-
         [disabled]="loading() || formGroup.invalid || formGroup.pristine"
         (click)="save()"
       >
-        {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+        {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </form>

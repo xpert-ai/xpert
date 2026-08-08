@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
+import { PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import {
   ICopilotOrganization,
   ICopilotUsageGroupKey,

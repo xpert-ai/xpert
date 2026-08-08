@@ -1,17 +1,21 @@
 jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
-import { TestBed } from '@angular/core/testing'
+import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import {
   AIPermissionsEnum,
+  IMembershipPointLedger,
+  IUserMembership,
   IUserMembershipPeriod,
+  MembershipLedgerSourceEnum,
   MembershipPeriodEnum,
   MembershipPeriodStatusEnum,
   MembershipRenewalModeEnum,
-  MembershipSourceEnum
+  MembershipSourceEnum,
+  MembershipStatusEnum
 } from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
-import { of } from 'rxjs'
+import { NEVER, of } from 'rxjs'
 import { MembershipService, RequestScopeLevel, Store, ToastrService } from '../../../../@core'
 import { UserMembershipComponent } from './user-membership.component'
 
@@ -22,16 +26,36 @@ describe('UserMembershipComponent', () => {
     resumeUser: jest.Mock
     revokeUser: jest.Mock
     renewUser: jest.Mock
+    assignUser: jest.Mock
     cancelAdminUserPeriod: jest.Mock
     getPlans: jest.Mock
     getAdminUsers: jest.Mock
+    getAdminUserScopeMemberships: jest.Mock
     getAdminUserPeriods: jest.Mock
     getAdminUserAudit: jest.Mock
     getPersonalPoints: jest.Mock
   }
   let alertDialog: { confirm: jest.Mock }
   let store: { activeScope: { level: RequestScopeLevel }; hasPermission: jest.Mock }
+  let fixture: ComponentFixture<UserMembershipComponent>
   let component: UserMembershipComponent
+
+  const createMembership = (overrides: Partial<IUserMembership> = {}): IUserMembership => ({
+    id: 'membership-1',
+    tenantId: 'tenant-1',
+    organizationId: null,
+    userId: 'user-1',
+    planId: 'plan-1',
+    status: MembershipStatusEnum.Active,
+    source: MembershipSourceEnum.Admin,
+    renewalMode: MembershipRenewalModeEnum.Manual,
+    currentPeriodStart: new Date('2030-08-01T00:00:00.000Z'),
+    currentPeriodEnd: new Date('2030-09-01T00:00:00.000Z'),
+    pointsGranted: 100,
+    pointsUsed: 0,
+    pointsTotalUsed: 0,
+    ...overrides
+  })
 
   const createPeriod = (overrides: Partial<IUserMembershipPeriod> = {}): IUserMembershipPeriod => ({
     id: 'period-1',
@@ -65,9 +89,11 @@ describe('UserMembershipComponent', () => {
       resumeUser: jest.fn().mockReturnValue(of(membership)),
       revokeUser: jest.fn().mockReturnValue(of(membership)),
       renewUser: jest.fn().mockReturnValue(of(membership)),
+      assignUser: jest.fn().mockReturnValue(of(membership)),
       cancelAdminUserPeriod: jest.fn().mockReturnValue(of({ id: 'period-1', status: 'cancelled' })),
       getPlans: jest.fn().mockReturnValue(of([])),
       getAdminUsers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
+      getAdminUserScopeMemberships: jest.fn().mockReturnValue(of([])),
       getAdminUserPeriods: jest.fn().mockReturnValue(of([])),
       getAdminUserAudit: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
       getPersonalPoints: jest.fn().mockReturnValue(of({ balance: 10 }))
@@ -87,16 +113,22 @@ describe('UserMembershipComponent', () => {
         { provide: Store, useValue: store },
         { provide: ToastrService, useValue: { error: jest.fn() } },
         { provide: ZardAlertDialogService, useValue: alertDialog },
-        { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } }
+        {
+          provide: TranslateService,
+          useValue: {
+            instant: jest.fn((key: string) => key),
+            get: jest.fn((key: string) => of(key)),
+            onTranslationChange: NEVER,
+            onLangChange: NEVER,
+            onFallbackLangChange: NEVER,
+            getCurrentLang: jest.fn(() => 'en'),
+            getFallbackLang: jest.fn(() => 'en')
+          }
+        }
       ]
-    }).overrideComponent(UserMembershipComponent, {
-      set: {
-        imports: [],
-        template: ''
-      }
     })
 
-    const fixture = TestBed.createComponent(UserMembershipComponent)
+    fixture = TestBed.createComponent(UserMembershipComponent)
     component = fixture.componentInstance
     component.userId = 'user-1'
   })
@@ -185,6 +217,67 @@ describe('UserMembershipComponent', () => {
     expect(membershipService.cancelAdminUserPeriod).not.toHaveBeenCalled()
   })
 
+  it('does not replace a membership marked as externally managed by source', () => {
+    component.membership.set(createMembership({ source: MembershipSourceEnum.External }))
+    component.assignmentForm.patchValue({ planId: 'plan-1' })
+
+    component.assign()
+
+    expect(component.isExternallyManagedMembership()).toBe(true)
+    expect(membershipService.assignUser).not.toHaveBeenCalled()
+  })
+
+  it('does not replace a catalog-managed membership with a regular assignment', () => {
+    component.membership.set(
+      createMembership({
+        plan: { catalogSourcePlanId: 'catalog-plan-1' } as IUserMembership['plan']
+      })
+    )
+    component.assignmentForm.patchValue({ planId: 'plan-1' })
+
+    component.assign()
+
+    expect(component.isExternallyManagedMembership()).toBe(true)
+    expect(membershipService.assignUser).not.toHaveBeenCalled()
+  })
+
+  it('does not renew an externally managed membership', async () => {
+    component.membership.set(createMembership({ source: MembershipSourceEnum.External }))
+    alertDialog.confirm.mockReturnValue(of(true))
+
+    await component.renew()
+
+    expect(alertDialog.confirm).not.toHaveBeenCalled()
+    expect(membershipService.renewUser).not.toHaveBeenCalled()
+  })
+
+  it('shows the external management hint instead of assignment and renewal controls', () => {
+    component.membership.set(createMembership({ source: MembershipSourceEnum.External }))
+
+    fixture.detectChanges()
+
+    const text = fixture.nativeElement.textContent as string
+    const buttonLabels = Array.from(fixture.nativeElement.querySelectorAll('button')).map((button: Element) =>
+      button.textContent?.trim()
+    )
+    expect(text).toContain('XP.Membership.ExternallyManagedMembershipHint')
+    expect(text).not.toContain('XP.Membership.AssignPlan')
+    expect(buttonLabels).not.toContain('XP.Membership.Renew')
+  })
+
+  it('keeps externally priced plans out of regular plan assignment', () => {
+    membershipService.getPlans.mockReturnValue(
+      of([
+        { id: 'plan-free', status: 'active', catalogSourcePlanId: null },
+        { id: 'plan-paid', status: 'active', catalogSourcePlanId: 'catalog-plan-1' }
+      ])
+    )
+
+    component.load()
+
+    expect(component.plans().map(({ id }) => id)).toEqual(['plan-free'])
+  })
+
   it('allows membership management only with membership edit permission', () => {
     expect(component.canManage).toBe(true)
     expect(store.hasPermission).toHaveBeenCalledWith(AIPermissionsEnum.MEMBERSHIP_EDIT)
@@ -196,7 +289,70 @@ describe('UserMembershipComponent', () => {
     component.load()
 
     expect(membershipService.getPersonalPoints).not.toHaveBeenCalled()
+    expect(membershipService.getAdminUserScopeMemberships).not.toHaveBeenCalled()
     expect(component.personalPointsBalance()).toBe(0)
+  })
+
+  it('loads tenant and organization memberships for the tenant overview', () => {
+    const tenantMembership = {
+      id: 'membership-tenant',
+      organizationId: null,
+      plan: { name: 'Tenant plan' }
+    } as IUserMembership
+    const organizationMembership = {
+      id: 'membership-org',
+      organizationId: 'org-1',
+      organization: { id: 'org-1', name: 'Organization 1' },
+      plan: { name: 'Organization plan' }
+    } as IUserMembership
+    membershipService.getAdminUserScopeMemberships.mockReturnValue(of([tenantMembership, organizationMembership]))
+
+    component.load()
+
+    expect(membershipService.getAdminUserScopeMemberships).toHaveBeenCalledWith('user-1')
+    expect(component.scopeMemberships()).toEqual([tenantMembership, organizationMembership])
+  })
+
+  it('groups upcoming periods under their membership scope', () => {
+    const tenantPeriod = createPeriod({ id: 'period-tenant', membershipId: 'membership-tenant' })
+    const organizationPeriod = createPeriod({
+      id: 'period-org',
+      membershipId: 'membership-org',
+      organizationId: 'org-1'
+    })
+    component.periods.set([tenantPeriod, organizationPeriod])
+
+    expect(component.upcomingPeriodsForMembership('membership-tenant')).toEqual([tenantPeriod])
+    expect(component.upcomingPeriodsForMembership('membership-org')).toEqual([organizationPeriod])
+  })
+
+  it('does not infer the operator for historical self-purchase entries', () => {
+    const entry = {
+      source: MembershipLedgerSourceEnum.Assignment,
+      sourceReference: 'order-1',
+      membership: { source: MembershipSourceEnum.External },
+      user: { email: 'buyer@example.com' }
+    } as IMembershipPointLedger
+
+    expect(component.auditActorLabel(entry)).toBe('XP.Membership.SystemActor')
+  })
+
+  it('keeps free-form membership audit reasons unchanged', () => {
+    const entry = {
+      reason: 'Membership period activated'
+    } as IMembershipPointLedger
+
+    expect(component.auditReason(entry)).toBe('Membership period activated')
+  })
+
+  it('labels personal point audit entries separately from tenant memberships', () => {
+    const entry = {
+      source: MembershipLedgerSourceEnum.PersonalAdjustment,
+      membershipId: null,
+      organizationId: null
+    } as IMembershipPointLedger
+
+    expect(component.auditScopeLabel(entry)).toBe('XP.Membership.PersonalPoints')
   })
 
   it('accepts point adjustments with up to three decimal places', () => {

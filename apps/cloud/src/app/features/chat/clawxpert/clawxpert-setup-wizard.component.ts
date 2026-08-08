@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { injectPluginAPI, IPluginDescriptor } from '@xpert-ai/cloud/state'
+import { injectPluginAPI, IPluginDescriptor } from '@cloud/app/@core/state'
 import { AiProviderRole } from '@xpert-ai/contracts'
 import { catchError, firstValueFrom, from, map, of, switchMap } from 'rxjs'
 import {
@@ -61,7 +61,7 @@ type RecommendedTemplateToolsetDependency = {
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-setup-wizard',
+  selector: 'xp-clawxpert-setup-wizard',
   imports: [
     CommonModule,
     FormsModule,
@@ -77,13 +77,13 @@ type RecommendedTemplateToolsetDependency = {
       <div class="border-b border-divider-regular px-6 py-5">
         <div class="min-w-0">
           <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-            {{ 'PAC.Chat.ClawXpert.Onboarding' | translate }}
+            {{ 'XP.Chat.ClawXpert.Onboarding' | translate }}
           </div>
           <div class="mt-2 text-xl font-semibold text-text-primary">
-            {{ 'PAC.Chat.ClawXpert.OnboardingTitle' | translate }}
+            {{ 'XP.Chat.ClawXpert.OnboardingTitle' | translate }}
           </div>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.OnboardingDesc' | translate }}
+            {{ 'XP.Chat.ClawXpert.OnboardingDesc' | translate }}
           </p>
         </div>
       </div>
@@ -91,17 +91,17 @@ type RecommendedTemplateToolsetDependency = {
       <section data-onboarding-step="default-clawxpert" class="min-h-0 flex-1 overflow-auto px-6 py-5">
         <div class="min-w-0">
           <div class="text-base font-semibold text-text-primary">
-            {{ 'PAC.Chat.ClawXpert.DefaultInstallTitle' | translate }}
+            {{ 'XP.Chat.ClawXpert.DefaultInstallTitle' | translate }}
           </div>
           <p class="mt-2 text-sm leading-6 text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.DefaultInstallDesc' | translate }}
+            {{ 'XP.Chat.ClawXpert.DefaultInstallDesc' | translate }}
           </p>
         </div>
 
         @if (llmCopilots() === null) {
           <div class="mt-4 flex min-h-48 items-center justify-center gap-2 text-sm text-text-secondary">
             <i class="ri-loader-4-line animate-spin"></i>
-            <span>{{ 'PAC.Chat.ClawXpert.CheckingModelProviders' | translate }}</span>
+            <span>{{ 'XP.Chat.ClawXpert.CheckingModelProviders' | translate }}</span>
           </div>
         } @else {
           <div
@@ -118,24 +118,24 @@ type RecommendedTemplateToolsetDependency = {
                 <div class="flex flex-wrap items-center gap-2">
                   <div class="text-sm font-semibold text-text-primary">ClawXpert</div>
                   <span class="rounded-full bg-components-card-bg px-2 py-0.5 text-xs text-text-tertiary">
-                    {{ 'PAC.Chat.ClawXpert.DefaultInstallBadge' | translate }}
+                    {{ 'XP.Chat.ClawXpert.DefaultInstallBadge' | translate }}
                   </span>
                 </div>
                 <div class="mt-1 text-sm leading-6 text-text-secondary">
-                  {{ 'PAC.Chat.ClawXpert.DefaultInstallCardDesc' | translate }}
+                  {{ 'XP.Chat.ClawXpert.DefaultInstallCardDesc' | translate }}
                 </div>
                 @if (hasSelectedCopilotModel()) {
                   <div class="mt-2 text-xs text-text-tertiary">
-                    {{ 'PAC.Chat.ClawXpert.DefaultModelReady' | translate: { model: defaultCopilotModelLabel() } }}
+                    {{ 'XP.Chat.ClawXpert.DefaultModelReady' | translate: { model: defaultCopilotModelLabel() } }}
                   </div>
                 } @else if (enablingPrimaryCopilot()) {
                   <div class="mt-2 flex items-center gap-2 text-xs text-text-tertiary">
                     <i class="ri-loader-4-line animate-spin"></i>
-                    {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
+                    {{ 'XP.Chat.ClawXpert.PreparingModelProvider' | translate }}
                   </div>
                 } @else {
                   <div class="mt-2 text-xs text-text-tertiary">
-                    {{ 'PAC.Chat.ClawXpert.DefaultModelUnavailable' | translate }}
+                    {{ 'XP.Chat.ClawXpert.DefaultModelUnavailable' | translate }}
                   </div>
                 }
               </div>
@@ -149,15 +149,15 @@ type RecommendedTemplateToolsetDependency = {
             >
               <div class="min-w-0">
                 <div class="text-sm font-semibold text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.ModelProviderStepTitle' | translate }}
+                  {{ 'XP.Chat.ClawXpert.ModelProviderStepTitle' | translate }}
                 </div>
                 <p class="mt-1 text-sm leading-6 text-text-secondary">
-                  {{ 'PAC.Chat.ClawXpert.ModelProviderStepDesc' | translate }}
+                  {{ 'XP.Chat.ClawXpert.ModelProviderStepDesc' | translate }}
                 </p>
               </div>
 
               @if (showModelProviderForm()) {
-                <pac-copilot-config-form
+                <xp-copilot-config-form
                   class="mt-4 w-full"
                   [copilot]="primaryCopilot()"
                   (saved)="onModelProviderSaved()"
@@ -165,14 +165,14 @@ type RecommendedTemplateToolsetDependency = {
               } @else if (enablingPrimaryCopilot()) {
                 <div class="mt-4 flex items-center gap-2 text-sm text-text-secondary">
                   <i class="ri-loader-4-line animate-spin"></i>
-                  {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
+                  {{ 'XP.Chat.ClawXpert.PreparingModelProvider' | translate }}
                 </div>
               } @else {
                 <div class="mt-4 text-sm font-medium text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.ContactAdminForModelProvider' | translate }}
+                  {{ 'XP.Chat.ClawXpert.ContactAdminForModelProvider' | translate }}
                 </div>
                 <div class="mt-1 text-sm leading-6 text-text-secondary">
-                  {{ 'PAC.Chat.ClawXpert.ContactAdminForModelProviderDesc' | translate }}
+                  {{ 'XP.Chat.ClawXpert.ContactAdminForModelProviderDesc' | translate }}
                 </div>
               }
             </div>
@@ -182,10 +182,10 @@ type RecommendedTemplateToolsetDependency = {
             <div class="flex items-center justify-between gap-3">
               <div>
                 <div class="text-sm font-semibold text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.RecommendedTemplatesTitle' | translate }}
+                  {{ 'XP.Chat.ClawXpert.RecommendedTemplatesTitle' | translate }}
                 </div>
                 <p class="mt-1 text-sm leading-6 text-text-secondary">
-                  {{ 'PAC.Chat.ClawXpert.RecommendedTemplatesDesc' | translate }}
+                  {{ 'XP.Chat.ClawXpert.RecommendedTemplatesDesc' | translate }}
                 </p>
               </div>
             </div>
@@ -216,11 +216,11 @@ type RecommendedTemplateToolsetDependency = {
                           [zDisabled]="creatingXpert() || !canCreateXpert() || !!item.unavailableReasonKey"
                           (ngModelChange)="setRecommendedTemplateSelected(item.template, $event)"
                         >
-                          {{ 'PAC.Chat.ClawXpert.SelectRecommendedTemplate' | translate }}
+                          {{ 'XP.Chat.ClawXpert.SelectRecommendedTemplate' | translate }}
                         </z-checkbox>
                       </div>
                       <div class="mt-3 line-clamp-2 text-sm leading-6 text-text-secondary">
-                        {{ item.template.description || ('PAC.Xpert.NoTemplateDescription' | translate) }}
+                        {{ item.template.description || ('XP.Xpert.NoTemplateDescription' | translate) }}
                       </div>
                       @if (item.unavailableReasonKey) {
                         <div class="mt-3 text-xs leading-5 text-text-destructive">
@@ -238,7 +238,7 @@ type RecommendedTemplateToolsetDependency = {
                           (click)="openRecommendedTemplateDetails(item.template, $event)"
                         >
                           <i class="ri-list-check-3"></i>
-                          <span>{{ 'PAC.Plugin.Details' | translate: { Default: 'Details' } }}</span>
+                          <span>{{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}</span>
                         </button>
                       }
                     </div>
@@ -248,7 +248,7 @@ type RecommendedTemplateToolsetDependency = {
                 <div
                   class="mt-3 rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
                 >
-                  {{ 'PAC.Chat.ClawXpert.NoRecommendedTemplates' | translate }}
+                  {{ 'XP.Chat.ClawXpert.NoRecommendedTemplates' | translate }}
                 </div>
               }
             } @else {
@@ -256,7 +256,7 @@ type RecommendedTemplateToolsetDependency = {
                 class="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
               >
                 <i class="ri-loader-4-line animate-spin"></i>
-                {{ 'PAC.Chat.ClawXpert.LoadingRecommendedTemplates' | translate }}
+                {{ 'XP.Chat.ClawXpert.LoadingRecommendedTemplates' | translate }}
               </div>
             }
           </div>
@@ -278,18 +278,18 @@ type RecommendedTemplateToolsetDependency = {
               <span>{{ status.key | translate: status.params }}</span>
             </div>
           } @else if (!hasLoadedLlmModelProviders()) {
-            {{ 'PAC.Chat.ClawXpert.CheckingModelProviders' | translate }}
+            {{ 'XP.Chat.ClawXpert.CheckingModelProviders' | translate }}
           } @else if (!hasCopilotFeature()) {
-            {{ 'PAC.Chat.ClawXpert.CopilotFeatureDisabled' | translate }}
+            {{ 'XP.Chat.ClawXpert.CopilotFeatureDisabled' | translate }}
           } @else if (!hasSelectedCopilotModel()) {
-            {{ 'PAC.Chat.ClawXpert.ModelProviderRequiredBeforeCreate' | translate }}
+            {{ 'XP.Chat.ClawXpert.ModelProviderRequiredBeforeCreate' | translate }}
           } @else if (selectedRecommendedTemplateCount()) {
             {{
-              'PAC.Chat.ClawXpert.ReadyToInitializeWithRecommendations'
+              'XP.Chat.ClawXpert.ReadyToInitializeWithRecommendations'
                 | translate: { count: selectedRecommendedTemplateCount() }
             }}
           } @else {
-            {{ 'PAC.Chat.ClawXpert.ReadyToInitialize' | translate }}
+            {{ 'XP.Chat.ClawXpert.ReadyToInitialize' | translate }}
           }
         </div>
 
@@ -307,7 +307,7 @@ type RecommendedTemplateToolsetDependency = {
                 @if (savingModelProvider()) {
                   <i class="ri-loader-4-line mr-1 animate-spin"></i>
                 }
-                {{ 'PAC.Chat.ClawXpert.SaveModelProvider' | translate }}
+                {{ 'XP.Chat.ClawXpert.SaveModelProvider' | translate }}
               </button>
             } @else {
               <button
@@ -320,9 +320,9 @@ type RecommendedTemplateToolsetDependency = {
               >
                 @if (creatingXpert()) {
                   <i class="ri-loader-4-line mr-1 animate-spin"></i>
-                  {{ 'PAC.Chat.ClawXpert.Initializing' | translate }}
+                  {{ 'XP.Chat.ClawXpert.Initializing' | translate }}
                 } @else {
-                  {{ 'PAC.Chat.ClawXpert.CompleteInitialization' | translate }}
+                  {{ 'XP.Chat.ClawXpert.CompleteInitialization' | translate }}
                 }
               </button>
             }
@@ -520,7 +520,7 @@ export class ClawXpertSetupWizardComponent {
     this.creatingXpert.set(true)
     this.initializationError.set(null)
     this.initializationStatus.set({
-      key: 'PAC.Chat.ClawXpert.InitializingDefault'
+      key: 'XP.Chat.ClawXpert.InitializingDefault'
     })
     try {
       const selectedTemplates = this.selectedRecommendedTemplates()
@@ -529,7 +529,7 @@ export class ClawXpertSetupWizardComponent {
       for (const template of selectedTemplates) {
         const templateName = template.title || template.name || template.id
         this.initializationStatus.set({
-          key: 'PAC.Chat.ClawXpert.InitializingRecommendedTemplate',
+          key: 'XP.Chat.ClawXpert.InitializingRecommendedTemplate',
           params: {
             name: templateName
           }
@@ -541,7 +541,7 @@ export class ClawXpertSetupWizardComponent {
         }
       }
       this.initializationStatus.set({
-        key: 'PAC.Chat.ClawXpert.BindingInitialized'
+        key: 'XP.Chat.ClawXpert.BindingInitialized'
       })
       await this.#facade.bindPublishedXpert(xpert, {
         bindNextConversationToXpert: true,
@@ -634,7 +634,7 @@ export class ClawXpertSetupWizardComponent {
   }
 
   private showRecommendedTemplateInitializationError(failedTemplateNames: string[]) {
-    this.#toastr.error('PAC.Chat.ClawXpert.RecommendedTemplatesInitializeFailed', '', {
+    this.#toastr.error('XP.Chat.ClawXpert.RecommendedTemplatesInitializeFailed', '', {
       Default: 'ClawXpert was initialized, but {{names}} could not be initialized.',
       count: failedTemplateNames.length,
       names: failedTemplateNames.join(', ')
@@ -679,7 +679,7 @@ export class ClawXpertSetupWizardComponent {
 
       return {
         template,
-        unavailableReasonKey: 'PAC.Chat.ClawXpert.RecommendedTemplateToolsetUnavailable',
+        unavailableReasonKey: 'XP.Chat.ClawXpert.RecommendedTemplateToolsetUnavailable',
         unavailableReasonParams: {
           name: unavailableDependency.instanceName || unavailableDependency.provider
         }

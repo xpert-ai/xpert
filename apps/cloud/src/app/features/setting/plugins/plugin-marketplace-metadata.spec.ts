@@ -1,4 +1,4 @@
-import { IPluginDescriptor, PLUGIN_LEVEL } from '@xpert-ai/cloud/state'
+import { IPluginDescriptor, PLUGIN_LEVEL } from '@cloud/app/@core/state'
 import { PluginMarketplaceItem } from '@xpert-ai/contracts'
 import { resolvePluginMarketplaceGrouping } from './plugin-marketplace-categories'
 import {

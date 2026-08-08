@@ -2,7 +2,7 @@
   <section class="w-full">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.MENU.TENANT.RETENTION' | translate: { Default: 'Data Management' } }}
+        {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Data Management' } }}
       </h2>
     </div>
 
@@ -11,22 +11,22 @@
         <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
           <div class="min-w-0">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+              {{ 'XP.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
             </div>
             <div class="truncate font-mono text-base font-semibold text-text-primary">
-              {{ 'PAC.MENU.TENANT.CHECKPOINT_RETENTION' | translate: { Default: 'copilot_checkpoint' } }}
+              {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION' | translate: { Default: 'copilot_checkpoint' } }}
             </div>
           </div>
 
           <z-switch formControlName="enabled" zSize="sm" labelPosition="before">
-            {{ 'PAC.MENU.TENANT.CHECKPOINT_RETENTION_ENABLED' | translate: { Default: 'Enable cleanup' } }}
+            {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION_ENABLED' | translate: { Default: 'Enable cleanup' } }}
           </z-switch>
         </div>
 
         <div class="px-4 py-4">
           <z-form-field appearance="fill" class="w-full max-w-64">
             <z-form-label [zRequired]="true">
-              {{ 'PAC.MENU.TENANT.CHECKPOINT_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
+              {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
             </z-form-label>
             <input
               z-input
@@ -40,7 +40,7 @@
             @if (retentionDaysCtrl.invalid && retentionDaysCtrl.touched) {
               <z-form-message zType="error">
                 {{
-                  'PAC.MENU.TENANT.CHECKPOINT_RETENTION_DAYS_ERROR' | translate: { Default: retentionDaysErrorDefault }
+                  'XP.MENU.TENANT.CHECKPOINT_RETENTION_DAYS_ERROR' | translate: { Default: retentionDaysErrorDefault }
                 }}
               </z-form-message>
             }
@@ -52,31 +52,22 @@
         <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
           <div class="min-w-0">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+              {{ 'XP.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
             </div>
             <div class="truncate font-mono text-base font-semibold text-text-primary">
-              {{
-                'PAC.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION'
-                  | translate: { Default: 'model_gateway_call' }
-              }}
+              {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION' | translate: { Default: 'model_gateway_call' } }}
             </div>
           </div>
 
           <z-switch formControlName="modelGatewayCallRetentionEnabled" zSize="sm" labelPosition="before">
-            {{
-              'PAC.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_ENABLED'
-                | translate: { Default: 'Enable cleanup' }
-            }}
+            {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_ENABLED' | translate: { Default: 'Enable cleanup' } }}
           </z-switch>
         </div>
 
         <div class="px-4 py-4">
           <z-form-field appearance="fill" class="w-full max-w-64">
             <z-form-label [zRequired]="true">
-              {{
-                'PAC.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS'
-                  | translate: { Default: 'Retention days' }
-              }}
+              {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
             </z-form-label>
             <input
               z-input
@@ -94,7 +85,7 @@
             @if (modelGatewayCallRetentionDaysCtrl.invalid && modelGatewayCallRetentionDaysCtrl.touched) {
               <z-form-message zType="error">
                 {{
-                  'PAC.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS_ERROR'
+                  'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS_ERROR'
                     | translate: { Default: modelGatewayCallRetentionDaysErrorDefault }
                 }}
               </z-form-message>
@@ -111,7 +102,7 @@
         [zLoading]="loading()"
         [disabled]="loading() || form.pristine || form.invalid"
       >
-        {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+        {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </section>

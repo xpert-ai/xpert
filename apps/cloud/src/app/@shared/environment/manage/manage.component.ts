@@ -15,14 +15,14 @@ import {
   OrderTypeEnum,
   TEnvironmentVariable
 } from '@cloud/app/@core'
-import { linkedModel } from '@xpert-ai/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { effectAction } from '@xpert-ai/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { effectAction } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { BehaviorSubject, Observable, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
-import { NgmSelectComponent } from '../../common'
+import { XpSelectComponent } from '../../common'
 import { VariableTypeOptions } from '../types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -39,9 +39,9 @@ const AutoSaveDebounceTime = 1000
     CdkListboxModule,
     DragDropModule,
     ...ZardTooltipImports,
-    NgmSpinComponent,
-    NgmSelectComponent
-],
+    XpSpinComponent,
+    XpSelectComponent
+  ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [IfAnimation]
@@ -116,13 +116,11 @@ export class XpertEnvironmentManageComponent {
   readonly environmentName = model('')
 
   constructor() {
-    effect(
-      () => {
-        if (!this.environment() && this.environments()?.length) {
-          this.environmentId.set(this.environments().find((_) => _.isDefault)?.id)
-        }
+    effect(() => {
+      if (!this.environment() && this.environments()?.length) {
+        this.environmentId.set(this.environments().find((_) => _.isDefault)?.id)
       }
-    )
+    })
   }
 
   addEnvironment() {
@@ -227,7 +225,7 @@ export class XpertEnvironmentManageComponent {
     this.confirmDelete(
       {
         value: this.environment().name,
-        information: await this.#translate.instant('PAC.Environment.DeleteEnv', {
+        information: await this.#translate.instant('XP.Environment.DeleteEnv', {
           Default: 'Delete the environment and all its environment variables'
         })
       },

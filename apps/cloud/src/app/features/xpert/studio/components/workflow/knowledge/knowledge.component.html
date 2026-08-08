@@ -1,15 +1,17 @@
 <div class="space-y-1">
   @for (item of selectedKnowledgebases(); track item.id; let i = $index) {
     @if (item.kb) {
-      <div class="group/kb-item flex h-8 cursor-pointer items-center justify-between rounded-lg px-2
-        bg-background-default-subtle">
+      <div
+        class="group/kb-item flex h-8 cursor-pointer items-center justify-between rounded-lg px-2 bg-background-default-subtle"
+      >
         <div class="flex w-0 grow items-center space-x-1.5 text-left">
-          <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-divider-deep bg-background-default-subtle text-text-tertiary
-            group-hover/kb-item:text-primary-500">
+          <div
+            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-divider-deep bg-background-default-subtle text-text-tertiary group-hover/kb-item:text-primary-500"
+          >
             <i class="ri-book-shelf-fill text-lg"></i>
           </div>
           <div class="text-sm font-medium w-0 grow truncate text-text-secondary">
-            {{item.kb.name}}
+            {{ item.kb.name }}
           </div>
         </div>
 
@@ -18,12 +20,17 @@
       </div>
     } @else {
       <div class="flex justify-start truncate">
-        {{ 'PAC.Xpert.KnowledgeBaseNotFound' | translate: {Default: 'Knowledgebase "' + item.id + '" Not Found', id: item.id} }}
+        {{
+          'XP.Xpert.KnowledgeBaseNotFound'
+            | translate: { Default: 'Knowledgebase "' + item.id + '" Not Found', id: item.id }
+        }}
       </div>
     }
   } @empty {
-    <div class="cursor-default select-none rounded-lg bg-background-default-subtle px-3 h-8 flex justify-center items-center text-sm text-text-tertiary">
-      {{ 'PAC.Xpert.ClickAddToAddKB' | translate: {Default: 'Click the "+" button to add knowledge'} }}
+    <div
+      class="cursor-default select-none rounded-lg bg-background-default-subtle px-3 h-8 flex justify-center items-center text-sm text-text-tertiary"
+    >
+      {{ 'XP.Xpert.ClickAddToAddKB' | translate: { Default: 'Click the "+" button to add knowledge' } }}
     </div>
   }
 </div>
@@ -31,13 +38,19 @@
 <div class="relative w-full flex h-8 p-1">
   <div class="grow flex justify-end items-center">
     <div class="text-[12px] font-semibold text-text-primary uppercase">
-      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+      {{ 'XP.Xpert.Next' | translate: { Default: 'Next' } }}
     </div>
   </div>
 
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
+  <div
+    fNodeOutput
+    [fOutputId]="node().key + '/edge'"
+    fOutputConnectableSide="right"
+    class="right group"
+    [fOutputMultiple]="true"
+  >
     <div class="inner-dot cursor-crosshair">
-      <ngm-plus-svg class="w-2 h-2 text-white" />
+      <xp-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
 </div>

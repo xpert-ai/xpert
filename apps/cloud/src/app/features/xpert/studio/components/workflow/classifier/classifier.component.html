@@ -1,4 +1,7 @@
-<copilot-model-select class="w-full" readonly hiddenLabel
+<copilot-model-select
+  class="w-full"
+  readonly
+  hiddenLabel
   [inheritModel]="xpertCopilotModel()"
   [modelType]="eModelType.LLM"
   [copilotModel]="copilotModel()"
@@ -8,17 +11,25 @@
   @for (item of classes(); track i; let i = $index) {
     <div class="relative">
       <div class="flex flex-col gap-y-0.5 rounded-md bg-background-default-subtle px-[5px] py-[3px] text-left">
-        <div class="system-sm-semibold-uppercase uppercase text-text-secondary">{{ 'PAC.Xpert.Class' | translate: {Default: 'Class'} }} {{i+1}}</div>
+        <div class="system-sm-semibold-uppercase uppercase text-text-secondary">
+          {{ 'XP.Xpert.Class' | translate: { Default: 'Class' } }} {{ i + 1 }}
+        </div>
         <div class="system-xs-regular break-words text-text-tertiary">
           <div class="break-all text-xs">
-            <span class="relative top-[-3px] leading-[16px]">{{item.description}}</span>
+            <span class="relative top-[-3px] leading-[16px]">{{ item.description }}</span>
           </div>
         </div>
       </div>
-      
-      <div fNodeOutput [fOutputId]="node().key + '/category_' + (i+1) + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true" class="right group">
+
+      <div
+        fNodeOutput
+        [fOutputId]="node().key + '/category_' + (i + 1) + '/edge'"
+        fOutputConnectableSide="right"
+        [fOutputMultiple]="true"
+        class="right group"
+      >
         <div class="inner-dot cursor-crosshair">
-          <ngm-plus-svg class="w-2 h-2 text-white" />
+          <xp-plus-svg class="w-2 h-2 text-white" />
         </div>
       </div>
     </div>

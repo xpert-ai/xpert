@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { TestBed } from '@angular/core/testing'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { BehaviorSubject, of } from 'rxjs'
 import { MembershipService } from './membership.service'
 import { CopilotServerService } from './copilot-server.service'

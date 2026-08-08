@@ -9,19 +9,30 @@ import { Column, Entity, Index } from 'typeorm'
  * tenant scope, current-version pointer, and user-facing metadata.
  */
 @Entity('artifact')
-@Index(['tenantId', 'organizationId', 'pluginName', 'resourceType', 'resourceId'])
+@Index(['tenantId', 'organizationId', 'userId', 'pluginName', 'resourceType', 'resourceId'])
 @Index(
-    'IDX_artifact_source_with_organization_unique',
-    ['tenantId', 'organizationId', 'pluginName', 'resourceType', 'resourceId'],
+    'IDX_artifact_source_with_organization_user_unique',
+    ['tenantId', 'organizationId', 'userId', 'pluginName', 'resourceType', 'resourceId'],
     {
         unique: true,
-        where: '"organizationId" IS NOT NULL'
+        where: '"organizationId" IS NOT NULL AND "userId" IS NOT NULL'
     }
 )
-@Index('IDX_artifact_source_without_organization_unique', ['tenantId', 'pluginName', 'resourceType', 'resourceId'], {
-    unique: true,
-    where: '"organizationId" IS NULL'
-})
+@Index(
+    'IDX_artifact_source_with_organization_ownerless_unique',
+    ['tenantId', 'organizationId', 'pluginName', 'resourceType', 'resourceId'],
+    { unique: true, where: '"organizationId" IS NOT NULL AND "userId" IS NULL' }
+)
+@Index(
+    'IDX_artifact_source_without_organization_user_unique',
+    ['tenantId', 'userId', 'pluginName', 'resourceType', 'resourceId'],
+    { unique: true, where: '"organizationId" IS NULL AND "userId" IS NOT NULL' }
+)
+@Index(
+    'IDX_artifact_source_without_organization_ownerless_unique',
+    ['tenantId', 'pluginName', 'resourceType', 'resourceId'],
+    { unique: true, where: '"organizationId" IS NULL AND "userId" IS NULL' }
+)
 export class Artifact extends TenantOrganizationBaseEntity implements IArtifact {
     @Column({ type: 'varchar' })
     pluginName: string

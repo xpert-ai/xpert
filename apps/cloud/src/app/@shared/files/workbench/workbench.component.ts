@@ -17,7 +17,7 @@ import {
   untracked,
   viewChild
 } from '@angular/core'
-import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'
@@ -112,7 +112,7 @@ const DEFAULT_MARKDOWN_EXTENSIONS = ['md', 'mdx']
 
 @Component({
   standalone: true,
-  selector: 'pac-file-workbench',
+  selector: 'xp-file-workbench',
   templateUrl: './workbench.component.html',
   styleUrls: ['./workbench.component.css'],
   imports: [CommonModule, TranslateModule, ZardButtonComponent, FileTreeComponent, FileViewerComponent],
@@ -198,20 +198,20 @@ export class FileWorkbenchComponent {
   readonly uploadTargetHint = computed(() => {
     const selection = this.selectedTreeItem()
     if (!selection) {
-      return this.#translate.instant('PAC.Files.UploadTargetRoot', {
+      return this.#translate.instant('XP.Files.UploadTargetRoot', {
         Default: `No folder selected. Uploading to ${this.uploadTargetDisplayPath()}`,
         path: this.uploadTargetDisplayPath()
       })
     }
 
     if (selection.isDirectory) {
-      return this.#translate.instant('PAC.Files.UploadTarget', {
+      return this.#translate.instant('XP.Files.UploadTarget', {
         Default: `Upload to ${this.uploadTargetDisplayPath()}`,
         path: this.uploadTargetDisplayPath()
       })
     }
 
-    return this.#translate.instant('PAC.Files.UploadTargetFromFile', {
+    return this.#translate.instant('XP.Files.UploadTargetFromFile', {
       Default: `Selected file. Uploading to ${this.uploadTargetDisplayPath()}`,
       path: this.uploadTargetDisplayPath()
     })
@@ -375,7 +375,7 @@ export class FileWorkbenchComponent {
       this.draftContent.set(file.contents ?? '')
       this.panelMode.set('view')
       this.#toastr.success(
-        this.#translate.instant('PAC.Files.SkillFileSaved', {
+        this.#translate.instant('XP.Files.SkillFileSaved', {
           Default: 'File saved'
         })
       )
@@ -458,14 +458,14 @@ export class FileWorkbenchComponent {
       await this.refreshTreeAfterMutation(targetPath)
 
       this.#toastr.success(
-        this.#translate.instant('PAC.Files.UploadedFiles', {
+        this.#translate.instant('XP.Files.UploadedFiles', {
           Default: uploadedCount > 1 ? 'Files uploaded' : 'File uploaded'
         })
       )
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.UploadFailed', {
+          this.#translate.instant('XP.Files.UploadFailed', {
             Default: 'Failed to upload file'
           })
       )
@@ -490,12 +490,12 @@ export class FileWorkbenchComponent {
     const deletesActiveFile = !!activeFilePath && isPathSameOrDescendant(filePath, activeFilePath)
     const information =
       deletesActiveFile && this.dirty()
-        ? this.#translate.instant(isDirectory ? 'PAC.Files.DeleteDirtyFolderInfo' : 'PAC.Files.DeleteDirtyFileInfo', {
+        ? this.#translate.instant(isDirectory ? 'XP.Files.DeleteDirtyFolderInfo' : 'XP.Files.DeleteDirtyFileInfo', {
             Default: isDirectory
               ? 'A file in this folder has unsaved changes. Deleting the folder will also discard those pending edits.'
               : 'This file has unsaved changes. Deleting it will also discard those pending edits.'
           })
-        : this.#translate.instant(isDirectory ? 'PAC.Files.DeleteFolderInfo' : 'PAC.Files.DeleteFileInfo', {
+        : this.#translate.instant(isDirectory ? 'XP.Files.DeleteFolderInfo' : 'XP.Files.DeleteFileInfo', {
             Default: isDirectory
               ? 'Are you sure you want to delete this folder and all of its contents? This action cannot be undone.'
               : 'Are you sure you want to delete this file? This action cannot be undone.'
@@ -505,7 +505,7 @@ export class FileWorkbenchComponent {
       const deleted = await firstValueFrom(
         this.#confirmDelete(
           {
-            title: this.#translate.instant(isDirectory ? 'PAC.Files.DeleteFolderTitle' : 'PAC.Files.DeleteFileTitle', {
+            title: this.#translate.instant(isDirectory ? 'XP.Files.DeleteFolderTitle' : 'XP.Files.DeleteFileTitle', {
               Default: isDirectory ? 'Delete Folder' : 'Delete File'
             }),
             value: fileName,
@@ -541,14 +541,14 @@ export class FileWorkbenchComponent {
       }
 
       this.#toastr.success(
-        this.#translate.instant(isDirectory ? 'PAC.Files.FolderDeleted' : 'PAC.Files.FileDeleted', {
+        this.#translate.instant(isDirectory ? 'XP.Files.FolderDeleted' : 'XP.Files.FileDeleted', {
           Default: isDirectory ? 'Folder deleted' : 'File deleted'
         })
       )
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant(isDirectory ? 'PAC.Files.DeleteFolderFailed' : 'PAC.Files.DeleteFileFailed', {
+          this.#translate.instant(isDirectory ? 'XP.Files.DeleteFolderFailed' : 'XP.Files.DeleteFileFailed', {
             Default: isDirectory ? 'Failed to delete folder' : 'Failed to delete file'
           })
       )
@@ -628,7 +628,7 @@ export class FileWorkbenchComponent {
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.LoadFilesFailed', { Default: 'Failed to load files' })
+          this.#translate.instant('XP.Files.LoadFilesFailed', { Default: 'Failed to load files' })
       )
     } finally {
       if (requestToken === this.#treeRequestToken) {
@@ -682,7 +682,7 @@ export class FileWorkbenchComponent {
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.LoadFilesFailed', { Default: 'Failed to load files' })
+          this.#translate.instant('XP.Files.LoadFilesFailed', { Default: 'Failed to load files' })
       )
     } finally {
       if (requestToken === this.#treeRequestToken) {
@@ -729,7 +729,7 @@ export class FileWorkbenchComponent {
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.LoadFolderFailed', { Default: 'Failed to load folder' })
+          this.#translate.instant('XP.Files.LoadFolderFailed', { Default: 'Failed to load folder' })
       )
     } finally {
       this.fileTreeLoadingPaths.update((paths) => {
@@ -790,8 +790,7 @@ export class FileWorkbenchComponent {
       this.panelMode.set('view')
     } catch (error) {
       this.#toastr.danger(
-        getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.LoadFileFailed', { Default: 'Failed to load file' })
+        getErrorMessage(error) || this.#translate.instant('XP.Files.LoadFileFailed', { Default: 'Failed to load file' })
       )
     } finally {
       if (requestToken === this.#fileRequestToken) {
@@ -810,7 +809,7 @@ export class FileWorkbenchComponent {
       const payload = await this.resolveDownloadPayload(filePath, item)
       if (!payload) {
         throw new Error(
-          this.#translate.instant('PAC.Files.DownloadUnavailable', {
+          this.#translate.instant('XP.Files.DownloadUnavailable', {
             Default: 'This file is not available for download yet.'
           })
         )
@@ -820,7 +819,7 @@ export class FileWorkbenchComponent {
     } catch (error) {
       this.#toastr.danger(
         getErrorMessage(error) ||
-          this.#translate.instant('PAC.Files.DownloadFailed', {
+          this.#translate.instant('XP.Files.DownloadFailed', {
             Default: 'Failed to download file'
           })
       )

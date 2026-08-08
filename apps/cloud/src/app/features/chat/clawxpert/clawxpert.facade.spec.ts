@@ -46,11 +46,11 @@ jest.mock('../../assistant/assistant.registry', () => ({
     code: 'clawxpert',
     featureKeys: [],
     management: 'user',
-    labelKey: 'PAC.Assistant.ClawXpert.Label',
+    labelKey: 'XP.Assistant.ClawXpert.Label',
     defaultLabel: 'ClawXpert',
-    titleKey: 'PAC.Chat.ClawXpert.Title',
+    titleKey: 'XP.Chat.ClawXpert.Title',
     defaultTitle: 'ClawXpert',
-    descriptionKey: 'PAC.Assistant.ClawXpert.Description',
+    descriptionKey: 'XP.Assistant.ClawXpert.Description',
     defaultDescription: 'User-configured assistant used by the ClawXpert page.'
   })
 }))

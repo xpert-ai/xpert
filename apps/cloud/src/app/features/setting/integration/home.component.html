@@ -1,76 +1,95 @@
-<h2 class="pac-page-title">{{ 'PAC.Integration.SystemIntegrations' | translate: {Default: 'System Integrations' } }}</h2>
+<h2 class="xp-page-title">{{ 'XP.Integration.SystemIntegrations' | translate: { Default: 'System Integrations' } }}</h2>
 
 <div class="w-full flex justify-start items-center gap-2 p-4">
-  <ngm-select class="w-64" [selectOptions]="providers()" [(ngModel)]="provider" [placeholder]="'PAC.Integration.AllProviders' | translate: {Default: 'All Providers'}">
+  <xp-select
+    class="w-64"
+    [selectOptions]="providers()"
+    [(ngModel)]="provider"
+    [placeholder]="'XP.Integration.AllProviders' | translate: { Default: 'All Providers' }"
+  >
     <div icon>
       @if (integrationProvider(); as provider) {
         @if (provider.icon) {
-          <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-components-input-bg-normal flex justify-center items-center" />
+          <xp-icon
+            [icon]="provider.icon"
+            class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-components-input-bg-normal flex justify-center items-center"
+          />
         } @else if (provider.avatar) {
-          <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
+          <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar" />
         }
       }
     </div>
     <ng-template #option let-option>
       <div class="relative flex gap-2">
         @if (option.avatar) {
-          <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
+          <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar" />
         } @else if (option._icon) {
-          <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-components-input-bg-normal flex justify-center items-center" />
+          <xp-icon
+            [icon]="option._icon"
+            class="w-8 h-8 shrink-0 rounded-lg bg-components-input-bg-normal flex justify-center items-center"
+          />
         }
         <div class="flex flex-col">
           <div class="text-text-secondary text-sm leading-5">{{ option.label | i18n }}</div>
-          <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+          <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">
+            {{ option.description | i18n }}
+          </div>
         </div>
       </div>
     </ng-template>
-  </ngm-select>
-  <ngm-search [formControl]="searchControl" />
+  </xp-select>
+  <xp-search [formControl]="searchControl" />
 </div>
 
-<nav class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
-  ngmDynamicGrid colWidth="280"
-  box="content-box">
-  <ngm-card-create
-    [title]=" 'PAC.Integration.AddIntegration' | translate: {Default: 'Add Integration'} "
-    [helpTitle]="'PAC.Integration.AddIntegrationHelp' | translate: {Default: 'Learn more about custom integrations'}"
+<nav
+  class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
+  xpDynamicGrid
+  colWidth="280"
+  box="content-box"
+>
+  <xp-card-create
+    [title]="'XP.Integration.AddIntegration' | translate: { Default: 'Add Integration' }"
+    [helpTitle]="'XP.Integration.AddIntegrationHelp' | translate: { Default: 'Learn more about custom integrations' }"
     helpUrl="/docs/server/organization/integration"
     (create)="newIntegration()"
   />
 
   @for (item of filteredIntegrations(); track item.id) {
-    <div class="ngm-card w-full p-4 group min-h-[160px] bg-background-default-subtle hover:bg-hover-bg">
+    <div class="xp-card w-full p-4 group min-h-[160px] bg-background-default-subtle hover:bg-hover-bg">
       <div class="h-full flex flex-col cursor-pointer" (click)="open(item.id)">
         <div class="flex items-start gap-2">
           <emoji-avatar [avatar]="item.avatar" class="rounded-lg overflow-hidden shadow-sm" />
           <div class="flex flex-col items-start">
             <p class="text-sm flex items-center gap-1 text-text-secondary opacity-80">
-              <ngm-tags [tags]="[{key: item.provider, caption: item.provider, color: 'green'}]" small />
-              <span>{{item.updatedAt | date:'short'}}</span>
+              <xp-tags [tags]="[{ key: item.provider, caption: item.provider, color: 'green' }]" small />
+              <span>{{ item.updatedAt | date: 'short' }}</span>
             </p>
-            <div class="font-bold text-base">{{item.name}}</div>
+            <div class="font-bold text-base">{{ item.name }}</div>
           </div>
         </div>
-        
+
         <div class="w-full my-1 text-sm text-text-secondary line-clamp-3" [title]="item.description">
-          {{item.description}}
+          {{ item.description }}
         </div>
 
         <div class="flex-1"></div>
 
         <div class="flex justify-between items-end">
-          <div class="text-sm text-text-secondary">{{'PAC.KEY_WORDS.By' | translate: {Default: 'By'} }} <span>{{item.createdBy | user}}</span></div>
+          <div class="text-sm text-text-secondary">
+            {{ 'XP.KEY_WORDS.By' | translate: { Default: 'By' } }} <span>{{ item.createdBy | user }}</span>
+          </div>
         </div>
       </div>
 
       <div class="absolute left-0 bottom-0 w-full p-1 hidden group-hover:flex">
-
         <div class="flex-1"></div>
 
-        <button class="group flex items-center justify-center bg-components-input-bg-normal !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5" type="button"
+        <button
+          class="group flex items-center justify-center bg-components-input-bg-normal !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5"
+          type="button"
           #mt="cdkMenuTriggerFor"
           [cdkMenuTriggerFor]="menu"
-          [cdkMenuTriggerData]="{item: item}"
+          [cdkMenuTriggerData]="{ item: item }"
           [class.active]="mt.isOpen()"
         >
           <i class="ri-more-line"></i>
@@ -81,17 +100,17 @@
 </nav>
 
 <ng-template #menu let-item="item">
-  <div class="ngm-cdk-menu p-2" cdkMenu>
-    <button cdkMenuItem class="ngm-cdk-menu-item p-1" (click)="edit(item)">
+  <div class="xp-cdk-menu p-2" cdkMenu>
+    <button cdkMenuItem class="xp-cdk-menu-item p-1" (click)="edit(item)">
       <i class="ri-pencil-line mr-1"></i>
       <span>
-        {{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}
+        {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </span>
     </button>
 
-    <button cdkMenuItem ngmAppearance="danger" class="ngm-cdk-menu-item p-1" (click)="remove(item)">
+    <button cdkMenuItem xpAppearance="danger" class="xp-cdk-menu-item p-1" (click)="remove(item)">
       <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>

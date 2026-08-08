@@ -14,8 +14,8 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, switchMap } from 'rxjs'
@@ -44,8 +44,8 @@ import { canCreateCustomProviderModel } from './provider-schema'
     DragDropModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     ZardSwitchComponent
   ],
   host: {
@@ -56,7 +56,7 @@ export class CopilotProviderComponent {
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
-  readonly #i18n = new NgmI18nPipe()
+  readonly #i18n = new XpI18nPipe()
   readonly #copilotProviderService = injectCopilotProviderService()
 
   // Inputs
@@ -138,7 +138,7 @@ export class CopilotProviderComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: this.#i18n.transform(this.label()),
-          information: this.#translate.instant('PAC.Copilot.DeleteProviderAndModels', {
+          information: this.#translate.instant('XP.Copilot.DeleteProviderAndModels', {
             Default: `Delete the ai model provider and it's custom models (if any)`
           })
         }
@@ -155,7 +155,7 @@ export class CopilotProviderComponent {
       .subscribe({
         next: (copilotProvider) => {
           this.loading.set(false)
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+          this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
           this.deleted.emit()
         },
         error: (err) => {

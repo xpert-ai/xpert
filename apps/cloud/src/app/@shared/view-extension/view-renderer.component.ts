@@ -17,7 +17,7 @@ import { injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '@cloud/app/@core/types'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
 import { StatsViewRendererComponent } from './renderers/stats-view-renderer.component'
 import { TableViewRendererComponent } from './renderers/table-view-renderer.component'
@@ -32,7 +32,7 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
   imports: [
     CommonModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardButtonComponent,
     ...ZardCardImports,
     StatsViewRendererComponent,
@@ -140,7 +140,7 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
             <div class="p-4">
               <z-card class="gap-0 rounded-lg border border-divider-regular bg-components-card-bg py-0 shadow-none">
                 <z-card-content class="px-4 py-5 text-sm text-text-tertiary">
-                  {{ 'PAC.ViewExtension.Unsupported' | translate: { Default: 'Unsupported view schema' } }}
+                  {{ 'XP.ViewExtension.Unsupported' | translate: { Default: 'Unsupported view schema' } }}
                 </z-card-content>
               </z-card>
             </div>
@@ -161,7 +161,7 @@ export class ViewRendererComponent {
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
   readonly #destroyRef = inject(DestroyRef)
-  readonly #i18n = new NgmI18nPipe()
+  readonly #i18n = new XpI18nPipe()
 
   readonly loading = signal(false)
   readonly error = signal<string | null>(null)

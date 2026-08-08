@@ -64,6 +64,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
+    ActorTokenRuntimeCapability,
     AssistantTaskRuntimeCapability,
     CancelConversationCommand,
     FileRuntimeCapability,
@@ -109,6 +110,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     let artifacts: { createScopedApi: jest.Mock }
     let collaboration: CollaborationService
+    let actorTokenProvider: { mint: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -141,6 +143,13 @@ describe('AgentMiddlewareRuntimeService', () => {
             }))
         }
         collaboration = new CollaborationService(null!, null!, null!)
+        actorTokenProvider = {
+            mint: jest.fn((input) => ({
+                token: 'actor-token-1',
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+                audience: input?.audience ?? 'xpert'
+            }))
+        }
         service = new AgentMiddlewareRuntimeService(
             commandBus as any,
             queryBus as any,
@@ -153,7 +162,8 @@ describe('AgentMiddlewareRuntimeService', () => {
             } as any,
             workspaceFiles,
             artifacts as any,
-            collaboration
+            collaboration,
+            actorTokenProvider as any
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -214,6 +224,58 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('registers the actor token runtime capability with scoped act context', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1'
+        } as any)
+        const runtime = service.createScopedApi({
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1'
+        })
+
+        const actorTokenApi = runtime.capabilities?.require(ActorTokenRuntimeCapability)
+        const first = await actorTokenApi?.getToken({
+            audience: 'plugins',
+            ttlSeconds: 60,
+            act: {
+                middleware_name: 'data-xpert-ai-tools'
+            }
+        })
+        const second = await actorTokenApi?.getToken({
+            audience: 'plugins',
+            ttlSeconds: 60,
+            act: {
+                middleware_name: 'data-xpert-ai-tools'
+            }
+        })
+
+        expect(first).toEqual(
+            expect.objectContaining({
+                token: 'actor-token-1',
+                audience: 'plugins'
+            })
+        )
+        expect(second).toBe(first)
+        expect(actorTokenProvider.mint).toHaveBeenCalledTimes(1)
+        expect(actorTokenProvider.mint).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                audience: 'plugins',
+                ttlSeconds: 60,
+                act: expect.objectContaining({
+                    sub: 'xpert_agent',
+                    xpert_id: 'xpert-1',
+                    conversation_id: 'conversation-1',
+                    execution_id: 'execution-1',
+                    middleware_name: 'data-xpert-ai-tools'
+                })
+            })
+        )
     })
 
     it('registers the artifacts runtime capability with the middleware scope', async () => {

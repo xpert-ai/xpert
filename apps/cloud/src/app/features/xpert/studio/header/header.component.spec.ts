@@ -9,9 +9,9 @@ describe('XpertStudioHeaderComponent template', () => {
     const end = template.indexOf('<div class="flex-1"></div>', start)
     const publishedStatus = template.slice(start, end)
 
-    expect(publishedStatus).toContain("{{ 'PAC.Xpert.Published' | translate: { Default: 'Published' } }}")
+    expect(publishedStatus).toContain("{{ 'XP.Xpert.Published' | translate: { Default: 'Published' } }}")
     expect(publishedStatus).toContain('@if (version())')
     expect(publishedStatus).toContain('v{{ version() }}')
-    expect(publishedStatus).not.toContain('PAC.Xpert.Draft')
+    expect(publishedStatus).not.toContain('XP.Xpert.Draft')
   })
 })

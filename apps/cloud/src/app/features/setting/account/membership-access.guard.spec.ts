@@ -1,5 +1,4 @@
 jest.mock('../../../@core', () => ({
-  MembershipService: class MembershipService {},
   Store: class Store {}
 }))
 jest.mock('../../feature-gate', () => ({
@@ -8,27 +7,24 @@ jest.mock('../../feature-gate', () => ({
 
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router'
-import { MembershipService, Store } from '../../../@core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Store } from '../../../@core'
 import { firstValueFrom, Observable, of } from 'rxjs'
-import {
-  membershipPlanAccountGate,
-  modelAccessAccountGate,
-  modelGatewayAccountGate
-} from './membership-access.guard'
+import { membershipPlanAccountGate, modelAccessAccountGate, modelGatewayAccountGate } from './membership-access.guard'
 
 describe('membershipPlanAccountGate', () => {
   const urlTree = {} as UrlTree
   const createUrlTree = jest.fn(() => urlTree)
-  const hasActiveMembershipInScope = jest.fn()
+  const hasPermission = jest.fn()
 
   beforeEach(() => {
     createUrlTree.mockClear()
-    hasActiveMembershipInScope.mockReset()
+    hasPermission.mockReset()
     TestBed.configureTestingModule({
       providers: [
         {
-          provide: MembershipService,
-          useValue: { hasActiveMembershipInScope }
+          provide: Store,
+          useValue: { userRolePermissions$: of([]), hasPermission }
         },
         {
           provide: Router,
@@ -42,19 +38,20 @@ describe('membershipPlanAccountGate', () => {
     TestBed.resetTestingModule()
   })
 
-  it('allows account usage routes when the current user has an active membership', async () => {
-    hasActiveMembershipInScope.mockReturnValue(of(true))
+  it('allows account usage routes when the current user can use membership plans', async () => {
+    hasPermission.mockReturnValue(true)
 
     const result = TestBed.runInInjectionContext(() =>
       membershipPlanAccountGate({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)
     ) as Observable<boolean | UrlTree>
 
     await expect(firstValueFrom(result)).resolves.toBe(true)
+    expect(hasPermission).toHaveBeenCalledWith(AIPermissionsEnum.MEMBERSHIP_USE)
     expect(createUrlTree).not.toHaveBeenCalled()
   })
 
-  it('redirects to the profile when the current user has no active membership', async () => {
-    hasActiveMembershipInScope.mockReturnValue(of(false))
+  it('redirects to the profile when the current user cannot use membership plans', async () => {
+    hasPermission.mockReturnValue(false)
 
     const result = TestBed.runInInjectionContext(() =>
       membershipPlanAccountGate({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)

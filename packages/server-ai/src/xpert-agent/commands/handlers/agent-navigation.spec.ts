@@ -1,5 +1,29 @@
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
-import { getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
+import { buildAgentDecisionPathMap, getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
+
+describe('buildAgentDecisionPathMap', () => {
+    it('declares middleware tool nodes as valid Send targets', () => {
+        expect(
+            buildAgentDecisionPathMap(['after_agent', '__end__'], 'before_model', [
+                'bom_auto_quick_quotation_list_catalog',
+                'bom_auto_quick_quotation_create_project'
+            ])
+        ).toEqual([
+            'after_agent',
+            '__end__',
+            'before_model',
+            'bom_auto_quick_quotation_list_catalog',
+            'bom_auto_quick_quotation_create_project'
+        ])
+    })
+
+    it('deduplicates destinations while preserving their first-seen order', () => {
+        expect(buildAgentDecisionPathMap(['before_model'], 'before_model', ['before_model', 'tool_a'])).toEqual([
+            'before_model',
+            'tool_a'
+        ])
+    })
+})
 
 describe('getPendingToolCallsAfterTrailingToolMessages', () => {
     it('returns unanswered tool calls from the latest assistant tool-call block', () => {
@@ -26,7 +50,9 @@ describe('getPendingToolCallsAfterTrailingToolMessages', () => {
             tool_call_id: 'call-rejected'
         })
 
-        expect(getPendingToolCallsAfterTrailingToolMessages([new HumanMessage('delete'), aiMessage, rejection])).toEqual([
+        expect(
+            getPendingToolCallsAfterTrailingToolMessages([new HumanMessage('delete'), aiMessage, rejection])
+        ).toEqual([
             expect.objectContaining({
                 id: 'call-approved'
             })

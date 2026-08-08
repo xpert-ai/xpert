@@ -26,7 +26,7 @@
             "
             (click)="setTab('skills')"
           >
-            {{ 'PAC.Explore.SkillPlaza' | translate: { Default: 'Skill Plaza' } }}
+            {{ 'XP.Explore.SkillPlaza' | translate: { Default: 'Skill Plaza' } }}
           </button>
           @if (agentMarketplaceEnabled()) {
             <button
@@ -38,7 +38,7 @@
               "
               (click)="setTab('agent-square')"
             >
-              {{ 'PAC.Explore.AgentSquare.Tab' | translate: { Default: 'Agent Square' } }}
+              {{ 'XP.Explore.AgentSquare.Tab' | translate: { Default: 'Agent Square' } }}
             </button>
           }
         </div>
@@ -51,9 +51,9 @@
               class="pr-8"
               [placeholder]="
                 tab() === 'skills'
-                  ? ('PAC.Explore.SkillSearchPlaceholder'
+                  ? ('XP.Explore.SkillSearchPlaceholder'
                     | translate: { Default: 'Search skill name, description, or tags' })
-                  : ('PAC.Explore.AgentSquare.SearchPlaceholder'
+                  : ('XP.Explore.AgentSquare.SearchPlaceholder'
                     | translate: { Default: 'Search agents, scenarios, capabilities, or templates' })
               "
               [(ngModel)]="search"
@@ -77,13 +77,13 @@
               class="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <z-icon zType="plus" zSize="sm" />
-              {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
+              {{ 'XP.ACTIONS.Create' | translate: { Default: 'Create' } }}
               <z-icon zType="chevron-down" zSize="sm" />
             </button>
 
             <button z-button zType="outline" zSize="sm" type="button" (click)="openSkillManagement()">
               <z-icon zType="settings" zSize="sm" />
-              {{ 'PAC.Explore.ManageSkills' | translate: { Default: 'Manage Skills' } }}
+              {{ 'XP.Explore.ManageSkills' | translate: { Default: 'Manage Skills' } }}
             </button>
           }
         </div>
@@ -95,15 +95,15 @@
     <div z-menu-content class="w-64 p-2">
       <button type="button" z-menu-item (click)="openSkillManagement()">
         <z-icon zType="upload" zSize="sm" />
-        {{ 'PAC.Explore.UploadSkillPackage' | translate: { Default: 'Upload skill package' } }}
+        {{ 'XP.Explore.UploadSkillPackage' | translate: { Default: 'Upload skill package' } }}
       </button>
       <button type="button" z-menu-item (click)="openInstallFromRepository()">
         <z-icon zType="search" zSize="sm" />
-        {{ 'PAC.Explore.InstallFromRepository' | translate: { Default: 'Install from repository' } }}
+        {{ 'XP.Explore.InstallFromRepository' | translate: { Default: 'Install from repository' } }}
       </button>
       <button type="button" z-menu-item (click)="openSkillManagement()">
         <z-icon zType="folder-open" zSize="sm" />
-        {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open workspace skills' } }}
+        {{ 'XP.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open workspace skills' } }}
       </button>
     </div>
   </ng-template>

@@ -2,11 +2,11 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import {
     CopilotMessageType,
+    stringifyMessageContent,
     XpertFrequentQuestionsRequest,
     XpertFrequentQuestionsResponse,
     XpertFrequentQuestionsSample
 } from '@xpert-ai/contracts'
-import { stringifyMessageContent } from '@xpert-ai/copilot'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'

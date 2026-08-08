@@ -22,8 +22,8 @@ import {
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { OutboundActorTokenProvider, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Cron, SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -39,6 +39,7 @@ import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { ToolSchemaParser } from '../shared/tools/utils'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
+import { applyScheduledTaskOidcContext } from './scheduled-task-oidc-token'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
@@ -69,7 +70,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         private readonly xpertService: XpertService,
         private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        @Optional()
+        private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
         super(repository)
     }
@@ -87,7 +90,13 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     }
 
     async executeTask(id: string, options: TChatOptions) {
-        const task = await this.findOne(id, { relations: ['xpert'] })
+        const task = await this.findOne(id, { relations: ['xpert', 'createdBy', 'createdBy.role'] })
+        const chatOptions = applyScheduledTaskOidcContext(
+            task,
+            RequestContext.currentUser() ?? task.createdBy,
+            options,
+            this.outboundActorTokenProvider
+        )
         const runtimeState = await this.resolveTaskRuntimeState(task)
         const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
             prompt: task.prompt,
@@ -96,7 +105,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             conversationTaskId: task.id,
             timeZone: task.timeZone || options.timeZone,
             runtimeState,
-            chatOptions: options
+            chatOptions
         })
         observable.subscribe({
             next: (message) => {

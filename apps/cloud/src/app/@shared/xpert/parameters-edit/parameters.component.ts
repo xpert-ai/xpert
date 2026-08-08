@@ -5,8 +5,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, effect, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -26,9 +26,9 @@ import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
     DragDropModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-    NgmDensityDirective,
+    XpDensityDirective,
     ZardSwitchComponent
-],
+  ],
 
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -48,14 +48,12 @@ export class XpertParametersEditComponent {
   }
 
   constructor() {
-    effect(
-      () => {
-        const value = this.cva.value$()
-        if (value && !this.parameters.value.length) {
-          this.initParameters(value)
-        }
+    effect(() => {
+      const value = this.cva.value$()
+      if (value && !this.parameters.value.length) {
+        this.initParameters(value)
       }
-    )
+    })
   }
 
   onMenuClosed(index: number) {

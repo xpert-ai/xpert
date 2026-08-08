@@ -8,6 +8,7 @@ describe('SandboxAcquireBackendHandler', () => {
     }
     let provider: {
         create: jest.Mock
+        isAvailable?: jest.Mock
     }
     let handler: SandboxAcquireBackendHandler
 
@@ -254,5 +255,24 @@ describe('SandboxAcquireBackendHandler', () => {
             )
         ).rejects.toThrow('Sandbox provider is required')
         expect(registry.get).not.toHaveBeenCalled()
+    })
+
+    it('rejects an explicitly selected provider when it is unavailable', async () => {
+        provider.isAvailable = jest.fn().mockResolvedValue(false)
+
+        await expect(
+            handler.execute(
+                new SandboxAcquireBackendCommand({
+                    tenantId: 'tenant-1',
+                    provider: 'local-shell-sandbox',
+                    workingDirectory: '/workspace/default',
+                    workFor: {
+                        type: 'user',
+                        id: 'user-1'
+                    }
+                })
+            )
+        ).rejects.toThrow('Sandbox provider is unavailable: local-shell-sandbox')
+        expect(provider.create).not.toHaveBeenCalled()
     })
 })

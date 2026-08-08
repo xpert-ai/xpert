@@ -12,7 +12,7 @@ import {
   IResolvedAssistantBinding,
   IXpert
 } from '../types'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { API_PREFIX } from '@cloud/app/@core/state'
 
 const API_ASSISTANT_BINDING = API_PREFIX + '/assistant-binding'
 

@@ -93,13 +93,13 @@ describe('cloud sidebar menu helpers', () => {
     const chat = menu({
       link: '/chat',
       data: {
-        inactivePathPrefixes: ['/chat/chatbi', '/chatbi']
+        inactivePathPrefixes: ['/chat/tasks']
       }
     })
 
     expect(isCloudMenuRouteSuppressed('/chat/x/common/c', chat)).toBe(false)
-    expect(isCloudMenuRouteSuppressed('/chatbi', chat)).toBe(true)
-    expect(isCloudMenuRouteSuppressed('/chat/chatbi/abc', chat)).toBe(true)
+    expect(isCloudMenuRouteSuppressed('/chat/tasks', chat)).toBe(true)
+    expect(isCloudMenuRouteSuppressed('/chat/tasks/task-id', chat)).toBe(true)
   })
 
   it('forces route active state for configured active path prefixes', () => {

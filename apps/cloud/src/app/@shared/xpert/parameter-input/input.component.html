@@ -9,7 +9,7 @@
       maxlength="30"
       class="xp-input h-7 text-sm block w-full border-0 text-text-primary"
       type="text"
-      [placeholder]="'PAC.Xpert.EnterName' | translate: { Default: 'Enter name' }"
+      [placeholder]="'XP.Xpert.EnterName' | translate: { Default: 'Enter name' }"
       [ngModel]="item.param.name"
       (ngModelChange)="updateAttr(item, { name: $event })"
     />
@@ -63,7 +63,7 @@
     >
       <div class="w-full flex justify-between items-center">
         <h3 class="text-xl font-semibold leading-6">
-          {{ 'PAC.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
+          {{ 'XP.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
         </h3>
         <button type="button" class="btn rounded-xl justify-center w-8 h-8" (click)="parammt.close()">
           <i class="ri-close-line"></i>

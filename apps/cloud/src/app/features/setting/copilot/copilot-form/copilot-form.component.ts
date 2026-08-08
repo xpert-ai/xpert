@@ -10,7 +10,7 @@ import { ManagementCopilotServerService } from './management-copilot-server.serv
 
 @Component({
   standalone: true,
-  selector: 'pac-copilot-form',
+  selector: 'xp-copilot-form',
   templateUrl: './copilot-form.component.html',
   styleUrls: ['./copilot-form.component.scss'],
   providers: [{ provide: CopilotServerService, useClass: ManagementCopilotServerService }],

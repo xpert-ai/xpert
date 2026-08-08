@@ -1,23 +1,20 @@
 {
-	"restartable": "rs",
-	"ignore": [".git", "node_modules/", "dist/", "coverage/", "**/*.spec.ts"],
-	"watch": [
-		"src",
-		"../../packages/common/src",
-		"../../packages/config/src",
-		"../../legacies/adapter/src",
-		"../../packages/server/src",
-		"../../packages/auth/src",
-		"../../packages/server-ai/src",
-		"../../packages/analytics/src",
-		"../../packages/xmla/src",
-		"../../packages/plugin-sdk/src",
-		"../../packages/plugins"
-	],
-	"ext": "ts",
-	"exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register src/main.ts",
-	"env": {
-		"NODE_ENV": "development",
-		"TS_NODE_PROJECT": "tsconfig.app.json"
-	}
+  "restartable": "rs",
+  "ignore": [".git", "node_modules/", "dist/", "coverage/", "**/*.spec.ts"],
+  "watch": [
+    "src",
+    "../../packages/common/src",
+    "../../packages/config/src",
+    "../../packages/server/src",
+    "../../packages/auth/src",
+    "../../packages/server-ai/src",
+    "../../packages/plugin-sdk/src",
+    "../../packages/plugins"
+  ],
+  "ext": "ts",
+  "exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register src/main.ts",
+  "env": {
+    "NODE_ENV": "development",
+    "TS_NODE_PROJECT": "tsconfig.app.json"
+  }
 }

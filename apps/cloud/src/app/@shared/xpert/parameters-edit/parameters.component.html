@@ -24,11 +24,11 @@
         </div>
         <div class="text-sm font-semibold">
           <div class="flex items-center">
-            <div class="mr-1">{{ 'PAC.KEY_WORDS.Parameters' | translate: { Default: 'Parameters' } }}</div>
+            <div class="mr-1">{{ 'XP.KEY_WORDS.Parameters' | translate: { Default: 'Parameters' } }}</div>
             <div
               class="p-[1px] w-4 h-4 shrink-0"
               [zTooltip]="
-                'PAC.Xpert.ParametersInfo'
+                'XP.Xpert.ParametersInfo'
                   | translate
                     : {
                         Default:
@@ -66,23 +66,20 @@
               ></path>
             </svg>
           </div>
-          <div class="text-xs font-medium">{{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}</div>
+          <div class="text-xs font-medium">{{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}</div>
         </div>
       </div>
     </div>
   </div>
 
   <form [formGroup]="form" class="mt-1 px-3">
-    <div
-      class="rounded-lg border border-border-l2 bg-components-card-bg overflow-x-auto"
-      formArrayName="parameters"
-    >
+    <div class="rounded-lg border border-border-l2 bg-components-card-bg overflow-x-auto" formArrayName="parameters">
       <table class="w-full max-w-full border-collapse border-0 rounded-lg text-sm">
         <thead class="border-b border-divider-deep text-text-tertiary text-sm font-medium">
           <tr class="uppercase">
-            <td>{{ 'PAC.Xpert.Name' | translate: { Default: 'Name' } }}</td>
-            <td>{{ 'PAC.Xpert.Optional' | translate: { Default: 'Optional' } }}</td>
-            <td class="sticky right-0 w-20">{{ 'PAC.Xpert.Actions' | translate: { Default: 'Actions' } }}</td>
+            <td>{{ 'XP.Xpert.Name' | translate: { Default: 'Name' } }}</td>
+            <td>{{ 'XP.Xpert.Optional' | translate: { Default: 'Optional' } }}</td>
+            <td class="sticky right-0 w-20">{{ 'XP.Xpert.Actions' | translate: { Default: 'Actions' } }}</td>
           </tr>
         </thead>
         <tbody class="text-text-secondary">
@@ -231,7 +228,7 @@
 </div>
 
 <ng-template #parameterTypeMenu>
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu p-2">
+  <div #menu="cdkMenu" cdkMenu class="xp-cdk-menu p-2">
     <div
       cdkMenuItem
       class="flex items-center px-2 h-8 rounded-lg text-text-tertiary hover:bg-hover-bg cursor-pointer hover:text-text-primary"
@@ -258,7 +255,7 @@
           ></path>
         </g>
       </svg>
-      <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Text' | translate: { Default: 'Text' } }}</div>
+      <div class="ml-2 text-sm truncate">{{ 'XP.Xpert.ParameterType_Text' | translate: { Default: 'Text' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -287,7 +284,7 @@
         </g>
       </svg>
       <div class="ml-2 text-sm truncate">
-        {{ 'PAC.Xpert.ParameterType_Paragraph' | translate: { Default: 'Paragraph' } }}
+        {{ 'XP.Xpert.ParameterType_Paragraph' | translate: { Default: 'Paragraph' } }}
       </div>
     </div>
     <div
@@ -316,7 +313,7 @@
           ></path>
         </g>
       </svg>
-      <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Select' | translate: { Default: 'Select' } }}</div>
+      <div class="ml-2 text-sm truncate">{{ 'XP.Xpert.ParameterType_Select' | translate: { Default: 'Select' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -343,7 +340,7 @@
           ></path>
         </g>
       </svg>
-      <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Number' | translate: { Default: 'Number' } }}</div>
+      <div class="ml-2 text-sm truncate">{{ 'XP.Xpert.ParameterType_Number' | translate: { Default: 'Number' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -351,7 +348,7 @@
       (click)="addParameter({ type: eXpertParameterTypeEnum.OBJECT })"
     >
       <i class="ri-braces-line w-4 h-4 flex justify-center items-center text-text-tertiary"></i>
-      <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Object' | translate: { Default: 'Object' } }}</div>
+      <div class="ml-2 text-sm truncate">{{ 'XP.Xpert.ParameterType_Object' | translate: { Default: 'Object' } }}</div>
     </div>
     <div
       cdkMenuItem
@@ -360,23 +357,23 @@
     >
       <i class="ri-brackets-line w-4 h-4 flex justify-center items-center text-text-tertiary"></i>
       <div class="ml-2 text-sm truncate">
-        {{ 'PAC.Xpert.ParameterType_Array' | translate: { Default: 'Object Array' } }}
+        {{ 'XP.Xpert.ParameterType_Array' | translate: { Default: 'Object Array' } }}
       </div>
     </div>
   </div>
 </ng-template>
 
 <ng-template #paramConfigMenu let-index="index" let-control="control">
-  <div class="ngm-cdk-menu parameter-config-menu p-4" cdkMenu>
+  <div class="xp-cdk-menu parameter-config-menu p-4" cdkMenu>
     <h3 class="text-lg font-medium leading-6">
-      {{ 'PAC.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
+      {{ 'XP.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
     </h3>
 
     <div class="mt-4 mb-8" tabindex="-1">
       <div class="space-y-2">
         <div>
           <div class="leading-8 text-sm font-medium">
-            {{ 'PAC.Xpert.ParameterType' | translate: { Default: 'Parameter type' } }}
+            {{ 'XP.Xpert.ParameterType' | translate: { Default: 'Parameter type' } }}
           </div>
           <div>
             <ul
@@ -410,7 +407,7 @@
                     </g>
                   </svg>
                 </div>
-                <span>{{ 'PAC.Xpert.ParameterType_Text' | translate: { Default: 'Text' } }}</span>
+                <span>{{ 'XP.Xpert.ParameterType_Text' | translate: { Default: 'Text' } }}</span>
               </li>
 
               <li class="space-y-1" [cdkOption]="eXpertParameterTypeEnum.PARAGRAPH">
@@ -437,7 +434,7 @@
                     </g>
                   </svg>
                 </div>
-                <span class="">{{ 'PAC.Xpert.ParameterType_Paragraph' | translate: { Default: 'Paragraph' } }}</span>
+                <span class="">{{ 'XP.Xpert.ParameterType_Paragraph' | translate: { Default: 'Paragraph' } }}</span>
               </li>
 
               <li class="space-y-1" [cdkOption]="eXpertParameterTypeEnum.SELECT">
@@ -464,7 +461,7 @@
                     </g>
                   </svg>
                 </div>
-                <span class="">{{ 'PAC.Xpert.ParameterType_Select' | translate: { Default: 'Select' } }}</span>
+                <span class="">{{ 'XP.Xpert.ParameterType_Select' | translate: { Default: 'Select' } }}</span>
               </li>
 
               <li class="space-y-1" [cdkOption]="eXpertParameterTypeEnum.NUMBER">
@@ -490,32 +487,32 @@
                     </g>
                   </svg>
                 </div>
-                <span class="">{{ 'PAC.Xpert.ParameterType_Number' | translate: { Default: 'Number' } }}</span>
+                <span class="">{{ 'XP.Xpert.ParameterType_Number' | translate: { Default: 'Number' } }}</span>
               </li>
               <li class="space-y-1" [cdkOption]="eXpertParameterTypeEnum.OBJECT">
                 <div class="shrink-0">
                   <i class="ri-braces-line w-5 h-5 flex justify-center items-center"></i>
                 </div>
-                <span class="">{{ 'PAC.Xpert.ParameterType_Object' | translate: { Default: 'Object' } }}</span>
+                <span class="">{{ 'XP.Xpert.ParameterType_Object' | translate: { Default: 'Object' } }}</span>
               </li>
               <li class="space-y-1" [cdkOption]="eXpertParameterTypeEnum.ARRAY">
                 <div class="shrink-0">
                   <i class="ri-brackets-line w-5 h-5 flex justify-center items-center"></i>
                 </div>
-                <span class="">{{ 'PAC.Xpert.ParameterType_Array' | translate: { Default: 'Object Array' } }}</span>
+                <span class="">{{ 'XP.Xpert.ParameterType_Array' | translate: { Default: 'Object Array' } }}</span>
               </li>
             </ul>
           </div>
         </div>
         <div>
           <div class="leading-8 text-[13px] font-medium">
-            {{ 'PAC.Xpert.ParameterName' | translate: { Default: 'Parameter name' } }}
+            {{ 'XP.Xpert.ParameterName' | translate: { Default: 'Parameter name' } }}
           </div>
           <div>
             <input
               z-input
               class="w-full text-sm leading-9 text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
-              placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
+              placeholder="{{ 'XP.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
               type="text"
               formControlName="name"
             />
@@ -523,13 +520,13 @@
         </div>
         <div>
           <div class="leading-8 text-[13px] font-medium text-text-secondary">
-            {{ 'PAC.Xpert.ParameterDescription' | translate: { Default: 'Parameter description' } }}
+            {{ 'XP.Xpert.ParameterDescription' | translate: { Default: 'Parameter description' } }}
           </div>
           <div>
             <textarea
               z-input
               class="w-full text-sm text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
-              placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
+              placeholder="{{ 'XP.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
               type="text"
               formControlName="description"
             ></textarea>
@@ -538,13 +535,13 @@
 
         <div>
           <div class="leading-8 text-[13px] font-medium text-text-secondary">
-            {{ 'PAC.Xpert.ParameterDefault' | translate: { Default: 'Default value' } }}
+            {{ 'XP.Xpert.ParameterDefault' | translate: { Default: 'Default value' } }}
           </div>
 
           <input
             z-input
             class="w-full text-sm leading-9 text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
-            placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
+            placeholder="{{ 'XP.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
             type="text"
             formControlName="default"
           />
@@ -553,7 +550,7 @@
         @if (control.value.type === eXpertParameterTypeEnum.SELECT) {
           <div>
             <div class="leading-8 text-[13px] font-medium text-text-secondary">
-              {{ 'PAC.Xpert.SelectOptions' | translate: { Default: 'Select options' } }}
+              {{ 'XP.Xpert.SelectOptions' | translate: { Default: 'Select options' } }}
             </div>
             <div>
               <div>
@@ -622,7 +619,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
                   </svg>
                   <div class="text-text-tertiary text-[13px]">
-                    {{ 'PAC.Xpert.AddOptions' | translate: { Default: 'Add option' } }}
+                    {{ 'XP.Xpert.AddOptions' | translate: { Default: 'Add option' } }}
                   </div>
                 </div>
               </div>
@@ -631,7 +628,7 @@
         } @else {
           <div>
             <div class="leading-8 text-[13px] font-medium text-text-secondary">
-              {{ 'PAC.Xpert.MaxLength' | translate: { Default: 'Max length' } }}
+              {{ 'XP.Xpert.MaxLength' | translate: { Default: 'Max length' } }}
             </div>
             <div>
               <div>
@@ -650,7 +647,7 @@
         }
         <div>
           <div class="leading-8 text-[13px] font-medium text-text-secondary">
-            {{ 'PAC.Xpert.Optional' | translate: { Default: 'Optional' } }}
+            {{ 'XP.Xpert.Optional' | translate: { Default: 'Optional' } }}
           </div>
           <z-switch formControlName="optional" zSize="sm" />
         </div>

@@ -9,7 +9,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('email', $event)"
           >
-            {{ 'PAC.INVITE_PAGE.Email' | translate: { Default: 'Email' } }}
+            {{ 'XP.INVITE_PAGE.Email' | translate: { Default: 'Email' } }}
           </button>
         </th>
 
@@ -20,7 +20,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('role', $event)"
           >
-            {{ 'PAC.INVITE_PAGE.Role' | translate: { Default: 'Role' } }}
+            {{ 'XP.INVITE_PAGE.Role' | translate: { Default: 'Role' } }}
           </button>
         </th>
 
@@ -31,7 +31,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('invitedBy', $event)"
           >
-            {{ 'PAC.INVITE_PAGE.InvitedBy' | translate: { Default: 'Invited By' } }}
+            {{ 'XP.INVITE_PAGE.InvitedBy' | translate: { Default: 'Invited By' } }}
           </button>
         </th>
 
@@ -42,7 +42,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('createdAt', $event)"
           >
-            {{ 'PAC.INVITE_PAGE.CreatedAt' | translate: { Default: 'Created At' } }}
+            {{ 'XP.INVITE_PAGE.CreatedAt' | translate: { Default: 'Created At' } }}
           </button>
         </th>
 
@@ -53,7 +53,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('expireDate', $event)"
           >
-            {{ 'PAC.INVITE_PAGE.Expires' | translate: { Default: 'Expires' } }}
+            {{ 'XP.INVITE_PAGE.Expires' | translate: { Default: 'Expires' } }}
           </button>
         </th>
 
@@ -64,7 +64,7 @@
             [zDisableClear]="true"
             (zSortChange)="onSortChange('status', $event)"
           >
-            {{ 'PAC.INVITE_PAGE.Status' | translate: { Default: 'Status' } }}
+            {{ 'XP.INVITE_PAGE.Status' | translate: { Default: 'Status' } }}
           </button>
         </th>
 
@@ -76,7 +76,7 @@
           scope="col"
           class="sticky top-0 z-10 w-28 bg-background px-4 text-right whitespace-nowrap"
         >
-          {{ 'PAC.INVITE_PAGE.Action' | translate: { Default: 'Action' } }}
+          {{ 'XP.INVITE_PAGE.Action' | translate: { Default: 'Action' } }}
         </th>
       </tr>
     </thead>
@@ -98,23 +98,23 @@
                 </z-badge>
               } @else {
                 <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
-                  {{ 'PAC.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
+                  {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
                 </z-badge>
               }
             </td>
 
             <td z-table-cell class="px-4 py-3">
               @if (invite.invitedBy) {
-                <pac-user-profile-inline class="min-w-0" [user]="invite.invitedBy" small />
+                <xp-user-profile-inline class="min-w-0" [user]="invite.invitedBy" small />
               } @else {
                 <span class="text-text-tertiary">
-                  {{ 'PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                  {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
                 </span>
               }
             </td>
 
             <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
-              {{ invite.createdAt || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+              {{ invite.createdAt || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
             </td>
 
             <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
@@ -143,7 +143,7 @@
                     zSize="icon"
                     zShape="circle"
                     class="text-text-tertiary"
-                    [zTooltip]="'PAC.ACTIONS.Resend' | translate: { Default: 'Resend' }"
+                    [zTooltip]="'XP.ACTIONS.Resend' | translate: { Default: 'Resend' }"
                     zPosition="top"
                     (click)="
                       resendInvite(invite.id, invite.email, invite.role, invite.organization, invite.displayStatus)
@@ -159,7 +159,7 @@
                   zSize="icon"
                   zShape="circle"
                   class="text-text-destructive"
-                  [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                  [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                   zPosition="top"
                   (click)="deleteInvite(invite.id, invite.email)"
                 >
@@ -171,7 +171,7 @@
         } @empty {
           <tr z-table-row>
             <td z-table-cell colspan="7" class="py-8 text-center text-text-tertiary">
-              {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+              {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
             </td>
           </tr>
         }

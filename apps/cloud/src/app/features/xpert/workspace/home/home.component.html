@@ -8,12 +8,12 @@
       [cdkMenuTriggerFor]="workspaceMenu"
     >
       <div class="max-w-[160px] truncate text-text-secondary">
-        {{ workspace()?.name || ('PAC.Xpert.SelectWorkspace' | translate: { Default: 'Select a workspace' }) }}
+        {{ workspace()?.name || ('XP.Xpert.SelectWorkspace' | translate: { Default: 'Select a workspace' }) }}
       </div>
       @if (isTenantSharedWorkspace()) {
         <i
           class="ri-building-2-line text-sm text-text-tertiary"
-          [zTooltip]="'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
+          [zTooltip]="'XP.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
           zPosition="bottom"
         ></i>
       }
@@ -28,7 +28,7 @@
           } @else {
             <i class="ri-apps-fill text-lg mr-1"></i>
           }
-          {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
+          {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
         </li>
         <li
           [cdkOption]="XpertRoleTypeEnum.Agent"
@@ -41,7 +41,7 @@
           } @else {
             <i class="ri-team-line text-lg mr-1"></i>
           }
-          {{ 'PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' } }}
+          {{ 'XP.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' } }}
         </li>
 
         <li
@@ -118,7 +118,7 @@
               </g>
             </g>
           </svg>
-          {{ 'PAC.Xpert.BuiltinTool' | translate: { Default: 'Built-in Tool' } }}
+          {{ 'XP.Xpert.BuiltinTool' | translate: { Default: 'Built-in Tool' } }}
         </li>
 
         <li
@@ -128,7 +128,7 @@
           routerLinkActive="active"
         >
           <i class="ri-route-line text-lg mr-1"></i>
-          {{ 'PAC.Xpert.MCPTool' | translate: { Default: 'MCP Tool' } }}
+          {{ 'XP.Xpert.MCPTool' | translate: { Default: 'MCP Tool' } }}
         </li>
 
         <li
@@ -139,7 +139,7 @@
           #rla2="routerLinkActive"
         >
           <i class="ri-links-line text-lg mr-1"></i>
-          {{ 'PAC.Xpert.APITool' | translate: { Default: 'API Tool' } }}
+          {{ 'XP.Xpert.APITool' | translate: { Default: 'API Tool' } }}
         </li>
         <li
           [cdkOption]="'connectors'"
@@ -154,7 +154,7 @@
             <i class="ri-plug-line text-lg mr-1"></i>
           }
 
-          {{ 'PAC.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
+          {{ 'XP.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
         </li>
         <li
           [cdkOption]="'knowledgebase'"
@@ -168,7 +168,7 @@
           } @else {
             <i class="ri-book-shelf-line text-lg mr-1"></i>
           }
-          {{ 'PAC.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}
+          {{ 'XP.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}
         </li>
 
         <li class="xpert-list-option" [routerLink]="['database']" routerLinkActive="active" #rla6="routerLinkActive">
@@ -178,36 +178,38 @@
             <i class="ri-database-2-line text-lg mr-1"></i>
           }
 
-          {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
+          {{ 'XP.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
         </li>
 
-        <li class="xpert-list-option"
-          [routerLink]="['skills']"
-          routerLinkActive="active"
-          #rla7="routerLinkActive">
+        <li class="xpert-list-option" [routerLink]="['skills']" routerLinkActive="active" #rla7="routerLinkActive">
           @if (rla7.isActive) {
             <i class="ri-pencil-ruler-fill text-lg mr-1"></i>
           } @else {
             <i class="ri-pencil-ruler-line text-lg mr-1"></i>
           }
-          
-          {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: 'Skills'} }}
+
+          {{ 'XP.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
         </li>
 
-        <li class="xpert-list-option"
+        <li
+          class="xpert-list-option"
           [routerLink]="['prompt-workflows']"
           routerLinkActive="active"
-          #rla8="routerLinkActive">
+          #rla8="routerLinkActive"
+        >
           @if (rla8.isActive) {
             <i class="ri-message-3-fill text-lg mr-1"></i>
           } @else {
             <i class="ri-message-3-line text-lg mr-1"></i>
           }
 
-          {{ 'PAC.PromptWorkflow.ShortTitle' | translate: {Default: 'Prompt Workflows'} }}
+          {{ 'XP.PromptWorkflow.ShortTitle' | translate: { Default: 'Prompt Workflows' } }}
         </li>
 
-        <li [class]="canWriteWorkspace() ? 'xpert-list-option' : 'xpert-list-option opacity-50 cursor-not-allowed'" (click)="openEnvs()">
+        <li
+          [class]="canWriteWorkspace() ? 'xpert-list-option' : 'xpert-list-option opacity-50 cursor-not-allowed'"
+          (click)="openEnvs()"
+        >
           <svg
             width="16"
             height="16"
@@ -251,7 +253,7 @@
               </g>
             </g>
           </svg>
-          {{ 'PAC.Environment.Environments' | translate: { Default: 'Environments' } }}
+          {{ 'XP.Environment.Environments' | translate: { Default: 'Environments' } }}
         </li>
       </ul>
     }
@@ -260,12 +262,12 @@
   <div class="flex items-center gap-2">
     <tag-filter [allTags]="allTags()" [(tags)]="tags" />
 
-    <ngm-search class="rounded-xl overflow-hidden" [formControl]="searchControl" />
+    <xp-search class="rounded-xl overflow-hidden" [formControl]="searchControl" />
   </div>
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 @if (!paramId()) {
@@ -285,12 +287,12 @@
         </div>
         <input
           class="xp-input w-full pl-[26px]"
-          [placeholder]="'PAC.Xpert.FilterWorkspace' | translate: { Default: 'Filter Workspace' }"
+          [placeholder]="'XP.Xpert.FilterWorkspace' | translate: { Default: 'Filter Workspace' }"
           [(ngModel)]="searchWorkspace"
         />
       </div>
     } @else {
-      <label class="px-2 font-semibold">{{ 'PAC.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
+      <label class="px-2 font-semibold">{{ 'XP.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
     }
 
     <div class="max-h-96 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
@@ -304,15 +306,15 @@
             @if (me().id === item.ownerId) {
               <i
                 class="ri-user-2-fill mr-1 opacity-50"
-                [zTooltip]="'PAC.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
+                [zTooltip]="'XP.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
                 zPosition="left"
               ></i>
             }
-            <span [ngmHighlight]="searchWorkspace()" [content]="item.name">{{ item.name }}</span>
+            <span [xpHighlight]="searchWorkspace()" [content]="item.name">{{ item.name }}</span>
             @if (workspaceService.isTenantShared(item)) {
               <i
                 class="ri-building-2-line ml-1 opacity-50"
-                [zTooltip]="'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
+                [zTooltip]="'XP.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
                 zPosition="left"
               ></i>
             }
@@ -323,7 +325,7 @@
               class="inline-flex shrink-0 items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary"
             >
               <i class="ri-star-fill text-[10px]"></i>
-              {{ 'PAC.Xpert.DefaultWorkspace' | translate: { Default: 'Default' } }}
+              {{ 'XP.Xpert.DefaultWorkspace' | translate: { Default: 'Default' } }}
             </span>
           } @else {
             <button
@@ -337,21 +339,21 @@
               } @else {
                 <i class="ri-star-line"></i>
               }
-              {{ 'PAC.Xpert.SetDefaultWorkspace' | translate: { Default: 'Set as Default' } }}
+              {{ 'XP.Xpert.SetDefaultWorkspace' | translate: { Default: 'Set as Default' } }}
             </button>
           }
         </div>
       } @empty {
         <div class="flex justify-center p-4 text-text-secondary">
           <i class="ri-battery-line"></i>
-          {{ 'PAC.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
+          {{ 'XP.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
         </div>
       }
     </div>
 
     <div class="border-b border-divider-regular w-full my-1"></div>
 
-    <button cdkMenuItem class="ngm-cdk-menu-item p-2 w-full" (click)="newWorkspace()">
+    <button cdkMenuItem class="xp-cdk-menu-item p-2 w-full" (click)="newWorkspace()">
       <div
         class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border"
         role="none"
@@ -370,7 +372,7 @@
       </div>
 
       <div class="grow text-left font-normal ml-2 text-[14px] text-text-secondary" role="none">
-        {{ 'PAC.ACTIONS.New' | translate: { Default: 'New' } }}
+        {{ 'XP.ACTIONS.New' | translate: { Default: 'New' } }}
       </div>
       <!-- <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="shrink-0 w-3.5 h-3.5  text-text-tertiary" role="none">
         <path d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z" role="none"></path>
@@ -378,7 +380,7 @@
     </button>
 
     @if (workspace() && canManageWorkspace()) {
-      <button class="ngm-cdk-menu-item p-2" cdkMenuItem (click)="openSettings()">
+      <button class="xp-cdk-menu-item p-2" cdkMenuItem (click)="openSettings()">
         <div
           class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border mr-2"
           role="none"
@@ -389,7 +391,7 @@
             ></path>
           </svg>
         </div>
-        {{ 'PAC.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}
+        {{ 'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}
       </button>
     }
   </div>

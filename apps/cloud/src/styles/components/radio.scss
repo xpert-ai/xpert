@@ -3,7 +3,7 @@
  * Use with cdkListbox
  * Examples:
  * ```html
-    <ul class="ngm-radio-select flex space-x-3" cdkListbox >
+    <ul class="xp-radio-select flex space-x-3" cdkListbox >
       @for (type of types(); track type) {
         <li [cdkOption]="type">
           <div class="radio-indicator"></div>
@@ -13,7 +13,7 @@
     </ul>
  * ```
  */
-.ngm-radio-select {
+.xp-radio-select {
   .cdk-option.cdk-option-active {
     @apply shadow-sm border-primary-500 dark:border-primary-600;
     .radio-indicator {

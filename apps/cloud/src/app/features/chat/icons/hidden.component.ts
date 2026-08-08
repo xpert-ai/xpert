@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core'
 @Component({
   standalone: true,
   imports: [],
-  selector: 'pac-chat-hidden-svg',
+  selector: 'xp-chat-hidden-svg',
   template: `<svg
     width="24"
     height="24"

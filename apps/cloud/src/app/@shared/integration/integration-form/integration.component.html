@@ -1,14 +1,14 @@
 <form [formGroup]="formGroup" class="w-full grow p-8 overflow-y-auto flex flex-col gap-2">
   <emoji-avatar formControlName="avatar" large editable class="self-center rounded-xl overflow-hidden shadow-lg" />
 
-  <ngm-input class="flex-1" [label]="'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name" />
+  <xp-input class="flex-1" [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name" />
 
   <div class="flex-1 min-w-full flex flex-col">
-    <label class="ngm-input-label shrink-0">{{
-      'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' }
+    <label class="xp-input-label shrink-0">{{
+      'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
     }}</label>
     <textarea
-      class="ngm-input-element"
+      class="xp-input-element"
       z-input
       formControlName="description"
       cdkTextareaAutosize
@@ -26,7 +26,7 @@
 
   @if (webhookUrl()) {
     <div>
-      <p>{{ 'PAC.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
+      <p>{{ 'XP.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
       <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces bg-background-default-subtle">{{
         webhookUrl()
       }}</pre>
@@ -35,11 +35,11 @@
 
   <div class="w-full flex justify-start">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="test()">
-      {{ 'PAC.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
+      {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
     </button>
   </div>
 </form>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+  <xp-spin class="absolute left-0 top-0 w-full h-full" />
 }

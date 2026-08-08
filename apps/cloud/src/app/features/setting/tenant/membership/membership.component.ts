@@ -12,7 +12,7 @@ import { TenantService, ToastrService, getErrorMessage } from '../../../../@core
 
 @Component({
   standalone: true,
-  selector: 'pac-tenant-membership',
+  selector: 'xp-tenant-membership',
   templateUrl: './membership.component.html',
   styles: [
     `
@@ -75,7 +75,7 @@ export class TenantMembershipComponent implements OnInit {
         [MEMBERSHIP_TOKENS_PER_POINT_SETTING]: String(this.tokensPerPointCtrl.value)
       })
       this.form.markAsPristine()
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {

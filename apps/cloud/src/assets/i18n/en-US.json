@@ -4,7 +4,6 @@
     "ORGANIZATION": "Organization",
     "DASHBOARD": "Dashboard",
     "INDICATOR": "Indicator",
-    "INDICATOR_MARKET": "Market",
     "INDICATOR_REGISTER": "Register",
     "INDICATOR_GROUPS": "Groups",
     "INDICATOR_MY": "My Indicators",
@@ -22,8 +21,36 @@
     "EmailTemplates": "Email Templates",
     "CustomSMTP": "Custom SMTP"
   },
-  "PAC": {
+  "XP": {
     "Title": "Metad Analytics Cloud",
+    "Referral": {
+      "CopyCode": "Copy invitation code",
+      "Copied": "Copied",
+      "RegenerateCode": "Regenerate invitation code",
+      "RegeneratingCode": "Regenerating...",
+      "RegenerateConfirmTitle": "Regenerate invitation code?",
+      "RegenerateConfirmDescription": "The current invitation code will stop working immediately. Existing invitation relationships will not be changed.",
+      "RegenerateSuccess": "Invitation code regenerated.",
+      "RegenerateFailed": "Invitation code could not be regenerated.",
+      "ReferralCode": "Invitation code (optional)",
+      "ReferralCodePlaceholder": "Enter invitation code",
+      "ValidatingReferralCode": "Validating...",
+      "InvalidReferralCode": "The invitation code is invalid.",
+      "ValidReferralCode": "Invitation code is valid.",
+      "Relationships": "Invitation relationships",
+      "RelationshipsDescription": "Read-only direct account invitation relationships in this tenant.",
+      "SearchPlaceholder": "Search user or code",
+      "Referrer": "Inviter",
+      "Referred": "Invitee",
+      "UsedCode": "Used code",
+      "BoundAt": "Bound at",
+      "DeletedAccount": "Deleted account",
+      "Empty": "No invitation relationships found.",
+      "LoadError": "Invitation relationships could not be loaded.",
+      "Previous": "Previous",
+      "Next": "Next",
+      "PageSummary": "Page {{page}} of {{pages}} · {{total}} total"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime Operations",
       "SuperAdminOnly": "Super Admin",
@@ -348,6 +375,10 @@
           "Name": "Membership Plans",
           "Description": "Enable membership plan quotas, point deduction, and usage statistics."
         },
+        "FEATURE_MEMBERSHIP_PURCHASE": {
+          "Name": "Membership Purchase",
+          "Description": "Enable membership plan and personal point purchases."
+        },
         "FEATURE_MODEL_ACCESS_REQUEST": {
           "Name": "Personal Model Access",
           "Description": "Enable personal model access requests and grants."
@@ -355,6 +386,10 @@
         "FEATURE_MODEL_GATEWAY": {
           "Name": "Model API Gateway",
           "Description": "Publish approved tenant or organization models through an OpenAI-compatible API."
+        },
+        "FEATURE_REFERRAL": {
+          "Name": "Invitation Codes",
+          "Description": "Enable account invitation codes and tenant referral relationships."
         },
         "GROUP_XPERT": {
           "Name": "Xpert features",
@@ -551,6 +586,7 @@
       }
     },
     "MENU": {
+      "ReferralRelationships": "Invitation Relationships",
       "Tasks": "Tasks",
       "Scheduled": "Scheduled",
       "Plugins": "Plugins",
@@ -561,7 +597,6 @@
       "Model Providers": "Model Providers",
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
-      "LOCAL_AGENT_STATUS": "Local Agent Status",
       "MANAGE_FEATURES": "Manage Feature Modules",
       "Roles": {
         "Administration": "Administration",
@@ -572,7 +607,6 @@
         "CONFIGURATION": "Configuration",
         "NAME": "Name",
         "NAME_REQUIRED": "Name is required",
-        "USE_LOCAL_AGENT": "Use Local Agent",
         "DONE": "Done",
         "AuthType": "Auth Type",
         "AuthType_None": "None",
@@ -1008,6 +1042,7 @@
         "PAYMENT_GATEWAY_VIEW": "View Payment Gateway",
         "SMS_GATEWAY_VIEW": "View SMS Gateway",
         "CUSTOM_SMTP_VIEW": "View Custom SMTP",
+        "REFERRAL_VIEW": "View Invitation Relationships",
         "IMPORT_EXPORT_VIEW": "View Import/Export",
         "ORG_JOB_EMPLOYEE_VIEW": "View Job Employees",
         "ORG_JOB_MATCHING_VIEW": "View Job Matching",
@@ -1020,7 +1055,7 @@
         "MODEL_ACCESS_REQUEST_EDIT": "Manage Model Access Requests",
         "MODEL_GATEWAY_USE": "Use Model API Gateway",
         "MODEL_GATEWAY_MANAGE": "Manage Model API Gateway",
-        "MEMBERSHIP_PURCHASE": "Purchase Membership and Points",
+        "MEMBERSHIP_USE": "Use Membership Plans",
         "BILLING_PRODUCT_EDIT": "Manage Billing Products",
         "BILLING_REFUND": "Refund Billing Orders",
         "PAYMENT_PROVIDER_EDIT": "Manage Payment Providers"
@@ -1064,6 +1099,10 @@
     },
     "Membership": {
       "AdminTitle": "Membership Plans",
+      "Level": "Level",
+      "LevelValidation": "Level must be a non-negative integer.",
+      "PriceCurrency": "Currency",
+      "PriceCurrencyValidation": "Enter a currency code of up to 12 characters.",
       "AdminDescription": "Configure current-scope membership plans, point allowances, and model usage rules.",
       "TenantScope": "Tenant membership",
       "OrganizationScope": "Organization membership",
@@ -1157,6 +1196,11 @@
       "InvalidJson": "Invalid JSON configuration",
       "UserMembership": "Membership",
       "CurrentPlan": "Current plan",
+      "CurrentScopePlan": "Current management-scope plan",
+      "CurrentManagementScope": "Current management scope",
+      "EffectiveInScope": "Effective in this scope",
+      "MembershipsByScope": "Current plans by scope",
+      "MembershipsByScopeHint": "View the tenant plan, each organization's current plan, and upcoming periods.",
       "PlanExpired": "Membership plan expired",
       "RemainingPoints": "Remaining points",
       "UsedPoints": "Used points",
@@ -1164,6 +1208,7 @@
       "NoUserMembership": "No membership has been created for this user yet.",
       "AssignNote": "Assignment note",
       "AssignPlan": "Assign plan",
+      "ExternallyManagedMembershipHint": "This membership is managed by an external workflow and cannot be replaced or renewed here.",
       "PointDelta": "Point delta",
       "Points": "Points",
       "Increase": "Increase",
@@ -1189,6 +1234,7 @@
       "CancelPeriodConfirmTitle": "Cancel upcoming period?",
       "CancelPeriodConfirmDescription": "This upcoming entitlement will be cancelled. The current period and other upcoming periods will not change.",
       "ExternalPeriodManagedHint": "Refund and cancel in the billing system",
+      "ManageInOrganizationScope": "Switch to the organization scope to manage",
       "CancelLaterPeriodsFirst": "Cancel later periods first",
       "Assign": "Assign",
       "Adjust": "Adjust",

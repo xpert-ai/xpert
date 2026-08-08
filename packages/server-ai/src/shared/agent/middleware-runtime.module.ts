@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { XPERT_RUNTIME_CAPABILITIES_TOKEN } from '@xpert-ai/plugin-sdk'
+import { ActorTokenModule } from '@xpert-ai/server-core'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 import { VolumeModule } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
@@ -10,7 +11,7 @@ import { CollaborationModule } from '../../collaboration/collaboration.module'
 
 @Global()
 @Module({
-    imports: [CqrsModule, VolumeModule, ConnectorModule, ArtifactsModule, CollaborationModule],
+    imports: [CqrsModule, VolumeModule, ConnectorModule, ArtifactsModule, CollaborationModule, ActorTokenModule],
     providers: [
         WorkspaceFilesRuntimeCapabilityService,
         AgentMiddlewareRuntimeService,

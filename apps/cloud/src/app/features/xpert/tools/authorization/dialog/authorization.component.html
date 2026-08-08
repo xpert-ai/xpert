@@ -1,6 +1,6 @@
 <header class="px-4 pt-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 class="text-xl font-semibold cursor-move">
-    {{ 'PAC.Xpert.AuthorizationMethod' | translate: { Default: 'Authorization method' } }}
+    {{ 'XP.Xpert.AuthorizationMethod' | translate: { Default: 'Authorization method' } }}
   </h4>
 </header>
 
@@ -8,9 +8,9 @@
   <form class="space-y-4" [formGroup]="formGroup">
     <div>
       <div class="py-2 leading-5 text-sm font-medium">
-        {{ 'PAC.Xpert.AuthorizationType' | translate: { Default: 'Authorization type' } }}
+        {{ 'XP.Xpert.AuthorizationType' | translate: { Default: 'Authorization type' } }}
       </div>
-      <ul class="ngm-radio-select flex space-x-3" cdkListbox formControlName="auth_type">
+      <ul class="xp-radio-select flex space-x-3" cdkListbox formControlName="auth_type">
         <li [cdkOption]="eApiProviderAuthType.NONE" class="w-40">
           <div class="radio-indicator"></div>
           <div class="text-sm font-normal">None</div>
@@ -29,11 +29,11 @@
     @if (authType === eApiProviderAuthType.BASIC) {
       <div>
         <div class="py-2 leading-5 text-sm font-medium">
-          {{ 'PAC.KEY_WORDS.Username' | translate: { Default: 'Username' } }}
+          {{ 'XP.KEY_WORDS.Username' | translate: { Default: 'Username' } }}
         </div>
         <input
-          class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          [placeholder]="'PAC.KEY_WORDS.EnterUsername' | translate: { Default: 'Enter username' }"
+          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
+          [placeholder]="'XP.KEY_WORDS.EnterUsername' | translate: { Default: 'Enter username' }"
           type="text"
           formControlName="username"
           autocomplete="username"
@@ -41,11 +41,11 @@
       </div>
       <div>
         <div class="py-2 leading-5 text-sm font-medium">
-          {{ 'PAC.KEY_WORDS.Password' | translate: { Default: 'Password' } }}
+          {{ 'XP.KEY_WORDS.Password' | translate: { Default: 'Password' } }}
         </div>
         <input
-          class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: { Default: 'Enter password' }"
+          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
+          [placeholder]="'XP.KEY_WORDS.EnterPassword' | translate: { Default: 'Enter password' }"
           type="password"
           formControlName="password"
           autocomplete="current-password"
@@ -53,9 +53,9 @@
       </div>
     } @else if (authType === eApiProviderAuthType.API_KEY) {
       <div class="py-2 leading-5 text-sm font-medium">
-        {{ 'PAC.Xpert.AuthType' | translate: { Default: 'Auth Type' } }}
+        {{ 'XP.Xpert.AuthType' | translate: { Default: 'Auth Type' } }}
       </div>
-      <ul class="ngm-radio-select flex space-x-3" cdkListbox formControlName="api_key_header_prefix">
+      <ul class="xp-radio-select flex space-x-3" cdkListbox formControlName="api_key_header_prefix">
         <li class="w-40" cdkOption="">
           <div class="radio-indicator"></div>
           <div class="text-sm font-normal">Basic</div>
@@ -71,11 +71,11 @@
       </ul>
       <div>
         <div class="flex items-center h-8 text-[13px] font-medium">
-          {{ 'PAC.KEY_WORDS.Key' | translate: { Default: 'Key' } }}
+          {{ 'XP.KEY_WORDS.Key' | translate: { Default: 'Key' } }}
           <div
             class="ml-0.5 w-4 h-4"
             [zTooltip]="
-              'PAC.Xpert.HttpHeaderKey'
+              'XP.Xpert.HttpHeaderKey'
                 | translate
                   : {
                       Default:
@@ -98,7 +98,7 @@
           </div>
         </div>
         <input
-          class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
+          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
           placeholder="HTTP header name for API Key"
           formControlName="api_key_header"
           autocomplete="off"
@@ -106,11 +106,11 @@
       </div>
       <div>
         <div class="py-2 leading-5 text-sm font-medium">
-          {{ 'PAC.KEY_WORDS.Value' | translate: { Default: 'Value' } }}
+          {{ 'XP.KEY_WORDS.Value' | translate: { Default: 'Value' } }}
         </div>
         <input
-          class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          [placeholder]="'PAC.Xpert.EnterAPIKey' | translate: { Default: 'Enter API Key' }"
+          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
+          [placeholder]="'XP.Xpert.EnterAPIKey' | translate: { Default: 'Enter API Key' }"
           type="password"
           formControlName="api_key_value"
           autocomplete="current-password"
@@ -123,12 +123,12 @@
 <div class="w-full flex justify-end p-2">
   <div class="flex items-center gap-2">
     <button type="button" class="btn disabled:btn-disabled btn-large" (click)="cancel()">
-      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="save()">
       <i class="ri-save-line mr-1"></i>
-      {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
     </button>
   </div>
 </div>

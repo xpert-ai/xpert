@@ -77,7 +77,7 @@ export class TagMaintainComponent {
       this.tagService.update(tag.id, { [attrName]: tag[attrName] }).subscribe({
         next: () => {
           this.tagService.refresh()
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         },
         error: (err) => {
           this.#toastr.error(getErrorMessage(err))

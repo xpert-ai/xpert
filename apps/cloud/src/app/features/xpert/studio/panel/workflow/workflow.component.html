@@ -21,13 +21,13 @@
 
     <input
       class="xp-input grow mr-2 h-6 text-base text-text-primary font-semibold min-w-0"
-      placeholder="{{ 'PAC.Xpert.AddTitle' | translate: { Default: 'Add title' } }}..."
+      placeholder="{{ 'XP.Xpert.AddTitle' | translate: { Default: 'Add title' } }}..."
       [(ngModel)]="title"
     />
     <div class="shrink-0 flex items-center text-text-tertiary">
       <div
         class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-text-primary hover:bg-hover-bg"
-        [zTooltip]="'PAC.Xpert.TestWorkflowNode' | translate: { Default: 'Test Workflow Node' }"
+        [zTooltip]="'XP.Xpert.TestWorkflowNode' | translate: { Default: 'Test Workflow Node' }"
         zPosition="top"
         (click)="openTest()"
       >
@@ -35,7 +35,7 @@
       </div>
       <div
         class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-text-primary hover:bg-hover-bg"
-        [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+        [zTooltip]="'XP.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
         zPosition="top"
         (click)="moveToNode()"
       >
@@ -45,7 +45,7 @@
         [href]="helpUrl() + '/docs/ai/workflow/' + type()"
         target="_blank"
         class="flex items-center justify-center mr-1 w-6 h-6"
-        [zTooltip]="'PAC.Xpert.HelpDocs' | translate: { Default: 'Help docs' }"
+        [zTooltip]="'XP.Xpert.HelpDocs' | translate: { Default: 'Help docs' }"
         zPosition="top"
       >
         <i class="ri-book-open-line"></i>
@@ -66,7 +66,7 @@
     <textarea
       rows="3"
       class="w-full min-h-[70px] resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm leading-[18px] text-text-primary outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 hover:bg-hover-bg"
-      placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
+      placeholder="{{ 'XP.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
       [(ngModel)]="description"
     ></textarea>
   </div>
@@ -173,7 +173,7 @@
 }
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 @if (testing()) {
@@ -188,7 +188,7 @@
     >
       <div class="flex h-8 shrink-0 items-center justify-between pl-4 pr-3 pt-4">
         <div class="truncate text-lg font-semibold text-text-primary">
-          {{ 'PAC.Xpert.TestRun' | translate: { Default: 'Test Run' } }} {{ title() || key() }}
+          {{ 'XP.Xpert.TestRun' | translate: { Default: 'Test Run' } }} {{ title() || key() }}
         </div>
         <div
           class="ml-2 shrink-0 cursor-pointer p-1 w-7 h-7 rounded-md flex justify-center items-center hover:bg-hover-bg"
@@ -223,7 +223,7 @@
         }
         @default {
           <div class="select-none rounded-lg bg-background-default-subtle p-3 m-4 text-center text-text-tertiary">
-            {{ 'PAC.Workflow.NotSupportedYet' | translate: { Default: 'Not supported yet!' } }}
+            {{ 'XP.Workflow.NotSupportedYet' | translate: { Default: 'Not supported yet!' } }}
           </div>
         }
       }
@@ -235,7 +235,7 @@
   <div cdkMenu class="cdk-menu__medium">
     <div class="h-[1px] bg-divider-regular my-1"></div>
     <div cdkMenuItem class="danger" (click)="remove()">
-      {{ 'PAC.Workflow.Remove' | translate: { Default: 'Remove' } }}
+      {{ 'XP.Workflow.Remove' | translate: { Default: 'Remove' } }}
     </div>
   </div>
 </ng-template>

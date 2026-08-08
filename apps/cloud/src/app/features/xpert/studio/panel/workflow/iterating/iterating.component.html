@@ -2,7 +2,7 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       <div class="font-semibold uppercase text-text-secondary">
-        {{ 'PAC.Xpert.InputVariables' | translate: { Default: 'Input Variables' } }}
+        {{ 'XP.Xpert.InputVariables' | translate: { Default: 'Input Variables' } }}
       </div>
     </div>
     <div class="flex items-center gap-1">
@@ -111,7 +111,7 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       <div class="font-semibold uppercase text-text-secondary">
-        {{ 'PAC.Xpert.OutputVariables' | translate: { Default: 'Output Variables' } }}
+        {{ 'XP.Xpert.OutputVariables' | translate: { Default: 'Output Variables' } }}
       </div>
     </div>
 
@@ -140,7 +140,7 @@
             <input
               class="xp-input w-full"
               [placeholder]="
-                'PAC.Xpert.VariableNameOrOverwriteElement'
+                'XP.Xpert.VariableNameOrOverwriteElement'
                   | translate: { Default: 'Variable name, overwrite current element by default' }
               "
               [ngModel]="item.name"
@@ -169,8 +169,10 @@
       }
     </ul>
   } @else {
-    <div class="cursor-default select-none rounded-lg bg-background-default-subtle p-3 text-center text-sm text-text-tertiary">
-      {{ 'PAC.Xpert.ClickAddToAddVariable' | translate: { Default: 'Click the "+" button to add variable' } }}
+    <div
+      class="cursor-default select-none rounded-lg bg-background-default-subtle p-3 text-center text-sm text-text-tertiary"
+    >
+      {{ 'XP.Xpert.ClickAddToAddVariable' | translate: { Default: 'Click the "+" button to add variable' } }}
     </div>
   }
 </div>
@@ -180,12 +182,12 @@
     <div class="flex justify-between items-center">
       <div class="flex items-center h-6">
         <div class="system-sm-semibold-uppercase text-text-secondary">
-          {{ 'PAC.Xpert.Parallelization' | translate: { Default: 'Parallelization' } }}
+          {{ 'XP.Xpert.Parallelization' | translate: { Default: 'Parallelization' } }}
         </div>
         <i
           class="ri-question-line ml-1 text-text-quaternary hover:text-text-tertiary"
           [zTooltip]="
-            'PAC.Xpert.ParallelizationTooltip'
+            'XP.Xpert.ParallelizationTooltip'
               | translate: { Default: 'In parallel mode, tasks in an iteration support parallel execution' }
           "
           zPosition="top"
@@ -203,12 +205,12 @@
     <div class="flex justify-between items-center">
       <div class="flex items-center h-6">
         <div class="system-xs-medium-uppercase text-text-tertiary">
-          {{ 'PAC.Xpert.MaximumParallel' | translate: { Default: 'Maximum Parallel' } }}
+          {{ 'XP.Xpert.MaximumParallel' | translate: { Default: 'Maximum Parallel' } }}
         </div>
         <i
           class="ri-question-line ml-1 text-text-quaternary hover:text-text-tertiary"
           [zTooltip]="
-            'PAC.Xpert.MaximumParallelTooltip'
+            'XP.Xpert.MaximumParallelTooltip'
               | translate
                 : {
                     Default:
@@ -225,7 +227,7 @@
         <div class="relative flex items-center w-20 mr-4">
           <input
             class="xp-input w-full"
-            [placeholder]="'PAC.KEY_WORDS.PleaseEnter' | translate: { Default: 'Please enter' }"
+            [placeholder]="'XP.KEY_WORDS.PleaseEnter' | translate: { Default: 'Please enter' }"
             max="10"
             min="1"
             type="number"
@@ -258,14 +260,14 @@
     <div class="flex justify-between items-center">
       <div class="flex items-center h-6">
         <div class="system-sm-semibold-uppercase text-text-secondary">
-          {{ 'PAC.Xpert.ErrorMode' | translate: { Default: 'Error Mode' } }}
+          {{ 'XP.Xpert.ErrorMode' | translate: { Default: 'Error Mode' } }}
         </div>
       </div>
       <div class="flex"></div>
     </div>
     <div class="mt-1">
-      <ngm-select
-        [placeholder]="'PAC.Xpert.ErrorModePlaceholder' | translate: { Default: 'Choose a way to respond to an error' }"
+      <xp-select
+        [placeholder]="'XP.Xpert.ErrorModePlaceholder' | translate: { Default: 'Choose a way to respond to an error' }"
         [selectOptions]="errorModeOptions"
         [ngModel]="errorMode()"
         (ngModelChange)="updateEntity('errorMode', $event)"

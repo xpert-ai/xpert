@@ -1,7 +1,6 @@
-
 import { booleanAttribute, Component, computed, input } from '@angular/core'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, IXpertToolset, XpertToolsetCategoryEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
@@ -10,21 +9,14 @@ import { TagComponent } from '../../tag'
 
 @Component({
   standalone: true,
-  imports: [
-    TranslateModule,
-    NgmHighlightDirective,
-    EmojiAvatarComponent,
-    NgmI18nPipe,
-    TagComponent,
-    UserPipe
-],
+  imports: [TranslateModule, XpHighlightDirective, EmojiAvatarComponent, XpI18nPipe, TagComponent, UserPipe],
   selector: 'xpert-toolset-card',
   templateUrl: 'toolset.component.html',
   styleUrls: ['toolset.component.scss']
 })
 export class ToolsetCardComponent {
   eXpertToolsetCategoryEnum = XpertToolsetCategoryEnum
-  
+
   readonly helpWebsite = injectHelpWebsite()
 
   readonly toolset = input<IXpertToolset>()

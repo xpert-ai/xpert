@@ -1,19 +1,18 @@
-
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
   imports: [FormsModule, TranslateModule],
-  selector: 'pac-file-icon',
+  selector: 'xp-file-icon',
   templateUrl: './icon.component.html',
   styleUrls: ['./icon.component.scss'],
   hostDirectives: [
     {
-      directive: NgmDensityDirective,
-      inputs: ['small', 'large'],
+      directive: XpDensityDirective,
+      inputs: ['small', 'large']
     }
   ]
 })

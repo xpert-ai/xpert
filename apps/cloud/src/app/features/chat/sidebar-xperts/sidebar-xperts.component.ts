@@ -16,7 +16,7 @@ type SidebarXpertState = {
 
 @Component({
   standalone: true,
-  selector: 'pac-chat-sidebar-xperts',
+  selector: 'xp-chat-sidebar-xperts',
   imports: [CommonModule, EmojiAvatarComponent, ...ZardTooltipImports],
   template: `
     @if (xperts().length) {

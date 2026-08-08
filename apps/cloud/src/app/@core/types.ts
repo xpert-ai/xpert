@@ -1,28 +1,17 @@
 import { HttpErrorResponse } from '@angular/common/http'
-import { IProject, IUser } from '@xpert-ai/contracts'
-import { TableColumnType } from '@xpert-ai/ocap-core'
+import { IUser } from '@xpert-ai/contracts'
 import { enUS, zhCN } from 'date-fns/locale'
 import ShortUniqueId from 'short-unique-id'
 export * from '@xpert-ai/contracts'
-export {
-  convertConnectionResult,
-  convertStoryModel,
-  convertStoryPointResult,
-  convertStoryResult,
-  convertStoryWidgetResult
-} from '@xpert-ai/cloud/state'
 
 const suuidGenerator = new ShortUniqueId({ length: 10 })
-export const suuid = (...args: Parameters<(typeof suuidGenerator)['randomUUID']>) =>
-  suuidGenerator.randomUUID(...args)
+export const suuid = (...args: Parameters<(typeof suuidGenerator)['randomUUID']>) => suuidGenerator.randomUUID(...args)
 
 const uid10Generator = new ShortUniqueId({ length: 10 })
-export const uid10 = (...args: Parameters<(typeof uid10Generator)['randomUUID']>) =>
-  uid10Generator.randomUUID(...args)
+export const uid10 = (...args: Parameters<(typeof uid10Generator)['randomUUID']>) => uid10Generator.randomUUID(...args)
 
 const uuidGenerator = new ShortUniqueId({ length: 10 })
-export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) =>
-  uuidGenerator.randomUUID(...args)
+export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) => uuidGenerator.randomUUID(...args)
 export function letterStartSUID(start: string) {
   return start + uuid()
 }
@@ -66,11 +55,7 @@ export interface User extends IUser {
 
 export enum MenuCatalog {
   Unknow,
-  Project,
-  Stories,
-  Models,
-  Settings,
-  IndicatorApp
+  Settings
 }
 
 export function getErrorMessage(err: any): string {
@@ -82,7 +67,7 @@ export function getErrorMessage(err: any): string {
       error = err?.error?.message
     } else if (typeof err?.error === 'string') {
       error = err?.error
-    } else if(err.message) {
+    } else if (err.message) {
       error = err?.message
     }
   } else if (err instanceof Error) {
@@ -138,10 +123,7 @@ export const DefaultCollection = {
   name: 'Default'
 }
 
-export const DefaultProject = {
-  id: '__default__',
-  name: 'Default'
-} as IProject
+export type TableColumnType = 'String' | 'Integer' | 'Numeric' | 'Boolean' | 'Datetime' | 'Date' | 'Time'
 
 // 对应 Adapter 中的类型
 export interface CreationTable {
@@ -183,24 +165,21 @@ export interface ColumnDef {
   fraction?: number
 }
 
-export class NgmError extends Error {
+export class XpError extends Error {
   public code: string
   public date: Date
   constructor(code: string, ...params) {
     // Pass remaining arguments (including vendor specific ones) to parent constructor
-    super(...params);
+    super(...params)
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, NgmError);
+      Error.captureStackTrace(this, XpError)
     }
 
-    this.name = "NgmError";
+    this.name = 'XpError'
     // Custom debugging information
-    this.code = code;
-    this.date = new Date();
+    this.code = code
+    this.date = new Date()
   }
 }
-
-export const WasmDBDialect = 'duckdb'
-export const WasmDBDefaultCatalog = 'main'

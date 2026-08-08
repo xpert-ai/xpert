@@ -1,12 +1,12 @@
 <div class="flex h-full w-full min-w-0 flex-col">
-  <div class="pac-page-header">
+  <div class="xp-page-header">
     <div class="min-w-0">
-      <div class="pac-page-title">
-        {{ 'PAC.ModelGateway.AdminTitle' | translate: { Default: 'Model API gateway' } }}
+      <div class="xp-page-title">
+        {{ 'XP.ModelGateway.AdminTitle' | translate: { Default: 'Model API gateway' } }}
       </div>
       <div class="mt-1 max-w-3xl text-sm text-text-tertiary">
         {{
-          'PAC.ModelGateway.AdminDescription'
+          'XP.ModelGateway.AdminDescription'
             | translate
               : {
                   Default: 'Review external API usage, manage API keys, and configure gateway limits and retention.'
@@ -16,66 +16,62 @@
     </div>
     <nav
       z-tab-nav-bar
-      class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden"
+      class="xp-tab-nav-bar self-stretch max-w-full overflow-hidden"
       color="accent"
       alignTabs="start"
       stretchTabs="false"
       disableRipple
     >
       <button z-tab-link type="button" [active]="activeTab() === 'calls'" (click)="setTab('calls')">
-        {{ 'PAC.ModelGateway.Calls' | translate: { Default: 'API calls' } }}
+        {{ 'XP.ModelGateway.Calls' | translate: { Default: 'API calls' } }}
       </button>
       <button z-tab-link type="button" [active]="activeTab() === 'keys'" (click)="setTab('keys')">
-        {{ 'PAC.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
+        {{ 'XP.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
       </button>
       @if (isTenantScope()) {
         <button z-tab-link type="button" [active]="activeTab() === 'settings'" (click)="setTab('settings')">
-          {{ 'PAC.ModelGateway.Configuration' | translate: { Default: 'Configuration' } }}
+          {{ 'XP.ModelGateway.Configuration' | translate: { Default: 'Configuration' } }}
         </button>
       }
     </nav>
   </div>
 
-  <div class="pac-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-auto p-4">
+  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-auto p-4">
     @if (loading()) {
-      <div class="flex min-h-52 items-center justify-center"><ngm-spin /></div>
+      <div class="flex min-h-52 items-center justify-center"><xp-spin /></div>
     } @else {
       @switch (activeTab()) {
         @case ('calls') {
-          <form
-            class="flex flex-wrap items-end gap-2"
-            [formGroup]="filterForm"
-            (ngSubmit)="applyActiveSearch()"
-          >
+          <form class="flex flex-wrap items-end gap-2" [formGroup]="filterForm" (ngSubmit)="applyActiveSearch()">
             <z-form-field class="w-full max-w-md">
               <z-form-label>
-                {{ 'PAC.ModelGateway.SearchCalls' | translate: { Default: 'Search calls' } }}
+                {{ 'XP.ModelGateway.SearchCalls' | translate: { Default: 'Search calls' } }}
               </z-form-label>
               <input
                 z-input
                 formControlName="callsSearch"
                 [placeholder]="
-                  'PAC.ModelGateway.SearchCallsPlaceholder'
+                  'XP.ModelGateway.SearchCallsPlaceholder'
                     | translate: { Default: 'Request ID, user ID, provider, or model' }
                 "
               />
             </z-form-field>
             <button z-button zType="outline" type="submit">
-              {{ 'PAC.ACTIONS.Search' | translate: { Default: 'Search' } }}
+              {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
             </button>
           </form>
           <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
             <table z-table zSize="compact" class="min-w-[76rem]">
               <thead z-table-header>
                 <tr z-table-row>
-                  <th z-table-head>{{ 'PAC.ModelGateway.RequestId' | translate: { Default: 'Request ID' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.User' | translate: { Default: 'User' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.RequestId' | translate: { Default: 'Request ID' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.User' | translate: { Default: 'User' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
                   <th z-table-head class="text-right">
-                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                    {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
                   </th>
                 </tr>
               </thead>
@@ -99,14 +95,14 @@
                     </td>
                     <td z-table-cell>{{ call.externalModelId }}</td>
                     <td z-table-cell>
-                      {{ 'PAC.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
+                      {{ 'XP.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
                     </td>
                     <td z-table-cell>{{ call.chargedPoints }}</td>
                     <td z-table-cell>{{ formatDate(call.startedAt) }}</td>
                     <td z-table-cell class="text-right">
                       @if (call.bodyExpiresAt) {
                         <button z-button zType="outline" zSize="sm" type="button" (click)="viewCallBody(call)">
-                          {{ 'PAC.ModelGateway.ViewBody' | translate: { Default: 'View body' } }}
+                          {{ 'XP.ModelGateway.ViewBody' | translate: { Default: 'View body' } }}
                         </button>
                       }
                     </td>
@@ -119,15 +115,14 @@
             <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
               <span>
                 {{
-                  'PAC.ModelGateway.PageSummary'
+                  'XP.ModelGateway.PageSummary'
                     | translate
                       : {
                           current: activePageNumber(),
                           pages: activePageCount(),
                           total: activeTotal(),
-                          Default: 'Page {{current}} of {{pages}} · {{total}} records'
-                        }
-                }}
+                          Default: 'Page {{current}}
+                of {{ pages }} · {{ total }} records' } }}
               </span>
               <div class="flex gap-2">
                 <button
@@ -138,7 +133,7 @@
                   [disabled]="activePageNumber() === 1"
                   (click)="previousPage()"
                 >
-                  {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+                  {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
                 </button>
                 <button
                   z-button
@@ -148,47 +143,42 @@
                   [disabled]="activePageNumber() === activePageCount()"
                   (click)="nextPage()"
                 >
-                  {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+                  {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
                 </button>
               </div>
             </div>
           }
         }
         @case ('keys') {
-          <form
-            class="flex flex-wrap items-end gap-2"
-            [formGroup]="filterForm"
-            (ngSubmit)="applyActiveSearch()"
-          >
+          <form class="flex flex-wrap items-end gap-2" [formGroup]="filterForm" (ngSubmit)="applyActiveSearch()">
             <z-form-field class="w-full max-w-md">
               <z-form-label>
-                {{ 'PAC.ModelGateway.SearchKeys' | translate: { Default: 'Search API keys' } }}
+                {{ 'XP.ModelGateway.SearchKeys' | translate: { Default: 'Search API keys' } }}
               </z-form-label>
               <input
                 z-input
                 formControlName="keysSearch"
                 [placeholder]="
-                  'PAC.ModelGateway.SearchKeysPlaceholder'
-                    | translate: { Default: 'Key name, prefix, or user ID' }
+                  'XP.ModelGateway.SearchKeysPlaceholder' | translate: { Default: 'Key name, prefix, or user ID' }
                 "
               />
             </z-form-field>
             <button z-button zType="outline" type="submit">
-              {{ 'PAC.ACTIONS.Search' | translate: { Default: 'Search' } }}
+              {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
             </button>
           </form>
           <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
             <table z-table zSize="compact" class="min-w-[68rem]">
               <thead z-table-header>
                 <tr z-table-row>
-                  <th z-table-head>{{ 'PAC.ModelGateway.User' | translate: { Default: 'User' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Prefix' | translate: { Default: 'Prefix' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.LastUsedAt' | translate: { Default: 'Last used' } }}</th>
-                  <th z-table-head>{{ 'PAC.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.User' | translate: { Default: 'User' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Prefix' | translate: { Default: 'Prefix' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.LastUsedAt' | translate: { Default: 'Last used' } }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
                   <th z-table-head class="text-right">
-                    {{ 'PAC.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
+                    {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
                   </th>
                 </tr>
               </thead>
@@ -213,7 +203,7 @@
                     </td>
                     <td z-table-cell>
                       <z-badge zType="outline">
-                        {{ 'PAC.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
+                        {{ 'XP.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
                       </z-badge>
                     </td>
                     <td z-table-cell>{{ formatDate(key.lastUsedAt) }}</td>
@@ -221,7 +211,7 @@
                     <td z-table-cell class="text-right">
                       @if (key.status === keyStatus.Active) {
                         <button z-button zType="destructive" zSize="sm" type="button" (click)="revokeKey(key)">
-                          {{ 'PAC.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
+                          {{ 'XP.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
                         </button>
                       }
                     </td>
@@ -234,15 +224,14 @@
             <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
               <span>
                 {{
-                  'PAC.ModelGateway.PageSummary'
+                  'XP.ModelGateway.PageSummary'
                     | translate
                       : {
                           current: activePageNumber(),
                           pages: activePageCount(),
                           total: activeTotal(),
-                          Default: 'Page {{current}} of {{pages}} · {{total}} records'
-                        }
-                }}
+                          Default: 'Page {{current}}
+                of {{ pages }} · {{ total }} records' } }}
               </span>
               <div class="flex gap-2">
                 <button
@@ -253,7 +242,7 @@
                   [disabled]="activePageNumber() === 1"
                   (click)="previousPage()"
                 >
-                  {{ 'PAC.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
+                  {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
                 </button>
                 <button
                   z-button
@@ -263,7 +252,7 @@
                   [disabled]="activePageNumber() === activePageCount()"
                   (click)="nextPage()"
                 >
-                  {{ 'PAC.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
+                  {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
                 </button>
               </div>
             </div>
@@ -274,11 +263,11 @@
             <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
               <div>
                 <h2 class="font-semibold text-text-primary">
-                  {{ 'PAC.ModelGateway.RequestLimits' | translate: { Default: 'Request limits' } }}
+                  {{ 'XP.ModelGateway.RequestLimits' | translate: { Default: 'Request limits' } }}
                 </h2>
                 <p class="mt-1 text-sm text-text-tertiary">
                   {{
-                    'PAC.ModelGateway.RequestLimitsHint'
+                    'XP.ModelGateway.RequestLimitsHint'
                       | translate
                         : {
                             Default:
@@ -291,7 +280,7 @@
               <div class="mt-4 grid gap-4 md:grid-cols-2">
                 <z-form-field appearance="fill" class="w-full">
                   <z-form-label [zRequired]="true">
-                    {{ 'PAC.ModelGateway.RequestsPerMinute' | translate: { Default: 'Requests per minute' } }}
+                    {{ 'XP.ModelGateway.RequestsPerMinute' | translate: { Default: 'Requests per minute' } }}
                   </z-form-label>
                   <input
                     z-input
@@ -305,8 +294,7 @@
                   @if (requestsPerMinuteCtrl.invalid && requestsPerMinuteCtrl.touched) {
                     <z-form-message zType="error">
                       {{
-                        'PAC.ModelGateway.RequestsPerMinuteError'
-                          | translate: { Default: requestsPerMinuteErrorDefault }
+                        'XP.ModelGateway.RequestsPerMinuteError' | translate: { Default: requestsPerMinuteErrorDefault }
                       }}
                     </z-form-message>
                   }
@@ -315,7 +303,7 @@
                 <z-form-field appearance="fill" class="w-full">
                   <z-form-label [zRequired]="true">
                     {{
-                      'PAC.ModelGateway.MaxConcurrentRequests' | translate: { Default: 'Maximum concurrent requests' }
+                      'XP.ModelGateway.MaxConcurrentRequests' | translate: { Default: 'Maximum concurrent requests' }
                     }}
                   </z-form-label>
                   <input
@@ -332,7 +320,7 @@
                   @if (maxConcurrentRequestsCtrl.invalid && maxConcurrentRequestsCtrl.touched) {
                     <z-form-message zType="error">
                       {{
-                        'PAC.ModelGateway.MaxConcurrentRequestsError'
+                        'XP.ModelGateway.MaxConcurrentRequestsError'
                           | translate: { Default: concurrentRequestsErrorDefault }
                       }}
                     </z-form-message>
@@ -345,11 +333,11 @@
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 class="font-semibold text-text-primary">
-                    {{ 'PAC.ModelGateway.Retention' | translate: { Default: 'Request and response retention' } }}
+                    {{ 'XP.ModelGateway.Retention' | translate: { Default: 'Request and response retention' } }}
                   </h2>
                   <p class="mt-1 text-sm text-text-tertiary">
                     {{
-                      'PAC.ModelGateway.RetentionHint'
+                      'XP.ModelGateway.RetentionHint'
                         | translate
                           : {
                               Default:
@@ -359,14 +347,14 @@
                   </p>
                 </div>
                 <z-switch formControlName="storeBodies" zSize="sm">
-                  {{ 'PAC.ModelGateway.StoreBodies' | translate: { Default: 'Store bodies' } }}
+                  {{ 'XP.ModelGateway.StoreBodies' | translate: { Default: 'Store bodies' } }}
                 </z-switch>
               </div>
               @if (settingsForm.controls.storeBodies.value) {
                 <div class="mt-4 max-w-64">
                   <z-form-field appearance="fill" class="w-full">
                     <z-form-label [zRequired]="true">
-                      {{ 'PAC.ModelGateway.RetentionDays' | translate: { Default: 'Retention days' } }}
+                      {{ 'XP.ModelGateway.RetentionDays' | translate: { Default: 'Retention days' } }}
                     </z-form-label>
                     <input
                       z-input
@@ -380,8 +368,7 @@
                     @if (bodyRetentionDaysCtrl.invalid && bodyRetentionDaysCtrl.touched) {
                       <z-form-message zType="error">
                         {{
-                          'PAC.ModelGateway.RetentionDaysError'
-                            | translate: { Default: bodyRetentionDaysErrorDefault }
+                          'XP.ModelGateway.RetentionDaysError' | translate: { Default: bodyRetentionDaysErrorDefault }
                         }}
                       </z-form-message>
                     }
@@ -392,7 +379,7 @@
 
             <div class="flex justify-end">
               <button z-button type="submit" [disabled]="settingsForm.pristine || settingsForm.invalid">
-                {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+                {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
               </button>
             </div>
           </form>

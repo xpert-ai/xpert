@@ -6,7 +6,7 @@ import { injectHelpWebsite } from '../../@core'
 
 @Component({
   standalone: true,
-  selector: 'ngm-onboarding-welcome',
+  selector: 'xp-onboarding-welcome',
   templateUrl: './welcome.component.html',
   styleUrls: ['./welcome.component.css'],
   imports: [TranslateModule, CdkMenuModule]
@@ -18,5 +18,4 @@ export class WelcomeComponent {
   navigateTenant() {
     this.router.navigate(['onboarding', 'tenant'])
   }
-
 }

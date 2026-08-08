@@ -2,11 +2,16 @@
   <header
     class="flex items-center gap-2 rounded-2xl border-b border-divider-regular bg-background-default-subtle px-4 py-3 text-text-primary"
   >
-    <span class="rounded-full border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-success">
-      {{ 'Pro.RepositoryReady' | translate: {Default: 'Ready'} }}
+    <span
+      class="rounded-full border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-success"
+    >
+      {{ 'Pro.RepositoryReady' | translate: { Default: 'Ready' } }}
     </span>
-    <span class="font-mono text-text-secondary">{{repository().name}}</span>
-    <span class="rounded-xl border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-primary">{{repository().lastSyncAt | date:'medium'}}</span>
+    <span class="font-mono text-text-secondary">{{ repository().name }}</span>
+    <span
+      class="rounded-xl border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-primary"
+      >{{ repository().lastSyncAt | date: 'medium' }}</span
+    >
     <span class="flex-1"></span>
     @if (canUploadPackages) {
       <button
@@ -15,7 +20,7 @@
         (click)="openUploadDialog()"
       >
         <i class="ri-upload-cloud-2-line"></i>
-        {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+        {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
       </button>
     }
     <button
@@ -30,8 +35,11 @@
   <div class="space-y-4 px-5">
     <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
       <z-segmented [(ngModel)]="mode">
-        <z-segmented-item value="incremental" [label]="'Pro.IndexModeIncremental' | translate: {Default: 'Incremental'}" />
-        <z-segmented-item value="full" [label]="'Pro.IndexModeFull' | translate: {Default: 'Full'}" />
+        <z-segmented-item
+          value="incremental"
+          [label]="'Pro.IndexModeIncremental' | translate: { Default: 'Incremental' }"
+        />
+        <z-segmented-item value="full" [label]="'Pro.IndexModeFull' | translate: { Default: 'Full' }" />
       </z-segmented>
       <button
         type="button"
@@ -39,9 +47,11 @@
         (click)="reloadIndexes()"
       >
         @if (loading()) {
-          <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-divider-regular border-t-text-primary"></span>
+          <span
+            class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-divider-regular border-t-text-primary"
+          ></span>
         }
-        {{ 'Pro.RefreshIndex' | translate: {Default: 'Refresh index'} }}
+        {{ 'Pro.RefreshIndex' | translate: { Default: 'Refresh index' } }}
       </button>
     </div>
   </div>

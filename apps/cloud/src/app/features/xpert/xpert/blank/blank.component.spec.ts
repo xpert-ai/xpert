@@ -1,6 +1,6 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { PluginAPIService, Store } from '@xpert-ai/cloud/state'
+import { PluginAPIService, Store } from '@cloud/app/@core/state'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, throwError } from 'rxjs'

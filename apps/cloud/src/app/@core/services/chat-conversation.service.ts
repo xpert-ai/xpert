@@ -9,7 +9,7 @@ import {
   PaginationParams,
   TFileDirectory,
   toHttpParams
-} from '@xpert-ai/cloud/state'
+} from '@cloud/app/@core/state'
 import { Subject, switchMap, tap } from 'rxjs'
 import { TFile } from '../types'
 import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'

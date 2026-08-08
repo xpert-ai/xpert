@@ -1,8 +1,0 @@
-@reference "../../../../tailwind-workspace-reference.css";
-:host {
-  @apply flex flex-col justify-start items-stretch;
-}
-
-.ngm-smart-filter__suffix {
-  @apply absolute right-0;
-}

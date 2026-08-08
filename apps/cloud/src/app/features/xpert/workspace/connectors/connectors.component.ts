@@ -8,8 +8,8 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { getConnectorAuthMethods } from '@xpert-ai/plugin-sdk/connector'
 import type {
@@ -35,8 +35,8 @@ type ConnectorStatusLabel = {
   imports: [
     ReactiveFormsModule,
     TranslateModule,
-    NgmI18nPipe,
-    NgmSpinComponent,
+    XpI18nPipe,
+    XpSpinComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardIconComponent,
@@ -120,7 +120,7 @@ export class XpertConnectorsComponent {
     const form = this.formFor(definition)
     form.markAllAsTouched()
     if (form.invalid) {
-      this.#toastr.error('PAC.Xpert.ConnectorCredentialsRequired', 'PAC.TOASTR.TITLE.ERROR', {
+      this.#toastr.error('XP.Xpert.ConnectorCredentialsRequired', 'XP.TOASTR.TITLE.ERROR', {
         Default: 'Complete the required authentication fields before connecting.'
       })
       return
@@ -175,7 +175,7 @@ export class XpertConnectorsComponent {
       await firstValueFrom(this.#connectorService.disconnect(workspaceId, connector.id))
       this.clearPendingAuthorizationUrl(connector.id)
       this.reloadKey.update((value) => value + 1)
-      this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
@@ -292,7 +292,7 @@ export class XpertConnectorsComponent {
       return
     }
 
-    this.#toastr.error('PAC.Xpert.ConnectorAuthorizationPopupBlocked', 'PAC.TOASTR.TITLE.ERROR', {
+    this.#toastr.error('XP.Xpert.ConnectorAuthorizationPopupBlocked', 'XP.TOASTR.TITLE.ERROR', {
       Default: 'Authorization page was blocked. Allow pop-ups for this site and try again.'
     })
   }
@@ -460,16 +460,16 @@ export class XpertConnectorsComponent {
 function connectorStatusLabel(connector?: ConnectorInstance | null): ConnectorStatusLabel {
   switch (connector?.status) {
     case 'active':
-      return { key: 'PAC.Xpert.ConnectorStatusConnected', defaultLabel: 'Connected' }
+      return { key: 'XP.Xpert.ConnectorStatusConnected', defaultLabel: 'Connected' }
     case 'pending':
-      return { key: 'PAC.Xpert.ConnectorStatusPending', defaultLabel: 'Pending' }
+      return { key: 'XP.Xpert.ConnectorStatusPending', defaultLabel: 'Pending' }
     case 'expired':
-      return { key: 'PAC.Xpert.ConnectorStatusExpired', defaultLabel: 'Expired' }
+      return { key: 'XP.Xpert.ConnectorStatusExpired', defaultLabel: 'Expired' }
     case 'error':
-      return { key: 'PAC.Xpert.ConnectorStatusError', defaultLabel: 'Error' }
+      return { key: 'XP.Xpert.ConnectorStatusError', defaultLabel: 'Error' }
     case 'disconnected':
-      return { key: 'PAC.Xpert.ConnectorStatusDisconnected', defaultLabel: 'Disconnected' }
+      return { key: 'XP.Xpert.ConnectorStatusDisconnected', defaultLabel: 'Disconnected' }
     default:
-      return { key: 'PAC.Xpert.ConnectorStatusNotConnected', defaultLabel: 'Not connected' }
+      return { key: 'XP.Xpert.ConnectorStatusNotConnected', defaultLabel: 'Not connected' }
   }
 }

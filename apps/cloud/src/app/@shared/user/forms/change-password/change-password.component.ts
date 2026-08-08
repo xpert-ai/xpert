@@ -1,10 +1,9 @@
-
 import { Component, ElementRef, forwardRef, inject, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { AuthService } from '@xpert-ai/cloud/state'
+import { AuthService } from '@cloud/app/@core/state'
 import { IUser } from '@xpert-ai/contracts'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -13,7 +12,7 @@ import { Store } from '../../../../@core'
 @Component({
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
-  selector: 'pac-user-change-password-form',
+  selector: 'xp-user-change-password-form',
   templateUrl: 'change-password.component.html',
   styleUrls: ['change-password.component.scss'],
   providers: [
@@ -58,7 +57,7 @@ export class UserChangePasswordFormComponent implements ControlValueAccessor {
   setDisabledState?(isDisabled: boolean): void {}
 
   ngOnInit() {
-    const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
+    const TRANSLATES = this.#translate.instant('XP.SHARED.USER_BASIC')
     this.fields = [
       {
         fieldGroupClassName: FORMLY_ROW,
@@ -96,7 +95,7 @@ export class UserChangePasswordFormComponent implements ControlValueAccessor {
                   return password === confirmPassword
                 },
                 message: (error, field: FormlyFieldConfig) =>
-                  this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
+                  this.#translate.instant('XP.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
             }
           }

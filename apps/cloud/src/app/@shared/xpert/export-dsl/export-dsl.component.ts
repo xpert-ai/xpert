@@ -3,15 +3,15 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { SlideUpAnimation } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { SlideUpAnimation } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { tap } from 'rxjs/operators'
 import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, NgmSpinComponent, ZardSwitchComponent],
+  imports: [FormsModule, TranslateModule, XpSpinComponent, ZardSwitchComponent],
   selector: 'xpert-export-dsl',
   templateUrl: './export-dsl.component.html',
   styleUrl: './export-dsl.component.scss',
@@ -48,7 +48,7 @@ export class XpertExportDslComponent {
       },
       error: (err) => {
         this.loading.set(false)
-        this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
+        this.#toastr.error(`XP.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
   }
@@ -63,12 +63,12 @@ export class XpertExportDslComponent {
       .subscribe({
         next: () => {
           this.loading.set(false)
-          this.#toastr.success('PAC.Xpert.ExportTemplateSuccess', { Default: 'Exported as template' })
+          this.#toastr.success('XP.Xpert.ExportTemplateSuccess', { Default: 'Exported as template' })
           this.close()
         },
         error: (err) => {
           this.loading.set(false)
-          this.#toastr.error(`PAC.Xpert.ExportTemplateFailed`, getErrorMessage(err))
+          this.#toastr.error(`XP.Xpert.ExportTemplateFailed`, getErrorMessage(err))
         }
       })
   }

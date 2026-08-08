@@ -5,13 +5,13 @@
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <div class="text-xs font-medium uppercase text-text-tertiary">
-              {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+              {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
             </div>
             <div class="mt-2 truncate text-2xl font-semibold text-text-primary" [title]="overview()?.plan?.name || '-'">
               {{ overview()?.plan?.name || '-' }}
             </div>
             <div class="mt-2 text-sm text-text-tertiary">
-              {{ 'PAC.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
+              {{ 'XP.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
             </div>
           </div>
 
@@ -25,11 +25,11 @@
         <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="rounded-lg bg-components-panel-bg p-3">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
               @if (overview()?.pointsRemaining === null) {
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
                 {{ overview()?.pointsRemaining | number: '1.0-10' }}
               }
@@ -37,7 +37,7 @@
           </div>
           <div class="rounded-lg bg-components-panel-bg p-3">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
               {{ overview()?.pointsUsed | number: '1.0-10' }}
@@ -45,7 +45,7 @@
           </div>
           <div class="rounded-lg bg-components-panel-bg p-3">
             <div class="text-xs text-text-tertiary">
-              {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+              {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
               {{ overview()?.personalPointsBalance | number: '1.0-10' }}
@@ -55,10 +55,10 @@
 
         <div class="mt-4">
           <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
-            <span>{{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
+            <span>{{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
             <span>
               @if (isUnlimited()) {
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
                 {{ usedPercent() | number }}%
               }
@@ -79,7 +79,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.TotalPoints' | translate: { Default: 'Total points' } }}
+              {{ 'XP.Membership.TotalPoints' | translate: { Default: 'Total points' } }}
             </div>
             <div class="mt-1 text-2xl font-semibold text-text-primary">{{ totalPoints() | number: '1.0-10' }}</div>
           </div>
@@ -95,7 +95,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.ActiveDays' | translate: { Default: 'Active days' } }}
+              {{ 'XP.Membership.ActiveDays' | translate: { Default: 'Active days' } }}
             </div>
             <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.activeDays | number }}</div>
           </div>
@@ -111,7 +111,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.PeakDailyPoints' | translate: { Default: 'Peak daily points' } }}
+              {{ 'XP.Membership.PeakDailyPoints' | translate: { Default: 'Peak daily points' } }}
             </div>
             <div class="mt-1 text-2xl font-semibold text-text-primary">{{ peakDailyPoints() | number: '1.0-10' }}</div>
           </div>
@@ -125,11 +125,11 @@
       <div class="flex items-center justify-between gap-3">
         <div>
           <z-card-title>{{
-            'PAC.Membership.MembershipDetails' | translate: { Default: 'Membership details' }
+            'XP.Membership.MembershipDetails' | translate: { Default: 'Membership details' }
           }}</z-card-title>
           <div class="mt-1 text-sm text-text-tertiary">
             {{
-              'PAC.Membership.MembershipDetailsHint'
+              'XP.Membership.MembershipDetailsHint'
                 | translate: { Default: 'Current benefits and periods that will take effect later.' }
             }}
           </div>
@@ -137,7 +137,7 @@
         @if (scheduledPeriods().length) {
           <z-badge zType="outline" zShape="pill">
             {{
-              'PAC.Membership.UpcomingPeriodCount'
+              'XP.Membership.UpcomingPeriodCount'
                 | translate: { count: scheduledPeriods().length, Default: scheduledPeriods().length + ' upcoming' }
             }}
           </z-badge>
@@ -150,7 +150,7 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="text-xs font-medium uppercase text-text-tertiary">
-              {{ 'PAC.Membership.CurrentBenefits' | translate: { Default: 'Current benefits' } }}
+              {{ 'XP.Membership.CurrentBenefits' | translate: { Default: 'Current benefits' } }}
             </div>
             <div class="mt-1 truncate text-base font-semibold text-text-primary">
               {{ overview()?.plan?.name || '-' }}
@@ -160,14 +160,14 @@
             }
           </div>
           <z-badge zType="secondary" zShape="pill">
-            {{ 'PAC.Membership.MemberStatuses.active' | translate: { Default: 'Active' } }}
+            {{ 'XP.Membership.MemberStatuses.active' | translate: { Default: 'Active' } }}
           </z-badge>
         </div>
 
         <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt class="text-text-tertiary">
-              {{ 'PAC.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
+              {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
             </dt>
             <dd class="mt-1 font-medium text-text-primary">
               {{ overview()?.currentPeriodStart | date: 'mediumDate' }} –
@@ -176,19 +176,19 @@
           </div>
           <div>
             <dt class="text-text-tertiary">
-              {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
+              {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
             </dt>
             <dd class="mt-1 font-medium text-text-primary">
               @if (overview()?.plan?.allowedModels?.length) {
                 {{ overview()?.plan?.allowedModels?.length | number }}
               } @else {
-                {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
+                {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
               }
             </dd>
           </div>
           <div>
             <dt class="text-text-tertiary">
-              {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+              {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
             </dt>
             <dd class="mt-1 font-medium text-text-primary">
               {{ overview()?.plan?.modelMultipliers?.length ?? 0 | number }}
@@ -196,7 +196,7 @@
           </div>
           <div>
             <dt class="text-text-tertiary">
-              {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
+              {{ 'XP.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
             </dt>
             <dd class="mt-1 font-medium text-text-primary">
               {{ overview()?.plan?.rateLimits?.length ?? 0 | number }}
@@ -208,11 +208,11 @@
       <section class="overflow-hidden rounded-lg border border-divider-regular">
         <div class="border-b border-divider-regular px-4 py-3">
           <div class="font-semibold text-text-primary">
-            {{ 'PAC.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
+            {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
           </div>
           <div class="mt-1 text-sm text-text-tertiary">
             {{
-              'PAC.Membership.AccountUpcomingPeriodsHint'
+              'XP.Membership.AccountUpcomingPeriodsHint'
                 | translate: { Default: 'These benefits start automatically after the current period ends.' }
             }}
           </div>
@@ -229,17 +229,17 @@
               </div>
               <div class="text-sm font-medium text-text-secondary">
                 @if (period.pointsGranted === null) {
-                  {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                  {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                 } @else {
                   {{ period.pointsGranted | number: '1.0-10' }}
-                  {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+                  {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
                 }
               </div>
             </div>
           } @empty {
             <div class="px-4 py-8 text-center text-sm text-text-tertiary">
               {{
-                'PAC.Membership.NoUpcomingPeriods' | translate: { Default: 'There are no upcoming membership periods.' }
+                'XP.Membership.NoUpcomingPeriods' | translate: { Default: 'There are no upcoming membership periods.' }
               }}
             </div>
           }
@@ -250,7 +250,7 @@
 
   <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
     <z-card-header class="pb-2 pt-4">
-      <z-card-title>{{ 'PAC.Membership.PointActivity' | translate: { Default: 'Point activity' } }}</z-card-title>
+      <z-card-title>{{ 'XP.Membership.PointActivity' | translate: { Default: 'Point activity' } }}</z-card-title>
     </z-card-header>
 
     <z-card-content class="px-4 pb-4 pt-0">
@@ -298,7 +298,7 @@
       <z-card-header class="border-b border-divider-regular py-4">
         <div class="flex items-center gap-2">
           <z-icon zType="sparkles" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'PAC.Membership.TopModels' | translate: { Default: 'Top models' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TopModels' | translate: { Default: 'Top models' } }}</z-card-title>
         </div>
       </z-card-header>
       <z-card-content class="p-3">
@@ -311,14 +311,14 @@
             </div>
             <z-badge zType="secondary" zShape="pill">
               {{ item.pointsUsed | number: '1.0-10' }}
-              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
           <div
             class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
           >
-            {{ 'PAC.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
+            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
           </div>
         }
       </z-card-content>
@@ -328,7 +328,7 @@
       <z-card-header class="border-b border-divider-regular py-4">
         <div class="flex items-center gap-2">
           <z-icon zType="orbit" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'PAC.Membership.TopXperts' | translate: { Default: 'Top Xperts' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TopXperts' | translate: { Default: 'Top Xperts' } }}</z-card-title>
         </div>
       </z-card-header>
       <z-card-content class="p-3">
@@ -341,14 +341,14 @@
             </div>
             <z-badge zType="secondary" zShape="pill">
               {{ item.pointsUsed | number: '1.0-10' }}
-              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
           <div
             class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
           >
-            {{ 'PAC.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
+            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
           </div>
         }
       </z-card-content>
@@ -358,7 +358,7 @@
       <z-card-header class="border-b border-divider-regular py-4">
         <div class="flex items-center gap-2">
           <z-icon zType="message-circle-more" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'PAC.Membership.TopThreads' | translate: { Default: 'Top threads' } }}</z-card-title>
+          <z-card-title>{{ 'XP.Membership.TopThreads' | translate: { Default: 'Top threads' } }}</z-card-title>
         </div>
       </z-card-header>
       <z-card-content class="p-3">
@@ -371,14 +371,14 @@
             </div>
             <z-badge zType="secondary" zShape="pill">
               {{ item.pointsUsed | number: '1.0-10' }}
-              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
           <div
             class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
           >
-            {{ 'PAC.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
+            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
           </div>
         }
       </z-card-content>

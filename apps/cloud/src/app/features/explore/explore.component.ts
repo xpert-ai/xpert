@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AiFeatureEnum, IXpertWorkspace, Store, XpertWorkspaceService } from '@cloud/app/@core'
-import { linkedModel } from '@xpert-ai/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import {
   ZardButtonComponent,
   ZardIconComponent,

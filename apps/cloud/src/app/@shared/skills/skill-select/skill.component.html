@@ -5,7 +5,7 @@
     ></i>
     <input
       class="xp-input w-full pl-[26px]"
-      [placeholder]="'PAC.ACTIONS.Search' | translate: { Default: 'Search' }"
+      [placeholder]="'XP.ACTIONS.Search' | translate: { Default: 'Search' }"
       [(ngModel)]="search"
     />
     @if (search()) {
@@ -23,24 +23,24 @@
       [checked]="allSelected()"
       [indeterminate]="partialSelected()"
       (change)="toggleSelectAll($event)"
-      [attr.aria-label]="'PAC.Skills.SelectAllDefault' | translate"
-      [zTooltip]="'PAC.Skills.SelectAllDefault' | translate"
+      [attr.aria-label]="'XP.Skills.SelectAllDefault' | translate"
+      [zTooltip]="'XP.Skills.SelectAllDefault' | translate"
       zPosition="top"
     />
     <span>
       {{ visibleSelectedSkillIds().length || 0 }}
-      <span class="truncate">{{ 'PAC.Skills.Selected' | translate }}</span>
+      <span class="truncate">{{ 'XP.Skills.Selected' | translate }}</span>
       /
       {{ skillList()?.length || 0 }}
-      <span class="truncate">{{ 'PAC.Skills.Available' | translate }}</span>
+      <span class="truncate">{{ 'XP.Skills.Available' | translate }}</span>
     </span>
 
     <button
       type="button"
       class="ml-1 w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg"
       (click)="resetToDefaultSkills()"
-      [attr.aria-label]="'PAC.Xpert.ResetDefaultSkills' | translate"
-      [zTooltip]="'PAC.Xpert.ResetDefaultSkills' | translate"
+      [attr.aria-label]="'XP.Xpert.ResetDefaultSkills' | translate"
+      [zTooltip]="'XP.Xpert.ResetDefaultSkills' | translate"
       zPosition="top"
     >
       <i class="ri-reset-right-line"></i>
@@ -55,7 +55,7 @@
     <i class="ri-alert-line shrink-0"></i>
     <span class="min-w-0 flex-1">
       {{
-        'PAC.Xpert.UnavailableSelectedSkills'
+        'XP.Xpert.UnavailableSelectedSkills'
           | translate
             : {
                 count: unavailableSelectedSkillIds().length
@@ -67,7 +67,7 @@
       class="shrink-0 rounded-md px-2 font-medium hover:bg-hover-bg"
       (click)="removeUnavailableSkills()"
     >
-      {{ 'PAC.Xpert.RemoveUnavailableSkills' | translate }}
+      {{ 'XP.Xpert.RemoveUnavailableSkills' | translate }}
     </button>
   </div>
 }
@@ -92,7 +92,7 @@
           <p class="line-clamp-2 text-sm leading-relaxed text-text-secondary">
             {{
               (skill.metadata?.description | i18n) ||
-                ('PAC.Xpert.NoDescription' | translate: { Default: 'No description yet' })
+                ('XP.Xpert.NoDescription' | translate: { Default: 'No description yet' })
             }}
           </p>
           <div class="font-mono text-xs font-semibold uppercase tracking-wide text-text-tertiary">
@@ -113,9 +113,9 @@
 } @else {
   <div class="px-5 py-8 text-center text-sm text-text-tertiary">
     @if (loading()) {
-      <ngm-spin class="block w-8 h-8 mx-auto" />
+      <xp-spin class="block w-8 h-8 mx-auto" />
     } @else {
-      {{ 'PAC.Xpert.NoSkillsYet' | translate }}
+      {{ 'XP.Xpert.NoSkillsYet' | translate }}
     }
   </div>
 }

@@ -5,16 +5,12 @@ import { authGuard } from './@core/auth/auth.guard'
 
 const routes: Routes = [
   {
-    path: 'public',
-    loadChildren: () => import('./public/public.module').then((m) => m.PublicModule)
-  },
-  {
     path: 'onboarding',
     loadChildren: () => import('./onboarding/onboarding.module').then((m) => m.OnboardingModule)
   },
   {
     path: 'auth',
-    loadChildren: () => import('@xpert-ai/cloud/auth').then((m) => m.PacAuthModule)
+    loadChildren: () => import('@cloud/app/auth').then((m) => m.XpAuthModule)
   },
   {
     path: 'artifacts/auth/:artifactLinkSlug',
@@ -29,6 +25,13 @@ const routes: Routes = [
   {
     path: 'x',
     loadChildren: () => import('./xpert/routes').then((m) => m.routes)
+  },
+  {
+    path: 'plugins/marketplace',
+    loadComponent: () =>
+      import('./plugin-marketplace/public-plugin-marketplace-page.component').then(
+        (m) => m.PublicPluginMarketplacePageComponent
+      )
   },
   {
     path: '',

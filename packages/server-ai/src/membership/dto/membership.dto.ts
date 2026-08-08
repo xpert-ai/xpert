@@ -20,6 +20,7 @@ import {
     IsDateString,
     IsEnum,
     IsIn,
+    IsInt,
     IsNotEmpty,
     IsNumber,
     IsOptional,
@@ -93,6 +94,12 @@ export class CreateMembershipPlanDto {
     @IsOptional()
     @IsString()
     description?: string | null
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(0)
+    level?: number
 
     @IsOptional()
     @IsEnum(MembershipPlanStatusEnum)

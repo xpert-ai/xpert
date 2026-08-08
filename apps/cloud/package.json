@@ -27,6 +27,7 @@
     "@xpert-ai/chatkit-types": "~0.4.6",
     "@xpert-ai/chatkit-web-component": "~0.4.0",
     "@xpert-ai/chatkit-web-shared": "~0.4.1",
+    "@xpert-ai/store": "3.9.1",
     "crypto-js": "^4.2.0",
     "i18next": "~23.14.0",
     "i18next-browser-languagedetector": "^8.0.5",

@@ -60,7 +60,24 @@ jest.mock('@xpert-ai/headless-ui', () => {
     standalone: true
   })(ZardComboboxDeprecatedOptionTemplateDirective)
 
+  class ZardButtonComponent {}
+
+  angularCore.Directive({
+    selector: '[z-button]',
+    standalone: true
+  })(ZardButtonComponent)
+
+  class ZardCheckboxComponent {}
+
+  angularCore.Component({
+    selector: 'z-checkbox',
+    standalone: true,
+    template: '<ng-content />'
+  })(ZardCheckboxComponent)
+
   return {
+    ZardButtonComponent,
+    ZardCheckboxComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
     ZardComboboxDeprecatedComponent,
@@ -83,7 +100,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
 
     getEffective(): any {
       return of({
-        code: 'chatbi',
+        code: 'chat_common',
         enabled: false,
         assistantId: null,
         sourceScope: 'none'
@@ -133,13 +150,11 @@ jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
       FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
     },
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi',
       CLAWXPERT: 'clawxpert'
     },
     AssistantBindingScope: {
@@ -163,36 +178,30 @@ jest.mock('apps/cloud/src/app/@core', () => {
     Store,
     ToastrService,
     getErrorMessage: (error: any) => error?.message ?? '',
+    resolveAbsoluteApiBaseUrl: (baseUrl?: string | null) => baseUrl ?? '',
     routeAnimations: []
   }
 })
 
-const {
-  AssistantCode,
-  AssistantBindingScope,
-  AssistantBindingService,
-  RolesEnum,
-  Store,
-  ToastrService
-} = jest.requireMock('apps/cloud/src/app/@core') as {
-  AssistantCode: {
-    CHAT_COMMON: string
-    XPERT_SHARED: string
-    CHATBI: string
-    CLAWXPERT: string
+const { AssistantCode, AssistantBindingScope, AssistantBindingService, RolesEnum, Store, ToastrService } =
+  jest.requireMock('apps/cloud/src/app/@core') as {
+    AssistantCode: {
+      CHAT_COMMON: string
+      XPERT_SHARED: string
+      CLAWXPERT: string
+    }
+    AssistantBindingScope: {
+      TENANT: string
+      ORGANIZATION: string
+    }
+    AssistantBindingService: new (...args: any[]) => unknown
+    RolesEnum: {
+      SUPER_ADMIN: string
+      ADMIN: string
+    }
+    Store: new (...args: any[]) => unknown
+    ToastrService: new (...args: any[]) => unknown
   }
-  AssistantBindingScope: {
-    TENANT: string
-    ORGANIZATION: string
-  }
-  AssistantBindingService: new (...args: any[]) => unknown
-  RolesEnum: {
-    SUPER_ADMIN: string
-    ADMIN: string
-  }
-  Store: new (...args: any[]) => unknown
-  ToastrService: new (...args: any[]) => unknown
-}
 
 describe('AssistantsSettingsComponent', () => {
   let assistantBindingService: {
@@ -237,9 +246,9 @@ describe('AssistantsSettingsComponent', () => {
               ]
             : [
                 {
-                  code: AssistantCode.CHATBI,
+                  code: AssistantCode.CHAT_COMMON,
                   enabled: false,
-                  assistantId: 'chatbi-assistant',
+                  assistantId: 'common-assistant',
                   scope,
                   tenantId: 'tenant-1',
                   organizationId: 'org-1'
@@ -251,7 +260,7 @@ describe('AssistantsSettingsComponent', () => {
         of({
           code,
           enabled: code === AssistantCode.XPERT_SHARED,
-          assistantId: code === AssistantCode.XPERT_SHARED ? 'workspace-assistant' : 'chatbi-assistant',
+          assistantId: code === AssistantCode.XPERT_SHARED ? 'workspace-assistant' : 'common-assistant',
           scope:
             code === AssistantCode.XPERT_SHARED ? AssistantBindingScope.TENANT : AssistantBindingScope.ORGANIZATION,
           tenantId: 'tenant-1',
@@ -341,21 +350,21 @@ describe('AssistantsSettingsComponent', () => {
     await fixture.whenStable()
 
     const component = fixture.componentInstance
-    component.organizationForm(AssistantCode.CHATBI as any).patchValue({
+    component.organizationForm(AssistantCode.CHAT_COMMON as any).patchValue({
       enabled: true,
-      assistantId: 'chatbi-override'
+      assistantId: 'common-override'
     })
 
     await component.saveConfig(
-      ASSISTANT_REGISTRY.find((item) => item.code === AssistantCode.CHATBI)!,
+      ASSISTANT_REGISTRY.find((item) => item.code === AssistantCode.CHAT_COMMON)!,
       AssistantBindingScope.ORGANIZATION as any
     )
 
     expect(assistantBindingService.upsert).toHaveBeenCalledWith({
-      code: AssistantCode.CHATBI,
+      code: AssistantCode.CHAT_COMMON,
       scope: AssistantBindingScope.ORGANIZATION,
       enabled: true,
-      assistantId: 'chatbi-override'
+      assistantId: 'common-override'
     })
     expect(toastr.success).toHaveBeenCalled()
   })
@@ -365,10 +374,12 @@ describe('AssistantsSettingsComponent', () => {
     await fixture.whenStable()
 
     const component = fixture.componentInstance
-    await component.resetOrganizationOverride(ASSISTANT_REGISTRY.find((item) => item.code === AssistantCode.CHATBI)!)
+    await component.resetOrganizationOverride(
+      ASSISTANT_REGISTRY.find((item) => item.code === AssistantCode.CHAT_COMMON)!
+    )
 
     expect(assistantBindingService.delete).toHaveBeenCalledWith(
-      AssistantCode.CHATBI,
+      AssistantCode.CHAT_COMMON,
       AssistantBindingScope.ORGANIZATION
     )
     expect(toastr.success).toHaveBeenCalled()
@@ -388,12 +399,12 @@ describe('AssistantsSettingsComponent', () => {
     )
     const organizationOptions = component.assistantXpertOptions(
       AssistantBindingScope.ORGANIZATION as any,
-      AssistantCode.CHATBI as any
+      AssistantCode.CHAT_COMMON as any
     )
 
     expect(tenantOptions.map((option) => option.value)).toEqual(['workspace-assistant', 'tenant-assistant'])
     expect(organizationOptions.map((option) => option.value)).toEqual([
-      'chatbi-assistant',
+      'common-assistant',
       'tenant-assistant',
       'org-assistant'
     ])

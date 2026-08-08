@@ -10,12 +10,12 @@ import {
   ZardSwitchComponent
 } from '@xpert-ai/headless-ui'
 import { FormlyModule } from '@ngx-formly/core'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmFormlyAccordionComponent } from './accordion-wrapper.component'
+import { XpFormlyAccordionComponent } from './accordion-wrapper.component'
 
 @NgModule({
-  declarations: [NgmFormlyAccordionComponent],
+  declarations: [XpFormlyAccordionComponent],
   imports: [
     CommonModule,
     FormsModule,
@@ -26,22 +26,22 @@ import { NgmFormlyAccordionComponent } from './accordion-wrapper.component'
     ZardDividerComponent,
     ZardSwitchComponent,
     ...ZardAccordionImports,
-    NgmDensityDirective,
+    XpDensityDirective,
     FormlyModule.forChild({
       types: [
         {
           name: 'accordion',
-          component: NgmFormlyAccordionComponent
+          component: XpFormlyAccordionComponent
         }
       ],
       wrappers: [
         {
           name: 'accordion',
-          component: NgmFormlyAccordionComponent
+          component: XpFormlyAccordionComponent
         }
       ]
     })
   ],
-  exports: [NgmFormlyAccordionComponent]
+  exports: [XpFormlyAccordionComponent]
 })
-export class NgmFormlyAccordionModule {}
+export class XpFormlyAccordionModule {}

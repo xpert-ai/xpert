@@ -1,12 +1,12 @@
 <div class="flex h-full w-full min-w-0 flex-col">
-  <div class="pac-page-header">
+  <div class="xp-page-header">
     <div class="min-w-0">
-      <div class="pac-page-title">
-        {{ 'PAC.ModelAccess.AdminTitle' | translate: { Default: 'Model access approvals' } }}
+      <div class="xp-page-title">
+        {{ 'XP.ModelAccess.AdminTitle' | translate: { Default: 'Model access approvals' } }}
       </div>
       <div class="mt-1 max-w-3xl text-sm text-text-tertiary">
         {{
-          'PAC.ModelAccess.AdminDescription'
+          'XP.ModelAccess.AdminDescription'
             | translate
               : {
                   Default:
@@ -18,7 +18,7 @@
 
     <nav
       z-tab-nav-bar
-      class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden"
+      class="xp-tab-nav-bar self-stretch max-w-full overflow-hidden"
       color="accent"
       alignTabs="start"
       stretchTabs="false"
@@ -26,64 +26,64 @@
       zSize="default"
     >
       <button z-tab-link type="button" [active]="activeTab() === 'requests'" (click)="setTab('requests')">
-        {{ 'PAC.ModelAccess.Requests' | translate: { Default: 'Requests' } }}
+        {{ 'XP.ModelAccess.Requests' | translate: { Default: 'Requests' } }}
         <span class="ml-1 text-xs text-text-tertiary">{{ requestTotal() }}</span>
       </button>
       <button z-tab-link type="button" [active]="activeTab() === 'grants'" (click)="setTab('grants')">
-        {{ 'PAC.ModelAccess.Grants' | translate: { Default: 'Grants' } }}
+        {{ 'XP.ModelAccess.Grants' | translate: { Default: 'Grants' } }}
         <span class="ml-1 text-xs text-text-tertiary">{{ grantTotal() }}</span>
       </button>
       <button z-tab-link type="button" [active]="activeTab() === 'audit'" (click)="setTab('audit')">
-        {{ 'PAC.ModelAccess.Audit' | translate: { Default: 'Audit' } }}
+        {{ 'XP.ModelAccess.Audit' | translate: { Default: 'Audit' } }}
         <span class="ml-1 text-xs text-text-tertiary">{{ eventTotal() }}</span>
       </button>
     </nav>
   </div>
 
-  <div class="pac-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 p-4">
+  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 p-4">
     <form
       class="grid gap-3 rounded-2xl border border-divider-regular bg-components-card-bg p-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(17rem,1fr)_auto]"
       [formGroup]="filterForm"
       (ngSubmit)="applyFilters()"
     >
       <z-form-field class="w-full">
-        <z-form-label>{{ 'PAC.ModelAccess.Search' | translate: { Default: 'User or model' } }}</z-form-label>
+        <z-form-label>{{ 'XP.ModelAccess.Search' | translate: { Default: 'User or model' } }}</z-form-label>
         <input z-input formControlName="search" />
       </z-form-field>
       <z-form-field class="w-full">
-        <z-form-label>{{ 'PAC.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}</z-form-label>
+        <z-form-label>{{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}</z-form-label>
         <z-select class="w-full" formControlName="channel">
-          <z-select-item zValue="">{{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
+          <z-select-item zValue="">{{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
           @for (channel of channels; track channel) {
             <z-select-item [zValue]="channel">
-              {{ 'PAC.ModelAccess.ChannelValue.' + channel | translate: { Default: channel } }}
+              {{ 'XP.ModelAccess.ChannelValue.' + channel | translate: { Default: channel } }}
             </z-select-item>
           }
         </z-select>
       </z-form-field>
       <z-form-field class="w-full">
-        <z-form-label>{{ 'PAC.ModelAccess.ModelType' | translate: { Default: 'Model type' } }}</z-form-label>
+        <z-form-label>{{ 'XP.ModelAccess.ModelType' | translate: { Default: 'Model type' } }}</z-form-label>
         <z-select class="w-full" formControlName="modelType">
-          <z-select-item zValue="">{{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
+          <z-select-item zValue="">{{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
           @for (type of modelTypes; track type) {
             <z-select-item [zValue]="type">
-              {{ 'PAC.ModelAccess.ModelTypeValue.' + type | translate: { Default: type } }}
+              {{ 'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type } }}
             </z-select-item>
           }
         </z-select>
       </z-form-field>
       <z-form-field class="w-full">
-        <z-form-label>{{ 'PAC.ModelAccess.Status' | translate: { Default: 'Status' } }}</z-form-label>
+        <z-form-label>{{ 'XP.ModelAccess.Status' | translate: { Default: 'Status' } }}</z-form-label>
         <z-select class="w-full" formControlName="status" [disabled]="activeTab() === 'audit'">
-          <z-select-item zValue="">{{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
+          <z-select-item zValue="">{{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
           @for (status of statusOptions(); track status) {
-            <z-select-item [zValue]="status">{{ 'PAC.ModelAccess.StatusValue.' + status | translate }}</z-select-item>
+            <z-select-item [zValue]="status">{{ 'XP.ModelAccess.StatusValue.' + status | translate }}</z-select-item>
           }
         </z-select>
       </z-form-field>
       <z-form-field class="w-full">
         <z-form-label>
-          {{ 'PAC.ModelAccess.ExpiresBefore' | translate: { Default: 'Expires before' } }}
+          {{ 'XP.ModelAccess.ExpiresBefore' | translate: { Default: 'Expires before' } }}
         </z-form-label>
         <z-date-picker
           class="w-full"
@@ -94,16 +94,16 @@
       </z-form-field>
       <div class="flex items-end justify-end gap-2 px-3 pb-3 xl:ml-2">
         <button z-button type="submit">
-          {{ 'PAC.ACTIONS.Search' | translate: { Default: 'Search' } }}
+          {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
         </button>
         <button z-button zType="outline" type="button" (click)="resetFilters()">
-          {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+          {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
         </button>
       </div>
     </form>
 
     @if (loading()) {
-      <div class="flex min-h-52 items-center justify-center"><ngm-spin /></div>
+      <div class="flex min-h-52 items-center justify-center"><xp-spin /></div>
     } @else {
       <div class="flex min-h-0 flex-1 flex-col gap-4">
         @switch (activeTab()) {
@@ -113,28 +113,28 @@
                 <thead z-table-header class="text-text-secondary">
                   <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
                     <th z-table-head scope="col" class="w-56 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Applicant' | translate: { Default: 'Applicant' } }}
+                      {{ 'XP.ModelAccess.Applicant' | translate: { Default: 'Applicant' } }}
                     </th>
                     <th z-table-head scope="col" class="w-64 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Model' | translate: { Default: 'Model' } }}
+                      {{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
+                      {{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
+                      {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
                     </th>
                     <th z-table-head scope="col" class="min-w-72 px-4">
-                      {{ 'PAC.ModelAccess.Reason' | translate: { Default: 'Reason' } }}
+                      {{ 'XP.ModelAccess.Reason' | translate: { Default: 'Reason' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Status' | translate: { Default: 'Status' } }}
+                      {{ 'XP.ModelAccess.Status' | translate: { Default: 'Status' } }}
                     </th>
                     <th z-table-head scope="col" class="w-48 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.SubmittedAt' | translate: { Default: 'Submitted at' } }}
+                      {{ 'XP.ModelAccess.SubmittedAt' | translate: { Default: 'Submitted at' } }}
                     </th>
                     <th z-table-head scope="col" class="w-44 px-4 text-right whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Actions' | translate: { Default: 'Actions' } }}
+                      {{ 'XP.ModelAccess.Actions' | translate: { Default: 'Actions' } }}
                     </th>
                   </tr>
                 </thead>
@@ -160,7 +160,7 @@
                           }}
                           ·
                           {{
-                            'PAC.ModelAccess.ModelTypeValue.' + request.modelType
+                            'XP.ModelAccess.ModelTypeValue.' + request.modelType
                               | translate: { Default: request.modelType }
                           }}
                         </div>
@@ -171,13 +171,13 @@
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="secondary" zShape="pill">
                           {{
-                            'PAC.ModelAccess.ChannelValue.' + request.channel | translate: { Default: request.channel }
+                            'XP.ModelAccess.ChannelValue.' + request.channel | translate: { Default: request.channel }
                           }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.Scope.' + request.ownershipScope | translate }}
+                          {{ 'XP.ModelAccess.Scope.' + request.ownershipScope | translate }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3 text-text-secondary">
@@ -185,7 +185,7 @@
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="outline" zShape="pill">
-                          {{ 'PAC.ModelAccess.StatusValue.' + request.status | translate }}
+                          {{ 'XP.ModelAccess.StatusValue.' + request.status | translate }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3 whitespace-nowrap text-text-secondary">
@@ -195,10 +195,10 @@
                         <div class="flex justify-end gap-2">
                           @if (canEdit() && request.status === 'requested') {
                             <button z-button zType="outline" zSize="sm" type="button" (click)="reject(request)">
-                              {{ 'PAC.ModelAccess.Reject' | translate: { Default: 'Reject' } }}
+                              {{ 'XP.ModelAccess.Reject' | translate: { Default: 'Reject' } }}
                             </button>
                             <button z-button zSize="sm" type="button" (click)="approve(request)">
-                              {{ 'PAC.ModelAccess.Approve' | translate: { Default: 'Approve' } }}
+                              {{ 'XP.ModelAccess.Approve' | translate: { Default: 'Approve' } }}
                             </button>
                           } @else {
                             <span class="text-text-tertiary">—</span>
@@ -209,7 +209,7 @@
                   } @empty {
                     <tr z-table-row>
                       <td z-table-cell colspan="8" class="h-32 text-center text-text-tertiary">
-                        {{ 'PAC.ModelAccess.NoAdminRequests' | translate: { Default: 'No requests' } }}
+                        {{ 'XP.ModelAccess.NoAdminRequests' | translate: { Default: 'No requests' } }}
                       </td>
                     </tr>
                   }
@@ -223,28 +223,28 @@
                 <thead z-table-header class="text-text-secondary">
                   <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
                     <th z-table-head scope="col" class="w-56 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.User' | translate: { Default: 'User' } }}
+                      {{ 'XP.ModelAccess.User' | translate: { Default: 'User' } }}
                     </th>
                     <th z-table-head scope="col" class="w-64 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Model' | translate: { Default: 'Model' } }}
+                      {{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
+                      {{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
+                      {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Status' | translate: { Default: 'Status' } }}
+                      {{ 'XP.ModelAccess.Status' | translate: { Default: 'Status' } }}
                     </th>
                     <th z-table-head scope="col" class="w-48 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.ValidUntilLabel' | translate: { Default: 'Valid until' } }}
+                      {{ 'XP.ModelAccess.ValidUntilLabel' | translate: { Default: 'Valid until' } }}
                     </th>
                     <th z-table-head scope="col" class="min-w-72 px-4">
-                      {{ 'PAC.ModelAccess.Availability' | translate: { Default: 'Availability' } }}
+                      {{ 'XP.ModelAccess.Availability' | translate: { Default: 'Availability' } }}
                     </th>
                     <th z-table-head scope="col" class="w-44 px-4 text-right whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Actions' | translate: { Default: 'Actions' } }}
+                      {{ 'XP.ModelAccess.Actions' | translate: { Default: 'Actions' } }}
                     </th>
                   </tr>
                 </thead>
@@ -268,8 +268,7 @@
                           }}
                           ·
                           {{
-                            'PAC.ModelAccess.ModelTypeValue.' + grant.modelType
-                              | translate: { Default: grant.modelType }
+                            'XP.ModelAccess.ModelTypeValue.' + grant.modelType | translate: { Default: grant.modelType }
                           }}
                         </div>
                         @if (grant.externalModelId) {
@@ -278,44 +277,44 @@
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.ChannelValue.' + grant.channel | translate: { Default: grant.channel } }}
+                          {{ 'XP.ModelAccess.ChannelValue.' + grant.channel | translate: { Default: grant.channel } }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.Scope.' + grant.ownershipScope | translate }}
+                          {{ 'XP.ModelAccess.Scope.' + grant.ownershipScope | translate }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="outline" zShape="pill">
-                          {{ 'PAC.ModelAccess.StatusValue.' + grant.status | translate }}
+                          {{ 'XP.ModelAccess.StatusValue.' + grant.status | translate }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3 whitespace-nowrap text-text-secondary">
                         @if (grant.validUntil) {
                           {{ formatValidUntil(grant.validUntil) }}
                         } @else {
-                          {{ 'PAC.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
+                          {{ 'XP.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
                         }
                       </td>
                       <td z-table-cell class="px-4 py-3 text-text-secondary">
                         @if (grantUnavailableReason(grant); as unavailableReason) {
                           <span class="text-text-warning">
-                            {{ 'PAC.ModelAccess.Unavailable.' + unavailableReason | translate }}
+                            {{ 'XP.ModelAccess.Unavailable.' + unavailableReason | translate }}
                           </span>
                         } @else {
-                          {{ 'PAC.ModelAccess.Available' | translate: { Default: 'Available' } }}
+                          {{ 'XP.ModelAccess.Available' | translate: { Default: 'Available' } }}
                         }
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <div class="flex justify-end gap-2">
                           @if (canEdit() && grant.status === 'active') {
                             <button z-button zType="destructive" zSize="sm" type="button" (click)="revoke(grant)">
-                              {{ 'PAC.ModelAccess.Revoke' | translate: { Default: 'Revoke' } }}
+                              {{ 'XP.ModelAccess.Revoke' | translate: { Default: 'Revoke' } }}
                             </button>
                             @if (grant.validUntil) {
                               <button z-button zType="outline" zSize="sm" type="button" (click)="extend(grant)">
-                                {{ 'PAC.ModelAccess.Extend' | translate: { Default: 'Extend' } }}
+                                {{ 'XP.ModelAccess.Extend' | translate: { Default: 'Extend' } }}
                               </button>
                             }
                           } @else {
@@ -327,7 +326,7 @@
                   } @empty {
                     <tr z-table-row>
                       <td z-table-cell colspan="8" class="h-32 text-center text-text-tertiary">
-                        {{ 'PAC.ModelAccess.NoAdminGrants' | translate: { Default: 'No grants' } }}
+                        {{ 'XP.ModelAccess.NoAdminGrants' | translate: { Default: 'No grants' } }}
                       </td>
                     </tr>
                   }
@@ -341,25 +340,25 @@
                 <thead z-table-header class="text-text-secondary">
                   <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
                     <th z-table-head scope="col" class="w-52 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.EventType' | translate: { Default: 'Event' } }}
+                      {{ 'XP.ModelAccess.EventType' | translate: { Default: 'Event' } }}
                     </th>
                     <th z-table-head scope="col" class="w-56 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Actor' | translate: { Default: 'Actor' } }}
+                      {{ 'XP.ModelAccess.Actor' | translate: { Default: 'Actor' } }}
                     </th>
                     <th z-table-head scope="col" class="w-64 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Model' | translate: { Default: 'Model' } }}
+                      {{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
+                      {{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
                     </th>
                     <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
+                      {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
                     </th>
                     <th z-table-head scope="col" class="min-w-72 px-4">
-                      {{ 'PAC.ModelAccess.Details' | translate: { Default: 'Details' } }}
+                      {{ 'XP.ModelAccess.Details' | translate: { Default: 'Details' } }}
                     </th>
                     <th z-table-head scope="col" class="w-48 px-4 whitespace-nowrap">
-                      {{ 'PAC.ModelAccess.OccurredAt' | translate: { Default: 'Occurred at' } }}
+                      {{ 'XP.ModelAccess.OccurredAt' | translate: { Default: 'Occurred at' } }}
                     </th>
                   </tr>
                 </thead>
@@ -367,12 +366,12 @@
                   @for (event of events(); track event.id) {
                     <tr z-table-row>
                       <td z-table-cell class="px-4 py-3 font-medium text-text-primary">
-                        {{ 'PAC.ModelAccess.Event.' + event.eventType | translate }}
+                        {{ 'XP.ModelAccess.Event.' + event.eventType | translate }}
                       </td>
                       <td z-table-cell class="px-4 py-3 text-text-secondary">
                         {{
                           event.actorType === 'system'
-                            ? ('PAC.ModelAccess.SystemActor' | translate: { Default: 'System' })
+                            ? ('XP.ModelAccess.SystemActor' | translate: { Default: 'System' })
                             : event.actorName || '—'
                         }}
                       </td>
@@ -392,7 +391,7 @@
                           }}
                           ·
                           {{
-                            'PAC.ModelAccess.ModelTypeValue.' + event.modelSnapshot.modelType
+                            'XP.ModelAccess.ModelTypeValue.' + event.modelSnapshot.modelType
                               | translate: { Default: event.modelSnapshot.modelType }
                           }}
                         </div>
@@ -404,19 +403,19 @@
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.ChannelValue.' + event.channel | translate: { Default: event.channel } }}
+                          {{ 'XP.ModelAccess.ChannelValue.' + event.channel | translate: { Default: event.channel } }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3">
                         <z-badge zType="secondary" zShape="pill">
-                          {{ 'PAC.ModelAccess.Scope.' + eventScope(event) | translate }}
+                          {{ 'XP.ModelAccess.Scope.' + eventScope(event) | translate }}
                         </z-badge>
                       </td>
                       <td z-table-cell class="px-4 py-3 text-text-secondary">
                         @if (event.systemReasonCode) {
-                          {{ 'PAC.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
+                          {{ 'XP.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
                         } @else if (event.eventType === 'model_suspended' && event.reason) {
-                          {{ 'PAC.ModelAccess.Unavailable.' + event.reason | translate }}
+                          {{ 'XP.ModelAccess.Unavailable.' + event.reason | translate }}
                         } @else if (event.reason) {
                           {{ event.reason }}
                         } @else {
@@ -430,7 +429,7 @@
                   } @empty {
                     <tr z-table-row>
                       <td z-table-cell colspan="7" class="h-32 text-center text-text-tertiary">
-                        {{ 'PAC.ModelAccess.NoAudit' | translate: { Default: 'No audit events' } }}
+                        {{ 'XP.ModelAccess.NoAudit' | translate: { Default: 'No audit events' } }}
                       </td>
                     </tr>
                   }
@@ -446,7 +445,7 @@
           >
             <div class="shrink-0 whitespace-nowrap text-sm text-text-tertiary">
               {{
-                'PAC.ModelAccess.PageSummary'
+                'XP.ModelAccess.PageSummary'
                   | translate
                     : {
                         current: activePageNumber(),
@@ -467,7 +466,7 @@
                     [zDisabled]="activePageNumber() === 1"
                     (click)="onPage(activePageNumber() - 1)"
                   >
-                    {{ 'PAC.ModelAccess.PreviousPage' | translate: { Default: 'Previous' } }}
+                    {{ 'XP.ModelAccess.PreviousPage' | translate: { Default: 'Previous' } }}
                   </button>
                 </li>
                 @for (page of pages; track page; let index = $index) {
@@ -494,7 +493,7 @@
                     [zDisabled]="activePageNumber() === activePageCount()"
                     (click)="onPage(activePageNumber() + 1)"
                   >
-                    {{ 'PAC.ModelAccess.NextPage' | translate: { Default: 'Next' } }}
+                    {{ 'XP.ModelAccess.NextPage' | translate: { Default: 'Next' } }}
                   </button>
                 </li>
               </ul>
@@ -505,7 +504,7 @@
               [zPageIndex]="activePageNumber()"
               [zTotal]="activePageCount()"
               [zContent]="paginationContent"
-              [zAriaLabel]="'PAC.ModelAccess.Pagination' | translate: { Default: 'Pagination' }"
+              [zAriaLabel]="'XP.ModelAccess.Pagination' | translate: { Default: 'Pagination' }"
             />
           </div>
         }

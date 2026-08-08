@@ -13,7 +13,7 @@ import {
     mapTranslationLanguage
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import {
@@ -51,6 +51,9 @@ import {
     AgentMiddlewareRuntimeApi,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
+    ActorTokenRequest,
+    ActorTokenResult,
+    ActorTokenRuntimeCapability,
     AssistantTaskRuntimeCapability,
     ConnectorRuntimeCapability,
     CollaborationRuntimeCapability,
@@ -63,7 +66,7 @@ import {
     CancelConversationCommand,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
-import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
+import { FileStorage, GetStorageFileQuery, OutboundActorTokenProvider } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { ModelProvider } from '../../ai-model/ai-provider'
@@ -538,7 +541,9 @@ export class AgentMiddlewareRuntimeService {
         private readonly connectors: ConnectorService,
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
         private readonly artifacts: ArtifactsService,
-        private readonly collaboration: CollaborationService
+        private readonly collaboration: CollaborationService,
+        @Optional()
+        private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
         this.api = this.createScopedApi()
     }
@@ -559,7 +564,9 @@ export class AgentMiddlewareRuntimeService {
             organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
         })
         const collaborationApi = this.collaboration.createScopedApi(scope)
+        const actorTokenApi = this.createActorTokenApi(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
+            [ActorTokenRuntimeCapability, actorTokenApi],
             [
                 KnowledgebaseRuntimeCapability,
                 {
@@ -612,6 +619,70 @@ export class AgentMiddlewareRuntimeService {
             emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
             capabilities
         } satisfies AgentMiddlewareRuntimeApi
+    }
+
+    private createActorTokenApi(scope: AgentMiddlewareRuntimeScope) {
+        let cached: {
+            cacheKey: string
+            expiresAtMs: number
+            result: ActorTokenResult
+        } | null = null
+        const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
+        const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
+        const user =
+            RequestContext.currentUser() ??
+            (scope.userId && tenantId
+                ? ({
+                      id: scope.userId,
+                      tenantId
+                  } as ReturnType<typeof RequestContext.currentUser>)
+                : null)
+        const defaultAct = pruneUndefined({
+            sub: 'xpert_agent',
+            workspace_id: normalizeOptionalString(scope.workspaceId),
+            project_id: normalizeOptionalString(scope.projectId),
+            xpert_id: normalizeOptionalString(scope.xpertId),
+            xpert_name: normalizeOptionalString(scope.xpertName),
+            conversation_id: normalizeOptionalString(scope.conversationId),
+            agent_key: normalizeOptionalString(scope.agentKey),
+            execution_id: normalizeOptionalString(scope.executionId)
+        })
+
+        return {
+            getToken: async (input: ActorTokenRequest = {}) => {
+                if (!this.outboundActorTokenProvider) {
+                    throw new Error('Outbound actor token provider is not configured')
+                }
+
+                const cacheKey = JSON.stringify({
+                    audience: input.audience ?? null,
+                    ttlSeconds: input.ttlSeconds ?? null,
+                    act: input.act ?? null
+                })
+                if (cached?.cacheKey === cacheKey && cached.expiresAtMs - Date.now() > 30_000) {
+                    return cached.result
+                }
+
+                const result = this.outboundActorTokenProvider.mint({
+                    user,
+                    tenantId,
+                    organizationId,
+                    audience: input.audience,
+                    ttlSeconds: input.ttlSeconds,
+                    act: {
+                        ...defaultAct,
+                        ...(input.act ?? {})
+                    }
+                })
+
+                cached = {
+                    cacheKey,
+                    expiresAtMs: Date.parse(result.expiresAt),
+                    result
+                }
+                return result
+            }
+        }
     }
 
     private resolveStorageFileUrl(storageFile: IStorageFile | null) {
@@ -688,6 +759,10 @@ export class AgentMiddlewareRuntimeService {
 
 function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function pruneUndefined<T extends Record<string, unknown>>(value: T): T {
+    return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)) as T
 }
 
 /** Check whether a middleware runtime needs a per-invocation workspace facade. */

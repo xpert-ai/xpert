@@ -17,7 +17,7 @@
 
     <div
       class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
-      [zTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
+      [zTooltip]="'XP.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
       #mt1="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="diagramMenu"
       [cdkMenuTriggerData]="{ trigger: mt1 }"
@@ -29,7 +29,7 @@
       type="button"
       class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
       [zTooltip]="
-        'PAC.Xpert.RefreshExternalXpert' | translate: { Default: 'Refresh, sync external xpert configuration' }
+        'XP.Xpert.RefreshExternalXpert' | translate: { Default: 'Refresh, sync external xpert configuration' }
       "
       (click)="refresh()"
     >
@@ -42,7 +42,7 @@
       class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-danger hover:bg-hover-bg"
       (click)="closePanel()"
     >
-      <ngm-close-svg class="w-5 h-5" />
+      <xp-close-svg class="w-5 h-5" />
     </div>
   </div>
 </div>
@@ -81,18 +81,18 @@
       <div class="flex items-center justify-center w-6 h-6">
         <i class="ri-git-commit-fill text-orange-600"></i>
       </div>
-      <div class="text-sm font-semibold text-text-primary">{{ 'PAC.Xpert.Node' | translate: { Default: 'Node' } }}</div>
+      <div class="text-sm font-semibold text-text-primary">{{ 'XP.Xpert.Node' | translate: { Default: 'Node' } }}</div>
     </div>
 
     <div class="flex justify-end items-center gap-1 w-full">
       <i class="ri-volume-mute-fill text-base text-sky-500"></i>
-      <div class="text-sm">{{ 'PAC.Xpert.DisableOutput' | translate: { Default: 'Disable Output' } }}</div>
+      <div class="text-sm">{{ 'XP.Xpert.DisableOutput' | translate: { Default: 'Disable Output' } }}</div>
       <z-switch
         class="flex"
         [(ngModel)]="mute"
         labelPosition="before"
         [zTooltip]="
-          'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
+          'XP.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
         "
         zPosition="top"
         zSize="sm"
@@ -102,7 +102,7 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }
 
 <ng-template #diagramMenu>
@@ -110,7 +110,7 @@
     @if (diagram$ | async; as diagram) {
       <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full" />
     } @else {
-      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+      <xp-spin class="absolute top-0 left-0 w-full h-full" />
     }
     <button
       type="button"

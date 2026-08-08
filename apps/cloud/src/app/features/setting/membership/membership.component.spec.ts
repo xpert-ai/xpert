@@ -2,6 +2,8 @@ jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   IMembershipPlan,
   MembershipBulkActionEnum,
@@ -9,7 +11,7 @@ import {
   MembershipPlanStatusEnum
 } from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
-import { of } from 'rxjs'
+import { of, Subject, throwError } from 'rxjs'
 import { MembershipService, ToastrService } from '../../../@core'
 import { MembershipAdminComponent } from './membership.component'
 
@@ -18,6 +20,7 @@ describe('MembershipAdminComponent', () => {
     id: 'plan-source',
     code: 'source',
     name: 'Source',
+    level: 1,
     status: MembershipPlanStatusEnum.Active,
     period: MembershipPeriodEnum.Monthly,
     includedPoints: 100
@@ -26,6 +29,7 @@ describe('MembershipAdminComponent', () => {
     id: 'plan-target',
     code: 'target',
     name: 'Target',
+    level: 2,
     status: MembershipPlanStatusEnum.Active,
     period: MembershipPeriodEnum.Monthly,
     includedPoints: 200
@@ -42,6 +46,7 @@ describe('MembershipAdminComponent', () => {
     applyBulkUserAction: jest.Mock
   }
   let alertDialog: { confirm: jest.Mock }
+  let toastr: { error: jest.Mock; success: jest.Mock }
   let component: MembershipAdminComponent
 
   beforeEach(() => {
@@ -58,12 +63,16 @@ describe('MembershipAdminComponent', () => {
     alertDialog = {
       confirm: jest.fn().mockReturnValue(of(false))
     }
+    toastr = {
+      error: jest.fn(),
+      success: jest.fn()
+    }
 
     TestBed.configureTestingModule({
       imports: [MembershipAdminComponent],
       providers: [
         { provide: MembershipService, useValue: membershipService },
-        { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } },
+        { provide: ToastrService, useValue: toastr },
         { provide: ZardAlertDialogService, useValue: alertDialog },
         { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } }
       ]
@@ -84,6 +93,42 @@ describe('MembershipAdminComponent', () => {
 
     expect(alertDialog.confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }))
     expect(membershipService.archivePlan).not.toHaveBeenCalled()
+  })
+
+  it('round-trips the explicit plan level in the edit form', () => {
+    component.edit(targetPlan)
+
+    expect(component.planForm.controls.level.value).toBe(2)
+    component.planForm.controls.level.setValue(1.5)
+    expect(component.planForm.controls.level.valid).toBe(false)
+    component.planForm.controls.level.setValue(3)
+    expect(component.planForm.controls.level.valid).toBe(true)
+  })
+
+  it('rejects an empty or oversized price currency code', () => {
+    component.planForm.controls.priceCurrency.setValue('   ')
+    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
+
+    component.planForm.controls.priceCurrency.setValue('TOO-LONG-CURRENCY')
+    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
+
+    component.planForm.controls.priceCurrency.setValue('USD')
+    expect(component.planForm.controls.priceCurrency.valid).toBe(true)
+  })
+
+  it('hides purchase-managed organization plan clones from editable plan management', () => {
+    const managedClone = {
+      ...sourcePlan,
+      id: 'managed-plan',
+      catalogSourcePlanId: 'tenant-catalog-plan'
+    }
+    membershipService.getPlans.mockReturnValue(of([managedClone, targetPlan]))
+    component.selectedPlanId.set(managedClone.id)
+
+    component.load()
+
+    expect(component.plans()).toEqual([targetPlan])
+    expect(component.selectedPlanId()).toBe(targetPlan.id)
   })
 
   it('archives a plan only after confirmation', async () => {
@@ -108,6 +153,110 @@ describe('MembershipAdminComponent', () => {
     expect(membershipService.reassignPlanMembers).toHaveBeenCalledWith(sourcePlan.id, {
       targetPlanId: targetPlan.id
     })
+  })
+
+  it('loads assigned plan members page by page', () => {
+    membershipService.getAdminUsers.mockReturnValue(of({ items: [], total: 86 }))
+    component.loadPlanMembers(sourcePlan.id)
+
+    expect(membershipService.getAdminUsers).toHaveBeenLastCalledWith({
+      planId: sourcePlan.id,
+      take: 10,
+      skip: 0
+    })
+
+    component.selectedPlanId.set(sourcePlan.id)
+    component.onPlanMemberPage({
+      previousPageIndex: 0,
+      pageIndex: 2,
+      pageSize: 20,
+      length: 86
+    })
+
+    expect(component.planMemberPageIndex()).toBe(2)
+    expect(component.planMemberPageSize()).toBe(20)
+    expect(membershipService.getAdminUsers).toHaveBeenLastCalledWith({
+      planId: sourcePlan.id,
+      take: 20,
+      skip: 40
+    })
+
+    component.selectPlan(targetPlan)
+
+    expect(component.planMemberPageIndex()).toBe(0)
+    expect(membershipService.getAdminUsers).toHaveBeenLastCalledWith({
+      planId: targetPlan.id,
+      take: 20,
+      skip: 0
+    })
+  })
+
+  it('keeps the last successful page when loading another page fails', () => {
+    component.selectedPlanId.set(sourcePlan.id)
+    membershipService.getAdminUsers.mockReturnValueOnce(throwError(() => new Error('request failed')))
+
+    component.onPlanMemberPage({
+      previousPageIndex: 0,
+      pageIndex: 1,
+      pageSize: 10,
+      length: 30
+    })
+
+    expect(component.planMemberPageIndex()).toBe(0)
+    expect(component.planMemberPageSize()).toBe(10)
+    expect(toastr.error).toHaveBeenCalledWith('request failed')
+  })
+
+  it('ignores an older member page response after a newer request succeeds', () => {
+    const firstPage = new Subject<{ items: []; total: number }>()
+    const secondPage = new Subject<{ items: []; total: number }>()
+    membershipService.getAdminUsers.mockReturnValueOnce(firstPage).mockReturnValueOnce(secondPage)
+    component.selectedPlanId.set(sourcePlan.id)
+
+    component.loadPlanMembers(sourcePlan.id)
+    component.onPlanMemberPage({
+      previousPageIndex: 0,
+      pageIndex: 1,
+      pageSize: 10,
+      length: 20
+    })
+    secondPage.next({ items: [], total: 20 })
+    secondPage.complete()
+    firstPage.next({ items: [], total: 99 })
+    firstPage.complete()
+
+    expect(component.planMemberPageIndex()).toBe(1)
+    expect(component.planMemberCount()).toBe(20)
+    expect(component.planMembersLoading()).toBe(false)
+  })
+
+  it('reloads the last valid page when the member count shrinks', () => {
+    membershipService.getAdminUsers
+      .mockReturnValueOnce(of({ items: [], total: 20 }))
+      .mockReturnValueOnce(of({ items: [], total: 20 }))
+    component.planMemberPageIndex.set(2)
+    component.selectedPlanId.set(sourcePlan.id)
+
+    component.loadPlanMembers(sourcePlan.id)
+
+    expect(membershipService.getAdminUsers).toHaveBeenNthCalledWith(1, {
+      planId: sourcePlan.id,
+      take: 10,
+      skip: 20
+    })
+    expect(membershipService.getAdminUsers).toHaveBeenNthCalledWith(2, {
+      planId: sourcePlan.id,
+      take: 10,
+      skip: 10
+    })
+    expect(component.planMemberPageIndex()).toBe(1)
+  })
+
+  it('shows and disables the plan member paginator according to the current page size and loading state', () => {
+    const template = readFileSync(join(__dirname, 'membership.component.html'), 'utf8')
+
+    expect(template).toContain('planMemberCount() > planMemberPageSize()')
+    expect(template).toContain('[disabled]="planMembersLoading()"')
   })
 
   it('applies the selected batch action only after confirmation', async () => {

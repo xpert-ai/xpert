@@ -8,7 +8,7 @@
     cdkDragHandle
   >
     <span class="text-lg pointer-events-none">
-      {{ 'PAC.Xpert.PublishThirdPlatforms' | translate: { Default: 'Publish to third-party platforms' } }}
+      {{ 'XP.Xpert.PublishThirdPlatforms' | translate: { Default: 'Publish to third-party platforms' } }}
     </span>
   </div>
 
@@ -27,7 +27,7 @@
 
   <div class="flex justify-end mt-2">
     <button type="button" class="btn btn-primary btn-large pressable" [cdkMenuTriggerFor]="addMenu">
-      <i class="ri-apps-2-add-line mr-1"></i> {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+      <i class="ri-apps-2-add-line mr-1"></i> {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
     </button>
   </div>
 </div>
@@ -52,7 +52,7 @@
           <img
             src="/assets/images/illustrations/pro.svg"
             class="absolute -right-1 -top-1 w-5 h-5"
-            [zTooltip]="'PAC.KEY_WORDS.AvailablePro' | translate: { Default: 'Available in enterprise pro edition' }"
+            [zTooltip]="'XP.KEY_WORDS.AvailablePro' | translate: { Default: 'Available in enterprise pro edition' }"
             zPosition="top"
           />
         }
@@ -69,9 +69,7 @@
     cdkDragHandle
   >
     <div class="flex justify-between items-center pl-6 pr-5 h-6">
-      <div>
-        {{ 'PAC.Xpert.PublishTo' | translate: { Default: 'Publish to ' } }} {{ integration()?.provider || '?' }}
-      </div>
+      <div>{{ 'XP.Xpert.PublishTo' | translate: { Default: 'Publish to ' } }} {{ integration()?.provider || '?' }}</div>
       <div class="flex items-center">
         <div class="flex justify-center items-center w-6 h-6 cursor-pointer" (click)="close()">
           <i class="ri-close-line"></i>
@@ -81,7 +79,7 @@
   </div>
 
   @for (integration of selectedIntegrations(); track integration) {
-    <pac-integration-form
+    <xp-integration-form
       #form
       class="grow"
       [integration]="integration"
@@ -90,14 +88,14 @@
 
     <div class="mt-2 shrink-0 flex py-4 px-6 rounded-b-[10px] bg-background-default-subtle border-t border-black/5">
       <button type="button" class="btn disabled:btn-disabled btn-danger btn-medium" (click)="remove(integration)">
-        {{ 'PAC.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
+        {{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
       </button>
 
       <span class="grow"></span>
 
       <div class="flex space-x-2">
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="cancel()">
-          {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
 
         <button
@@ -106,13 +104,13 @@
           [disabled]="form.formGroup.invalid || form.formGroup.pristine"
           (click)="save(form.formGroup.value)"
         >
-          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+          {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
         </button>
       </div>
     </div>
   }
 
   @if (loading()) {
-    <ngm-spin class="absolute left-0 top-0 w-full h-full"></ngm-spin>
+    <xp-spin class="absolute left-0 top-0 w-full h-full"></xp-spin>
   }
 </div>

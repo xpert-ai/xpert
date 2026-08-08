@@ -20,11 +20,11 @@ import { XpertAccessRequestReviewListComponent } from '../../xpert-access-reques
       <header class="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
           <h2 class="text-lg font-semibold text-foreground">
-            {{ 'PAC.Explore.AgentSquare.ReviewTitle' | translate: { Default: 'Requests to review' } }}
+            {{ 'XP.Explore.AgentSquare.ReviewTitle' | translate: { Default: 'Requests to review' } }}
           </h2>
           <p class="mt-1 text-sm text-muted-foreground">
             {{
-              'PAC.Explore.AgentSquare.ReviewSubtitle'
+              'XP.Explore.AgentSquare.ReviewSubtitle'
                 | translate: { Default: 'Approve or reject pending agent access requests.' }
             }}
           </p>

@@ -1,46 +1,59 @@
-<div class="container relative flex-1 flex border-2 border-dashed rounded-lg"
-  ngmDnd (fileDropped)="onFileDropped($event)"
-  >
-  <input type="file" #fileDropRef id="fileDropRef" multiple class="invisible"
+<div
+  class="container relative flex-1 flex border-2 border-dashed rounded-lg"
+  xpDnd
+  (fileDropped)="onFileDropped($event)"
+>
+  <input
+    type="file"
+    #fileDropRef
+    id="fileDropRef"
+    multiple
+    class="invisible"
     (change)="fileBrowseHandler($event.target)"
-    (click)="fileDropRef.value=null;"/>
+    (click)="fileDropRef.value = null"
+  />
   <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
     <svg width="100" height="100">
-      <circle cx="50" cy="50" r="40" fill="#80808050"/>
-      <rect x="25" y="48" width="50" height="4" fill="white"/>
-      <rect x="48" y="25" width="4" height="50" fill="white"/>
+      <circle cx="50" cy="50" r="40" fill="#80808050" />
+      <rect x="25" y="48" width="50" height="4" fill="white" />
+      <rect x="48" y="25" width="4" height="50" fill="white" />
     </svg>
 
     <p class="mb-2 text-sm text-text-tertiary">
-      {{ 'PAC.MODEL.CREATE_TABLE.DragandDropFile' | translate: {Default: 'Drag and drop to add file'} }}
+      {{ 'XP.MODEL.CREATE_TABLE.DragandDropFile' | translate: { Default: 'Drag and drop to add file' } }}
     </p>
     <h3 class="text-sm text-text-tertiary">
-      {{ 'PAC.MODEL.CREATE_TABLE.Or' | translate: {Default: 'or'} }}
+      {{ 'XP.MODEL.CREATE_TABLE.Or' | translate: { Default: 'or' } }}
     </h3>
-    
-    <label for="fileDropRef" class="block text-sm cursor-pointer
-      py-2 px-4
-      rounded-full border-0 font-semibold
-      text-text-secondary
-      bg-components-input-bg-normal
-      hover:bg-components-input-bg-hover"
-      >
+
+    <label
+      for="fileDropRef"
+      class="block text-sm cursor-pointer py-2 px-4 rounded-full border-0 font-semibold text-text-secondary bg-components-input-bg-normal hover:bg-components-input-bg-hover"
+    >
       <span class="sr-only">Choose profile photo</span>
       <span>
-        {{ 'PAC.MODEL.CREATE_TABLE.BrowseForFile' | translate: {Default: 'Browse for file'} }}
+        {{ 'XP.MODEL.CREATE_TABLE.BrowseForFile' | translate: { Default: 'Browse for file' } }}
       </span>
     </label>
 
     @if (description()) {
-      <div class="mx-32 text-xs text-text-tertiary">{{description()}}</div>
+      <div class="mx-32 text-xs text-text-tertiary">{{ description() }}</div>
     }
 
     <div class="w-full flex flex-col stretch">
       @for (item of files(); track i; let i = $index) {
         <div class="flex justify-between items-center px-2 hover:bg-hover-bg">
           {{ item.file.name }}
-          <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(item)">
-            <z-icon zType="close"></z-icon> 
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            xpAppearance="danger"
+            displayDensity="cosy"
+            (click)="removeFile(item)"
+          >
+            <z-icon zType="close"></z-icon>
           </button>
         </div>
         <z-progress-bar zShape="square" [progress]="item.progress ?? 0" />

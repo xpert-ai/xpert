@@ -40,7 +40,6 @@ COPY --chown=node:node tailwind.workspace.config.js ./tailwind.workspace.config.
 COPY --chown=node:node tailwind.theme.vars.js ./tailwind.theme.vars.js
 COPY --chown=node:node apps ./apps
 COPY --chown=node:node packages ./packages
-COPY --chown=node:node legacies ./legacies
 COPY --chown=node:node libs ./libs
 
 RUN pnpm install --no-frozen-lockfile
@@ -53,6 +52,7 @@ FROM nginx:alpine AS production
 ARG NODE_OPTIONS
 ARG NODE_ENV
 ARG API_BASE_URL
+ARG WEBAPP_API_BASE_URL
 ARG HOST
 ARG PORT
 ARG DEMO

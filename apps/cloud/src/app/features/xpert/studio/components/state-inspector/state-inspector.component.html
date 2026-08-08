@@ -19,7 +19,7 @@
           <div class="min-w-0 flex-1">
             <div class="mt-1 flex items-center gap-2">
               <h2 class="truncate text-sm font-semibold text-text-primary">
-                {{ 'PAC.Xpert.StateInspector' | translate: { Default: 'State Inspector' } }}
+                {{ 'XP.Xpert.StateInspector' | translate: { Default: 'State Inspector' } }}
               </h2>
               @if (execution(); as execution) {
                 <span
@@ -38,7 +38,7 @@
               (click)="rerunFromCheckpoint()"
             >
               <i class="ri-refresh-line"></i>
-              <span>{{ 'PAC.Xpert.RerunCheckpoint' | translate: { Default: 'Rerun from this checkpoint' } }}</span>
+              <span>{{ 'XP.Xpert.RerunCheckpoint' | translate: { Default: 'Rerun from this checkpoint' } }}</span>
             </button>
           }
 
@@ -48,8 +48,8 @@
             (click)="toggleCollapsed()"
             [title]="
               collapsed()
-                ? ('PAC.ACTIONS.Expand' | translate: { Default: 'Expand' })
-                : ('PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+                ? ('XP.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                : ('XP.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
             "
           >
             <i [class]="collapsed() ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"></i>
@@ -59,7 +59,7 @@
             type="button"
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg border-[0.5px] border-divider-regular text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
             (click)="closeInspector()"
-            [title]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
+            [title]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
           >
             <i class="ri-close-line"></i>
           </button>
@@ -70,7 +70,7 @@
             @if (loadingCheckpoints() || loadingExecution()) {
               <div class="flex items-center gap-2 text-sm text-text-secondary">
                 <i class="ri-loader-4-line animate-spin"></i>
-                <span>{{ 'PAC.Xpert.LoadingCheckpoints' | translate: { Default: 'Loading checkpoints…' } }}</span>
+                <span>{{ 'XP.Xpert.LoadingCheckpoints' | translate: { Default: 'Loading checkpoints…' } }}</span>
               </div>
             } @else if (checkpoints().length) {
               <z-stepper
@@ -96,9 +96,9 @@
                 <span>
                   {{
                     execution()?.status === eExecutionStatusEnum.RUNNING
-                      ? ('PAC.Xpert.StatePending'
+                      ? ('XP.Xpert.StatePending'
                         | translate: { Default: 'State snapshots will appear after the next persisted checkpoint.' })
-                      : ('PAC.Xpert.NoCheckpoints'
+                      : ('XP.Xpert.NoCheckpoints'
                         | translate: { Default: 'No checkpoint lineage is available for this execution yet.' })
                   }}
                 </span>
@@ -113,7 +113,7 @@
                   class="flex items-center gap-2 rounded-xl border-[0.5px] border-dashed border-divider-deep px-3 py-4 text-sm text-text-secondary"
                 >
                   <i class="ri-loader-4-line animate-spin"></i>
-                  <span>{{ 'PAC.Xpert.LoadingVariables' | translate: { Default: 'Loading variables…' } }}</span>
+                  <span>{{ 'XP.Xpert.LoadingVariables' | translate: { Default: 'Loading variables…' } }}</span>
                 </div>
               } @else if (hasCategories()) {
                 <div class="space-y-4">
@@ -121,7 +121,7 @@
                     @if (category.groups.length) {
                       <section class="space-y-2">
                         <div class="px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-text-quaternary">
-                          {{ 'PAC.Xpert.StateCategory.' + category.id | translate: { Default: category.label } }}
+                          {{ 'XP.Xpert.StateCategory.' + category.id | translate: { Default: category.label } }}
                         </div>
 
                         @for (group of category.groups; track group.id) {
@@ -185,7 +185,7 @@
                   class="rounded-xl border-[0.5px] border-dashed border-divider-deep px-3 py-4 text-sm text-text-secondary"
                 >
                   {{
-                    'PAC.Xpert.NoStateVariables'
+                    'XP.Xpert.NoStateVariables'
                       | translate: { Default: 'No state variables are available for this checkpoint.' }
                   }}
                 </div>
@@ -198,14 +198,14 @@
                   class="flex h-full min-h-[220px] items-center justify-center gap-2 rounded-2xl border-[0.5px] border-dashed border-divider-deep text-sm text-text-secondary"
                 >
                   <i class="ri-loader-4-line animate-spin"></i>
-                  <span>{{ 'PAC.Xpert.LoadingSnapshot' | translate: { Default: 'Loading checkpoint state…' } }}</span>
+                  <span>{{ 'XP.Xpert.LoadingSnapshot' | translate: { Default: 'Loading checkpoint state…' } }}</span>
                 </div>
               } @else if (currentSnapshotEntry()?.status === 'error') {
                 <div
                   class="rounded-2xl border-[0.5px] border-dashed border-divider-deep px-4 py-4 text-sm text-text-secondary"
                 >
                   <div class="font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.StateLoadFailed' | translate: { Default: 'Failed to load checkpoint state' } }}
+                    {{ 'XP.Xpert.StateLoadFailed' | translate: { Default: 'Failed to load checkpoint state' } }}
                   </div>
                   <div class="mt-2 whitespace-pre-wrap">{{ currentSnapshotEntry()?.error }}</div>
                 </div>
@@ -214,7 +214,7 @@
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="min-w-0">
                       <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-quaternary">
-                        {{ 'PAC.Xpert.StateVariable' | translate: { Default: 'State variable' } }}
+                        {{ 'XP.Xpert.StateVariable' | translate: { Default: 'State variable' } }}
                       </div>
                       <div class="mt-1 truncate font-mono text-base font-semibold text-text-primary">
                         {{ selected.variable.path }}
@@ -233,7 +233,7 @@
                           [class.text-text-secondary]="stringViewMode() !== 'code'"
                           (click)="stringViewMode.set('code')"
                         >
-                          {{ 'PAC.Chat.Code' | translate: { Default: 'Code' } }}
+                          {{ 'XP.Chat.Code' | translate: { Default: 'Code' } }}
                         </button>
                         <button
                           type="button"
@@ -243,7 +243,7 @@
                           [class.text-text-secondary]="stringViewMode() !== 'preview'"
                           (click)="stringViewMode.set('preview')"
                         >
-                          {{ 'PAC.Chat.Preview' | translate: { Default: 'Preview' } }}
+                          {{ 'XP.Chat.Preview' | translate: { Default: 'Preview' } }}
                         </button>
                       </div>
                     }
@@ -252,7 +252,7 @@
                   <div class="rounded-2xl border-[0.5px] border-divider-regular bg-components-panel-bg p-4">
                     @if (selectedValueIsString()) {
                       @if (stringViewMode() === 'preview' && selectedValueCanPreviewMarkdown()) {
-                        <markdown class="ngm-copilot-markdown block" [data]="selectedValue()" />
+                        <markdown class="xp-copilot-markdown block" [data]="selectedValue()" />
                       } @else {
                         <pre class="whitespace-pre-wrap break-words font-mono text-sm text-text-primary">{{
                           selectedValue()
@@ -272,7 +272,7 @@
                   class="flex h-full min-h-[220px] items-center justify-center rounded-2xl border-[0.5px] border-dashed border-divider-deep px-4 text-sm text-text-secondary"
                 >
                   {{
-                    'PAC.Xpert.SelectStateVariable'
+                    'XP.Xpert.SelectStateVariable'
                       | translate: { Default: 'Select a state variable to inspect its value.' }
                   }}
                 </div>

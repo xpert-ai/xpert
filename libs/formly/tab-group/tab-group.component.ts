@@ -1,17 +1,16 @@
-import { Component } from '@angular/core';
-import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
+import { Component } from '@angular/core'
+import { FieldType, FormlyFieldConfig } from '@ngx-formly/core'
 
 @Component({
-  selector: 'ngm-formly-tab-group',
+  selector: 'xp-formly-tab-group',
   standalone: false,
   templateUrl: './tab-group.component.html',
   styleUrls: ['./tab-group.component.scss'],
   host: {
-    'class': 'ngm-formly-tab-group'
+    class: 'xp-formly-tab-group'
   }
 })
 export class FormlyTabGroupComponent extends FieldType {
-
   isValid(field: FormlyFieldConfig): boolean | undefined {
     if (field.key) {
       return field.formControl?.valid

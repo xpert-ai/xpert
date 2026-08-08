@@ -1,5 +1,6 @@
 <div class="flex items-start justify-between space-x-2">
-  <input class="xp-input block h-8 w-20 shrink-0 pl-3 mr-8 text-[13px]"
+  <input
+    class="xp-input block h-8 w-20 shrink-0 pl-3 mr-8 text-[13px]"
     min="0.8"
     max="1"
     step="0.01"
@@ -8,19 +9,26 @@
   />
 
   <div class="grow flex flex-col">
-    <z-slider class="grow" min="0.8" max="1" step="0.01" [showTickMarks]="true" [showValueLabel]="true" [(ngModel)]="scoreThreshold"></z-slider>
+    <z-slider
+      class="grow"
+      min="0.8"
+      max="1"
+      step="0.01"
+      [showTickMarks]="true"
+      [showValueLabel]="true"
+      [(ngModel)]="scoreThreshold"
+    ></z-slider>
     <div class="text-xs font-semibold uppercase flex items-center justify-between">
       <div class="flex space-x-1 text-cyan-500">
         <div>0.8</div>
         <div>·</div>
-        <div>{{ 'PAC.Xpert.EasyMatch' | translate: {Default: 'Easy Match'} }}</div>
+        <div>{{ 'XP.Xpert.EasyMatch' | translate: { Default: 'Easy Match' } }}</div>
       </div>
       <div class="flex space-x-1 text-blue-500">
         <div>1.0</div>
         <div>·</div>
-        <div>{{ 'PAC.Xpert.ExactMatch' | translate: {Default: 'Exact Match'} }}</div>
+        <div>{{ 'XP.Xpert.ExactMatch' | translate: { Default: 'Exact Match' } }}</div>
       </div>
     </div>
   </div>
-  
 </div>

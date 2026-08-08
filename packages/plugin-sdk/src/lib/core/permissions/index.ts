@@ -7,7 +7,6 @@
  */
 
 export * from './general'
-export * from './analytics'
 export * from './operation'
 export * from './handoff'
 export * from './account-binding'
@@ -16,6 +15,7 @@ export * from './bound-identity-login'
 export * from './sso-binding'
 export * from './user'
 export * from './speech-to-text'
+export * from './video-generation'
 
 import type {
   FileSystemPermission,
@@ -24,13 +24,13 @@ import type {
   LLMPermission,
   VectorStorePermission
 } from './general'
-import type { AnalyticsPermission } from './analytics'
 import type { AccountBindingPermission } from './account-binding'
 import type { BoundIdentityLoginPermission } from './bound-identity-login'
 import type { HandoffPermission } from './handoff'
 import type { SpeechToTextPermission } from './speech-to-text'
 import type { SsoBindingPermission } from './sso-binding'
 import type { UserPermission } from './user'
+import type { VideoGenerationPermission } from './video-generation'
 
 /**
  * Union type for all permissions
@@ -41,13 +41,13 @@ export type Permission =
   | KnowledgePermission
   | FileSystemPermission
   | IntegrationPermission
-  | AnalyticsPermission
   | AccountBindingPermission
   | BoundIdentityLoginPermission
   | SsoBindingPermission
   | UserPermission
   | HandoffPermission
   | SpeechToTextPermission
+  | VideoGenerationPermission
 
 /**
  * Permissions array type

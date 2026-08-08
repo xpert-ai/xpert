@@ -17,9 +17,9 @@ class MockTerminal {
     mockTerminalInstances.push(this)
   }
 
-  loadAddon(): void {}
+  readonly loadAddon = jest.fn()
 
-  open(): void {}
+  readonly open = jest.fn()
 
   write(data: string): void {
     this.writes.push(data)
@@ -29,9 +29,9 @@ class MockTerminal {
     this.writes.push(`${data}\n`)
   }
 
-  focus(): void {}
+  readonly focus = jest.fn()
 
-  dispose(): void {}
+  readonly dispose = jest.fn()
 
   onData(callback: (data: string) => void) {
     this.#onData = callback
@@ -73,6 +73,10 @@ jest.mock('@xterm/addon-fit', () => ({
   FitAddon: MockFitAddon
 }))
 
+jest.mock('echarts/core', () => ({
+  registerTheme: jest.fn()
+}))
+
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
@@ -85,9 +89,11 @@ import { ChatSharedTerminalComponent } from './terminal.component'
 
 describe('ChatSharedTerminalComponent', () => {
   let messages$: Subject<unknown>
+  let connectionErrors$: Subject<string>
   let sandboxTerminalSocketService: {
     close: jest.Mock
     connect: jest.Mock
+    connectionError$: Subject<string>
     connected$: BehaviorSubject<boolean>
     disconnected$: Subject<boolean>
     input: jest.Mock
@@ -108,12 +114,14 @@ describe('ChatSharedTerminalComponent', () => {
     globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
 
     messages$ = new Subject()
+    connectionErrors$ = new Subject()
     sandboxTerminalSocketService = {
       close: jest.fn(),
       connect: jest.fn(() => {
         sandboxTerminalSocketService.connected$.next(true)
         return null
       }),
+      connectionError$: connectionErrors$,
       connected$: new BehaviorSubject<boolean>(false),
       disconnected$: new Subject<boolean>(),
       input: jest.fn(),
@@ -144,7 +152,7 @@ describe('ChatSharedTerminalComponent', () => {
     translate.setTranslation(
       'en',
       {
-        PAC: {
+        XP: {
           Chat: {
             Terminal: 'Terminal',
             TerminalConnected: 'Connected via i18n',
@@ -248,6 +256,51 @@ describe('ChatSharedTerminalComponent', () => {
     })
   })
 
+  it('cancels a pending open when the component is destroyed', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const openRequest = sandboxTerminalSocketService.open.mock.calls[0][0] as {
+      requestId: string
+    }
+
+    fixture.destroy()
+
+    expect(sandboxTerminalSocketService.close).toHaveBeenCalledWith({
+      requestId: openRequest.requestId
+    })
+  })
+
+  it('cancels a pending open before opening a terminal for a new conversation', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    const firstOpenRequest = sandboxTerminalSocketService.open.mock.calls[0][0] as {
+      requestId: string
+    }
+
+    fixture.componentRef.setInput('conversationId', 'conversation-2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(sandboxTerminalSocketService.close).toHaveBeenCalledWith({
+      requestId: firstOpenRequest.requestId
+    })
+    expect(sandboxTerminalSocketService.open).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-2'
+      })
+    )
+  })
+
   it('renders replay content without opening a terminal session', async () => {
     const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
     fixture.componentRef.setInput('mode', 'replay')
@@ -302,5 +355,128 @@ describe('ChatSharedTerminalComponent', () => {
 
     expect(toastr.error).toHaveBeenCalledWith('Sandbox provider "demo" does not support terminal sessions.')
     expect(fixture.nativeElement.textContent).toContain('Unsupported provider')
+  })
+
+  it('keeps the provider error message when the terminal closes with an error', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const openRequest = sandboxTerminalSocketService.open.mock.calls[0][0] as {
+      requestId: string
+    }
+    messages$.next({
+      event: SandboxTerminalServerEvent.Opened,
+      data: {
+        provider: 'nsjail',
+        requestId: openRequest.requestId,
+        sessionId: 'session-error',
+        workingDirectory: '/workspace'
+      }
+    })
+    messages$.next({
+      event: SandboxTerminalServerEvent.Error,
+      data: {
+        code: 'provider_unavailable',
+        message: 'NsJail Runner authentication failed',
+        sessionId: 'session-error'
+      }
+    })
+    messages$.next({
+      event: SandboxTerminalServerEvent.Closed,
+      data: {
+        reason: SandboxTerminalClosedReason.Error,
+        sessionId: 'session-error'
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.status()).toBe('error')
+    expect(fixture.componentInstance.statusMessage()).toBe('NsJail Runner authentication failed')
+    expect(fixture.nativeElement.textContent).toContain('NsJail Runner authentication failed')
+  })
+
+  it('keeps the provider error message when opening the terminal fails', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const openRequest = sandboxTerminalSocketService.open.mock.calls[0][0] as {
+      requestId: string
+    }
+    messages$.next({
+      event: SandboxTerminalServerEvent.Error,
+      data: {
+        code: 'open_failed',
+        message: 'NsJail Runner authentication failed',
+        requestId: openRequest.requestId
+      }
+    })
+    messages$.next({
+      event: SandboxTerminalServerEvent.Closed,
+      data: {
+        reason: SandboxTerminalClosedReason.OpenFailed,
+        requestId: openRequest.requestId
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.status()).toBe('error')
+    expect(fixture.componentInstance.statusMessage()).toBe('NsJail Runner authentication failed')
+    expect(fixture.nativeElement.textContent).toContain('NsJail Runner authentication failed')
+  })
+
+  it('shows socket connection errors instead of staying in the connecting state', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    connectionErrors$.next('xhr poll error')
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.status()).toBe('error')
+    expect(fixture.nativeElement.textContent).toContain('xhr poll error')
+    expect(mockTerminalInstances[0].writes.join('')).toContain('[xhr poll error]')
+  })
+
+  it('recovers from a socket connection error after reconnecting and opening a session', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    connectionErrors$.next('temporary connection failure')
+    expect(fixture.componentInstance.status()).toBe('error')
+
+    sandboxTerminalSocketService.connected$.next(true)
+    const openRequest = sandboxTerminalSocketService.open.mock.calls.at(-1)?.[0] as {
+      requestId: string
+    }
+    messages$.next({
+      event: SandboxTerminalServerEvent.Opened,
+      data: {
+        provider: 'nsjail',
+        requestId: openRequest.requestId,
+        sessionId: 'session-recovered',
+        workingDirectory: '/workspace'
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.status()).toBe('connected')
+    expect(fixture.componentInstance.statusMessage()).toBeNull()
+    expect(mockTerminalInstances[0].options.disableStdin).toBe(false)
+    expect(mockTerminalInstances[0].focus).toHaveBeenCalled()
   })
 })

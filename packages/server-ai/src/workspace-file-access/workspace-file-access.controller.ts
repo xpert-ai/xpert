@@ -121,7 +121,7 @@ export class WorkspaceFileAccessController {
         )
         response.setHeader('X-Content-Type-Options', 'nosniff')
         response.setHeader('Referrer-Policy', 'no-referrer')
-        response.setHeader('Content-Disposition', contentDisposition(grant.purpose, grant.fileName))
+        response.setHeader('Content-Disposition', buildWorkspaceFileContentDisposition(grant.purpose, grant.fileName))
         if (origin) {
             response.setHeader('Access-Control-Allow-Origin', origin)
             response.setHeader('Access-Control-Allow-Credentials', 'true')
@@ -165,8 +165,13 @@ export class WorkspaceFileAccessController {
     }
 }
 
-function contentDisposition(purpose: XpertViewFileAccessPurpose, fileName: string) {
-    const fallbackName = fileName.replace(/["\\\r\n]/g, '_')
-    const encodedName = encodeURIComponent(fileName)
+export function buildWorkspaceFileContentDisposition(purpose: XpertViewFileAccessPurpose, fileName: string) {
+    // Node.js rejects non-Latin-1 characters in response headers. Keep the
+    // quoted filename ASCII-only and preserve the real name in RFC 5987 form.
+    const fallbackName = fileName.replace(/[^\x20-\x7e]|["\\]/g, '_') || 'workspace-file'
+    const encodedName = encodeURIComponent(fileName).replace(
+        /[!'()*]/g,
+        (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+    )
     return `${purpose === 'download' ? 'attachment' : 'inline'}; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`
 }

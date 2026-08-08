@@ -4,10 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@cloud/app/@core'
-import { provideOcap } from '@cloud/app/@core/providers/ocap'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { ChatService, XpertChatAppComponent, XpertOcapService } from '@cloud/app/xpert'
-import { provideOcapCore } from '@xpert-ai/ocap-angular/core'
+import { ChatService, XpertChatAppComponent } from '@cloud/app/xpert'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { ChatPlatformService } from '../chat.service'
@@ -29,19 +27,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     XpertChatAppComponent,
     ChatXpertsComponent
-],
-  selector: 'pac-chat-xpert',
+  ],
+  selector: 'xp-chat-xpert',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [],
-  providers: [
-    ChatPlatformService,
-    { provide: ChatService, useExisting: ChatPlatformService },
-    provideOcapCore(),
-    provideOcap(),
-    XpertOcapService
-  ]
+  providers: [ChatPlatformService, { provide: ChatService, useExisting: ChatPlatformService }]
 })
 export class ChatXpertComponent {
   readonly chatService = inject(ChatPlatformService)
@@ -76,17 +68,15 @@ export class ChatXpertComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.chatHomeComponent.currentPage.set({
-            type: 'conversation',
-            id: this.paramId()
-          })
-          this.chatHomeComponent.historyExpanded.set(true)
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.chatHomeComponent.currentPage.set({
+          type: 'conversation',
+          id: this.paramId()
+        })
+        this.chatHomeComponent.historyExpanded.set(true)
       }
-    )
+    })
 
     this.searchControl.valueChanges.subscribe((value) => {
       this.searchText.set(value || '')

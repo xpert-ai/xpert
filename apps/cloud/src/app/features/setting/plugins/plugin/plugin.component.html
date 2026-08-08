@@ -26,7 +26,7 @@
         @if (plugin.contributions?.length) {
           <span class="system-2xs-medium rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary">
             {{
-              'PAC.Plugin.ContentCount'
+              'XP.Plugin.ContentCount'
                 | translate: { Default: plugin.contributions.length + ' contents', count: plugin.contributions.length }
             }}
           </span>
@@ -46,9 +46,9 @@
         (click)="install()"
       >
         @if (installed()) {
-          {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
+          {{ 'XP.Plugin.Installed' | translate: { Default: 'Installed' } }}
         } @else {
-          {{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}
+          {{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}
         }
       </button>
     }
@@ -58,13 +58,13 @@
         class="btn disabled:btn-disabled btn-secondary btn-medium flex-1 shrink-0 gap-0.5"
         (click)="viewDetails()"
       >
-        {{ 'PAC.Plugin.Details' | translate: { Default: 'Details' } }}
+        {{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}
         <i class="ri-list-check-3"></i>
       </button>
     } @else if (plugin.source?.url) {
       <a target="_blank" [href]="plugin.source?.url" class="block flex-1 shrink-0">
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5">
-          {{ 'PAC.Plugin.Details' | translate: { Default: 'Details' } }}
+          {{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}
           <i class="ri-corner-right-up-line"></i>
         </button>
       </a>

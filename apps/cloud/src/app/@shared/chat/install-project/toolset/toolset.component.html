@@ -3,7 +3,7 @@
     <div>
       <span class="font-semibold text-base truncate">{{ name() }}</span>
       <span class="mx-2">
-        {{ 'PAC.XProject.Or' | translate: { Default: 'or' } }}
+        {{ 'XP.XProject.Or' | translate: { Default: 'or' } }}
       </span>
 
       <button
@@ -19,14 +19,14 @@
           <i class="ri-close-circle-line cursor-pointer" (click)="removeBindedToolset()"></i>
         } @else {
           <span>
-            {{ 'PAC.XProject.IntroduceExistToolset' | translate: { Default: 'Introduce Exist Toolset' } }}
+            {{ 'XP.XProject.IntroduceExistToolset' | translate: { Default: 'Introduce Exist Toolset' } }}
           </span>
         }
       </button>
       @if (createdToolset()) {
         <i
           class="ri-checkbox-circle-fill ml-1 text-text-success"
-          [zTooltip]="'PAC.XProject.HaveImported' | translate: { Default: 'Imported' }"
+          [zTooltip]="'XP.XProject.HaveImported' | translate: { Default: 'Imported' }"
           zPosition="top"
         ></i>
       }
@@ -43,12 +43,12 @@
     (click)="importToolset()"
   >
     @if (loading()) {
-      <ngm-spin class="w-5 h-5 mr-1" />
+      <xp-spin class="w-5 h-5 mr-1" />
     }
     @if (bindedToolset()) {
-      {{ 'PAC.XProject.Binding' | translate: { Default: 'Binding' } }}
+      {{ 'XP.XProject.Binding' | translate: { Default: 'Binding' } }}
     } @else {
-      {{ 'PAC.XProject.Import' | translate: { Default: 'Import' } }}
+      {{ 'XP.XProject.Import' | translate: { Default: 'Import' } }}
     }
   </button>
 </div>
@@ -56,13 +56,13 @@
 <ng-template #toolsMenu>
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
     @for (toolset of toolsets(); track toolset.id) {
-      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="bindToolset(toolset)">
+      <button class="xp-cdk-menu-item p-1" cdkMenuItem (click)="bindToolset(toolset)">
         <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
         <span class="truncate">{{ toolset.name }}</span>
       </button>
     } @empty {
       <div class="p-2 text-text-secondary">
-        {{ 'PAC.XProject.NoToolset' | translate: { Default: 'No toolset found' } }}
+        {{ 'XP.XProject.NoToolset' | translate: { Default: 'No toolset found' } }}
       </div>
     }
   </div>

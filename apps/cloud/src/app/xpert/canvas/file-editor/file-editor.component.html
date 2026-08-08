@@ -116,21 +116,21 @@
           [class.active]="preview()"
           (click)="preview.set(true)"
         >
-          {{ 'PAC.Chat.Preview' | translate: { Default: 'Preview' } }}
+          {{ 'XP.Chat.Preview' | translate: { Default: 'Preview' } }}
         </button>
         <button
           class="button-toggle h-[26px] rounded-md text-sm font-medium clickable transition-all px-3"
           [class.active]="!preview()"
           (click)="preview.set(false)"
         >
-          {{ 'PAC.Chat.Code' | translate: { Default: 'Code' } }}
+          {{ 'XP.Chat.Code' | translate: { Default: 'Code' } }}
         </button>
       </div>
 
       @if (canExportToPdf()) {
         <button
           class="w-7 h-7 flex justify-center items-center rounded-lg hover:bg-hover-bg clickable"
-          [zTooltip]="'PAC.Chat.ExportToPdf' | translate: { Default: 'Export to PDF' }"
+          [zTooltip]="'XP.Chat.ExportToPdf' | translate: { Default: 'Export to PDF' }"
           (click)="exportToPdf()"
         >
           <i class="ri-file-pdf-2-line text-lg"></i>
@@ -140,7 +140,7 @@
       @if (canCopyPreview()) {
         <button
           class="w-7 h-7 flex justify-center items-center rounded-lg hover:bg-hover-bg clickable"
-          [zTooltip]="'PAC.Chat.Copy' | translate: { Default: 'Copy' }"
+          [zTooltip]="'XP.Chat.Copy' | translate: { Default: 'Copy' }"
         >
           <copy [content]="previewData().content ?? ''" />
         </button>
@@ -148,7 +148,7 @@
     }
     <button
       class="w-7 h-7 flex justify-center items-center rounded-lg hover:bg-hover-bg clickable"
-      [zTooltip]="'PAC.Chat.Download' | translate: { Default: 'Download' }"
+      [zTooltip]="'XP.Chat.Download' | translate: { Default: 'Download' }"
       (click)="download()"
     >
       <i class="ri-download-2-line"></i>
@@ -171,7 +171,7 @@
         (download)="download()"
       />
     } @else {
-      <pac-file-editor class="h-full" lineNumbers [fileName]="file.filePath" [content]="previewData().content ?? ''" />
+      <xp-file-editor class="h-full" lineNumbers [fileName]="file.filePath" [content]="previewData().content ?? ''" />
     }
   }
 </div>

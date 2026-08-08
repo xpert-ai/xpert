@@ -1,13 +1,10 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component } from '@angular/core'
+import { RouterModule } from '@angular/router'
 
 @Component({
   standalone: true,
-  selector: 'pac-miscellaneous',
-  imports: [ RouterModule ],
-  template: `
-    <router-outlet></router-outlet>
-  `,
+  selector: 'xp-miscellaneous',
+  imports: [RouterModule],
+  template: ` <router-outlet></router-outlet> `
 })
-export class MiscellaneousComponent {
-}
+export class MiscellaneousComponent {}

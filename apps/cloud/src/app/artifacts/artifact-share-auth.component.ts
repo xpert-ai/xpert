@@ -7,7 +7,7 @@ import { ARTIFACT_SHARE_SESSION_HTTP_OPTIONS, artifactShareSessionUrl } from './
 
 @Component({
   standalone: true,
-  selector: 'pac-artifact-share-auth',
+  selector: 'xp-artifact-share-auth',
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

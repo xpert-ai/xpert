@@ -21,11 +21,11 @@
 <ng-template #editorMenu>
   <div cdkMenu class="cdk-menu__large">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="fileUpload.click()">
-      {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+      {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
     </button>
     @if (value()) {
       <button cdkMenuItem class="px-2 py-1 rounded-lg danger" (click)="remove()">
-        {{ 'PAC.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
+        {{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
       </button>
     }
   </div>

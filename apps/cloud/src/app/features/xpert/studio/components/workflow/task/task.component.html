@@ -10,7 +10,7 @@
   >
     <div
       class="inner-dot cursor-crosshair"
-      [zTooltip]="'PAC.Xpert.ConnectAgents' | translate: { Default: 'Connect Agents' }"
+      [zTooltip]="'XP.Xpert.ConnectAgents' | translate: { Default: 'Connect Agents' }"
       zPosition="top"
     >
       <i class="ri-add-line w-2 h-2 flex justify-center items-center text-white"></i>
@@ -23,7 +23,7 @@
     <div>
       @switch (execution.status) {
         @case ('running') {
-          <ngm-spin class="shrink-0 scale-90 origin-center" small />
+          <xp-spin class="shrink-0 scale-90 origin-center" small />
         }
         @case ('fail') {
           <div
@@ -47,7 +47,7 @@
 
       <float-ui-content #popperContent>
         <div class="text-sm text-left w-96 max-h-80 overflow-auto">
-          <div class="px-2 py-1 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: { Default: 'Input' } }}:</div>
+          <div class="px-2 py-1 font-semibold">{{ 'XP.KEY_WORDS.Input' | translate: { Default: 'Input' } }}:</div>
           <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap" />
         </div>
       </float-ui-content>

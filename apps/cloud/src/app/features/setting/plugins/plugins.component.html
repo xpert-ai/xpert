@@ -1,6 +1,6 @@
 <div class="flex justify-between items-center px-8 py-4">
   <div class="flex justify-between items-center">
-    <div class="pac-page-title mr-2">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
+    <div class="xp-page-title mr-2">{{ 'XP.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
     <div class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-(--secondary) p-0.5">
       <div
         id="tab-0"
@@ -8,7 +8,7 @@
         [class.active]="category() === 'plugins'"
         (click)="category.set('plugins')"
       >
-        {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
+        {{ 'XP.Plugin.Installed' | translate: { Default: 'Installed' } }}
         <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
           {{ plugins().length }}
         </div>
@@ -19,7 +19,7 @@
         [class.active]="category() === 'marketplace'"
         (click)="category.set('marketplace')"
       >
-        {{ 'PAC.Plugin.ExploreMarketplace' | translate: { Default: 'Explore Marketplace' } }}
+        {{ 'XP.Plugin.ExploreMarketplace' | translate: { Default: 'Explore Marketplace' } }}
       </div>
     </div>
   </div>
@@ -34,11 +34,11 @@
           (click)="refreshMarketplaceSource()"
         >
           @if (marketplaceRefreshingSource()) {
-            <ngm-spin small />
+            <xp-spin small />
           } @else {
             <i class="ri-refresh-line"></i>
           }
-          <span class="pl-1">{{ 'PAC.Plugin.RefreshSource' | translate: { Default: 'Refresh' } }}</span>
+          <span class="pl-1">{{ 'XP.Plugin.RefreshSource' | translate: { Default: 'Refresh' } }}</span>
         </button>
         <button
           type="button"
@@ -47,7 +47,7 @@
         >
           <i class="ri-list-settings-line"></i>
           <span class="pl-1">
-            {{ 'PAC.Plugin.ManageRegisteredPlugins' | translate: { Default: 'Manage registered plugins' } }}
+            {{ 'XP.Plugin.ManageRegisteredPlugins' | translate: { Default: 'Manage registered plugins' } }}
           </span>
         </button>
         <button
@@ -56,19 +56,19 @@
           (click)="openAddMarketplace()"
         >
           <i class="ri-add-line"></i>
-          <span class="pl-1">{{ 'PAC.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
+          <span class="pl-1">{{ 'XP.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
         </button>
         <div class="mx-1 h-3.5 w-[1px] shrink-0 bg-divider-regular"></div>
       }
       <a target="_blank" href="https://github.com/xpert-ai/xpert-plugins/issues/new?template=plugin_request.yaml">
         <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium text-text-tertiary">
-          {{ 'PAC.Plugin.RequestPlugin' | translate: { Default: 'Request a plugin' } }}
+          {{ 'XP.Plugin.RequestPlugin' | translate: { Default: 'Request a plugin' } }}
         </button>
       </a>
       <a target="_blank" [href]="releaseHelpUrl()">
         <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium px-3">
           <i class="ri-book-open-line mr-1 shrink-0"></i>
-          {{ 'PAC.Plugin.PublishPlugins' | translate: { Default: 'Publish plugins' } }}
+          {{ 'XP.Plugin.PublishPlugins' | translate: { Default: 'Publish plugins' } }}
         </button>
       </a>
       <div class="mx-1 h-3.5 w-[1px] shrink-0 bg-divider-regular"></div>
@@ -79,7 +79,7 @@
       [cdkMenuTriggerFor]="installMenu"
     >
       <i class="ri-add-line"></i>
-      <span class="pl-1">{{ 'PAC.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
+      <span class="pl-1">{{ 'XP.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
     </button>
     <!-- <button
       type="button"
@@ -103,19 +103,19 @@
       </div>
       <div class="min-w-0">
         <div class="system-sm-semibold text-text-primary">
-          {{ 'PAC.Plugin.RestartRequiredTitle' | translate: { Default: 'API restart required' } }}
+          {{ 'XP.Plugin.RestartRequiredTitle' | translate: { Default: 'API restart required' } }}
         </div>
         <div class="mt-0.5 text-sm text-text-secondary">
           @if (runtimeRestart.pendingPluginNames().length) {
             {{
-              'PAC.Plugin.RestartRequiredDescription'
+              'XP.Plugin.RestartRequiredDescription'
                 | translate
                   : {
                       Default: 'Plugin changes for {{pluginNames}}
             are staged.', pluginNames: runtimeRestart.pendingPluginNames().join(', ') } }}
           } @else {
             {{
-              'PAC.Plugin.RestartRequiredGenericDescription'
+              'XP.Plugin.RestartRequiredGenericDescription'
                 | translate: { Default: 'System plugin changes are staged. Restart the API service to activate them.' }
             }}
           }
@@ -136,30 +136,33 @@
     @if (runtimeRestart.canRestart()) {
       <button type="button" class="btn btn-primary btn-medium shrink-0" (click)="runtimeRestart.prompt()">
         <i class="ri-restart-line mr-1"></i>
-        {{ 'PAC.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
+        {{ 'XP.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
       </button>
     }
   </div>
 }
 
 @if (category() === 'marketplace') {
-  <xp-plugins-marketplace />
+  <xp-plugins-marketplace
+    [reloadInstalledPlugins]="reloadInstalledPluginsCallback"
+    [refreshStrategies]="refreshStrategyCachesCallback"
+  />
 } @else {
   <div class="flex flex-col items-start justify-center gap-3 self-stretch px-12 pb-3 pt-1">
     <div class="flex items-center gap-2 self-stretch">
-      <ngm-select
+      <xp-select
         class="inline-block w-[160px]"
         multiple
         [selectOptions]="marketplaceCategoryOptions()"
-        [placeholder]="'PAC.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
+        [placeholder]="'XP.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
         [(ngModel)]="marketplaceCategories"
       />
-      <ngm-select
+      <xp-select
         class="inline-block w-[160px]"
         multiple
         searchable
         [selectOptions]="keywordsOptions()"
-        [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
+        [placeholder]="'XP.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
         [(ngModel)]="keywords"
       />
 
@@ -167,7 +170,7 @@
         <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
         <input
           class="xp-input w-full pl-[26px]"
-          [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+          [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="searchText"
         />
       </div>
@@ -180,13 +183,13 @@
         <div
           class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
         >
-          <ngm-spin />
+          <xp-spin />
           <div class="system-md-semibold text-text-primary">
-            {{ 'PAC.Plugin.LoadingPlugins' | translate: { Default: 'Loading plugins...' } }}
+            {{ 'XP.Plugin.LoadingPlugins' | translate: { Default: 'Loading plugins...' } }}
           </div>
           <div class="max-w-md text-sm text-text-tertiary">
             {{
-              'PAC.Plugin.LoadingPluginsHelp'
+              'XP.Plugin.LoadingPluginsHelp'
                 | translate: { Default: 'Installed plugins and health information are being loaded.' }
             }}
           </div>
@@ -197,7 +200,7 @@
         >
           <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
           <div class="system-md-semibold text-text-primary">
-            {{ 'PAC.Plugin.LoadPluginsFailed' | translate: { Default: 'Failed to load plugins' } }}
+            {{ 'XP.Plugin.LoadPluginsFailed' | translate: { Default: 'Failed to load plugins' } }}
           </div>
           <div class="max-w-2xl break-words text-sm text-text-tertiary max-h-16 overflow-auto">
             {{ pluginsError() }}
@@ -209,11 +212,11 @@
         >
           <i class="ri-inbox-line text-2xl text-text-tertiary"></i>
           <div class="system-md-semibold text-text-primary">
-            {{ 'PAC.Plugin.NoPluginsFound' | translate: { Default: 'No plugins found' } }}
+            {{ 'XP.Plugin.NoPluginsFound' | translate: { Default: 'No plugins found' } }}
           </div>
           <div class="max-w-md text-sm text-text-tertiary">
             {{
-              'PAC.Plugin.NoPluginsFoundHelp'
+              'XP.Plugin.NoPluginsFoundHelp'
                 | translate: { Default: 'Try adjusting the search, category, or keyword filters.' }
             }}
           </div>
@@ -242,15 +245,13 @@
               ) {
                 <div class="mb-3 flex items-center gap-2">
                   <div class="system-sm-semibold shrink-0 text-text-tertiary">
-                    {{
-                      'PAC.Plugin.DeveloperToolsSubcategories' | translate: { Default: 'Developer Tools Categories' }
-                    }}
+                    {{ 'XP.Plugin.DeveloperToolsSubcategories' | translate: { Default: 'Developer Tools Categories' } }}
                   </div>
-                  <ngm-select
+                  <xp-select
                     class="inline-block w-[220px]"
                     multiple
                     [selectOptions]="developerToolSubcategoryOptions()"
-                    [placeholder]="'PAC.Plugin.AllDeveloperTools' | translate: { Default: 'All Developer Tools' }"
+                    [placeholder]="'XP.Plugin.AllDeveloperTools' | translate: { Default: 'All Developer Tools' }"
                     [(ngModel)]="developerToolSubcategories"
                   />
                 </div>
@@ -280,7 +281,7 @@
                           <div
                             class="h-[18px] truncate rounded-tr-xl bg-background-default-subtle pr-2 text-xs font-semibold font-body uppercase leading-5 text-text-destructive"
                           >
-                            {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
+                            {{ 'XP.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
                           </div>
                         </div>
                       } @else {
@@ -302,7 +303,7 @@
                             class="h-[18px] truncate rounded-tr-xl bg-background-default-subtle pr-2 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary"
                           >
                             {{
-                              'PAC.Plugin.Category_' + plugin.meta.category
+                              'XP.Plugin.Category_' + plugin.meta.category
                                 | translate: { Default: plugin.meta.category }
                             }}
                           </div>
@@ -323,7 +324,7 @@
                               [class.decoration-2]="plugin.meta.deprecated"
                               [class.decoration-current]="plugin.meta.deprecated"
                               [title]="plugin.meta.displayName | i18n"
-                              [ngmHighlight]="searchText()"
+                              [xpHighlight]="searchText()"
                               [content]="plugin.meta.displayName | i18n"
                               (click)="openPluginPage(plugin)"
                             >
@@ -335,7 +336,7 @@
                                 [zTooltip]="
                                   plugin.meta.deprecationMessage
                                     ? (plugin.meta.deprecationMessage | i18n)
-                                    : ('PAC.Plugin.DeprecatedPlugin'
+                                    : ('XP.Plugin.DeprecatedPlugin'
                                       | translate
                                         : {
                                             Default:
@@ -360,7 +361,7 @@
                               class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
                               [class.text-text-warning]="plugin.hasUpdate"
                               [zTooltip]="
-                                ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
+                                ('XP.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
                                 ': ' +
                                 (plugin.latestVersion || '-')
                               "
@@ -379,7 +380,7 @@
                               ></i>
                               <span class="font-body font-medium uppercase">
                                 {{
-                                  (plugin.isGlobal ? 'PAC.Plugin.ScopeGlobal' : 'PAC.Plugin.ScopeOrganization')
+                                  (plugin.isGlobal ? 'XP.Plugin.ScopeGlobal' : 'XP.Plugin.ScopeOrganization')
                                     | translate: { Default: plugin.isGlobal ? 'Global' : 'Organization' }
                                 }}
                               </span>
@@ -390,7 +391,7 @@
                               <div
                                 class="text-sm text-text-tertiary font-body truncate"
                                 [title]="plugin.meta.description | i18n"
-                                [ngmHighlight]="searchText()"
+                                [xpHighlight]="searchText()"
                                 [content]="plugin.meta.description | i18n"
                               >
                                 {{ plugin.meta.description | i18n }}
@@ -402,7 +403,7 @@
                                     <div class="min-w-0">
                                       <div class="text-xs font-medium text-text-destructive">
                                         {{
-                                          'PAC.Plugin.LoadFailureReason'
+                                          'XP.Plugin.LoadFailureReason'
                                             | translate
                                               : { Default: 'This plugin is in the database but was not loaded.' }
                                         }}
@@ -410,7 +411,7 @@
                                       <div class="mt-1 break-words text-xs text-text-secondary max-h-16 overflow-auto">
                                         {{
                                           plugin.loadError ||
-                                            ('PAC.Plugin.LoadFailureReasonUnknown'
+                                            ('XP.Plugin.LoadFailureReasonUnknown'
                                               | translate: { Default: 'No detailed error was captured.' })
                                         }}
                                       </div>
@@ -427,7 +428,7 @@
                                   <i class="ri-alert-line"></i>
                                   <span>
                                     {{
-                                      'PAC.Plugin.SdkCompatibilityWarning'
+                                      'XP.Plugin.SdkCompatibilityWarning'
                                         | translate: { Default: 'SDK compatibility warning' }
                                     }}
                                   </span>
@@ -438,7 +439,7 @@
                                   class="mt-2 flex items-center gap-1 text-xs text-text-warning"
                                   [zTooltip]="
                                     plugin.configurationError ||
-                                    ('PAC.Plugin.RequiresConfiguration'
+                                    ('XP.Plugin.RequiresConfiguration'
                                       | translate
                                         : { Default: 'This plugin needs configuration before it can be used.' })
                                   "
@@ -447,7 +448,7 @@
                                   <i class="ri-alert-line"></i>
                                   <span>
                                     {{
-                                      'PAC.Plugin.RequiresConfiguration'
+                                      'XP.Plugin.RequiresConfiguration'
                                         | translate
                                           : { Default: 'This plugin needs configuration before it can be used.' }
                                     }}
@@ -470,7 +471,7 @@
                                   >
                                     <i class="ri-arrow-up-circle-line shrink-0"></i>
                                     <span>
-                                      {{ 'PAC.Plugin.OverridesGlobal' | translate: { Default: 'Overrides global' } }}
+                                      {{ 'XP.Plugin.OverridesGlobal' | translate: { Default: 'Overrides global' } }}
                                     </span>
                                   </div>
                                 } @else if (plugin.scopeRelation === 'shadowed-by-organization') {
@@ -480,7 +481,7 @@
                                     <i class="ri-eye-off-line shrink-0"></i>
                                     <span>
                                       {{
-                                        'PAC.Plugin.ShadowedByOrganization'
+                                        'XP.Plugin.ShadowedByOrganization'
                                           | translate: { Default: 'Shadowed by organization' }
                                       }}
                                     </span>
@@ -496,7 +497,7 @@
                                   zType="secondary"
                                   class="px-3 hover:border-divider-deep hover:bg-hover-bg hover:text-text-primary hover:shadow-sm"
                                   [zTooltip]="
-                                    'PAC.Plugin.InitializeResourcesHint'
+                                    'XP.Plugin.InitializeResourcesHint'
                                       | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }
                                   "
                                   zPosition="top"
@@ -504,7 +505,7 @@
                                 >
                                   <i class="ri-apps-2-add-line"></i>
                                   <span>{{
-                                    'PAC.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
+                                    'XP.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
                                   }}</span>
                                 </button>
                               }
@@ -515,7 +516,7 @@
                                   [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
                                   [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
                                   [zTooltip]="
-                                    'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
+                                    'XP.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
                                   "
                                   zPosition="top"
                                   (click)="configure(plugin)"
@@ -528,7 +529,7 @@
                                   type="button"
                                   class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
                                   [zTooltip]="
-                                    'PAC.Plugin.UpdatePlugin'
+                                    'XP.Plugin.UpdatePlugin'
                                       | translate: { Default: 'Update this plugin to the latest version' }
                                   "
                                   zPosition="top"
@@ -543,7 +544,7 @@
                                   type="button"
                                   class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
                                   [zTooltip]="
-                                    'PAC.Plugin.RefreshPlugin'
+                                    'XP.Plugin.RefreshPlugin'
                                       | translate: { Default: 'Reload this local code plugin from workspace files' }
                                   "
                                   zPosition="top"
@@ -557,7 +558,7 @@
                                 <button
                                   type="button"
                                   class="action-btn action-btn-m text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive flex items-center justify-center"
-                                  [zTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
+                                  [zTooltip]="'XP.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
                                   zPosition="top"
                                   (click)="uninstall(plugin)"
                                 >
@@ -602,7 +603,7 @@
                     </div>
 
                     @if (removing() === plugin.name || updating() === plugin.name || refreshing() === plugin.name) {
-                      <ngm-spin
+                      <xp-spin
                         class="absolute inset-0 z-10 backdrop-blur-sm"
                         style="background-color: color-mix(in oklab, var(--background) 10%, transparent)"
                       />
@@ -621,20 +622,20 @@
 <ng-template #installMenu>
   <div cdkMenu class="cdk-menu__large w-44">
     <div class="font-semibold mb-2">
-      {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
+      {{ 'XP.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
     <div cdkMenuItem class="" (click)="installNpm()">
       <i class="ri-npmjs-line mr-1"></i>
-      {{ 'PAC.Plugin.NpmSource' | translate: { Default: 'NPM' } }}
+      {{ 'XP.Plugin.NpmSource' | translate: { Default: 'NPM' } }}
     </div>
     <div cdkMenuItem class="" (click)="installArchive()">
       <i class="ri-upload-cloud-2-line mr-1"></i>
-      {{ 'PAC.Plugin.ArchiveSource' | translate: { Default: 'Archive file' } }}
+      {{ 'XP.Plugin.ArchiveSource' | translate: { Default: 'Archive file' } }}
     </div>
     @if (isDevEnvironment) {
       <div cdkMenuItem class="" (click)="installLocal()">
         <i class="ri-folder-open-line mr-1"></i>
-        {{ 'PAC.Plugin.LocalSource' | translate: { Default: 'Local workspace' } }}
+        {{ 'XP.Plugin.LocalSource' | translate: { Default: 'Local workspace' } }}
       </div>
     }
   </div>
@@ -644,7 +645,7 @@
   <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
     <div class="flex items-start justify-between pb-3">
       <div class="text-xl font-semibold text-text-primary">
-        {{ 'PAC.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
+        {{ 'XP.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
       </div>
       <button
         type="button"
@@ -657,21 +658,21 @@
     <div class="relative flex flex-col gap-4">
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
-          {{ 'PAC.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
+          {{ 'XP.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
         </label>
         <input
           class="xp-input w-full"
-          [placeholder]="'PAC.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
+          [placeholder]="'XP.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
           [(ngModel)]="npmPackageName"
         />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
-          {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
+          {{ 'XP.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
         </label>
         <input
           class="xp-input w-full"
-          [placeholder]="'PAC.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
+          [placeholder]="'XP.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
           [(ngModel)]="npmPackageVersion"
         />
       </div>
@@ -679,12 +680,12 @@
         <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ npmInstallError() }}</div>
       }
       @if (npmInstalling()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
+        <xp-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
     <div class="flex items-center justify-end gap-2 pt-4">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
-        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
@@ -693,9 +694,9 @@
         (click)="confirmInstallNpm(dialogRef)"
       >
         @if (npmInstalling()) {
-          <ngm-spin small class="!text-primary-200" />
+          <xp-spin small class="!text-primary-200" />
         }
-        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+        <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
     </div>
   </div>
@@ -705,7 +706,7 @@
   <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
     <div class="flex items-start justify-between pb-3">
       <div class="text-xl font-semibold text-text-primary">
-        {{ 'PAC.Plugin.InstallFromArchive' | translate: { Default: 'Install from Archive' } }}
+        {{ 'XP.Plugin.InstallFromArchive' | translate: { Default: 'Install from Archive' } }}
       </div>
       <button
         type="button"
@@ -720,7 +721,7 @@
         class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary"
       >
         {{
-          'PAC.Plugin.ArchiveInstallHint'
+          'XP.Plugin.ArchiveInstallHint'
             | translate
               : {
                   Default:
@@ -737,7 +738,7 @@
       />
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
-          {{ 'PAC.Plugin.ArchiveFile' | translate: { Default: 'Archive file' } }}
+          {{ 'XP.Plugin.ArchiveFile' | translate: { Default: 'Archive file' } }}
         </label>
         <div class="flex items-center gap-2">
           <button
@@ -747,7 +748,7 @@
             (click)="archiveFileInput.click()"
           >
             <i class="ri-folder-zip-line mr-1"></i>
-            {{ 'PAC.Plugin.ChooseArchiveFile' | translate: { Default: 'Choose file' } }}
+            {{ 'XP.Plugin.ChooseArchiveFile' | translate: { Default: 'Choose file' } }}
           </button>
           <div
             class="flex h-10 min-w-0 grow items-center rounded-lg border border-divider-regular px-3 text-sm text-text-secondary"
@@ -756,7 +757,7 @@
               <span class="truncate">{{ archiveFile()?.name }}</span>
             } @else {
               <span class="text-text-tertiary">
-                {{ 'PAC.Plugin.NoArchiveFileSelected' | translate: { Default: 'No file selected' } }}
+                {{ 'XP.Plugin.NoArchiveFileSelected' | translate: { Default: 'No file selected' } }}
               </span>
             }
           </div>
@@ -778,12 +779,12 @@
         </div>
       }
       @if (archiveInstalling()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
+        <xp-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
     <div class="flex items-center justify-end gap-2 pt-4">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
-        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
@@ -792,9 +793,9 @@
         (click)="confirmInstallArchive(dialogRef)"
       >
         @if (archiveInstalling()) {
-          <ngm-spin small class="!text-primary-200" />
+          <xp-spin small class="!text-primary-200" />
         }
-        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+        <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
     </div>
   </div>
@@ -804,7 +805,7 @@
   <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
     <div class="flex items-start justify-between pb-3">
       <div class="text-xl font-semibold text-text-primary">
-        {{ 'PAC.Plugin.InstallFromLocal' | translate: { Default: 'Install from Local Workspace' } }}
+        {{ 'XP.Plugin.InstallFromLocal' | translate: { Default: 'Install from Local Workspace' } }}
       </div>
       <button
         type="button"
@@ -819,7 +820,7 @@
         class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary"
       >
         {{
-          'PAC.Plugin.LocalInstallHint'
+          'XP.Plugin.LocalInstallHint'
             | translate
               : {
                   Default:
@@ -829,29 +830,29 @@
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
-          {{ 'PAC.Plugin.LocalPluginName' | translate: { Default: 'Plugin package name' } }}
+          {{ 'XP.Plugin.LocalPluginName' | translate: { Default: 'Plugin package name' } }}
         </label>
         <input
           class="xp-input w-full"
-          [placeholder]="'PAC.Plugin.InputLocalPluginName' | translate: { Default: 'e.g. @xpert-ai/plugin-lark' }"
+          [placeholder]="'XP.Plugin.InputLocalPluginName' | translate: { Default: 'e.g. @xpert-ai/plugin-lark' }"
           [(ngModel)]="localPluginName"
         />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
-          {{ 'PAC.Plugin.LocalWorkspacePath' | translate: { Default: 'Workspace path' } }}
+          {{ 'XP.Plugin.LocalWorkspacePath' | translate: { Default: 'Workspace path' } }}
         </label>
         <input
           class="xp-input w-full"
           [placeholder]="
-            'PAC.Plugin.InputLocalWorkspacePath'
+            'XP.Plugin.InputLocalWorkspacePath'
               | translate: { Default: '/Users/.../xpert-plugins/xpertai/integrations/lark' }
           "
           [(ngModel)]="localWorkspacePath"
         />
         <div class="text-xs text-text-tertiary">
           {{
-            'PAC.Plugin.LocalWorkspacePathHint'
+            'XP.Plugin.LocalWorkspacePathHint'
               | translate
                 : {
                     Default: 'Add the plugin workspace path to the PLUGIN_WORKSPACE_ROOTS environment variable first.'
@@ -865,12 +866,12 @@
         </div>
       }
       @if (localInstalling()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
+        <xp-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
     <div class="flex items-center justify-end gap-2 pt-4">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
-        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
@@ -879,9 +880,9 @@
         (click)="confirmInstallLocal(dialogRef)"
       >
         @if (localInstalling()) {
-          <ngm-spin small class="!text-primary-200" />
+          <xp-spin small class="!text-primary-200" />
         }
-        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+        <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
     </div>
   </div>

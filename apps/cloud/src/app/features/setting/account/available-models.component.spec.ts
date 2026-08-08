@@ -13,7 +13,7 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
-import { PACAccountAvailableModelsComponent } from './available-models.component'
+import { XpAccountAvailableModelsComponent } from './available-models.component'
 
 function catalogItem(key: string, input: Partial<IModelAccessCatalogItem> = {}): IModelAccessCatalogItem {
   return {
@@ -56,7 +56,7 @@ function activeGrant(key: string): IUserModelGrant {
   }
 }
 
-describe('PACAccountAvailableModelsComponent', () => {
+describe('XpAccountAvailableModelsComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
   })
@@ -102,7 +102,7 @@ describe('PACAccountAvailableModelsComponent', () => {
         { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } }
       ]
     })
-    const component = TestBed.runInInjectionContext(() => new PACAccountAvailableModelsComponent())
+    const component = TestBed.runInInjectionContext(() => new XpAccountAvailableModelsComponent())
 
     expect(component.availableModels()).toEqual([packageModel, directModel])
     expect(component.grantModels()).toEqual([grantedModel])

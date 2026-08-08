@@ -57,9 +57,15 @@ export type SandboxTerminalResizeRequest = SandboxTerminalDimensions & {
   sessionId: string
 }
 
-export type SandboxTerminalCloseRequest = {
-  sessionId: string
-}
+export type SandboxTerminalCloseRequest =
+  | {
+      requestId: string
+      sessionId?: never
+    }
+  | {
+      requestId?: never
+      sessionId: string
+    }
 
 export type SandboxTerminalOpenedEvent = {
   provider: string

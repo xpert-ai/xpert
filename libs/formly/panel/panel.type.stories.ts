@@ -1,11 +1,11 @@
-import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, ReactiveFormsModule } from '@angular/forms'
 
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgmFormlyModule } from '@xpert-ai/formly';
-import { FormlyModule } from '@ngx-formly/core';
-import { Meta, moduleMetadata, Story } from '@storybook/angular';
-import { MetadFormlyPanelModule } from './panel.module';
-import { MetadFormlyPanelComponent } from './panel.type';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
+import { XpFormlyModule } from '@xpert-ai/formly'
+import { FormlyModule } from '@ngx-formly/core'
+import { Meta, moduleMetadata, Story } from '@storybook/angular'
+import { MetadFormlyPanelModule } from './panel.module'
+import { MetadFormlyPanelComponent } from './panel.type'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export default {
@@ -18,20 +18,20 @@ export default {
         ReactiveFormsModule,
         ZardButtonComponent,
         FormlyModule.forRoot(),
-        NgmFormlyModule,
-        MetadFormlyPanelModule,
-      ],
-    }),
-  ],
-} as Meta<MetadFormlyPanelComponent>;
+        XpFormlyModule,
+        MetadFormlyPanelModule
+      ]
+    })
+  ]
+} as Meta<MetadFormlyPanelComponent>
 
 const Template: Story<any> = (args: MetadFormlyPanelComponent) => ({
   props: args,
   template: `<formly-form [form]="form" [fields]="schema" [model]="model"></formly-form>
 <button z-button zType="ghost" [disabled]="form.invalid">Submit</button>
 <div>Result:</div>
-<pre>{{form.value | json}}</pre>`,
-});
+<pre>{{form.value | json}}</pre>`
+})
 
 function fieldGroup() {
   return [
@@ -39,8 +39,8 @@ function fieldGroup() {
       key: 'show',
       type: 'checkbox',
       templateOptions: {
-        label: 'Is Show',
-      },
+        label: 'Is Show'
+      }
     },
     {
       key: 'type',
@@ -49,14 +49,14 @@ function fieldGroup() {
         label: 'Type',
         options: [
           { value: 'value', label: 'Value' },
-          { value: 'category', label: 'Category' },
-        ],
-      },
-    },
+          { value: 'category', label: 'Category' }
+        ]
+      }
+    }
   ]
 }
 
-export const Primary = Template.bind({});
+export const Primary = Template.bind({})
 Primary.args = {
   form: new FormGroup({}),
   model: {},
@@ -68,7 +68,7 @@ Primary.args = {
         label: 'Panel Type',
         padding: true
       },
-      fieldGroup: fieldGroup(),
-    },
-  ],
-};
+      fieldGroup: fieldGroup()
+    }
+  ]
+}

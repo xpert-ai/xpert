@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { IRolePermission, IRolePermissionCreateInput, IRolePermissionUpdateInput } from '@xpert-ai/contracts'
-import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { API_PREFIX } from '@cloud/app/@core/state'
 import { lastValueFrom, Observable } from 'rxjs'
 
 export interface IRolePermissionSyncDefaultsResult {

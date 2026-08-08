@@ -3,16 +3,18 @@ import { IUser } from '../../../@core'
 
 @Component({
   standalone: true,
-  selector: 'pac-user-avatar',
+  selector: 'xp-user-avatar',
   template: `@if (imageUrl()) {
-    <img class="h-full w-full object-cover object-center" [src]="imageUrl()" [alt]="alt()" />
-  } @else if (initials()) {
-    <span class="inline-flex h-full w-full items-center justify-center px-1 font-semibold uppercase leading-none [font-size:0.75em]">
-      {{ initials() }}
-    </span>
-  } @else {
-    <img class="h-full w-full object-cover object-center" src="/assets/images/avatar-default.svg" [alt]="alt()" />
-  }`,
+      <img class="h-full w-full object-cover object-center" [src]="imageUrl()" [alt]="alt()" />
+    } @else if (initials()) {
+      <span
+        class="inline-flex h-full w-full items-center justify-center px-1 font-semibold uppercase leading-none [font-size:0.75em]"
+      >
+        {{ initials() }}
+      </span>
+    } @else {
+      <img class="h-full w-full object-cover object-center" src="/assets/images/avatar-default.svg" [alt]="alt()" />
+    }`,
   styles: [``],
   host: {
     class: 'inline-flex shrink-0 items-center justify-center overflow-hidden'

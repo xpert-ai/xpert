@@ -1,12 +1,12 @@
 <div
-  class="pac-knowledgebase__test-container max-w-full lg:w-[400px] lg:max-w-[400px] rounded-lg flex flex-col gap-8 m-4 p-4"
+  class="xp-knowledgebase__test-container max-w-full lg:w-[400px] lg:max-w-[400px] rounded-lg flex flex-col gap-8 m-4 p-4"
 >
-  <h2>{{ 'PAC.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}</h2>
+  <h2>{{ 'XP.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}</h2>
 
   <z-divider></z-divider>
 
-  <ngm-slider-input
-    [label]="'PAC.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
+  <xp-slider-input
+    [label]="'XP.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
     [(ngModel)]="score"
     [min]="0"
     [max]="1"
@@ -15,7 +15,7 @@
     <span
       class="font-notoColorEmoji"
       [zTooltip]="
-        'PAC.Knowledgebase.SimilarityThresholdInfo'
+        'XP.Knowledgebase.SimilarityThresholdInfo'
           | translate
             : {
                 Default:
@@ -24,24 +24,24 @@
       "
       >💡</span
     >
-  </ngm-slider-input>
+  </xp-slider-input>
 
-  <ngm-slider-input
-    [label]="'PAC.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
+  <xp-slider-input
+    [label]="'XP.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
     [(ngModel)]="topK"
     [min]="1"
     [max]="100"
     [step]="1"
-  ></ngm-slider-input>
-  <!-- <ngm-slider-input [label]="'关键字相似度权重'" [min]="0" [max]="1" [step]="0.01"></ngm-slider-input> -->
+  ></xp-slider-input>
+  <!-- <xp-slider-input [label]="'关键字相似度权重'" [min]="0" [max]="1" [step]="0.01"></xp-slider-input> -->
 
   <z-divider></z-divider>
 
   <div class="flex flex-col items-end gap-4">
     <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{ 'PAC.Knowledgebase.Input' | translate: { Default: 'Input' } }}</label>
+      <label class="xp-input-label shrink-0">{{ 'XP.Knowledgebase.Input' | translate: { Default: 'Input' } }}</label>
       <textarea
-        class="ngm-input-element"
+        class="xp-input-element"
         z-input
         [(ngModel)]="query"
         [disabled]="loading()"
@@ -53,7 +53,7 @@
     </div>
 
     <button z-button zType="default" [disabled]="loading() || !query()" (click)="test()">
-      {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
+      {{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}
     </button>
   </div>
 </div>
@@ -65,7 +65,7 @@
         <li role="listitem" class="p-4 rounded-lg hover:bg-hover-bg dark:hover:bg-white/10">
           <div class="mb-2 flex justify-between items-center">
             <span></span>
-            <ngm-tags class="text-sm" [tags]="[{ caption: 'Score: ' + (1 - item.score).toFixed(2) }]" color="green" />
+            <xp-tags class="text-sm" [tags]="[{ caption: 'Score: ' + (1 - item.score).toFixed(2) }]" color="green" />
           </div>
           <span>{{ item.doc.pageContent }}</span>
         </li>

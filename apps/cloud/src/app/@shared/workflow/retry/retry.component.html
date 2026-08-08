@@ -1,7 +1,7 @@
 <div class="flex items-center justify-between px-4 py-2 h-10">
   <div class="flex items-center">
     <div class="mr-0.5 system-sm-semibold-uppercase text-text-secondary">
-      {{ 'PAC.Xpert.RetryOnFailure' | translate: { Default: 'Retry on failure' } }}
+      {{ 'XP.Xpert.RetryOnFailure' | translate: { Default: 'Retry on failure' } }}
     </div>
   </div>
 
@@ -11,10 +11,10 @@
 @if (enabledRetry()) {
   <div class="w-full flex justify-between items-center px-4">
     <div class="grow text-sm">
-      {{ 'PAC.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
+      {{ 'XP.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
       <i
         class="ri-information-line opacity-20 hover:opacity-100"
-        [zTooltip]="'PAC.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }"
+        [zTooltip]="'XP.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }"
         zPosition="top"
       ></i>
     </div>
@@ -41,10 +41,10 @@
 
   <div class="w-full flex justify-between items-center px-4">
     <div class="grow text-sm">
-      {{ 'PAC.Xpert.RetryInterval' | translate: { Default: 'Retry Interval' } }}
+      {{ 'XP.Xpert.RetryInterval' | translate: { Default: 'Retry Interval' } }}
       <i
         class="ri-information-line opacity-20 hover:opacity-100"
-        [zTooltip]="'PAC.Xpert.RetryIntervalTip' | translate: { Default: 'How many seconds between retries?' }"
+        [zTooltip]="'XP.Xpert.RetryIntervalTip' | translate: { Default: 'How many seconds between retries?' }"
         zPosition="top"
       ></i>
     </div>

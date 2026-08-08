@@ -2,16 +2,16 @@
   @if (workspaces().length === 0) {
     <div class="flex-1 flex justify-center items-center">
       <button type="button" class="btn btn-primary px-4 py-2 text-lg rounded-xl" (click)="newWorkspace()">
-        {{ 'PAC.Xpert.CreateWorkspaceStart' | translate: { Default: 'Create a workspace to get started!' } }}
+        {{ 'XP.Xpert.CreateWorkspaceStart' | translate: { Default: 'Create a workspace to get started!' } }}
       </button>
     </div>
   } @else {
     <div class="p-4 mt-10 w-96">
       <h2 class="text-xl font-semibold mb-4">
-        {{ 'PAC.Xpert.WelcomeBack' | translate: { Default: 'Welcome Back!' } }}
+        {{ 'XP.Xpert.WelcomeBack' | translate: { Default: 'Welcome Back!' } }}
       </h2>
       <p class="mb-4">
-        {{ 'PAC.Xpert.RecentWorkspaces' | translate: { Default: 'Here are your recently accessed workspaces:' } }}
+        {{ 'XP.Xpert.RecentWorkspaces' | translate: { Default: 'Here are your recently accessed workspaces:' } }}
       </p>
       <div class="grid grid-cols-1">
         @for (workspace of workspaces(); track workspace.id) {
@@ -20,7 +20,7 @@
               @if (me().id === workspace.ownerId) {
                 <i
                   class="ri-user-2-fill text-text-secondary"
-                  [zTooltip]="'PAC.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
+                  [zTooltip]="'XP.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
                 ></i>
               }
               {{ workspace.name }}
@@ -29,7 +29,7 @@
               class="opacity-0 group-hover:opacity-100 bg-primary text-primary-foreground py-1 px-3 rounded-lg shadow-sm hover:bg-primary/80 transition-all"
               (click)="navigate(workspace)"
             >
-              {{ 'PAC.Xpert.Open' | translate: { Default: 'Open' } }}
+              {{ 'XP.Xpert.Open' | translate: { Default: 'Open' } }}
             </button>
           </div>
         }

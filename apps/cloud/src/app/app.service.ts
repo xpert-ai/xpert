@@ -2,8 +2,8 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { normalizeTheme } from '@xpert-ai/ocap-angular/core'
-import { nonNullable } from '@xpert-ai/ocap-core'
+import { normalizeTheme } from '@xpert-ai/headless-ui'
+import { nonNullable } from '@xpert-ai/contracts'
 import { ComponentStore } from '@xpert-ai/store'
 import { TranslateService } from '@ngx-translate/core'
 import { includes, some } from 'lodash-es'
@@ -13,7 +13,7 @@ import { injectTheme, LanguagesEnum, MenuCatalog, navigatorLanguage, Store } fro
 import { normalizeLanguageCode } from './@core/config'
 import { I18nService } from './@shared/i18n'
 
-export interface PACAppState {
+export interface XpAppState {
   insight: boolean
   navigation: {
     catalog?: MenuCatalog
@@ -28,7 +28,7 @@ export interface PACAppState {
 @Injectable({
   providedIn: 'root'
 })
-export class AppService extends ComponentStore<PACAppState> {
+export class AppService extends ComponentStore<XpAppState> {
   readonly translate = inject(TranslateService)
   readonly #i18n = inject(I18nService)
   readonly #document = inject(DOCUMENT)
@@ -93,7 +93,7 @@ export class AppService extends ComponentStore<PACAppState> {
     private store: Store,
     private breakpointObserver: BreakpointObserver
   ) {
-    super({ navigation: {}, zIndexs: [] } as PACAppState)
+    super({ navigation: {}, zIndexs: [] } as XpAppState)
 
     const initialLanguage = normalizeLanguageCode(this.store.preferredLanguage || navigatorLanguage())
 
@@ -122,7 +122,7 @@ export class AppService extends ComponentStore<PACAppState> {
     state.insight = !state.insight
   })
 
-  public setCatalog = this.updater((state, { catalog, id, label, icon }: PACAppState['navigation']) => {
+  public setCatalog = this.updater((state, { catalog, id, label, icon }: XpAppState['navigation']) => {
     state.navigation.catalog = catalog
     state.navigation.id = id
     state.navigation.label = label
@@ -134,7 +134,7 @@ export class AppService extends ComponentStore<PACAppState> {
     }
   })
 
-  public setNavigation = this.updater((state, navigation: PACAppState['navigation']) => {
+  public setNavigation = this.updater((state, navigation: XpAppState['navigation']) => {
     state.navigation = navigation
   })
 

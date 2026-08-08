@@ -6,9 +6,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertEnvironmentManageComponent, XpertEnvVariableFormComponent } from '@cloud/app/@shared/environment'
-import { AsteriskPipe } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { isNil } from '@xpert-ai/ocap-core'
+import { AsteriskPipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { EnvironmentService, injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { IEnvironment, TEnvironmentVariable, VariableOperationEnum } from '../../../../../@core/types'
@@ -30,10 +30,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     A11yModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     AsteriskPipe,
     XpertEnvVariableFormComponent
-]
+  ]
 })
 export class XpertStudioPanelEnvironmentComponent {
   eVariableOperationEnum = VariableOperationEnum

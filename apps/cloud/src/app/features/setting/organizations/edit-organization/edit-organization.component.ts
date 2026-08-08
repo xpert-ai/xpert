@@ -3,7 +3,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
 import { IOrganization } from '@xpert-ai/contracts'
-import { nonBlank } from '@xpert-ai/core'
+import { nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators'
 import { OrganizationsService, Store } from '../../../../@core'
@@ -54,7 +54,7 @@ export class EditOrganizationComponent {
     .subscribe((organization) => {
       this.setSelectedOrg(organization)
     })
-    
+
   constructor(
     private route: ActivatedRoute,
     private organizationsService: OrganizationsService,

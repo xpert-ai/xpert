@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { injectUser } from '@cloud/app/@core'
-import { injectActiveScope, injectRuntimeControlAPI } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectRuntimeControlAPI } from '@cloud/app/@core/state'
 import {
   RUNTIME_RESTART_CONFIRMATION,
   type IRuntimeRestartCapability,
@@ -37,9 +37,9 @@ export class PluginRuntimeRestartService {
   readonly restartUnavailableMessageKey = computed(() => {
     switch (this.restartCapability()?.reason) {
       case 'default-tenant-required':
-        return 'PAC.Plugin.RestartDefaultTenantRequired'
+        return 'XP.Plugin.RestartDefaultTenantRequired'
       default:
-        return 'PAC.Plugin.RestartAdminRequired'
+        return 'XP.Plugin.RestartAdminRequired'
     }
   })
   readonly pendingPluginNames = computed(() => this.pending()?.pluginNames ?? [])
@@ -103,10 +103,10 @@ export class PluginRuntimeRestartService {
     try {
       const shouldRestart = await firstValueFrom(
         this.#alertDialog.confirm({
-          title: this.t('PAC.Plugin.RestartRequiredTitle', 'API restart required'),
+          title: this.t('XP.Plugin.RestartRequiredTitle', 'API restart required'),
           description: this.restartDescription(),
-          actionText: this.t('PAC.Plugin.RestartNow', 'Restart now'),
-          cancelText: this.t('PAC.Plugin.RestartLater', 'Later'),
+          actionText: this.t('XP.Plugin.RestartNow', 'Restart now'),
+          cancelText: this.t('XP.Plugin.RestartLater', 'Later'),
           closable: false,
           maskClosable: false
         })
@@ -126,13 +126,13 @@ export class PluginRuntimeRestartService {
 
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
-        title: this.t('PAC.Plugin.RestartConfirmTitle', 'Restart the API service?'),
+        title: this.t('XP.Plugin.RestartConfirmTitle', 'Restart the API service?'),
         description: this.t(
-          'PAC.Plugin.RestartConfirmDescription',
+          'XP.Plugin.RestartConfirmDescription',
           'Active API requests will be drained before the process restarts. Users may be disconnected briefly.'
         ),
-        actionText: this.t('PAC.Plugin.RestartConfirmAction', 'Confirm restart'),
-        cancelText: this.t('PAC.ACTIONS.Cancel', 'Cancel'),
+        actionText: this.t('XP.Plugin.RestartConfirmAction', 'Confirm restart'),
+        cancelText: this.t('XP.ACTIONS.Cancel', 'Cancel'),
         destructive: true,
         closable: false,
         maskClosable: false
@@ -210,7 +210,7 @@ export class PluginRuntimeRestartService {
   private restartDescription() {
     const pluginNames = this.pendingPluginNames().join(', ')
     return this.t(
-      'PAC.Plugin.RestartRequiredDescription',
+      'XP.Plugin.RestartRequiredDescription',
       pluginNames
         ? `System plugin changes for ${pluginNames} are staged. Restart the API service to activate them.`
         : 'System plugin changes are staged. Restart the API service to activate them.',

@@ -1,22 +1,20 @@
 <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="mb-2 px-2">
   <div class="cursor-move text-2xl font-medium text-text-primary">
-    {{ 'PAC.MENU.InviteUsers' | translate: {Default: 'Invite Users'} }}
+    {{ 'XP.MENU.InviteUsers' | translate: { Default: 'Invite Users' } }}
   </div>
 </header>
 
 <div class="flex-1 p-2 overflow-auto">
-  <pac-email-invite-form #emailInviteForm
-	  [invitationType]="invitationType"
-  />
+  <xp-email-invite-form #emailInviteForm [invitationType]="invitationType" />
 </div>
 
 <div class="w-full flex justify-end">
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button z-button zType="outline" cdkFocusInitial (click)="cancel()">
-      {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button z-button zType="default" [disabled]="emailInviteForm.form.invalid" (click)="onApply()">
-      {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
+      {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
   </div>
 </div>

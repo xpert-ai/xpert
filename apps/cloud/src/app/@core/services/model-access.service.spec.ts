@@ -1,6 +1,6 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { AiModelTypeEnum, UserModelGrantStatusEnum } from '@xpert-ai/contracts'
 import { BehaviorSubject } from 'rxjs'
 import { CopilotServerService } from './copilot-server.service'
@@ -144,16 +144,18 @@ describe('ModelAccessService', () => {
       const validUntil = new Date(Date.now() + 1_000).toISOString()
       const subscription = service.catalog$.subscribe()
 
-      httpMock.expectOne((request) => request.url.endsWith('/model-access/catalog')).flush({
-        items: [
-          {
-            grant: {
-              status: UserModelGrantStatusEnum.Active,
-              validUntil
+      httpMock
+        .expectOne((request) => request.url.endsWith('/model-access/catalog'))
+        .flush({
+          items: [
+            {
+              grant: {
+                status: UserModelGrantStatusEnum.Active,
+                validUntil
+              }
             }
-          }
-        ]
-      })
+          ]
+        })
 
       jest.advanceTimersByTime(1_250)
 

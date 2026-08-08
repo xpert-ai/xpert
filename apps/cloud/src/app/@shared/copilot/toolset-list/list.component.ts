@@ -9,15 +9,8 @@ import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    SharedUiModule,
-    CdkListboxModule,
-    TranslateModule,
-    EmojiAvatarComponent
-],
-  selector: 'pac-toolset-list',
+  imports: [FormsModule, ReactiveFormsModule, SharedUiModule, CdkListboxModule, TranslateModule, EmojiAvatarComponent],
+  selector: 'xp-toolset-list',
   templateUrl: 'list.component.html',
   styleUrls: ['list.component.scss']
 })

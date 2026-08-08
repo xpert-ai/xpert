@@ -1,5 +1,5 @@
 <div class="system-sm-semibold-uppercase text-text-secondary mt-4">
-  {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
+  {{ 'XP.Xpert.InputVariables' | translate: { Default: 'Input Variables' } }}
 </div>
 
 @for (parameter of inputs(); track parameter.name) {
@@ -20,18 +20,19 @@
 }
 
 <div class="mt-4 flex justify-between space-x-2 px-4">
-  <button type="button" class="btn disabled:btn-disabled btn-primary btn-large w-0 grow space-x-2"
+  <button
+    type="button"
+    class="btn disabled:btn-disabled btn-primary btn-large w-0 grow space-x-2"
     [disabled]="loading()"
-    (click)="test()">
-    <div>{{ 'PAC.Xpert.StartRun' | translate: {Default: 'Start run'} }}</div>
+    (click)="test()"
+  >
+    <div>{{ 'XP.Xpert.StartRun' | translate: { Default: 'Start run' } }}</div>
   </button>
   @if (loading()) {
-    <button type="button" class="btn disabled:btn-disabled btn-large btn-danger pressable"
-      (click)="stopTest()"
-    >
+    <button type="button" class="btn disabled:btn-disabled btn-large btn-danger pressable" (click)="stopTest()">
       <div class="w-full text-center">
         <i class="ri-stop-line"></i>
-        {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
+        {{ 'XP.Xpert.Stop' | translate: { Default: 'Stop' } }}
       </div>
     </button>
   }
@@ -40,18 +41,18 @@
 @if (error()) {
   <div class="flex flex-col rounded-lg bg-background-default-subtle">
     <div class="px-3 py-1 flex justify-between items-center">
-      <span class="uppercase">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}</span>
+      <span class="uppercase">{{ 'XP.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</span>
       <copy [content]="error()"></copy>
     </div>
     <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all">
-      {{error()}}
+      {{ error() }}
     </div>
   </div>
 }
 
 <div class="flex flex-col rounded-lg bg-background-default-subtle">
   <div class="px-3 py-1 flex justify-between items-center">
-    <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: {Default: 'Input'} }}</span>
+    <span class="uppercase">{{ 'XP.Xpert.Input' | translate: { Default: 'Input' } }}</span>
     <copy [content]="parameters()"></copy>
   </div>
   @if (parameters()) {
@@ -61,7 +62,7 @@
 
 <div class="flex flex-col rounded-lg bg-background-default-subtle">
   <div class="px-3 py-1 flex justify-between items-center">
-    <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: {Default: 'Output'} }}</span>
+    <span class="uppercase">{{ 'XP.Xpert.Output' | translate: { Default: 'Output' } }}</span>
     <copy [content]="results()"></copy>
   </div>
   @if (results()) {

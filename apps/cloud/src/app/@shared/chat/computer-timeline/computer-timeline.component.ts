@@ -13,7 +13,7 @@ import {
 } from '@cloud/app/@core'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
-import { FileTypePipe } from '@xpert-ai/core'
+import { FileTypePipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardSliderComponent } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
@@ -77,7 +77,9 @@ export class ChatComputerTimelineComponent {
   })
 
   readonly stepMessageLength = computed(() => this.stepContents().length)
-  readonly stepMessage = computed<ComputerTimelineStep | null>(() => this.stepContents()[this.stepIndex()]?.data ?? null)
+  readonly stepMessage = computed<ComputerTimelineStep | null>(
+    () => this.stepContents()[this.stepIndex()]?.data ?? null
+  )
   readonly stepTitleUrl = computed(() => {
     const step = this.stepMessage()
     if (!step || (step.toolset !== 'browser-use' && step.toolset !== 'file')) {
@@ -112,9 +114,7 @@ export class ChatComputerTimelineComponent {
   })
   readonly knowledgesStep = computed(() => {
     const step = this.stepMessage()
-    return isStepOfCategory(step, ChatMessageStepCategory.Knowledges, isKnowledgeStepDocumentArray)
-      ? step
-      : null
+    return isStepOfCategory(step, ChatMessageStepCategory.Knowledges, isKnowledgeStepDocumentArray) ? step : null
   })
   readonly browserUseData = computed(() => {
     const step = this.stepMessage()

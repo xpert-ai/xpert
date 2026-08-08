@@ -3,9 +3,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmDialogComponent } from '@xpert-ai/components/dialog'
-import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angular/common'
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { XpHighlightDirective, XpSearchComponent } from '@xpert-ai/headless-ui'
+import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IOrganization } from '../../../../@core'
 import { OrgAvatarComponent } from '../../../../@shared/organization'
@@ -18,7 +17,7 @@ export interface InviteOrganizationSelectDialogData {
 
 @Component({
   standalone: true,
-  selector: 'pac-invite-organization-select',
+  selector: 'xp-invite-organization-select',
   templateUrl: './invite-organization-select.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -29,25 +28,22 @@ export interface InviteOrganizationSelectDialogData {
     FormsModule,
     DragDropModule,
     TranslateModule,
-    NgmDialogComponent,
-    NgmSearchComponent,
-    NgmHighlightDirective,
-    ButtonGroupDirective,
+    XpSearchComponent,
+    XpHighlightDirective,
+    XpButtonGroupDirective,
     OrgAvatarComponent,
     ZardButtonComponent,
     ZardIconComponent
   ]
 })
 export class InviteOrganizationSelectComponent {
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   readonly dialogRef = inject(DialogRef<IOrganization | undefined>)
   readonly data = inject<InviteOrganizationSelectDialogData>(DIALOG_DATA)
 
   readonly searchTerm = signal('')
-  readonly selectedOrganizationId = signal(
-    this.data.selectedOrganizationId ?? this.data.organizations[0]?.id ?? null
-  )
+  readonly selectedOrganizationId = signal(this.data.selectedOrganizationId ?? this.data.organizations[0]?.id ?? null)
   readonly organizations = computed(() => {
     const keyword = this.searchTerm().trim().toLowerCase()
     if (!keyword) {
@@ -61,10 +57,7 @@ export class InviteOrganizationSelectComponent {
     )
   })
   readonly selectedOrganization = computed(
-    () =>
-      this.data.organizations.find(
-        (organization) => organization.id === this.selectedOrganizationId()
-      ) ?? null
+    () => this.data.organizations.find((organization) => organization.id === this.selectedOrganizationId()) ?? null
   )
 
   trackById(_: number, organization: IOrganization) {

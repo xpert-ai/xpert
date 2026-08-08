@@ -1,10 +1,7 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
 @use './setting/settings-theme' as settings;
-@use './story/story-theme' as story;
-@use './semantic-model/semantic-models' as semantic-models;
-@use './home/home-theme' as home;
 
 $shell-bar-height: 48px;
 $sidebar-width: 200px;
@@ -18,10 +15,7 @@ $sidebar-collapsed-width: 40px;
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
-  @include home.color($theme);
   @include settings.color($theme);
-  @include story.color($theme);
-  @include semantic-models.color($theme);
   .pac__shell-bar {
     // position: relative; // 使 z-index 生效的属性
     z-index: 2;
@@ -71,13 +65,13 @@ $sidebar-collapsed-width: 40px;
       }
     }
   }
-  .pac-toolbar__editor {
+  .xp-toolbar__editor {
     box-shadow:
       0 0.3px 0.9px var(--color-elevation-toolbar-shadow-1),
       0 1.6px 3.6px var(--color-elevation-toolbar-shadow-2);
   }
 
-  // .pac-app__page-outlet z-drawer-content {
+  // .xp-app__page-outlet z-drawer-content {
   //   display: flex;
   //   flex: 1;
   //   // height: calc(100vh - #{$shell-bar-height} - #{$status-bar-height});
@@ -92,7 +86,7 @@ $sidebar-collapsed-width: 40px;
   //     min-height: var(--header-toolbar-height);
   //   }
 
-  //   .pac-app__spinner {
+  //   .xp-app__spinner {
   //     position: absolute;
   //     top: 0;
   //     left: 0;
@@ -106,61 +100,35 @@ $sidebar-collapsed-width: 40px;
     user-select: none;
   }
 
-  .pac-sketch-card {
+  .xp-sketch-card {
     box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 6px;
 
     &:hover {
       box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
     }
     &:active {
-      box-shadow: themeCompat.m2-get-color-from-palette($foreground, base, 0.05) 0px 6px 24px 0px, themeCompat.m2-get-color-from-palette($primary, 300) 0px 0px 0px 1px;
+      box-shadow:
+        themeCompat.m2-get-color-from-palette($foreground, base, 0.05) 0px 6px 24px 0px,
+        themeCompat.m2-get-color-from-palette($primary, 300) 0px 0px 0px 1px;
     }
   }
 
   body:not(.mobile) {
-    .pac-page__body {
+    .xp-page__body {
       padding: 24px;
       overflow: auto;
     }
-
-    ngm-tree-table {
-      .cdk-row {
-        .pac__table-actions {
-          margin: -5px 0;
-          opacity: 0;
-
-          & > * {
-            opacity: 0;
-          }
-
-          [z-button][data-icon-only][data-color='accent'],
-          z-button[data-icon-only][data-color='accent'] {
-            opacity: 1;
-          }
-        }
-
-        &:hover {
-          .pac__table-actions {
-            opacity: 1;
-          }
-
-          .pac__table-actions > * {
-            opacity: 1;
-          }
-        }
-      }
-    }
   }
 
-  .pac-pro-tag {
+  .xp-pro-tag {
     background-color: themeCompat.m2-get-color-from-palette($accent, 300);
     padding: 1px 5px;
     border-radius: 5px;
   }
 
   // 带 nav-bar 的 toolbar 组件样式
-  .pac-nav-toolbar {
-    // &.ngm-density__compact {
+  .xp-nav-toolbar {
+    // &.xp-density__compact {
     //   padding: 0;
     // }
 
@@ -177,7 +145,7 @@ $sidebar-collapsed-width: 40px;
         background-color: themeCompat.m2-get-color-from-palette($background, background);
       }
 
-      .pac-nav-tab__close {
+      .xp-nav-tab__close {
         margin-right: -20px;
         opacity: 0;
         transition: all 300ms ease-in;
@@ -197,15 +165,15 @@ $sidebar-collapsed-width: 40px;
 
     .z-tab-nav-bar {
       .z-tab-link[data-active='true'] {
-        .pac-nav-tab__close {
+        .xp-nav-tab__close {
           opacity: 0.5;
         }
       }
 
-      .pac-nav-tab__close:hover {
+      .xp-nav-tab__close:hover {
         opacity: 1;
       }
-      .pac-nav-tab__close.active {
+      .xp-nav-tab__close.active {
         opacity: 1;
       }
     }
@@ -214,7 +182,7 @@ $sidebar-collapsed-width: 40px;
       align-items: center;
     }
 
-    .pac-badge-status-dot {
+    .xp-badge-status-dot {
       position: absolute;
       left: -1rem;
     }
@@ -234,19 +202,13 @@ $sidebar-collapsed-width: 40px;
 }
 
 @mixin typography($theme) {
-  @include home.typography($theme);
-  @include semantic-models.typography($theme);
 }
 
 @mixin density($theme) {
-  @include home.density($theme);
-  @include story.density($theme);
-  @include semantic-models.density($theme);
-
   /**
    * @deprecated
    */
-  .pac-nav-toolbar {
+  .xp-nav-toolbar {
     .z-tab-nav-bar {
       min-height: 32px;
     }

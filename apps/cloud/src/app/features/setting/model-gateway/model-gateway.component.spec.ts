@@ -7,7 +7,7 @@ import {
   DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE
 } from '@xpert-ai/contracts'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import { of } from 'rxjs'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
 import { ToastrService } from '../../../@core/services/toastr.service'

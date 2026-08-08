@@ -2,7 +2,7 @@
   <ul
     cdkListbox
     cdkListboxMultiple
-    class="ngm-cdk-listbox"
+    class="xp-cdk-listbox"
     [(ngModel)]="integrations"
     [cdkListboxCompareWith]="compareId"
   >
@@ -10,7 +10,7 @@
       <li
         [cdkOption]="item"
         #option="cdkOption"
-        class="ngm-cdk-option flex items-center cursor-pointer rounded-xl text-sm hover:bg-hover-bg"
+        class="xp-cdk-option flex items-center cursor-pointer rounded-xl text-sm hover:bg-hover-bg"
         [class.cdk-option-selected]="option.isSelected()"
       >
         @if (option.isSelected()) {

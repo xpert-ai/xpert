@@ -338,8 +338,6 @@ export class SeedDataService {
 		// 	}
 		// );
 
-		await this.seedTenantMoreDefault(this.connection, this.tenant)
-
 		// Trigger create demo command for the default organization; After all default data is seeded
 		if (isDemo) {
 			await this.tryExecute(
@@ -582,10 +580,6 @@ export class SeedDataService {
 	// 		}
 	// 	}
 	// }
-
-	public async seedTenantMoreDefault(connection: Connection, tenant: ITenant) {
-		//
-	}
 
 	public async seedOrganizationDemo(connection: Connection, tenant: ITenant, organization: IOrganization) {
 		//

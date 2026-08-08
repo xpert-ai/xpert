@@ -2,13 +2,22 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmUnique, NgmCommonModule } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
-import { DisplayBehaviour } from '@xpert-ai/ocap-core'
+import { CapitalizePipe, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -44,8 +53,8 @@ const InlineTemplateCount = 8
     TranslateModule,
 
     CapitalizePipe,
-    DynamicGridDirective,
-    NgmCommonModule,
+    XpDynamicGridDirective,
+    XpCommonModule
   ],
   selector: 'mcp-marketplace',
   templateUrl: './marketplace.component.html',
@@ -65,7 +74,7 @@ export class MCPMarketplaceComponent {
   readonly #toastr = inject(ToastrService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly templateService = inject(XpertTemplateService)
-  readonly i18n = new NgmI18nPipe()
+  readonly i18n = new XpI18nPipe()
   readonly queryCategory = injectQueryParams('category')
   readonly confirmUnique = injectConfirmUnique()
 
@@ -85,7 +94,7 @@ export class MCPMarketplaceComponent {
   readonly workspaceId = computed(() => this.workspace()?.id)
 
   readonly #templates = derivedAsync(() => {
-    const params = this.inline() ? {take: InlineTemplateCount} : null
+    const params = this.inline() ? { take: InlineTemplateCount } : null
     return this.templateService.getAllMCP(params)
   })
 
@@ -97,24 +106,26 @@ export class MCPMarketplaceComponent {
   readonly templates = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     const templates = this.#catTemplates()
-    return templates.filter((_) => searchText
-      ? _.name.toLowerCase().includes(searchText)
-        || _.title?.toLowerCase().includes(searchText)
-        || _.description?.toLowerCase().includes(searchText)
-        || _.tags?.some((tag) => tag.toLowerCase().includes(searchText))
-      : true)
+    return templates.filter((_) =>
+      searchText
+        ? _.name.toLowerCase().includes(searchText) ||
+          _.title?.toLowerCase().includes(searchText) ||
+          _.description?.toLowerCase().includes(searchText) ||
+          _.tags?.some((tag) => tag.toLowerCase().includes(searchText))
+        : true
+    )
   })
-  
+
   readonly loading = signal(false)
-  
+
   toggleCategory(category: string) {
     // Add the category query parameter to the URL
     const urlTree = this.router.createUrlTree([], {
       queryParams: { category: category && category !== this.queryCategory() ? category : null },
       queryParamsHandling: 'merge',
       preserveFragment: true
-    });
-    this.router.navigateByUrl(urlTree);
+    })
+    this.router.navigateByUrl(urlTree)
   }
 
   onRefresh() {
@@ -131,7 +142,7 @@ export class MCPMarketplaceComponent {
         description: template.description,
         category: XpertToolsetCategoryEnum.MCP,
         type: template.server.type,
-        schema: JSON.stringify({mcpServers: {'': mcpServer}}),
+        schema: JSON.stringify({ mcpServers: { '': mcpServer } }),
         options: template.options
       }
       if (typeof template.icon === 'string') {
@@ -146,7 +157,7 @@ export class MCPMarketplaceComponent {
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
-          toolset,
+          toolset
         }
       })
       .closed.subscribe({
@@ -171,5 +182,4 @@ export class MCPMarketplaceComponent {
       }
     })
   }
-
 }

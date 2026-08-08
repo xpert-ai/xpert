@@ -1,5 +1,10 @@
-import { ICopilotModel, IXpertAgent, mapTranslationLanguage, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { nonNullable } from '@xpert-ai/copilot'
+import {
+    ICopilotModel,
+    IXpertAgent,
+    mapTranslationLanguage,
+    nonNullable,
+    WorkflowNodeTypeEnum
+} from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'

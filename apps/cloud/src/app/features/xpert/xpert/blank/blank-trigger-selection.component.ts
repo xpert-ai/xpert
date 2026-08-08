@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
   WorkflowTriggerConfigCardComponent,
   WorkflowTriggerProviderOption,
@@ -15,7 +15,7 @@ import { BlankTriggerSelection } from './blank-draft.util'
 @Component({
   standalone: true,
   selector: 'xp-blank-trigger-selection',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, WorkflowTriggerConfigCardComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, XpI18nPipe, WorkflowTriggerConfigCardComponent],
   template: `
     <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
       <div class="text-sm leading-6 text-text-secondary">
@@ -36,7 +36,7 @@ import { BlankTriggerSelection } from './blank-draft.util'
                 <div class="font-medium text-text-primary">
                   {{
                     provider.name === 'chat'
-                      ? ('PAC.Workflow.Chat' | translate: { Default: 'Chat' })
+                      ? ('XP.Workflow.Chat' | translate: { Default: 'Chat' })
                       : provider.label
                         ? (provider.label | i18n)
                         : provider.name
@@ -62,7 +62,9 @@ import { BlankTriggerSelection } from './blank-draft.util'
             }
           </div>
         } @empty {
-          <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+          <div
+            class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+          >
             {{ emptyKey() | translate: { Default: emptyDefault() } }}
           </div>
         }
@@ -74,7 +76,7 @@ export class BlankTriggerSelectionComponent {
   readonly providers = input<WorkflowTriggerProviderOption[]>([])
   readonly descriptionKey = input.required<string>()
   readonly defaultDescription = input.required<string>()
-  readonly emptyKey = input<string>('PAC.Workflow.NoTriggersAvailable')
+  readonly emptyKey = input<string>('XP.Workflow.NoTriggersAvailable')
   readonly emptyDefault = input<string>('No trigger providers available')
   readonly selections = model<BlankTriggerSelection[]>([])
 
@@ -93,14 +95,19 @@ export class BlankTriggerSelectionComponent {
       const existing = this.selections().find((selection) => selection.provider === provider.name)
       const config =
         existing?.config ??
-        (this.shouldRenderConfig(provider) ? ((buildJsonSchemaDefaults(provider.configSchema) ?? {}) as Record<string, unknown>) : undefined)
+        (this.shouldRenderConfig(provider)
+          ? ((buildJsonSchemaDefaults(provider.configSchema) ?? {}) as Record<string, unknown>)
+          : undefined)
 
       this.selections.set(
         existing
           ? this.selections().map((selection) =>
               selection.provider === provider.name ? { ...selection, config } : selection
             )
-          : [...this.selections(), config === undefined ? { provider: provider.name } : { provider: provider.name, config }]
+          : [
+              ...this.selections(),
+              config === undefined ? { provider: provider.name } : { provider: provider.name, config }
+            ]
       )
       return
     }

@@ -38,11 +38,11 @@
       class="group relative shrink-0 min-w-[112px] px-3 py-2 rounded-lg bg-components-card-bg border-[0.5px] border-divider-regular text-text-tertiary"
     >
       <div class="flex items-center mb-2 h-4 text-sm font-medium text-text-tertiary">
-        {{ 'PAC.Copilot.Quota' | translate: { Default: 'Quota' } }}
+        {{ 'XP.Copilot.Quota' | translate: { Default: 'Quota' } }}
         <div
           class="p-[1px] w-5 h-5 shrink-0"
           [zTooltip]="
-            'PAC.Copilot.FreeTrialTokenQuota'
+            'XP.Copilot.FreeTrialTokenQuota'
               | translate
                 : {
                     Default:
@@ -71,7 +71,7 @@
         } @else {
           <span class="mr-0.5 text-sm font-semibold text-text-secondary">∞</span>
         }
-        {{ 'PAC.Copilot.Tokens' | translate: { Default: 'Tokens' } }}
+        {{ 'XP.Copilot.Tokens' | translate: { Default: 'Tokens' } }}
       </div>
       <div
         class="text-xs"
@@ -80,7 +80,7 @@
           'text-red-500': usageError()
         }"
       >
-        {{ 'PAC.Copilot.Remain' | translate: { Default: 'Remain' } }}:
+        {{ 'XP.Copilot.Remain' | translate: { Default: 'Remain' } }}:
         @if (usage.tokenLimit) {
           {{ tokenRemain() | number: '0.0-0' }}
         } @else {
@@ -110,7 +110,7 @@
           (click)="openSetup()"
         >
           <i class="ri-settings-5-line mr-1"></i>
-          {{ 'PAC.Copilot.Setup' | translate: { Default: 'Setup' } }}
+          {{ 'XP.Copilot.Setup' | translate: { Default: 'Setup' } }}
         </button>
       </div>
     </div>
@@ -123,14 +123,14 @@
       <div class="flex items-center pl-1 pr-[3px]">
         <span class="group shrink-0 flex items-center mr-2">
           <span class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6 text-sm font-medium text-text-tertiary">
-            {{ modelCount() }} {{ 'PAC.Copilot.Models' | translate: { Default: 'Models' } }}
+            {{ modelCount() }} {{ 'XP.Copilot.Models' | translate: { Default: 'Models' } }}
           </span>
           <span
             class="hidden group-hover:inline-flex items-center pl-1 pr-1.5 h-6 text-sm font-medium text-text-tertiary bg-background-default-subtle cursor-pointer rounded-lg"
             (click)="toggleShowModels()"
           >
             <i class="ri-arrow-up-double-line"></i>
-            {{ 'PAC.Copilot.Collapse' | translate: { Default: 'Collapse' } }}
+            {{ 'XP.Copilot.Collapse' | translate: { Default: 'Collapse' } }}
           </span>
         </span>
         @if (canCustomizableModel()) {
@@ -141,7 +141,7 @@
                 (click)="addModel()"
               >
                 <i class="ri-add-circle-line"></i>
-                {{ 'PAC.Copilot.AddModel' | translate: { Default: 'Add model' } }}
+                {{ 'XP.Copilot.AddModel' | translate: { Default: 'Add model' } }}
               </span>
             }
           </div>
@@ -176,7 +176,7 @@
                 (click)="editModel(model)"
               >
                 <i class="ri-settings-5-line mr-1"></i>
-                {{ 'PAC.Copilot.Configure' | translate: { Default: 'Configure' } }}
+                {{ 'XP.Copilot.Configure' | translate: { Default: 'Configure' } }}
               </button>
             }
           </div>
@@ -187,7 +187,7 @@
         <div
           class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg"
           [ngClass]="model.deprecated ? 'opacity-60' : ''"
-          [zTooltip]="model.deprecated ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
+          [zTooltip]="model.deprecated ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
           zPosition="left"
         >
           <img alt="model-icon" [src]="smallIcon() | i18n" class="w-4 h-4 shrink-0 mr-2" />
@@ -215,7 +215,7 @@
   >
     <div class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6">
       {{
-        'PAC.Copilot.ShowNModels'
+        'XP.Copilot.ShowNModels'
           | translate: { value: modelCount() || '', Default: 'Show ' + (modelCount() || '') + ' Models' }
       }}
     </div>
@@ -225,7 +225,7 @@
     >
       <i class="ri-arrow-down-double-line"></i>
       {{
-        'PAC.Copilot.ShowNModels'
+        'XP.Copilot.ShowNModels'
           | translate: { value: modelCount() || '', Default: 'Show ' + (modelCount() || '') + ' Models' }
       }}
     </div>
@@ -236,12 +236,12 @@
         (click)="addModel()"
       >
         <i class="ri-add-circle-line"></i>
-        {{ 'PAC.Copilot.AddModel' | translate: { Default: 'Add model' } }}
+        {{ 'XP.Copilot.AddModel' | translate: { Default: 'Add model' } }}
       </span>
     }
   </div>
 }
 
 @if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

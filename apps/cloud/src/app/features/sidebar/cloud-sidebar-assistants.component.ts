@@ -56,7 +56,7 @@ const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
 
 @Component({
   standalone: true,
-  selector: 'pac-cloud-sidebar-assistants',
+  selector: 'xp-cloud-sidebar-assistants',
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
   imports: [
@@ -258,7 +258,7 @@ export class CloudSidebarAssistantsComponent {
   })
   readonly categories = computed(() => {
     const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
-      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'PAC.Assistant.CategoryAll', labelDefault: 'All' }
+      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'XP.Assistant.CategoryAll', labelDefault: 'All' }
     ]
     const seen = new Set<string>([ALL_ASSISTANT_CATEGORY])
 

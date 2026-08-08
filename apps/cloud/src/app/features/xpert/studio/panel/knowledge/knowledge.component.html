@@ -17,7 +17,7 @@
     <button
       type="button"
       class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
-      [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+      [zTooltip]="'XP.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
       zPosition="top"
       (click)="moveToNode()"
     >
@@ -26,7 +26,7 @@
 
     <div
       class="flex items-center justify-center mr-1 w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
-      [zTooltip]="'PAC.Xpert.Test' | translate: { Default: 'Test' }"
+      [zTooltip]="'XP.Xpert.Test' | translate: { Default: 'Test' }"
       (click)="openTest()"
     >
       <svg
@@ -47,7 +47,7 @@
       class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
       (click)="closePanel()"
     >
-      <ngm-close-svg class="w-5 h-5" />
+      <xp-close-svg class="w-5 h-5" />
     </div>
   </div>
 </div>
@@ -73,12 +73,12 @@
       <div class="flex grow items-center justify-between pr-4">
         <div class="flex items-center">
           <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">
-            {{ 'PAC.Xpert.KnowledgeMetadataFilter' | translate: { Default: 'Metadata Filtering' } }}
+            {{ 'XP.Xpert.KnowledgeMetadataFilter' | translate: { Default: 'Metadata Filtering' } }}
           </div>
           <div
             class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
             [zTooltip]="
-              'PAC.Xpert.KnowledgeMetadataFilterTooltip'
+              'XP.Xpert.KnowledgeMetadataFilterTooltip'
                 | translate
                   : {
                       Default:
@@ -99,7 +99,7 @@
             [cdkMenuTriggerData]="{ trigger: trigger }"
           >
             {{
-              'PAC.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize }
+              'XP.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize }
             }}
             <i
               class="ri-arrow-down-s-line w-4 h-4 ml-1 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"
@@ -116,7 +116,7 @@
                   [cdkMenuTriggerData]="{ trigger: trigger }"
                 >
                   <i class="ri-filter-3-line w-4 h-4 flex justify-center items-center mr-1"></i>
-                  {{ 'PAC.Xpert.Conditions' | translate: { Default: 'Conditions' } }}
+                  {{ 'XP.Xpert.Conditions' | translate: { Default: 'Conditions' } }}
                   <div
                     class="text-xs font-medium uppercase ml-1 flex items-center rounded-[5px] border border-divider-deep px-1 font-mono text-text-tertiary"
                   >
@@ -135,7 +135,7 @@
     <div class="body-xs-regular px-4 text-text-tertiary">
       <div class="mb-2">
         {{
-          'PAC.Xpert.SelectFieldsAsMetadataFilter'
+          'XP.Xpert.SelectFieldsAsMetadataFilter'
             | translate: { Default: 'Select fields to use as metadata filtering conditions' }
         }}
       </div>
@@ -156,7 +156,7 @@
           } @empty {
             <div class="inline-block text-sm text-text-tertiary">
               {{
-                'PAC.Xpert.SelectFieldsAsMetadataFilter'
+                'XP.Xpert.SelectFieldsAsMetadataFilter'
                   | translate: { Default: 'Select fields to use as metadata filtering conditions' }
               }}
             </div>
@@ -167,7 +167,7 @@
         ></i>
         <div
           class="w-4 h-4 inline-flex justify-center items-center cursor-pointer text-text-quaternary hover:text-text-tertiary"
-          [zTooltip]="'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+          [zTooltip]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear' }"
           zPosition="top"
           (click)="clearFilteringFields()"
         >
@@ -185,12 +185,12 @@
 @if (!loading() && !knowledgebase()?.id) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
     <button class="btn btn-large btn-primary self-center" (click)="gotoKnowledgebase()">
-      {{ 'PAC.Xpert.Reconfigure' | translate: { Default: 'Reconfigure' } }}
+      {{ 'XP.Xpert.Reconfigure' | translate: { Default: 'Reconfigure' } }}
     </button>
 
     @if (knowledgebases()?.length) {
       <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-text-tertiary uppercase">
-        <div class="mr-3">{{ 'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect' } }}</div>
+        <div class="mr-3">{{ 'XP.Xpert.OrReselect' | translate: { Default: 'Or reselect' } }}</div>
         <div class="grow w-0 h-px bg-divider-regular"></div>
       </div>
 
@@ -212,7 +212,7 @@
                 class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
                 (click)="useKnowledgebase(knowledgebase)"
               >
-                {{ 'PAC.Xpert.Use' | translate: { Default: 'Use' } }}
+                {{ 'XP.Xpert.Use' | translate: { Default: 'Use' } }}
               </button>
             </div>
           </li>
@@ -238,9 +238,9 @@
   </div>
 }
 
-<ngm-select-panel #filterModeMenu [selectOptions]="filterModeOptions" [(ngModel)]="filtering_mode" />
+<xp-select-panel #filterModeMenu [selectOptions]="filterModeOptions" [(ngModel)]="filtering_mode" />
 
-<ngm-select-panel
+<xp-select-panel
   #filterFieldsMenu
   multiple
   [selectOptions]="metadataFieldsOptions()"
@@ -251,7 +251,7 @@
   <div class="pb-4 pt-2 rounded-2xl shadow-lg w-[420px] overflow-hidden bg-components-panel-bg-blur">
     <div class="flex justify-between px-2 mb-2">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
-        {{ 'PAC.Xpert.MetadataFilterConditions' | translate: { Default: 'Metadata filtering conditions' } }}
+        {{ 'XP.Xpert.MetadataFilterConditions' | translate: { Default: 'Metadata filtering conditions' } }}
       </h3>
       <button type="button" class="btn btn-ghost btn-small w-7 h-7 rounded-full" (click)="trigger.close()">
         <i class="ri-close-line text-lg"></i>

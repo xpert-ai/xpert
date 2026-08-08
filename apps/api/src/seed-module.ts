@@ -1,7 +1,7 @@
-import { seedModule } from '@xpert-ai/analytics';
-import { pluginConfig } from './plugin-config';
+import { seedModule } from '@xpert-ai/server-core'
+import { pluginConfig } from './plugin-config'
 
 seedModule(pluginConfig).catch((error: any) => {
-	console.log(error);
-	process.exit(1);
-});
+  console.log(error)
+  process.exit(1)
+})

@@ -2,12 +2,7 @@ import { DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  IXpertToolset,
-  MCPServerType,
-  TMCPServer,
-  XpertToolsetCategoryEnum
-} from '@cloud/app/@core'
+import { IXpertToolset, MCPServerType, TMCPServer, XpertToolsetCategoryEnum } from '@cloud/app/@core'
 
 type JsonObject = {
   [key: string]: unknown
@@ -56,7 +51,7 @@ export function createMCPToolsetFromJson(source: string): Partial<IXpertToolset>
 
 @Component({
   standalone: true,
-  selector: 'pac-mcp-import-json',
+  selector: 'xp-mcp-import-json',
   imports: [FormsModule, TranslateModule],
   templateUrl: './import-json.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -190,7 +185,12 @@ function isJsonObject(value: unknown): value is JsonObject {
 }
 
 function readMCPServerType(value: unknown): MCPServerType | null {
-  if (value === MCPServerType.SSE || value === MCPServerType.HTTP || value === MCPServerType.STDIO || value === MCPServerType.CODE) {
+  if (
+    value === MCPServerType.SSE ||
+    value === MCPServerType.HTTP ||
+    value === MCPServerType.STDIO ||
+    value === MCPServerType.CODE
+  ) {
     return value
   }
   return null

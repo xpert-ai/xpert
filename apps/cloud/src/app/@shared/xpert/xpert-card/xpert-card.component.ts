@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { booleanAttribute, Component, computed, effect, inject, input, output } from '@angular/core'
 import { Router } from '@angular/router'
-import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
+import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, injectHelpWebsite, IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
@@ -15,12 +15,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    NgmHighlightDirective,
+    XpHighlightDirective,
     EmojiAvatarComponent,
     TagComponent,
     UserPipe,
     DateRelativePipe
-],
+  ],
   selector: 'xpert-card',
   templateUrl: 'xpert-card.component.html',
   styleUrls: ['xpert-card.component.scss']

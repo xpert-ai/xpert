@@ -1,0 +1,53 @@
+@reference "../../../tailwind-workspace-reference.css";
+
+.xp-appearance-opacity {
+  opacity: 0.5;
+}
+
+.z-toggle-group,
+z-toggle-group {
+  --border-radius: 1rem;
+  --box-shadow-radius: 6px;
+  --z-toggle-group-item-checked-bg: transparent;
+  --z-toggle-group-item-checked-color: inherit;
+  border: unset;
+  border-radius: var(--border-radius);
+  overflow: visible;
+  line-height: normal;
+
+  .z-toggle-group-item {
+    background-color: transparent;
+    color: inherit;
+    line-height: inherit;
+
+    &[data-state='on'] {
+      background-color: var(--z-toggle-group-item-checked-bg);
+      color: var(--z-toggle-group-item-checked-color);
+    }
+
+    &:hover,
+    &:focus-visible,
+    &:active {
+      box-shadow: rgb(143 155 179 / 16%) 0px 0px 0px var(--box-shadow-radius);
+      z-index: 1;
+    }
+  }
+
+  &.xp-appearance-outline {
+    --box-shadow-radius: 10px;
+    @apply border border-gray-100 border-solid p-1 dark:border-gray-800;
+  }
+
+  &.xp-appearance-hero {
+    --border-radius: 1.5rem;
+    @apply bg-gray-100 p-1.5 dark:bg-gray-500/10;
+
+    .z-toggle-group-item {
+      border-radius: calc(var(--border-radius) - 3px);
+    }
+
+    .z-toggle-group-item:not([data-state='on']) {
+      @apply bg-transparent;
+    }
+  }
+}

@@ -4,6 +4,10 @@ jest.mock('../core/context', () => ({
 	}
 }))
 
+jest.mock('i18next', () => ({
+	t: jest.fn((key: string) => `translated:${key}`)
+}))
+
 jest.mock('./feature-organization.entity', () => ({
 	FeatureOrganization: class FeatureOrganization {
 		constructor(input?: Record<string, unknown>) {
@@ -154,6 +158,46 @@ describe('FeatureOrganizationService', () => {
 				isEnabled: true
 			})
 		])
+	})
+
+	it('rejects organization-scoped membership purchase feature updates', async () => {
+		featureService.findOne.mockResolvedValueOnce({
+			id: 'feature-purchase',
+			code: 'FEATURE_MEMBERSHIP_PURCHASE'
+		})
+
+		await expect(
+			service.updateFeatureOrganization({
+				featureId: 'feature-purchase',
+				organizationId: 'org-1',
+				isEnabled: true
+			})
+		).rejects.toThrow('translated:server-ai:Error.MembershipPurchaseFeatureTenantScopeRequired')
+
+		expect(repo.save).not.toHaveBeenCalled()
+	})
+
+	it('allows organization-scoped membership plan feature updates', async () => {
+		featureService.findOne.mockResolvedValueOnce({
+			id: 'feature-plan',
+			code: 'FEATURE_MEMBERSHIP_PLAN'
+		})
+		jest.spyOn(service, 'findAll').mockResolvedValue({ items: [], total: 0 })
+		repo.save.mockResolvedValue([])
+
+		await service.updateFeatureOrganization({
+			featureId: 'feature-plan',
+			organizationId: 'org-1',
+			isEnabled: true
+		})
+
+		expect(repo.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				featureId: 'feature-plan',
+				organizationId: 'org-1',
+				isEnabled: true
+			})
+		)
 	})
 
 	it('emits one transition event when a tenant feature becomes enabled', async () => {

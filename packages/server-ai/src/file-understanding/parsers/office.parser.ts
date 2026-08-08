@@ -1,8 +1,11 @@
 import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
 import { Injectable } from '@nestjs/common'
+import { createRequire } from 'node:module'
 import { FileParseSource, ParsedFileResult } from '../domain/types'
 import { FileParser, getFileExtension, summarizeText } from './file-parser'
+
+const requireFromHere = createRequire(__filename)
 
 @Injectable()
 export class OfficeFileParser implements FileParser {
@@ -15,6 +18,9 @@ export class OfficeFileParser implements FileParser {
 
     async parse(source: FileParseSource): Promise<ParsedFileResult> {
         const extension = getFileExtension(source.originalName ?? source.filePath)
+        if (extension === 'doc') {
+            return this.parseLegacyDoc(source)
+        }
         const docs =
             extension === 'ppt' || extension === 'pptx'
                 ? await new PPTXLoader(source.filePath).load()
@@ -42,6 +48,26 @@ export class OfficeFileParser implements FileParser {
                             : undefined,
                     metadata: doc.metadata
                 }))
+            ]
+        }
+    }
+
+    private async parseLegacyDoc(source: FileParseSource): Promise<ParsedFileResult> {
+        type ExtractedWordDocument = { getBody(options?: Record<string, unknown>): string }
+        type WordExtractor = { extract(source: string): Promise<ExtractedWordDocument> }
+        const WordExtractorConstructor = requireFromHere('word-extractor') as new () => WordExtractor
+        const document = await new WordExtractorConstructor().extract(source.filePath)
+        const text = document.getBody().replace(/\0/g, '').replace(/\r\n/g, '\n').trim()
+        if (!text) {
+            throw new Error('The binary DOC file did not contain extractable text')
+        }
+        return {
+            capabilities: ['preview', 'read', 'search'],
+            summary: summarizeText(text),
+            metadata: { legacyDocExtractor: 'word-extractor', legacyDocExtractorVersion: '1.0.4' },
+            artifacts: [
+                { kind: 'summary', content: summarizeText(text) },
+                { kind: 'text', content: text, mimeType: 'text/plain' }
             ]
         }
     }

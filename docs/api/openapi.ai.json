@@ -8873,9 +8873,6 @@
           "typeId": {
             "type": "string"
           },
-          "useLocalAgent": {
-            "type": "boolean"
-          },
           "options": {
             "type": "object"
           },
@@ -8895,7 +8892,6 @@
           "organizationId",
           "type",
           "typeId",
-          "useLocalAgent",
           "models"
         ]
       },

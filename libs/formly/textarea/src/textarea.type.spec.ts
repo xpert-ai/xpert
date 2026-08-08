@@ -1,14 +1,14 @@
-import { FormlyFieldConfig } from '@ngx-formly/core';
-import { createFieldComponent } from '@ngx-formly/core/testing';
-import { PACFormlyTextAreaModule } from './textarea.module';
+import { FormlyFieldConfig } from '@ngx-formly/core'
+import { createFieldComponent } from '@ngx-formly/core/testing'
+import { XpFormlyTextAreaModule } from './textarea.module'
 
-const { NoopAnimationsModule } = require('@angular/platform-browser/animations');
+const { NoopAnimationsModule } = require('@angular/platform-browser/animations')
 
 const renderComponent = (field: FormlyFieldConfig) => {
   return createFieldComponent(field, {
-    imports: [NoopAnimationsModule, PACFormlyTextAreaModule],
-  });
-};
+    imports: [NoopAnimationsModule, XpFormlyTextAreaModule]
+  })
+}
 
 describe.skip('textarea type', () => {
   it('should render textarea type', () => {
@@ -17,43 +17,43 @@ describe.skip('textarea type', () => {
       type: 'textarea',
       props: {
         cols: 5,
-        rows: 7,
-      },
-    });
+        rows: 7
+      }
+    })
 
-    const { properties, attributes } = query('textarea');
+    const { properties, attributes } = query('textarea')
     expect(properties).toMatchObject({
       cols: 5,
-      rows: 7,
-    });
+      rows: 7
+    })
     expect(attributes).toMatchObject({
-      id: 'formly_1_textarea_name_0',
-    });
-  });
+      id: 'formly_1_textarea_name_0'
+    })
+  })
 
   it('should add "ng-invalid" class on invalid', () => {
     const { query } = renderComponent({
       key: 'name',
       type: 'textarea',
       validation: { show: true },
-      props: { required: true },
-    });
+      props: { required: true }
+    })
 
-    expect(query('textarea').classes['ng-invalid']).toBe(true);
-  });
+    expect(query('textarea').classes['ng-invalid']).toBe(true)
+  })
 
   it('should bind control value on change', () => {
-    const changeSpy = jest.fn();
+    const changeSpy = jest.fn()
     const { query, field, detectChanges } = renderComponent({
       key: 'name',
       type: 'textarea',
-      props: { change: changeSpy },
-    });
+      props: { change: changeSpy }
+    })
 
-    const event = { target: { value: 'foo' } } as any;
-    ['input', 'change'].forEach((type) => query('textarea').triggerEventHandler(type, event));
-    detectChanges();
-    expect(field.formControl.value).toEqual('foo');
-    expect(changeSpy).toHaveBeenCalledTimes(1);
-  });
-});
+    const event = { target: { value: 'foo' } } as any
+    ;['input', 'change'].forEach((type) => query('textarea').triggerEventHandler(type, event))
+    detectChanges()
+    expect(field.formControl.value).toEqual('foo')
+    expect(changeSpy).toHaveBeenCalledTimes(1)
+  })
+})

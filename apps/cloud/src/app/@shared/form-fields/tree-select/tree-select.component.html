@@ -7,24 +7,26 @@
             z-input
             class="w-full pr-10"
             [disabled]="disabled()"
-            [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+            [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
             [value]="searchTerm()"
             (input)="onSearchTermChange($any($event.target).value ?? '')"
           />
 
-          <div class="pointer-events-none absolute right-3 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center text-text-secondary">
+          <div
+            class="pointer-events-none absolute right-3 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center text-text-secondary"
+          >
             <z-icon zType="search" />
           </div>
         </div>
       </div>
     }
 
-    <z-tree class="ngm-tree-select__panel flex-1 overflow-auto" [dataSource]="dataSource" [treeControl]="treeControl">
+    <z-tree class="xp-tree-select__panel flex-1 overflow-auto" [dataSource]="dataSource" [treeControl]="treeControl">
       <div
         *zTreeNodeDef="let node"
         zTreeNodePadding
         [zTreeNodePaddingIndent]="indentStep()"
-        class="ngm-tree-select__option flex cursor-pointer items-center rounded-md"
+        class="xp-tree-select__option flex cursor-pointer items-center rounded-md"
         [class.bg-accent]="isSelected(node)"
         [class.text-accent-foreground]="isSelected(node)"
         [class.opacity-60]="disabled()"
@@ -38,7 +40,7 @@
         *zTreeNodeDef="let node; when: hasChild"
         zTreeNodePadding
         [zTreeNodePaddingIndent]="indentStep()"
-        class="ngm-tree-select__option flex cursor-pointer items-center rounded-md"
+        class="xp-tree-select__option flex cursor-pointer items-center rounded-md"
         [class.bg-accent]="isSelected(node)"
         [class.text-accent-foreground]="isSelected(node)"
         [class.opacity-60]="disabled()"
@@ -92,15 +94,20 @@
       (zValueChange)="onComboboxValueChange($event)"
       (zBlur)="markTouched()"
     >
-      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+      <ng-template
+        zComboboxDeprecatedPanel
+        let-activeIndex="activeIndex"
+        let-select="select"
+        let-setActiveIndex="setActiveIndex"
+      >
         @if (comboboxOptions().length) {
           <div class="max-h-72 overflow-auto p-1">
-            <z-tree class="ngm-tree-select__panel w-full" [dataSource]="dataSource" [treeControl]="treeControl">
+            <z-tree class="xp-tree-select__panel w-full" [dataSource]="dataSource" [treeControl]="treeControl">
               <div
                 *zTreeNodeDef="let node"
                 zTreeNodePadding
                 [zTreeNodePaddingIndent]="indentStep()"
-                [class]="'ngm-tree-select__option ' + optionClasses()"
+                [class]="'xp-tree-select__option ' + optionClasses()"
                 [class.bg-accent]="isSelected(node) || isActive(node, activeIndex)"
                 [class.text-accent-foreground]="isSelected(node) || isActive(node, activeIndex)"
                 [class.opacity-60]="disabled()"
@@ -118,7 +125,7 @@
                 *zTreeNodeDef="let node; when: hasChild"
                 zTreeNodePadding
                 [zTreeNodePaddingIndent]="indentStep()"
-                [class]="'ngm-tree-select__option ' + optionClasses()"
+                [class]="'xp-tree-select__option ' + optionClasses()"
                 [class.bg-accent]="isSelected(node) || isActive(node, activeIndex)"
                 [class.text-accent-foreground]="isSelected(node) || isActive(node, activeIndex)"
                 [class.opacity-60]="disabled()"
@@ -150,7 +157,7 @@
           </div>
         } @else {
           <div class="px-3 py-6 text-sm text-text-secondary">
-            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No results found.' } }}
+            {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No results found.' } }}
           </div>
         }
       </ng-template>

@@ -11,8 +11,8 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { SafePipe } from '@xpert-ai/core'
-import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { SafePipe } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, XpTableComponent } from '@xpert-ai/headless-ui'
 import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -30,14 +30,14 @@ type FilePreviewReferenceSelection = {
 
 @Component({
   standalone: true,
-  selector: 'pac-file-preview-content',
+  selector: 'xp-file-preview-content',
   templateUrl: './file-preview-content.component.html',
   imports: [
     TranslateModule,
     MarkdownModule,
     SafePipe,
-    NgmSpinComponent,
-    NgmTableComponent,
+    XpSpinComponent,
+    XpTableComponent,
     FileDocxPreviewComponent,
     FileHtmlPreviewComponent
   ],

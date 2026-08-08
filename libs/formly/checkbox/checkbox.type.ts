@@ -9,15 +9,15 @@ interface CheckboxProps extends FormlyFieldProps {
 }
 
 export interface FormlyCheckboxFieldConfig extends FormlyFieldConfig<CheckboxProps> {
-  type: 'checkbox' | Type<NgmFormlyCheckboxComponent>
+  type: 'checkbox' | Type<XpFormlyCheckboxComponent>
 }
 
 @Component({
-  selector: 'ngm-formly-checkbox',
+  selector: 'xp-formly-checkbox',
   standalone: false,
   template: `
     <z-checkbox
-      class="ngm-formly-checkbox"
+      class="xp-formly-checkbox"
       [attr.id]="id"
       [formControl]="formControl"
       [formlyAttributes]="field"
@@ -47,7 +47,7 @@ export interface FormlyCheckboxFieldConfig extends FormlyFieldConfig<CheckboxPro
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./checkbox.type.scss']
 })
-export class NgmFormlyCheckboxComponent extends FieldType<FieldTypeConfig<CheckboxProps>> {
+export class XpFormlyCheckboxComponent extends FieldType<FieldTypeConfig<CheckboxProps>> {
   override defaultOptions = {
     props: {
       hideFieldUnderline: true,

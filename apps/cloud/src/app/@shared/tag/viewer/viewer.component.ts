@@ -9,7 +9,7 @@ import { ITag } from '../../../@core'
   standalone: true,
   imports: [CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-tags',
+  selector: 'xp-tag-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.scss']
 })

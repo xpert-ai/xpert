@@ -7,6 +7,6 @@ describe('CopilotBasicComponent', () => {
     const formTemplate = readFileSync(join(__dirname, '../copilot-form/copilot-form.component.html'), 'utf8')
 
     expect(formTemplate).toContain('(saved)="saved.emit()"')
-    expect(template.match(/<pac-copilot-form[^>]*\(saved\)="copilotServer\.refresh\(\)"/g) ?? []).toHaveLength(2)
+    expect(template.match(/<xp-copilot-form[^>]*\(saved\)="copilotServer\.refresh\(\)"/g) ?? []).toHaveLength(2)
   })
 })

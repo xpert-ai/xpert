@@ -47,7 +47,7 @@ import { isDeprecatedRolePermission, isRolePermissionReadonly } from './deprecat
 
 @Component({
   standalone: true,
-  selector: 'pac-roles',
+  selector: 'xp-roles',
   imports: [
     CommonModule,
     FormsModule,
@@ -177,7 +177,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
       }
 
       this.toastr.success(
-        this.getTranslation(`PAC.NOTES.ROLES.PERMISSION_UPDATED`, {
+        this.getTranslation(`XP.NOTES.ROLES.PERMISSION_UPDATED`, {
           Default: `Permission '{{name}}' Updated`,
           name: this.role.name
         })
@@ -224,13 +224,13 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
 
   async create() {
     const name = await this.openRoleNameDialog({
-      title: this.getTranslation('PAC.Role.CreateTitle', {
+      title: this.getTranslation('XP.Role.CreateTitle', {
         Default: 'Create role'
       }),
-      label: this.getTranslation('PAC.Role.NameLabel', {
+      label: this.getTranslation('XP.Role.NameLabel', {
         Default: 'Role name'
       }),
-      action: this.getTranslation('PAC.MODEL.AccessControl.NewRole', {
+      action: this.getTranslation('XP.MODEL.AccessControl.NewRole', {
         Default: 'New Role'
       })
     })
@@ -242,7 +242,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
       const newRole = await firstValueFrom(this.rolesService.create({ name, rolePermissions: [] }))
       if (newRole) {
         this.refresh()
-        this.toastr.success('PAC.NOTES.ROLES.RoleCreate', { Default: 'Create Role' })
+        this.toastr.success('XP.NOTES.ROLES.RoleCreate', { Default: 'Create Role' })
         this.role = newRole
       }
     } catch (error) {
@@ -256,13 +256,13 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
     }
 
     const name = await this.openRoleNameDialog({
-      title: this.getTranslation('PAC.Role.RenameTitle', {
+      title: this.getTranslation('XP.Role.RenameTitle', {
         Default: 'Rename Role'
       }),
-      label: this.getTranslation('PAC.Role.NameLabel', {
+      label: this.getTranslation('XP.Role.NameLabel', {
         Default: 'Role name'
       }),
-      action: this.getTranslation('PAC.ACTIONS.Rename', {
+      action: this.getTranslation('XP.ACTIONS.Rename', {
         Default: 'Rename'
       }),
       value: role.name
@@ -275,7 +275,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
       const updatedRole = await firstValueFrom(this.rolesService.update(role.id, { name }))
       this.role = updatedRole
       this.refresh()
-      this.toastr.success('PAC.Role.RenameSuccess', {
+      this.toastr.success('XP.Role.RenameSuccess', {
         Default: 'Role renamed successfully'
       })
     } catch (error) {
@@ -286,17 +286,17 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
   async remove(role: IRole) {
     const confirm = await firstValueFrom(
       this.alertDialog.confirm({
-        title: this.getTranslation('PAC.Role.DeleteTitle', {
+        title: this.getTranslation('XP.Role.DeleteTitle', {
           Default: 'Delete role'
         }),
-        description: this.getTranslation('PAC.Role.DeleteConfirm', {
+        description: this.getTranslation('XP.Role.DeleteConfirm', {
           Default: 'Delete role "{{name}}"? This cannot be undone.',
           name: role.name
         }),
-        actionText: this.getTranslation('PAC.ACTIONS.Delete', {
+        actionText: this.getTranslation('XP.ACTIONS.Delete', {
           Default: 'Delete'
         }),
-        cancelText: this.getTranslation('PAC.ACTIONS.Cancel', {
+        cancelText: this.getTranslation('XP.ACTIONS.Cancel', {
           Default: 'Cancel'
         }),
         destructive: true
@@ -306,7 +306,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
       try {
         await firstValueFrom(this.rolesService.delete(role))
         this.refresh()
-        this.toastr.success('PAC.NOTES.ROLES.RoleDelete', { Default: 'Delete Role' })
+        this.toastr.success('XP.NOTES.ROLES.RoleDelete', { Default: 'Delete Role' })
       } catch (error) {
         this.toastr.error(getErrorMessage(error))
       }
@@ -331,7 +331,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
       const result = await firstValueFrom(this.rolePermissionsService.syncDefaults())
       this.permissions$.next()
       this.refresh()
-      this.toastr.success('PAC.Role.SyncDefaultsSuccess', {
+      this.toastr.success('XP.Role.SyncDefaultsSuccess', {
         Default: 'Default role permissions synchronized.',
         inserted: result.inserted,
         enabled: result.enabled

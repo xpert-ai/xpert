@@ -1,5 +1,6 @@
 import { tool } from '@langchain/core/tools'
 import { QueryBus } from '@nestjs/cqrs'
+import { ForbiddenException } from '@nestjs/common'
 import { z } from 'zod'
 import type { FilePageImageResult } from '../queries'
 import {
@@ -14,7 +15,9 @@ type CreateFileUnderstandingToolsOptions = {
     conversationId?: string
 }
 
-const PARSED_FILE_LIST_PAGE_IMAGE_LIMIT = 12
+const SEARCH_RESULT_LIMIT = 8
+const SEARCH_SNIPPET_LIMIT = 800
+const READ_CONTENT_LIMIT = 4_000
 
 export function createFileUnderstandingTools(queryBus: QueryBus, options?: CreateFileUnderstandingToolsOptions) {
     const listConversationFiles = async () => {
@@ -24,11 +27,46 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
     }
 
     const resolveFileIds = async (fileIds?: string[]) => {
-        if (fileIds?.length) {
-            return fileIds
-        }
         const files = await listConversationFiles()
-        return files.map((file) => file.id)
+        const allowedIds = new Set(files.map((file) => file.id))
+        const ids = fileIds?.length ? [...new Set(fileIds)] : files.map((file) => file.id)
+        if (ids.some((fileId) => !allowedIds.has(fileId))) {
+            throw new ForbiddenException('The requested file is not linked to this Assistant Task conversation')
+        }
+        return { ids, files }
+    }
+
+    const requireConversationFile = async (fileId: string) => {
+        const { files } = await resolveFileIds([fileId])
+        return files.find((file) => file.id === fileId)!
+    }
+
+    const searchConversationFiles = async (fileIds: string[] | undefined, query: string, limit?: number) => {
+        const globalLimit = Math.min(limit ?? SEARCH_RESULT_LIMIT, SEARCH_RESULT_LIMIT)
+        const { ids, files } = await resolveFileIds(fileIds)
+        const perFileLimit = Math.max(1, Math.ceil(globalLimit / Math.max(ids.length, 1)))
+        const resultsByFile = await Promise.all(
+            ids.map(async (fileId) => ({
+                fileId,
+                chunks: await queryBus.execute(new SearchFileChunksQuery({ fileId, query, limit: perFileLimit }))
+            }))
+        )
+        return resultsByFile
+            .flatMap((result, fileIndex) =>
+                result.chunks.map((chunk, rank) => ({
+                    rank: rank * Math.max(resultsByFile.length, 1) + fileIndex,
+                    fileId: result.fileId,
+                    name: files.find((file) => file.id === result.fileId)?.originalName,
+                    workspacePath: files.find((file) => file.id === result.fileId)?.workspacePath,
+                    chunkId: chunk.id,
+                    orderNo: chunk.orderNo,
+                    anchor: chunk.anchor,
+                    excerpt: compactText(chunk.content, SEARCH_SNIPPET_LIMIT)
+                }))
+            )
+            .sort((left, right) => left.rank - right.rank)
+            .slice(0, globalLimit)
+            .map(({ rank: _rank, ...result }) => result)
     }
 
     const findConversationFileByPath = async (workspacePath?: string) => {
@@ -47,41 +85,30 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
     // Parsed-file tools are scoped by ConversationFileLink through
     // ListConversationFilesQuery, so agents cannot discover unrelated uploads.
     const fileSearch = tool(
-        async ({ fileIds, query, limit }) => {
-            const ids = await resolveFileIds(fileIds)
-            const conversationFiles = await listConversationFiles()
-            const results = []
-            for (const fileId of ids) {
-                const file = conversationFiles.find((item) => item.id === fileId)
-                const chunks = await queryBus.execute(new SearchFileChunksQuery({ fileId, query, limit }))
-                results.push({
-                    fileId,
-                    name: file?.originalName,
-                    workspacePath: file?.workspacePath,
-                    chunks: chunks.map((chunk) => ({
-                        chunkId: chunk.id,
-                        orderNo: chunk.orderNo,
-                        anchor: chunk.anchor,
-                        content: chunk.content
-                    }))
-                })
-            }
-            return JSON.stringify(results)
-        },
+        async ({ fileIds, query, limit }) => JSON.stringify(await searchConversationFiles(fileIds, query, limit)),
         {
             name: 'parsed_file_search',
             description:
                 'Search parsed files linked to this conversation by query. Returns matching parsed chunks with page, sheet, slide, path, or chunk anchors for citation.',
-            schema: z.object({
-                fileIds: z.array(z.string()).optional(),
-                query: z.string().describe('Search query. Use the user question or a focused keyword query.'),
-                limit: z.number().int().positive().max(20).optional()
-            })
+            schema: z
+                .object({
+                    fileIds: z.array(z.string().uuid()).min(1).max(12).optional(),
+                    query: z
+                        .string()
+                        .trim()
+                        .min(1)
+                        .max(500)
+                        .describe('Focused semantic and keyword query for the current planning topic.'),
+                    limit: z.number().int().positive().max(SEARCH_RESULT_LIMIT).optional()
+                })
+                .strict(),
+            verboseParsingErrors: true
         }
     )
 
     const fileRead = tool(
         async ({ fileId, chunkId, orderNo }) => {
+            await requireConversationFile(fileId)
             const chunk = await queryBus.execute(new ReadFileChunkQuery({ fileId, chunkId, orderNo }))
             return JSON.stringify(
                 chunk
@@ -90,7 +117,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
                           chunkId: chunk.id,
                           orderNo: chunk.orderNo,
                           anchor: chunk.anchor,
-                          content: chunk.content
+                          content: compactText(chunk.content, READ_CONTENT_LIMIT)
                       }
                     : null
             )
@@ -99,31 +126,45 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             name: 'parsed_file_read',
             description:
                 'Read a parsed file chunk by chunkId or orderNo. Use after parsed_file_search when exact surrounding text is needed.',
-            schema: z.object({
-                fileId: z.string(),
-                chunkId: z.string().optional(),
-                orderNo: z.number().int().nonnegative().optional()
-            })
+            schema: z
+                .object({
+                    fileId: z.string().uuid(),
+                    chunkId: z.string().uuid().optional(),
+                    orderNo: z.number().int().nonnegative().optional()
+                })
+                .strict()
+                .refine((value) => (value.chunkId ? value.orderNo == null : value.orderNo != null), {
+                    message: 'Provide exactly one of chunkId or orderNo'
+                }),
+            verboseParsingErrors: true
         }
     )
 
     const filePreview = tool(
         async ({ fileId }) => {
+            await requireConversationFile(fileId)
             const preview = await queryBus.execute(new GetFilePreviewQuery(fileId))
-            return JSON.stringify(preview)
+            return JSON.stringify(
+                preview
+                    ? {
+                          file: preview.file,
+                          artifactCount: preview.artifacts.length,
+                          availableReads: ['parsed_file_search', 'parsed_file_read', 'parsed_file_table_query']
+                      }
+                    : null
+            )
         },
         {
             name: 'parsed_file_preview',
-            description:
-                'Preview parsed file metadata, summary, artifacts, and first parsed chunks. PDF page_image artifacts include workspace image paths that can be inspected with view-image tools.',
-            schema: z.object({
-                fileId: z.string()
-            })
+            description: 'Return compact parsed-file status, summary and statistics. It never returns parsed chunks.',
+            schema: z.object({ fileId: z.string().uuid() }).strict(),
+            verboseParsingErrors: true
         }
     )
 
     const filePageImages = tool(
         async ({ fileId, pageStart, pageEnd, limit }) => {
+            await requireConversationFile(fileId)
             const pageImages = await queryBus.execute<ListFilePageImagesQuery, FilePageImageResult[]>(
                 new ListFilePageImagesQuery(fileId, {
                     pageStart,
@@ -140,23 +181,31 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             name: 'parsed_file_page_images',
             description:
                 'List rendered PDF page images for a parsed file. Use this before view-image when a parsed PDF page must be inspected visually.',
-            schema: z.object({
-                fileId: z.string(),
-                pageStart: z.number().int().positive().optional(),
-                pageEnd: z.number().int().positive().optional(),
-                limit: z.number().int().positive().max(300).optional()
-            })
+            schema: z
+                .object({
+                    fileId: z.string().uuid(),
+                    pageStart: z.number().int().positive().optional(),
+                    pageEnd: z.number().int().positive().optional(),
+                    limit: z.number().int().positive().max(30).optional()
+                })
+                .strict()
+                .refine(
+                    (value) => value.pageStart == null || value.pageEnd == null || value.pageEnd >= value.pageStart,
+                    { message: 'pageEnd must be greater than or equal to pageStart' }
+                ),
+            verboseParsingErrors: true
         }
     )
 
     const fileTableQuery = tool(
         async ({ fileId, query, limit }) => {
+            await requireConversationFile(fileId)
             const chunks = await queryBus.execute(new SearchFileChunksQuery({ fileId, query, limit }))
             return JSON.stringify(
                 chunks.map((chunk) => ({
                     chunkId: chunk.id,
                     anchor: chunk.anchor,
-                    content: chunk.content
+                    excerpt: compactText(chunk.content, SEARCH_SNIPPET_LIMIT)
                 }))
             )
         },
@@ -164,37 +213,36 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             name: 'parsed_file_table_query',
             description:
                 'Query parsed spreadsheet or CSV table artifacts. Returns parsed sheet/table chunks and anchors that can be cited.',
-            schema: z.object({
-                fileId: z.string(),
-                query: z.string(),
-                limit: z.number().int().positive().max(20).optional()
-            })
+            schema: z
+                .object({
+                    fileId: z.string().uuid(),
+                    query: z.string().trim().min(1).max(500),
+                    limit: z.number().int().positive().max(SEARCH_RESULT_LIMIT).optional()
+                })
+                .strict(),
+            verboseParsingErrors: true
         }
     )
 
     const workspaceList = tool(
         async () => {
             const files = await listConversationFiles()
-            const pageImagesByFileId = await listPageImagesByFileId(files)
             return JSON.stringify(
-                files.map((file) => {
-                    const pageImages = pageImagesByFileId.get(file.id)
-                    return {
-                        fileId: file.id,
-                        name: file.originalName,
-                        workspacePath: file.workspacePath,
-                        status: file.status,
-                        capabilities: file.capabilities,
-                        ...(pageImages?.length ? { pageImages } : {})
-                    }
-                })
+                files.map((file) => ({
+                    fileId: file.id,
+                    name: file.originalName,
+                    workspacePath: file.workspacePath,
+                    status: file.status,
+                    capabilities: file.capabilities
+                }))
             )
         },
         {
             name: 'parsed_file_list',
             description:
-                'List parsed files currently linked to this conversation. This does not list Xpert workspace volume files. PDF files with rendered page images include initial pageImages paths or URLs; use parsed_file_page_images for a complete or page-specific list.',
-            schema: z.object({})
+                'List compact metadata for parsed files linked to this conversation. Use a dedicated tool to search, read, or list page images.',
+            schema: z.object({}).strict(),
+            verboseParsingErrors: true
         }
     )
 
@@ -207,66 +255,62 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             if (!resolvedFileId) {
                 return JSON.stringify(null)
             }
+            await requireConversationFile(resolvedFileId)
             const chunk = await queryBus.execute(new ReadFileChunkQuery({ fileId: resolvedFileId, chunkId, orderNo }))
-            return JSON.stringify(chunk)
+            return JSON.stringify(
+                chunk
+                    ? {
+                          fileId: resolvedFileId,
+                          chunkId: chunk.id,
+                          orderNo: chunk.orderNo,
+                          anchor: chunk.anchor,
+                          content: compactText(chunk.content, READ_CONTENT_LIMIT)
+                      }
+                    : null
+            )
         },
         {
             name: 'parsed_file_read_by_path',
             description:
                 'Read a parsed chunk from the conversation-linked parsed file index by fileId or workspacePath. This does not read raw file bytes; use sandbox_read_file with the returned workspacePath for original files, or sandbox_shell only when command execution is necessary.',
-            schema: z.object({
-                fileId: z.string().optional(),
-                path: z.string().optional().describe('workspacePath returned by parsed_file_list or the file card.'),
-                chunkId: z.string().optional(),
-                orderNo: z.number().int().nonnegative().optional()
-            })
+            schema: z
+                .object({
+                    fileId: z.string().uuid().optional(),
+                    path: z
+                        .string()
+                        .trim()
+                        .min(1)
+                        .max(1_000)
+                        .optional()
+                        .describe('workspacePath returned by parsed_file_list or the file card.'),
+                    chunkId: z.string().uuid().optional(),
+                    orderNo: z.number().int().nonnegative().optional()
+                })
+                .strict()
+                .refine((value) => Boolean(value.fileId) !== Boolean(value.path), {
+                    message: 'Provide exactly one of fileId or path'
+                })
+                .refine((value) => Boolean(value.chunkId) !== (value.orderNo != null), {
+                    message: 'Provide exactly one of chunkId or orderNo'
+                }),
+            verboseParsingErrors: true
         }
     )
 
     const workspaceSearch = tool(
-        async ({ query, limit }) => {
-            const files = await listConversationFiles()
-            const fileIds = files.map((file) => file.id)
-            const results = []
-            for (const fileId of fileIds) {
-                const chunks = await queryBus.execute(new SearchFileChunksQuery({ fileId, query, limit }))
-                const file = files.find((item) => item.id === fileId)
-                results.push({
-                    fileId,
-                    name: file?.originalName,
-                    workspacePath: file?.workspacePath,
-                    chunks
-                })
-            }
-            return JSON.stringify(results)
-        },
+        async ({ query, limit }) => JSON.stringify(await searchConversationFiles(undefined, query, limit)),
         {
             name: 'parsed_file_search_all',
             description: 'Search every parsed file linked to this conversation.',
-            schema: z.object({
-                query: z.string(),
-                limit: z.number().int().positive().max(20).optional()
-            })
+            schema: z
+                .object({
+                    query: z.string().trim().min(1).max(500),
+                    limit: z.number().int().positive().max(SEARCH_RESULT_LIMIT).optional()
+                })
+                .strict(),
+            verboseParsingErrors: true
         }
     )
-
-    async function listPageImagesByFileId(files: Awaited<ReturnType<typeof listConversationFiles>>) {
-        const entries = await Promise.all(
-            files.map(async (file) => {
-                if (!file.capabilities?.includes('page_images')) {
-                    return null
-                }
-                const pageImages = await queryBus.execute<ListFilePageImagesQuery, FilePageImageResult[]>(
-                    new ListFilePageImagesQuery(file.id, {
-                        limit: PARSED_FILE_LIST_PAGE_IMAGE_LIMIT
-                    })
-                )
-                const pageImageFiles = toPageImageToolFiles(pageImages)
-                return pageImageFiles.length ? ([file.id, pageImageFiles] as const) : null
-            })
-        )
-        return new Map(entries.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)))
-    }
 
     return [
         fileSearch,
@@ -278,6 +322,11 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         workspaceRead,
         workspaceSearch
     ]
+}
+
+function compactText(value: string, maxLength: number) {
+    const normalized = value.replace(/\s+/g, ' ').trim()
+    return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}…` : normalized
 }
 
 function toPageImageToolFiles(pageImages: FilePageImageResult[]) {

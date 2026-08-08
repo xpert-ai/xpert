@@ -1,7 +1,7 @@
 import { signal, type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 
-import { provideUiI18nAdapter } from '@/src/lib/core/i18n/ui-i18n.service'
+import { provideUiI18nAdapter } from '../../core/i18n/ui-i18n.service'
 import { ZardDatePickerComponent } from './date-picker.component'
 import { ZardMonthPickerComponent } from './month-picker.component'
 import { ZardQuarterPickerComponent } from './quarter-picker.component'
@@ -73,7 +73,6 @@ describe('ZardDatePicker family', () => {
 
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement
     expect(button.textContent).toContain('2026')
-
     ;(component as any).onDateChange(new Date(2026, 0, 9, 12, 0, 0, 0))
 
     expect(onChange).toHaveBeenCalledTimes(1)
@@ -93,7 +92,6 @@ describe('ZardDatePicker family', () => {
     fixture.componentRef.setInput('minDate', new Date(2026, 2, 15, 12, 0, 0, 0))
     fixture.componentRef.setInput('maxDate', new Date(2026, 9, 1, 12, 0, 0, 0))
     fixture.detectChanges()
-
     ;(component as any).openValue.set(new Date(2026, 5, 1, 12, 0, 0, 0))
     fixture.detectChanges()
 
@@ -126,7 +124,6 @@ describe('ZardDatePicker family', () => {
     component.dateChange.subscribe((value) => emitted.push(value))
 
     fixture.detectChanges()
-
     ;(component as any).openValue.set(new Date(2026, 0, 1, 12, 0, 0, 0))
     ;(component as any).selectMonth(3)
 
@@ -153,7 +150,6 @@ describe('ZardDatePicker family', () => {
     component.dateChange.subscribe((value) => emitted.push(value))
 
     fixture.detectChanges()
-
     ;(component as any).openValue.set(new Date(2026, 0, 1, 12, 0, 0, 0))
     ;(component as any).selectQuarter(2)
 
@@ -180,7 +176,6 @@ describe('ZardDatePicker family', () => {
     component.dateChange.subscribe((value) => emitted.push(value))
 
     fixture.detectChanges()
-
     ;(component as any).pageStart.set(2028)
     ;(component as any).selectYear(2031)
 

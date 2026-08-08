@@ -96,6 +96,7 @@ enum ModelTargetAccessMode {
 
 type MembershipFeatureState = {
     organizationEnabled: boolean
+    organizationModelsConfigured: boolean
     tenantEnabled: boolean
 }
 
@@ -170,7 +171,8 @@ export class ModelAccessService {
             tenantFeatureEnabled,
             organizationFeatureEnabled,
             tenantMembershipEnabled,
-            organizationMembershipEnabled
+            organizationMembershipEnabled,
+            organizationModelsConfigured
         ] = await Promise.all([
             this.loadVisibleCatalogTargets(organizationId),
             this.findUserRequestsForCurrentContext(tenantId, userId, organizationId),
@@ -184,7 +186,8 @@ export class ModelAccessService {
             this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
             organizationId
                 ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
-                : Promise.resolve(false)
+                : Promise.resolve(false),
+            organizationId ? this.hasConfiguredOrganizationModels(tenantId, organizationId) : Promise.resolve(false)
         ])
         let grantStateChanged = false
         for (const grant of initialGrants.filter((item) => item.status === UserModelGrantStatusEnum.Active)) {
@@ -228,6 +231,7 @@ export class ModelAccessService {
                     organizationFeatureEnabled,
                     tenantMembershipEnabled,
                     organizationMembershipEnabled,
+                    organizationModelsConfigured,
                     runtimeOrganizationId: organizationId
                 })
             )
@@ -1604,12 +1608,14 @@ export class ModelAccessService {
             organizationFeatureEnabled: boolean
             tenantMembershipEnabled: boolean
             organizationMembershipEnabled: boolean
+            organizationModelsConfigured: boolean
             runtimeOrganizationId: string | null
         }
     ): Promise<IModelAccessCatalogItem> {
         const accessMode = this.resolveTargetAccessMode(target, features.runtimeOrganizationId, {
             tenantEnabled: features.tenantMembershipEnabled,
-            organizationEnabled: features.organizationMembershipEnabled
+            organizationEnabled: features.organizationMembershipEnabled,
+            organizationModelsConfigured: features.organizationModelsConfigured
         })
         const planIncluded =
             accessMode === ModelTargetAccessMode.Membership && this.isPlanIncluded(target, membershipAccess)
@@ -2039,27 +2045,80 @@ export class ModelAccessService {
     }
 
     private isPlanIncluded(target: ModelTarget, access: MembershipModelAccess | null) {
+        if (!access) {
+            return false
+        }
+        const scopeMatches =
+            access.organizationId === target.organizationId ||
+            (target.organizationId === null && !!access.organizationId && !!access.membership.plan.catalogSourcePlanId)
         return (
-            !!access &&
-            access.organizationId === target.organizationId &&
-            this.membershipService.isModelAllowed(access.membership.plan, target.provider, target.model)
+            scopeMatches && this.membershipService.isModelAllowed(access.membership.plan, target.provider, target.model)
         )
+    }
+
+    async hasConfiguredOrganizationModels(tenantId: string, organizationId: string): Promise<boolean> {
+        const copilots = await this.copilotRepository.find({
+            where: {
+                tenantId,
+                organizationId,
+                enabled: true
+            },
+            relations: ['modelProvider']
+        })
+
+        for (const copilot of copilots) {
+            const modelProvider = copilot.modelProvider
+            if (!modelProvider?.id || !modelProvider.providerName || modelProvider.isValid === false) {
+                continue
+            }
+
+            const provider = this.providersService.getProvider(modelProvider.providerName, false, organizationId)
+            if (!provider) {
+                continue
+            }
+
+            if (provider.getProviderModels()?.some((model) => !!model.model && model.deprecated !== true)) {
+                return true
+            }
+            if (copilot.copilotModel?.model) {
+                return true
+            }
+
+            const customModels = await this.providerModelRepository.find({
+                where: {
+                    tenantId,
+                    providerId: modelProvider.id
+                }
+            })
+            if (customModels.some((model) => !!model.modelName && model.isValid !== false)) {
+                return true
+            }
+        }
+
+        return false
     }
 
     private async resolveMembershipFeatureState(
         tenantId: string,
         runtimeOrganizationId: string | null
     ): Promise<MembershipFeatureState> {
-        const [tenantEnabled, organizationEnabled] = await Promise.all([
+        const [tenantEnabled, organizationEnabled, organizationModelsConfigured] = await Promise.all([
             this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
             runtimeOrganizationId
                 ? this.membershipService.isMembershipPlanEnabled({
                       tenantId,
                       organizationId: runtimeOrganizationId
                   })
+                : Promise.resolve(false),
+            runtimeOrganizationId
+                ? this.hasConfiguredOrganizationModels(tenantId, runtimeOrganizationId)
                 : Promise.resolve(false)
         ])
-        return { tenantEnabled, organizationEnabled }
+        return {
+            tenantEnabled,
+            organizationEnabled,
+            organizationModelsConfigured
+        }
     }
 
     private resolveTargetAccessMode(
@@ -2075,7 +2134,12 @@ export class ModelAccessService {
         if (!runtimeOrganizationId) {
             return membershipFeatures.tenantEnabled ? ModelTargetAccessMode.Membership : ModelTargetAccessMode.Direct
         }
-        return membershipFeatures.tenantEnabled ? ModelTargetAccessMode.Membership : ModelTargetAccessMode.Blocked
+        if (membershipFeatures.organizationModelsConfigured) {
+            return ModelTargetAccessMode.Blocked
+        }
+        return membershipFeatures.organizationEnabled || membershipFeatures.tenantEnabled
+            ? ModelTargetAccessMode.Membership
+            : ModelTargetAccessMode.Blocked
     }
 
     private async resolveQuotaReason(access: MembershipModelAccess | null) {

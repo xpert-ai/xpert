@@ -4,21 +4,21 @@
   cdkDragRootElement=".cdk-overlay-pane"
   cdkDragHandle
 >
-  {{ 'PAC.XProject.ImportProjectTeam' | translate: { Default: 'Import Project Team' } }}
+  {{ 'XP.XProject.ImportProjectTeam' | translate: { Default: 'Import Project Team' } }}
 </div>
 
 <div class="px-8 py-4 relative space-y-4 overflow-auto">
   <div>
     <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-      <span class="text-red-500">*</span>{{ 'PAC.Xpert.Avatar' | translate: { Default: 'Avatar' } }} &amp;
-      {{ 'PAC.XProject.Name' | translate: { Default: 'Name' } }}
+      <span class="text-red-500">*</span>{{ 'XP.Xpert.Avatar' | translate: { Default: 'Avatar' } }} &amp;
+      {{ 'XP.XProject.Name' | translate: { Default: 'Name' } }}
     </div>
     <div class="flex items-center justify-between space-x-2">
       <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
       <div class="relative w-full">
         <input
           class="xp-input w-full grow h-10"
-          [placeholder]="'PAC.XProject.EnterProjectName' | translate: { Default: 'Enter project name' }"
+          [placeholder]="'XP.XProject.EnterProjectName' | translate: { Default: 'Enter project name' }"
           [(ngModel)]="name"
         />
       </div>
@@ -26,7 +26,7 @@
   </div>
 
   <div class="py-2 flex flex-col">
-    <div class="text-lg font-semibold">{{ 'PAC.XProject.AiModel' | translate: { Default: 'AI Model' } }}</div>
+    <div class="text-lg font-semibold">{{ 'XP.XProject.AiModel' | translate: { Default: 'AI Model' } }}</div>
     <copilot-model-select
       class="mt-4"
       [modelType]="eModelType.LLM"
@@ -39,7 +39,7 @@
         target="_blank"
         class="text-xs my-1 hover:underline text-primary-400 hover:text-primary-500"
       >
-        {{ 'PAC.XProject.GlobalModelConfig' | translate: { Default: 'Global model config' } }}
+        {{ 'XP.XProject.GlobalModelConfig' | translate: { Default: 'Global model config' } }}
       </a>
     }
   </div>
@@ -47,12 +47,12 @@
   <div class="py-2">
     <div class="py-2 leading-[20px] text-text-primary">
       <span class="text-base">{{
-        'PAC.XProject.BindWorkspaceToAddResources' | translate: { Default: 'Bind workspace to add resources' }
+        'XP.XProject.BindWorkspaceToAddResources' | translate: { Default: 'Bind workspace to add resources' }
       }}</span>
 
       <button
         class="inline-flex ml-1 w-6 h-6 justify-center items-center rounded-lg hover:bg-hover-bg"
-        [zTooltip]="'PAC.XProject.RefreshWorkspaceList' | translate: { Default: 'Refresh workspace list' }"
+        [zTooltip]="'XP.XProject.RefreshWorkspaceList' | translate: { Default: 'Refresh workspace list' }"
         zPosition="top"
         (click)="refreshWorkspaceOptions()"
       >
@@ -60,9 +60,9 @@
       </button>
     </div>
 
-    <ngm-select
+    <xp-select
       [selectOptions]="workspaceOptions()"
-      [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+      [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
       [(ngModel)]="workspaceId"
     />
 
@@ -73,7 +73,7 @@
       rel="noopener noreferrer"
       class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600"
     >
-      {{ 'PAC.Xpert.HowtoCreate' | translate: { Default: 'How to create' } }}
+      {{ 'XP.Xpert.HowtoCreate' | translate: { Default: 'How to create' } }}
       <i class="ri-external-link-line"></i>
     </a>
   </div>
@@ -87,9 +87,9 @@
       (click)="createProject()"
     >
       @if (createdProject()) {
-        {{ 'PAC.XProject.Update' | translate: { Default: 'Update' } }}
+        {{ 'XP.XProject.Update' | translate: { Default: 'Update' } }}
       } @else {
-        {{ 'PAC.XProject.Create' | translate: { Default: 'Create' } }}
+        {{ 'XP.XProject.Create' | translate: { Default: 'Create' } }}
       }
     </button>
   </div>
@@ -100,11 +100,11 @@
     <div class="flex items-center gap-1 py-2">
       @if (!createdProject()) {
         <div class="text-sm text-text-warning">
-          ({{ 'PAC.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
+          ({{ 'XP.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
         </div>
       }
       <div class="text-lg font-semibold">
-        {{ 'PAC.XProject.ImportXperts' | translate: { Default: 'Import Experts' } }}
+        {{ 'XP.XProject.ImportXperts' | translate: { Default: 'Import Experts' } }}
       </div>
     </div>
     <div class="flex flex-col items-stretch gap-4">
@@ -127,11 +127,11 @@
     <div class="flex items-center gap-1 py-2">
       @if (!createdProject()) {
         <div class="text-sm text-text-warning">
-          ({{ 'PAC.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
+          ({{ 'XP.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
         </div>
       }
       <div class="text-lg font-semibold">
-        {{ 'PAC.XProject.ImportToolsets' | translate: { Default: 'Import Toolsets' } }}
+        {{ 'XP.XProject.ImportToolsets' | translate: { Default: 'Import Toolsets' } }}
       </div>
     </div>
 
@@ -150,7 +150,7 @@
   }
 
   @if (loading()) {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    <xp-spin class="absolute top-0 left-0 w-full h-full" />
   }
 </div>
 
@@ -163,7 +163,7 @@
     [disabled]="loading()"
     (click)="close()"
   >
-    {{ 'PAC.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
+    {{ 'XP.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
   </button>
 
   <button
@@ -172,6 +172,6 @@
     [disabled]="!createdProject() || loading()"
     (click)="done()"
   >
-    {{ 'PAC.XProject.Done' | translate: { Default: 'Done' } }}
+    {{ 'XP.XProject.Done' | translate: { Default: 'Done' } }}
   </button>
 </div>

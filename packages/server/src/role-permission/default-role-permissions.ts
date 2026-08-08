@@ -1,6 +1,9 @@
 import { PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
+const DATA_SOURCE_PLATFORM_PERMISSIONS = [PermissionsEnum.DATA_SOURCE_EDIT, PermissionsEnum.DATA_SOURCE_VIEW]
+
 const SUPER_ADMIN_PLATFORM_PERMISSIONS = [
+	...DATA_SOURCE_PLATFORM_PERMISSIONS,
 	PermissionsEnum.PROFILE_EDIT,
 	PermissionsEnum.ADMIN_DASHBOARD_VIEW,
 	PermissionsEnum.ORG_EMPLOYEES_VIEW,
@@ -29,10 +32,12 @@ const SUPER_ADMIN_PLATFORM_PERMISSIONS = [
 	PermissionsEnum.CUSTOM_SMTP_VIEW,
 	PermissionsEnum.VIEW_ALL_ACCOUNTING_TEMPLATES,
 	PermissionsEnum.ACCESS_DELETE_ACCOUNT,
-	PermissionsEnum.ACCESS_DELETE_ALL_DATA
+	PermissionsEnum.ACCESS_DELETE_ALL_DATA,
+	PermissionsEnum.REFERRAL_VIEW
 ]
 
 const ADMIN_PLATFORM_PERMISSIONS = [
+	...DATA_SOURCE_PLATFORM_PERMISSIONS,
 	PermissionsEnum.PROFILE_EDIT,
 	PermissionsEnum.ADMIN_DASHBOARD_VIEW,
 	PermissionsEnum.ORG_EMPLOYEES_VIEW,
@@ -58,36 +63,17 @@ const ADMIN_PLATFORM_PERMISSIONS = [
 	PermissionsEnum.FILE_STORAGE_VIEW,
 	PermissionsEnum.SMS_GATEWAY_VIEW,
 	PermissionsEnum.CUSTOM_SMTP_VIEW,
-	PermissionsEnum.VIEW_ALL_ACCOUNTING_TEMPLATES
+	PermissionsEnum.VIEW_ALL_ACCOUNTING_TEMPLATES,
+	PermissionsEnum.REFERRAL_VIEW
 ]
 
 const TRIAL_PLATFORM_PERMISSIONS = [
+	...DATA_SOURCE_PLATFORM_PERMISSIONS,
 	PermissionsEnum.PROFILE_EDIT,
-	PermissionsEnum.ADMIN_DASHBOARD_VIEW,
-	PermissionsEnum.ORG_EMPLOYEES_VIEW,
-	PermissionsEnum.ORG_EMPLOYEES_EDIT,
-	PermissionsEnum.ORG_HELP_CENTER_EDIT,
-	PermissionsEnum.ORG_USERS_VIEW,
-	PermissionsEnum.ORG_USERS_EDIT,
-	PermissionsEnum.ALL_ORG_VIEW,
-	PermissionsEnum.ALL_ORG_EDIT,
-	PermissionsEnum.INTEGRATION_VIEW,
+	PermissionsEnum.ORG_INVITE_EDIT,
 	PermissionsEnum.INTEGRATION_EDIT,
 	PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
-	PermissionsEnum.CHANGE_ROLES_PERMISSIONS,
-	PermissionsEnum.ORG_INVITE_VIEW,
-	PermissionsEnum.ORG_INVITE_EDIT,
-	PermissionsEnum.PUBLIC_PAGE_EDIT,
-	PermissionsEnum.ORG_TAGS_EDIT,
-	PermissionsEnum.VIEW_ALL_EMAILS,
-	PermissionsEnum.VIEW_ALL_EMAIL_TEMPLATES,
-	PermissionsEnum.ORG_CONTACT_EDIT,
-	PermissionsEnum.ORG_CONTACT_VIEW,
-	PermissionsEnum.ORG_DEMO_EDIT,
-	PermissionsEnum.FILE_STORAGE_VIEW,
-	PermissionsEnum.SMS_GATEWAY_VIEW,
-	PermissionsEnum.CUSTOM_SMTP_VIEW,
-	PermissionsEnum.VIEW_ALL_ACCOUNTING_TEMPLATES
+	PermissionsEnum.INTEGRATION_VIEW
 ]
 
 const AI_BUILDER_PLATFORM_PERMISSIONS = [
@@ -101,16 +87,7 @@ const AI_BUILDER_PLATFORM_PERMISSIONS = [
 	PermissionsEnum.INTEGRATION_EDIT
 ]
 
-const ANALYTICS_BUILDER_PLATFORM_PERMISSIONS = [
-	PermissionsEnum.PROFILE_EDIT,
-	PermissionsEnum.ADMIN_DASHBOARD_VIEW,
-	PermissionsEnum.CHANGE_SELECTED_ORGANIZATION
-]
-
-const VIEWER_PLATFORM_PERMISSIONS = [
-	PermissionsEnum.PROFILE_EDIT,
-	PermissionsEnum.CHANGE_SELECTED_ORGANIZATION
-]
+const VIEWER_PLATFORM_PERMISSIONS = [PermissionsEnum.PROFILE_EDIT, PermissionsEnum.CHANGE_SELECTED_ORGANIZATION]
 
 export const DEFAULT_ROLE_PERMISSIONS = [
 	{
@@ -128,10 +105,6 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 	{
 		role: RolesEnum.AI_BUILDER,
 		defaultEnabledPermissions: [...AI_BUILDER_PLATFORM_PERMISSIONS]
-	},
-	{
-		role: RolesEnum.ANALYTICS_BUILDER,
-		defaultEnabledPermissions: [...ANALYTICS_BUILDER_PLATFORM_PERMISSIONS]
 	},
 	{
 		role: RolesEnum.VIEWER,

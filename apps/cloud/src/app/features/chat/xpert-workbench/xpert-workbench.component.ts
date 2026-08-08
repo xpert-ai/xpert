@@ -6,7 +6,7 @@ import { XpertWorkbenchFacade } from './xpert-workbench.facade'
 
 @Component({
   standalone: true,
-  selector: 'pac-chat-xpert-workbench',
+  selector: 'xp-chat-xpert-workbench',
   imports: [CommonModule, ClawXpertConversationDetailComponent],
   providers: [
     XpertWorkbenchFacade,
@@ -15,7 +15,7 @@ import { XpertWorkbenchFacade } from './xpert-workbench.facade'
       useExisting: XpertWorkbenchFacade
     }
   ],
-  template: `<pac-clawxpert-conversation-detail />`,
+  template: `<xp-clawxpert-conversation-detail />`,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatXpertWorkbenchComponent {}

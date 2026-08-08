@@ -22,9 +22,9 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/core'
-import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/headless-ui'
+import { XpDensityDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -55,14 +55,14 @@ export type TXpertMCPManageComponentRet =
     DragDropModule,
     ...ZardTooltipImports,
     EmojiAvatarComponent,
-    NgmSpinComponent,
-    NgmDensityDirective,
+    XpSpinComponent,
+    XpDensityDirective,
     TagSelectComponent,
     MCPServerFormComponent,
     MCPToolsetToolTestComponent,
     XpertToolNameInputComponent,
     ZardSwitchComponent
-],
+  ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [ListSlideStaggerAnimation]
@@ -315,7 +315,7 @@ export class XpertMCPManageComponent {
       : this.createToolset().pipe(tap((toolset) => this.toolset.update((state) => ({ ...state, id: toolset.id }))))
     ).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
+        this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
         this.#loading.set(false)
         setTimeout(() => {
           this.dirty.set(false)
@@ -363,12 +363,12 @@ export class XpertMCPManageComponent {
     this.confirmDelete(
       {
         value: toolset.name,
-        information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+        information: this.#translate.instant('XP.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
       },
       this.toolsetService.delete(toolset.id)
     ).subscribe({
       next: () => {
-        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
+        this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
         this.#dialogRef.close({ deleted: true })
       },
       error: (error) => {

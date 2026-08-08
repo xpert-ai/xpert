@@ -59,7 +59,7 @@ type PdfTextItem = Extract<PdfTextContentItem, { str: string }>
             <i class="ri-loader-4-line animate-spin text-base"></i>
             <span>
               {{
-                'PAC.Assistant.FilePreview.RenderingEvidencePage' | translate: { Default: 'Rendering evidence page…' }
+                'XP.Assistant.FilePreview.RenderingEvidencePage' | translate: { Default: 'Rendering evidence page…' }
               }}
             </span>
           </div>
@@ -78,8 +78,7 @@ type PdfTextItem = Extract<PdfTextContentItem, { str: string }>
             </div>
             <h3 class="mt-3 text-sm font-semibold text-text-primary">
               {{
-                'PAC.Assistant.FilePreview.EvidencePageUnavailable'
-                  | translate: { Default: 'Evidence page unavailable' }
+                'XP.Assistant.FilePreview.EvidencePageUnavailable' | translate: { Default: 'Evidence page unavailable' }
               }}
             </h3>
             <p class="mt-2 text-sm leading-6 text-text-tertiary">{{ message }}</p>
@@ -89,7 +88,7 @@ type PdfTextItem = Extract<PdfTextContentItem, { str: string }>
         <div class="mx-auto w-fit pb-8">
           <div class="mb-3 flex items-center justify-between gap-3 text-xs text-text-tertiary">
             <span class="truncate">
-              {{ fileName() || ('PAC.Assistant.FilePreview.PdfDocument' | translate: { Default: 'PDF document' }) }}
+              {{ fileName() || ('XP.Assistant.FilePreview.PdfDocument' | translate: { Default: 'PDF document' }) }}
             </span>
             <span class="shrink-0">
               P{{ renderedPage() || requestedPage() }}
@@ -117,7 +116,7 @@ type PdfTextItem = Extract<PdfTextContentItem, { str: string }>
                 <span
                   class="absolute -top-6 left-0 rounded bg-text-destructive px-1.5 py-0.5 text-xs font-medium leading-5 text-components-button-primary-text shadow white-space-nowrap"
                 >
-                  {{ 'PAC.Assistant.FilePreview.Evidence' | translate: { Default: 'Evidence' } }}
+                  {{ 'XP.Assistant.FilePreview.Evidence' | translate: { Default: 'Evidence' } }}
                 </span>
               </div>
             }
@@ -262,7 +261,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
         this.error.set(
           error instanceof Error
             ? error.message
-            : this.#translate.instant('PAC.Assistant.FilePreview.UnknownPdfPreviewError', {
+            : this.#translate.instant('XP.Assistant.FilePreview.UnknownPdfPreviewError', {
                 Default: 'Unknown PDF preview error'
               })
         )
@@ -306,7 +305,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
     const canvasContext = canvas.getContext('2d')
     if (!canvasContext) {
       throw new Error(
-        this.#translate.instant('PAC.Assistant.FilePreview.CanvasUnavailable', {
+        this.#translate.instant('XP.Assistant.FilePreview.CanvasUnavailable', {
           Default: 'Canvas rendering context is unavailable.'
         })
       )

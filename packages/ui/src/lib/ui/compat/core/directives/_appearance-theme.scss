@@ -1,0 +1,136 @@
+@use 'sass:map';
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
+@reference "../../../tailwind-workspace-reference.css";
+
+@mixin _legacy-toggle-group-color($name) {
+  .z-toggle-group[data-color='#{$name}'],
+  z-toggle-group[data-color='#{$name}'] {
+    --z-toggle-group-item-checked-bg: var(--color-components-toggle-bg);
+    --z-toggle-group-item-checked-color: var(--color-components-button-primary-text);
+  }
+}
+
+@mixin color($config-or-theme) {
+  $color-config: themeCompat.m2-get-color-config($config-or-theme);
+  $primary: map.get($color-config, 'primary');
+  $accent: map.get($color-config, 'accent');
+  $warn: map.get($color-config, 'warn');
+  $foreground: map.get($color-config, 'foreground');
+
+  .xp-appearance-acrylic {
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: -8px;
+      right: -8px;
+      bottom: -8px;
+      z-index: -1;
+      background-blend-mode: exclusion;
+      filter: blur(8px);
+      -webkit-filter: blur(8px);
+      filter: url(#blur);
+      filter: progid:DXImageTransform.Microsoft.Blur(PixelRadius='8');
+    }
+
+    &::after {
+      opacity: 0.5;
+    }
+  }
+
+  [z-button],
+  z-button,
+  .cdk-menu-item,
+  [z-menu-item],
+  [role='option'],
+  .xp-tree-select__option {
+    &.xp-appearance-dashed {
+      border: 1px dashed themeCompat.m2-get-color-from-palette($foreground, divider);
+    }
+  }
+
+  [z-button]:not([disabled]):not([data-disabled]),
+  z-button:not([disabled]):not([data-disabled]),
+  .cdk-menu-item,
+  [z-menu-item],
+  [role='option'],
+  .xp-tree-select__option {
+    &.xp-appearance-dashed:hover,
+    &.xp-appearance-dashed:focus {
+      border-color: #738187;
+    }
+  }
+
+  z-divider.xp-appearance-dashed,
+  [data-slot='divider'].xp-appearance-dashed {
+    border-top-style: dashed;
+  }
+
+  [z-button],
+  z-button,
+  .cdk-menu-item,
+  [z-menu-item],
+  [role='option'],
+  .xp-tree-select__option {
+    &.xp-appearance-danger:hover {
+      color: themeCompat.m2-get-color-from-palette($warn);
+    }
+  }
+
+  @include _legacy-toggle-group-color('primary');
+  @include _legacy-toggle-group-color('accent');
+  @include _legacy-toggle-group-color('warn');
+
+  .xp-appearance-opacity {
+    opacity: 0.5;
+  }
+}
+
+@mixin density($config-or-theme) {
+  .xp-density__compact .z-toggle-group,
+  .xp-density__compact.z-toggle-group {
+    --border-radius: 10px;
+    --box-shadow-radius: 5px;
+    line-height: normal;
+
+    .z-toggle-group-item {
+      @apply h-8 px-2.5 text-xs;
+      line-height: 16px;
+      font-size: 0.75em;
+    }
+  }
+
+  .xp-density__cosy .z-toggle-group,
+  .xp-density__cosy.z-toggle-group {
+    --border-radius: 1rem;
+    --box-shadow-radius: 6px;
+    line-height: normal;
+
+    .z-toggle-group-item {
+      @apply h-9 px-3;
+      line-height: 24px;
+      font-size: 0.85em;
+    }
+  }
+}
+
+@mixin typography($config-or-theme) {
+}
+
+@mixin theme($theme) {
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
+
+  @if $color != null {
+    @include color($color);
+  }
+  @if $density != null {
+    @include density($density);
+  }
+  @if $typography != null {
+    @include typography($typography);
+  }
+}

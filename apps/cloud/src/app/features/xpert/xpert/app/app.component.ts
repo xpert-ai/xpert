@@ -5,8 +5,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { OverlayAnimations } from '@xpert-ai/core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { EMPTY, switchMap, tap } from 'rxjs'
@@ -33,9 +33,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     EmojiAvatarComponent,
     ...ZardTooltipImports,
-    NgmSpinComponent,
+    XpSpinComponent,
     QRCodeComponent
-],
+  ],
   selector: 'xpert-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',
@@ -87,7 +87,7 @@ export class XpertAppComponent {
 
   copy(content: string) {
     this.#clipboard.copy(content)
-    this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+    this.#toastr.info({ code: 'XP.Xpert.Copied', default: 'Copied' })
   }
 
   openEmbedded() {

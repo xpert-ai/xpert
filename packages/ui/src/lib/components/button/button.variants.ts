@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { mergeClasses } from '@/shared/utils/merge-classes'
+import { mergeClasses } from '../../utils/merge-classes'
 
 export const buttonVariants = cva(
   mergeClasses(

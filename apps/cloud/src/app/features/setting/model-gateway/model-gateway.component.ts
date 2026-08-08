@@ -28,8 +28,8 @@ import {
   ZardTableImports,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { Store } from '@xpert-ai/cloud/state'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { Store } from '@cloud/app/@core/state'
 import { firstValueFrom } from 'rxjs'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
 import { injectToastr } from '../../../@core/services/toastr.service'
@@ -44,7 +44,7 @@ type GatewayAdminTab = 'calls' | 'keys' | 'settings'
 
 @Component({
   standalone: true,
-  selector: 'pac-model-gateway-admin',
+  selector: 'xp-model-gateway-admin',
   templateUrl: './model-gateway.component.html',
   host: {
     class: 'flex min-w-0 w-full max-w-full flex-1'
@@ -53,7 +53,7 @@ type GatewayAdminTab = 'calls' | 'keys' | 'settings'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSpinComponent,
+    XpSpinComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardInputDirective,
@@ -244,7 +244,7 @@ export class ModelGatewayAdminComponent implements OnInit {
       )
       this.syncBodyRetentionDaysControl(settings.storeBodies)
       this.#toastr.success(
-        this.#translate.instant('PAC.ModelGateway.SettingsSaved', { Default: 'Gateway settings saved.' })
+        this.#translate.instant('XP.ModelGateway.SettingsSaved', { Default: 'Gateway settings saved.' })
       )
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))

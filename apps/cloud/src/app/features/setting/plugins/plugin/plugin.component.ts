@@ -2,16 +2,15 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
-import { OverlayAnimations } from '@xpert-ai/core'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { Router } from '@angular/router'
 import { PluginComponent } from '@cloud/app/@shared/plugins'
-import { injectScopeLevel } from '@xpert-ai/cloud/state'
+import { injectScopeLevel, Store } from '@cloud/app/@core/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { PluginInstallComponent, PluginInstallResult } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
-import { PluginsComponent } from '../plugins.component'
 import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-detail.component'
 import { pluginMarketplaceDetailCommands } from '../plugin-marketplace-navigation'
 
@@ -24,13 +23,16 @@ import { pluginMarketplaceDetailCommands } from '../plugin-marketplace-navigatio
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class SettingsPluginComponent {
-  readonly pluginsComponent = inject(PluginsComponent)
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
+  readonly #store = inject(Store)
   readonly scopeLevel = injectScopeLevel()
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
 
   readonly plugin = input<TPluginWithDownloads>()
+  readonly publicCatalog = input(false)
+  readonly reloadInstalledPlugins = input<() => void>(() => undefined)
+  readonly refreshStrategies = input<(() => void) | undefined>()
   readonly pluginInstalled = output<TPluginWithDownloads>()
   readonly installed = computed(() => this.plugin()?.installed === true)
   readonly hasMarketplaceDetails = computed(() => !!this.plugin()?.contributions?.length)
@@ -39,6 +41,7 @@ export class SettingsPluginComponent {
   readonly systemPluginUnavailableInCurrentScope = computed(
     () =>
       !this.installed() &&
+      (!this.publicCatalog() || !!this.#store.token) &&
       (this.isSystemPlugin() || this.isTenantPlugin()) &&
       this.scopeLevel() !== RequestScopeLevel.TENANT
   )
@@ -56,8 +59,8 @@ export class SettingsPluginComponent {
       .open(PluginInstallComponent, {
         data: {
           plugin,
-          reload: this.pluginsComponent.reload.bind(this.pluginsComponent),
-          refreshStrategies: this.pluginsComponent.refreshStrategyCaches.bind(this.pluginsComponent)
+          reload: this.reloadInstalledPlugins(),
+          refreshStrategies: this.refreshStrategies()
         },
         disableClose: true
       })
@@ -84,6 +87,11 @@ export class SettingsPluginComponent {
       return
     }
 
+    if (this.publicCatalog()) {
+      this.viewDetails()
+      return
+    }
+
     this.#router.navigate(pluginMarketplaceDetailCommands(plugin.packageName ?? plugin.name), {
       queryParams: {
         ...(plugin.sourceId ? { sourceId: plugin.sourceId } : {})
@@ -97,7 +105,8 @@ export class SettingsPluginComponent {
     }
     this.#dialog.open(PluginMarketplaceDetailComponent, {
       data: {
-        plugin: this.plugin()
+        plugin: this.plugin(),
+        showActions: !this.publicCatalog()
       },
       backdropClass: 'backdrop-blur-sm-black'
     })

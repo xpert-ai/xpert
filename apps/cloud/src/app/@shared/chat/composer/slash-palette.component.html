@@ -4,7 +4,7 @@
   }
 
   @if (loading()) {
-    <div class="slash-palette-empty">{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
+    <div class="slash-palette-empty">{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
   } @else if (options().length) {
     @for (option of options(); track optionKey(option)) {
       <button
@@ -44,7 +44,7 @@
             }
             @if (option.kind === 'prompt_workflow') {
               <z-badge zType="secondary" class="shrink-0 text-[11px]">
-                {{ 'PAC.PromptWorkflow.ShortTitle' | translate: { Default: 'Prompt Workflows' } }}
+                {{ 'XP.PromptWorkflow.ShortTitle' | translate: { Default: 'Prompt Workflows' } }}
               </z-badge>
             }
           </span>
@@ -108,7 +108,7 @@
     <z-empty
       class="slash-palette-empty-state"
       zIcon="search"
-      [zTitle]="'PAC.Chat.NoCommandsFound' | translate: { Default: 'No commands found.' }"
+      [zTitle]="'XP.Chat.NoCommandsFound' | translate: { Default: 'No commands found.' }"
     />
   }
 </div>

@@ -1,5 +1,6 @@
 <div class="relative h-full">
-  <ngx-monaco-editor class="!h-full w-full max-h-full"
+  <ngx-monaco-editor
+    class="!h-full w-full max-h-full"
     [options]="editorOptions()"
     [ngModel]="content()"
     (ngModelChange)="onChange($event)"
@@ -17,7 +18,7 @@
       (click)="emitReferenceSelection()"
     >
       <i class="ri-code-box-line mr-1"></i>
-      {{ 'PAC.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
+      {{ 'XP.Files.ReferenceSelection' | translate: { Default: 'Reference selection' } }}
     </button>
   }
 </div>

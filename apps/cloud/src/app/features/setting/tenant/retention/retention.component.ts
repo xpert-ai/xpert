@@ -20,17 +20,12 @@ import {
   MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING
 } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardInputDirective,
-  ZardSwitchComponent
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { TenantService, ToastrService, getErrorMessage } from '../../../../@core'
 
 @Component({
   standalone: true,
-  selector: 'pac-tenant-retention',
+  selector: 'xp-tenant-retention',
   templateUrl: './retention.component.html',
   styles: [
     `
@@ -115,9 +110,7 @@ export class TenantRetentionComponent implements OnInit {
           MAX_COPILOT_CHECKPOINT_RETENTION_DAYS,
           DEFAULT_COPILOT_CHECKPOINT_RETENTION_DAYS
         ),
-        modelGatewayCallRetentionEnabled: parseEnabled(
-          settings?.[MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING]
-        ),
+        modelGatewayCallRetentionEnabled: parseEnabled(settings?.[MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING]),
         modelGatewayCallRetentionDays: parseRetentionDays(
           settings?.[MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING],
           MIN_MODEL_GATEWAY_CALL_RETENTION_DAYS,
@@ -148,7 +141,7 @@ export class TenantRetentionComponent implements OnInit {
         [MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING]: String(this.modelGatewayCallRetentionDaysCtrl.value)
       })
       this.form.markAsPristine()
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {

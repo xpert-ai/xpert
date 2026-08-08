@@ -4,7 +4,6 @@
     "ORGANIZATION": "Organization",
     "DASHBOARD": "Dashboard",
     "INDICATOR": "Indicator",
-    "INDICATOR_MARKET": "Market",
     "INDICATOR_REGISTER": "Register",
     "INDICATOR_GROUPS": "Groups",
     "INDICATOR_MY": "My Indicators",
@@ -22,8 +21,36 @@
     "EmailTemplates": "Email Templates",
     "CustomSMTP": "Custom SMTP"
   },
-  "PAC": {
+  "XP": {
     "Title": "Metad Analytics Cloud",
+    "Referral": {
+      "CopyCode": "Copy invitation code",
+      "Copied": "Copied",
+      "RegenerateCode": "Regenerate invitation code",
+      "RegeneratingCode": "Regenerating...",
+      "RegenerateConfirmTitle": "Regenerate invitation code?",
+      "RegenerateConfirmDescription": "The current invitation code will stop working immediately. Existing invitation relationships will not be changed.",
+      "RegenerateSuccess": "Invitation code regenerated.",
+      "RegenerateFailed": "Invitation code could not be regenerated.",
+      "ReferralCode": "Invitation code (optional)",
+      "ReferralCodePlaceholder": "Enter invitation code",
+      "ValidatingReferralCode": "Validating...",
+      "InvalidReferralCode": "The invitation code is invalid.",
+      "ValidReferralCode": "Invitation code is valid.",
+      "Relationships": "Invitation relationships",
+      "RelationshipsDescription": "Read-only direct account invitation relationships in this tenant.",
+      "SearchPlaceholder": "Search user or code",
+      "Referrer": "Inviter",
+      "Referred": "Invitee",
+      "UsedCode": "Used code",
+      "BoundAt": "Bound at",
+      "DeletedAccount": "Deleted account",
+      "Empty": "No invitation relationships found.",
+      "LoadError": "Invitation relationships could not be loaded.",
+      "Previous": "Previous",
+      "Next": "Next",
+      "PageSummary": "Page {{page}} of {{pages}} · {{total}} total"
+    },
     "Operations": {
       "McpRuntimesTitle": "MCP Runtime Operations",
       "SuperAdminOnly": "Super Admin",
@@ -403,6 +430,10 @@
           "Name": "Membership Plans",
           "Description": "Enable membership plan quotas, point deduction, and usage statistics."
         },
+        "FEATURE_MEMBERSHIP_PURCHASE": {
+          "Name": "Membership Purchase",
+          "Description": "Enable membership plan and personal point purchases."
+        },
         "FEATURE_MODEL_ACCESS_REQUEST": {
           "Name": "Personal Model Access",
           "Description": "Enable personal model access requests and grants."
@@ -410,6 +441,10 @@
         "FEATURE_MODEL_GATEWAY": {
           "Name": "Model API Gateway",
           "Description": "Publish approved tenant or organization models through an OpenAI-compatible API."
+        },
+        "FEATURE_REFERRAL": {
+          "Name": "Invitation Codes",
+          "Description": "Enable account invitation codes and tenant referral relationships."
         },
         "GROUP_XPERT": {
           "Name": "Xpert features",
@@ -422,10 +457,6 @@
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "Show the ClawXpert entry in the chat sidebar."
-        },
-        "FEATURE_XPERT_CHATBI": {
-          "Name": "ChatBI",
-          "Description": "Show the ChatBI entry in the main navigation."
         },
         "FEATURE_XPERT_CODEXPERT": {
           "Name": "CodeXpert",
@@ -451,6 +482,7 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "MENU": {
+      "ReferralRelationships": "Invitation Relationships",
       "Tasks": "Tasks",
       "Scheduled": "Scheduled",
       "Plugins": "Plugins",
@@ -461,7 +493,6 @@
       "Model Providers": "Model Providers",
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
-      "LOCAL_AGENT_STATUS": "Local Agent Status",
       "MANAGE_FEATURES": "Manage Feature Modules",
       "MANAGE_USERS": "Manage Users",
       "ManageUsers": "Manage Users",
@@ -474,7 +505,6 @@
         "CONFIGURATION": "Configuration",
         "NAME": "Name",
         "NAME_REQUIRED": "Name is required",
-        "USE_LOCAL_AGENT": "Use Local Agent",
         "DONE": "Done",
         "AuthType": "Auth Type",
         "AuthType_None": "None",
@@ -491,7 +521,6 @@
       "Xpert Access Requests": "Xpert Access Requests",
       "FEATURES": "Features",
       "Data": "Data",
-      "ChatBI Assistant": "ChatBI Assistant",
       "CodeXpert": "CodeXpert",
       "DeepResearch": "DeepResearch",
       "Data & Ontology": "Data & Ontology",
@@ -1082,10 +1111,6 @@
       }
     },
     "Onboarding": {
-      "FeatureCategory_ai": "AI Platform Features",
-      "FeatureCategory_bi": "BI Platform Features",
-      "FeatureCategoryDesc_ai": "Features related to AI, including workflows, digital expert agents, knowledge bases, project spaces, etc.",
-      "FeatureCategoryDesc_bi": "Features related to BI data analysis, including semantic models, indicators, story dashboards, etc.",
       "ConfigureAiModel": "Configure AI Model",
       "ConfigureAiModelDesc": "Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings."
     },
@@ -1554,6 +1579,10 @@
     },
     "Membership": {
       "AdminTitle": "Membership Plans",
+      "Level": "Level",
+      "LevelValidation": "Level must be a non-negative integer.",
+      "PriceCurrency": "Currency",
+      "PriceCurrencyValidation": "Enter a currency code of up to 12 characters.",
       "AdminDescription": "Configure current-scope membership plans, point allowances, and model usage rules.",
       "TenantScope": "Tenant membership",
       "OrganizationScope": "Organization membership",
@@ -1647,6 +1676,11 @@
       "InvalidJson": "Invalid JSON configuration",
       "UserMembership": "Membership",
       "CurrentPlan": "Current plan",
+      "CurrentScopePlan": "Current management-scope plan",
+      "CurrentManagementScope": "Current management scope",
+      "EffectiveInScope": "Effective in this scope",
+      "MembershipsByScope": "Current plans by scope",
+      "MembershipsByScopeHint": "View the tenant plan, each organization's current plan, and upcoming periods.",
       "PlanExpired": "Membership plan expired",
       "RemainingPoints": "Remaining points",
       "UsedPoints": "Used points",
@@ -1654,6 +1688,7 @@
       "NoUserMembership": "No membership has been created for this user yet.",
       "AssignNote": "Assignment note",
       "AssignPlan": "Assign plan",
+      "ExternallyManagedMembershipHint": "This membership is managed by an external workflow and cannot be replaced or renewed here.",
       "PointDelta": "Point delta",
       "Points": "Points",
       "Increase": "Increase",
@@ -1679,6 +1714,7 @@
       "CancelPeriodConfirmTitle": "Cancel upcoming period?",
       "CancelPeriodConfirmDescription": "This upcoming entitlement will be cancelled. The current period and other upcoming periods will not change.",
       "ExternalPeriodManagedHint": "Refund and cancel in the billing system",
+      "ManageInOrganizationScope": "Switch to the organization scope to manage",
       "CancelLaterPeriodsFirst": "Cancel later periods first",
       "Assign": "Assign",
       "Adjust": "Adjust",
@@ -2128,10 +2164,6 @@
         "Label": "Workspace Assistant",
         "Description": "Shared assistant used in the Xpert workspace and studio shell."
       },
-      "ChatBI": {
-        "Label": "ChatBI Assistant",
-        "Description": "Chat with your data analysis assistant from the ChatBI page."
-      },
       "ClawXpert": {
         "Label": "ClawXpert",
         "Description": "Embedded assistant experience for the ClawXpert page."
@@ -2326,6 +2358,7 @@
         "PAYMENT_GATEWAY_VIEW": "View Payment Gateway",
         "SMS_GATEWAY_VIEW": "View SMS Gateway",
         "CUSTOM_SMTP_VIEW": "View Custom SMTP",
+        "REFERRAL_VIEW": "View Invitation Relationships",
         "IMPORT_EXPORT_VIEW": "View Import/Export",
         "ORG_JOB_EMPLOYEE_VIEW": "View Job Employees",
         "ORG_JOB_MATCHING_VIEW": "View Job Matching",
@@ -2334,8 +2367,6 @@
         "ACCESS_DELETE_ALL_DATA": "Access Delete All Data",
         "ORG_DEMO_EDIT": "Edit Organization Demo",
         "CERTIFICATION_EDIT": "Maintain Certifications",
-        "CHATBI_VIEW": "Use ChatBI",
-        "CHATBI_EDIT": "Manage ChatBI Configuration",
         "COPILOT_VIEW": "Use Copilots",
         "COPILOT_EDIT": "Manage Model Providers",
         "MEMBERSHIP_EDIT": "Manage Membership Plans",
@@ -2343,7 +2374,7 @@
         "MODEL_ACCESS_REQUEST_EDIT": "Manage Model Access Requests",
         "MODEL_GATEWAY_USE": "Use Model API Gateway",
         "MODEL_GATEWAY_MANAGE": "Manage Model API Gateway",
-        "MEMBERSHIP_PURCHASE": "Purchase Membership and Points",
+        "MEMBERSHIP_USE": "Use Membership Plans",
         "BILLING_PRODUCT_EDIT": "Manage Billing Products",
         "BILLING_REFUND": "Refund Billing Orders",
         "PAYMENT_PROVIDER_EDIT": "Manage Payment Providers",
@@ -2370,35 +2401,6 @@
         "FileUrl": "File URL",
         "SelectTimeZone": "Select a time zone"
       }
-    },
-    "ChatBI": {
-      "ComputerTrace": "Thread Activity",
-      "TraceLoading": "Loading thread activity...",
-      "TraceLoadFailed": "Failed to load thread activity",
-      "TraceEmpty": "No thread activity yet",
-      "TraceEmptyDesc": "Dashboard outputs and computer-side steps from this ChatBI thread will appear here as the assistant builds charts, explores files, runs programs, and emits structured actions.",
-      "PinDashboard": "Pin snapshot",
-      "UnpinDashboard": "Unpin snapshot",
-      "DataOntologyGuidePrefix": "Use",
-      "DataOntologySystem": "Data & Ontology",
-      "DataOntologyGuideSuffix": "agents directly to complete your data analysis tasks.",
-      "NewChatBIModel": "New ChatBI Model",
-      "ModelExists": "Model already exists",
-      "EntityNotFound": "Entity not found",
-      "PleaseSelectSemanticModel": "Please select a semantic model",
-      "PleaseSelectEntity": "Please select an entity",
-      "NoSemanticModelsAvailable": "No semantic models available, please create a semantic model first",
-      "NoEntitiesAvailable": "No entities available, please add an entity first",
-      "AddEntity": "Add Entity",
-      "CreateSemanticModel": "Create Semantic Model",
-      "SemanticModel": "Semantic Model",
-      "Entity": "Entity",
-      "Description": "Description",
-      "Caption": "Caption",
-      "Model": "Model",
-      "EditModel": "Edit Model",
-      "DeleteModel": "Delete Model",
-      "AddModel": "Add Model"
     },
     "XProject": {
       "NoExperts": "No experts found"
@@ -2945,10 +2947,6 @@
         "Name": "Monitoring",
         "Description": "Show model provider user usage and monitoring."
       },
-      "FEATURE_COPILOT_CHATBI": {
-        "Name": "Chat BI",
-        "Description": "A conversational interface that enables data querying, analysis, and visualization through natural language interaction."
-      },
       "FEATURE_DATA_SOURCE": {
         "Name": "Data Source",
         "Description": "Enable data source configuration."
@@ -2960,10 +2958,6 @@
       "FEATURE_XPERT_CLAWXPERT": {
         "Name": "ClawXpert",
         "Description": "Show the ClawXpert entry in the chat sidebar."
-      },
-      "FEATURE_XPERT_CHATBI": {
-        "Name": "ChatBI",
-        "Description": "Show the ChatBI entry in the main navigation."
       },
       "FEATURE_XPERT_CODEXPERT": {
         "Name": "CodeXpert",

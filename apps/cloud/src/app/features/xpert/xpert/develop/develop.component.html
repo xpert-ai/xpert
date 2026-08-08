@@ -9,24 +9,26 @@
     rel="noopener noreferrer"
     class="group inline-flex items-center text-sm mr-2 hover:underline text-primary-400 hover:text-primary-600"
   >
-    {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+    {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
     <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
     <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
   </a>
-  <div class="flex rounded-lg bg-background-default-subtle hover:bg-hover-bg py-2 items-center flex-shrink-0 mr-2 w-52 sm:w-80">
+  <div
+    class="flex rounded-lg bg-background-default-subtle hover:bg-hover-bg py-2 items-center flex-shrink-0 mr-2 w-52 sm:w-80"
+  >
     <div class="flex items-center flex-grow h-5">
       <div
         class="ml-2 border border-divider-deep border-solid flex-shrink-0 px-2 py-0.5 rounded-[6px] text-text-tertiary text-sm"
       >
-        API {{ 'PAC.KEY_WORDS.Server' | translate: { Default: 'Server' } }}
+        API {{ 'XP.KEY_WORDS.Server' | translate: { Default: 'Server' } }}
       </div>
       <div class="flex-grow bg-background-default-subtle text-[13px] relative h-full">
         <div
           class="absolute top-0 left-0 w-full pl-2 pr-2 truncate cursor-pointer r-0"
           [zTooltip]="
             copied()
-              ? ('PAC.KEY_WORDS.Copied' | translate: { Default: 'Copied' })
-              : ('PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' })
+              ? ('XP.KEY_WORDS.Copied' | translate: { Default: 'Copied' })
+              : ('XP.KEY_WORDS.Copy' | translate: { Default: 'Copy' })
           "
           zPosition="bottom"
           (click)="copy(apiBaseUrl)"
@@ -40,8 +42,8 @@
           class="box-border w-8 h-8 flex items-center justify-center rounded-lg hover:bg-hover-bg cursor-pointer"
           [zTooltip]="
             copied()
-              ? ('PAC.KEY_WORDS.Copied' | translate: { Default: 'Copied' })
-              : ('PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' })
+              ? ('XP.KEY_WORDS.Copied' | translate: { Default: 'Copied' })
+              : ('XP.KEY_WORDS.Copy' | translate: { Default: 'Copy' })
           "
           zPosition="bottom"
           (click)="copy(apiBaseUrl)"
@@ -87,8 +89,8 @@
   </div>
 
   <div class="flex items-center h-8 px-3 rounded-lg text-sm font-normal mr-2 text-green-500 bg-green-50">
-    <div class="mr-1">{{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}</div>
-    <div class="font-semibold">{{ 'PAC.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}</div>
+    <div class="mr-1">{{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}</div>
+    <div class="font-semibold">{{ 'XP.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}</div>
   </div>
 
   <button
@@ -106,7 +108,7 @@
         ></path>
       </svg>
     </div>
-    <div class="text-base text-text-primary">API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}</div>
+    <div class="text-base text-text-primary">API {{ 'XP.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}</div>
   </button>
 </div>
 

@@ -1,13 +1,17 @@
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-3 w-full mb-6">
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-lime-50/50">
+  <div
+    class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-lime-50/50"
+  >
     <div class="mb-3">
       <div class="flex items-start p-1">
-        <div class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all">
-          {{ 'PAC.Copilot.TotalXperts' | translate: { Default: 'Total Xperts' } }}
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
+          {{ 'XP.Copilot.TotalXperts' | translate: { Default: 'Total Xperts' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
             [zTooltip]="
-              'PAC.Copilot.TotalXpertsTooltip' | translate: { Default: 'Total published experts in organization.' }
+              'XP.Copilot.TotalXpertsTooltip' | translate: { Default: 'Total published experts in organization.' }
             "
             zPosition="top"
           >
@@ -23,15 +27,19 @@
     </div>
   </div>
 
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-sky-50/50">
+  <div
+    class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-sky-50/50"
+  >
     <div class="mb-3">
       <div class="flex items-start p-1">
-        <div class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all">
-          {{ 'PAC.Copilot.TotalXpertIntegrations' | translate: { Default: 'Total Integrations for Experts' } }}
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
+          {{ 'XP.Copilot.TotalXpertIntegrations' | translate: { Default: 'Total Integrations for Experts' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
             [zTooltip]="
-              'PAC.Copilot.TotalXpertIntegrationsTooltip'
+              'XP.Copilot.TotalXpertIntegrationsTooltip'
                 | translate: { Default: 'Total third-party integrations for experts.' }
             "
             zPosition="top"
@@ -47,15 +55,19 @@
     </div>
   </div>
 
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-violet-50/50">
+  <div
+    class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-violet-50/50"
+  >
     <div class="mb-3">
       <div class="flex items-start p-1">
-        <div class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all">
-          {{ 'PAC.Copilot.TotalKnowledgebases' | translate: { Default: 'Total Knowledgebases' } }}
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
+          {{ 'XP.Copilot.TotalKnowledgebases' | translate: { Default: 'Total Knowledgebases' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
             [zTooltip]="
-              'PAC.Copilot.TotalKnowledgebasesTooltip'
+              'XP.Copilot.TotalKnowledgebasesTooltip'
                 | translate: { Default: 'Total number of knowledgebases within the organization.' }
             "
             zPosition="top"
@@ -74,27 +86,27 @@
 
 <div class="mt-2 mb-8 flex flex-wrap items-center gap-2">
   <span class="text-lg mr-1">
-    {{ 'PAC.Xpert.Analysis' | translate: { Default: 'Analysis' } }}
+    {{ 'XP.Xpert.Analysis' | translate: { Default: 'Analysis' } }}
   </span>
 
-  <ngm-select
+  <xp-select
     class="inline-block w-48"
     placeholder="Select time range"
     icon="ri-calendar-line"
     [selectOptions]="TimeRanges"
     [(ngModel)]="timeRangeValue"
   />
-  <ngm-select
+  <xp-select
     class="inline-block w-64"
-    [placeholder]="'PAC.Copilot.AllModels' | translate: { Default: 'All models' }"
+    [placeholder]="'XP.Copilot.AllModels' | translate: { Default: 'All models' }"
     icon="ri-brain-line"
     searchable
     [selectOptions]="modelOptions()"
     [(ngModel)]="selectedModel"
   />
-  <ngm-select
+  <xp-select
     class="inline-block w-64"
-    [placeholder]="'PAC.Copilot.AllUsers' | translate: { Default: 'All users' }"
+    [placeholder]="'XP.Copilot.AllUsers' | translate: { Default: 'All users' }"
     icon="ri-user-line"
     searchable
     [selectOptions]="userOptions()"
@@ -110,11 +122,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Copilot.TotalMessages' | translate: { Default: 'Total Messages' } }}
+            {{ 'XP.Copilot.TotalMessages' | translate: { Default: 'Total Messages' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Copilot.TotalMessagesTooltip'
+                'XP.Copilot.TotalMessagesTooltip'
                   | translate
                     : { Default: 'Number of messages answered by each expert; Xpert author and debugger excluded' }
               "
@@ -131,10 +143,10 @@
       </div>
     </div>
 
-    <pac-statistics-pie-chart
+    <xp-statistics-pie-chart
       [data]="xpertMessages()"
       dimension="slug"
-      [measureLabel]="'PAC.Copilot.Messages' | translate: { Default: 'Messages' }"
+      [measureLabel]="'XP.Copilot.Messages' | translate: { Default: 'Messages' }"
     />
   </div>
 
@@ -145,11 +157,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Copilot.TotalTokens' | translate: { Default: 'Total Tokens' } }}
+            {{ 'XP.Copilot.TotalTokens' | translate: { Default: 'Total Tokens' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Copilot.TotalTokensTooltip'
+                'XP.Copilot.TotalTokensTooltip'
                   | translate: { Default: 'Total tokens consumed by each expert; Xpert author and debugger excluded' }
               "
               zPosition="top"
@@ -165,11 +177,11 @@
       </div>
     </div>
 
-    <pac-statistics-pie-chart
+    <xp-statistics-pie-chart
       [data]="xpertTokens()"
       dimension="slug"
       measure="tokens"
-      [measureLabel]="'PAC.Copilot.TotalTokens' | translate: { Default: 'Total Tokens' }"
+      [measureLabel]="'XP.Copilot.TotalTokens' | translate: { Default: 'Total Tokens' }"
     />
   </div>
 </div>
@@ -182,11 +194,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.TotalConversations' | translate: { Default: 'Total Conversations' } }}
+            {{ 'XP.Xpert.TotalConversations' | translate: { Default: 'Total Conversations' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.TotalConversationsTooltip'
+                'XP.Xpert.TotalConversationsTooltip'
                   | translate: { Default: 'Daily xpert conversations count; Xpert author and debugger excluded' }
               "
               zPosition="top"
@@ -202,9 +214,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="dailyConv()"
-      [measureLabel]="'PAC.Xpert.Conversations' | translate: { Default: 'Conversations' }"
+      [measureLabel]="'XP.Xpert.Conversations' | translate: { Default: 'Conversations' }"
     />
   </div>
 
@@ -215,11 +227,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.ActiveUsers' | translate: { Default: 'Active Users' } }}
+            {{ 'XP.Xpert.ActiveUsers' | translate: { Default: 'Active Users' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.ActiveUsersTooltip'
+                'XP.Xpert.ActiveUsersTooltip'
                   | translate: { Default: 'Unique users who interacted with xpert; Xpert author and debugger excluded' }
               "
               zPosition="top"
@@ -235,9 +247,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="dailyEndUsers()"
-      [measureLabel]="'PAC.Xpert.ActiveUsers' | translate: { Default: 'Active Users' }"
+      [measureLabel]="'XP.Xpert.ActiveUsers' | translate: { Default: 'Active Users' }"
     />
   </div>
 </div>
@@ -250,11 +262,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' } }}
+            {{ 'XP.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.AvgSessionInteractionsTooltip'
+                'XP.Xpert.AvgSessionInteractionsTooltip'
                   | translate: { Default: 'User interactions per session with xpert' }
               "
               zPosition="top"
@@ -270,10 +282,10 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="averageSessionInteractions()"
       totalType="avg"
-      [measureLabel]="'PAC.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' }"
+      [measureLabel]="'XP.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' }"
     />
   </div>
 
@@ -284,11 +296,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.TotalMessages' | translate: { Default: 'Total Messages' } }}
+            {{ 'XP.Xpert.TotalMessages' | translate: { Default: 'Total Messages' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.TotalMessagesTooltip' | translate: { Default: 'Daily interactions count with xpert' }
+                'XP.Xpert.TotalMessagesTooltip' | translate: { Default: 'Daily interactions count with xpert' }
               "
               zPosition="top"
             >
@@ -303,9 +315,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="dailyMessages()"
-      [measureLabel]="'PAC.Xpert.TotalMessages' | translate: { Default: 'Total Messages' }"
+      [measureLabel]="'XP.Xpert.TotalMessages' | translate: { Default: 'Total Messages' }"
     />
   </div>
 </div>
@@ -318,11 +330,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' } }}
+            {{ 'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.UserSatisfactionRateTooltip'
+                'XP.Xpert.UserSatisfactionRateTooltip'
                   | translate
                     : {
                         Default:
@@ -342,9 +354,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="userSatisfactionRate()"
-      [measureLabel]="'PAC.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' }"
+      [measureLabel]="'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' }"
     />
   </div>
 
@@ -355,11 +367,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' } }}
+            {{ 'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.TokenOutputSpeedTooltip'
+                'XP.Xpert.TokenOutputSpeedTooltip'
                   | translate
                     : {
                         Default:
@@ -379,11 +391,11 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="tokensPerSecond()"
       totalType="avg"
       unit="Token/s"
-      [measureLabel]="'PAC.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' }"
+      [measureLabel]="'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' }"
     />
   </div>
 </div>
@@ -392,12 +404,14 @@
   <div class="mb-3">
     <div class="flex items-start p-1">
       <div class="group">
-        <div class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all">
-          {{ 'PAC.Xpert.TokenUsage' | translate: { Default: 'Token Usage' } }}
+        <div
+          class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
+          {{ 'XP.Xpert.TokenUsage' | translate: { Default: 'Token Usage' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
             [zTooltip]="
-              'PAC.Xpert.TokenUsageTooltip'
+              'XP.Xpert.TokenUsageTooltip'
                 | translate
                   : { Default: 'Reflects the daily token usage of this expert request ai model, used for cost control' }
             "
@@ -414,5 +428,5 @@
     </div>
   </div>
 
-  <pac-statistics-token-usage class="w-full" [tokenCost]="tokenCost()" />
+  <xp-statistics-token-usage class="w-full" [tokenCost]="tokenCost()" />
 </div>

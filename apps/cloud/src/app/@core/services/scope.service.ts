@@ -2,7 +2,7 @@ import { computed, effect, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRouteSnapshot, NavigationEnd, Route, Router } from '@angular/router'
 import { RolesEnum } from '@xpert-ai/contracts'
-import { IOrganization, RequestScopeLevel, Store } from '@xpert-ai/cloud/state'
+import { IOrganization, RequestScopeLevel, Store } from '@cloud/app/@core/state'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 
 export type RouteScopeContext = 'tenant-only' | 'organization-only' | 'dual-scope'
@@ -80,8 +80,7 @@ export class ScopeService {
         return
       }
 
-      const fallback =
-        this.resolveScopeTransitionTarget(scope.level)
+      const fallback = this.resolveScopeTransitionTarget(scope.level)
 
       if (!fallback || fallback === currentUrl) {
         return
@@ -98,18 +97,12 @@ export class ScopeService {
     const scope = this.activeScope()
     const persistedOrganization =
       scope.level === RequestScopeLevel.ORGANIZATION
-        ? validOrganizations.find((organization) => organization.id === scope.organizationId) ?? null
+        ? (validOrganizations.find((organization) => organization.id === scope.organizationId) ?? null)
         : null
-    const defaultOrganization = this.resolveDefaultOrganization(
-      validOrganizations,
-      preferredOrganizationId
-    )
+    const defaultOrganization = this.resolveDefaultOrganization(validOrganizations, preferredOrganizationId)
 
     if (!validOrganizations.length) {
-      if (
-        scope.level !== RequestScopeLevel.TENANT ||
-        this.#store.selectedOrganization
-      ) {
+      if (scope.level !== RequestScopeLevel.TENANT || this.#store.selectedOrganization) {
         this.#store.setTenantScope()
       }
       return
@@ -153,12 +146,9 @@ export class ScopeService {
 
     const scope = this.activeScope()
     const organizationId =
-      scope.level === RequestScopeLevel.ORGANIZATION
-        ? scope.organizationId
-        : this.#store.lastOrganizationId
+      scope.level === RequestScopeLevel.ORGANIZATION ? scope.organizationId : this.#store.lastOrganizationId
     const selectedOrganization =
-      organizations.find((organization) => organization.id === organizationId) ||
-      defaultOrganization
+      organizations.find((organization) => organization.id === organizationId) || defaultOrganization
 
     if (selectedOrganization?.id !== this.#store.selectedOrganization?.id) {
       this.#store.setOrganizationScope(selectedOrganization)
@@ -194,10 +184,7 @@ export class ScopeService {
     this.#store.clearScopedSelections()
     this.#store.setOrganizationScope(organization)
 
-    if (
-      wasOrganizationScope &&
-      this.isCurrentRouteCompatible(RequestScopeLevel.ORGANIZATION)
-    ) {
+    if (wasOrganizationScope && this.isCurrentRouteCompatible(RequestScopeLevel.ORGANIZATION)) {
       return true
     }
 
@@ -210,32 +197,21 @@ export class ScopeService {
   }
 
   private resolveTenantFallback() {
-    return (
-      this.#store.getLastCompatibleRoute(RequestScopeLevel.TENANT) ||
-      DEFAULT_TENANT_ROUTE
-    )
+    return this.#store.getLastCompatibleRoute(RequestScopeLevel.TENANT) || DEFAULT_TENANT_ROUTE
   }
 
   private resolveOrganizationFallback() {
-    return (
-      this.#store.getLastCompatibleRoute(RequestScopeLevel.ORGANIZATION) ||
-      DEFAULT_ORGANIZATION_ROUTE
-    )
+    return this.#store.getLastCompatibleRoute(RequestScopeLevel.ORGANIZATION) || DEFAULT_ORGANIZATION_ROUTE
   }
 
   private resolveScopeTransitionTarget(level: RequestScopeLevel) {
     return (
       resolveCurrentSectionScopeUrl(this.#router.routerState.snapshot.root, level) ||
-      (level === RequestScopeLevel.TENANT
-        ? this.resolveTenantFallback()
-        : this.resolveOrganizationFallback())
+      (level === RequestScopeLevel.TENANT ? this.resolveTenantFallback() : this.resolveOrganizationFallback())
     )
   }
 
-  private resolveDefaultOrganization(
-    organizations: IOrganization[],
-    preferredOrganizationId?: string | null
-  ) {
+  private resolveDefaultOrganization(organizations: IOrganization[], preferredOrganizationId?: string | null) {
     return (
       organizations.find((organization) => organization.id === preferredOrganizationId) ||
       organizations.find((organization) => organization.isDefault) ||
@@ -245,30 +221,22 @@ export class ScopeService {
   }
 
   private resolveValidOrganizations(organizations: IOrganization[]) {
-    return organizations.filter(
-      (organization) => !!organization?.id && organization.isActive !== false
-    )
+    return organizations.filter((organization) => !!organization?.id && organization.isActive !== false)
   }
 }
 
-export function isRouteCompatible(
-  routeScope: RouteScopeContext,
-  level: RequestScopeLevel
-) {
+export function isRouteCompatible(routeScope: RouteScopeContext, level: RequestScopeLevel) {
   if (routeScope === 'dual-scope') {
     return true
   }
 
   return (
     (routeScope === 'tenant-only' && level === RequestScopeLevel.TENANT) ||
-    (routeScope === 'organization-only' &&
-      level === RequestScopeLevel.ORGANIZATION)
+    (routeScope === 'organization-only' && level === RequestScopeLevel.ORGANIZATION)
   )
 }
 
-export function getRouteScopeFromSnapshot(
-  snapshot: ActivatedRouteSnapshot | null
-): RouteScopeContext {
+export function getRouteScopeFromSnapshot(snapshot: ActivatedRouteSnapshot | null): RouteScopeContext {
   let current = snapshot
   let scope: RouteScopeContext = 'dual-scope'
 
@@ -282,10 +250,7 @@ export function getRouteScopeFromSnapshot(
   return scope
 }
 
-function resolveCurrentSectionScopeUrl(
-  root: ActivatedRouteSnapshot | null,
-  level: RequestScopeLevel
-) {
+function resolveCurrentSectionScopeUrl(root: ActivatedRouteSnapshot | null, level: RequestScopeLevel) {
   const snapshots: ActivatedRouteSnapshot[] = []
   let current = root
 
@@ -306,9 +271,7 @@ function resolveCurrentSectionScopeUrl(
 
     const parent = snapshot.parent
     const children = parent?.routeConfig?.children ?? []
-    const candidate =
-      pickScopeSibling(children, targetPath, level) ??
-      pickDefaultCompatibleChild(children, level)
+    const candidate = pickScopeSibling(children, targetPath, level) ?? pickDefaultCompatibleChild(children, level)
 
     if (!candidate) {
       continue
@@ -320,11 +283,7 @@ function resolveCurrentSectionScopeUrl(
   return null
 }
 
-function pickScopeSibling(
-  children: Route[],
-  targetPath: string,
-  level: RequestScopeLevel
-) {
+function pickScopeSibling(children: Route[], targetPath: string, level: RequestScopeLevel) {
   return children.find(
     (route) =>
       !route.redirectTo &&

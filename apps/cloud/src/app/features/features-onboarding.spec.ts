@@ -18,9 +18,9 @@ describe('createFeatureEntryOnboardingSteps', () => {
     const steps = createFeatureEntryOnboardingSteps()
 
     expect(steps.map((step) => step.title)).toEqual([
-      'PAC.Chat.ClawXpert.EntryGuideScopeTitle',
-      'PAC.Chat.ClawXpert.EntryGuideModelProvidersTitle',
-      'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle'
+      'XP.Chat.ClawXpert.EntryGuideScopeTitle',
+      'XP.Chat.ClawXpert.EntryGuideModelProvidersTitle',
+      'XP.Chat.ClawXpert.EntryGuideWorkspaceTitle'
     ])
     expect(steps.every((step) => step.placement === 'rightTop')).toBe(true)
   })
@@ -50,7 +50,7 @@ describe('createFeatureEntryOnboardingSteps', () => {
 
     expect(
       getAvailableFeatureEntryOnboardingSteps(createFeatureEntryOnboardingSteps()).map((step) => step.title)
-    ).toEqual(['PAC.Chat.ClawXpert.EntryGuideScopeTitle', 'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle'])
+    ).toEqual(['XP.Chat.ClawXpert.EntryGuideScopeTitle', 'XP.Chat.ClawXpert.EntryGuideWorkspaceTitle'])
   })
 
   it('does not show the entry guide over a dialog backdrop', () => {
@@ -118,13 +118,13 @@ describe('createFeatureEntryOnboardingSteps', () => {
 
   it('does not start ClawXpert creation when creation is unavailable', () => {
     expect(shouldCreateClawXpertAfterEntryOnboarding(0, false)).toBe(false)
-    expect(getFeatureEntryOnboardingFinishText(0, false)).toBe('PAC.ACTIONS.Done')
+    expect(getFeatureEntryOnboardingFinishText(0, false)).toBe('XP.ACTIONS.Done')
   })
 
   it('uses the setup action only when the account still needs a ClawXpert', () => {
-    expect(getFeatureEntryOnboardingFinishText(0)).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
-    expect(getFeatureEntryOnboardingFinishText(0, true)).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
-    expect(getFeatureEntryOnboardingFinishText(1)).toBe('PAC.ACTIONS.Done')
+    expect(getFeatureEntryOnboardingFinishText(0)).toBe('XP.Chat.ClawXpert.EntryGuideCreate')
+    expect(getFeatureEntryOnboardingFinishText(0, true)).toBe('XP.Chat.ClawXpert.EntryGuideCreate')
+    expect(getFeatureEntryOnboardingFinishText(1)).toBe('XP.ACTIONS.Done')
   })
 
   it('expands the sidebar only while the entry guide is visible', () => {

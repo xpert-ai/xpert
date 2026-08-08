@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '../../../@core'
 import { ToastrService } from '../../../@core/services'
@@ -20,17 +20,16 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardButtonComponent,
     DragDropModule,
-    ButtonGroupDirective,
-
+    XpButtonGroupDirective,
     InviteFormsModule
   ],
-  selector: 'pac-invite-mutation',
+  selector: 'xp-invite-mutation',
   templateUrl: './invite-mutation.component.html',
   styleUrls: ['./invite-mutation.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InviteMutationComponent extends TranslationBaseComponent {
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   private readonly toastrService = inject(ToastrService)
   private readonly _dialogRef = inject(DialogRef<ICreateEmailInvitesOutput>)

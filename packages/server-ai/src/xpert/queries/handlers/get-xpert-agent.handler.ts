@@ -1,5 +1,4 @@
-import { ICopilotModel, IXpertAgent } from '@xpert-ai/contracts'
-import { nonNullable } from '@xpert-ai/copilot'
+import { ICopilotModel, IXpertAgent, nonNullable } from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotGetOneQuery } from '../../../copilot'

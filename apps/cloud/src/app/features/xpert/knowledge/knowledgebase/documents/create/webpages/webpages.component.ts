@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import {
@@ -18,7 +18,7 @@ import { KnowledgebaseComponent } from '../../../knowledgebase.component'
   selector: 'xpert-knowledge-document-webpages',
   templateUrl: './webpages.component.html',
   styleUrl: './webpages.component.scss',
-  imports: [FormsModule, TranslateModule, NgmSpinComponent]
+  imports: [FormsModule, TranslateModule, XpSpinComponent]
 })
 export class KnowledgeDocumentWebpagesComponent {
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum

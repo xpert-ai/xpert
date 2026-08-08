@@ -1,4 +1,4 @@
-import { AiProviderRole, IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
+import { AiProviderRole, AIPermissionsEnum, IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
 import { DeepPartial } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
 import {
@@ -101,39 +101,40 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (!tenantId) {
             return []
         }
-        const [tenantMembershipEnabled, organizationMembershipEnabled] = await Promise.all([
-            this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
-            organizationId
-                ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
-                : Promise.resolve(false)
-        ])
-        if (
-            organizationId &&
-            organizationMembershipEnabled &&
-            (await this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)) > 0
-        ) {
-            await this.membershipService.ensureScopeInitialized({
-                tenantId,
-                organizationId,
-                assignedById: RequestContext.currentUserId()
-            })
-        }
+        const [tenantMembershipEnabled, organizationMembershipEnabled, organizationModelsConfigured] =
+            await Promise.all([
+                this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId: null }),
+                organizationId
+                    ? this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId })
+                    : Promise.resolve(false),
+                organizationId
+                    ? this.modelAccessService.hasConfiguredOrganizationModels(tenantId, organizationId)
+                    : Promise.resolve(false)
+            ])
 
-        const access =
-            organizationMembershipEnabled || tenantMembershipEnabled
-                ? await this.membershipService.findModelAccess({
-                      tenantId,
-                      organizationId
-                  })
-                : null
+        const membershipEnabled = organizationId
+            ? organizationModelsConfigured
+                ? organizationMembershipEnabled
+                : organizationMembershipEnabled || tenantMembershipEnabled
+            : tenantMembershipEnabled
+        const access = membershipEnabled
+            ? await this.membershipService.findModelAccess({
+                  tenantId,
+                  organizationId
+              })
+            : null
         const allowedScopes = new Set<string | null>()
         if (!organizationId) {
             if (!tenantMembershipEnabled || access?.organizationId === null) {
                 allowedScopes.add(null)
             }
+        } else if (organizationModelsConfigured) {
+            if (!organizationMembershipEnabled || access?.organizationId === organizationId) {
+                allowedScopes.add(organizationId)
+            }
         } else if (organizationMembershipEnabled) {
             if (access?.organizationId === organizationId) {
-                allowedScopes.add(organizationId)
+                allowedScopes.add(access.membership.plan.catalogSourcePlanId ? null : organizationId)
             } else if (tenantMembershipEnabled && access?.organizationId === null) {
                 allowedScopes.add(null)
             }
@@ -199,6 +200,41 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         } else {
             return await this.create(entity)
         }
+    }
+
+    async enableRole(role: AiProviderRole) {
+        const result = await this.findOneOrFailByWhereOptions({ role })
+        const copilot = result.success
+            ? await this.update(result.record.id, { enabled: true })
+            : await this.create({ role, enabled: true })
+
+        if (role === AiProviderRole.Primary) {
+            await this.initializeOrganizationMembership()
+        }
+
+        return copilot
+    }
+
+    private async initializeOrganizationMembership() {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        if (
+            !tenantId ||
+            !organizationId ||
+            !RequestContext.isOrganizationScope() ||
+            !RequestContext.hasPermission(AIPermissionsEnum.MEMBERSHIP_EDIT, false)
+        ) {
+            return
+        }
+        if (!(await this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId }))) {
+            return
+        }
+
+        await this.membershipService.ensureScopeInitialized({
+            tenantId,
+            organizationId,
+            assignedById: RequestContext.currentUserId()
+        })
     }
 
     async update(id: string, entity: DeepPartial<ICopilot>) {

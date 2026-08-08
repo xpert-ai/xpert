@@ -3,12 +3,13 @@
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div>
         <div class="text-lg font-semibold text-text-primary">
-          {{ 'PAC.Xpert.XpertUserGroups' | translate: { Default: 'Xpert User Groups' } }}
+          {{ 'XP.Xpert.XpertUserGroups' | translate: { Default: 'Xpert User Groups' } }}
         </div>
         <div class="mt-1 text-sm text-text-tertiary">
           {{
-            'PAC.UserGroup.RuntimeAccessHint'
-              | translate: { Default: 'Published xperts can only be used by members of the selected organization groups.' }
+            'XP.UserGroup.RuntimeAccessHint'
+              | translate
+                : { Default: 'Published xperts can only be used by members of the selected organization groups.' }
           }}
         </div>
       </div>
@@ -27,11 +28,11 @@
         <div class="flex items-start justify-between gap-3">
           <div>
             <div class="text-lg font-semibold text-text-primary">
-              {{ 'PAC.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
+              {{ 'XP.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
             </div>
             <div class="mt-1 text-sm text-text-tertiary">
               {{
-                'PAC.UserGroup.SelectedGroupsHint'
+                'XP.UserGroup.SelectedGroupsHint'
                   | translate
                     : {
                         Default: 'Choose which organization groups are allowed to access this xpert after publication.'
@@ -46,7 +47,7 @@
             [disabled]="isBusy() || (isTenantXpert() && !selectedOrganization())"
             (click)="openGroupsSettings()"
           >
-            {{ 'PAC.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
+            {{ 'XP.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
           </button>
         </div>
 
@@ -57,7 +58,7 @@
             </div>
             <div class="mt-2 text-sm leading-6 text-text-tertiary">
               {{
-                'PAC.UserGroup.AuthorizationByOrganizationHint'
+                'XP.UserGroup.AuthorizationByOrganizationHint'
                   | translate
                     : {
                         Default:
@@ -76,7 +77,7 @@
                 @if (!organizationOptions().length) {
                   <option value="">
                     {{
-                      'PAC.UserGroup.NoOrganizationsAvailable'
+                      'XP.UserGroup.NoOrganizationsAvailable'
                         | translate: { Default: 'No organizations available for authorization.' }
                     }}
                   </option>
@@ -92,7 +93,7 @@
                   class="inline-flex w-fit items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
                 >
                   <span class="text-xs uppercase tracking-wide text-text-tertiary">
-                    {{ 'PAC.UserGroup.SelectedOrganization' | translate: { Default: 'Selected Organization' } }}
+                    {{ 'XP.UserGroup.SelectedOrganization' | translate: { Default: 'Selected Organization' } }}
                   </span>
                   <span class="font-medium">{{ organizationLabel(selectedOrganization()) }}</span>
                 </div>
@@ -113,14 +114,14 @@
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
           <div class="rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
             <div class="text-xs uppercase tracking-wide text-text-tertiary">
-              {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+              {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
             </div>
             <div class="mt-2 text-2xl font-semibold text-text-primary">{{ selectedGroupCount() }}</div>
           </div>
 
           <div class="rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
             <div class="text-xs uppercase tracking-wide text-text-tertiary">
-              {{ 'PAC.UserGroup.Members' | translate: { Default: 'Members' } }}
+              {{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}
             </div>
             <div class="mt-2 text-2xl font-semibold text-text-primary">{{ selectedMemberCount() }}</div>
           </div>
@@ -130,11 +131,11 @@
       <div class="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
         <div class="rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
           <div class="text-sm font-medium text-text-primary">
-            {{ 'PAC.UserGroup.AccessRule' | translate: { Default: 'Access Rule' } }}
+            {{ 'XP.UserGroup.AccessRule' | translate: { Default: 'Access Rule' } }}
           </div>
           <div class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
-              'PAC.UserGroup.AccessRuleHint'
+              'XP.UserGroup.AccessRuleHint'
                 | translate
                   : {
                       Default:
@@ -148,10 +149,10 @@
           <div class="flex items-center justify-between gap-3">
             <div>
               <div class="text-sm font-medium text-text-primary">
-                {{ 'PAC.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
+                {{ 'XP.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
               </div>
               <div class="mt-1 text-xs text-text-tertiary">
-                {{ selectedGroupCount() }} {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
+                {{ selectedGroupCount() }} {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
               </div>
             </div>
 
@@ -161,7 +162,7 @@
               [disabled]="!selectedGroupCount() || isBusy() || !targetOrganizationId()"
               (click)="clearSelection()"
             >
-              {{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+              {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
             </button>
           </div>
 
@@ -189,13 +190,14 @@
             >
               @if (targetOrganizationId()) {
                 {{
-                  'PAC.UserGroup.EmptySelectionHint'
+                  'XP.UserGroup.EmptySelectionHint'
                     | translate: { Default: 'Select one or more groups from the right panel to allow runtime access.' }
                 }}
               } @else {
                 {{
-                  'PAC.UserGroup.SelectOrganizationFirstHint'
-                    | translate: { Default: 'Select an organization first to configure which groups can access this xpert.' }
+                  'XP.UserGroup.SelectOrganizationFirstHint'
+                    | translate
+                      : { Default: 'Select an organization first to configure which groups can access this xpert.' }
                 }}
               }
             </div>
@@ -211,7 +213,7 @@
             [disabled]="!hasChanges() || isBusy() || !targetOrganizationId()"
             (click)="resetSelection()"
           >
-            {{ 'PAC.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
+            {{ 'XP.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
           </button>
 
           <button
@@ -220,7 +222,7 @@
             [disabled]="!hasChanges() || isBusy() || !targetOrganizationId()"
             (click)="save()"
           >
-            {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+            {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
           </button>
         </div>
       </div>
@@ -233,11 +235,11 @@
         <div class="flex items-start justify-between gap-3">
           <div>
             <div class="text-lg font-semibold text-text-primary">
-              {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+              {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
             </div>
             <div class="mt-1 text-sm text-text-tertiary">
               {{
-                'PAC.UserGroup.GroupPickerHint'
+                'XP.UserGroup.GroupPickerHint'
                   | translate
                     : { Default: 'Search and select the organization groups that should be allowed to use this xpert.' }
               }}
@@ -255,7 +257,7 @@
             <div
               class="rounded-full border border-divider-regular bg-components-panel-bg px-3 py-1 text-xs text-text-tertiary"
             >
-              {{ filteredGroups().length }} {{ 'PAC.KEY_WORDS.Users' | translate: { Default: 'items' } }}
+              {{ filteredGroups().length }} {{ 'XP.KEY_WORDS.Users' | translate: { Default: 'items' } }}
             </div>
           </div>
         </div>
@@ -265,7 +267,7 @@
             type="text"
             class="w-full rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary-500"
             [value]="query()"
-            [placeholder]="'PAC.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
+            [placeholder]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
             [disabled]="!targetOrganizationId()"
             (input)="updateQuery($any($event.target).value)"
           />
@@ -277,7 +279,7 @@
               [disabled]="!canSelectVisibleGroups() || isBusy() || !targetOrganizationId()"
               (click)="selectVisibleGroups()"
             >
-              {{ 'PAC.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
+              {{ 'XP.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
             </button>
             <button
               type="button"
@@ -285,7 +287,7 @@
               [disabled]="!selectedGroupCount() || isBusy() || !targetOrganizationId()"
               (click)="clearSelection()"
             >
-              {{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+              {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
             </button>
           </div>
         </div>
@@ -298,13 +300,13 @@
           >
             <div class="text-base font-semibold text-text-primary">
               {{
-                'PAC.UserGroup.NoOrganizationsAvailable'
+                'XP.UserGroup.NoOrganizationsAvailable'
                   | translate: { Default: 'No organizations available for authorization.' }
               }}
             </div>
             <div class="mt-2 max-w-lg text-sm text-text-tertiary">
               {{
-                'PAC.UserGroup.NoOrganizationsAvailableHint'
+                'XP.UserGroup.NoOrganizationsAvailableHint'
                   | translate
                     : {
                         Default:
@@ -319,14 +321,14 @@
           >
             <div class="text-base font-semibold text-text-primary">
               {{
-                'PAC.UserGroup.SelectOrganizationFirst'
-                  | translate: { Default: 'Select an organization to continue.' }
+                'XP.UserGroup.SelectOrganizationFirst' | translate: { Default: 'Select an organization to continue.' }
               }}
             </div>
             <div class="mt-2 text-sm text-text-tertiary">
               {{
-                'PAC.UserGroup.SelectOrganizationFirstHint'
-                  | translate: { Default: 'Select an organization first to configure which groups can access this xpert.' }
+                'XP.UserGroup.SelectOrganizationFirstHint'
+                  | translate
+                    : { Default: 'Select an organization first to configure which groups can access this xpert.' }
               }}
             </div>
           </div>
@@ -335,11 +337,11 @@
             class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
           >
             <div class="text-base font-semibold text-text-primary">
-              {{ 'PAC.UserGroup.Empty' | translate: { Default: 'No user groups yet.' } }}
+              {{ 'XP.UserGroup.Empty' | translate: { Default: 'No user groups yet.' } }}
             </div>
             <div class="mt-2 max-w-lg text-sm text-text-tertiary">
               {{
-                'PAC.UserGroup.EmptyGroupsHint'
+                'XP.UserGroup.EmptyGroupsHint'
                   | translate
                     : { Default: 'Create organization groups first, then return here to bind them to this xpert.' }
               }}
@@ -350,7 +352,7 @@
               [disabled]="isBusy() || (isTenantXpert() && !selectedOrganization())"
               (click)="openGroupsSettings()"
             >
-              {{ 'PAC.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
+              {{ 'XP.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
             </button>
           </div>
         } @else if (!filteredGroups().length) {
@@ -358,10 +360,10 @@
             class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
           >
             <div class="text-base font-semibold text-text-primary">
-              {{ 'PAC.UserGroup.NoMatchingGroups' | translate: { Default: 'No matching groups.' } }}
+              {{ 'XP.UserGroup.NoMatchingGroups' | translate: { Default: 'No matching groups.' } }}
             </div>
             <div class="mt-2 text-sm text-text-tertiary">
-              {{ 'PAC.UserGroup.NoMatchingMembersHint' | translate: { Default: 'Try another search keyword.' } }}
+              {{ 'XP.UserGroup.NoMatchingMembersHint' | translate: { Default: 'Try another search keyword.' } }}
             </div>
           </div>
         } @else {
@@ -391,7 +393,7 @@
                         <div
                           class="rounded-full border border-primary-500 px-2 py-0.5 text-[11px] font-medium text-primary-600"
                         >
-                          {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
+                          {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
                         </div>
                       }
                     </div>
@@ -401,8 +403,9 @@
                         {{ group.description }}
                       } @else {
                         {{
-                          'PAC.UserGroup.MemberCount'
-                            | translate: { Default: groupMemberCount(group) + ' members', count: groupMemberCount(group) }
+                          'XP.UserGroup.MemberCount'
+                            | translate
+                              : { Default: groupMemberCount(group) + ' members', count: groupMemberCount(group) }
                         }}
                       }
                     </div>
@@ -428,7 +431,7 @@
 
   @if (isBusy()) {
     <div class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/60 backdrop-blur-[1px]">
-      <ngm-spin />
+      <xp-spin />
     </div>
   }
 </div>

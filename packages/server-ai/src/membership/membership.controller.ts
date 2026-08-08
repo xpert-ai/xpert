@@ -27,21 +27,29 @@ export class MembershipController {
     constructor(private readonly service: MembershipService) {}
 
     @Get('me')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_USE)
     async getMe() {
         return this.service.getMe()
     }
 
     @Get('me/overview')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_USE)
     async getOverview(@Query() query: IMembershipUsageQuery) {
         return this.service.getOverview(query)
     }
 
     @Get('me/periods')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_USE)
     async getPeriods() {
         return this.service.findMyPeriods()
     }
 
     @Get('me/usage')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_USE)
     async getUsage(
         @Query() query: IMembershipUsageQuery,
         @Query('$take') take: PaginationParams<unknown>['take'],
@@ -51,6 +59,8 @@ export class MembershipController {
     }
 
     @Get('me/usage-summary')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_USE)
     async getUsageSummary(
         @Query() query: IMembershipUsageQuery,
         @Query('$take') take: PaginationParams<unknown>['take'],
@@ -60,6 +70,8 @@ export class MembershipController {
     }
 
     @Post('me/details')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_USE)
     async getDetails(@Body() query: IMembershipUsageQuery) {
         return this.service.findMyUsage(query, { take: 200, skip: 0 })
     }
@@ -133,6 +145,13 @@ export class MembershipController {
         @Query('$skip') skip?: PaginationParams<unknown>['skip']
     ) {
         return this.service.findAdminUsers({ userId, planId, take, skip })
+    }
+
+    @Get('admin/users/:userId/scope-memberships')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
+    async getAdminUserScopeMemberships(@Param('userId') userId: string) {
+        return this.service.findAdminUserScopeMemberships(userId)
     }
 
     @Get('admin/members')

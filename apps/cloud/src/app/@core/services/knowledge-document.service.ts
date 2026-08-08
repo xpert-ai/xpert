@@ -1,7 +1,7 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
-import { IKnowledgeDocumentChunk, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { IKnowledgeDocumentChunk, OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
 import {
@@ -98,9 +98,12 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   }
 
   getChunks(id: string, params: { take: number; skip: number; search?: string }) {
-    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(this.apiBaseUrl + `/${id}` + '/chunk', {
-      params: new HttpParams().append('data', JSON.stringify(params))
-    })
+    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(
+      this.apiBaseUrl + `/${id}` + '/chunk',
+      {
+        params: new HttpParams().append('data', JSON.stringify(params))
+      }
+    )
   }
 
   deleteChunk(documentId: string, id: string, version?: number) {

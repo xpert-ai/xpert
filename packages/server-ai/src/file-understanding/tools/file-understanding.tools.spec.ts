@@ -1,13 +1,25 @@
 import type { QueryBus } from '@nestjs/cqrs'
-import { ListConversationFilesQuery, ListFilePageImagesQuery } from '../queries'
+import { ListConversationFilesQuery, ListFilePageImagesQuery, SearchFileChunksQuery } from '../queries'
 import { createFileUnderstandingTools } from './file-understanding.tools'
+
+type InvokableTool = {
+    name: string
+    invoke(input: Record<string, unknown>): Promise<unknown>
+}
+
+function fileUnderstandingTools(queryBus: QueryBus, conversationId?: string) {
+    return createFileUnderstandingTools(
+        queryBus,
+        conversationId ? { conversationId } : undefined
+    ) as unknown as InvokableTool[]
+}
 
 describe('createFileUnderstandingTools', () => {
     it('exposes only parsed-file tool names', () => {
         const queryBus = {
             execute: jest.fn()
         }
-        const tools = createFileUnderstandingTools(queryBus as unknown as QueryBus)
+        const tools = fileUnderstandingTools(queryBus as unknown as QueryBus)
 
         expect(tools.map((item) => item.name)).toEqual([
             'parsed_file_search',
@@ -33,7 +45,7 @@ describe('createFileUnderstandingTools', () => {
         )
     })
 
-    it('includes projected PDF page image paths in parsed_file_list results', async () => {
+    it('keeps parsed_file_list compact and leaves page images to their dedicated tool', async () => {
         const queryBus = {
             execute: jest.fn().mockImplementation((query: unknown) => {
                 if (query instanceof ListConversationFilesQuery) {
@@ -47,29 +59,10 @@ describe('createFileUnderstandingTools', () => {
                         }
                     ]
                 }
-                if (query instanceof ListFilePageImagesQuery) {
-                    return [
-                        {
-                            orderNo: 2,
-                            mimeType: 'image/png',
-                            anchor: { page: 1, path: 'page-0001.png' },
-                            file: {
-                                workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
-                                url: 'https://files.example/page-0001.png',
-                                fileName: 'page-0001.png',
-                                width: 800,
-                                height: 1000,
-                                size: 1234
-                            }
-                        }
-                    ]
-                }
                 return null
             })
         }
-        const tools = createFileUnderstandingTools(queryBus as unknown as QueryBus, {
-            conversationId: 'conversation-1'
-        })
+        const tools = fileUnderstandingTools(queryBus as unknown as QueryBus, 'conversation-1')
         const parsedFileListTool = tools.find((item) => item.name === 'parsed_file_list')
         if (!parsedFileListTool) {
             throw new Error('parsed_file_list tool not found')
@@ -83,57 +76,90 @@ describe('createFileUnderstandingTools', () => {
                 name: 'deck.pdf',
                 workspacePath: '/workspace/sessions/conversation-1/files/file-1/deck.pdf',
                 status: 'ready',
-                capabilities: ['preview', 'read', 'page_images', 'vision'],
-                pageImages: [
-                    {
-                        orderNo: 2,
-                        mimeType: 'image/png',
-                        page: 1,
-                        path: 'page-0001.png',
-                        workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
-                        url: 'https://files.example/page-0001.png',
-                        fileName: 'page-0001.png',
-                        width: 800,
-                        height: 1000,
-                        size: 1234
-                    }
-                ]
+                capabilities: ['preview', 'read', 'page_images', 'vision']
             }
         ])
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListConversationFilesQuery))
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListFilePageImagesQuery))
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(ListFilePageImagesQuery))
+    })
+
+    it('enforces conversation scope and a global multi-file search limit', async () => {
+        const files = [
+            { id: '11111111-1111-4111-8111-111111111111', originalName: 'a.pdf' },
+            { id: '22222222-2222-4222-8222-222222222222', originalName: 'b.pdf' }
+        ]
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query: unknown) => {
+                if (query instanceof ListConversationFilesQuery) return files
+                if (query instanceof SearchFileChunksQuery) {
+                    return Array.from({ length: 4 }, (_, index) => ({
+                        id: `${String(index + 1).padStart(8, '0')}-0000-4000-8000-000000000000`,
+                        orderNo: index,
+                        content: 'x'.repeat(900),
+                        anchor: { page: index + 1 }
+                    }))
+                }
+                return null
+            })
+        }
+        const tools = fileUnderstandingTools(queryBus as unknown as QueryBus, 'conversation-1')
+        const search = tools.find((item) => item.name === 'parsed_file_search')
+        if (!search) throw new Error('parsed_file_search tool not found')
+
+        const result = JSON.parse(
+            String(await search.invoke({ fileIds: files.map((file) => file.id), query: '目录', limit: 8 }))
+        )
+
+        expect(result).toHaveLength(8)
+        expect(result.every((item: { excerpt: string }) => item.excerpt.length <= 801)).toBe(true)
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({ input: expect.objectContaining({ limit: 4 }) })
+        )
+        await expect(
+            search.invoke({
+                fileIds: ['33333333-3333-4333-8333-333333333333'],
+                query: '越权'
+            })
+        ).rejects.toThrow('not linked to this Assistant Task conversation')
     })
 
     it('lists PDF page images by file and page range', async () => {
+        const fileId = '11111111-1111-4111-8111-111111111111'
         const queryBus = {
-            execute: jest.fn().mockResolvedValue([
-                {
-                    orderNo: 6,
-                    mimeType: 'image/png',
-                    anchor: { page: 3, path: 'page-0003.png' },
-                    file: {
-                        workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0003.png',
-                        fileName: 'page-0003.png'
-                    }
+            execute: jest.fn().mockImplementation((query: unknown) => {
+                if (query instanceof ListConversationFilesQuery) {
+                    return [{ id: fileId, originalName: 'deck.pdf' }]
                 }
-            ])
+                if (query instanceof ListFilePageImagesQuery) {
+                    return [
+                        {
+                            orderNo: 6,
+                            mimeType: 'image/png',
+                            anchor: { page: 3, path: 'page-0003.png' },
+                            file: {
+                                workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0003.png',
+                                fileName: 'page-0003.png'
+                            }
+                        }
+                    ]
+                }
+                return null
+            })
         }
-        const tools = createFileUnderstandingTools(queryBus as unknown as QueryBus, {
-            conversationId: 'conversation-1'
-        })
+        const tools = fileUnderstandingTools(queryBus as unknown as QueryBus, 'conversation-1')
         const pageImagesTool = tools.find((item) => item.name === 'parsed_file_page_images')
         if (!pageImagesTool) {
             throw new Error('parsed_file_page_images tool not found')
         }
 
         const result = await pageImagesTool.invoke({
-            fileId: 'file-1',
+            fileId,
             pageStart: 3,
             pageEnd: 3
         })
 
         expect(JSON.parse(String(result))).toEqual({
-            fileId: 'file-1',
+            fileId,
             pageImages: [
                 {
                     orderNo: 6,
@@ -147,7 +173,7 @@ describe('createFileUnderstandingTools', () => {
         })
         expect(queryBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
-                fileAssetId: 'file-1',
+                fileAssetId: fileId,
                 options: {
                     pageStart: 3,
                     pageEnd: 3,

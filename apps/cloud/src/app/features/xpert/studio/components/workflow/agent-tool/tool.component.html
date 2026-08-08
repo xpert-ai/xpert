@@ -22,7 +22,7 @@
       <i
         class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
         [zTooltip]="
-          'PAC.Xpert.EndTool' | translate: { Default: 'Terminal tool, the run of chat ends when tool completed' }
+          'XP.Xpert.EndTool' | translate: { Default: 'Terminal tool, the run of chat ends when tool completed' }
         "
         zPosition="top"
       ></i>
@@ -33,7 +33,7 @@
     @for (execution of executions(); track execution) {
       @switch (execution.status) {
         @case ('running') {
-          <ngm-spin class="shrink-0 scale-90 origin-center" small />
+          <xp-spin class="shrink-0 scale-90 origin-center" small />
         }
         @case ('fail') {
           <div

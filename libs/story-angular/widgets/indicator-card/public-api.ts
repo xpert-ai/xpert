@@ -1,5 +1,0 @@
-export * from './indicator-card.schema'
-export * from './indicator-data.service'
-export * from './indicator.component'
-export * from './indicator.module'
-export * from './types'

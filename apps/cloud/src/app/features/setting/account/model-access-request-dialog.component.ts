@@ -11,7 +11,7 @@ import {
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { IModelAccessCatalogItem, ModelAccessOwnershipScopeEnum } from '@xpert-ai/contracts'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 
 export type ModelAccessRequestDialogResult = {
   item: IModelAccessCatalogItem
@@ -20,12 +20,12 @@ export type ModelAccessRequestDialogResult = {
 
 @Component({
   standalone: true,
-  selector: 'pac-model-access-request-dialog',
+  selector: 'xp-model-access-request-dialog',
   imports: [
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     ZardButtonComponent,
     ZardInputDirective,
     ...ZardFormImports,
@@ -35,11 +35,11 @@ export type ModelAccessRequestDialogResult = {
     <section>
       <header class="space-y-2">
         <h2 class="text-lg font-semibold text-text-primary">
-          {{ 'PAC.ModelAccess.ApplyTitle' | translate: { Default: 'Apply for model access' } }}
+          {{ 'XP.ModelAccess.ApplyTitle' | translate: { Default: 'Apply for model access' } }}
         </h2>
         <p class="text-sm leading-6 text-text-secondary">
           {{
-            'PAC.ModelAccess.ApplyDescription'
+            'XP.ModelAccess.ApplyDescription'
               | translate
                 : {
                     Default: 'Choose a model not included in your plan and explain why you need personal access.'
@@ -51,19 +51,19 @@ export type ModelAccessRequestDialogResult = {
       <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         <z-form-field class="w-full">
           <z-form-label>
-            {{ 'PAC.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
+            {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
           </z-form-label>
           <z-select class="w-full" formControlName="ownershipScope" (zSelectionChange)="changeScope($event)">
             @for (scope of scopeOptions; track scope) {
               <z-select-item [zValue]="scope">
-                {{ 'PAC.ModelAccess.Scope.' + scope | translate }}
+                {{ 'XP.ModelAccess.Scope.' + scope | translate }}
               </z-select-item>
             }
           </z-select>
         </z-form-field>
 
         <z-form-field class="w-full">
-          <z-form-label>{{ 'PAC.ModelAccess.Model' | translate: { Default: 'Model' } }}</z-form-label>
+          <z-form-label>{{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}</z-form-label>
           <z-select class="w-full" formControlName="key">
             @for (item of itemsForScope(form.controls.ownershipScope.value); track item.key) {
               <z-select-item [zValue]="item.key">
@@ -77,14 +77,14 @@ export type ModelAccessRequestDialogResult = {
         </z-form-field>
 
         <z-form-field class="w-full">
-          <z-form-label>{{ 'PAC.ModelAccess.Reason' | translate: { Default: 'Reason' } }}</z-form-label>
+          <z-form-label>{{ 'XP.ModelAccess.Reason' | translate: { Default: 'Reason' } }}</z-form-label>
           <textarea
             z-input
             class="min-h-28 resize-y"
             formControlName="reason"
             maxlength="1000"
             [placeholder]="
-              'PAC.ModelAccess.ReasonPlaceholder'
+              'XP.ModelAccess.ReasonPlaceholder'
                 | translate: { Default: 'Describe the business need and expected usage.' }
             "
           ></textarea>
@@ -92,10 +92,10 @@ export type ModelAccessRequestDialogResult = {
 
         <footer class="flex justify-end gap-2 pt-1">
           <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button z-button type="submit" [disabled]="form.invalid">
-            {{ 'PAC.ModelAccess.Submit' | translate: { Default: 'Submit request' } }}
+            {{ 'XP.ModelAccess.Submit' | translate: { Default: 'Submit request' } }}
           </button>
         </footer>
       </form>
@@ -104,9 +104,8 @@ export type ModelAccessRequestDialogResult = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelAccessRequestDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<ModelAccessRequestDialogComponent, ModelAccessRequestDialogResult | null>>(
-    ZardDialogRef
-  )
+  readonly #dialogRef =
+    inject<ZardDialogRef<ModelAccessRequestDialogComponent, ModelAccessRequestDialogResult | null>>(ZardDialogRef)
   readonly #data = inject<{ items: IModelAccessCatalogItem[] }>(Z_MODAL_DATA)
   readonly #formBuilder = inject(FormBuilder)
 

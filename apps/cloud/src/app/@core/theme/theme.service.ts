@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core'
-import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
+import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { BehaviorSubject } from 'rxjs'
 
 @Injectable({ providedIn: 'root' })
-export class PACThemeService {
-
+export class XpAppThemeService {
   themeName$ = new BehaviorSubject('default')
-  
+
   constructor() {}
 
   changeTheme(themName) {

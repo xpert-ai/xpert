@@ -1,21 +1,21 @@
 import {
   AiFeatureEnum,
   AIPermissionsEnum,
-  AnalyticsFeatures,
   FeatureEnum,
   PermissionsEnum,
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
-import { getFeatureMenus, getSettingsMenuItems, syncMenuParentStateFromChildren } from './menus'
+import { environment } from '../../environments/environment'
+import { getFeatureMenus, getSettingsMenuItems } from './menus'
 
 describe('getSettingsMenuItems', () => {
-  it('marks legacy settings menus as deprecated', () => {
-    const deprecatedPaths = ['chatbi', 'business-area', 'certification']
+  it('removes legacy Analytics settings menus', () => {
+    const removedPaths = ['chatbi', 'business-area', 'certification']
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
 
-    for (const path of deprecatedPaths) {
-      expect(menus.find((item) => item.path === path)?.deprecated).toBe(true)
+    for (const path of removedPaths) {
+      expect(menus.find((item) => item.path === path)).toBeUndefined()
     }
   })
 
@@ -57,7 +57,8 @@ describe('getSettingsMenuItems', () => {
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
     const dataSources = menus.find((item) => item.path === 'data-sources')
 
-    expect(dataSources?.data?.featureKey).toBe(AnalyticsFeatures.FEATURE_DATA_SOURCE)
+    expect(dataSources?.data?.featureKey).toBe(FeatureEnum.FEATURE_DATA_SOURCE)
+    expect(dataSources?.data?.permissionKeys).toEqual([PermissionsEnum.DATA_SOURCE_EDIT])
   })
 
   it('gates membership settings with the membership plan feature', () => {
@@ -66,6 +67,31 @@ describe('getSettingsMenuItems', () => {
 
     expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
     expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
+  })
+
+  it('includes settings menu extensions from the active environment', () => {
+    const originalExtensions = environment.settingsExtensions
+    environment.settingsExtensions = {
+      menus: [
+        {
+          path: 'extension-settings',
+          label: 'Extension settings',
+          icon: 'extension',
+          scopeContext: 'organization-only'
+        }
+      ]
+    }
+
+    try {
+      expect(
+        getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find((item) => item.path === 'extension-settings')
+      ).toMatchObject({ scopeContext: 'organization-only' })
+      expect(
+        getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'extension-settings')
+      ).toBeUndefined()
+    } finally {
+      environment.settingsExtensions = originalExtensions
+    }
   })
 
   it('gates model access approvals with both features and view-or-edit permission', () => {
@@ -214,27 +240,10 @@ describe('getFeatureMenus', () => {
     expect(workspace?.data?.onboardingTarget).toBe('workspace')
   })
 
-  it('points the Data parent menu at the first visible child menu', () => {
+  it('does not expose the removed Analytics Data menu', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const data = menus.find((item) => item.title === 'Data')
 
-    data!.children![0].hidden = true
-    data!.children![1].hidden = false
-    syncMenuParentStateFromChildren(data!)
-
-    expect(data?.hidden).toBe(false)
-    expect(data?.link).toBe('/data/models')
-  })
-
-  it('hides the Data parent menu when all child menus are hidden', () => {
-    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
-    const data = menus.find((item) => item.title === 'Data')
-
-    data!.children!.forEach((item) => {
-      item.hidden = true
-    })
-    syncMenuParentStateFromChildren(data!)
-
-    expect(data?.hidden).toBe(true)
+    expect(data).toBeUndefined()
   })
 })

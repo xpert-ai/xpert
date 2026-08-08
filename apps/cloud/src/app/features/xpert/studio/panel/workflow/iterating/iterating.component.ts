@@ -14,13 +14,13 @@ import {
   XpertAPIService
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { TSelectOption } from '@xpert-ai/ocap-angular/core'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
+import { TSelectOption } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { attrModel, linkedModel } from '@xpert-ai/core'
+import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
@@ -33,7 +33,7 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    NgmSelectComponent,
+    XpSelectComponent,
     StateVariableSelectComponent,
     ZardSliderComponent,
     ZardSwitchComponent

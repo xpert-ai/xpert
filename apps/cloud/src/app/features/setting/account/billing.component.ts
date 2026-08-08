@@ -19,7 +19,7 @@ import {
 
 @Component({
   standalone: true,
-  selector: 'pac-account-billing',
+  selector: 'xp-account-billing',
   imports: [
     CommonModule,
     TranslateModule,
@@ -32,7 +32,7 @@ import {
   templateUrl: './billing.component.html',
   styleUrls: ['./billing.component.scss']
 })
-export class PACAccountBillingComponent implements OnInit {
+export class XpAccountBillingComponent implements OnInit {
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
 

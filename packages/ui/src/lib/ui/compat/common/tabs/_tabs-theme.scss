@@ -1,0 +1,24 @@
+@use 'sass:map';
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
+
+@mixin color($config-or-theme) {
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $accent: map.get($config, accent);
+  $background: map.get($config, background);
+
+  .xp-appearance-desktop.z-tab-group {
+    .z-tab-group__trigger {
+      min-width: unset;
+      &:hover {
+        background-color: themeCompat.m2-get-color-from-palette($background, hover);
+      }
+
+      .xp-tab-button-right {
+        margin-right: -20px;
+      }
+    }
+  }
+}
+
+@mixin typography($config-or-theme) {
+}

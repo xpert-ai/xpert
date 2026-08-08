@@ -4,8 +4,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { IModelAccessRequest, ModelAccessSourceEnum, ModelAccessRequestStatusEnum } from '@xpert-ai/contracts'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
   ZardAccordionImports,
   ZardBadgeComponent,
@@ -32,7 +32,7 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
 
 @Component({
   standalone: true,
-  selector: 'pac-account-available-models',
+  selector: 'xp-account-available-models',
   templateUrl: './available-models.component.html',
   host: {
     class: 'flex min-w-0 w-full max-w-full flex-1'
@@ -41,8 +41,8 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSpinComponent,
-    NgmI18nPipe,
+    XpSpinComponent,
+    XpI18nPipe,
     ...ZardAccordionImports,
     ZardBadgeComponent,
     ZardButtonComponent,
@@ -52,7 +52,7 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     ...ZardCardImports
   ]
 })
-export class PACAccountAvailableModelsComponent {
+export class XpAccountAvailableModelsComponent {
   readonly #service = inject(ModelAccessService)
   readonly #dialog = inject(ZardDialogService)
   readonly #translate = inject(TranslateService)
@@ -144,7 +144,7 @@ export class PACAccountAvailableModelsComponent {
         })
       )
       this.#toastr.success(
-        this.#translate.instant('PAC.ModelAccess.RequestSubmitted', {
+        this.#translate.instant('XP.ModelAccess.RequestSubmitted', {
           Default: 'Model access request submitted.'
         })
       )

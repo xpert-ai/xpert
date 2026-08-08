@@ -4,9 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@xpert-ai/core'
-import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/ocap-angular/common'
-import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
+import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/headless-ui'
+import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {
@@ -36,8 +36,8 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardButtonComponent,
     ZardIconComponent,
-    AppearanceDirective,
-    DynamicGridDirective,
+    XpAppearanceDirective,
+    XpDynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent
   ],
@@ -54,8 +54,8 @@ export class KnowledgebaseHomeComponent {
   readonly helpWebsite = injectHelpWebsite()
   readonly confirmUnique = injectConfirmUnique()
   readonly confirmDelete = injectConfirmDelete()
-  readonly title = injectTranslate('PAC.Knowledgebase.NewKnowledgebase', { Default: `New Knowledgebase` })
-  readonly information = injectTranslate('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
+  readonly title = injectTranslate('XP.Knowledgebase.NewKnowledgebase', { Default: `New Knowledgebase` })
+  readonly information = injectTranslate('XP.Knowledgebase.ConfirmDeleteKnowledgebase', {
     Default: `Confirm delete knowledgebase and all its contents?`
   })
 
@@ -105,7 +105,7 @@ export class KnowledgebaseHomeComponent {
     ).subscribe({
       next: (result) => {
         this.refresh()
-        this._toastrService.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
+        this._toastrService.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
       },
       error: (error) => {
         this._toastrService.error(error, 'Error')
@@ -127,7 +127,7 @@ export class KnowledgebaseHomeComponent {
     ).subscribe({
       next: () => {
         this.refresh()
-        this._toastrService.success('PAC.Messages.DeletedSuccessfully', 'Deleted Successfully')
+        this._toastrService.success('XP.Messages.DeletedSuccessfully', 'Deleted Successfully')
       },
       error: (error) => {
         this._toastrService.error(getErrorMessage(error), 'Error')

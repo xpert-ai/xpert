@@ -18,12 +18,12 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
 
 @Component({
   standalone: true,
-  selector: 'pac-clawxpert-conversation-files',
+  selector: 'xp-clawxpert-conversation-files',
   imports: [CommonModule, TranslateModule, FileWorkbenchComponent],
   template: `
-    <pac-file-workbench
+    <xp-file-workbench
       [rootId]="xpertId() || conversationId()"
-      [rootLabel]="'PAC.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
+      [rootLabel]="'XP.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
       [filesLoader]="loadConversationFiles"
       [fileLoader]="loadConversationFile"
       [fileSaver]="mode() === 'editable' ? saveConversationFile : null"

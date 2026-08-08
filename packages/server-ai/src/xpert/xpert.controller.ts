@@ -136,6 +136,10 @@ import { XpertPrincipalService } from './xpert-principal.service'
 import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 import { FindCopilotModelsQuery } from '../copilot/queries'
+import { t } from 'i18next'
+import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
+
+const XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -157,6 +161,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly xpertPrincipalService: XpertPrincipalService,
         private readonly frequentQuestionsService: XpertFrequentQuestionsService,
         private readonly templateWorkspaceInitializer: XpertTemplateWorkspaceInitializer,
+        private readonly workspaceFilesService: XpertWorkspaceFilesService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -226,7 +231,11 @@ export class XpertController extends CrudController<Xpert> {
         @I18nLang() language: LanguagesEnum = LanguagesEnum.English
     ) {
         try {
-            const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(new XpertImportCommand(dsl))
+            const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
+                new XpertImportCommand(dsl, {
+                    language: LanguagesMap[language] ?? language
+                })
+            )
             const normalizedTemplateId = typeof templateId === 'string' ? templateId.trim() : ''
             if (normalizedTemplateId && xpert.workspaceId) {
                 await this.templateWorkspaceInitializer.initializeByTemplateId(
@@ -590,6 +599,23 @@ export class XpertController extends CrudController<Xpert> {
         @NestUploadedFile() file: Express.Multer.File
     ) {
         return await this.service.uploadMemoryFile(id, path, file)
+    }
+
+    @UseGuards(XpertGuard)
+    @Post(':id/workspace/files/upload')
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
+    async uploadWorkspaceFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileUploadRequired', {
+                    defaultValue: 'Workspace file is required.'
+                })
+            )
+        }
+        return this.workspaceFilesService.upload(id, file)
     }
 
     @UseGuards(XpertGuard)

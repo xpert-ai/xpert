@@ -4,7 +4,6 @@ import { IUser } from '../user.model'
 export enum AssistantCode {
   CHAT_COMMON = 'chat_common',
   XPERT_SHARED = 'xpert_shared',
-  CHATBI = 'chatbi',
   CLAWXPERT = 'clawxpert'
 }
 

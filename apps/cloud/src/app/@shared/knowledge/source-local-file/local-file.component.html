@@ -16,13 +16,15 @@
     <div (click)="fileInput.click()" class="text-text-secondary">
       <p class="text-base font-medium">
         <i class="ri-upload-cloud-2-line"></i>
-        {{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
-        <span class="underline cursor-pointer text-[var(--sys-primary)]">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</span>
+        {{ 'XP.Knowledgebase.DragDropOr' | translate: { Default: 'Drag and drop files here, or' } }}
+        <span class="underline cursor-pointer text-[var(--sys-primary)]">{{
+          'XP.Knowledgebase.SelectFiles' | translate: { Default: 'select files' }
+        }}</span>
       </p>
       <p class="text-sm font-body text-text-quaternary mt-1 uppercase">
-        {{ 'PAC.Knowledgebase.Supports' | translate: {Default: 'Supports'} }}
+        {{ 'XP.Knowledgebase.Supports' | translate: { Default: 'Supports' } }}
         {{ extensionStr() }}
-        {{ 'PAC.Knowledgebase.FileMaxSize' | translate: {Default: 'and each file does not exceed 15MB.'} }}
+        {{ 'XP.Knowledgebase.FileMaxSize' | translate: { Default: 'and each file does not exceed 15MB.' } }}
       </p>
     </div>
   </div>
@@ -31,9 +33,11 @@
   @if (files().length > 0) {
     <div class="space-y-2">
       @for (file of files(); track $index) {
-        <div class="relative flex flex-col border rounded-lg px-4 py-2 overflow-hidden bg-components-card-bg shadow-sm hover:bg-hover-bg transition"
+        <div
+          class="relative flex flex-col border rounded-lg px-4 py-2 overflow-hidden bg-components-card-bg shadow-sm hover:bg-hover-bg transition"
           [class.border-primary-300]="selected() === file"
-          (click)="selected.set(file)">
+          (click)="selected.set(file)"
+        >
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
               <div class="w-8 h-8 shrink-0 bg-blue-100 flex items-center justify-center rounded">
@@ -48,9 +52,7 @@
             </div>
 
             @if (file.progress() < 100) {
-              <button class="w-7 h-7 flex justify-center items-center">
-                {{ file.progress() | number:'0.0-0' }}%
-              </button>
+              <button class="w-7 h-7 flex justify-center items-center">{{ file.progress() | number: '0.0-0' }}%</button>
             } @else {
               <button
                 class="w-7 h-7 flex justify-center items-center rounded-lg text-text-quaternary hover:text-red-500 transition hover:bg-hover-bg"
@@ -61,8 +63,10 @@
             }
           </div>
 
-           <!-- Progress bar -->
-          <div class="absolute left-0 bottom-0 w-full mt-3 h-[2px] bg-components-input-bg-normal rounded overflow-hidden">
+          <!-- Progress bar -->
+          <div
+            class="absolute left-0 bottom-0 w-full mt-3 h-[2px] bg-components-input-bg-normal rounded overflow-hidden"
+          >
             <div
               class="h-full rounded"
               [style.width.%]="file.progress()"

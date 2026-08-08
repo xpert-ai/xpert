@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_ORGANIZATION_STATUS } from '@xpert-ai/cloud/state'
+import { API_ORGANIZATION_STATUS } from '@cloud/app/@core/state'
 import { ComponentStore } from '@xpert-ai/store'
 import { assign } from 'lodash-es'
 import { Observable } from 'rxjs'

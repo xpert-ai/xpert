@@ -15,7 +15,7 @@
         type="button"
         (click)="chatService.gotoTask(task.id)"
       >
-        {{ 'PAC.Chat.GoToTask' | translate: { Default: 'Go to Task' } }}
+        {{ 'XP.Chat.GoToTask' | translate: { Default: 'Go to Task' } }}
       </button>
     </div>
   </div>
@@ -42,10 +42,10 @@
         <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
       }
       @case ('assistant') {
-        <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
+        <xp-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
       }
       @case ('ai') {
-        <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
+        <xp-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
       }
     }
   </div>
@@ -97,7 +97,7 @@
     (click)="quoteSelectedText()"
   >
     <i class="ri-double-quotes-l text-base"></i>
-    <span>{{ 'PAC.Chat.QuoteSelection' | translate: { Default: 'Quote selection' } }}</span>
+    <span>{{ 'XP.Chat.QuoteSelection' | translate: { Default: 'Quote selection' } }}</span>
   </button>
 }
 
@@ -105,14 +105,14 @@
   @if (suggesting()) {
     <div class="flex cursor-pointer justify-center items-center">
       <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-      <div class="text-text-tertiary ml-2">{{ 'PAC.Xpert.Suggesting' | translate: { Default: 'Suggesting' } }}...</div>
+      <div class="text-text-tertiary ml-2">{{ 'XP.Xpert.Suggesting' | translate: { Default: 'Suggesting' } }}...</div>
     </div>
   } @else if (suggestionQuestions()?.length) {
     <div class="mb-2 py-2">
       <div class="mb-2.5 flex items-center justify-between gap-2">
         <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180"></div>
         <div class="shrink-0 text-text-tertiary">
-          {{ 'PAC.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
+          {{ 'XP.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
         </div>
         <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
       </div>
@@ -141,7 +141,7 @@
     <div class="flex-1 py-1 break-all">{{ error() }}</div>
 
     <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
-      {{ 'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
+      {{ 'XP.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
     </button>
   </div>
 }

@@ -62,7 +62,7 @@
   <div class="select-none relative">
     <div class="flex justify-between items-center">
       <div class="py-2 leading-5 font-medium">
-        {{ 'PAC.Xpert.Schema' | translate: { Default: 'Schema' } }}
+        {{ 'XP.Xpert.Schema' | translate: { Default: 'Schema' } }}
         <span class="ml-1 text-red-500">*</span>
       </div>
       <div class="mx-2 w-px h-3 bg-black/5"></div>
@@ -73,7 +73,7 @@
         class="group flex items-center h-[18px] space-x-1 text-[#155EEF] hover:text-primary-600"
       >
         <div class="text-xs font-normal">
-          {{ 'PAC.Xpert.ViewMCPSpec' | translate: { Default: 'View the MCP Specification' } }}
+          {{ 'XP.Xpert.ViewMCPSpec' | translate: { Default: 'View the MCP Specification' } }}
         </div>
         <svg
           width="12"
@@ -102,21 +102,18 @@
   @if (types()[0] === eMCPServerType.SSE || types()[0] === eMCPServerType.HTTP) {
     <div class="">
       <div class="text-semibold mb-1 flex h-6 items-center gap-1 text-text-secondary">
-        <div class="truncate">{{ 'PAC.MCP.Url' | translate: { Default: 'Url' } }}</div>
+        <div class="truncate">{{ 'XP.MCP.Url' | translate: { Default: 'Url' } }}</div>
       </div>
       <div class="grow">
         <div class="relative w-full">
-          <input
-            class="xp-input w-full"
-            [(ngModel)]="url"
-          />
+          <input class="xp-input w-full" [(ngModel)]="url" />
         </div>
       </div>
     </div>
 
     <div class="my-4">
       <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-        <div class="truncate">{{ 'PAC.MCP.Headers' | translate: { Default: 'Headers' } }}</div>
+        <div class="truncate">{{ 'XP.MCP.Headers' | translate: { Default: 'Headers' } }}</div>
 
         <div
           class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
@@ -127,16 +124,11 @@
       </div>
 
       <div class="grid grid-cols-3 gap-3">
-        <div class="col-span-1">{{ 'PAC.MCP.Name' | translate: { Default: 'Name' } }}</div>
-        <div class="col-span-2">{{ 'PAC.MCP.Value' | translate: { Default: 'Value' } }}</div>
+        <div class="col-span-1">{{ 'XP.MCP.Name' | translate: { Default: 'Name' } }}</div>
+        <div class="col-span-2">{{ 'XP.MCP.Value' | translate: { Default: 'Value' } }}</div>
         @for (row of headers() | entries; track row[0]) {
           <div class="col-span-1">
-            <input
-              #input1
-              class="xp-input w-full"
-              [ngModel]="row[0]"
-              (blur)="updateHeaderName(row[0], input1.value)"
-            />
+            <input #input1 class="xp-input w-full" [ngModel]="row[0]" (blur)="updateHeaderName(row[0], input1.value)" />
           </div>
           <div class="col-span-2 flex items-center gap-1">
             <xpert-env-input
@@ -154,8 +146,10 @@
             </div>
           </div>
         } @empty {
-          <div class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle">
-            {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+          <div
+            class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle"
+          >
+            {{ 'XP.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
           </div>
         }
       </div>
@@ -163,22 +157,18 @@
   } @else {
     <div class="">
       <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-        <div class="truncate">{{ 'PAC.MCP.Command' | translate: { Default: 'Command' } }}</div>
+        <div class="truncate">{{ 'XP.MCP.Command' | translate: { Default: 'Command' } }}</div>
       </div>
       <div class="grow">
         <div class="relative w-full">
-          <input
-            class="xp-input w-full"
-            [(ngModel)]="command"
-            [disabled]="isCode()"
-          />
+          <input class="xp-input w-full" [(ngModel)]="command" [disabled]="isCode()" />
         </div>
       </div>
     </div>
 
     <div class="my-4">
       <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-        <div class="truncate">{{ 'PAC.MCP.Args' | translate: { Default: 'Args' } }}</div>
+        <div class="truncate">{{ 'XP.MCP.Args' | translate: { Default: 'Args' } }}</div>
 
         <div
           class="pressable w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none"
@@ -206,8 +196,10 @@
             </div>
           </div>
         } @empty {
-          <div class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle">
-            {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+          <div
+            class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle"
+          >
+            {{ 'XP.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
           </div>
         }
       </div>
@@ -216,7 +208,7 @@
     @if (types()[0] !== 'sse') {
       <div class="my-4">
         <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-          <div class="truncate">{{ 'PAC.MCP.Env' | translate: { Default: 'Env' } }}</div>
+          <div class="truncate">{{ 'XP.MCP.Env' | translate: { Default: 'Env' } }}</div>
 
           <div
             class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
@@ -227,16 +219,11 @@
         </div>
 
         <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-1">{{ 'PAC.MCP.Name' | translate: { Default: 'Name' } }}</div>
-          <div class="col-span-2">{{ 'PAC.MCP.Value' | translate: { Default: 'Value' } }}</div>
+          <div class="col-span-1">{{ 'XP.MCP.Name' | translate: { Default: 'Name' } }}</div>
+          <div class="col-span-2">{{ 'XP.MCP.Value' | translate: { Default: 'Value' } }}</div>
           @for (row of env() | entries; track row[0]) {
             <div class="col-span-1">
-              <input
-                #input1
-                class="xp-input w-full"
-                [ngModel]="row[0]"
-                (blur)="updateEnvName(row[0], input1.value)"
-              />
+              <input #input1 class="xp-input w-full" [ngModel]="row[0]" (blur)="updateEnvName(row[0], input1.value)" />
             </div>
             <div class="col-span-2 flex items-center gap-1">
               <xpert-env-input
@@ -254,8 +241,10 @@
               </div>
             </div>
           } @empty {
-            <div class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle">
-              {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+            <div
+              class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle"
+            >
+              {{ 'XP.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
             </div>
           }
         </div>
@@ -266,7 +255,7 @@
   <!-- @if (types()[0] !== eMCPServerType.STDIO) { -->
   <div class="my-4">
     <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-      <div class="truncate">{{ 'PAC.MCP.Reconnect' | translate: { Default: 'Reconnect' } }}</div>
+      <div class="truncate">{{ 'XP.MCP.Reconnect' | translate: { Default: 'Reconnect' } }}</div>
 
       <z-switch [(ngModel)]="reconnectEnabled" />
     </div>
@@ -277,7 +266,7 @@
           class="xp-input grow"
           type="number"
           [placeholder]="
-            'PAC.MCP.ReconnectMaxAttempts' | translate: { Default: 'Maximum number of connection attempts' }
+            'XP.MCP.ReconnectMaxAttempts' | translate: { Default: 'Maximum number of connection attempts' }
           "
           [(ngModel)]="maxAttempts"
         />
@@ -286,7 +275,7 @@
           class="xp-input grow"
           type="number"
           [placeholder]="
-            'PAC.MCP.ReconnectDelayMs' | translate: { Default: 'Delay in milliseconds between restart attempts' }
+            'XP.MCP.ReconnectDelayMs' | translate: { Default: 'Delay in milliseconds between restart attempts' }
           "
           [(ngModel)]="delayMs"
         />
@@ -297,14 +286,11 @@
 
   <div class="my-2">
     <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-      <div class="truncate">{{ 'PAC.MCP.ToolNamePrefix' | translate: { Default: 'Tool Name Prefix' } }}</div>
+      <div class="truncate">{{ 'XP.MCP.ToolNamePrefix' | translate: { Default: 'Tool Name Prefix' } }}</div>
     </div>
     <div class="grow">
       <div class="relative w-full">
-        <input
-          class="xp-input w-full"
-          [(ngModel)]="toolNamePrefix"
-        />
+        <input class="xp-input w-full" [(ngModel)]="toolNamePrefix" />
       </div>
     </div>
   </div>
@@ -317,46 +303,48 @@
       (click)="connect()"
     >
       <i class="ri-play-large-line mr-1"></i>
-      {{ 'PAC.MCP.Connect' | translate: { Default: 'Connect' } }}
+      {{ 'XP.MCP.Connect' | translate: { Default: 'Connect' } }}
     </button>
 
     @if (loading()) {
       <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable" (click)="stopConnect()">
         <div class="w-full text-center">
           <i class="ri-stop-line"></i>
-          {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
+          {{ 'XP.Xpert.Stop' | translate: { Default: 'Stop' } }}
         </div>
       </button>
     }
   </div>
   <div class="flex justify-center items-center gap-2 p-2">
     @if (timer()) {
-      <div class="font-mono text-sm text-text-secondary mr-2 -ml-8" [ngmTimer]="timer()" [stopTime]="stopTime()"></div>
+      <div class="font-mono text-sm text-text-secondary mr-2 -ml-8" [xpTimer]="timer()" [stopTime]="stopTime()"></div>
     }
     @if (loading()) {
       <span class="mr-1 xpert-status-indicator xpert-status-indicator--running"></span>
-      {{ 'PAC.MCP.Connecting' | translate: { Default: 'Connecting' } }}
+      {{ 'XP.MCP.Connecting' | translate: { Default: 'Connecting' } }}
     } @else if (tools()?.length) {
       <span class="mr-1 xpert-status-indicator xpert-status-indicator--success"></span>
-      {{ 'PAC.MCP.Connected' | translate: { Default: 'Connected' } }}
+      {{ 'XP.MCP.Connected' | translate: { Default: 'Connected' } }}
     } @else if (error()) {
       <span class="mr-1 xpert-status-indicator xpert-status-indicator--error"></span>
-      {{ 'PAC.MCP.Error' | translate: { Default: 'Error' } }}
+      {{ 'XP.MCP.Error' | translate: { Default: 'Error' } }}
     }
   </div>
 
   @if (error()) {
-    <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all rounded-xl bg-background-default-subtle">
+    <div
+      class="p-4 text-sm text-text-destructive whitespace-pre-line break-all rounded-xl bg-background-default-subtle"
+    >
       {{ error() }}
     </div>
   }
   @if (logs()?.length) {
     <div class="text-semibold px-2 flex h-6 justify-between items-center gap-1 text-text-secondary">
-      <div class="truncate">{{ 'PAC.MCP.Logs' | translate: { Default: 'Logs' } }}</div>
+      <div class="truncate">{{ 'XP.MCP.Logs' | translate: { Default: 'Logs' } }}</div>
     </div>
     <div
       class="p-4 text-sm text-text-secondary whitespace-pre-line break-all rounded-xl space-y-1 max-h-80 overflow-y-auto bg-background-default-subtle"
-      ngmAutoScrollBottom
+      xpAutoScrollBottom
       [dataSource]="logs()"
     >
       @for (log of logs(); track log) {
@@ -392,7 +380,7 @@
           [class.active]="view1.isSelected()"
         >
           <i class="ri-terminal-box-line text-lg"></i>
-          {{ 'PAC.MCP.InitScript' | translate: { Default: 'Init Script' } }}
+          {{ 'XP.MCP.InitScript' | translate: { Default: 'Init Script' } }}
         </button>
       }
       @if (types()[0] === eMCPServerType.CODE) {
@@ -409,7 +397,7 @@
           [class.active]="view2.isSelected()"
         >
           <i class="ri-code-s-slash-line text-lg"></i>
-          {{ 'PAC.MCP.Code' | translate: { Default: 'Code' } }}
+          {{ 'XP.MCP.Code' | translate: { Default: 'Code' } }}
         </button>
       }
       <button
@@ -425,7 +413,7 @@
         [class.active]="view3.isSelected()"
       >
         <i class="ri-hammer-line text-lg"></i>
-        {{ 'PAC.MCP.Tools' | translate: { Default: 'Tools' } }}
+        {{ 'XP.MCP.Tools' | translate: { Default: 'Tools' } }}
       </button>
     </nav>
   </div>
@@ -435,7 +423,7 @@
       <div class="flex items-center px-4 mb-2">
         <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-text-warning"></i>
         <span class="text-sm text-text-secondary truncate">{{
-          'PAC.Xpert.NeedSandboxToolsetTip'
+          'XP.Xpert.NeedSandboxToolsetTip'
             | translate
               : {
                   Default:
@@ -459,7 +447,7 @@
             }
           </ul>
           @for (index of fileIndex(); track index) {
-            <pac-code-editor
+            <xp-code-editor
               class="h-[400px]"
               [fileName]="files()[index].name"
               lineNumbers
@@ -472,7 +460,7 @@
       </div>
     }
     <div role="tabpanel" class="view-tab hidden" [class.active]="views()[0] === 'script'">
-      <pac-code-editor class="h-[400px]" fileName=".sh" lineNumbers [editable]="!loading()" [(ngModel)]="initScripts" />
+      <xp-code-editor class="h-[400px]" fileName=".sh" lineNumbers [editable]="!loading()" [(ngModel)]="initScripts" />
     </div>
     <div role="tabpanel" class="view-tab hidden" [class.active]="view3.isSelected()">
       <mcp-config-tools

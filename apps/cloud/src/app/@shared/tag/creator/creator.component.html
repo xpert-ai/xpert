@@ -1,54 +1,56 @@
-<h2 xpDialogTitle>{{'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'} }}</h2>
+<h2 xpDialogTitle>{{ 'XP.KEY_WORDS.Tag' | translate: { Default: 'Tag' } }}</h2>
 <div class="flex flex-col justify-start items-stretch px-8 py-4">
   <form [formGroup]="formGroup" class="flex flex-col gap-2">
-  <div class="flex gap-4">
-    <div class="flex flex-col justify-start items-start">
-      <label class="">{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</label>
-      <input class="xp-input shrink-0 flex-1 text-base leading-5 text-text-primary"
-        formControlName="name"
-        [placeholder]="'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'}"
-        >
+    <div class="flex gap-4">
+      <div class="flex flex-col justify-start items-start">
+        <label class="">{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</label>
+        <input
+          class="xp-input shrink-0 flex-1 text-base leading-5 text-text-primary"
+          formControlName="name"
+          [placeholder]="'XP.KEY_WORDS.Tag' | translate: { Default: 'Tag' }"
+        />
+      </div>
+
+      <div class="flex flex-col justify-start items-start">
+        <label for="categories" class="">{{ 'XP.KEY_WORDS.Category' | translate: { Default: 'Category' } }}</label>
+        <select id="categories" class="xp-input text-text-primary text-sm block w-full" formControlName="category">
+          @for (category of allCategories; track category) {
+            <option [value]="category">
+              <span class="uppercase">{{ category }}</span>
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="w-full flex flex-col justify-start items-stretch">
+      <label class="">{{ 'XP.KEY_WORDS.Color' | translate: { Default: 'Color' } }}</label>
+      <input
+        class="xp-input shrink-0 flex-1 border-divider-deep text-base leading-5 text-text-primary"
+        type="text"
+        formControlName="color"
+      />
     </div>
 
     <div class="flex flex-col justify-start items-start">
-      <label for="categories" class="">{{ 'PAC.KEY_WORDS.Category' | translate: {Default: 'Category'} }}</label>
-      <select id="categories" class="xp-input text-text-primary text-sm block w-full"
-        formControlName="category">
-        @for (category of allCategories; track category) {
-          <option [value]="category">
-            <span class="uppercase" >{{category}}</span>
-          </option>
-        }
-      </select>
-    </div>
-  </div>
-
-  <div class="w-full flex flex-col justify-start items-stretch">
-    <label class="">{{ 'PAC.KEY_WORDS.Color' | translate: {Default: 'Color'} }}</label>
-    <input class="xp-input shrink-0 flex-1 border-divider-deep text-base leading-5 text-text-primary"
-      type="text"
-      formControlName="color"
+      <label class="">{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</label>
+      <textarea
+        class="xp-input shrink-0 w-full border-dashed border-divider-deep text-base leading-5 text-text-primary"
+        formControlName="description"
       >
-  </div>
-
-  <div class="flex flex-col justify-start items-start">
-    <label class="">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</label>
-    <textarea class="xp-input shrink-0 w-full border-dashed border-divider-deep text-base leading-5 text-text-primary"
-      formControlName="description"
-    >
-    </textarea>
-  </div>
-</form>
+      </textarea>
+    </div>
+  </form>
 </div>
 
 <div class="flex justify-end p-4">
-  <div ngmButtonGroup>
+  <div xpButtonGroup>
     <button z-button zType="secondary" xpDialogClose cdkFocusInitial>
-      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button z-button zType="default" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
       <span>
-        {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
+        {{ 'XP.ACTIONS.Create' | translate: { Default: 'Create' } }}
       </span>
     </button>
   </div>

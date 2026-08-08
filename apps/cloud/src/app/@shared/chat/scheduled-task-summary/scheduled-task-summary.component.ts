@@ -14,19 +14,19 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
         <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-5 py-4">
           <div class="text-lg font-semibold text-text-primary">
             {{
-              'PAC.Chat.ClawXpert.ScheduledTasksHeading'
+              'XP.Chat.ClawXpert.ScheduledTasksHeading'
                 | translate
                   : {
-                      Default: 'Scheduled tasks({{count}})',
-                      count: count()
-                    }
-            }}
+                      Default: 'Scheduled tasks({{count
+
+
+            }})', count: count() } }}
           </div>
 
           <div class="flex flex-wrap items-center justify-end gap-2">
             <button z-button zType="default" displayDensity="cosy" type="button" (click)="create.emit()">
               <i class="ri-add-line text-base"></i>
-              {{ 'PAC.Xpert.NewTask' | translate: { Default: 'New Task' } }}
+              {{ 'XP.Xpert.NewTask' | translate: { Default: 'New Task' } }}
             </button>
 
             <button
@@ -34,7 +34,7 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
               class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm text-text-secondary transition-colors hover:text-text-primary"
               (click)="action.emit()"
             >
-              {{ 'PAC.Chat.ClawXpert.ViewAllTasks' | translate: { Default: 'View all' } }}
+              {{ 'XP.Chat.ClawXpert.ViewAllTasks' | translate: { Default: 'View all' } }}
               <i class="ri-arrow-right-s-line text-lg"></i>
             </button>
           </div>
@@ -54,13 +54,14 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-medium text-text-primary">
-                        {{ task.name || ('PAC.Chat.ClawXpert.UnnamedTask' | translate: { Default: 'Untitled task' }) }}
+                        {{ task.name || ('XP.Chat.ClawXpert.UnnamedTask' | translate: { Default: 'Untitled task' }) }}
                       </div>
                       <div class="mt-1 truncate text-xs font-mono text-text-secondary">
                         {{
                           task.scheduleDescription ||
                             task.schedule ||
-                            ('PAC.Chat.ClawXpert.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
+                            ('XP.Chat.ClawXpert.SchedulePlaceholder'
+                              | translate: { Default: 'Schedule details coming soon' })
                         }}
                       </div>
                     </div>
@@ -68,7 +69,7 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
                     <div
                       class="shrink-0 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] text-text-tertiary"
                     >
-                      {{ (task.updatedAt || task.createdAt) | relative }}
+                      {{ task.updatedAt || task.createdAt | relative }}
                     </div>
                   </div>
 
@@ -85,7 +86,7 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
           <div class="flex min-h-[12rem] flex-1 items-center justify-center px-6 text-center">
             <p class="max-w-lg text-lg font-medium text-text-tertiary">
               {{
-                'PAC.Chat.ClawXpert.NoScheduledTasksHint'
+                'XP.Chat.ClawXpert.NoScheduledTasksHint'
                   | translate
                     : {
                         Default: 'No scheduled tasks yet. You can create one from a conversation.'

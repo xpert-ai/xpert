@@ -6,25 +6,31 @@ import {
 	BoundIdentityLoginPermissionOperation,
 	BoundIdentityLoginPermissionService,
 	Permissions,
-	RequirePermissionOperation
+	RequirePermissionOperation,
+	VerifiedEmailLoginInput,
+	VerifiedEmailLoginResult
 } from '@xpert-ai/plugin-sdk'
 import { AccountBindingService } from '../../account-binding/account-binding.service'
 import { AuthService } from '../../auth/auth.service'
-import {
-	createOperationGuardedPermissionService,
-	resolvePermissionOperations
-} from './service-permission-guard'
+import { PendingSsoBindingChallengeService } from '../../auth/sso/pending-sso-binding-challenge.service'
+import { createOperationGuardedPermissionService, resolvePermissionOperations } from './service-permission-guard'
 
-const BOUND_IDENTITY_LOGIN_ALL_OPERATIONS = ['create'] as const
+const BOUND_IDENTITY_LOGIN_DEFAULT_OPERATIONS = ['create'] as const
 
-function resolveBoundIdentityLoginOperations(
-	permissions: Permissions
-): Set<BoundIdentityLoginPermissionOperation> {
+function resolveBoundIdentityLoginOperations(permissions: Permissions): Set<BoundIdentityLoginPermissionOperation> {
+	const permission = permissions.find(
+		(item): item is BoundIdentityLoginPermission => item.type === 'bound_identity_login'
+	)
+	if (!permission?.operations?.length) {
+		return new Set(BOUND_IDENTITY_LOGIN_DEFAULT_OPERATIONS)
+	}
+
 	return resolvePermissionOperations<BoundIdentityLoginPermissionOperation>(
 		permissions,
 		'bound_identity_login',
-		BOUND_IDENTITY_LOGIN_ALL_OPERATIONS,
-		(operation): operation is BoundIdentityLoginPermissionOperation => operation === 'create'
+		BOUND_IDENTITY_LOGIN_DEFAULT_OPERATIONS,
+		(operation): operation is BoundIdentityLoginPermissionOperation =>
+			operation === 'create' || operation === 'provision'
 	)
 }
 
@@ -49,17 +55,10 @@ export function createGuardedBoundIdentityLoginPermissionService(
 	service: BoundIdentityLoginPermissionService,
 	permissions: Permissions
 ): BoundIdentityLoginPermissionService {
-	const operationGuardedService =
-		createOperationGuardedPermissionService<
+	const operationGuardedService = createOperationGuardedPermissionService<
 			BoundIdentityLoginPermissionOperation,
 			BoundIdentityLoginPermissionService
-		>(
-			pluginName,
-			'bound_identity_login',
-			service,
-			permissions,
-			resolveBoundIdentityLoginOperations
-		)
+	>(pluginName, 'bound_identity_login', service, permissions, resolveBoundIdentityLoginOperations)
 	const allowedProviders = resolveAllowedProviders(permissions)
 
 	if (!allowedProviders || allowedProviders.size === 0) {
@@ -69,7 +68,10 @@ export function createGuardedBoundIdentityLoginPermissionService(
 	return new Proxy(operationGuardedService, {
 		get(target, property, receiver) {
 			const value = Reflect.get(target as object, property, receiver)
-			if (typeof value !== 'function' || property !== 'loginWithBoundIdentity') {
+			if (
+				typeof value !== 'function' ||
+				(property !== 'loginWithBoundIdentity' && property !== 'loginOrPrepareVerifiedEmail')
+			) {
 				return value
 			}
 
@@ -88,15 +90,11 @@ export function createGuardedBoundIdentityLoginPermissionService(
 }
 
 @Injectable()
-export class PluginBoundIdentityLoginPermissionService
-	implements BoundIdentityLoginPermissionService
-{
+export class PluginBoundIdentityLoginPermissionService implements BoundIdentityLoginPermissionService {
 	constructor(private readonly moduleRef: ModuleRef) {}
 
 	@RequirePermissionOperation('bound_identity_login', 'create')
-	async loginWithBoundIdentity(
-		input: BoundIdentityLoginInput
-	) {
+	async loginWithBoundIdentity(input: BoundIdentityLoginInput) {
 		const accountBindingService = this.getAccountBindingService()
 		const user = await accountBindingService.resolveUser({
 			tenantId: input?.tenantId,
@@ -110,6 +108,26 @@ export class PluginBoundIdentityLoginPermissionService
 
 		const authService = this.getAuthService()
 		return authService.issueTokensForUser(user.id)
+	}
+
+	@RequirePermissionOperation('bound_identity_login', 'provision')
+	async loginOrPrepareVerifiedEmail(input: VerifiedEmailLoginInput): Promise<VerifiedEmailLoginResult> {
+		const authService = this.getAuthService()
+		const user = await authService.resolveOrBindVerifiedEmail(input)
+
+		if (user?.id) {
+			return {
+				status: 'authenticated',
+				tokens: await authService.issueTokensForUser(user.id)
+			}
+		}
+
+		const pendingSsoBindingChallengeService = this.getPendingSsoBindingChallengeService()
+		const { ticket } = await pendingSsoBindingChallengeService.createVerifiedEmailSignup(input)
+		return {
+			status: 'registration_required',
+			ticket
+		}
 	}
 
 	private getAccountBindingService(): AccountBindingService {
@@ -137,6 +155,20 @@ export class PluginBoundIdentityLoginPermissionService
 			return service
 		} catch {
 			throw new Error('AuthService is not available.')
+		}
+	}
+
+	private getPendingSsoBindingChallengeService(): PendingSsoBindingChallengeService {
+		try {
+			const service = this.moduleRef.get(PendingSsoBindingChallengeService, {
+				strict: false
+			})
+			if (!service) {
+				throw new Error('PendingSsoBindingChallengeService is not available.')
+}
+			return service
+		} catch {
+			throw new Error('PendingSsoBindingChallengeService is not available.')
 		}
 	}
 }

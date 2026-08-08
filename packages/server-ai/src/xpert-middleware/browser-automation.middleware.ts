@@ -3,7 +3,9 @@ import { AIMessage, BaseMessage, HumanMessage, ToolMessage, isAIMessage, isToolM
 import type { ToolCall } from '@langchain/core/messages/tool'
 import { tool } from '@langchain/core/tools'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
+import { interrupt } from '@langchain/langgraph'
 import { Injectable } from '@nestjs/common'
+import type { ClientToolMessageInput } from '@xpert-ai/chatkit-types'
 import {
     ChatMessageEventTypeEnum,
     ChatMessageStepCategory,
@@ -14,6 +16,7 @@ import { AgentMiddleware, AgentMiddlewareStrategy, IAgentMiddlewareContext } fro
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
 import { ClientToolMiddleware, ClientToolMiddlewareConfig } from './client-tool.middleware'
+import type { HITLRequest, HITLResponse } from './human-in-the-loop.middleware'
 
 export const BROWSER_AUTOMATION_MIDDLEWARE_NAME = 'browser-automation'
 export const HOST_PAGE_WAIT_TOOL_NAME = 'host_page_wait'
@@ -146,6 +149,7 @@ type HostPageSnapshotPaginationRequest = {
     page: number
     pageSize: number
     snapshotId?: string
+    pageStateId?: string
     includeIndex: boolean
     hasPaginationInput: boolean
 }
@@ -177,7 +181,7 @@ type HostPageReadRequest = {
 }
 
 const BROWSER_AUTOMATION_USAGE_GUIDANCE =
-    'For complex enterprise/SAP/Fiori/iframe pages, avoid looping host_page_snapshot and host_page_click. First inspect one rich snapshot, then fill known form fields with host_page_fill, press F8/Enter or click the Execute/Search button once, and wait with host_page_wait_for or host_page_wait. If one DOM/ref click does not change the page, switch to host_page_screenshot and then host_page_pointer coordinates instead of repeating the same click.'
+    'For complex enterprise/SAP/Fiori/iframe pages, avoid looping host_page_snapshot and host_page_click. First inspect one rich snapshot. When capabilities.targetingVersion is 2, every target action must carry that snapshot pageStateId and the target documentRef, use exactly one locator family, and take a fresh snapshot after requiresFreshSnapshot=true or any stale_page_state/stale_target rejection. Only outcome=verified proves the requested business result; executed_unverified proves only that input was dispatched. Use expectation when the business result is observable. Coordinates are allowed only through host_page_pointer with pageStateId, documentRef, coordinateSpace, exact targetText, and optional targetRole/targetContext disambiguation. Legacy clients without targetingVersion=2 remain available, but their actions are unverified. First fill known form fields with host_page_fill, press F8/Enter or click the Execute/Search button once, and wait with host_page_wait_for or host_page_wait.'
 
 const hostPageWaitToolSchema = z.object({
     seconds: z
@@ -192,6 +196,14 @@ const hostPageWaitToolSchema = z.object({
 type HostPageWaitInput = z.infer<typeof hostPageWaitToolSchema>
 
 const TARGET_PROPERTIES = {
+    pageStateId: {
+        type: 'string',
+        description: 'Opaque page state id from the latest v2 host_page_snapshot. Required for v2 target actions.'
+    },
+    documentRef: {
+        type: 'string',
+        description: 'Document scope from the same v2 host_page_snapshot. Required for v2 target actions.'
+    },
     ref: {
         type: 'string',
         description: 'Element ref from the latest host_page_snapshot result.'
@@ -219,16 +231,94 @@ const TARGET_PROPERTIES = {
     testId: {
         type: 'string',
         description: 'data-testid, data-test-id, or data-qa fallback.'
-    },
+    }
+}
+
+const SCROLL_POSITION_PROPERTIES = {
     x: {
         type: 'number',
-        description:
-            'Target tab page viewport CSS x coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
+        description: 'Absolute horizontal scroll position.'
     },
     y: {
         type: 'number',
-        description:
-            'Target tab page viewport CSS y coordinate. This is not a macOS screen coordinate and excludes browser chrome or ChatKit sidebars.'
+        description: 'Absolute vertical scroll position.'
+    }
+}
+
+const OBSERVATION_SCOPE_PROPERTIES = {
+    documentScope: {
+        type: 'string',
+        enum: ['same_document', 'current_top'],
+        description: 'Observe the original scoped document or the current top document after navigation.'
+    },
+    documentRef: {
+        type: 'string',
+        description: 'Required when documentScope is same_document.'
+    }
+}
+
+const OBSERVATION_TARGET_SCHEMA = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        ...OBSERVATION_SCOPE_PROPERTIES,
+        kind: {
+            type: 'string',
+            enum: ['test_id', 'selector', 'semantic']
+        },
+        testId: { type: 'string' },
+        selector: { type: 'string' },
+        match: {
+            type: 'string',
+            enum: ['exact']
+        },
+        identity: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+                role: { type: 'string' },
+                name: { type: 'string' },
+                text: { type: 'string' }
+            },
+            required: ['role']
+        }
+    },
+    required: ['documentScope', 'kind']
+}
+
+const ACTION_EXPECTATION_PROPERTY = {
+    expectation: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+            type: {
+                type: 'string',
+                enum: [
+                    'field_contains',
+                    'checked_equals',
+                    'element_visible',
+                    'element_hidden',
+                    'url_matches',
+                    'text_visible'
+                ]
+            },
+            target: OBSERVATION_TARGET_SCHEMA,
+            scope: {
+                type: 'object',
+                additionalProperties: false,
+                properties: OBSERVATION_SCOPE_PROPERTIES,
+                required: ['documentScope']
+            },
+            mode: {
+                type: 'string',
+                enum: ['exact', 'prefix']
+            },
+            value: {
+                type: ['string', 'boolean'],
+                description: 'Expected text, URL, field substring, or checked state, depending on expectation type.'
+            }
+        },
+        required: ['type']
     }
 }
 
@@ -251,7 +341,7 @@ function createTargetSchema(properties: object = {}, required: string[] = []) {
 const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_snapshot',
-        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, page state, actionable DOM elements, readable page content summaries, structured form labels/group labels/select options, nearby visible label text, accessibility summaries, layout hit-test details, and automation capabilities. Use refs, axRefs, role/name, label, groupLabel, options, selectedLabel, nearbyText, or coordinates from this result for later actions. Use readableContent blocks to understand titles, paragraphs, lists, tables, details fields, reviews, and Q&A-style text. Use readableContent.outline as the lightweight page table of contents when blocks are previewed, compacted, or truncated. If readableContent.suggestedReads is present, or coverage is partial, read the task-relevant suggestedReads blockIds with host_page_read before finalizing content-sensitive answers. When a readableContent block is truncated or only previewed, call host_page_read with its blockId/readHint instead of assuming missing page text. For large snapshots, inspect _xpertPagination, pages, and criticalElements. Use criticalElements first for checkbox, radio, switch, and checked controls. If the needed element is not in elements or criticalElements, choose the likely page from pages and call host_page_snapshot again with snapshotId, page, pageSize, and includeIndex=false. If a click fails with target_occluded/occludedBy, dismiss or move the overlay, use a safeClickPoint, or take a screenshot before switching to coordinates. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Capture a rich host page snapshot including URL, title, viewport, scroll, pageStateId, document scopes, actionable DOM elements, readable page content summaries, accessibility summaries, layout hit-test details, and automation capabilities. For targetingVersion=2, copy pageStateId and the element documentRef into every target action. Use readableContent blocks and outline to understand page text; follow suggestedReads with host_page_read when content is previewed or truncated. For large snapshots, inspect _xpertPagination, pages, and criticalElements. When requesting another page, send both _xpertPagination.snapshotId and pageStateId with includeIndex=false so the browser returns the same ref state; never silently accept a new page state under the old pagination id. If a click fails with target_occluded, dismiss or move the overlay or take a screenshot before using strict host_page_pointer coordinates. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: stringifySchema({
             type: 'object',
             additionalProperties: false,
@@ -282,6 +372,11 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
                 snapshotId: {
                     type: 'string',
                     description: 'Snapshot id from a previous host_page_snapshot response when requesting another page.'
+                },
+                pageStateId: {
+                    type: 'string',
+                    description:
+                        'Browser pageStateId from the same snapshot. Send it together with snapshotId for v2 pagination.'
                 },
                 includeIndex: {
                     type: 'boolean',
@@ -347,9 +442,10 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     },
     {
         name: 'host_page_click',
-        description: `Click the host page using Playwright-style targeting. Prefer ref or axRef from host_page_snapshot, then role/name, nearbyText-derived target choice, testId, selector, or coordinates. The browser extension uses real CDP mouse input when available. Do not repeatedly click the same target if the next snapshot does not change; use fill, press, wait_for, pointer, or screenshot instead. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
+        description: `Click the host page using one target locator family. V2 click does not accept coordinates; use host_page_pointer for strict coordinates. ${BROWSER_AUTOMATION_USAGE_GUIDANCE}`,
         schema: createTargetSchema(
             {
+                ...ACTION_EXPECTATION_PROPERTY,
                 strategy: {
                     type: 'string',
                     enum: ['auto', 'dom', 'cdp_mouse', 'deepest_point', 'ancestor_actionable', 'label_control'],
@@ -381,6 +477,7 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
             'Fill a text input, textarea, or contenteditable element on the host page. Prefer this over clicking when the task is to enter filter/query values in forms, including SAP/Fiori selection screens.',
         schema: createTargetSchema(
             {
+                ...ACTION_EXPECTATION_PROPERTY,
                 value: {
                     type: 'string',
                     description: 'Text to fill into the target element.'
@@ -400,6 +497,7 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
             'Press a keyboard key on the host page, optionally focused on a target element. Use Enter to submit SAP/search forms after filling fields when the page supports keyboard execution. The browser extension uses CDP keyboard input when available.',
         schema: createTargetSchema(
             {
+                ...ACTION_EXPECTATION_PROPERTY,
                 key: {
                     type: 'string',
                     description: 'Keyboard key value, such as Enter, Escape, Tab, or a single character.'
@@ -417,6 +515,7 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
             additionalProperties: false,
             properties: {
                 ...TARGET_PROPERTIES,
+                ...ACTION_EXPECTATION_PROPERTY,
                 values: {
                     type: 'array',
                     items: {
@@ -437,6 +536,8 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
             additionalProperties: false,
             properties: {
                 ...TARGET_PROPERTIES,
+                ...SCROLL_POSITION_PROPERTIES,
+                ...ACTION_EXPECTATION_PROPERTY,
                 deltaX: {
                     type: 'number',
                     description: 'Relative horizontal scroll delta.'
@@ -455,6 +556,9 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
             type: 'object',
             additionalProperties: false,
             properties: {
+                pageStateId: TARGET_PROPERTIES.pageStateId,
+                documentRef: TARGET_PROPERTIES.documentRef,
+                ...ACTION_EXPECTATION_PROPERTY,
                 url: {
                     type: 'string',
                     description: 'Destination HTTP(S) URL. Relative URLs resolve against the current page URL.'
@@ -466,20 +570,46 @@ const CLIENT_TOOLS: ClientToolDefinition[] = [
     {
         name: 'host_page_hover',
         description:
-            'Move the pointer over a host page target by ref, axRef, semantic target, selector, or coordinates.',
+            'Move the pointer over a host page target by ref, axRef, exact semantic target, testId, or selector.',
         schema: createTargetSchema()
     },
     {
         name: 'host_page_focus',
-        description: 'Focus a host page target by ref, axRef, semantic target, selector, or coordinates.',
+        description: 'Focus a host page target by ref, axRef, exact semantic target, testId, or selector.',
         schema: createTargetSchema()
     },
     {
         name: 'host_page_pointer',
         description:
-            'Dispatch low-level pointer movement or button actions against the host page using viewport CSS coordinates. Use this after host_page_screenshot for SAP/Fiori/iframe pages when DOM/ref click did not change the page. Coordinates are relative to the captured page viewport, not the OS screen.',
+            'Dispatch low-level pointer actions. V2 coordinate clicks require pageStateId, documentRef, coordinateSpace, exact targetText, and unique target identity; use targetRole or targetContext when targetText appears in multiple actionable regions.',
         schema: createTargetSchema(
             {
+                ...ACTION_EXPECTATION_PROPERTY,
+                x: {
+                    type: 'number',
+                    description: 'Target tab viewport x coordinate.'
+                },
+                y: {
+                    type: 'number',
+                    description: 'Target tab viewport y coordinate.'
+                },
+                coordinateSpace: {
+                    type: 'string',
+                    enum: ['viewport-css-px', 'viewport_normalized'],
+                    description: 'Coordinate system used by x and y.'
+                },
+                targetText: {
+                    type: 'string',
+                    description: 'Exact normalized text or accessible name expected at the coordinate.'
+                },
+                targetRole: {
+                    type: 'string',
+                    description: 'Optional exact role used to disambiguate repeated targetText.'
+                },
+                targetContext: {
+                    type: 'string',
+                    description: 'Optional nearby context used to disambiguate repeated targetText.'
+                },
                 action: {
                     type: 'string',
                     enum: ['move', 'down', 'up', 'click'],
@@ -641,6 +771,24 @@ function readRecord(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
 }
 
+function createApprovalRejectedToolMessage(toolCall: ToolCall, message?: string): ToolMessage {
+    if (!toolCall.id) {
+        throw new Error('Invalid browser approval request: tool call id is required.')
+    }
+    return new ToolMessage({
+        content: JSON.stringify({
+            ok: false,
+            code: 'approval_rejected',
+            message: message ?? 'User rejected the browser action.',
+            dispatched: false,
+            outcome: 'rejected_before_execution'
+        }),
+        name: toolCall.name,
+        tool_call_id: toolCall.id,
+        status: 'error'
+    })
+}
+
 function parseToolMessageContent(content: ToolMessage['content']): unknown {
     if (typeof content !== 'string') {
         return null
@@ -651,6 +799,133 @@ function parseToolMessageContent(content: ToolMessage['content']): unknown {
     } catch {
         return null
     }
+}
+
+function parseClientToolMessageContent(message: ClientToolMessageInput | ToolMessage): Record<string, unknown> | null {
+    const content = message.content
+    if (typeof content === 'string') {
+        try {
+            return readRecord(JSON.parse(content))
+        } catch {
+            return null
+        }
+    }
+    return readRecord(content)
+}
+
+function readApprovalRisks(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return []
+    }
+    return value.filter((risk): risk is string => typeof risk === 'string' && risk.length > 0)
+}
+
+function redactApprovalArgs(args: ToolCall['args'], risks: string[]): Record<string, unknown> {
+    const record = readRecord(args) ?? {}
+    const redactValue = risks.includes('password_input') || risks.includes('file_input')
+    return {
+        ...record,
+        ...(redactValue && 'value' in record ? { value: '[REDACTED]' } : {}),
+        ...(redactValue && 'values' in record ? { values: '[REDACTED]' } : {}),
+        ...(redactValue && 'message' in record ? { message: '[REDACTED]' } : {}),
+        ...(redactValue && 'expectation' in record ? { expectation: '[REDACTED]' } : {})
+    }
+}
+
+function attachBrowserApprovalMetadata(
+    message: ClientToolMessageInput | ToolMessage,
+    toolCall: ToolCall,
+    approvalId: string,
+    risks: string[]
+): ToolMessage {
+    const content =
+        typeof message.content === 'string'
+            ? message.content
+            : message.content == null
+              ? ''
+              : JSON.stringify(message.content)
+    return new ToolMessage({
+        content,
+        name: message.name ?? toolCall.name,
+        tool_call_id: message.tool_call_id ?? toolCall.id ?? '',
+        status: message.status,
+        artifact: message.artifact,
+        ...(message instanceof ToolMessage
+            ? {
+                  additional_kwargs: message.additional_kwargs,
+                  response_metadata: message.response_metadata,
+                  id: message.id,
+                  metadata: {
+                      ...message.metadata,
+                      browserApprovalId: approvalId,
+                      browserApprovalRisks: risks
+                  }
+              }
+            : {
+                  metadata: {
+                      browserApprovalId: approvalId,
+                      browserApprovalRisks: risks
+                  }
+              })
+    })
+}
+
+async function resolveBrowserApproval(
+    message: ClientToolMessageInput | ToolMessage,
+    toolCall: ToolCall,
+    executeClientTool: (toolCall: ToolCall) => Promise<ClientToolMessageInput | ToolMessage>
+): Promise<ClientToolMessageInput | ToolMessage> {
+    const payload = parseClientToolMessageContent(message)
+    if (readStringProperty(payload ?? {}, 'code') !== 'approval_required') {
+        return message
+    }
+
+    const actionToken = readStringProperty(payload ?? {}, 'actionToken')
+    if (!actionToken) {
+        throw new Error('Invalid browser approval response: actionToken is required.')
+    }
+    const risks = readApprovalRisks(payload?.risks)
+    const approvalId = randomUUID()
+    const riskDescription = risks.length ? `: ${risks.join(', ')}.` : '.'
+    const hitlRequest: HITLRequest = {
+        actionRequests: [
+            {
+                name: toolCall.name,
+                args: redactApprovalArgs(toolCall.args, risks),
+                description: `Browser action requires approval${riskDescription}`
+            }
+        ],
+        reviewConfigs: [
+            {
+                actionName: toolCall.name,
+                allowedDecisions: ['approve', 'reject']
+            }
+        ]
+    }
+    const hitlResponse = (await interrupt(hitlRequest)) as HITLResponse
+    if (!Array.isArray(hitlResponse?.decisions) || hitlResponse.decisions.length !== 1) {
+        throw new Error('Invalid browser approval response: exactly one decision is required.')
+    }
+    const decision = hitlResponse.decisions[0]
+    if (decision?.type === 'reject') {
+        return createApprovalRejectedToolMessage(toolCall, decision.message)
+    }
+    if (decision?.type !== 'approve') {
+        throw new Error(`Unsupported browser approval decision: ${decision?.type ?? 'missing'}.`)
+    }
+
+    return attachBrowserApprovalMetadata(
+        await executeClientTool({
+            ...toolCall,
+            args: {
+                ...(readRecord(toolCall.args) ?? {}),
+                actionToken
+            }
+        }),
+        toolCall,
+        approvalId,
+        risks
+    )
 }
 
 function readScreenshotMimeType(value: unknown): HostPageScreenshotMimeType | null {
@@ -705,9 +980,10 @@ function readSnapshotPaginationRequest(args: unknown): HostPageSnapshotPaginatio
         readBoundedInteger(record?.pageSize, 1, HOST_PAGE_SNAPSHOT_MAX_PAGE_SIZE) ??
         HOST_PAGE_SNAPSHOT_DEFAULT_PAGE_SIZE
     const snapshotId = readNonEmptyString(record?.snapshotId)
+    const pageStateId = readNonEmptyString(record?.pageStateId)
     const includeIndexValue = record ? record.includeIndex : undefined
     const hasPaginationInput =
-        !!record && ['page', 'pageSize', 'snapshotId', 'includeIndex'].some((key) => key in record)
+        !!record && ['page', 'pageSize', 'snapshotId', 'pageStateId', 'includeIndex'].some((key) => key in record)
     const isPageRequest = page != null || snapshotId != null
     const includeIndex = typeof includeIndexValue === 'boolean' ? includeIndexValue : !isPageRequest
 
@@ -715,6 +991,7 @@ function readSnapshotPaginationRequest(args: unknown): HostPageSnapshotPaginatio
         page: page ?? 1,
         pageSize,
         ...(snapshotId ? { snapshotId } : {}),
+        ...(pageStateId ? { pageStateId } : {}),
         includeIndex,
         hasPaginationInput
     }
@@ -758,9 +1035,13 @@ function resolveSnapshotPaginationOptions(
     const existing = readExistingSnapshotPagination(result)
     const snapshotId = request.snapshotId ?? existing.snapshotId ?? randomUUID()
     const warning =
-        request.snapshotId && existing.snapshotId && request.snapshotId !== existing.snapshotId
-            ? 'Requested snapshotId was not returned by the client; using refreshed snapshot data.'
-            : existing.warning
+        request.pageStateId &&
+        readNonEmptyString(result.pageStateId) &&
+        request.pageStateId !== readNonEmptyString(result.pageStateId)
+            ? 'Requested pageStateId was not returned. The refreshed snapshot must not be used with the old refs.'
+            : request.snapshotId && existing.snapshotId && request.snapshotId !== existing.snapshotId
+              ? 'Requested snapshotId was not returned by the client; using refreshed snapshot data.'
+              : existing.warning
 
     return {
         ...request,
@@ -1141,6 +1422,8 @@ function stringifyCompactedHostPageReadPayload(
 const HOST_PAGE_SNAPSHOT_RESULT_KEYS = [
     'url',
     'title',
+    'pageStateId',
+    'documents',
     'viewport',
     'scroll',
     'pageState',
@@ -1152,6 +1435,7 @@ const HOST_PAGE_SNAPSHOT_RESULT_KEYS = [
 ] as const
 
 const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
+    'documentRef',
     'ref',
     'axRef',
     'role',
@@ -1162,6 +1446,7 @@ const HOST_PAGE_SNAPSHOT_ELEMENT_KEYS = [
     'type',
     'text',
     'selector',
+    'testId',
     'value',
     'options',
     'selectedLabel',
@@ -1365,6 +1650,7 @@ function buildCompactedSnapshotPayload(
     }
     compactedResult._xpertPagination = {
         snapshotId: options.snapshotId,
+        ...(readNonEmptyString(result.pageStateId) ? { pageStateId: readNonEmptyString(result.pageStateId) } : {}),
         page,
         pageSize: options.pageSize,
         pageCount,
@@ -1625,6 +1911,172 @@ function compactHostPageReadToolMessage(message: ToolMessage, toolCall?: ToolCal
     })
 }
 
+const HOST_PAGE_ACTION_TOOL_NAMES = new Set([
+    'host_page_click',
+    'host_page_fill',
+    'host_page_press',
+    'host_page_select',
+    'host_page_scroll',
+    'host_page_navigate',
+    'host_page_hover',
+    'host_page_focus',
+    'host_page_pointer'
+])
+
+const HOST_PAGE_ALWAYS_TARGETED_TOOL_NAMES = new Set([
+    'host_page_click',
+    'host_page_fill',
+    'host_page_select',
+    'host_page_hover',
+    'host_page_focus',
+    'host_page_pointer',
+    'host_page_wait_for'
+])
+
+const HOST_PAGE_TARGET_ARGUMENT_NAMES = ['ref', 'axRef', 'selector', 'testId', 'role', 'name', 'text'] as const
+
+function findLatestV2BrowserSnapshot(messages: BaseMessage[]): { pageStateId: string; stale: boolean } | null {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index]
+        if (!message || !isToolMessage(message) || message.name !== HOST_PAGE_SNAPSHOT_TOOL_NAME) {
+            continue
+        }
+
+        const payload = readRecord(parseToolMessageContent((message as ToolMessage).content))
+        const result = payload ? readRecord(payload.result) : null
+        const capabilities = result ? readRecord(result.capabilities) : null
+        const pageStateId = readNonEmptyString(result?.pageStateId)
+        if (capabilities?.targetingVersion !== 2 || !pageStateId) {
+            return null
+        }
+
+        const stale = messages.slice(index + 1).some((candidate) => {
+            if (!isToolMessage(candidate) || !HOST_PAGE_ACTION_TOOL_NAMES.has(candidate.name ?? '')) {
+                return false
+            }
+            const candidatePayload = readRecord(parseToolMessageContent((candidate as ToolMessage).content))
+            const candidateResult = candidatePayload ? readRecord(candidatePayload.result) : null
+            return candidateResult?.requiresFreshSnapshot === true
+        })
+        return { pageStateId, stale }
+    }
+
+    return null
+}
+
+function bindLatestV2NavigationPageState(toolCall: ToolCall, messages: BaseMessage[]): ToolCall {
+    if (toolCall.name !== 'host_page_navigate') {
+        return toolCall
+    }
+
+    const args = readRecord(toolCall.args) ?? {}
+    if (readNonEmptyString(args.pageStateId)) {
+        return toolCall
+    }
+
+    const snapshot = findLatestV2BrowserSnapshot(messages)
+    if (!snapshot || snapshot.stale) {
+        return toolCall
+    }
+
+    return {
+        ...toolCall,
+        args: {
+            ...args,
+            pageStateId: snapshot.pageStateId
+        }
+    }
+}
+
+function validateV2BrowserAction(toolCall: ToolCall, messages: BaseMessage[]): ToolMessage | null {
+    if (!HOST_PAGE_ACTION_TOOL_NAMES.has(toolCall.name) && toolCall.name !== 'host_page_wait_for') {
+        return null
+    }
+    const snapshot = findLatestV2BrowserSnapshot(messages)
+    if (!snapshot) {
+        return null
+    }
+    const args = readRecord(toolCall.args) ?? {}
+    const toolCallId = toolCall.id
+    if (!toolCallId) {
+        throw new Error('Invalid browser automation tool call: tool call id is required.')
+    }
+    const reject = (
+        code: 'stale_page_state' | 'unsupported_target_scope',
+        message: string,
+        requiresFreshSnapshot = false
+    ) =>
+        new ToolMessage({
+            content: JSON.stringify({
+                ok: false,
+                code,
+                message,
+                recoverable: true,
+                dispatched: false,
+                outcome: 'rejected_before_execution',
+                requiresFreshSnapshot,
+                ...(requiresFreshSnapshot ? { invalidatedPageStateId: snapshot.pageStateId } : {})
+            }),
+            name: toolCall.name,
+            tool_call_id: toolCallId,
+            status: 'error'
+        })
+
+    if (snapshot.stale) {
+        return reject(
+            'stale_page_state',
+            'The latest v2 browser snapshot was invalidated by a previous action. Take a fresh snapshot.',
+            true
+        )
+    }
+
+    if (readNonEmptyString(args.pageStateId) !== snapshot.pageStateId) {
+        return reject(
+            'stale_page_state',
+            'The action must use the pageStateId from the latest v2 browser snapshot.',
+            true
+        )
+    }
+
+    const hasTargetArgument = HOST_PAGE_TARGET_ARGUMENT_NAMES.some((key) => readNonEmptyString(args[key]))
+    const requiresDocumentRef = HOST_PAGE_ALWAYS_TARGETED_TOOL_NAMES.has(toolCall.name) || hasTargetArgument
+    if (requiresDocumentRef && !readNonEmptyString(args.documentRef)) {
+        return reject('unsupported_target_scope', 'A v2 browser target action must include documentRef.')
+    }
+
+    return null
+}
+
+function markLegacyBrowserActionResult(message: ToolMessage): ToolMessage {
+    if (message.status === 'error' || typeof message.content !== 'string') {
+        return message
+    }
+    const payload = readRecord(parseToolMessageContent(message.content))
+    const result = payload ? readRecord(payload.result) : null
+    if (!payload || !result || typeof result.outcome === 'string') {
+        return message
+    }
+
+    return new ToolMessage({
+        content: JSON.stringify({
+            ...payload,
+            result: {
+                ...result,
+                outcome: 'executed_unverified',
+                legacyUnverified: true
+            }
+        }),
+        name: message.name,
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        artifact: message.artifact,
+        metadata: message.metadata,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata,
+        id: message.id
+    })
+}
+
 function compactBrowserAutomationToolMessage(message: ToolMessage, toolCall: ToolCall): ToolMessage {
     if (toolCall.name === HOST_PAGE_SNAPSHOT_TOOL_NAME || message.name === HOST_PAGE_SNAPSHOT_TOOL_NAME) {
         return compactHostPageSnapshotToolMessage(message, toolCall)
@@ -1632,6 +2084,13 @@ function compactBrowserAutomationToolMessage(message: ToolMessage, toolCall: Too
 
     if (toolCall.name === HOST_PAGE_READ_TOOL_NAME || message.name === HOST_PAGE_READ_TOOL_NAME) {
         return compactHostPageReadToolMessage(message, toolCall)
+    }
+
+    if (
+        HOST_PAGE_ACTION_TOOL_NAMES.has(toolCall.name) ||
+        (message.name && HOST_PAGE_ACTION_TOOL_NAMES.has(message.name))
+    ) {
+        return markLegacyBrowserActionResult(message)
     }
 
     return message
@@ -1907,16 +2366,29 @@ export class BrowserAutomationMiddleware extends ClientToolMiddleware {
                     displayToolset: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
                     displayMessages: HOST_PAGE_TOOL_DISPLAY_MESSAGES,
                     emitToolMessages: true,
+                    resolveClientToolMessage: resolveBrowserApproval,
                     transformToolMessage: compactBrowserAutomationToolMessage
                 },
                 context
             )
         )
+        const clientWrapToolCall = middleware.wrapToolCall
 
         return {
             ...middleware,
             name: BROWSER_AUTOMATION_MIDDLEWARE_NAME,
             tools: [...(middleware.tools ?? []), createHostPageWaitTool()],
+            wrapToolCall: clientWrapToolCall
+                ? async (request, handler) => {
+                      const toolCall = bindLatestV2NavigationPageState(request.toolCall, request.state.messages)
+                      const preparedRequest = toolCall === request.toolCall ? request : { ...request, toolCall }
+                      const rejection = validateV2BrowserAction(toolCall, request.state.messages)
+                      if (rejection) {
+                          return rejection
+                      }
+                      return clientWrapToolCall(preparedRequest, handler)
+                  }
+                : undefined,
             wrapModelCall: async (request, handler) => {
                 const preparedRequest = prepareHostPageScreenshotModelRequest(request)
                 return middleware.wrapModelCall

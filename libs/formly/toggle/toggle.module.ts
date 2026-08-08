@@ -3,10 +3,10 @@ import { NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { FormlyModule } from '@ngx-formly/core'
 import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-import { NgmFormlyToggleComponent } from './toggle.type'
+import { XpFormlyToggleComponent } from './toggle.type'
 
 @NgModule({
-  declarations: [NgmFormlyToggleComponent],
+  declarations: [XpFormlyToggleComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -15,10 +15,10 @@ import { NgmFormlyToggleComponent } from './toggle.type'
       types: [
         {
           name: 'toggle',
-          component: NgmFormlyToggleComponent
+          component: XpFormlyToggleComponent
         }
       ]
     })
   ]
 })
-export class NgmFormlyToggleModule {}
+export class XpFormlyToggleModule {}

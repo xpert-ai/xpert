@@ -1,7 +1,7 @@
 import { computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { Store } from '@xpert-ai/cloud/state'
-import { normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/ocap-angular/core'
+import { Store } from '@cloud/app/@core/state'
+import { normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/headless-ui'
 
 /**
  * Injects a computed signal that resolves the application theme

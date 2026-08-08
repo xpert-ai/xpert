@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { Store } from '@xpert-ai/cloud/state'
+import { Store } from '@cloud/app/@core/state'
 import {
   AiFeatureEnum,
   AiModelTypeEnum,
@@ -81,6 +81,10 @@ export class MembershipService {
     return this.#http.get<IPagination<IUserMembership>>(`${API_MEMBERSHIP}/admin/users`, {
       params: this.toParams(params)
     })
+  }
+
+  getAdminUserScopeMemberships(userId: string) {
+    return this.#http.get<IUserMembership[]>(`${API_MEMBERSHIP}/admin/users/${userId}/scope-memberships`)
   }
 
   getAdminMembers(params?: IMembershipAdminUsersQuery) {
@@ -194,7 +198,7 @@ export class MembershipService {
   }
 
   getOverview(query?: IMembershipUsageQuery) {
-    return this.#http.get<IMembershipUsageOverview | null>(`${API_MEMBERSHIP}/me/overview`, {
+    return this.#http.get<IMembershipUsageOverview>(`${API_MEMBERSHIP}/me/overview`, {
       params: this.toParams(query)
     })
   }

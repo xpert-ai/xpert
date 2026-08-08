@@ -22,7 +22,7 @@ export type ModelAccessActionDialogResult = {
 
 @Component({
   standalone: true,
-  selector: 'pac-model-access-action-dialog',
+  selector: 'xp-model-access-action-dialog',
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -35,18 +35,18 @@ export type ModelAccessActionDialogResult = {
   template: `
     <section>
       <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'PAC.ModelAccess.Action.' + mode() + '.Title' | translate }}
+        {{ 'XP.ModelAccess.Action.' + mode() + '.Title' | translate }}
       </h2>
       <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         @if (showsExpiration()) {
           <z-form-field class="w-full">
             <z-form-label>
-              {{ 'PAC.ModelAccess.Expiration' | translate: { Default: 'Expiration date' } }}
+              {{ 'XP.ModelAccess.Expiration' | translate: { Default: 'Expiration date' } }}
             </z-form-label>
             <z-date-picker class="w-full" zFormat="yyyy-MM-dd" formControlName="validUntil" />
             <z-form-message>
               {{
-                'PAC.ModelAccess.ExpirationHint' | translate: { Default: 'Leave empty for a grant without expiration.' }
+                'XP.ModelAccess.ExpirationHint' | translate: { Default: 'Leave empty for a grant without expiration.' }
               }}
             </z-form-message>
           </z-form-field>
@@ -56,8 +56,8 @@ export type ModelAccessActionDialogResult = {
           <z-form-label>
             {{
               requiresReason()
-                ? ('PAC.ModelAccess.Reason' | translate: { Default: 'Reason' })
-                : ('PAC.ModelAccess.Note' | translate: { Default: 'Note' })
+                ? ('XP.ModelAccess.Reason' | translate: { Default: 'Reason' })
+                : ('XP.ModelAccess.Note' | translate: { Default: 'Note' })
             }}
           </z-form-label>
           <textarea z-input class="min-h-24 resize-y" formControlName="message" maxlength="1000"></textarea>
@@ -65,7 +65,7 @@ export type ModelAccessActionDialogResult = {
 
         <footer class="flex justify-end gap-2">
           <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
           <button
             z-button
@@ -73,7 +73,7 @@ export type ModelAccessActionDialogResult = {
             [zType]="requiresReason() ? 'destructive' : 'default'"
             [disabled]="form.invalid"
           >
-            {{ 'PAC.ModelAccess.Action.' + mode() + '.Submit' | translate }}
+            {{ 'XP.ModelAccess.Action.' + mode() + '.Submit' | translate }}
           </button>
         </footer>
       </form>

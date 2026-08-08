@@ -15,10 +15,10 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { linkedModel } from '@xpert-ai/core'
+import { linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { myRxResource } from '@xpert-ai/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/headless-ui'
 import { XpertAPIService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
@@ -35,7 +35,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     StateVariableSelectComponent,
     XpertVariablePanelComponent
-],
+  ],
   selector: 'xpert-variable-input',
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss'],
@@ -84,13 +84,11 @@ export class XpertVariableInputComponent {
   readonly loading = computed(() => this.#variables.status() === 'loading')
 
   constructor() {
-    effect(
-      () => {
-        if (this.#variables.value()) {
-          this.variables.set(this.#variables.value())
-        }
+    effect(() => {
+      if (this.#variables.value()) {
+        this.variables.set(this.#variables.value())
       }
-    )
+    })
   }
 
   update(index: number, value: string) {

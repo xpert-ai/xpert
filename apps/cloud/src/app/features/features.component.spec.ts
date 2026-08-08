@@ -1,4 +1,4 @@
-jest.mock('@xpert-ai/cloud/state', () => {
+jest.mock('@cloud/app/@core/state', () => {
   const { signal } = jest.requireActual('@angular/core')
 
   return {
@@ -52,7 +52,7 @@ jest.mock('../app.service', () => ({
 import { Renderer2, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
-import { CurrentUserHydrationService, UsersService } from '@xpert-ai/cloud/state'
+import { CurrentUserHydrationService, UsersService } from '@cloud/app/@core/state'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
@@ -373,7 +373,7 @@ describe('FeaturesComponent entry onboarding', () => {
 
     component.entryOnboardingXpertCount.set(0)
 
-    expect(component.entryOnboardingFinishText()).toBe('PAC.ACTIONS.Done')
+    expect(component.entryOnboardingFinishText()).toBe('XP.ACTIONS.Done')
 
     await component.onEntryOnboardingFinish()
 
@@ -388,7 +388,7 @@ describe('FeaturesComponent entry onboarding', () => {
     component.entryOnboardingXpertCount.set(0)
     component.entryOnboardingOpen.set(true)
 
-    expect(component.entryOnboardingFinishText()).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
+    expect(component.entryOnboardingFinishText()).toBe('XP.Chat.ClawXpert.EntryGuideCreate')
 
     await component.onEntryOnboardingFinish()
 

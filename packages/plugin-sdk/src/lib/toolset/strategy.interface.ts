@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import { I18nObject, IconDefinition } from '@xpert-ai/contracts'
 import { ZodSchema } from 'zod'
 import { BuiltinToolset, TBuiltinToolsetParams } from './builtin'
+import type { VideoGenerationToolsetCapability } from '../core/permissions/video-generation'
 
 export interface IToolsetStrategy<TConfig = any> {
   /**
@@ -15,6 +16,8 @@ export interface IToolsetStrategy<TConfig = any> {
     description?: I18nObject // optional i18n description
     configSchema: any // JSON schema for config validation
     icon?: IconDefinition
+    /** Optional normalized video-generation capability consumed by platform services. */
+    videoGeneration?: VideoGenerationToolsetCapability
   }
 
   /**

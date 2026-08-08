@@ -1,7 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, forwardRef, inject, OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, Validators, FormGroup, ReactiveFormsModule } from '@angular/forms'
+import {
+  ControlValueAccessor,
+  FormBuilder,
+  NG_VALUE_ACCESSOR,
+  Validators,
+  FormGroup,
+  ReactiveFormsModule
+} from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardCheckboxComponent, ZardFormImports, ZardInputDirective, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { combineLatest } from 'rxjs'
@@ -14,16 +21,16 @@ import { combineLatest } from 'rxjs'
     ...ZardStepperImports,
     ...ZardFormImports,
     ZardCheckboxComponent,
-    ZardInputDirective,
+    ZardInputDirective
   ],
-  selector: 'pac-organization-step-form',
+  selector: 'xp-organization-step-form',
   templateUrl: './organization-step-form.component.html',
   styleUrls: ['./organization-step-form.component.scss'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => OrganizationStepFormComponent),
+      useExisting: forwardRef(() => OrganizationStepFormComponent)
     }
   ]
 })
@@ -34,7 +41,7 @@ export class OrganizationStepFormComponent implements OnInit, ControlValueAccess
   basic = this.fb.group({
     name: ['', Validators.required],
     currency: ['CNY', Validators.required],
-    defaultValueDateType: ['TODAY', Validators.required],
+    defaultValueDateType: ['TODAY', Validators.required]
   })
 
   orgSettingsForm: FormGroup
@@ -50,10 +57,8 @@ export class OrganizationStepFormComponent implements OnInit, ControlValueAccess
   registerOnChange(fn: any): void {
     this.onChange = fn
   }
-  registerOnTouched(fn: any): void {
-  }
-  setDisabledState?(isDisabled: boolean): void {
-  }
+  registerOnTouched(fn: any): void {}
+  setDisabledState?(isDisabled: boolean): void {}
 
   ngOnInit(): void {
     this._initializedForm()
@@ -61,18 +66,17 @@ export class OrganizationStepFormComponent implements OnInit, ControlValueAccess
 
   private _initializedForm() {
     this.orgSettingsForm = this.fb.group({
-			invitesAllowed: [true],
-			inviteExpiryPeriod: [7, [Validators.min(1)]]
-		});
-
-    combineLatest([
-      this.basic.valueChanges,
-      this.orgSettingsForm.valueChanges
-    ]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(([basic, orgSettings]) => {
-      this.onChange?.({
-        ...basic,
-        ...orgSettings
-      })
+      invitesAllowed: [true],
+      inviteExpiryPeriod: [7, [Validators.min(1)]]
     })
+
+    combineLatest([this.basic.valueChanges, this.orgSettingsForm.valueChanges])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(([basic, orgSettings]) => {
+        this.onChange?.({
+          ...basic,
+          ...orgSettings
+        })
+      })
   }
 }

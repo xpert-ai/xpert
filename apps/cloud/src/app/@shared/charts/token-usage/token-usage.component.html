@@ -8,9 +8,9 @@
           {{ total.usage.tokens | number }}
         </div>
         <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-          {{ 'PAC.Xpert.ConsumedTokens' | translate: {Default: 'Consumed Tokens'} }}
+          {{ 'XP.Xpert.ConsumedTokens' | translate: { Default: 'Consumed Tokens' } }}
           <div class="font-medium text-orange-400">
-            (~ {{ total.usage.price | currency:total.currency:'symbol':'0.0-7' }})
+            (~ {{ total.usage.price | currency: total.currency : 'symbol' : '0.0-7' }})
           </div>
         </div>
       </div>
@@ -18,8 +18,4 @@
   }
 </div>
 
-<div class="echarts h-80" echarts
-  [options]="options()"
-  theme="light"
->
-</div>
+<div class="echarts h-80" echarts [options]="options()" theme="light"></div>

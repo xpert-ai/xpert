@@ -1,9 +1,9 @@
 <div class="my-2">
   <span class="text-lg mr-2">
-    {{ 'PAC.Xpert.Analysis' | translate: { Default: 'Analysis' } }}
+    {{ 'XP.Xpert.Analysis' | translate: { Default: 'Analysis' } }}
   </span>
 
-  <ngm-select
+  <xp-select
     class="inline-block w-48"
     placeholder="Select time range"
     icon="ri-calendar-line"
@@ -20,11 +20,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.TotalConversations' | translate: { Default: 'Total Conversations' } }}
+            {{ 'XP.Xpert.TotalConversations' | translate: { Default: 'Total Conversations' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.TotalConversationsTooltip'
+                'XP.Xpert.TotalConversationsTooltip'
                   | translate: { Default: 'Daily xpert conversations count; Xpert author and debugger excluded' }
               "
               zPosition="top"
@@ -40,9 +40,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="dailyConv()"
-      [measureLabel]="'PAC.Xpert.Conversations' | translate: { Default: 'Conversations' }"
+      [measureLabel]="'XP.Xpert.Conversations' | translate: { Default: 'Conversations' }"
     />
   </div>
 
@@ -53,11 +53,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.ActiveUsers' | translate: { Default: 'Active Users' } }}
+            {{ 'XP.Xpert.ActiveUsers' | translate: { Default: 'Active Users' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.ActiveUsersTooltip'
+                'XP.Xpert.ActiveUsersTooltip'
                   | translate: { Default: 'Unique users who interacted with xpert; Xpert author and debugger excluded' }
               "
               zPosition="top"
@@ -73,9 +73,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="dailyEndUsers()"
-      [measureLabel]="'PAC.Xpert.ActiveUsers' | translate: { Default: 'Active Users' }"
+      [measureLabel]="'XP.Xpert.ActiveUsers' | translate: { Default: 'Active Users' }"
     />
   </div>
 </div>
@@ -88,11 +88,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' } }}
+            {{ 'XP.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.AvgSessionInteractionsTooltip'
+                'XP.Xpert.AvgSessionInteractionsTooltip'
                   | translate: { Default: 'User interactions per session with xpert' }
               "
               zPosition="top"
@@ -108,10 +108,10 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="averageSessionInteractions()"
       totalType="avg"
-      [measureLabel]="'PAC.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' }"
+      [measureLabel]="'XP.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' }"
     />
   </div>
 
@@ -122,11 +122,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.TotalMessages' | translate: { Default: 'Total Messages' } }}
+            {{ 'XP.Xpert.TotalMessages' | translate: { Default: 'Total Messages' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.TotalMessagesTooltip' | translate: { Default: 'Daily interactions count with xpert' }
+                'XP.Xpert.TotalMessagesTooltip' | translate: { Default: 'Daily interactions count with xpert' }
               "
               zPosition="top"
             >
@@ -141,9 +141,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="dailyMessages()"
-      [measureLabel]="'PAC.Xpert.TotalMessages' | translate: { Default: 'Total Messages' }"
+      [measureLabel]="'XP.Xpert.TotalMessages' | translate: { Default: 'Total Messages' }"
     />
   </div>
 </div>
@@ -156,11 +156,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' } }}
+            {{ 'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.UserSatisfactionRateTooltip'
+                'XP.Xpert.UserSatisfactionRateTooltip'
                   | translate
                     : {
                         Default:
@@ -180,9 +180,9 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="userSatisfactionRate()"
-      [measureLabel]="'PAC.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' }"
+      [measureLabel]="'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' }"
     />
   </div>
 
@@ -193,11 +193,11 @@
           <div
             class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
-            {{ 'PAC.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' } }}
+            {{ 'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' } }}
             <div
               class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
               [zTooltip]="
-                'PAC.Xpert.TokenOutputSpeedTooltip'
+                'XP.Xpert.TokenOutputSpeedTooltip'
                   | translate
                     : {
                         Default:
@@ -217,11 +217,11 @@
       </div>
     </div>
 
-    <pac-statistics-chart
+    <xp-statistics-chart
       [data]="tokensPerSecond()"
       totalType="avg"
       unit="Token/s"
-      [measureLabel]="'PAC.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' }"
+      [measureLabel]="'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' }"
     />
   </div>
 </div>
@@ -230,12 +230,14 @@
   <div class="mb-3">
     <div class="flex items-start p-1">
       <div class="group">
-        <div class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all">
-          {{ 'PAC.Xpert.TokenUsage' | translate: { Default: 'Token Usage' } }}
+        <div
+          class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
+        >
+          {{ 'XP.Xpert.TokenUsage' | translate: { Default: 'Token Usage' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
             [zTooltip]="
-              'PAC.Xpert.TokenUsageTooltip'
+              'XP.Xpert.TokenUsageTooltip'
                 | translate
                   : { Default: 'Reflects the daily token usage of this expert request ai model, used for cost control' }
             "
@@ -252,5 +254,5 @@
     </div>
   </div>
 
-  <pac-statistics-token-usage class="w-full" [tokenCost]="tokenCost()" />
+  <xp-statistics-token-usage class="w-full" [tokenCost]="tokenCost()" />
 </div>

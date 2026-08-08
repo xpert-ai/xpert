@@ -1,11 +1,19 @@
-<header class="flex items-center pt-4 pr-4 pl-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header
+  class="flex items-center pt-4 pr-4 pl-4 cursor-move"
+  cdkDrag
+  cdkDragRootElement=".cdk-overlay-pane"
+  cdkDragHandle
+>
   <h1 class="flex-1 text-text-primary text-lg font-semibold">
-    {{ 'PAC.Chat.AllFilesInTask' | translate: {Default: 'All files in this task'} }}
+    {{ 'XP.Chat.AllFilesInTask' | translate: { Default: 'All files in this task' } }}
   </h1>
   <div class="flex items-center gap-4">
-    <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer hover:text-text-destructive z-20"
+    <button
+      type="button"
+      class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer hover:text-text-destructive z-20"
       (click)="close()"
-    ><i class="ri-close-line"></i>
+    >
+      <i class="ri-close-line"></i>
     </button>
   </div>
 </header>

@@ -2,8 +2,8 @@
   <div class="mb-0.5">
     <div class="group/collapse flex items-center justify-between py-1">
       <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
-        {{ 'PAC.Pipeline.KnowledgeStructure' | translate: {Default: 'Knowledge Structure'} }}
-        <div class="w-4 h-4 ml-1 flex items-center" [zTooltip]="'PAC.Pipeline.KnowledgeStructureTooltip' | translate: {Default: 'Select the segmentation structure used to divide the document into smaller chunks.'}">
+        {{ 'XP.Pipeline.KnowledgeStructure' | translate: {Default: 'Knowledge Structure'} }}
+        <div class="w-4 h-4 ml-1 flex items-center" [zTooltip]="'XP.Pipeline.KnowledgeStructureTooltip' | translate: {Default: 'Select the segmentation structure used to divide the document into smaller chunks.'}">
           <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
         </div>
       </div>
@@ -12,7 +12,7 @@
         class="btn disabled:btn-disabled btn-ghost-accent btn-small"
         #trigger="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="strcutureMenu"
-      >{{ 'PAC.Pipeline.Change' | translate: {Default: 'Change'} }}
+      >{{ 'XP.Pipeline.Change' | translate: {Default: 'Change'} }}
       </button>
     </div>
   </div>
@@ -38,13 +38,13 @@
           <div class="system-sm-medium flex grow items-center text-text-secondary">
             @switch (structure()) {
               @case (eKnowledgeStructureEnum.General) {
-                {{ 'PAC.Pipeline.General' | translate: {Default: 'General'} }}
+                {{ 'XP.Pipeline.General' | translate: {Default: 'General'} }}
               }
               @case (eKnowledgeStructureEnum.ParentChild) {
-                {{ 'PAC.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
+                {{ 'XP.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
               }
               @case (eKnowledgeStructureEnum.QA) {
-                {{ 'PAC.Pipeline.QA' | translate: {Default: 'Q&A'} }}
+                {{ 'XP.Pipeline.QA' | translate: {Default: 'Q&A'} }}
               }
             }
         </div>
@@ -52,13 +52,13 @@
         <div class="system-xs-regular mt-1 text-text-tertiary">
           @switch (structure()) {
             @case (eKnowledgeStructureEnum.General) {
-              {{ 'PAC.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
+              {{ 'XP.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
             }
             @case (eKnowledgeStructureEnum.ParentChild) {
-              {{ 'PAC.Pipeline.ParentChildDesc' | translate: {Default: 'Parent-Child chunking mode, the child chunks are used for retrieval and the parent chunks are used as context'} }}
+              {{ 'XP.Pipeline.ParentChildDesc' | translate: {Default: 'Parent-Child chunking mode, the child chunks are used for retrieval and the parent chunks are used as context'} }}
             }
             @case (eKnowledgeStructureEnum.QA) {
-              {{ 'PAC.Pipeline.QADesc' | translate: {Default: 'Q&A chunking mode, the chunks are split into question and answer pairs. The question part is used for retrieval and the answer part is returned as context'} }}
+              {{ 'XP.Pipeline.QADesc' | translate: {Default: 'Q&A chunking mode, the chunks are split into question and answer pairs. The question part is used for retrieval and the answer part is returned as context'} }}
             }
           }
         </div>
@@ -70,12 +70,12 @@
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
     <div class="flex items-center">
-      {{ 'PAC.Pipeline.Chunk' | translate: { Default: 'Chunk' } }}
+      {{ 'XP.Pipeline.Chunk' | translate: { Default: 'Chunk' } }}
       <span class="ml-1 text-text-warning">*</span>
       <div
         class="w-4 h-4 ml-1 flex items-center"
         [zTooltip]="
-          'PAC.Pipeline.ChunkVariableTooltip' | translate: { Default: 'Select the processed blocks for storage.' }
+          'XP.Pipeline.ChunkVariableTooltip' | translate: { Default: 'Select the processed blocks for storage.' }
         "
       >
         <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
@@ -111,11 +111,11 @@
 
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase text-text-secondary">
-    {{ 'PAC.Knowledgebase.ModelConfiguration' | translate: { Default: 'Model Configuration' } }}
+    {{ 'XP.Knowledgebase.ModelConfiguration' | translate: { Default: 'Model Configuration' } }}
   </div>
   <div class="system-sm-regular text-text-tertiary">
     {{
-      'PAC.Knowledgebase.ModelConfigurationManagedInSettings'
+      'XP.Knowledgebase.ModelConfigurationManagedInSettings'
         | translate
           : {
               Default:
@@ -129,7 +129,7 @@
       [routerLink]="['/xpert/knowledges', knowledgebaseId(), 'configuration']"
     >
       <i class="ri-settings-3-line mr-1"></i>
-      {{ 'PAC.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
+      {{ 'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
     </a>
   }
 </div>
@@ -141,7 +141,7 @@
     class="cdk-menu__large w-[420px] rounded-2xl"
   >
     <div class="font-semibold">
-      {{ 'PAC.Pipeline.ChangeKnowledgeStructure' | translate: {Default: 'Change Knowledge Structure'} }}
+      {{ 'XP.Pipeline.ChangeKnowledgeStructure' | translate: {Default: 'Change Knowledge Structure'} }}
     </div>
 
     <div class="space-y-1 pt-2">
@@ -158,11 +158,11 @@
           <div class="grow py-1 pt-[1px]">
             <div class="flex items-center">
               <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
-                {{ 'PAC.Pipeline.General' | translate: {Default: 'General'} }}
+                {{ 'XP.Pipeline.General' | translate: {Default: 'General'} }}
               </div>
             </div>
             <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
-              {{ 'PAC.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
+              {{ 'XP.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
             </div>
           </div>
         </div>
@@ -180,11 +180,11 @@
           <div class="grow py-1 pt-[1px]">
             <div class="flex items-center">
               <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
-                {{ 'PAC.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
+                {{ 'XP.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
               </div>
             </div>
             <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
-              {{ 'PAC.Pipeline.ParentChildDesc' | translate: {Default: 'When using the parent-child model, child chunks are used for retrieval, and parent chunks serve as context.'} }}
+              {{ 'XP.Pipeline.ParentChildDesc' | translate: {Default: 'When using the parent-child model, child chunks are used for retrieval, and parent chunks serve as context.'} }}
             </div>
           </div>
         </div>
@@ -202,11 +202,11 @@
           <div class="grow py-1 pt-[1px]">
             <div class="flex items-center">
               <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
-                {{ 'PAC.Pipeline.QA' | translate: {Default: 'Q&A'} }}
+                {{ 'XP.Pipeline.QA' | translate: {Default: 'Q&A'} }}
               </div>
             </div>
             <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
-              {{ 'PAC.Pipeline.QADesc' | translate: {Default: 'When using the Q&A model, chunks are split into question and answer pairs. The question part is used for retrieval, and the answer part is returned as context.'} }}
+              {{ 'XP.Pipeline.QADesc' | translate: {Default: 'When using the Q&A model, chunks are split into question and answer pairs. The question part is used for retrieval, and the answer part is returned as context.'} }}
             </div>
           </div>
         </div>

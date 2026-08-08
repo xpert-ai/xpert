@@ -1,11 +1,20 @@
 <!-- <div class="px-2 py-1"> -->
-<div class="group transition-all bg-background-default border border-components-panel-border rounded-[10px] shadows-shadow-xs hover:shadow-sm">
+<div
+  class="group transition-all bg-background-default border border-components-panel-border rounded-[10px] shadows-shadow-xs hover:shadow-sm"
+>
   <div class="flex items-center pl-1 pr-3 cursor-pointer py-1.5 text-sm" (click)="expand.set(!expand())">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+    <svg
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="currentColor"
       class="remixicon shrink-0 w-4 h-4 mr-1 text-text-quaternary transition-all group-hover:text-text-tertiary"
       [ngClass]="expand() ? 'rotate-90' : ''"
     >
-      <path d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"></path>
+      <path
+        d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"
+      ></path>
     </svg>
 
     @switch (category()) {
@@ -13,8 +22,9 @@
         <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" />
       }
       @case ('toolset') {
-        <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
-          rounded-lg shadow-sm">
+        <div
+          class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500 rounded-lg shadow-sm"
+        >
           <i class="ri-hammer-fill"></i>
         </div>
       }
@@ -22,9 +32,8 @@
         <emoji-avatar [avatar]="avatar()" xs class="rounded-lg overflow-hidden mr-1" />
       }
     }
-    
-    <div class="grow text-text-secondary system-xs-semibold-uppercase truncate"
-      [title]="label()">{{label()}}</div>
+
+    <div class="grow text-text-secondary system-xs-semibold-uppercase truncate" [title]="label()">{{ label() }}</div>
     <div class="shrink-0 text-text-tertiary system-xs-regular">{{ execution()?.elapsedTime | number }} ms</div>
 
     @switch (execution().status) {
@@ -52,5 +61,5 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute inset-0 m-auto"></ngm-spin>
+  <xp-spin class="absolute inset-0 m-auto"></xp-spin>
 }

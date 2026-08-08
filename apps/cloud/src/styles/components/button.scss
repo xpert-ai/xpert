@@ -1,6 +1,6 @@
 @reference "tailwindcss";
 [data-theme='light'] {
-  .ngm-copilot-command-button {
+  .xp-copilot-command-button {
     background: linear-gradient(136deg, rgb(151 0 255 / 80%) 0%, rgb(254 0 0 / 80%) 50%, rgb(255 149 0 / 80%) 100%);
     color: var(--color-components-button-primary-text);
     --mdc-icon-button-icon-color: var(--color-components-button-primary-text);
@@ -14,7 +14,7 @@
   }
 }
 [data-theme='dark'] {
-  .ngm-copilot-command-button {
+  .xp-copilot-command-button {
     background: linear-gradient(136deg, rgb(151 0 255) 0%, rgb(254 0 0) 50%, rgb(255 149 0) 100%);
     color: var(--color-components-button-primary-text);
     --mdc-icon-button-icon-color: var(--color-components-button-primary-text);
@@ -29,7 +29,7 @@
 }
 
 @layer components {
-  .ngm-btn,
+  .xp-btn,
   .btn {
     @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent
       bg-clip-padding px-2.5 text-sm font-medium outline-none transition-all select-none cursor-pointer
@@ -39,7 +39,7 @@
       dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40
       disabled:pointer-events-none disabled:shadow-none disabled:opacity-50;
   }
-  .ngm-btn-sm,
+  .xp-btn-sm,
   .btn-sm,
   .btn-small {
     @apply h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem];

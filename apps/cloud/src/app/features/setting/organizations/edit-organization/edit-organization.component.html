@@ -1,27 +1,31 @@
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'} }}
+    {{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
   </div>
 
-  <div class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl">
-    <pac-org-avatar-editor [org]="selectedOrg" />
+  <div
+    class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl"
+  >
+    <xp-org-avatar-editor [org]="selectedOrg" />
     <div>{{ selectedOrg?.name }}</div>
   </div>
 </div>
 
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.MAIN' | translate: {Default: "Main"} }}
+    {{ 'XP.ORGANIZATIONS_PAGE.Organization.MAIN' | translate: { Default: 'Main' } }}
   </div>
 
-  <div class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl">
-    <pac-edit-org-main />
+  <div
+    class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl"
+  >
+    <xp-edit-org-main />
   </div>
 </div>
 
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: "Tags"} }}
+    {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
   </div>
 
   <tag-maintain class="w-full p-4 border border-solid border-divider-regular rounded-xl" />
@@ -29,8 +33,10 @@
 
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: {Default: "Demo"} }}
+    {{ 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
   </div>
 
-  <pac-organization-demo class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl" />
+  <xp-organization-demo
+    class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl"
+  />
 </div>

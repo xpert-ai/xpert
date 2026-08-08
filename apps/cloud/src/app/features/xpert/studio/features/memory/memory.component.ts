@@ -2,15 +2,14 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@xpert-ai/contracts'
-import { IfAnimations, OverlayAnimations } from '@xpert-ai/core'
+import { isNil, LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@xpert-ai/contracts'
+import { IfAnimations, OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
-import { NgmTooltipDirective } from '@xpert-ai/ocap-angular/core'
-import { isNil } from '@xpert-ai/copilot'
+import { XpTooltipDirective } from '@xpert-ai/headless-ui'
 import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -22,10 +21,10 @@ import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '
     ZardSliderComponent,
     ...ZardTooltipImports,
     ZardCheckboxComponent,
-    NgmTooltipDirective,
+    XpTooltipDirective,
     CopilotPromptEditorComponent,
     InDevelopmentComponent
-],
+  ],
   templateUrl: './memory.component.html',
   styleUrl: './memory.component.scss',
   animations: [...IfAnimations, ...OverlayAnimations]
@@ -34,7 +33,7 @@ export class XpertStudioFeaturesMemoryComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
   readonly apiService = inject(XpertStudioApiService)
-  readonly i18n = injectTranslate('PAC.Xpert.LongTermMemoryTypeEnum')
+  readonly i18n = injectTranslate('XP.Xpert.LongTermMemoryTypeEnum')
 
   readonly xpert = this.apiService.xpert
   readonly memory = computed(() => this.xpert()?.memory)
@@ -78,13 +77,11 @@ export class XpertStudioFeaturesMemoryComponent {
   }
 
   constructor() {
-    effect(
-      () => {
-        if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
-          this.afterSeconds = 10
-        }
+    effect(() => {
+      if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
+        this.afterSeconds = 10
       }
-    )
+    })
   }
 
   formatLabel(value: number): string {

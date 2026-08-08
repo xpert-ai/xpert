@@ -42,6 +42,7 @@ import { ScheduleTriggerStrategies } from './plugins'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 import { ModelAccessModule } from '../model-access'
 import { XpertModelAccessValidator } from './model-access-validator'
+import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 
 @Module({
     imports: [
@@ -87,6 +88,7 @@ import { XpertModelAccessValidator } from './model-access-validator'
         XpertFrequentQuestionsService,
         XpertTemplateWorkspaceInitializer,
         XpertModelAccessValidator,
+        XpertWorkspaceFilesService,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers

@@ -1,4 +1,4 @@
-import { IChatConversation, IProject, IUser, IXpert, IXpertAgentExecution } from '@xpert-ai/contracts'
+import { IChatConversation, IUser, IXpert, IXpertAgentExecution, IXpertProject } from '@xpert-ai/contracts'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
@@ -21,7 +21,7 @@ export class ChatConversationPublicDTO {
     xpert?: IXpert
 
     @Transform((params: TransformFnParams) => (params.value ? new XpertProjectIdentiDto(params.value) : null))
-    project?: IProject
+    project?: IXpertProject
 
     @Expose()
     @Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentExecutionDTO(_)))

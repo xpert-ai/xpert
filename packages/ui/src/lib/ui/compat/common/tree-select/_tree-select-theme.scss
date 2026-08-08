@@ -1,0 +1,105 @@
+@use 'sass:map';
+@use 'sass:color';
+@use 'packages/ui/src/lib/ui/compat/core/style/runtime-theme' as themeCompat;
+@reference "../../../tailwind-workspace-reference.css";
+
+@mixin color($config-or-theme) {
+  $config: themeCompat.m2-get-color-config($config-or-theme);
+  $primary: map.get($config, 'primary');
+  $background: map.get($config, background);
+
+  z-tree.xp-tree-select__panel {
+    background-color: transparent;
+
+    [data-slot='tree-node'] {
+      padding-right: 10px;
+    }
+
+    &.selection {
+      [data-slot='tree-node'] {
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($background, hover), 0.03);
+          // color: themeCompat.m2-get-color-from-palette($primary);
+        }
+
+        &.selected {
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($background, hover), 0.05);
+        }
+      }
+    }
+  }
+
+  .xp-tree-select__panel {
+    .xp-tree-select__option {
+      .z-icon-rtl-mirror {
+        color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.3);
+      }
+
+      &:hover,
+      &:focus {
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($background, hover), 0.03);
+      }
+
+      &.selected {
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.08);
+        color: themeCompat.m2-get-color-from-palette($primary);
+      }
+    }
+  }
+}
+
+@mixin density($config-or-theme) {
+  .xp-tree-select__panel {
+    z-checkbox {
+      display: flex;
+
+      .z-checkbox__label {
+        flex: 1;
+        overflow: hidden;
+      }
+    }
+
+    .xp-tree-select__option {
+      [z-button][data-icon-only],
+      z-button[data-icon-only] {
+        .z-icon {
+          margin: 0;
+        }
+      }
+    }
+
+    &.xp-density__cosy {
+      .xp-tree-select__option {
+        min-height: 34px;
+        @apply text-sm;
+      }
+    }
+
+    &.xp-density__compact {
+      .xp-tree-select__option {
+        min-height: 28px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  z-tree.xp-tree-select__panel {
+    &.xp-density__cosy {
+      [data-slot='tree-node'] {
+        min-height: 34px;
+      }
+    }
+    &.xp-density__compact {
+      [data-slot='tree-node'] {
+        min-height: 28px;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+@mixin typography($config-or-theme) {
+}

@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, inject, OnInit, signal } from '@angular/core'
 import { getErrorMessage } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type RestartProgressDialogData = {
@@ -12,7 +12,7 @@ type RestartProgressDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-plugin-runtime-restart-progress',
-  imports: [TranslateModule, NgmSpinComponent],
+  imports: [TranslateModule, XpSpinComponent],
   template: `
     <div class="flex flex-col gap-5 p-6">
       <div class="flex items-start gap-4">
@@ -24,23 +24,23 @@ type RestartProgressDialogData = {
           } @else if (state() === 'error') {
             <i class="ri-error-warning-line text-xl text-text-destructive"></i>
           } @else {
-            <ngm-spin small />
+            <xp-spin small />
           }
         </div>
         <div class="min-w-0">
           <h2 class="text-lg font-semibold text-text-primary">
             @switch (state()) {
               @case ('starting') {
-                {{ 'PAC.Plugin.RestartingTitle' | translate: { Default: 'Restarting API service' } }}
+                {{ 'XP.Plugin.RestartingTitle' | translate: { Default: 'Restarting API service' } }}
               }
               @case ('waiting') {
-                {{ 'PAC.Plugin.RestartWaitingTitle' | translate: { Default: 'Waiting for API service' } }}
+                {{ 'XP.Plugin.RestartWaitingTitle' | translate: { Default: 'Waiting for API service' } }}
               }
               @case ('recovered') {
-                {{ 'PAC.Plugin.RestartRecoveredTitle' | translate: { Default: 'API service is ready' } }}
+                {{ 'XP.Plugin.RestartRecoveredTitle' | translate: { Default: 'API service is ready' } }}
               }
               @case ('error') {
-                {{ 'PAC.Plugin.RestartFailedTitle' | translate: { Default: 'Restart could not be completed' } }}
+                {{ 'XP.Plugin.RestartFailedTitle' | translate: { Default: 'Restart could not be completed' } }}
               }
             }
           </h2>
@@ -48,20 +48,20 @@ type RestartProgressDialogData = {
             @switch (state()) {
               @case ('starting') {
                 {{
-                  'PAC.Plugin.RestartingDescription'
+                  'XP.Plugin.RestartingDescription'
                     | translate: { Default: 'The server is draining active requests before restarting.' }
                 }}
               }
               @case ('waiting') {
                 {{
-                  'PAC.Plugin.RestartWaitingDescription'
+                  'XP.Plugin.RestartWaitingDescription'
                     | translate
                       : { Default: 'The connection may be unavailable briefly. This page will recover automatically.' }
                 }}
               }
               @case ('recovered') {
                 {{
-                  'PAC.Plugin.RestartRecoveredDescription'
+                  'XP.Plugin.RestartRecoveredDescription'
                     | translate: { Default: 'Plugin changes are active. Reloading this page now.' }
                 }}
               }
@@ -82,11 +82,11 @@ type RestartProgressDialogData = {
       @if (state() === 'error') {
         <div class="flex justify-end gap-2">
           <button type="button" class="btn btn-secondary btn-medium" (click)="close()">
-            {{ 'PAC.Plugin.RestartLater' | translate: { Default: 'Later' } }}
+            {{ 'XP.Plugin.RestartLater' | translate: { Default: 'Later' } }}
           </button>
           <button type="button" class="btn btn-primary btn-medium" (click)="retry()">
             <i class="ri-refresh-line mr-1"></i>
-            {{ 'PAC.Plugin.RestartRetry' | translate: { Default: 'Try again' } }}
+            {{ 'XP.Plugin.RestartRetry' | translate: { Default: 'Try again' } }}
           </button>
         </div>
       }
@@ -133,23 +133,23 @@ export class PluginRuntimeRestartProgressComponent implements OnInit {
     const errorCode = readErrorCode(error)
     const localizedErrors: Record<string, { key: string; fallback: string }> = {
       RUNTIME_RESTART_SUPER_ADMIN_REQUIRED: {
-        key: 'PAC.Plugin.RestartAdminRequired',
+        key: 'XP.Plugin.RestartAdminRequired',
         fallback: 'Ask a SuperAdmin in the default tenant scope to restart the API service.'
       },
       RUNTIME_RESTART_DEFAULT_TENANT_REQUIRED: {
-        key: 'PAC.Plugin.RestartDefaultTenantRequired',
+        key: 'XP.Plugin.RestartDefaultTenantRequired',
         fallback: 'The API service can only be restarted from the default tenant.'
       },
       RUNTIME_RESTART_INTERACTIVE_AUTH_REQUIRED: {
-        key: 'PAC.Plugin.RestartInteractiveSessionRequired',
+        key: 'XP.Plugin.RestartInteractiveSessionRequired',
         fallback: 'Sign in with an interactive SuperAdmin session before restarting the API service.'
       },
       RUNTIME_RESTART_COORDINATION_UNAVAILABLE: {
-        key: 'PAC.Plugin.RestartCoordinationUnavailable',
+        key: 'XP.Plugin.RestartCoordinationUnavailable',
         fallback: 'Restart coordination is temporarily unavailable. Try again shortly.'
       },
       RUNTIME_RESTART_IN_PROGRESS: {
-        key: 'PAC.Plugin.RestartAlreadyInProgress',
+        key: 'XP.Plugin.RestartAlreadyInProgress',
         fallback: 'Another API restart is already in progress. Wait for the service to recover.'
       }
     }
@@ -158,7 +158,7 @@ export class PluginRuntimeRestartProgressComponent implements OnInit {
       return this.#translate.instant(localized.key, { Default: localized.fallback }) as string
     }
     if (error instanceof Error && error.name === 'TimeoutError') {
-      return this.#translate.instant('PAC.Plugin.RestartTimeout', {
+      return this.#translate.instant('XP.Plugin.RestartTimeout', {
         Default: 'The API service did not recover within two minutes. Check the server process and try again.'
       }) as string
     }

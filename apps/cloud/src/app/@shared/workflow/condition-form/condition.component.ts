@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, ElementRef, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { attrModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   agentLabel,
@@ -28,7 +28,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     TextFieldModule,
-    NgmI18nPipe,
+    XpI18nPipe,
     XpertVariableInputComponent,
     StateVariableSelectComponent
   ]

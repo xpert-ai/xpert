@@ -209,7 +209,8 @@ describe('PluginTemplateInstallHandler', () => {
             throw new Error('Expected template install to import the normalized draft.')
         }
         expect(importCommand.options).toMatchObject({
-            normalizeCopilotModels: false
+            normalizeCopilotModels: false,
+            language: LanguagesEnum.English
         })
         expect(importCommand.draft.team?.copilotModel).toEqual({
             copilotId: 'copilot-deepseek',
@@ -244,8 +245,8 @@ describe('PluginTemplateInstallHandler', () => {
 
     it('replaces an unavailable template sandbox provider with the first available provider', async () => {
         const { handler, commandBus } = createHandler({
-            templateDsl: createSandboxTemplateDsl('docker-sandbox'),
-            sandboxProviders: [{ type: 'local-shell-sandbox' }]
+            templateDsl: createSandboxTemplateDsl('local-shell-sandbox'),
+            sandboxProviders: [{ type: 'nsjail' }]
         })
 
         await handler.execute(
@@ -262,7 +263,7 @@ describe('PluginTemplateInstallHandler', () => {
         }
         expect(importCommand.draft.team?.features?.sandbox).toEqual({
             enabled: true,
-            provider: 'local-shell-sandbox'
+            provider: 'nsjail'
         })
     })
 
