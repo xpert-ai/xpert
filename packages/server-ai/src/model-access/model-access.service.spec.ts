@@ -53,7 +53,6 @@ function createFixture() {
         resolveBillableUserId: jest.fn().mockResolvedValue('creator-user'),
         isMembershipAccessEnabled: jest.fn().mockResolvedValue(true),
         isMembershipPlanEnabled: jest.fn().mockResolvedValue(true),
-        countEnabledOrganizationCopilots: jest.fn().mockResolvedValue(0),
         findModelAccess: jest.fn(),
         isModelAllowed: jest.fn(),
         resolveModelMultiplierForPlan: jest.fn().mockReturnValue(2),
@@ -61,6 +60,7 @@ function createFixture() {
         assertCanUse: jest.fn().mockResolvedValue(undefined)
     }
     const copilotRepository = {
+        find: jest.fn().mockResolvedValue([]),
         findOne: jest.fn().mockResolvedValue({
             id: 'copilot-1',
             tenantId: 'tenant-1',
@@ -75,6 +75,7 @@ function createFixture() {
         })
     }
     const providerModelRepository = {
+        find: jest.fn().mockResolvedValue([]),
         findOne: jest.fn().mockResolvedValue(null)
     }
     const grantRepository = {
@@ -171,6 +172,43 @@ function createFixture() {
     }
 }
 
+describe('ModelAccessService organization model configuration', () => {
+    it('ignores an enabled organization Copilot after its Provider has been deleted', async () => {
+        const { copilotRepository, providersService, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                modelProvider: null
+            }
+        ])
+
+        await expect(service.hasConfiguredOrganizationModels('tenant-1', 'org-1')).resolves.toBe(false)
+        expect(providersService.getProvider).not.toHaveBeenCalled()
+    })
+
+    it('recognizes an enabled organization Copilot with a valid Provider model', async () => {
+        const { copilotRepository, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                modelProvider: {
+                    id: 'provider-1',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
+
+        await expect(service.hasConfiguredOrganizationModels('tenant-1', 'org-1')).resolves.toBe(true)
+    })
+})
+
 describe('ModelAccessService model resolution', () => {
     it('allows an organization model directly when organization membership is disabled', async () => {
         const { copilotRepository, input, membershipService, service } = createFixture()
@@ -215,9 +253,21 @@ describe('ModelAccessService model resolution', () => {
     })
 
     it('blocks tenant models when the organization has configured its own models', async () => {
-        const { input, membershipService, service } = createFixture()
+        const { copilotRepository, input, membershipService, service } = createFixture()
         membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
-        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                tenantId: 'tenant-1',
+                organizationId: 'runtime-org',
+                enabled: true,
+                modelProvider: {
+                    id: 'organization-provider',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
 
         await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
             allowed: false,
@@ -226,6 +276,35 @@ describe('ModelAccessService model resolution', () => {
             unavailableReason: ModelAccessUnavailableReasonEnum.FeatureDisabled
         })
         expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+    })
+
+    it('falls back to tenant membership models when only an empty organization Copilot remains', async () => {
+        const { copilotRepository, input, membershipService, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                tenantId: 'tenant-1',
+                organizationId: 'runtime-org',
+                enabled: true,
+                modelProvider: null
+            }
+        ])
+        membershipService.isMembershipPlanEnabled.mockImplementation(async ({ organizationId }) => !organizationId)
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: null,
+            membership: {
+                planId: 'tenant-plan',
+                plan: { id: 'tenant-plan' }
+            }
+        })
+        membershipService.isModelAllowed.mockReturnValue(true)
+
+        await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+            allowed: true,
+            accessSource: ModelAccessSourceEnum.Plan,
+            organizationId: null,
+            scope: ModelAccessOwnershipScopeEnum.Tenant
+        })
     })
 
     it('resolves an organization-scoped provider from the persisted model scope', async () => {
@@ -1235,7 +1314,19 @@ describe('ModelAccessService catalog', () => {
                 }
             }
         })
-        membershipService.countEnabledOrganizationCopilots.mockResolvedValue(1)
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                modelProvider: {
+                    id: 'organization-provider',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
         membershipService.isModelAllowed.mockReturnValue(true)
         queryBus.execute.mockImplementation(async (query: FindCopilotModelsQuery) =>
             query.type === AiModelTypeEnum.LLM
