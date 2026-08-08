@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 3.16.0
+
+### Minor Changes
+
+- b800da5: v3.16
+
+### Patch Changes
+
+- Updated dependencies [b800da5]
+  - @xpert-ai/contracts@3.16.0
+
 ## 3.15.18
 
 ### Patch Changes
