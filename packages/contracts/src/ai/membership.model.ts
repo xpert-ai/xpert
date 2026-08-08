@@ -293,7 +293,7 @@ export interface IMembershipUsageSummary extends IMembershipUsageGroupKey {
   lastUsedAt?: Date | string | null
 }
 
-export interface IMembershipUsageOverview extends IMembershipMe {
+export interface IMembershipUsageOverview extends Partial<IMembershipMe> {
   totalTokens: number
   peakDailyTokens: number
   activeDays: number

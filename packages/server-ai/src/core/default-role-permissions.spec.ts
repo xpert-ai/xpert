@@ -9,7 +9,7 @@ describe('AI default role permissions', () => {
         expect([...permissionsFor(RolesEnum.TRIAL)].sort()).toEqual(
             [
                 AIPermissionsEnum.COPILOT_EDIT,
-                AIPermissionsEnum.MEMBERSHIP_PURCHASE,
+                AIPermissionsEnum.MEMBERSHIP_USE,
                 AIPermissionsEnum.XPERT_EDIT,
                 AIPermissionsEnum.CHAT_VIEW
             ].sort()
@@ -59,9 +59,9 @@ describe('AI default role permissions', () => {
     )
 
     it.each([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
-        'allows %s to purchase membership products',
+        'allows %s to use membership plans',
         (role) => {
-            expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_PURCHASE)
+            expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_USE)
         }
     )
 

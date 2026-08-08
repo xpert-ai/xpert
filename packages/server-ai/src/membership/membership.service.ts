@@ -1,4 +1,5 @@
 import {
+    AIPermissionsEnum,
     AiFeatureEnum,
     IMembershipAdminUser,
     IMembershipAdminUsersQuery,
@@ -2267,20 +2268,17 @@ export class MembershipService {
         )
     }
 
-    async getOverview(query?: IMembershipUsageQuery): Promise<IMembershipUsageOverview | null> {
+    async getOverview(query?: IMembershipUsageQuery): Promise<IMembershipUsageOverview> {
         const { tenantId, organizationId } = this.requireCurrentScope()
         const userId = this.requireUser()
         const access = await this.findMembershipPresentationAccess(tenantId, organizationId, userId)
-        if (!access) {
-            return null
-        }
-        const membership = access.membership
-        const personalPointsBalance = await this.getPersonalPointsBalance(tenantId, membership.userId)
-        const base = this.toMembershipMe(
-            access.persistedMembership ?? membership,
-            personalPointsBalance,
-            !!access.personalPointsOnly
-        )
+        const base = access
+            ? this.toMembershipMe(
+                  access.persistedMembership ?? access.membership,
+                  await this.getPersonalPointsBalance(tenantId, access.membership.userId),
+                  !!access.personalPointsOnly
+              )
+            : {}
         const { start, end } = this.resolveDateRange(query)
 
         const dailyRows = await this.applyLedgerFilters(
@@ -2332,12 +2330,8 @@ export class MembershipService {
         query?: IMembershipUsageQuery,
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<MembershipPointLedger>> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const { tenantId } = this.requireCurrentScope()
         const userId = this.requireUser()
-        const access = await this.findMembershipPresentationAccess(tenantId, organizationId, userId)
-        if (!access) {
-            return { items: [], total: 0 }
-        }
         return this.findUserUsage(tenantId, userId, query, options)
     }
 
@@ -2345,12 +2339,8 @@ export class MembershipService {
         query?: IMembershipUsageQuery,
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<IMembershipUsageSummary>> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const { tenantId } = this.requireCurrentScope()
         const userId = this.requireUser()
-        const access = await this.findMembershipPresentationAccess(tenantId, organizationId, userId)
-        if (!access) {
-            return { items: [], total: 0 }
-        }
         return this.findUserUsageSummaries(tenantId, userId, query, options)
     }
 
@@ -2942,6 +2932,9 @@ export class MembershipService {
             },
             manager
         )
+        if (!(await this.hasMembershipUsePermission(tenantId, billableUserId))) {
+            return null
+        }
         if (organizationId && organizationMembershipEnabled) {
             const membership = await this.findUsableMembership(
                 tenantId,
@@ -3052,10 +3045,7 @@ export class MembershipService {
             return access
         }
 
-        const organizationMembershipEnabled = organizationId
-            ? await this.isMembershipPlanEnabledForScope({ tenantId, organizationId })
-            : false
-        if (organizationId && organizationMembershipEnabled) {
+        if (organizationId) {
             const organizationMembership = await this.findMembershipForUpdate(
                 tenantId,
                 organizationId,
@@ -3072,9 +3062,6 @@ export class MembershipService {
             }
         }
 
-        if (!(await this.isMembershipPlanEnabledForScope({ tenantId, organizationId: null }))) {
-            return null
-        }
         const tenantMembership = await this.findMembershipForUpdate(tenantId, null, userId, undefined)
         const tenantPlan = tenantMembership?.plan ?? (await this.findDefaultPlan(tenantId, null))
         return tenantMembership && tenantPlan ? this.toPresentationAccess(tenantMembership, tenantPlan, null) : null
@@ -3130,6 +3117,19 @@ export class MembershipService {
         }
         if (access?.organizationId === this.normalizeScopeOrganizationId(input.copilotOrganizationId)) {
             return access
+        }
+        if (!access) {
+            const billableUserId = await this.resolveBillableUserId(
+                {
+                    tenantId: input.tenantId,
+                    userId: input.userId,
+                    xpertId: input.xpertId ?? undefined
+                },
+                manager
+            )
+            if (!(await this.hasMembershipUsePermission(input.tenantId, billableUserId))) {
+                return null
+            }
         }
 
         await this.ensureScopeInitialized(
@@ -3453,6 +3453,19 @@ export class MembershipService {
             }
         })
         return !!membership
+    }
+
+    private async hasMembershipUsePermission(tenantId: string, userId: string) {
+        const user = await this.userRepository.findOne({
+            where: { tenantId, id: userId },
+            relations: ['role', 'role.rolePermissions']
+        })
+        return (
+            user?.type === UserType.USER &&
+            !!user.role?.rolePermissions?.some(
+                (permission) => permission.enabled && permission.permission === AIPermissionsEnum.MEMBERSHIP_USE
+            )
+        )
     }
 
     private async assertActiveOrganizationMember(

@@ -2,18 +2,19 @@ import { inject } from '@angular/core'
 import { CanActivateFn, Router } from '@angular/router'
 import { AiFeatureEnum, AIPermissionsEnum, UserType } from '@xpert-ai/contracts'
 import { map, take } from 'rxjs'
-import { MembershipService, Store } from '../../../@core'
+import { Store } from '../../../@core'
 import { hydrateFeatureContext } from '../../feature-gate'
 
 export const membershipPlanAccountGate: CanActivateFn = () => {
   const router = inject(Router)
+  const store = inject(Store)
 
-  return inject(MembershipService)
-    .hasActiveMembershipInScope()
-    .pipe(
-      take(1),
-      map((hasActiveMembership) => (hasActiveMembership ? true : router.createUrlTree(['/settings/account/profile'])))
+  return store.userRolePermissions$.pipe(
+    take(1),
+    map(() =>
+      store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE) ? true : router.createUrlTree(['/settings/account/profile'])
     )
+  )
 }
 
 export const modelAccessAccountGate: CanActivateFn = () => {
