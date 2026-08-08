@@ -709,7 +709,7 @@
                     'COPILOT_VIEW',
                     'COPILOT_EDIT',
                     'MEMBERSHIP_EDIT',
-                    'MEMBERSHIP_PURCHASE',
+                    'MEMBERSHIP_USE',
                     'MODEL_ACCESS_REQUEST_VIEW',
                     'MODEL_ACCESS_REQUEST_EDIT',
                     'MODEL_GATEWAY_USE',

@@ -26,6 +26,7 @@
         "MembershipPlanRequired": "Membership plan is required to use Copilot models.",
         "MembershipPointsLimitExceeded": "Membership points limit exceeded.",
         "MembershipPlanFeatureDisabled": "Membership plan feature is disabled.",
+        "MembershipFeatureTenantScopeRequired": "This feature can only be configured at tenant scope.",
         "CopilotModelUnavailableForMembershipPlan": "Copilot model is not available for the current membership plan.",
         "ModelAccessPlanIncluded": "The membership plan already includes this model.",
         "ModelAccessAlreadyGranted": "This model is already granted.",

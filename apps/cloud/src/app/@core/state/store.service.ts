@@ -42,6 +42,11 @@ function findFeatureOrganizationByCode(
   return matches.find((item) => item.feature.parentId) ?? matches[0]
 }
 
+const TENANT_SCOPED_FEATURES = new Set<string>([
+  AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
+  AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE
+])
+
 export interface AppState {
   user: IUser
   userRolePermissions: IRolePermission[]
@@ -464,7 +469,7 @@ export class Store {
     }
 
     const tenantFeature = findFeatureOrganizationByCode(featureTenant, feature)
-    if (activeScope.level === RequestScopeLevel.TENANT) {
+    if (activeScope.level === RequestScopeLevel.TENANT || TENANT_SCOPED_FEATURES.has(feature)) {
       return tenantFeature?.isEnabled === true
     }
 

@@ -4,6 +4,10 @@ jest.mock('../core/context', () => ({
 	}
 }))
 
+jest.mock('i18next', () => ({
+	t: jest.fn((key: string) => `translated:${key}`)
+}))
+
 jest.mock('./feature-organization.entity', () => ({
 	FeatureOrganization: class FeatureOrganization {
 		constructor(input?: Record<string, unknown>) {
@@ -155,6 +159,23 @@ describe('FeatureOrganizationService', () => {
 			})
 		])
 	})
+
+	it.each(['FEATURE_MEMBERSHIP_PLAN', 'FEATURE_MEMBERSHIP_PURCHASE'])(
+		'rejects organization-scoped updates for tenant-only feature %s',
+		async (code) => {
+			featureService.findOne.mockResolvedValueOnce({ id: 'feature-1', code })
+
+			await expect(
+				service.updateFeatureOrganization({
+					featureId: 'feature-1',
+					organizationId: 'org-1',
+					isEnabled: true
+				})
+			).rejects.toThrow('translated:server-ai:Error.MembershipFeatureTenantScopeRequired')
+
+			expect(repo.save).not.toHaveBeenCalled()
+		}
+	)
 
 	it('emits one transition event when a tenant feature becomes enabled', async () => {
 		jest.spyOn(service, 'findAll')

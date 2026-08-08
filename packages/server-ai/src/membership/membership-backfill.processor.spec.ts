@@ -107,7 +107,7 @@ describe('MembershipBackfillProcessor', () => {
         expect(queueService.enqueueTenantDefaultMembershipBackfill).toHaveBeenCalledWith('tenant-1')
     })
 
-    it('enqueues organization backfill when the membership feature becomes enabled', async () => {
+    it('ignores organization-scoped membership feature transitions', async () => {
         const { processor, queueService } = createProcessor()
 
         await processor.enqueueBackfillWhenFeatureEnabled({
@@ -119,7 +119,7 @@ describe('MembershipBackfillProcessor', () => {
             isEnabled: true
         } as FeatureOrganizationUpdatedEvent)
 
-        expect(queueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith('tenant-1', 'org-1')
+        expect(queueService.enqueueOrganizationDefaultMembershipBackfill).not.toHaveBeenCalled()
         expect(queueService.enqueueTenantDefaultMembershipBackfill).not.toHaveBeenCalled()
     })
 

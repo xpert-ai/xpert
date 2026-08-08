@@ -41,6 +41,8 @@ describe('XpAccountComponent template', () => {
     expect(copyActionIndex).toBeLessThan(routerOutletIndex)
     expect(regenerateActionIndex).toBeGreaterThan(copyActionIndex)
     expect(template).toContain('rla4.isActive && canUseReferral() && referralCode()')
+    expect(template).toContain('@if (canUseMembership())')
+    expect(template).not.toContain('@if (hasActiveMembership())')
     expect(template).toMatch(/data-referral-copy[\s\S]*?class="h-auto px-0 py-0 text-base"/)
     expect(template).toMatch(/data-referral-regenerate[\s\S]*?class="h-auto px-0 py-0 text-base"/)
     expect(template).not.toContain("['configuration']")
@@ -55,6 +57,7 @@ describe('XpAccountComponent template', () => {
           provide: Store,
           useValue: {
             user$: of(null),
+            userRolePermissions$: of([]),
             featureContextHydrated$: of(true),
             featureContextHydrated: true,
             hasFeatureEnabled: jest.fn(() => false),
@@ -130,6 +133,7 @@ describe('XpAccountComponent template', () => {
           provide: Store,
           useValue: {
             user$: of(null),
+            userRolePermissions$: of([]),
             featureContextHydrated$: of(true),
             featureContextHydrated: true,
             hasFeatureEnabled: jest.fn(() => false),
@@ -195,6 +199,7 @@ describe('XpAccountComponent template', () => {
           provide: Store,
           useValue: {
             user$: of(null),
+            userRolePermissions$: of([]),
             featureContextHydrated$: of(true),
             featureContextHydrated: true,
             hasFeatureEnabled: jest.fn(() => false),

@@ -8,7 +8,7 @@ const FULL_AI_PERMISSIONS = [
     AIPermissionsEnum.CHAT_VIEW
 ]
 
-const MEMBER_PURCHASE_PERMISSIONS = [AIPermissionsEnum.MEMBERSHIP_PURCHASE]
+const MEMBERSHIP_USE_PERMISSIONS = [AIPermissionsEnum.MEMBERSHIP_USE]
 const MEMBERSHIP_ADMIN_PERMISSIONS = [AIPermissionsEnum.MEMBERSHIP_EDIT]
 const MODEL_ACCESS_ADMIN_PERMISSIONS = [
     AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW,
@@ -25,7 +25,7 @@ const BILLING_ADMIN_PERMISSIONS = [
 const VIEWER_AI_PERMISSIONS = [
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.CHAT_VIEW,
-    ...MEMBER_PURCHASE_PERMISSIONS
+    ...MEMBERSHIP_USE_PERMISSIONS
 ]
 
 export const DEFAULT_ROLE_PERMISSIONS = [
@@ -37,7 +37,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
             ...MODEL_ACCESS_ADMIN_PERMISSIONS,
             ...MODEL_GATEWAY_USER_PERMISSIONS,
             ...MODEL_GATEWAY_ADMIN_PERMISSIONS,
-            ...MEMBER_PURCHASE_PERMISSIONS,
+            ...MEMBERSHIP_USE_PERMISSIONS,
             ...BILLING_ADMIN_PERMISSIONS
         ]
     },
@@ -49,7 +49,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
             ...MODEL_ACCESS_ADMIN_PERMISSIONS,
             ...MODEL_GATEWAY_USER_PERMISSIONS,
             ...MODEL_GATEWAY_ADMIN_PERMISSIONS,
-            ...MEMBER_PURCHASE_PERMISSIONS,
+            ...MEMBERSHIP_USE_PERMISSIONS,
             ...BILLING_ADMIN_PERMISSIONS
         ]
     },
@@ -59,12 +59,12 @@ export const DEFAULT_ROLE_PERMISSIONS = [
             AIPermissionsEnum.COPILOT_EDIT,
             AIPermissionsEnum.XPERT_EDIT,
             AIPermissionsEnum.CHAT_VIEW,
-            ...MEMBER_PURCHASE_PERMISSIONS
+            ...MEMBERSHIP_USE_PERMISSIONS
         ]
     },
     {
         role: RolesEnum.AI_BUILDER,
-        defaultEnabledPermissions: [...FULL_AI_PERMISSIONS, ...MEMBER_PURCHASE_PERMISSIONS]
+        defaultEnabledPermissions: [...FULL_AI_PERMISSIONS, ...MEMBERSHIP_USE_PERMISSIONS]
     },
     {
         role: RolesEnum.VIEWER,

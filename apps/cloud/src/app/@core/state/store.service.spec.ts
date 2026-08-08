@@ -188,6 +188,17 @@ describe('Store', () => {
     expect(store.hasFeatureEnabled(FeatureEnum.FEATURE_EMAIL_TEMPLATE)).toBe(true)
   })
 
+  it.each([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN, AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE])(
+    'keeps tenant-only membership feature %s independent of organization overrides',
+    (feature) => {
+      store.organizationId = 'org-1'
+      store.featureTenant = [createFeatureOrganization(feature, true)]
+      store.featureOrganizations = [createFeatureOrganization(feature, false, 'org-1')]
+
+      expect(store.hasFeatureEnabled(feature)).toBe(true)
+    }
+  )
+
   it('uses tenant fallback until organization toggle overrides personal model access', () => {
     store.organizationId = 'org-1'
     store.featureTenant = [createFeatureOrganization(AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST, true)]

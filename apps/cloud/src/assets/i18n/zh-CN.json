@@ -3028,7 +3028,7 @@
         "MODEL_ACCESS_REQUEST_EDIT": "管理模型授权申请",
         "MODEL_GATEWAY_USE": "使用模型 API 网关",
         "MODEL_GATEWAY_MANAGE": "管理模型 API 网关",
-        "MEMBERSHIP_PURCHASE": "购买会员和点数",
+        "MEMBERSHIP_USE": "使用会员套餐",
         "BILLING_PRODUCT_EDIT": "管理计费商品",
         "BILLING_REFUND": "处理计费退款",
         "PAYMENT_PROVIDER_EDIT": "管理支付提供商"

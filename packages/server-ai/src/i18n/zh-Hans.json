@@ -27,6 +27,7 @@
         "MembershipPlanRequired": "当前会员计划不可用，请先配置会员计划后再使用 Copilot 模型。",
         "MembershipPointsLimitExceeded": "会员点数额度已用尽。",
         "MembershipPlanFeatureDisabled": "会员套餐功能未启用。",
+        "MembershipFeatureTenantScopeRequired": "此会员功能只能在租户范围内配置。",
         "CopilotModelUnavailableForMembershipPlan": "当前会员计划无法使用该 Copilot 模型。",
         "ModelAccessPlanIncluded": "当前会员套餐已包含此模型。",
         "ModelAccessAlreadyGranted": "此模型已经授权给该用户。",

@@ -111,6 +111,20 @@ const referralFeature: IFeature = {
   description: 'Invitation code feature'
 }
 
+const membershipPlanFeature: IFeature = {
+  id: 'feature-membership-plan',
+  code: AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
+  name: 'Membership plans',
+  description: 'Membership plan feature'
+}
+
+const membershipPurchaseFeature: IFeature = {
+  id: 'feature-membership-purchase',
+  code: AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE,
+  name: 'Membership purchase',
+  description: 'Membership purchase feature'
+}
+
 const customChildFeature: IFeature = {
   id: 'feature-custom-child',
   code: 'FEATURE_CUSTOM_CHILD',
@@ -228,12 +242,21 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, referralFeature, parentFeature])
+      .visibleFeatureGroups([
+        rolePermissionFeature,
+        integrationFeature,
+        referralFeature,
+        membershipPlanFeature,
+        membershipPurchaseFeature,
+        parentFeature
+      ])
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
     expect(groupIds).toContain(FeatureEnum.FEATURE_REFERRAL)
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
+    expect(groupIds).toContain(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
+    expect(groupIds).toContain(AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(
       fixture.componentInstance
@@ -267,12 +290,21 @@ describe('FeatureToggleComponent', () => {
     fixture.detectChanges()
 
     const groupIds = fixture.componentInstance
-      .visibleFeatureGroups([rolePermissionFeature, integrationFeature, referralFeature, parentFeature])
+      .visibleFeatureGroups([
+        rolePermissionFeature,
+        integrationFeature,
+        referralFeature,
+        membershipPlanFeature,
+        membershipPurchaseFeature,
+        parentFeature
+      ])
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(groupIds).not.toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+    expect(groupIds).not.toContain(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
+    expect(groupIds).not.toContain(AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE)
   })
 
   it('renders feature toggles with z-checkbox and uses indeterminate state for partial groups', async () => {

@@ -53,17 +53,14 @@ export class MembershipBackfillProcessor {
     async enqueueBackfillWhenFeatureEnabled(event: FeatureOrganizationUpdatedEvent) {
         if (
             event.featureCode !== AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN ||
+            !!event.organizationId ||
             event.previousIsEnabled ||
             !event.isEnabled
         ) {
             return
         }
 
-        if (event.organizationId) {
-            await this.queueService.enqueueOrganizationDefaultMembershipBackfill(event.tenantId, event.organizationId)
-        } else {
-            await this.queueService.enqueueTenantDefaultMembershipBackfill(event.tenantId)
-        }
+        await this.queueService.enqueueTenantDefaultMembershipBackfill(event.tenantId)
     }
 
     @Process({
