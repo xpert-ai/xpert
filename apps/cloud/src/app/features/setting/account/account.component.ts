@@ -11,8 +11,8 @@ import {
 } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
-import { MembershipService, Store, ToastrService, routeAnimations } from '../../../@core'
+import { firstValueFrom, map } from 'rxjs'
+import { Store, ToastrService, routeAnimations } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserAvatarEditorComponent } from '../../../@shared/user'
 
@@ -35,7 +35,6 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
 })
 export class XpAccountComponent {
   private readonly store = inject(Store)
-  private readonly membership = inject(MembershipService)
   private readonly referralService = inject(ReferralService)
   private readonly document = inject(DOCUMENT)
   private readonly alertDialog = inject(ZardAlertDialogService)
@@ -48,7 +47,10 @@ export class XpAccountComponent {
     initialValue: this.store.featureContextHydrated
   })
   public readonly isTechnicalUser = computed(() => this.user()?.type === UserType.COMMUNICATION)
-  public readonly hasActiveMembership = toSignal(this.membership.hasActiveMembershipInScope(), { initialValue: false })
+  public readonly canUseMembership = toSignal(
+    this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE))),
+    { initialValue: this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE) }
+  )
   public readonly canUseModelGateway = computed(() => {
     this.user()
     this.featureContextHydrated()

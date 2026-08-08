@@ -198,7 +198,7 @@ export class MembershipService {
   }
 
   getOverview(query?: IMembershipUsageQuery) {
-    return this.#http.get<IMembershipUsageOverview | null>(`${API_MEMBERSHIP}/me/overview`, {
+    return this.#http.get<IMembershipUsageOverview>(`${API_MEMBERSHIP}/me/overview`, {
       params: this.toParams(query)
     })
   }

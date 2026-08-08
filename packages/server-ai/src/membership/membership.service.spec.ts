@@ -11,6 +11,7 @@ import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { FeatureOrganization, RequestContext, User } from '@xpert-ai/server-core'
 import {
+    AIPermissionsEnum,
     AiModelTypeEnum,
     DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
     MEMBERSHIP_TOKENS_PER_POINT_SETTING,
@@ -50,6 +51,9 @@ describe('MembershipService', () => {
         assertRateLimits: (...args: unknown[]) => Promise<void>
         findActiveMembership: (...args: unknown[]) => Promise<unknown>
         findMembershipForUpdate: (...args: unknown[]) => Promise<unknown>
+        findMembershipPresentationAccess: (...args: unknown[]) => Promise<unknown>
+        findTopLedgerRanks: (...args: unknown[]) => Promise<unknown[]>
+        hasMembershipUsePermission: (...args: unknown[]) => Promise<boolean>
         renewMembership: (...args: unknown[]) => Promise<unknown>
         createMembershipStatusLedger: (...args: unknown[]) => Promise<void>
         requireManagedMembership: (...args: unknown[]) => Promise<unknown>
@@ -176,7 +180,14 @@ describe('MembershipService', () => {
         ledgerRepository: never = {} as never,
         xpertRepository: never = {} as never,
         userRepository: never | undefined = {
-            findOne: jest.fn(async ({ where }) => ({ id: where.id, tenantId: where.tenantId, type: UserType.USER })),
+            findOne: jest.fn(async ({ where }) => ({
+                id: where.id,
+                tenantId: where.tenantId,
+                type: UserType.USER,
+                role: {
+                    rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+                }
+            })),
             find: jest.fn().mockResolvedValue([{ id: 'user-1' }, { id: 'user-2' }])
         } as never,
         userOrganizationRepository: never | undefined = undefined,
@@ -644,7 +655,14 @@ describe('MembershipService', () => {
             )
         }
         const userRepository = {
-            findOne: jest.fn(async ({ where }) => ({ id: where.id, tenantId: where.tenantId, type: UserType.USER })),
+            findOne: jest.fn(async ({ where }) => ({
+                id: where.id,
+                tenantId: where.tenantId,
+                type: UserType.USER,
+                role: {
+                    rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+                }
+            })),
             find: jest.fn().mockResolvedValue([{ id: 'user-1' }, { id: 'user-2' }])
         }
         const membershipRepository = {
@@ -1449,6 +1467,55 @@ describe('MembershipService', () => {
         expect(service.findUserUsageSummaries).toHaveBeenCalledWith('tenant-1', 'owner-user', undefined, undefined)
     })
 
+    it('keeps historical usage available without current membership access', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const service = createMembershipService()
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue(null)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findMembershipPresentationAccess').mockResolvedValue(null)
+        const usage = { items: [], total: 0 }
+        jest.spyOn(service, 'findUserUsage').mockResolvedValue(usage)
+
+        await expect(service.findMyUsage()).resolves.toBe(usage)
+        expect(service.findUserUsage).toHaveBeenCalledWith('tenant-1', 'owner-user', undefined, undefined)
+    })
+
+    it('builds historical usage overview without current membership access', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const queryBuilder = createQueryBuilder([
+            {
+                day: '2026-07-23T00:00:00.000Z',
+                pointsUsed: '1',
+                tokenUsed: '1000'
+            }
+        ])
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            { createQueryBuilder: jest.fn().mockReturnValue(queryBuilder) } as never,
+            {} as never
+        )
+        const internals = getMembershipServiceTestAccess(service)
+        jest.spyOn(internals, 'findMembershipPresentationAccess').mockResolvedValue(null)
+        jest.spyOn(internals, 'findTopLedgerRanks').mockResolvedValue([])
+
+        const overview = await service.getOverview({
+            start: '2026-07-01T00:00:00.000Z',
+            end: '2026-07-31T23:59:59.999Z'
+        })
+
+        expect(overview).toMatchObject({
+            totalTokens: 1000,
+            peakDailyTokens: 1000,
+            activeDays: 1,
+            buckets: [{ date: '2026-07-23', pointsUsed: 1, tokenUsed: 1000 }]
+        })
+    })
+
     it('uses xpert and conversation titles in usage rankings with id fallback', async () => {
         const xpertQueryBuilder = createQueryBuilder([
             { key: 'xpert-1', label: '研究助手', pointsUsed: '2', tokenUsed: '2000' }
@@ -2173,6 +2240,69 @@ describe('MembershipService', () => {
         })
         expect(findUsableMembership).toHaveBeenCalledTimes(1)
         expect(findUsableMembership).toHaveBeenCalledWith('tenant-1', 'org-1', 'assistant-tech-user', undefined, false)
+    })
+
+    it('does not expose membership model access without membership use permission', async () => {
+        const userRepository = {
+            findOne: jest.fn(async ({ where }) => ({
+                id: where.id,
+                tenantId: where.tenantId,
+                type: UserType.USER,
+                role: { rolePermissions: [] }
+            }))
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            userRepository as never
+        )
+        const findUsableMembership = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership')
+            .mockResolvedValue(createMembership({ organizationId: 'org-1' }))
+
+        await expect(
+            service.findModelAccess({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'assistant-tech-user'
+            })
+        ).resolves.toBeNull()
+        expect(findUsableMembership).not.toHaveBeenCalled()
+    })
+
+    it('does not self-heal organization membership without membership use permission', async () => {
+        const userRepository = {
+            findOne: jest.fn(async ({ where }) => ({
+                id: where.id,
+                tenantId: where.tenantId,
+                type: UserType.USER,
+                role: { rolePermissions: [] }
+            }))
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            userRepository as never
+        )
+        const initialize = jest.spyOn(service, 'ensureScopeInitialized').mockResolvedValue({} as never)
+
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: 'org-1',
+                userId: 'assistant-tech-user',
+                provider: 'tongyi',
+                model: 'qwen3.6-plus'
+            })
+        ).rejects.toThrow('Membership plan is required to use Copilot models.')
+        expect(initialize).not.toHaveBeenCalled()
     })
 
     it('falls back to tenant membership for model access when organization membership is missing', async () => {
@@ -3731,6 +3861,37 @@ describe('MembershipService', () => {
                 plan: fallbackPlan
             },
             plan: fallbackPlan,
+            personalPointsBalance: 0
+        })
+    })
+
+    it('keeps the latest membership visible when the membership feature is disabled', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const membership = createMembership({
+            organizationId: 'org-1',
+            status: MembershipStatusEnum.Expired
+        })
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            undefined,
+            createMembershipFeatureRepository(() => [{ isEnabled: false }]).repository as never
+        )
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue(null)
+        const internals = getMembershipServiceTestAccess(service)
+        jest.spyOn(internals, 'findMembershipForUpdate').mockResolvedValue(membership)
+        jest.spyOn(internals, 'getPersonalPointsBalance').mockResolvedValue(0)
+
+        await expect(service.getMe()).resolves.toMatchObject({
+            membership,
+            plan: membership.plan,
             personalPointsBalance: 0
         })
     })

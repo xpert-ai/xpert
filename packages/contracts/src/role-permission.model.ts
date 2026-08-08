@@ -84,7 +84,7 @@ export const PermissionGroups = {
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
     AIPermissionsEnum.MEMBERSHIP_EDIT,
-    AIPermissionsEnum.MEMBERSHIP_PURCHASE,
+    AIPermissionsEnum.MEMBERSHIP_USE,
     AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW,
     AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT,
     AIPermissionsEnum.MODEL_GATEWAY_USE,

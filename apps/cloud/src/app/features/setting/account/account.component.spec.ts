@@ -6,7 +6,7 @@ import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { of } from 'rxjs'
-import { MembershipService, Store, ToastrService } from '../../../@core'
+import { Store, ToastrService } from '../../../@core'
 import { XpAccountComponent } from './account.component'
 
 jest.mock('@cloud/app/@core/state', () => ({
@@ -14,7 +14,6 @@ jest.mock('@cloud/app/@core/state', () => ({
 }))
 
 jest.mock('../../../@core', () => ({
-  MembershipService: class MembershipService {},
   Store: class Store {},
   ToastrService: class ToastrService {},
   routeAnimations: []
@@ -46,6 +45,13 @@ describe('XpAccountComponent template', () => {
     expect(template).not.toContain("['configuration']")
   })
 
+  it('shows membership usage tabs based on membership use permission', () => {
+    const template = readFileSync(join(__dirname, 'account.component.html'), 'utf8')
+
+    expect(template).toContain('@if (canUseMembership())')
+    expect(template).not.toContain('@if (hasActiveMembership())')
+  })
+
   it('copies the loaded invitation code', async () => {
     const writeText = jest.fn().mockResolvedValue(undefined)
     const setTimeout = jest.fn()
@@ -55,16 +61,11 @@ describe('XpAccountComponent template', () => {
           provide: Store,
           useValue: {
             user$: of(null),
+            userRolePermissions$: of([]),
             featureContextHydrated$: of(true),
             featureContextHydrated: true,
             hasFeatureEnabled: jest.fn(() => false),
             hasPermission: jest.fn(() => false)
-          }
-        },
-        {
-          provide: MembershipService,
-          useValue: {
-            hasActiveMembershipInScope: jest.fn(() => of(false))
           }
         },
         {
@@ -130,16 +131,11 @@ describe('XpAccountComponent template', () => {
           provide: Store,
           useValue: {
             user$: of(null),
+            userRolePermissions$: of([]),
             featureContextHydrated$: of(true),
             featureContextHydrated: true,
             hasFeatureEnabled: jest.fn(() => false),
             hasPermission: jest.fn(() => false)
-          }
-        },
-        {
-          provide: MembershipService,
-          useValue: {
-            hasActiveMembershipInScope: jest.fn(() => of(false))
           }
         },
         {
@@ -195,16 +191,11 @@ describe('XpAccountComponent template', () => {
           provide: Store,
           useValue: {
             user$: of(null),
+            userRolePermissions$: of([]),
             featureContextHydrated$: of(true),
             featureContextHydrated: true,
             hasFeatureEnabled: jest.fn(() => false),
             hasPermission: jest.fn(() => false)
-          }
-        },
-        {
-          provide: MembershipService,
-          useValue: {
-            hasActiveMembershipInScope: jest.fn(() => of(false))
           }
         },
         {

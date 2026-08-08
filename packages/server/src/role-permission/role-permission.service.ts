@@ -4,6 +4,7 @@ import { In, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import {
 	RolesEnum,
+	AIPermissionsEnum,
 	ITenant,
 	IRolePermission,
 	IRolePermissionMigrateInput,
@@ -53,6 +54,10 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		await this.rolePermissionRepository.delete({
 			permission: In([...RETIRED_ANALYTICS_PERMISSION_CODES])
 		})
+		await this.rolePermissionRepository.update(
+			{ permission: 'MEMBERSHIP_PURCHASE' },
+			{ permission: AIPermissionsEnum.MEMBERSHIP_USE }
+		)
 	}
 
 	public async updatePermission(

@@ -1,10 +1,17 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common'
+import { BadRequestException, forwardRef, Inject, Injectable, Optional } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Cache } from 'cache-manager'
+import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
-import { IFeature, IFeatureOrganization, IFeatureOrganizationUpdateInput, ITenant } from '@xpert-ai/contracts'
+import {
+	AiFeatureEnum,
+	IFeature,
+	IFeatureOrganization,
+	IFeatureOrganizationUpdateInput,
+	ITenant
+} from '@xpert-ai/contracts'
 import { isNotEmpty } from '@xpert-ai/server-common'
 import { TenantAwareCrudService } from './../core/crud'
 import { RequestContext } from './../core/context'
@@ -50,6 +57,17 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 	async updateFeatureOrganization(entity: IFeatureOrganizationUpdateInput): Promise<IFeatureOrganization[]> {
 		const tenantId = RequestContext.currentTenantId()
 		const { featureId, organizationId } = entity
+		let feature: IFeature | undefined
+		if (isNotEmpty(organizationId)) {
+			feature = await this._featureService.findOne(featureId)
+			if (feature.code === AiFeatureEnum.FEATURE_MEMBERSHIP_PURCHASE) {
+				throw new BadRequestException(
+					t('server-ai:Error.MembershipPurchaseFeatureTenantScopeRequired', {
+						defaultValue: 'Membership purchase can only be configured at tenant scope.'
+					})
+				)
+			}
+		}
 		const organizationScope = isNotEmpty(organizationId) ? { organizationId } : { organizationId: IsNull() }
 
 		// find all feature organization by feature id
@@ -81,7 +99,7 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 		}
 		await touchCurrentUserFeatureTenantCacheVersion(this.cacheManager, tenantId)
 		if (previousIsEnabled !== entity.isEnabled) {
-			const feature = await this._featureService.findOne(featureId)
+			feature ??= await this._featureService.findOne(featureId)
 			this.eventEmitter?.emit(
 				EVENT_FEATURE_ORGANIZATION_UPDATED,
 				new FeatureOrganizationUpdatedEvent(

@@ -1,4 +1,5 @@
 import type { Repository } from 'typeorm'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { RoleService } from '../role/role.service'
 import { RolePermission } from './role-permission.entity'
@@ -11,7 +12,8 @@ describe('RolePermissionService', () => {
 
 	it('purges retired Analytics permissions during application bootstrap', async () => {
 		const repository = {
-			delete: jest.fn().mockResolvedValue({ affected: 18 })
+			delete: jest.fn().mockResolvedValue({ affected: 18 }),
+			update: jest.fn().mockResolvedValue({ affected: 3 })
 		}
 		const service = new RolePermissionService(
 			repository as unknown as Repository<RolePermission>,
@@ -27,6 +29,10 @@ describe('RolePermissionService', () => {
 		)
 		expect(criteria.permission.value).not.toContain('DATA_SOURCE_VIEW')
 		expect(criteria).not.toHaveProperty('tenantId')
+		expect(repository.update).toHaveBeenCalledWith(
+			{ permission: 'MEMBERSHIP_PURCHASE' },
+			{ permission: AIPermissionsEnum.MEMBERSHIP_USE }
+		)
 	})
 
 	it('purges retired Analytics permissions when synchronizing defaults', async () => {
