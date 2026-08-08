@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.16.0
+
+### Minor Changes
+
+- b800da5: v3.16
+
 ## 3.15.18
 
 ### Patch Changes
