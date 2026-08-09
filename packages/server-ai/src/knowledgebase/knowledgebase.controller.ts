@@ -4,7 +4,7 @@ import {
     IKnowledgebaseTask,
     IPagination,
     KnowledgebasePermission,
-    KnowledgeDocumentMetadata,
+    KnowledgeFilterSources,
     KnowledgeDocumentProcessingMode,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
@@ -48,7 +48,7 @@ import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 import { KnowledgebaseDetailDTO, KnowledgebasePublicDTO } from './dto'
 import { FileInterceptor } from '@nestjs/platform-express'
 import path from 'node:path'
-import { KnowledgeDocumentService } from '../knowledge-document'
+import { buildLogicalFolderPath, KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
@@ -159,30 +159,6 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         })
     }
 
-    @Post('similarity-search')
-    async similaritySearch(
-        @Body('query') query: string,
-        @Body('options') options?: { k: number; filter: any; score?: number }
-    ) {
-        this.#logger.debug(
-            `Retrieving documents for query: ${query} with k = ${options?.k} score = ${options?.score} and filter = ${options?.filter}`
-        )
-
-        return this.service.similaritySearch(query, options)
-    }
-
-    @Post('mmr-search')
-    async maxMarginalRelevanceSearch(
-        @Body('query') query: string,
-        @Body('options') options?: { k: number; filter: any }
-    ) {
-        this.#logger.debug(
-            `Retrieving documents for mmr query: ${query} with k = ${options?.k} and filter = ${options?.filter}`
-        )
-
-        return this.service.maxMarginalRelevanceSearch(query, options)
-    }
-
     @Post('external')
     async createExternal(@Body() body: Partial<IKnowledgebase>) {
         return this.service.createExternal(body)
@@ -221,15 +197,12 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
             query: string
             k: number
             score: number
-            filter: KnowledgeDocumentMetadata
+            filters?: KnowledgeFilterSources
+            variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
         }
     ) {
-        try {
-            return await this.service.test(id, body)
-        } catch (err) {
-            throw new InternalServerErrorException(getErrorMessage(err))
-        }
+        return await this.service.test(id, body)
     }
 
     @Post(':id/pipeline')
@@ -311,7 +284,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         let parentFolder = ''
         if (parentId) {
             const parents = await this.documentService.findAncestors(parentId)
-            parentFolder = parents.map((i) => i.name).join('/')
+            parentFolder = buildLogicalFolderPath(parents)
         }
 
         await this.knowledgeWorkAreaResolver.resolve({
@@ -388,6 +361,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         @Param('id') id: string,
         @Query('data', ParseJsonPipe) params: PaginationParams<KnowledgeRetrievalLog>
     ) {
+        // Resolve through the scoped knowledgebase service before exposing its audit trail.
+        await this.service.findOne(id)
         return this.retrievalLogService.findAll({
             ...(params ?? {}),
             where: {

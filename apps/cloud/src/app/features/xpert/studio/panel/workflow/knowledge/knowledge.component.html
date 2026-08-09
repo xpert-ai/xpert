@@ -100,45 +100,79 @@
 
   <div class="h-[0.5px] bg-divider-subtle"></div>
 
-  <div class="flex grow items-center justify-between pr-4">
-    <div class="flex items-center">
-      <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">
-        {{ 'XP.Xpert.KnowledgeMetadataFilter' | translate: { Default: 'Metadata Filtering' } }}
-      </div>
-      <div
-        class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
-        [zTooltip]="
-          'XP.Xpert.KnowledgeMetadataFilterTooltip'
-            | translate
-              : {
-                  Default:
-                    'Metadata filtering is the process of refining and controlling the retrieval of relevant information within a system using metadata attributes such as tags, categories, or access permissions.'
-                }
-        "
-        zPosition="top"
-      >
-        <i class="ri-information-line"></i>
+  <div class="space-y-3 rounded-xl border border-divider-subtle p-3">
+    <div class="flex items-center justify-between gap-2">
+      <div>
+        <div class="system-sm-semibold-uppercase text-text-secondary">
+          {{ 'XP.Xpert.FixedKnowledgeFilter' | translate: { Default: 'Fixed filter boundary' } }}
+        </div>
+        <div class="mt-1 text-xs text-text-tertiary">
+          {{
+            'XP.Xpert.FixedKnowledgeFilterHint'
+              | translate: { Default: 'Always enforced by the server. The Agent cannot view, change, or remove it.' }
+          }}
+          {{ fixedConditionCount() }}
+          {{ 'XP.Knowledgebase.FilterForm.Conditions' | translate: { Default: 'conditions' } }}.
+        </div>
       </div>
     </div>
-    <div class="flex items-center">
-      <button
-        type="button"
-        class="group btn disabled:btn-disabled btn-secondary btn-small"
-        #trigger="cdkMenuTriggerFor"
-        [cdkMenuTriggerFor]="filterModeMenu.template"
-        [cdkMenuTriggerData]="{ trigger: trigger }"
-      >
-        {{ 'XP.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize } }}
-        <i
-          class="ri-arrow-down-s-line w-4 h-4 ml-1 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"
-        ></i>
-      </button>
-    </div>
-  </div>
 
-  @if (filtering_mode() === 'manual') {
-    <xp-knowledge-case-form class="pr-2" [(case)]="filtering_conditions" [fields]="metadataFields()" />
-  }
+    <xp-knowledge-filter-form [(filter)]="fixedFilter" [fields]="filterFields()" />
+
+    <div class="h-px bg-divider-subtle"></div>
+
+    <z-checkbox
+      class="w-full items-start justify-between"
+      labelPosition="before"
+      displayDensity="cosy"
+      [ngModel]="agentFilteringEnabled()"
+      (ngModelChange)="agentFilteringEnabled.set($event)"
+    >
+      <span>
+        <span class="block text-sm font-medium text-text-secondary">
+          {{ 'XP.Xpert.AllowAgentKnowledgeFilter' | translate: { Default: 'Allow Agent automatic filtering' } }}
+        </span>
+        <span class="mt-1 block text-xs text-text-tertiary">
+          {{
+            'XP.Xpert.AllowAgentKnowledgeFilterHint'
+              | translate
+                : {
+                    Default:
+                      'The Agent may add literal-only conditions from the fields below. They are ANDed with the fixed boundary.'
+                  }
+          }}
+        </span>
+      </span>
+    </z-checkbox>
+
+    <div class="text-xs text-text-tertiary">
+      {{
+        'XP.Knowledgebase.FilterForm.AllModesSupported'
+          | translate
+            : {
+                Default:
+                  'Knowledge Filters constrain Vector, Graph, and both branches of Hybrid retrieval before results are merged.'
+              }
+      }}
+    </div>
+
+    @if (agentFilteringEnabled()) {
+      <details class="text-xs text-muted-foreground">
+        <summary class="cursor-pointer">
+          {{ 'XP.Knowledgebase.FilterForm.AgentFields' | translate: { Default: 'Agent fields' } }}
+          ({{ filterFields().length }})
+        </summary>
+        <div class="mt-2 max-h-40 space-y-1 overflow-auto rounded-md bg-muted/50 p-2 font-mono">
+          @for (field of filterFields(); track field.key) {
+            <div>
+              <div>{{ field.key }} · {{ field.type }}</div>
+              <div class="text-text-quaternary">{{ filterFieldOperators(field) }}</div>
+            </div>
+          }
+        </div>
+      </details>
+    }
+  </div>
 
   <div class="h-[0.5px] bg-divider-subtle"></div>
 
@@ -207,8 +241,6 @@
     </div>
   }
 </div>
-
-<xp-select-panel #filterModeMenu [selectOptions]="filterModeOptions" [(ngModel)]="filtering_mode" />
 
 <ng-template #recallMenu>
   <div cdkMenu class="p-4">

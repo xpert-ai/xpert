@@ -1,5 +1,24 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, model, output, signal } from '@angular/core'
-import { DocumentMetadata, getErrorMessage, IKnowledgebase, KnowledgebaseService, TKBRecallParams, ToastrService } from 'apps/cloud/src/app/@core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  input,
+  model,
+  output,
+  signal
+} from '@angular/core'
+import {
+  DocumentMetadata,
+  getErrorMessage,
+  IKnowledgebase,
+  KnowledgeFilterDiagnostics,
+  KnowledgebaseService,
+  TKBRecallParams,
+  TKBRetrievalSettings,
+  ToastrService
+} from 'apps/cloud/src/app/@core'
 import { CommonModule } from '@angular/common'
 import { Subscription } from 'rxjs'
 import { FormsModule } from '@angular/forms'
@@ -12,9 +31,9 @@ import { TranslateModule } from '@ngx-translate/core'
   styleUrls: ['./test.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ CommonModule, FormsModule, TranslateModule ],
+  imports: [CommonModule, FormsModule, TranslateModule],
   host: {
-    tabindex: '-1',
+    tabindex: '-1'
   }
 })
 export class XpertKnowledgeTestComponent {
@@ -25,6 +44,7 @@ export class XpertKnowledgeTestComponent {
   // Inputs
   readonly knowledgebase = input<IKnowledgebase>()
   readonly recall = input<TKBRecallParams>()
+  readonly retrieval = input<TKBRetrievalSettings>()
 
   // Outputs
   readonly close = output<void>()
@@ -32,26 +52,32 @@ export class XpertKnowledgeTestComponent {
   // States
   readonly query = model<string>()
   readonly docs = signal<DocumentInterface<DocumentMetadata>[]>([])
+  readonly diagnostics = signal<KnowledgeFilterDiagnostics[]>([])
+  readonly diagnosticsText = computed(() => JSON.stringify(this.diagnostics(), null, 2))
 
   readonly running = signal(false)
   #runSubscription: Subscription = null
 
   onTest() {
     this.running.set(true)
-    this.#runSubscription = this.knowledgebaseService.test(this.knowledgebase().id, {
-      query: this.query(),
-      k: this.recall()?.topK ?? 10,
-      score: this.recall()?.score ?? 0.2,
-    }).subscribe({
-      next: (result) => {
-        this.docs.set(result)
-        this.running.set(false)
-      },
-      error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
-        this.running.set(false)
-      }
-    })
+    this.#runSubscription = this.knowledgebaseService
+      .test(this.knowledgebase().id, {
+        query: this.query(),
+        k: this.recall()?.topK ?? 10,
+        score: this.recall()?.score ?? 0.2,
+        retrieval: this.retrieval()
+      })
+      .subscribe({
+        next: (result) => {
+          this.docs.set(result.documents)
+          this.diagnostics.set(result.diagnostics)
+          this.running.set(false)
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+          this.running.set(false)
+        }
+      })
   }
 
   stopTest() {
@@ -59,9 +85,7 @@ export class XpertKnowledgeTestComponent {
     this.running.set(false)
   }
 
-  openChunk(chunk) {
-    
-  }
+  openChunk(chunk) {}
 
   onClose() {
     this.close.emit()

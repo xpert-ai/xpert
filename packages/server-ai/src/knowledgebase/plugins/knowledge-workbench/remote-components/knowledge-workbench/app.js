@@ -621,9 +621,6 @@
     var ow = L(() => {
         'use strict'
     })
-    var iw = L(() => {
-        'use strict'
-    })
     var ku = L(() => {
         'use strict'
         gp()
@@ -689,13 +686,12 @@
         nw()
         aw()
         ow()
-        iw()
     })
-    var eQ,
-        sw = L(() => {
+    var QZ,
+        iw = L(() => {
             'use strict'
             ku()
-            eQ = {
+            QZ = {
                 GENERAL: [
                     'PROFILE_EDIT',
                     'ADMIN_DASHBOARD_VIEW',
@@ -732,10 +728,14 @@
                     'SUPER_ADMIN_EDIT',
                     'INTEGRATION_VIEW',
                     'ACCESS_DELETE_ACCOUNT',
-                    'ACCESS_DELETE_ALL_DATA'
+                    'ACCESS_DELETE_ALL_DATA',
+                    'REFERRAL_VIEW'
                 ]
             }
         })
+    var sw = L(() => {
+        'use strict'
+    })
     var lw = L(() => {
         'use strict'
     })
@@ -826,11 +826,11 @@
                 }
             }
         })
-    var TQ,
+    var wQ,
         Rw = L(() => {
             'use strict'
             Os()
-            TQ = {
+            wQ = {
                 name: 'Lark',
                 label: { en_US: 'Lark', zh_Hans: '\u98DE\u4E66' },
                 avatar: 'lark.png',
@@ -866,14 +866,14 @@
                 }
             }
         })
-    var PQ,
+    var LQ,
         Aw = L(() => {
             'use strict'
             Os()
             Cp()
             Cp()
             Rw()
-            PQ = { github: Pw }
+            LQ = { github: Pw }
         })
     var Dw = L(() => {
         'use strict'
@@ -885,11 +885,11 @@
         'use strict'
         ku()
     })
-    var zQ,
+    var BQ,
         Nw = L(() => {
             'use strict'
             Su()
-            zQ = [
+            BQ = [
                 {
                     name: 'filePath',
                     type: 'string',
@@ -991,6 +991,7 @@
         eI()
         tI()
         rI()
+        iw()
         sw()
         lw()
         uw()
@@ -2787,12 +2788,12 @@
     var Xp,
         Bs,
         Ru,
-        xee,
+        yee,
         pi = L(() => {
             ;((Xp = globalThis.ReactDOM),
                 (Bs = Xp.createPortal),
                 (Ru = Xp.flushSync),
-                (xee = Xp.unstable_batchedUpdates))
+                (yee = Xp.unstable_batchedUpdates))
         })
     function T0(e, t) {
         if (typeof e == 'function') return e(t)
@@ -3112,9 +3113,9 @@
             if ((e?.(a), r === !1 || !a.defaultPrevented)) return t?.(a)
         }
     }
-    var _ee,
+    var Nee,
         Gn = L(() => {
-            _ee = !!(typeof window < 'u' && window.document && window.document.createElement)
+            Nee = !!(typeof window < 'u' && window.document && window.document.createElement)
         })
     var St,
         Hn = L(() => {
@@ -10250,10 +10251,10 @@
     function Jk({ ...e }) {
         return w(Xn.Root, { 'data-slot': 'tooltip', ...e })
     }
-    function eL({ ...e }) {
+    function e1({ ...e }) {
         return w(Xn.Trigger, { 'data-slot': 'tooltip-trigger', ...e })
     }
-    function tL({ className: e, sideOffset: t = 0, children: r, ...n }) {
+    function t1({ className: e, sideOffset: t = 0, children: r, ...n }) {
         return w(Xn.Portal, {
             children: Y(Xn.Content, {
                 'data-slot': 'tooltip-content',
@@ -10273,84 +10274,84 @@
             })
         })
     }
-    var rL = L(() => {
+    var r1 = L(() => {
         Sn()
         vt()
         ge()
     })
-    var nL = L(() => {
+    var n1 = L(() => {
         vt()
         ge()
     })
-    var aL = L(() => {
+    var a1 = L(() => {
         vt()
         ge()
     })
-    var oL = L(() => {
+    var o1 = L(() => {
         vt()
         ge()
     })
-    var iL = L(() => {
+    var i1 = L(() => {
         vt()
         ge()
     })
-    var Bse,
+    var _se,
+        Bse,
         Fse,
         zse,
-        Use,
-        sL = L(() => {
+        s1 = L(() => {
             Sn()
             vt()
             ge()
-            ;((Bse = rr.Root), (Fse = rr.Trigger), (zse = rr.Close), (Use = rr.Portal))
+            ;((_se = rr.Root), (Bse = rr.Trigger), (Fse = rr.Close), (zse = rr.Portal))
         })
-    var Xse,
+    var Wse,
+        Xse,
         Kse,
-        jse,
-        lL = L(() => {
+        l1 = L(() => {
             Sn()
             vt()
             rl()
             ge()
-            ;((Xse = Ti.Root), (Kse = Ti.Trigger), (jse = Ti.Portal))
+            ;((Wse = Ti.Root), (Xse = Ti.Trigger), (Kse = Ti.Portal))
         })
-    var uL = L(() => {
+    var u1 = L(() => {
         vt()
         ge()
     })
-    var cL = L(() => {
+    var c1 = L(() => {
         vt()
         ge()
     })
-    var dL = L(() => {
+    var d1 = L(() => {
         'use client'
         ge()
     })
-    var fL = L(() => {
+    var f1 = L(() => {
         'use client'
         vt()
         _g()
         ge()
     })
-    var pL = L(() => {
+    var p1 = L(() => {
         vt()
         ge()
     })
-    var mL = L(() => {
+    var m1 = L(() => {
         vt()
         rl()
         ge()
     })
-    var gL = L(() => {
+    var g1 = L(() => {
         'use client'
         vt()
         ge()
     })
-    var hL = L(() => {
+    var h1 = L(() => {
         vt()
         ge()
     })
-    var vL = L(() => {
+    var v1 = L(() => {
         'use client'
         vt()
         ge()
@@ -10493,10 +10494,10 @@
         let r = e.element.offsetTop - t.element.offsetTop
         return r !== 0 ? r : e.element.offsetHeight - t.element.offsetHeight
     }
-    function NL(e) {
+    function N1(e) {
         return e !== null && typeof e == 'object' && 'nodeType' in e && e.nodeType === Node.ELEMENT_NODE
     }
-    function _L(e, t) {
+    function _1(e, t) {
         return {
             x: e.x >= t.left && e.x <= t.right ? 0 : Math.min(Math.abs(e.x - t.left), Math.abs(e.x - t.right)),
             y: e.y >= t.top && e.y <= t.bottom ? 0 : Math.min(Math.abs(e.y - t.top), Math.abs(e.y - t.bottom))
@@ -10507,7 +10508,7 @@
             a,
             o = Number.MAX_VALUE
         for (let i of t) {
-            let { x: s, y: l } = _L(n, i),
+            let { x: s, y: l } = _1(n, i),
                 u = e === 'horizontal' ? s : l
             u < o && ((o = u), (a = i))
         }
@@ -10520,12 +10521,12 @@
             Kc
         )
     }
-    function BL(e) {
+    function B1(e) {
         let { element: t, orientation: r, panels: n, separators: a } = e,
             o = zg(
                 r,
                 Array.from(t.children)
-                    .filter(NL)
+                    .filter(N1)
                     .map((m) => ({ element: m }))
             ).map(({ element: m }) => m),
             i = [],
@@ -10639,7 +10640,7 @@
         let t = Fi
         ;((Fi = e), Ug.emit('change', { prev: t, next: e }))
     }
-    function bL() {
+    function b1() {
         return (
             jc === void 0 &&
                 ((jc = !1),
@@ -10672,11 +10673,11 @@
         if (!(n === 0 && a === 0)) {
             switch (r) {
                 case 'active': {
-                    if (e && bL()) {
-                        let o = (e & FL) !== 0,
-                            i = (e & zL) !== 0,
-                            s = (e & UL) !== 0,
-                            l = (e & VL) !== 0
+                    if (e && b1()) {
+                        let o = (e & F1) !== 0,
+                            i = (e & z1) !== 0,
+                            s = (e & U1) !== 0,
+                            l = (e & V1) !== 0
                         if (o) return s ? 'se-resize' : l ? 'ne-resize' : 'e-resize'
                         if (i) return s ? 'sw-resize' : l ? 'nw-resize' : 'w-resize'
                         if (s) return 's-resize'
@@ -10685,7 +10686,7 @@
                     break
                 }
             }
-            return bL()
+            return b1()
                 ? n > 0 && a > 0
                     ? 'move'
                     : n > 0
@@ -10700,7 +10701,7 @@
     }
     function Vg(e) {
         if (e.defaultView === null || e.defaultView === void 0) return
-        let { prevStyle: t, styleSheet: r } = IL.get(e) ?? {}
+        let { prevStyle: t, styleSheet: r } = I1.get(e) ?? {}
         r === void 0 &&
             ((r = new e.defaultView.CSSStyleSheet()),
             e.adoptedStyleSheets &&
@@ -10727,12 +10728,12 @@
                 break
             }
         }
-        IL.set(e, { prevStyle: t, styleSheet: r })
+        I1.set(e, { prevStyle: t, styleSheet: r })
     }
     function vG(e) {
         ;((Ln = new Map(Ln)), Ln.delete(e))
     }
-    function wL(e, t) {
+    function w1(e, t) {
         for (let [r] of Ln) if (r.id === e) return r
     }
     function Ta(e, t) {
@@ -10743,7 +10744,7 @@
         return Ln
     }
     function Gg(e, t) {
-        return GL.addListener('groupChange', (r) => {
+        return G1.addListener('groupChange', (r) => {
             r.group.id === e && t(r)
         })
     }
@@ -10751,9 +10752,9 @@
         let n = Ln.get(e)
         ;((Ln = new Map(Ln)),
             Ln.set(e, t),
-            GL.emit('groupChange', { group: e, isUserInteraction: r?.isUserInteraction === !0, prev: n, next: t }))
+            G1.emit('groupChange', { group: e, isUserInteraction: r?.isUserInteraction === !0, prev: n, next: t }))
     }
-    function HL(e) {
+    function H1(e) {
         let t = To(),
             r = !1
         return (
@@ -10769,14 +10770,14 @@
             r
         )
     }
-    function CL(e) {
-        e.defaultPrevented || HL(e.currentTarget)
+    function C1(e) {
+        e.defaultPrevented || H1(e.currentTarget)
     }
     function yG(e, t, r) {
         let n,
             a = { x: 1 / 0, y: 1 / 0 }
         for (let o of t) {
-            let i = _L(r, o.rect)
+            let i = _1(r, o.rect)
             switch (e) {
                 case 'horizontal': {
                     i.x <= a.x && ((n = o), (a = i))
@@ -10795,11 +10796,11 @@
     }
     function bG(e, t) {
         if (e === t) throw new Error('Cannot compare node with itself')
-        let r = { a: kL(e), b: kL(t) },
+        let r = { a: k1(e), b: k1(t) },
             n
         for (; r.a.at(-1) === r.b.at(-1); ) ((n = r.a.pop()), r.b.pop())
         wt(n, 'Stacking order can only be calculated for elements with a common ancestor')
-        let a = { a: SL(TL(r.a)), b: SL(TL(r.b)) }
+        let a = { a: S1(T1(r.a)), b: S1(T1(r.b)) }
         if (a.a === a.b) {
             let o = n.childNodes,
                 i = { a: r.a.at(-1), b: r.b.at(-1) },
@@ -10813,7 +10814,7 @@
         return Math.sign(a.a - a.b)
     }
     function wG(e) {
-        let t = getComputedStyle(qL(e) ?? e).display
+        let t = getComputedStyle(q1(e) ?? e).display
         return t === 'flex' || t === 'inline-flex'
     }
     function CG(e) {
@@ -10832,7 +10833,7 @@
             t.webkitOverflowScrolling === 'touch'
         )
     }
-    function TL(e) {
+    function T1(e) {
         let t = e.length
         for (; t--; ) {
             let r = e[t]
@@ -10840,15 +10841,15 @@
         }
         return null
     }
-    function SL(e) {
+    function S1(e) {
         return (e && Number(getComputedStyle(e).zIndex)) || 0
     }
-    function kL(e) {
+    function k1(e) {
         let t = []
-        for (; e; ) (t.push(e), (e = qL(e)))
+        for (; e; ) (t.push(e), (e = q1(e)))
         return t
     }
-    function qL(e) {
+    function q1(e) {
         let { parentNode: t } = e
         return xG(t) ? t.host : t
     }
@@ -10856,7 +10857,7 @@
         return e.x < t.x + t.width && e.x + e.width > t.x && e.y < t.y + t.height && e.y + e.height > t.y
     }
     function SG({ groupElement: e, hitRegion: t, pointerEventTarget: r }) {
-        if (!NL(r) || r.contains(e) || e.contains(r)) return !0
+        if (!N1(r) || r.contains(e) || e.contains(r)) return !0
         if (bG(r, e) > 0) {
             let n = r
             for (; n; ) {
@@ -10872,7 +10873,7 @@
         return (
             t.forEach((n, a) => {
                 if (a.disabled) return
-                let o = BL(a),
+                let o = B1(a),
                     i = yG(a.orientation, o, { x: e.clientX, y: e.clientY })
                 i &&
                     i.distance.x <= 0 &&
@@ -11057,7 +11058,7 @@
         let i = Object.keys(e)
         return n.reduce((s, l, u) => ((s[i[u]] = l), s), {})
     }
-    function WL({ groupId: e, panelId: t }) {
+    function W1({ groupId: e, panelId: t }) {
         let r = () => {
                 let l = Lo()
                 for (let [
@@ -11182,7 +11183,7 @@
             }
         }
     }
-    function LL(e) {
+    function L1(e) {
         if (e.defaultPrevented) return
         let t = Lo()
         Hg(e, t).forEach((r) => {
@@ -11190,7 +11191,7 @@
                 let n = r.panels.find((a) => a.panelConstraints.defaultSize !== void 0)
                 if (n) {
                     let a = n.panelConstraints.defaultSize,
-                        o = WL({ groupId: r.group.id, panelId: n.id })
+                        o = W1({ groupId: r.group.id, panelId: n.id })
                     o && a !== void 0 && (o.resize(a), e.preventDefault())
                 }
             }
@@ -11201,7 +11202,7 @@
         for (let [r] of t) if (r.separators.some((n) => n.element === e)) return r
         throw Error('Could not find parent Group for separator element')
     }
-    function XL({ groupId: e }) {
+    function X1({ groupId: e }) {
         let t = () => {
             let r = Lo()
             for (let [n, a] of r) if (n.id === e) return { group: n, ...a }
@@ -11244,7 +11245,7 @@
         let o = n.separatorToPanels.get(a)
         wt(o, 'Matching panels not found')
         let i = o.map((c) => r.panels.indexOf(c)),
-            s = XL({ groupId: r.id }).getLayout(),
+            s = X1({ groupId: r.id }).getLayout(),
             l = xl({
                 delta: t,
                 initialLayout: s,
@@ -11267,7 +11268,7 @@
                 { isUserInteraction: !0 }
             )
     }
-    function EL(e) {
+    function E1(e) {
         if (e.defaultPrevented) return
         let t = e.currentTarget,
             r = Yc(t)
@@ -11329,7 +11330,7 @@
                 }
             }
     }
-    function PL(e) {
+    function P1(e) {
         if (e.defaultPrevented || (e.pointerType === 'mouse' && e.button > 0)) return
         let t = Lo(),
             r = Hg(e, t),
@@ -11349,7 +11350,7 @@
             }),
             r.length && e.preventDefault())
     }
-    function KL({
+    function K1({
         document: e,
         event: t,
         hitRegions: r,
@@ -11394,11 +11395,11 @@
                     if (g !== 0 && !m)
                         switch (f) {
                             case 'horizontal': {
-                                s |= g < 0 ? FL : zL
+                                s |= g < 0 ? F1 : z1
                                 break
                             }
                             case 'vertical': {
-                                s |= g < 0 ? UL : VL
+                                s |= g < 0 ? U1 : V1
                                 break
                             }
                         }
@@ -11413,16 +11414,16 @@
             }
         })
         let l = 0
-        ;(t.movementX === 0 ? (l |= i & yL) : (l |= s & yL),
-            t.movementY === 0 ? (l |= i & xL) : (l |= s & xL),
+        ;(t.movementX === 0 ? (l |= i & y1) : (l |= s & y1),
+            t.movementY === 0 ? (l |= i & x1) : (l |= s & x1),
             mG(l),
             Vg(e))
     }
-    function RL(e) {
+    function R1(e) {
         let t = Lo(),
             r = To()
         r.state === 'active' &&
-            KL({
+            K1({
                 document: e.currentTarget,
                 event: e,
                 hitRegions: r.hitRegions,
@@ -11431,7 +11432,7 @@
                 prevCursorFlags: r.cursorFlags
             })
     }
-    function AL(e) {
+    function A1(e) {
         if (e.defaultPrevented) return
         let t = To(),
             r = Lo()
@@ -11450,7 +11451,7 @@
                         let { element: a } = n.separator
                         a.hasPointerCapture?.(e.pointerId) || a.setPointerCapture?.(e.pointerId)
                     }
-                KL({
+                K1({
                     document: e.currentTarget,
                     event: e,
                     hitRegions: t.hitRegions,
@@ -11471,15 +11472,15 @@
             }
         }
     }
-    function DL(e) {
+    function D1(e) {
         e.relatedTarget instanceof HTMLIFrameElement &&
             To().state === 'hover' &&
             zi({ cursorFlags: 0, state: 'inactive' })
     }
-    function ML(e) {
-        e.defaultPrevented || (e.pointerType === 'mouse' && e.button > 0) || (HL(e.currentTarget) && e.preventDefault())
+    function M1(e) {
+        e.defaultPrevented || (e.pointerType === 'mouse' && e.button > 0) || (H1(e.currentTarget) && e.preventDefault())
     }
-    function OL(e) {
+    function O1(e) {
         let t = 0,
             r = 0,
             n = {}
@@ -11569,7 +11570,7 @@
                             let x = Ta(e.id)
                             if (!x) return
                             let b = Fg(e),
-                                C = x.defaultLayoutDeferred ? OL(b) : x.layout,
+                                C = x.defaultLayoutDeferred ? O1(b) : x.layout,
                                 I = PG({ group: e, nextGroupSize: y, prevGroupSize: x.groupSize, prevLayout: C }),
                                 T = ko({ layout: I, panelConstraints: b })
                             if (
@@ -11601,13 +11602,13 @@
             l = e.panels.map(({ id: m }) => m).join(','),
             u = e.mutableState.defaultLayout
         u && (RG(e.panels, u) || (u = void 0))
-        let c = e.mutableState.layouts[l] ?? u ?? OL(s),
+        let c = e.mutableState.layouts[l] ?? u ?? O1(s),
             d = ko({ layout: c, panelConstraints: s }),
             f = e.element.ownerDocument
         _i.set(f, (_i.get(f) ?? 0) + 1)
         let p = new Map()
         return (
-            BL(e).forEach((m) => {
+            B1(e).forEach((m) => {
                 m.separator && p.set(m.separator, m.panels)
             }),
             $n(e, {
@@ -11620,31 +11621,31 @@
             e.separators.forEach((m) => {
                 ;(wt(!a.has(m.id), `Separator ids must be unique; id "${m.id}" was used more than once`),
                     a.add(m.id),
-                    m.element.addEventListener('keydown', EL))
+                    m.element.addEventListener('keydown', E1))
             }),
             _i.get(f) === 1 &&
-                (f.addEventListener('contextmenu', CL, !0),
-                f.addEventListener('dblclick', LL, !0),
-                f.addEventListener('pointerdown', PL, !0),
-                f.addEventListener('pointerleave', RL),
-                f.addEventListener('pointermove', AL),
-                f.addEventListener('pointerout', DL),
-                f.addEventListener('pointerup', ML, !0)),
+                (f.addEventListener('contextmenu', C1, !0),
+                f.addEventListener('dblclick', L1, !0),
+                f.addEventListener('pointerdown', P1, !0),
+                f.addEventListener('pointerleave', R1),
+                f.addEventListener('pointermove', A1),
+                f.addEventListener('pointerout', D1),
+                f.addEventListener('pointerup', M1, !0)),
             function () {
                 ;((t = !1),
                     _i.set(f, Math.max(0, (_i.get(f) ?? 0) - 1)),
                     vG(e),
                     e.separators.forEach((m) => {
-                        m.element.removeEventListener('keydown', EL)
+                        m.element.removeEventListener('keydown', E1)
                     }),
                     _i.get(f) ||
-                        (f.removeEventListener('contextmenu', CL, !0),
-                        f.removeEventListener('dblclick', LL, !0),
-                        f.removeEventListener('pointerdown', PL, !0),
-                        f.removeEventListener('pointerleave', RL),
-                        f.removeEventListener('pointermove', AL),
-                        f.removeEventListener('pointerout', DL),
-                        f.removeEventListener('pointerup', ML, !0)),
+                        (f.removeEventListener('contextmenu', C1, !0),
+                        f.removeEventListener('dblclick', L1, !0),
+                        f.removeEventListener('pointerdown', P1, !0),
+                        f.removeEventListener('pointerleave', R1),
+                        f.removeEventListener('pointermove', A1),
+                        f.removeEventListener('pointerout', D1),
+                        f.removeEventListener('pointerup', M1, !0)),
                     o.disconnect())
             }
         )
@@ -11697,10 +11698,10 @@
         let r = de({ getLayout: () => ({}), setLayout: gG })
         ;(Cu(t, () => r.current, []),
             Eo(() => {
-                Object.assign(r.current, XL({ groupId: e }))
+                Object.assign(r.current, X1({ groupId: e }))
             }))
     }
-    function YL({
+    function Y1({
         children: e,
         className: t,
         defaultLayout: r,
@@ -11731,7 +11732,7 @@
         MG(v, i)
         let T = yl((P, A) => {
                 let R = To(),
-                    M = wL(P),
+                    M = w1(P),
                     _ = Ta(P)
                 if (_) {
                     let z = !1
@@ -11774,7 +11775,7 @@
                     updatePanelProps: (P, { disabled: A }) => {
                         let R = C.current.panels.find((z) => z.id === P)
                         R && (R.panelConstraints.disabled = A)
-                        let M = wL(v),
+                        let M = w1(v),
                             _ = Ta(v)
                         M && _ && $n(M, { ..._, derivedPanelConstraints: Fg(M) })
                     },
@@ -11844,7 +11845,7 @@
                 let P = k.current
                 P && ((P.mutableState.defaultLayout = r), (P.mutableState.disableCursor = !!n))
             }),
-            w(jL.Provider, {
+            w(j1.Provider, {
                 value: E,
                 children: w('div', {
                     ...p,
@@ -11869,7 +11870,7 @@
         )
     }
     function Kg() {
-        let e = Tr(jL)
+        let e = Tr(j1)
         return (wt(e, 'Group Context not found; did you render a Panel or Separator outside of a Group?'), e)
     }
     function OG(e, t) {
@@ -11883,10 +11884,10 @@
             })
         ;(Cu(t, () => n.current, []),
             Eo(() => {
-                Object.assign(n.current, WL({ groupId: r, panelId: e }))
+                Object.assign(n.current, W1({ groupId: r, panelId: e }))
             }))
     }
-    function $L({
+    function $1({
         children: e,
         className: t,
         collapsedSize: r = '0%',
@@ -11994,7 +11995,7 @@
         }
         return { valueControls: r, valueMax: a, valueMin: o, valueNow: i }
     }
-    function ZL({
+    function Z1({
         children: e,
         className: t,
         disabled: r,
@@ -12076,22 +12077,22 @@
         Ug,
         gG,
         Bg,
-        FL,
-        zL,
-        UL,
-        VL,
-        yL,
-        xL,
+        F1,
+        z1,
+        U1,
+        V1,
+        y1,
+        x1,
         jc,
-        IL,
+        I1,
         Ln,
-        GL,
+        G1,
         IG,
         _i,
         Eo,
-        jL,
+        j1,
         NG,
-        QL = L(() => {
+        Q1 = L(() => {
             'use client'
             ge()
             Ue()
@@ -12140,15 +12141,15 @@
             }
             Ca = new WeakMap()
             ;((Fi = { cursorFlags: 0, state: 'inactive' }), (Ug = new $c()))
-            ;((gG = (e) => e), (Bg = () => {}), (FL = 1), (zL = 2), (UL = 4), (VL = 8), (yL = 3), (xL = 12))
-            IL = new WeakMap()
-            ;((Ln = new Map()), (GL = new $c()))
+            ;((gG = (e) => e), (Bg = () => {}), (F1 = 1), (z1 = 2), (U1 = 4), (V1 = 8), (y1 = 3), (x1 = 12))
+            I1 = new WeakMap()
+            ;((Ln = new Map()), (G1 = new $c()))
             IG = /\b(?:position|zIndex|opacity|transform|webkitTransform|mixBlendMode|filter|webkitFilter|isolation)\b/
             _i = new Map()
             Eo = typeof window < 'u' ? Un : pe
-            jL = hr(null)
-            YL.displayName = 'Group'
-            $L.displayName = 'Panel'
+            j1 = hr(null)
+            Y1.displayName = 'Group'
+            $1.displayName = 'Panel'
             NG = {
                 minHeight: 0,
                 maxHeight: '100%',
@@ -12161,17 +12162,17 @@
                 padding: 0,
                 margin: 0
             }
-            ZL.displayName = 'Separator'
+            Z1.displayName = 'Separator'
         })
-    var JL = L(() => {
-        QL()
+    var J1 = L(() => {
+        Q1()
         vt()
         ge()
     })
     var FG,
+        Rle,
         Ale,
-        Dle,
-        e1 = L(() => {
+        eL = L(() => {
             'use client'
             Ue()
             ;((FG = (e, t, r, n, a, o, i, s) => {
@@ -12199,8 +12200,8 @@
                         c(m)
                     } catch {}
             }),
-                (Ale = hr(void 0)),
-                (Dle = Ds(
+                (Rle = hr(void 0)),
+                (Ale = Ds(
                     ({
                         forcedTheme: e,
                         storageKey: t,
@@ -12231,7 +12232,7 @@
             t.appendChild(r),
             r.styleSheet ? (r.styleSheet.cssText = e) : r.appendChild(document.createTextNode(e)))
     }
-    var Ble,
+    var _le,
         jg,
         Yg,
         $r,
@@ -12240,12 +12241,12 @@
         GG,
         HG,
         qG,
-        Fle,
-        t1 = L(() => {
+        Ble,
+        tL = L(() => {
             'use client'
             Ue()
             pi()
-            ;((Ble = Array(12).fill(0)),
+            ;((_le = Array(12).fill(0)),
                 (jg = 1),
                 (Yg = class {
                     constructor() {
@@ -12412,7 +12413,7 @@
                 (GG = UG),
                 (HG = () => $r.toasts),
                 (qG = () => $r.getActiveToasts()),
-                (Fle = Object.assign(
+                (Ble = Object.assign(
                     GG,
                     {
                         success: $r.success,
@@ -12431,10 +12432,10 @@
                 "[data-sonner-toaster][dir=ltr],html[dir=ltr]{--toast-icon-margin-start:-3px;--toast-icon-margin-end:4px;--toast-svg-margin-start:-1px;--toast-svg-margin-end:0px;--toast-button-margin-start:auto;--toast-button-margin-end:0;--toast-close-button-start:0;--toast-close-button-end:unset;--toast-close-button-transform:translate(-35%, -35%)}[data-sonner-toaster][dir=rtl],html[dir=rtl]{--toast-icon-margin-start:4px;--toast-icon-margin-end:-3px;--toast-svg-margin-start:0px;--toast-svg-margin-end:-1px;--toast-button-margin-start:0;--toast-button-margin-end:auto;--toast-close-button-start:unset;--toast-close-button-end:0;--toast-close-button-transform:translate(35%, -35%)}[data-sonner-toaster]{position:fixed;width:var(--width);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;--gray1:hsl(0, 0%, 99%);--gray2:hsl(0, 0%, 97.3%);--gray3:hsl(0, 0%, 95.1%);--gray4:hsl(0, 0%, 93%);--gray5:hsl(0, 0%, 90.9%);--gray6:hsl(0, 0%, 88.7%);--gray7:hsl(0, 0%, 85.8%);--gray8:hsl(0, 0%, 78%);--gray9:hsl(0, 0%, 56.1%);--gray10:hsl(0, 0%, 52.3%);--gray11:hsl(0, 0%, 43.5%);--gray12:hsl(0, 0%, 9%);--border-radius:8px;box-sizing:border-box;padding:0;margin:0;list-style:none;outline:0;z-index:999999999;transition:transform .4s ease}@media (hover:none) and (pointer:coarse){[data-sonner-toaster][data-lifted=true]{transform:none}}[data-sonner-toaster][data-x-position=right]{right:var(--offset-right)}[data-sonner-toaster][data-x-position=left]{left:var(--offset-left)}[data-sonner-toaster][data-x-position=center]{left:50%;transform:translateX(-50%)}[data-sonner-toaster][data-y-position=top]{top:var(--offset-top)}[data-sonner-toaster][data-y-position=bottom]{bottom:var(--offset-bottom)}[data-sonner-toast]{--y:translateY(100%);--lift-amount:calc(var(--lift) * var(--gap));z-index:var(--z-index);position:absolute;opacity:0;transform:var(--y);touch-action:none;transition:transform .4s,opacity .4s,height .4s,box-shadow .2s;box-sizing:border-box;outline:0;overflow-wrap:anywhere}[data-sonner-toast][data-styled=true]{padding:16px;background:var(--normal-bg);border:1px solid var(--normal-border);color:var(--normal-text);border-radius:var(--border-radius);box-shadow:0 4px 12px rgba(0,0,0,.1);width:var(--width);font-size:13px;display:flex;align-items:center;gap:6px}[data-sonner-toast]:focus-visible{box-shadow:0 4px 12px rgba(0,0,0,.1),0 0 0 2px rgba(0,0,0,.2)}[data-sonner-toast][data-y-position=top]{top:0;--y:translateY(-100%);--lift:1;--lift-amount:calc(1 * var(--gap))}[data-sonner-toast][data-y-position=bottom]{bottom:0;--y:translateY(100%);--lift:-1;--lift-amount:calc(var(--lift) * var(--gap))}[data-sonner-toast][data-styled=true] [data-description]{font-weight:400;line-height:1.4;color:#3f3f3f}[data-rich-colors=true][data-sonner-toast][data-styled=true] [data-description]{color:inherit}[data-sonner-toaster][data-sonner-theme=dark] [data-description]{color:#e8e8e8}[data-sonner-toast][data-styled=true] [data-title]{font-weight:500;line-height:1.5;color:inherit}[data-sonner-toast][data-styled=true] [data-icon]{display:flex;height:16px;width:16px;position:relative;justify-content:flex-start;align-items:center;flex-shrink:0;margin-left:var(--toast-icon-margin-start);margin-right:var(--toast-icon-margin-end)}[data-sonner-toast][data-promise=true] [data-icon]>svg{opacity:0;transform:scale(.8);transform-origin:center;animation:sonner-fade-in .3s ease forwards}[data-sonner-toast][data-styled=true] [data-icon]>*{flex-shrink:0}[data-sonner-toast][data-styled=true] [data-icon] svg{margin-left:var(--toast-svg-margin-start);margin-right:var(--toast-svg-margin-end)}[data-sonner-toast][data-styled=true] [data-content]{display:flex;flex-direction:column;gap:2px}[data-sonner-toast][data-styled=true] [data-button]{border-radius:4px;padding-left:8px;padding-right:8px;height:24px;font-size:12px;color:var(--normal-bg);background:var(--normal-text);margin-left:var(--toast-button-margin-start);margin-right:var(--toast-button-margin-end);border:none;font-weight:500;cursor:pointer;outline:0;display:flex;align-items:center;flex-shrink:0;transition:opacity .4s,box-shadow .2s}[data-sonner-toast][data-styled=true] [data-button]:focus-visible{box-shadow:0 0 0 2px rgba(0,0,0,.4)}[data-sonner-toast][data-styled=true] [data-button]:first-of-type{margin-left:var(--toast-button-margin-start);margin-right:var(--toast-button-margin-end)}[data-sonner-toast][data-styled=true] [data-cancel]{color:var(--normal-text);background:rgba(0,0,0,.08)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast][data-styled=true] [data-cancel]{background:rgba(255,255,255,.3)}[data-sonner-toast][data-styled=true] [data-close-button]{position:absolute;left:var(--toast-close-button-start);right:var(--toast-close-button-end);top:0;height:20px;width:20px;display:flex;justify-content:center;align-items:center;padding:0;color:var(--gray12);background:var(--normal-bg);border:1px solid var(--gray4);transform:var(--toast-close-button-transform);border-radius:50%;cursor:pointer;z-index:1;transition:opacity .1s,background .2s,border-color .2s}[data-sonner-toast][data-styled=true] [data-close-button]:focus-visible{box-shadow:0 4px 12px rgba(0,0,0,.1),0 0 0 2px rgba(0,0,0,.2)}[data-sonner-toast][data-styled=true] [data-disabled=true]{cursor:not-allowed}[data-sonner-toast][data-styled=true]:hover [data-close-button]:hover{background:var(--gray2);border-color:var(--gray5)}[data-sonner-toast][data-swiping=true]::before{content:'';position:absolute;left:-100%;right:-100%;height:100%;z-index:-1}[data-sonner-toast][data-y-position=top][data-swiping=true]::before{bottom:50%;transform:scaleY(3) translateY(50%)}[data-sonner-toast][data-y-position=bottom][data-swiping=true]::before{top:50%;transform:scaleY(3) translateY(-50%)}[data-sonner-toast][data-swiping=false][data-removed=true]::before{content:'';position:absolute;inset:0;transform:scaleY(2)}[data-sonner-toast][data-expanded=true]::after{content:'';position:absolute;left:0;height:calc(var(--gap) + 1px);bottom:100%;width:100%}[data-sonner-toast][data-mounted=true]{--y:translateY(0);opacity:1}[data-sonner-toast][data-expanded=false][data-front=false]{--scale:var(--toasts-before) * 0.05 + 1;--y:translateY(calc(var(--lift-amount) * var(--toasts-before))) scale(calc(-1 * var(--scale)));height:var(--front-toast-height)}[data-sonner-toast]>*{transition:opacity .4s}[data-sonner-toast][data-x-position=right]{right:0}[data-sonner-toast][data-x-position=left]{left:0}[data-sonner-toast][data-expanded=false][data-front=false][data-styled=true]>*{opacity:0}[data-sonner-toast][data-visible=false]{opacity:0;pointer-events:none}[data-sonner-toast][data-mounted=true][data-expanded=true]{--y:translateY(calc(var(--lift) * var(--offset)));height:var(--initial-height)}[data-sonner-toast][data-removed=true][data-front=true][data-swipe-out=false]{--y:translateY(calc(var(--lift) * -100%));opacity:0}[data-sonner-toast][data-removed=true][data-front=false][data-swipe-out=false][data-expanded=true]{--y:translateY(calc(var(--lift) * var(--offset) + var(--lift) * -100%));opacity:0}[data-sonner-toast][data-removed=true][data-front=false][data-swipe-out=false][data-expanded=false]{--y:translateY(40%);opacity:0;transition:transform .5s,opacity .2s}[data-sonner-toast][data-removed=true][data-front=false]::before{height:calc(var(--initial-height) + 20%)}[data-sonner-toast][data-swiping=true]{transform:var(--y) translateY(var(--swipe-amount-y,0)) translateX(var(--swipe-amount-x,0));transition:none}[data-sonner-toast][data-swiped=true]{user-select:none}[data-sonner-toast][data-swipe-out=true][data-y-position=bottom],[data-sonner-toast][data-swipe-out=true][data-y-position=top]{animation-duration:.2s;animation-timing-function:ease-out;animation-fill-mode:forwards}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=left]{animation-name:swipe-out-left}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=right]{animation-name:swipe-out-right}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=up]{animation-name:swipe-out-up}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=down]{animation-name:swipe-out-down}@keyframes swipe-out-left{from{transform:var(--y) translateX(var(--swipe-amount-x));opacity:1}to{transform:var(--y) translateX(calc(var(--swipe-amount-x) - 100%));opacity:0}}@keyframes swipe-out-right{from{transform:var(--y) translateX(var(--swipe-amount-x));opacity:1}to{transform:var(--y) translateX(calc(var(--swipe-amount-x) + 100%));opacity:0}}@keyframes swipe-out-up{from{transform:var(--y) translateY(var(--swipe-amount-y));opacity:1}to{transform:var(--y) translateY(calc(var(--swipe-amount-y) - 100%));opacity:0}}@keyframes swipe-out-down{from{transform:var(--y) translateY(var(--swipe-amount-y));opacity:1}to{transform:var(--y) translateY(calc(var(--swipe-amount-y) + 100%));opacity:0}}@media (max-width:600px){[data-sonner-toaster]{position:fixed;right:var(--mobile-offset-right);left:var(--mobile-offset-left);width:100%}[data-sonner-toaster][dir=rtl]{left:calc(var(--mobile-offset-left) * -1)}[data-sonner-toaster] [data-sonner-toast]{left:0;right:0;width:calc(100% - var(--mobile-offset-left) * 2)}[data-sonner-toaster][data-x-position=left]{left:var(--mobile-offset-left)}[data-sonner-toaster][data-y-position=bottom]{bottom:var(--mobile-offset-bottom)}[data-sonner-toaster][data-y-position=top]{top:var(--mobile-offset-top)}[data-sonner-toaster][data-x-position=center]{left:var(--mobile-offset-left);right:var(--mobile-offset-right);transform:none}}[data-sonner-toaster][data-sonner-theme=light]{--normal-bg:#fff;--normal-border:var(--gray4);--normal-text:var(--gray12);--success-bg:hsl(143, 85%, 96%);--success-border:hsl(145, 92%, 87%);--success-text:hsl(140, 100%, 27%);--info-bg:hsl(208, 100%, 97%);--info-border:hsl(221, 91%, 93%);--info-text:hsl(210, 92%, 45%);--warning-bg:hsl(49, 100%, 97%);--warning-border:hsl(49, 91%, 84%);--warning-text:hsl(31, 92%, 45%);--error-bg:hsl(359, 100%, 97%);--error-border:hsl(359, 100%, 94%);--error-text:hsl(360, 100%, 45%)}[data-sonner-toaster][data-sonner-theme=light] [data-sonner-toast][data-invert=true]{--normal-bg:#000;--normal-border:hsl(0, 0%, 20%);--normal-text:var(--gray1)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast][data-invert=true]{--normal-bg:#fff;--normal-border:var(--gray3);--normal-text:var(--gray12)}[data-sonner-toaster][data-sonner-theme=dark]{--normal-bg:#000;--normal-bg-hover:hsl(0, 0%, 12%);--normal-border:hsl(0, 0%, 20%);--normal-border-hover:hsl(0, 0%, 25%);--normal-text:var(--gray1);--success-bg:hsl(150, 100%, 6%);--success-border:hsl(147, 100%, 12%);--success-text:hsl(150, 86%, 65%);--info-bg:hsl(215, 100%, 6%);--info-border:hsl(223, 43%, 17%);--info-text:hsl(216, 87%, 65%);--warning-bg:hsl(64, 100%, 6%);--warning-border:hsl(60, 100%, 9%);--warning-text:hsl(46, 87%, 65%);--error-bg:hsl(358, 76%, 10%);--error-border:hsl(357, 89%, 16%);--error-text:hsl(358, 100%, 81%)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast] [data-close-button]{background:var(--normal-bg);border-color:var(--normal-border);color:var(--normal-text)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast] [data-close-button]:hover{background:var(--normal-bg-hover);border-color:var(--normal-border-hover)}[data-rich-colors=true][data-sonner-toast][data-type=success]{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}[data-rich-colors=true][data-sonner-toast][data-type=success] [data-close-button]{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}[data-rich-colors=true][data-sonner-toast][data-type=info]{background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)}[data-rich-colors=true][data-sonner-toast][data-type=info] [data-close-button]{background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)}[data-rich-colors=true][data-sonner-toast][data-type=warning]{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text)}[data-rich-colors=true][data-sonner-toast][data-type=warning] [data-close-button]{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text)}[data-rich-colors=true][data-sonner-toast][data-type=error]{background:var(--error-bg);border-color:var(--error-border);color:var(--error-text)}[data-rich-colors=true][data-sonner-toast][data-type=error] [data-close-button]{background:var(--error-bg);border-color:var(--error-border);color:var(--error-text)}.sonner-loading-wrapper{--size:16px;height:var(--size);width:var(--size);position:absolute;inset:0;z-index:10}.sonner-loading-wrapper[data-visible=false]{transform-origin:center;animation:sonner-fade-out .2s ease forwards}.sonner-spinner{position:relative;top:50%;left:50%;height:var(--size);width:var(--size)}.sonner-loading-bar{animation:sonner-spin 1.2s linear infinite;background:var(--gray11);border-radius:6px;height:8%;left:-10%;position:absolute;top:-3.9%;width:24%}.sonner-loading-bar:first-child{animation-delay:-1.2s;transform:rotate(.0001deg) translate(146%)}.sonner-loading-bar:nth-child(2){animation-delay:-1.1s;transform:rotate(30deg) translate(146%)}.sonner-loading-bar:nth-child(3){animation-delay:-1s;transform:rotate(60deg) translate(146%)}.sonner-loading-bar:nth-child(4){animation-delay:-.9s;transform:rotate(90deg) translate(146%)}.sonner-loading-bar:nth-child(5){animation-delay:-.8s;transform:rotate(120deg) translate(146%)}.sonner-loading-bar:nth-child(6){animation-delay:-.7s;transform:rotate(150deg) translate(146%)}.sonner-loading-bar:nth-child(7){animation-delay:-.6s;transform:rotate(180deg) translate(146%)}.sonner-loading-bar:nth-child(8){animation-delay:-.5s;transform:rotate(210deg) translate(146%)}.sonner-loading-bar:nth-child(9){animation-delay:-.4s;transform:rotate(240deg) translate(146%)}.sonner-loading-bar:nth-child(10){animation-delay:-.3s;transform:rotate(270deg) translate(146%)}.sonner-loading-bar:nth-child(11){animation-delay:-.2s;transform:rotate(300deg) translate(146%)}.sonner-loading-bar:nth-child(12){animation-delay:-.1s;transform:rotate(330deg) translate(146%)}@keyframes sonner-fade-in{0%{opacity:0;transform:scale(.8)}100%{opacity:1;transform:scale(1)}}@keyframes sonner-fade-out{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.8)}}@keyframes sonner-spin{0%{opacity:1}100%{opacity:.15}}@media (prefers-reduced-motion){.sonner-loading-bar,[data-sonner-toast],[data-sonner-toast]>*{transition:none!important;animation:none!important}}.sonner-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transform-origin:center;transition:opacity .2s,transform .2s}.sonner-loader[data-visible=false]{opacity:0;transform:scale(.8) translate(-50%,-50%)}"
             )
         })
-    var r1 = L(() => {
+    var rL = L(() => {
         'use client'
-        e1()
-        t1()
+        eL()
+        tL()
         ge()
     })
     var WG,
@@ -12457,14 +12458,14 @@
                 }
             )
         })
-    var Qle,
-        n1 = L(() => {
+    var Zle,
+        nL = L(() => {
             'use client'
             Ue()
             vt()
             $g()
             ge()
-            Qle = hr({ size: 'default', variant: 'default', spacing: 0 })
+            Zle = hr({ size: 'default', variant: 'default', spacing: 0 })
         })
     var Vi = L(() => {
         Zw()
@@ -12481,32 +12482,32 @@
         Yk()
         $k()
         Zk()
-        rL()
-        nL()
-        aL()
-        oL()
-        iL()
-        sL()
-        lL()
-        uL()
-        cL()
-        dL()
-        fL()
-        pL()
-        mL()
-        gL()
-        hL()
-        vL()
-        JL()
         r1()
-        $g()
         n1()
+        a1()
+        o1()
+        i1()
+        s1()
+        l1()
+        u1()
+        c1()
+        d1()
+        f1()
+        p1()
+        m1()
+        g1()
+        h1()
+        v1()
+        J1()
+        rL()
+        $g()
+        nL()
     })
-    function o1(e) {
-        a1 = e
+    function oL(e) {
+        aL = e
     }
     function bl(e, t = {}) {
-        window.parent?.postMessage({ channel: Zg, protocolVersion: 1, instanceId: a1, type: e, ...t }, '*')
+        window.parent?.postMessage({ channel: Zg, protocolVersion: 1, instanceId: aL, type: e, ...t }, '*')
     }
     function Zc(e, t, r) {
         let n =
@@ -12521,7 +12522,7 @@
                 }, 3e4))
         })
     }
-    function i1(e) {
+    function iL(e) {
         let t = typeof e.requestId == 'string' ? e.requestId : '',
             r = Gi.get(t)
         return r
@@ -12537,24 +12538,22 @@
     function Qc(e) {
         return Zc('requestData', { query: e }, 'data')
     }
-    function s1(e, t, r) {
+    function sL(e, t, r) {
         return Zc('executeAction', { actionKey: e, input: t, parameters: r }, 'actionResult')
     }
-    function l1(e, t, r, n) {
-        return t
-            .arrayBuffer()
-            .then((a) =>
-                Zc(
-                    'executeFileAction',
-                    {
-                        actionKey: e,
-                        input: r,
-                        parameters: n,
-                        file: { name: t.name, type: t.type, size: t.size, buffer: a }
-                    },
-                    'fileActionResult'
-                )
+    function lL(e, t, r, n) {
+        return t.arrayBuffer().then((a) =>
+            Zc(
+                'executeFileAction',
+                {
+                    actionKey: e,
+                    input: r,
+                    parameters: n,
+                    file: { name: t.name, type: t.type, size: t.size, buffer: a }
+                },
+                'fileActionResult'
             )
+        )
     }
     function Jc(e, t) {
         return Zc('invokeClientCommand', { commandKey: e, payload: t }, 'clientCommandResult')
@@ -12562,12 +12561,12 @@
     function Hi(e, t = 'success') {
         bl('notify', { message: e, level: t })
     }
-    function u1(e) {
+    function uL(e) {
         if (!e?.tokens) return
         let t = document.documentElement
         for (let [r, n] of Object.entries(e.tokens)) t.style.setProperty(`--xui-${KG(r)}`, String(n))
     }
-    async function c1(e, t) {
+    async function cL(e, t) {
         e &&
             (await Jc('assistant.context.set', {
                 key: XG,
@@ -12584,43 +12583,43 @@
     var Zg,
         XG,
         Gi,
-        a1,
-        d1 = L(() => {
-            ;((Zg = 'xpertai.remote_component'), (XG = 'knowledgebase_workbench'), (Gi = new Map()), (a1 = null))
+        aL,
+        dL = L(() => {
+            ;((Zg = 'xpertai.remote_component'), (XG = 'knowledgebase_workbench'), (Gi = new Map()), (aL = null))
         })
-    function f1(e, t) {
+    function fL(e, t) {
         let r = t || {}
         return (e[e.length - 1] === '' ? [...e, ''] : e)
             .join((r.padRight ? ' ' : '') + ',' + (r.padLeft === !1 ? '' : ' '))
             .trim()
     }
-    var p1 = L(() => {})
+    var pL = L(() => {})
     function ed(e, t) {
         return ((t || $G).jsx ? YG : jG).test(e)
     }
     var jG,
         YG,
         $G,
-        m1 = L(() => {
+        mL = L(() => {
             ;((jG = /^[$_\p{ID_Start}][$_\u{200C}\u{200D}\p{ID_Continue}]*$/u),
                 (YG = /^[$_\p{ID_Start}][-$_\u{200C}\u{200D}\p{ID_Continue}]*$/u),
                 ($G = {}))
         })
-    var g1 = L(() => {
-        m1()
+    var gL = L(() => {
+        mL()
     })
     function Qg(e) {
-        return typeof e == 'object' ? (e.type === 'text' ? h1(e.value) : !1) : h1(e)
+        return typeof e == 'object' ? (e.type === 'text' ? hL(e.value) : !1) : hL(e)
     }
-    function h1(e) {
+    function hL(e) {
         return e.replace(ZG, '') === ''
     }
     var ZG,
-        v1 = L(() => {
+        vL = L(() => {
             ZG = /[ \t\n\f\r]/g
         })
-    var y1 = L(() => {
-        v1()
+    var yL = L(() => {
+        vL()
     })
     var Zn,
         Jg = L(() => {
@@ -12639,7 +12638,7 @@
         for (let a of e) (Object.assign(r, a.property), Object.assign(n, a.normal))
         return new Zn(r, n, t)
     }
-    var x1 = L(() => {
+    var xL = L(() => {
         Jg()
     })
     function Il(e) {
@@ -12690,7 +12689,7 @@
         Cl = L(() => {
             ;((QG = 0), (rt = Po()), (Ft = Po()), (td = Po()), (he = Po()), (bt = Po()), (Sa = Po()), (Br = Po()))
         })
-    function b1(e, t, r) {
+    function bL(e, t, r) {
         r && (e[t] = r)
     }
     var nh,
@@ -12702,10 +12701,10 @@
                 (Ro = class extends nr {
                     constructor(t, r, n, a) {
                         let o = -1
-                        if ((super(t, r), b1(this, 'space', a), typeof n == 'number'))
+                        if ((super(t, r), bL(this, 'space', a), typeof n == 'number'))
                             for (; ++o < nh.length; ) {
                                 let i = nh[o]
-                                b1(this, nh[o], (n & wl[i]) === wl[i])
+                                bL(this, nh[o], (n & wl[i]) === wl[i])
                             }
                     }
                 }))
@@ -12729,7 +12728,7 @@
         Jg()
     })
     var oh,
-        I1 = L(() => {
+        IL = L(() => {
             Ao()
             Cl()
             oh = Zr({
@@ -12799,12 +12798,12 @@
     var sh = L(() => {
         ih()
     })
-    var w1,
-        C1 = L(() => {
+    var wL,
+        CL = L(() => {
             sh()
             Ao()
             Cl()
-            w1 = Zr({
+            wL = Zr({
                 attributes: {
                     acceptcharset: 'accept-charset',
                     classname: 'class',
@@ -13110,12 +13109,12 @@
                 transform: nd
             })
         })
-    var T1,
-        S1 = L(() => {
+    var TL,
+        SL = L(() => {
             ih()
             Ao()
             Cl()
-            T1 = Zr({
+            TL = Zr({
                 attributes: {
                     accentHeight: 'accent-height',
                     alignmentBaseline: 'alignment-baseline',
@@ -13673,7 +13672,7 @@
             })
         })
     var lh,
-        k1 = L(() => {
+        kL = L(() => {
             Ao()
             lh = Zr({
                 properties: {
@@ -13692,7 +13691,7 @@
             })
         })
     var uh,
-        L1 = L(() => {
+        LL = L(() => {
             Ao()
             sh()
             uh = Zr({
@@ -13703,7 +13702,7 @@
             })
         })
     var ch,
-        E1 = L(() => {
+        EL = L(() => {
             Ao()
             ch = Zr({
                 properties: { xmlBase: null, xmlLang: null, xmlSpace: null },
@@ -13714,7 +13713,7 @@
             })
         })
     var dh,
-        P1 = L(() => {
+        PL = L(() => {
             dh = {
                 classId: 'classID',
                 dataType: 'datatype',
@@ -13742,11 +13741,11 @@
         if (r in e.normal) return e.property[e.normal[r]]
         if (r.length > 4 && r.slice(0, 4) === 'data' && e4.test(t)) {
             if (t.charAt(4) === '-') {
-                let o = t.slice(5).replace(R1, r4)
+                let o = t.slice(5).replace(RL, r4)
                 n = 'data' + o.charAt(0).toUpperCase() + o.slice(1)
             } else {
                 let o = t.slice(4)
-                if (!R1.test(o)) {
+                if (!RL.test(o)) {
                     let i = o.replace(JG, t4)
                     ;(i.charAt(0) !== '-' && (i = '-' + i), (t = 'data' + i))
                 }
@@ -13762,35 +13761,35 @@
         return e.charAt(1).toUpperCase()
     }
     var JG,
-        R1,
+        RL,
         e4,
-        A1 = L(() => {
+        AL = L(() => {
             ah()
             rh()
             th()
-            ;((JG = /[A-Z]/g), (R1 = /-[a-z]/g), (e4 = /^data[-\w.:]+$/i))
+            ;((JG = /[A-Z]/g), (RL = /-[a-z]/g), (e4 = /^data[-\w.:]+$/i))
         })
-    var D1,
+    var DL,
         ad,
-        M1 = L(() => {
-            x1()
-            I1()
-            C1()
-            S1()
-            k1()
-            L1()
-            E1()
-            P1()
-            A1()
-            ;((D1 = eh([oh, w1, lh, uh, ch], 'html')), (ad = eh([oh, T1, lh, uh, ch], 'svg')))
+        ML = L(() => {
+            xL()
+            IL()
+            CL()
+            SL()
+            kL()
+            LL()
+            EL()
+            PL()
+            AL()
+            ;((DL = eh([oh, wL, lh, uh, ch], 'html')), (ad = eh([oh, TL, lh, uh, ch], 'svg')))
         })
-    function O1(e) {
+    function OL(e) {
         return e.join(' ').trim()
     }
-    var N1 = L(() => {})
-    var V1 = Ja((Uce, U1) => {
+    var NL = L(() => {})
+    var VL = Ja((zce, UL) => {
         'use strict'
-        var _1 = /\/\*[^*]*\*+([^/*][^*]*\*+)*\//g,
+        var _L = /\/\*[^*]*\*+([^/*][^*]*\*+)*\//g,
             n4 = /\n/g,
             a4 = /^\s*/,
             o4 = /^(\*?[-#/*\\\w]+(\[[0-9a-z_-]+\])?)\s*/,
@@ -13800,8 +13799,8 @@
             u4 = /^\s+|\s+$/g,
             c4 = `
 `,
-            B1 = '/',
-            F1 = '*',
+            BL = '/',
+            FL = '*',
             Do = '',
             d4 = 'comment',
             f4 = 'declaration'
@@ -13849,8 +13848,8 @@
             }
             function d() {
                 var m = o()
-                if (!(B1 != e.charAt(0) || F1 != e.charAt(1))) {
-                    for (var g = 2; Do != e.charAt(g) && (F1 != e.charAt(g) || B1 != e.charAt(g + 1)); ) ++g
+                if (!(BL != e.charAt(0) || FL != e.charAt(1))) {
+                    for (var g = 2; Do != e.charAt(g) && (FL != e.charAt(g) || BL != e.charAt(g + 1)); ) ++g
                     if (((g += 2), Do === e.charAt(g - 1))) return s('End of comment missing')
                     var h = e.slice(2, g - 2)
                     return ((n += 2), a(h), (e = e.slice(g)), (n += 2), m({ type: d4, comment: h }))
@@ -13864,8 +13863,8 @@
                     var h = l(s4),
                         v = m({
                             type: f4,
-                            property: z1(g[0].replace(_1, Do)),
-                            value: h ? z1(h[0].replace(_1, Do)) : Do
+                            property: zL(g[0].replace(_L, Do)),
+                            value: h ? zL(h[0].replace(_L, Do)) : Do
                         })
                     return (l(l4), v)
                 }
@@ -13878,12 +13877,12 @@
             }
             return (u(), p())
         }
-        function z1(e) {
+        function zL(e) {
             return e ? e.replace(u4, Do) : Do
         }
-        U1.exports = p4
+        UL.exports = p4
     })
-    var G1 = Ja((Tl) => {
+    var GL = Ja((Tl) => {
         'use strict'
         var m4 =
             (Tl && Tl.__importDefault) ||
@@ -13892,7 +13891,7 @@
             }
         Object.defineProperty(Tl, '__esModule', { value: !0 })
         Tl.default = h4
-        var g4 = m4(V1())
+        var g4 = m4(VL())
         function h4(e, t) {
             let r = null
             if (!e || typeof e != 'string') return r
@@ -13908,7 +13907,7 @@
             )
         }
     })
-    var q1 = Ja((od) => {
+    var qL = Ja((od) => {
         'use strict'
         Object.defineProperty(od, '__esModule', { value: !0 })
         od.camelCase = void 0
@@ -13923,7 +13922,7 @@
             C4 = function (e, t) {
                 return t.toUpperCase()
             },
-            H1 = function (e, t) {
+            HL = function (e, t) {
                 return ''.concat(t, '-')
             },
             T4 = function (e, t) {
@@ -13932,21 +13931,21 @@
                     w4(e)
                         ? e
                         : ((e = e.toLowerCase()),
-                          t.reactCompat ? (e = e.replace(I4, H1)) : (e = e.replace(b4, H1)),
+                          t.reactCompat ? (e = e.replace(I4, HL)) : (e = e.replace(b4, HL)),
                           e.replace(y4, C4))
                 )
             }
         od.camelCase = T4
     })
-    var X1 = Ja((mh, W1) => {
+    var XL = Ja((mh, WL) => {
         'use strict'
         var S4 =
                 (mh && mh.__importDefault) ||
                 function (e) {
                     return e && e.__esModule ? e : { default: e }
                 },
-            k4 = S4(G1()),
-            L4 = q1()
+            k4 = S4(GL()),
+            L4 = qL()
         function ph(e, t) {
             var r = {}
             return (
@@ -13959,9 +13958,9 @@
             )
         }
         ph.default = ph
-        W1.exports = ph
+        WL.exports = ph
     })
-    function K1(e) {
+    function KL(e) {
         return t
         function t(r) {
             let n = (r && r.position && r.position[e]) || {}
@@ -13980,38 +13979,38 @@
     }
     var id,
         qi,
-        j1 = L(() => {
-            ;((id = K1('end')), (qi = K1('start')))
+        jL = L(() => {
+            ;((id = KL('end')), (qi = KL('start')))
         })
     var sd = L(() => {
-        j1()
+        jL()
     })
     function ka(e) {
         return !e || typeof e != 'object'
             ? ''
             : 'position' in e || 'type' in e
-              ? Y1(e.position)
+              ? YL(e.position)
               : 'start' in e || 'end' in e
-                ? Y1(e)
+                ? YL(e)
                 : 'line' in e || 'column' in e
                   ? hh(e)
                   : ''
     }
     function hh(e) {
-        return $1(e && e.line) + ':' + $1(e && e.column)
+        return $L(e && e.line) + ':' + $L(e && e.column)
     }
-    function Y1(e) {
+    function YL(e) {
         return hh(e && e.start) + '-' + hh(e && e.end)
     }
-    function $1(e) {
+    function $L(e) {
         return e && typeof e == 'number' ? e : 1
     }
-    var Z1 = L(() => {})
+    var ZL = L(() => {})
     var vh = L(() => {
-        Z1()
+        ZL()
     })
     var Ht,
-        Q1 = L(() => {
+        QL = L(() => {
             vh()
             Ht = class extends Error {
                 constructor(t, r, n) {
@@ -14073,7 +14072,7 @@
             Ht.prototype.source = void 0
         })
     var yh = L(() => {
-        Q1()
+        QL()
     })
     function bh(e, t) {
         if (!t || t.Fragment === void 0) throw new TypeError('Expected `Fragment` in options')
@@ -14099,7 +14098,7 @@
                 ignoreInvalidStyle: t.ignoreInvalidStyle || !1,
                 passKeys: t.passKeys !== !1,
                 passNode: t.passNode || !1,
-                schema: t.space === 'svg' ? ad : D1,
+                schema: t.space === 'svg' ? ad : DL,
                 stylePropertyNameCase: t.stylePropertyNameCase || 'dom',
                 tableCellAlignToStyle: t.tableCellAlignToStyle !== !1
             },
@@ -14263,7 +14262,7 @@
     function G4(e, t, r) {
         let n = fh(e.schema, t)
         if (!(r == null || (typeof r == 'number' && Number.isNaN(r)))) {
-            if ((Array.isArray(r) && (r = n.commaSeparated ? f1(r) : O1(r)), n.property === 'style')) {
+            if ((Array.isArray(r) && (r = n.commaSeparated ? fL(r) : OL(r)), n.property === 'style')) {
                 let a = typeof r == 'object' ? r : H4(e, String(r))
                 return (e.stylePropertyNameCase === 'css' && (a = q4(a)), ['style', a])
             }
@@ -14272,7 +14271,7 @@
     }
     function H4(e, t) {
         try {
-            return (0, J1.default)(t, { reactCompat: !0 })
+            return (0, JL.default)(t, { reactCompat: !0 })
         } catch (r) {
             if (e.ignoreInvalidStyle) return {}
             let n = r,
@@ -14335,7 +14334,7 @@
     function X4(e) {
         return '-' + e.toLowerCase()
     }
-    var J1,
+    var JL,
         xh,
         E4,
         P4,
@@ -14343,12 +14342,12 @@
         A4,
         eE,
         aE = L(() => {
-            p1()
-            g1()
-            y1()
-            M1()
-            N1()
-            J1 = sp(X1(), 1)
+            pL()
+            gL()
+            yL()
+            ML()
+            NL()
+            JL = sp(XL(), 1)
             sd()
             yh()
             ;((xh = {}.hasOwnProperty),
@@ -18927,7 +18926,7 @@
         if (e) throw e
     }
     var GR = L(() => {})
-    var ZR = Ja((Ihe, $R) => {
+    var ZR = Ja((bhe, $R) => {
         'use strict'
         var Fd = Object.prototype.hasOwnProperty,
             YR = Object.prototype.toString,
@@ -47637,22 +47636,20 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 e.evidence.length
                     ? w('div', {
                           className: 'grid gap-1 border-l-2 border-border pl-2 text-xs text-muted-foreground',
-                          children: e.evidence
-                              .slice(0, 3)
-                              .map((r, n) =>
-                                  Y(
-                                      'div',
-                                      {
-                                          children: [
-                                              r.quote || oe('evidence'),
-                                              typeof r.confidence == 'number'
-                                                  ? ` \xB7 ${oe('confidence')} ${Yd(r.confidence)}`
-                                                  : ''
-                                          ]
-                                      },
-                                      r.id ?? n
-                                  )
+                          children: e.evidence.slice(0, 3).map((r, n) =>
+                              Y(
+                                  'div',
+                                  {
+                                      children: [
+                                          r.quote || oe('evidence'),
+                                          typeof r.confidence == 'number'
+                                              ? ` \xB7 ${oe('confidence')} ${Yd(r.confidence)}`
+                                              : ''
+                                      ]
+                                  },
+                                  r.id ?? n
                               )
+                          )
                       })
                     : null
             ]
@@ -47779,11 +47776,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         let { title: t, children: r, ...n } = e
         return Y(Jk, {
             children: [
-                w(eL, {
+                w(e1, {
                     asChild: !0,
                     children: w(Pt, { variant: 'outline', size: 'icon-sm', 'aria-label': t, ...n, children: r })
                 }),
-                t ? w(tL, { children: t }) : null
+                t ? w(t1, { children: t }) : null
             ]
         })
     }
@@ -48349,7 +48346,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         Yw()
         Vi()
         wa()
-        d1()
+        dL()
         ry()
         Sb()
         qo()
@@ -48510,7 +48507,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     let Qe = _e.data
                     if (!(!Qe || Qe.channel !== Zg || Qe.protocolVersion !== 1)) {
                         if (Qe.type === 'init') {
-                            ;(o1(Qe.instanceId), bM(Qe.locale), u1(Qe.theme), $w({ density: 'compact' }))
+                            ;(oL(Qe.instanceId), bM(Qe.locale), uL(Qe.theme), $w({ density: 'compact' }))
                             let ft = Qe.initialQuery?.parameters?.knowledgebaseId
                             ;(typeof ft == 'string' && u(ft), t(!0))
                             return
@@ -48532,7 +48529,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 Hi(oe('sourceHighlighted')))
                             return
                         }
-                        i1(Qe)
+                        iL(Qe)
                     }
                 }
                 return (
@@ -48571,7 +48568,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     return () => window.clearTimeout(j)
                 }, [R, ve, J, Ce]),
                 pe(() => {
-                    c1(l, ce)
+                    cL(l, ce)
                 }, [l, Te]),
                 pe(() => {
                     if (typeof window > 'u' || !window.matchMedia) return
@@ -48630,7 +48627,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         n(!0)
                         try {
                             for (let Qe of _e)
-                                await l1('upload_document', Qe, ts({ knowledgebaseId: l, parentId: c, process: !0 }))
+                                await lL('upload_document', Qe, ts({ knowledgebaseId: l, parentId: c, process: !0 }))
                             ;(Hi(oe('uploadDone')), await $())
                         } catch (Qe) {
                             Hi(rs(Qe), 'error')
@@ -48644,7 +48641,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     if (!(!j || !l)) {
                         n(!0)
                         try {
-                            ;(await s1('create_folder', ts({ name: j, knowledgebaseId: l, parentId: c })),
+                            ;(await sL('create_folder', ts({ name: j, knowledgebaseId: l, parentId: c })),
                                 ze(!1),
                                 Ie(''),
                                 await $())

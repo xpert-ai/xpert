@@ -14,6 +14,8 @@
         "PrimaryAgentNotFound": "Primary agent node not found",
         "GitIntegrationNotProvided": "Git integration not provided",
         "KBReqVisionModel": "Knowledgebase requires vision model to process images",
+        "GraphSearchScopeRequired": "GraphRAG search requires tenant and organization scope.",
+        "GraphSearchFailed": "GraphRAG search failed.",
         "IntegrationNotFound": "Integration '{{id}}' not found",
         "InvalidDocumentProcessingMode": "Document processing mode must be full or rechunk.",
         "TransformSnapshotMissing": "No saved conversion result is available. Run the converter once before re-chunking.",

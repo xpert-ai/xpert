@@ -1,4 +1,4 @@
-import { JSONValue } from '@xpert-ai/contracts'
+import { JSONValue, KnowledgeFilterDiagnostics, KnowledgeFilterNode } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 
 export type KnowledgebaseRetrievalMode = 'vector' | 'graph' | 'hybrid'
@@ -20,7 +20,7 @@ export type KnowledgebaseSearchInput = {
   query: string
   k?: number
   score?: number
-  filter?: KnowledgebaseMetadata
+  filter?: KnowledgeFilterNode
   retrieval?: KnowledgebaseRetrievalSettings
   source: string
   requestId?: string
@@ -30,6 +30,11 @@ export type KnowledgebaseDocument = {
   id?: string
   pageContent: string
   metadata?: Record<string, unknown>
+}
+
+export type KnowledgebaseSearchResult = {
+  documents: KnowledgebaseDocument[]
+  diagnostics: KnowledgeFilterDiagnostics[]
 }
 
 export type KnowledgebaseListInput = {
@@ -94,7 +99,7 @@ export type KnowledgebaseDeleteChunksResult = {
 export interface KnowledgebaseApi {
   list(input: KnowledgebaseListInput): Promise<KnowledgebaseListItem[]>
 
-  search(input: KnowledgebaseSearchInput): Promise<KnowledgebaseDocument[]>
+  search(input: KnowledgebaseSearchInput): Promise<KnowledgebaseSearchResult>
 
   writeChunk(input: KnowledgebaseWriteChunkInput): Promise<KnowledgebaseWriteChunkResult>
 

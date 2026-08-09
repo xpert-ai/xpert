@@ -1,0 +1,153 @@
+<ng-template #groupTemplate let-group let-path="path" let-depth="depth">
+  <div class="rounded-lg border border-border bg-card p-2 text-card-foreground" [class.ml-3]="depth > 1">
+    <div class="mb-2 flex items-center justify-between gap-2">
+      <z-select
+        class="w-20 shrink-0 font-semibold uppercase"
+        zSize="sm"
+        [zValue]="group.operator"
+        (zSelectionChange)="setGroupOperator(path, $event)"
+      >
+        <z-select-item zValue="and">
+          {{ 'XP.Knowledgebase.FilterForm.Operators.and' | translate: { Default: 'AND' } }}
+        </z-select-item>
+        <z-select-item zValue="or">
+          {{ 'XP.Knowledgebase.FilterForm.Operators.or' | translate: { Default: 'OR' } }}
+        </z-select-item>
+      </z-select>
+      <span class="text-xs text-muted-foreground">
+        {{ 'XP.Knowledgebase.FilterForm.Level' | translate: { level: depth, max: 3 } }}
+      </span>
+    </div>
+
+    <div class="space-y-2">
+      @for (child of group.children; track $index; let i = $index) {
+        @if (child.kind === 'group') {
+          <ng-container
+            *ngTemplateOutlet="
+              groupTemplate;
+              context: { $implicit: asGroup(child), path: childPath(path, i), depth: depth + 1 }
+            "
+          />
+          <button type="button" z-button zType="destructive" zSize="xs" (click)="remove(path, i)">
+            {{ 'XP.Knowledgebase.FilterForm.RemoveGroup' | translate: { Default: 'Remove group' } }}
+          </button>
+        } @else {
+          <div class="grid grid-cols-[minmax(0,1fr)_7rem] gap-1 rounded-md bg-muted/50 p-2">
+            <z-select
+              class="min-w-0"
+              zSize="sm"
+              [zValue]="child.field"
+              (zSelectionChange)="setField(childPath(path, i), $event)"
+            >
+              @for (fieldOption of fields(); track fieldOption.key) {
+                <z-select-item [zValue]="fieldOption.key">
+                  {{ (fieldOption.label | i18n) || fieldOption.key }}
+                </z-select-item>
+              }
+            </z-select>
+            <z-select zSize="sm" [zValue]="child.operator" (zSelectionChange)="setOperator(childPath(path, i), $event)">
+              @for (operator of operators(child.field); track operator) {
+                <z-select-item [zValue]="operator">
+                  {{ 'XP.Knowledgebase.FilterForm.Operators.' + operator | translate: { Default: operator } }}
+                </z-select-item>
+              }
+            </z-select>
+
+            @if (requiresValue(child.operator)) {
+              @if (child.field === 'document.folderPath' && valueKind(child) === 'literal' && folderOptions().length) {
+                <z-select
+                  class="min-w-0"
+                  zSize="sm"
+                  [zValue]="folderSelectionValue(child)"
+                  (zSelectionChange)="setFolderValue(childPath(path, i), $event)"
+                >
+                  <z-select-item [zValue]="rootFolderValue">
+                    {{ 'XP.Knowledgebase.FilterForm.RootFolder' | translate: { Default: '/ (root)' } }}
+                  </z-select-item>
+                  @if (displayValue(child) && !hasFolderOption(displayValue(child))) {
+                    <z-select-item [zValue]="displayValue(child)">{{ displayValue(child) }}</z-select-item>
+                  }
+                  @for (folder of folderOptions(); track folder.value) {
+                    <z-select-item [zValue]="folder.value">{{ folder.label }}</z-select-item>
+                  }
+                </z-select>
+              } @else {
+                <input
+                  z-input
+                  class="min-w-0 text-xs"
+                  [placeholder]="
+                    valueKind(child) === 'variable'
+                      ? ('XP.Knowledgebase.FilterForm.VariablePlaceholder'
+                        | translate: { Default: 'state.regionFolder' })
+                      : ('XP.Knowledgebase.FilterForm.ValuePlaceholder'
+                        | translate: { Default: 'Value; arrays and objects use JSON' })
+                  "
+                  [ngModel]="displayValue(child)"
+                  (ngModelChange)="setValue(childPath(path, i), $event)"
+                />
+              }
+              <z-select
+                zSize="sm"
+                [zValue]="valueKind(child)"
+                (zSelectionChange)="setValueKind(childPath(path, i), $event)"
+              >
+                <z-select-item zValue="literal">
+                  {{ 'XP.Knowledgebase.FilterForm.Constant' | translate: { Default: 'Constant' } }}
+                </z-select-item>
+                @if (allowVariables()) {
+                  <z-select-item zValue="variable">
+                    {{ 'XP.Knowledgebase.FilterForm.Variable' | translate: { Default: 'Variable' } }}
+                  </z-select-item>
+                }
+              </z-select>
+            } @else {
+              <span class="self-center text-xs text-muted-foreground">
+                {{ 'XP.Knowledgebase.FilterForm.NoValueRequired' | translate: { Default: 'No value required' } }}
+              </span>
+              <span></span>
+            }
+            <button
+              type="button"
+              z-button
+              zType="destructive"
+              zSize="xs"
+              class="col-span-2 justify-self-end"
+              (click)="remove(path, i)"
+            >
+              {{ 'XP.Knowledgebase.FilterForm.RemoveCondition' | translate: { Default: 'Remove condition' } }}
+            </button>
+          </div>
+        }
+      } @empty {
+        <div class="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+          {{
+            'XP.Knowledgebase.FilterForm.NoConditions'
+              | translate: { Default: 'No filter conditions have been configured.' }
+          }}
+        </div>
+      }
+    </div>
+
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <select
+        #fieldSelect
+        class="h-8 min-w-0 grow rounded-md border border-input bg-background px-2 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+        (change)="addCondition(path, fieldSelect.value); fieldSelect.value = ''"
+      >
+        <option value="">
+          {{ 'XP.Knowledgebase.FilterForm.AddCondition' | translate: { Default: '+ Add condition' } }}
+        </option>
+        @for (fieldOption of fields(); track fieldOption.key) {
+          <option [value]="fieldOption.key">{{ (fieldOption.label | i18n) || fieldOption.key }}</option>
+        }
+      </select>
+      @if (depth < 3) {
+        <button type="button" z-button zType="secondary" zSize="sm" (click)="addGroup(path)">
+          {{ 'XP.Knowledgebase.FilterForm.AddGroup' | translate: { Default: '+ Group' } }}
+        </button>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-container *ngTemplateOutlet="groupTemplate; context: { $implicit: root(), path: [], depth: 1 }" />

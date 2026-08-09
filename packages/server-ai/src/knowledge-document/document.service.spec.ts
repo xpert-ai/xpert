@@ -74,7 +74,7 @@ import type { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgeb
 import type { KnowledgeWorkAreaResolver } from '../shared'
 import { computeKnowledgeDocumentChunkHash, computeKnowledgeDocumentProcessingHash } from './document-hash'
 import { KnowledgeDocument } from './document.entity'
-import { KnowledgeDocumentService } from './document.service'
+import { buildLogicalFolderPath, KnowledgeDocumentService } from './document.service'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 function createService(
@@ -83,6 +83,7 @@ function createService(
         repo?: object
         knowledgebaseService?: object
         commandBus?: object
+        dataSource?: object
     }
 ) {
     const repo = {
@@ -103,7 +104,7 @@ function createService(
 
     const service = new KnowledgeDocumentService(
         repo,
-        {} as DataSource,
+        (overrides?.dataSource ?? {}) as DataSource,
         storageFileService,
         knowledgeWorkAreaResolver,
         (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
@@ -117,6 +118,89 @@ function createService(
     })
     return service
 }
+
+describe('KnowledgeDocumentService logical folder paths', () => {
+    it('orders ancestors from the root to the selected entity', async () => {
+        const root = {
+            id: 'folder-water',
+            name: '水利',
+            sourceType: DocumentTypeEnum.FOLDER
+        } as KnowledgeDocument
+        const child = {
+            id: 'folder-east',
+            name: '华东',
+            sourceType: DocumentTypeEnum.FOLDER,
+            parent: root
+        } as KnowledgeDocument
+        const document = {
+            id: 'document-pdf',
+            name: 'pricing.pdf',
+            sourceType: DocumentTypeEnum.FILE,
+            parent: child
+        } as KnowledgeDocument
+        const findAncestorsTree = jest.fn(async (entity: KnowledgeDocument) => entity)
+        const service = createService([], {
+            dataSource: {
+                getTreeRepository: jest.fn(() => ({
+                    findOneBy: jest.fn(async () => document),
+                    findAncestorsTree
+                }))
+            }
+        })
+
+        await expect(service.findAncestors(document.id)).resolves.toEqual([root, child, document])
+        expect(findAncestorsTree).toHaveBeenCalledWith(document)
+    })
+
+    it('builds a knowledgebase-relative path without the document id or leading slash', () => {
+        const ancestors = [
+            { id: 'folder-water', name: '水利', sourceType: DocumentTypeEnum.FOLDER },
+            { id: 'folder-east', name: '华东', sourceType: DocumentTypeEnum.FOLDER },
+            { id: 'document-pdf', name: 'pricing.pdf', sourceType: DocumentTypeEnum.FILE }
+        ]
+
+        expect(buildLogicalFolderPath(ancestors, 'document-pdf')).toBe('水利/华东')
+        expect(buildLogicalFolderPath([ancestors[2]], 'document-pdf')).toBe('')
+    })
+
+    it('persists the logical parent folder when creating a document', async () => {
+        const save = jest.fn(async (entity: Partial<KnowledgeDocument>) => ({ id: 'document-pdf', ...entity }))
+        const service = createService([], { repo: { save } })
+        jest.spyOn(service, 'findAncestors').mockResolvedValue([
+            { id: 'folder-water', name: '水利', sourceType: DocumentTypeEnum.FOLDER } as KnowledgeDocument,
+            { id: 'folder-east', name: '华东', sourceType: DocumentTypeEnum.FOLDER } as KnowledgeDocument,
+            { id: 'document-pdf', name: 'pricing.pdf', sourceType: DocumentTypeEnum.FILE } as KnowledgeDocument
+        ])
+
+        const document = await service.create({
+            knowledgebaseId: 'kb-1',
+            name: 'pricing.pdf',
+            sourceType: DocumentTypeEnum.FILE,
+            type: 'pdf'
+        })
+
+        expect(document.folder).toBe('水利/华东')
+        expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ folder: '水利/华东' }))
+    })
+
+    it('persists the parent path when a folder is created through the generic CRUD route', async () => {
+        const save = jest.fn(async (entity: Partial<KnowledgeDocument>) => ({ id: 'folder-east', ...entity }))
+        const service = createService([], { repo: { save } })
+        jest.spyOn(service, 'findAncestors').mockResolvedValue([
+            { id: 'folder-water', name: '水利', sourceType: DocumentTypeEnum.FOLDER } as KnowledgeDocument,
+            { id: 'folder-east', name: '华东', sourceType: DocumentTypeEnum.FOLDER } as KnowledgeDocument
+        ])
+
+        const folder = await service.create({
+            knowledgebaseId: 'kb-1',
+            name: '华东',
+            sourceType: DocumentTypeEnum.FOLDER
+        })
+
+        expect(folder.folder).toBe('水利')
+        expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ folder: '水利' }))
+    })
+})
 
 describe('KnowledgeDocumentService original file downloads', () => {
     it('selects uploaded workspace files with original file paths', async () => {

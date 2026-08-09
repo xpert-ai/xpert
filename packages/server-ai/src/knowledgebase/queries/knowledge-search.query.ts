@@ -1,5 +1,16 @@
-import { KnowledgeDocumentMetadata, TKBRetrievalSettings, TWFCase } from '@xpert-ai/contracts'
+import {
+    DocumentMetadata,
+    KnowledgeFilterDiagnostics,
+    KnowledgeFilterSources,
+    TKBRetrievalSettings
+} from '@xpert-ai/contracts'
+import { DocumentInterface } from '@langchain/core/documents'
 import { IQuery } from '@nestjs/cqrs'
+
+export type KnowledgeSearchResult = {
+    documents: DocumentInterface<DocumentMetadata>[]
+    diagnostics: KnowledgeFilterDiagnostics[]
+}
 
 export class KnowledgeSearchQuery implements IQuery {
     static readonly type = '[Knowledgebase] Similarity Search'
@@ -12,8 +23,9 @@ export class KnowledgeSearchQuery implements IQuery {
             query: string
             k?: number
             score?: number
-            filter?: KnowledgeDocumentMetadata
-            filtering_conditions?: TWFCase
+            filters?: KnowledgeFilterSources
+            /** Runtime state used only to resolve mandatory fixed-filter variables. */
+            variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
             source: string
             id?: string // Request ID for tracing the request

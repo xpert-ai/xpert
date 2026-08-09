@@ -289,18 +289,51 @@
             </div>
           }
 
-          @for (field of metadataSchema(); track field.key) {
+          @for (field of documentMetadataSchema(); track field.key) {
             <div class="flex items-start space-x-2">
               <div class="text-sm font-medium w-[128px] shrink-0 items-center truncate py-1 text-text-tertiary">
                 {{ field.key }}
               </div>
               <div class="w-[244px] shrink-0">
                 @if (editMetadata()) {
-                  <input
-                    class="xp-input text-sm truncate text-text-primary rounded-sm"
-                    [ngModel]="metadata()[field.key]"
-                    (ngModelChange)="updateMetadata(field.key, $event)"
-                  />
+                  @if (field.type === 'boolean') {
+                    <select
+                      class="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                      [ngModel]="metadata()[field.key]"
+                      (ngModelChange)="updateMetadata(field, $event)"
+                    >
+                      <option [ngValue]="undefined">
+                        {{ 'XP.Knowledgebase.FilterForm.BooleanUnset' | translate: { Default: 'Not set' } }}
+                      </option>
+                      <option [ngValue]="true">
+                        {{ 'XP.Knowledgebase.FilterForm.BooleanTrue' | translate: { Default: 'True' } }}
+                      </option>
+                      <option [ngValue]="false">
+                        {{ 'XP.Knowledgebase.FilterForm.BooleanFalse' | translate: { Default: 'False' } }}
+                      </option>
+                    </select>
+                  } @else if (field.type === 'enum') {
+                    <select
+                      class="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                      [ngModel]="metadata()[field.key]"
+                      (ngModelChange)="updateMetadata(field, $event)"
+                    >
+                      <option [ngValue]="undefined">-</option>
+                      @for (value of field.enumValues || []; track value) {
+                        <option [ngValue]="value">{{ value }}</option>
+                      }
+                    </select>
+                  } @else {
+                    <input
+                      z-input
+                      class="truncate text-sm"
+                      [type]="
+                        field.type === 'number' ? 'number' : field.type === 'datetime' ? 'datetime-local' : 'text'
+                      "
+                      [ngModel]="metadataInputValue(field, metadata()[field.key])"
+                      (ngModelChange)="updateMetadata(field, $event)"
+                    />
+                  }
                 } @else {
                   <div class="text-sm p-1 text-text-secondary">{{ metadata()[field.key] || '-' }}</div>
                 }
@@ -452,6 +485,56 @@
               (ngModelChange)="updateChunk($event)"
             ></textarea>
           </div>
+          @if (chunkMetadataSchema().length) {
+            <div class="mt-3 border-t border-divider-subtle pt-3">
+              <div class="system-sm-semibold mb-2 text-text-secondary">
+                {{ 'XP.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' } }}
+              </div>
+              @for (field of chunkMetadataSchema(); track field.key) {
+                <div class="mb-2 grid grid-cols-[128px_minmax(0,1fr)] items-center gap-2">
+                  <div class="truncate text-sm text-text-tertiary">{{ field.key }}</div>
+                  @if (field.type === 'boolean') {
+                    <select
+                      class="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                      [ngModel]="editChunk().metadata?.[field.key]"
+                      (ngModelChange)="updateEditChunkMetadata(field, $event)"
+                    >
+                      <option [ngValue]="undefined">
+                        {{ 'XP.Knowledgebase.FilterForm.BooleanUnset' | translate: { Default: 'Not set' } }}
+                      </option>
+                      <option [ngValue]="true">
+                        {{ 'XP.Knowledgebase.FilterForm.BooleanTrue' | translate: { Default: 'True' } }}
+                      </option>
+                      <option [ngValue]="false">
+                        {{ 'XP.Knowledgebase.FilterForm.BooleanFalse' | translate: { Default: 'False' } }}
+                      </option>
+                    </select>
+                  } @else if (field.type === 'enum') {
+                    <select
+                      class="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                      [ngModel]="editChunk().metadata?.[field.key]"
+                      (ngModelChange)="updateEditChunkMetadata(field, $event)"
+                    >
+                      <option [ngValue]="undefined">-</option>
+                      @for (value of field.enumValues || []; track value) {
+                        <option [ngValue]="value">{{ value }}</option>
+                      }
+                    </select>
+                  } @else {
+                    <input
+                      z-input
+                      class="text-sm"
+                      [type]="
+                        field.type === 'number' ? 'number' : field.type === 'datetime' ? 'datetime-local' : 'text'
+                      "
+                      [ngModel]="metadataInputValue(field, editChunk().metadata?.[field.key])"
+                      (ngModelChange)="updateEditChunkMetadata(field, $event)"
+                    />
+                  }
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <div class="flex items-center justify-end p-4 pt-3 border-t-[1px] border-t-divider-subtle">

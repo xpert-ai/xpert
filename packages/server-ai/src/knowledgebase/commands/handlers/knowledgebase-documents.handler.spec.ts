@@ -6,12 +6,63 @@ import { PassThrough } from 'node:stream'
 import { crc32 } from 'node:zlib'
 import {
     DeleteKnowledgebaseDocumentsCommand,
-    ImportKnowledgebaseArchiveCommand
+    ImportKnowledgebaseArchiveCommand,
+    UploadKnowledgebaseDocumentFileCommand
 } from '../knowledgebase-documents.command'
 import {
     DeleteKnowledgebaseDocumentsHandler,
-    ImportKnowledgebaseArchiveHandler
+    ImportKnowledgebaseArchiveHandler,
+    UploadKnowledgebaseDocumentFileHandler
 } from './knowledgebase-documents.handler'
+import { DocumentTypeEnum } from '@xpert-ai/contracts'
+
+describe('UploadKnowledgebaseDocumentFileHandler', () => {
+    it('stores nested uploads using the root-to-child logical folder order', async () => {
+        const knowledgebaseService = { assertNotRebuilding: jest.fn() }
+        const documentService = {
+            findAncestors: jest.fn(async () => [
+                { id: 'folder-water', name: '水利', sourceType: DocumentTypeEnum.FOLDER },
+                { id: 'folder-east', name: '华东', sourceType: DocumentTypeEnum.FOLDER }
+            ])
+        }
+        const knowledgeWorkAreaResolver = {
+            getFilesPath: jest.fn((folder: string) => path.posix.join('files', folder || ''))
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: any) => {
+                const target = command.input.targets[0]
+                const filePath = path.posix.join(target.folder, target.fileName)
+                return {
+                    status: 'success',
+                    destinations: [{ kind: 'volume', status: 'success', path: filePath, url: `file://${filePath}` }]
+                }
+            })
+        }
+        const handler = new UploadKnowledgebaseDocumentFileHandler(
+            knowledgebaseService as any,
+            documentService as any,
+            knowledgeWorkAreaResolver as any,
+            commandBus as any
+        )
+
+        const result = await handler.execute(
+            new UploadKnowledgebaseDocumentFileCommand({
+                knowledgebaseId: 'kb-1',
+                parentId: 'folder-east',
+                file: {
+                    originalname: 'pricing.pdf',
+                    mimetype: 'application/pdf',
+                    size: 3,
+                    buffer: Buffer.from('pdf')
+                }
+            } as any)
+        )
+
+        expect(documentService.findAncestors).toHaveBeenCalledWith('folder-east')
+        expect(knowledgeWorkAreaResolver.getFilesPath).toHaveBeenCalledWith('水利/华东')
+        expect(result.filePath).toMatch(/^files\/水利\/华东\/pricing-/)
+    })
+})
 
 describe('ImportKnowledgebaseArchiveHandler', () => {
     const tempDirs: string[] = []

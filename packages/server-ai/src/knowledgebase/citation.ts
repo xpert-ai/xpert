@@ -1,4 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
+import { KnowledgeFilterDiagnostics } from '@xpert-ai/contracts'
 
 export type KnowledgebaseCitation = {
     index: number
@@ -25,6 +26,7 @@ export type KnowledgebaseRetrievalToolOutput = {
     chunks: KnowledgebaseRetrievalChunk[]
     citations: KnowledgebaseCitation[]
     instructions: string
+    diagnostics?: KnowledgeFilterDiagnostics[]
 }
 
 // Keep the link contract centralized so every retriever/tool prompt asks for the same Markdown form.
@@ -112,7 +114,8 @@ export function createKnowledgebaseCitationFromDocument(
 
 export function formatKnowledgebaseRetrievalToolOutput(
     docs: DocumentInterface<Record<string, any>>[],
-    fallbackKnowledgebaseId?: string
+    fallbackKnowledgebaseId?: string,
+    diagnostics?: KnowledgeFilterDiagnostics[]
 ) {
     const chunks = docs.map((doc, index) => ({
         ...createKnowledgebaseCitationFromDocument(doc, index + 1, fallbackKnowledgebaseId),
@@ -124,7 +127,8 @@ export function formatKnowledgebaseRetrievalToolOutput(
         {
             chunks,
             citations,
-            instructions: KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION
+            instructions: KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION,
+            ...(diagnostics?.length ? { diagnostics } : {})
         } satisfies KnowledgebaseRetrievalToolOutput,
         null,
         2

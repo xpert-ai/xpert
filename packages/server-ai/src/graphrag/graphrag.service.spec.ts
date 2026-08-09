@@ -1,7 +1,7 @@
 import { Queue } from 'bull'
 import { QueryBus } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
-import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
@@ -24,6 +24,8 @@ function repositoryMock<T>() {
 function enabledKnowledgebase() {
     return {
         id: 'kb-1',
+        name: 'Graph KB',
+        type: KnowledgebaseTypeEnum.Standard,
         tenantId: 'tenant-1',
         organizationId: 'org-1',
         graphRevision: 3,

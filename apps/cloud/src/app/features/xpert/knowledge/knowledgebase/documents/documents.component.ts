@@ -56,6 +56,7 @@ import {
   IXpert,
   KBDocumentStatusEnum,
   KBMetadataFieldDef,
+  MetadataFieldType,
   KDocumentSourceType,
   KnowledgebaseService,
   KnowledgeGraphIndexJobStatus,
@@ -232,6 +233,16 @@ export class KnowledgeDocumentsComponent {
   eKnowledgeGraphStatus = KnowledgeGraphStatus
   eKnowledgebaseStatusEnum = KnowledgebaseStatusEnum
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
+  readonly METADATA_FIELD_TYPES: MetadataFieldType[] = [
+    'string',
+    'number',
+    'boolean',
+    'enum',
+    'datetime',
+    'string[]',
+    'number[]',
+    'object'
+  ]
 
   readonly kbAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
@@ -1266,7 +1277,8 @@ export class KnowledgeDocumentsComponent {
     this.metadataSchema.update((schema) => {
       const newField: KBMetadataFieldDef = {
         key: 'new_field_' + (schema?.length ?? 0),
-        type: 'string'
+        type: 'string',
+        scope: 'document'
       }
       return [...(schema ?? []), newField]
     })
@@ -1291,11 +1303,40 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
+  updateMetadataType(index: number, type: MetadataFieldType) {
+    this.metadataSchema.update((schema) => {
+      const updatedSchema = [...(schema ?? [])]
+      updatedSchema[index] = {
+        ...updatedSchema[index],
+        type,
+        ...(type === 'enum'
+          ? { enumValues: updatedSchema[index].enumValues?.length ? updatedSchema[index].enumValues : ['value'] }
+          : { enumValues: undefined })
+      }
+      return updatedSchema
+    })
+  }
+
+  updateMetadataEnumValues(index: number, value: string) {
+    this.updateMetadataField(
+      index,
+      'enumValues',
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  }
+
   saveMetadataSchema(ref: CdkMenuTrigger) {
     this.isLoading.set(true)
     this.knowledgebaseComponent.knowledgebaseAPI
       .update(this.knowledgebase().id, {
-        metadataSchema: this.metadataSchema()
+        metadataSchema: (this.metadataSchema() ?? []).map((field) => ({
+          ...field,
+          key: field.key.trim(),
+          scope: field.scope ?? 'document'
+        }))
       })
       .subscribe({
         next: () => {

@@ -230,6 +230,10 @@ export type KBMetadataFieldDef = {
   key: string // Unique key, e.g. "department"
   label?: I18nObject // Display label
   type: MetadataFieldType
+  /**
+   * Storage scope of the metadata value. Existing definitions are migrated to `document`.
+   */
+  scope?: 'document' | 'chunk'
   enumValues?: string[]
   description?: string
 }

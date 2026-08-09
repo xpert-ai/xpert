@@ -1018,7 +1018,7 @@
 </ng-template>
 
 <ng-template #metadataTemplate let-ref="ref">
-  <div class="p-4 rounded-2xl shadow-lg w-[500px] overflow-hidden bg-components-panel-bg-blur">
+  <div class="p-4 rounded-2xl shadow-lg w-[720px] max-w-[calc(100vw-2rem)] overflow-hidden bg-components-panel-bg-blur">
     <div class="flex justify-between">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
         {{ 'XP.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
@@ -1040,7 +1040,7 @@
     </div>
 
     <div class="inline-block">
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3" (click)="addMetadataField()">
+      <button type="button" z-button class="mt-3" (click)="addMetadataField()">
         <i class="ri-add-large-line"></i>
         {{ 'XP.Knowledgebase.AddField' | translate: { Default: 'Add Field' } }}
       </button>
@@ -1051,7 +1051,7 @@
         <div
           class="group/item cursor-pointer hover:shadow-xs rounded-md border border-divider-subtle bg-components-card-bg"
         >
-          <div class="flex h-8 items-center justify-between px-2">
+          <div class="flex min-h-10 items-center justify-between gap-2 px-2 py-1">
             <div class="flex-1 flex h-full items-center space-x-1 text-sm text-text-tertiary">
               @switch (field.type) {
                 @case ('string') {
@@ -1065,19 +1065,52 @@
                 }
               }
               <input
-                class="xp-input system-sm-medium max-w-[250px] truncate text-text-primary rounded-sm"
+                z-input
+                class="max-w-[250px] truncate text-sm font-medium"
                 [ngModel]="field.key"
                 (ngModelChange)="updateMetadataField(i, 'key', $event)"
               />
-              <div
-                class="system-xs-regular shrink-0 px-2 rounded-md"
+              <button
+                type="button"
+                z-button
+                zType="outline"
+                zSize="sm"
+                class="shrink-0"
                 [cdkMenuTriggerFor]="metadataTypeMenu"
                 [cdkMenuTriggerData]="{ index: i }"
               >
-                {{ field.type }}
-              </div>
+                {{
+                  'XP.Knowledgebase.FilterForm.MetadataFieldTypes.' + field.type | translate: { Default: field.type }
+                }}
+              </button>
+              <button
+                type="button"
+                z-button
+                zType="outline"
+                zSize="sm"
+                class="shrink-0"
+                [cdkMenuTriggerFor]="metadataScopeMenu"
+                [cdkMenuTriggerData]="{ index: i }"
+              >
+                {{
+                  'XP.Knowledgebase.FilterForm.MetadataScopes.' + (field.scope || 'document')
+                    | translate: { Default: field.scope || 'document' }
+                }}
+              </button>
+              @if (field.type === 'enum') {
+                <input
+                  z-input
+                  class="min-w-32 grow truncate text-sm font-medium"
+                  [placeholder]="
+                    'XP.Knowledgebase.FilterForm.EnumValuesPlaceholder' | translate: { Default: 'value1, value2' }
+                  "
+                  [ngModel]="field.enumValues?.join(', ')"
+                  (ngModelChange)="updateMetadataEnumValues(i, $event)"
+                />
+              }
               <input
-                class="xp-input system-sm-medium grow truncate text-text-primary rounded-sm"
+                z-input
+                class="min-w-28 grow truncate text-sm font-medium"
                 [placeholder]="'XP.KEY_WORDS.Description' | translate: { Default: 'description' }"
                 [ngModel]="field.description"
                 (ngModelChange)="updateMetadataField(i, 'description', $event)"
@@ -1085,12 +1118,16 @@
             </div>
             <!-- <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div> -->
             <div class="ml-2 hidden items-center space-x-1 text-text-tertiary group-hover/item:flex">
-              <div
-                class="w-6 h-6 flex justify-center items-center rounded-md hover:bg-hover-bg hover:text-text-destructive"
+              <button
+                type="button"
+                z-button
+                zType="destructive"
+                zSize="icon-xs"
+                [attr.aria-label]="'XP.ACTIONS.Remove' | translate: { Default: 'Remove' }"
                 (click)="removeMetadata(i)"
               >
                 <i class="ri-delete-bin-line"></i>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -1130,7 +1167,7 @@
     </div>
 
     <div class="w-full flex justify-end mt-4">
-      <button type="button" class="mt-2 btn btn-primary btn-large" (click)="saveMetadataSchema(ref)">
+      <button type="button" z-button zSize="lg" class="mt-2" (click)="saveMetadataSchema(ref)">
         {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
@@ -1139,17 +1176,25 @@
 
 <ng-template #metadataTypeMenu let-index="index">
   <div cdkMenu class="cdk-menu__medium">
-    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'string')">
-      <i class="ri-text-snippet mr-2"></i>
-      <span>String</span>
+    @for (type of METADATA_FIELD_TYPES; track type) {
+      <div cdkMenuItem (click)="updateMetadataType(index, type)">
+        <span>
+          {{ 'XP.Knowledgebase.FilterForm.MetadataFieldTypes.' + type | translate: { Default: type } }}
+        </span>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #metadataScopeMenu let-index="index">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem (click)="updateMetadataField(index, 'scope', 'document')">
+      <span>
+        {{ 'XP.Knowledgebase.FilterForm.MetadataScopes.document' | translate: { Default: 'Document' } }}
+      </span>
     </div>
-    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'number')">
-      <i class="ri-hashtag mr-2"></i>
-      <span>Number</span>
-    </div>
-    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'datetime')">
-      <i class="ri-time-line mr-2"></i>
-      <span>DateTime</span>
+    <div cdkMenuItem (click)="updateMetadataField(index, 'scope', 'chunk')">
+      <span>{{ 'XP.Knowledgebase.FilterForm.MetadataScopes.chunk' | translate: { Default: 'Chunk' } }}</span>
     </div>
   </div>
 </ng-template>
