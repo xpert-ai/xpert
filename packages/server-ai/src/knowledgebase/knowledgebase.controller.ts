@@ -5,6 +5,7 @@ import {
     IPagination,
     KnowledgebasePermission,
     KnowledgeDocumentMetadata,
+    KnowledgeDocumentProcessingMode,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import {
@@ -283,7 +284,13 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     async processTask(
         @Param('id') id: string,
         @Param('taskId') taskId: string,
-        @Body() body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }
+        @Body()
+        body: {
+            sources?: { [key: string]: { documents: string[] } }
+            stage: 'preview' | 'prod'
+            mode?: KnowledgeDocumentProcessingMode
+            options?: any
+        }
     ) {
         return this.service.processTask(id, taskId, body)
     }

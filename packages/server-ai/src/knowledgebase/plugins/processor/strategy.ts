@@ -8,6 +8,7 @@ import {
     IXpertAgentExecution,
     JSONValue,
     KBDocumentStatusEnum,
+    KNOWLEDGE_PROCESSING_MODE_NAME,
     KnowledgebaseChannel,
     KnowledgeTask,
     TAgentRunnableConfigurable,
@@ -22,14 +23,17 @@ import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
-import { get } from 'lodash'
+import { get, omit } from 'lodash'
 import { In } from 'typeorm'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
+import { KnowledgeDocumentTransformSnapshotService } from '../../../knowledge-document/transform-snapshot.service'
+import { KnowledgeDocumentAnalysisSnapshotService } from '../../../knowledge-document/analysis-snapshot.service'
 import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgebaseTaskService } from '../../task'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
+import { t } from 'i18next'
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.PROCESSOR)
@@ -56,6 +60,12 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 
     @Inject(KnowledgebaseService)
     private readonly knowledgebaseService: KnowledgebaseService
+
+    @Inject(KnowledgeDocumentTransformSnapshotService)
+    private readonly transformSnapshotService: KnowledgeDocumentTransformSnapshotService
+
+    @Inject(KnowledgeDocumentAnalysisSnapshotService)
+    private readonly analysisSnapshotService: KnowledgeDocumentAnalysisSnapshotService
 
     constructor(
         private readonly commandBus: CommandBus,
@@ -85,6 +95,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
                 const knowledgeTaskId = knowledgebaseState?.[KnowledgeTask] as string
                 const stage = knowledgebaseState?.['stage']
                 const isTest = stage === 'preview' || isDraft
+                const processingMode = knowledgebaseState?.[KNOWLEDGE_PROCESSING_MODE_NAME] ?? 'full'
 
                 const execution: IXpertAgentExecution = {
                     category: 'workflow',
@@ -117,18 +128,33 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 
                         const inputById = new Map(input.map((doc) => [doc.id, doc]))
 
-                        const results = await this.knowledgebaseService.transformDocuments(
-                            knowledgebaseId,
-                            entity,
-                            isDraft,
-                            input.map((doc) => ({
-                                ...doc,
-                                ...(doc.draft ?? {})
-                            })),
-                            {
-                                taskId: knowledgeTaskId
-                            }
-                        )
+                        const transformerIdentity = {
+                            provider: entity.provider,
+                            integrationId: entity.integrationId ?? null,
+                            config: entity.config ?? null
+                        }
+                        // Rechunk bypasses the converter strategy completely and resumes at the splitter input boundary.
+                        const results =
+                            processingMode === 'rechunk'
+                                ? (
+                                      await Promise.all(
+                                          input.map((doc) =>
+                                              this.transformSnapshotService.load(doc, transformerIdentity)
+                                          )
+                                      )
+                                  ).flat()
+                                : await this.knowledgebaseService.transformDocuments(
+                                      knowledgebaseId,
+                                      entity,
+                                      isDraft,
+                                      input.map((doc) => ({
+                                          ...doc,
+                                          ...(doc.draft ?? {})
+                                      })),
+                                      {
+                                          taskId: knowledgeTaskId
+                                      }
+                                  )
 
                         let documents = []
                         // Update knowledge task progress
@@ -152,16 +178,50 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
                             for await (const result of results) {
                                 if (result.id) {
                                     const previous = inputById.get(result.id)
+                                    if (!previous) {
+                                        throw new Error(
+                                            t('server-ai:Error.TransformSnapshotDocumentNotFound', {
+                                                defaultValue:
+                                                    'The converted document could not be matched to its source document.'
+                                            })
+                                        )
+                                    }
+                                    // Full processing replaces snapshots; rechunk preserves the exact references it consumed.
+                                    const [transformSnapshot, analysisSnapshot] =
+                                        processingMode === 'full'
+                                            ? await Promise.all([
+                                                  this.transformSnapshotService.save(
+                                                      previous,
+                                                      [result],
+                                                      transformerIdentity
+                                                  ),
+                                                  this.analysisSnapshotService.save(
+                                                      previous,
+                                                      [result],
+                                                      transformerIdentity
+                                                  )
+                                              ])
+                                            : [
+                                                  previous.metadata?.transformSnapshot,
+                                                  previous.metadata?.analysisSnapshot
+                                              ]
+                                    const metadata = {
+                                        ...(processingMode === 'full'
+                                            ? omit(previous.metadata ?? {}, 'analysisSnapshot')
+                                            : (previous.metadata ?? {})),
+                                        ...(processingMode === 'full'
+                                            ? omit(result.metadata ?? {}, 'analysisSnapshot')
+                                            : (result.metadata ?? {})),
+                                        ...(transformSnapshot ? { transformSnapshot } : {}),
+                                        ...(analysisSnapshot ? { analysisSnapshot } : {})
+                                    }
                                     await this.documentService.update(result.id, {
                                         draft: {
                                             chunks: result.chunks
                                         },
-                                        metadata: {
-                                            ...(previous?.metadata ?? {}),
-                                            ...(result.metadata ?? {})
-                                        },
+                                        metadata,
                                         status: KBDocumentStatusEnum.TRANSFORMED
-                                    })
+                                    } as Partial<IKnowledgeDocument>)
                                     documents.push(result)
                                 } else {
                                     const doc = await this.documentService.create({
@@ -181,6 +241,29 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
                                             }
                                         ]
                                     })
+                                    if (processingMode === 'full') {
+                                        const transformedResult = [{ ...result, id: doc.id }]
+                                        const [transformSnapshot, analysisSnapshot] = await Promise.all([
+                                            this.transformSnapshotService.save(
+                                                doc,
+                                                transformedResult,
+                                                transformerIdentity
+                                            ),
+                                            this.analysisSnapshotService.save(
+                                                doc,
+                                                transformedResult,
+                                                transformerIdentity
+                                            )
+                                        ])
+                                        doc.metadata = {
+                                            ...(doc.metadata ?? {}),
+                                            transformSnapshot,
+                                            ...(analysisSnapshot ? { analysisSnapshot } : {})
+                                        }
+                                        await this.documentService.update(doc.id, {
+                                            metadata: doc.metadata
+                                        } as Partial<IKnowledgeDocument>)
+                                    }
                                     documents.push(doc)
                                 }
                             }

@@ -25,6 +25,7 @@ import {
   KnowledgeGraphRelationCreateInput,
   KnowledgeGraphRelationUpdateInput,
   KnowledgeDocumentMetadata,
+  KnowledgeDocumentProcessingMode,
   KnowledgeGraphStatusResponse,
   KnowledgeGraphVisualizationQuery,
   KnowledgeGraphViewResponse,
@@ -280,6 +281,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     body: {
       sources?: { [key: string]: { documents: string[] } }
       stage: 'preview' | 'prod'
+      mode?: KnowledgeDocumentProcessingMode
       options?: any
       isDraft?: boolean
     }

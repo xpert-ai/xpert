@@ -3,7 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
-import { injectConfirmDelete, XpCommonModule } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, myRxResource, XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { nonBlank } from '@xpert-ai/contracts'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -28,6 +28,7 @@ import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopyComponent } from '@cloud/app/@shared/common'
+import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.component'
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-chunk',
@@ -47,7 +48,8 @@ import { CopyComponent } from '@cloud/app/@shared/common'
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent,
-    CopyComponent
+    CopyComponent,
+    KnowledgeDocumentAnalysisPreviewComponent
   ]
 })
 export class KnowledgeDocumentChunkComponent {
@@ -60,6 +62,7 @@ export class KnowledgeDocumentChunkComponent {
   readonly #toastr = injectToastr()
   readonly paramId = injectParams('id')
   readonly parentId = injectQueryParams('parentId')
+  readonly requestedView = injectQueryParams('view')
   readonly confirmDelete = injectConfirmDelete()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
@@ -77,6 +80,19 @@ export class KnowledgeDocumentChunkComponent {
       )
     )
   )
+  readonly #analysisPreviewResource = myRxResource({
+    request: () => this.documentId(),
+    loader: ({ request }) => this.knowledgeDocumentService.getAnalysisPreview(request)
+  })
+  readonly analysisPreview = this.#analysisPreviewResource.value
+  readonly availableAnalysisPreview = computed(() => {
+    const preview = this.analysisPreview()
+    return preview?.available ? preview : null
+  })
+  readonly activeView = computed<'analysis' | 'chunks'>(() => {
+    if (this.requestedView() === 'chunks') return 'chunks'
+    return this.availableAnalysisPreview() ? 'analysis' : 'chunks'
+  })
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
   readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
   readonly docEnabled = model(false)
@@ -150,6 +166,18 @@ export class KnowledgeDocumentChunkComponent {
 
   close() {
     this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
+  }
+
+  setView(view: 'analysis' | 'chunks') {
+    if (view === 'analysis' && !this.availableAnalysisPreview()) return
+    this.closeChunkMetadata()
+    this.showMetadata.set(false)
+    void this.#router.navigate([], {
+      relativeTo: this.#route,
+      queryParams: view === 'chunks' ? { view, page: null, block: null } : { view },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
   }
 
   toggleAllPreview() {

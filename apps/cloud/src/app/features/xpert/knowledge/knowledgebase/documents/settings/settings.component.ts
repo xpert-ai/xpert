@@ -1,11 +1,12 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, computed, effect, inject, model } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
   getErrorMessage,
   IKnowledgeDocument,
+  KnowledgeDocumentProcessingMode,
   injectToastr,
   KDocumentSourceType,
   KnowledgebaseService,
@@ -15,6 +16,7 @@ import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
+import { finalize, switchMap } from 'rxjs/operators'
 import { injectParams } from 'ngxtension/inject-params'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { KnowledgeDocumentCreateSettingsComponent } from '../create/settings/settings.component'
@@ -58,11 +60,18 @@ export class KnowledgeDocumentSettingsComponent {
   })
 
   readonly document = this.#documentRes.value
+  readonly #reprocessCapabilitiesRes = myRxResource({
+    request: () => this.paramId(),
+    loader: ({ request }) => (request ? this.kDocumentAPI.getReprocessCapabilities(request) : null)
+  })
+  readonly reprocessCapabilities = this.#reprocessCapabilitiesRes.value
+  readonly canRechunk = computed(() => this.reprocessCapabilities()?.rechunk.available === true)
+  readonly processing = signal(false)
 
   readonly documents = linkedModel({
     initialValue: null,
     compute: () => (this.document() ? [this.document()] : []),
-    update: (value) => {
+    update: () => {
       //
     }
   })
@@ -83,11 +92,21 @@ export class KnowledgeDocumentSettingsComponent {
 
   readonly loading = computed(() => this.#documentRes.status() === 'loading')
 
-  processDocuments() {
+  processDocuments(mode: KnowledgeDocumentProcessingMode) {
+    this.processing.set(true)
     this.kDocumentAPI
       .updateBulk(
         this.documents().map((doc) => pick(doc, ['id', 'parserConfig', 'options', 'disabled', 'version'])),
-        true
+        false
+      )
+      .pipe(
+        switchMap(() =>
+          this.kDocumentAPI.startParsing(
+            this.documents().map((doc) => doc.id),
+            mode
+          )
+        ),
+        finalize(() => this.processing.set(false))
       )
       .subscribe({
         next: () => {
@@ -100,17 +119,22 @@ export class KnowledgeDocumentSettingsComponent {
       })
   }
 
-  saveAndProcess() {
+  saveAndProcess(mode: KnowledgeDocumentProcessingMode) {
+    this.processing.set(true)
     this.kbAPI
       .createTask(this.knowledgebase().id, {
         taskType: 'document_reprocess',
         status: 'running', // Start processing immediately
+        context: {
+          processingMode: mode
+        },
         documents: [
           {
             id: this.document().id
           } as IKnowledgeDocument
         ]
       })
+      .pipe(finalize(() => this.processing.set(false)))
       .subscribe({
         next: () => {
           this.documentsComponent.refresh()

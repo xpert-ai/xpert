@@ -6,6 +6,7 @@ import {
     IKnowledgeDocumentPage,
     IKnowledgebase,
     KnowledgeDocumentLastIncrementalSync,
+    KnowledgeDocumentProcessingMode,
     KBDocumentStatusEnum,
     KDocumentSourceType,
     KnowledgeStructureEnum
@@ -278,6 +279,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...target,
             content: await this.readOriginalFileContent(target)
         }
+    }
+
+    async getOriginalFilePreviewTarget(id: string): Promise<OriginalFileDownloadTarget> {
+        const document = await this.findOne(id)
+        const target = await this.getOriginalFileDownloadTarget(document, new Set(), new Set())
+        if (!target) {
+            throw new BadRequestException('Original file is not available for this knowledge document')
+        }
+        return target
     }
 
     async getOriginalFileDownloadTargets(ids: string[]) {
@@ -1319,7 +1329,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     /**
      * Start processing documents which is not in RUNNING status
      */
-    async startProcessing(ids: string[], kbId?: string) {
+    async startProcessing(ids: string[], kbId?: string, mode: KnowledgeDocumentProcessingMode = 'full') {
         const userId = RequestContext.currentUserId()
         const where = kbId ? { knowledgebaseId: kbId, id: In(ids) } : { id: In(ids) }
         const { items } = await this.findAll({
@@ -1334,7 +1344,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         const job = await this.docQueue.add({
             userId,
-            docs
+            docs,
+            mode
         })
 
         docs.forEach((item) => {

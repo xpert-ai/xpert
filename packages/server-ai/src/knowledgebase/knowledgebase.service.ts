@@ -33,10 +33,12 @@ import {
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
+    KnowledgeDocumentProcessingMode,
     IUser,
     IModelAccessResolution,
     TKBRetrievalSettings,
-    KnowledgeGraphStatus
+    KnowledgeGraphStatus,
+    KNOWLEDGE_PROCESSING_MODE_NAME
 } from '@xpert-ai/contracts'
 import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
@@ -106,14 +108,7 @@ import { KnowledgebaseDetailDTO } from './dto'
 
 type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
 
-const KNOWLEDGEBASE_DETAIL_RELATIONS = [
-    'copilotModel',
-    'chatModel',
-    'rerankModel',
-    'visionModel',
-    'xperts',
-    'pipeline'
-]
+const KNOWLEDGEBASE_DETAIL_RELATIONS = ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline']
 
 const KNOWLEDGEBASE_MODEL_DETAIL_SELECT = {
     id: true,
@@ -1354,7 +1349,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                     }),
                     {}
                 ),
-                stage: 'prod'
+                stage: 'prod',
+                mode: task.context?.processingMode ?? 'full'
             })
         }
         return _task
@@ -1378,6 +1374,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         inputs: {
             sources?: { [key: string]: { documents: string[] } }
             stage: 'preview' | 'prod'
+            mode?: KnowledgeDocumentProcessingMode
             options?: any
             isDraft?: boolean
         }
@@ -1405,6 +1402,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                         knowledgebaseId: knowledgebaseId,
                         [KnowledgeTask]: taskId,
                         [KNOWLEDGE_SOURCES_NAME]: sources,
+                        [KNOWLEDGE_PROCESSING_MODE_NAME]: inputs.mode ?? 'full',
                         stage: inputs.stage
                     },
                     ...(sources ?? []).reduce(

@@ -52,8 +52,10 @@ import {
   ToastrService
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
+import { openWorkbenchFilePreviewDialog } from '../../../../assistant/workbench-file-preview-dialog.component'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { validateOriginalFileResponse } from './original-file-preview'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 80
@@ -238,6 +240,7 @@ export class KnowledgeDocumentsComponent {
   expandedElement: any | null
 
   readonly isLoading = signal(false)
+  readonly viewingOriginalFileIds = signal<Set<string>>(new Set())
   readonly downloadingOriginalFileIds = signal<Set<string>>(new Set())
   readonly downloadingSelectedOriginalFiles = signal(false)
   isRateLimitReached = false
@@ -518,6 +521,50 @@ export class KnowledgeDocumentsComponent {
     return doc.sourceType !== KDocumentSourceType.FOLDER && !isSystemManagedDocument(doc) && !!doc.filePath
   }
 
+  canViewOriginalFile(doc: IKnowledgeDocument) {
+    return this.canDownloadOriginalFile(doc)
+  }
+
+  isOriginalFileViewing(id: string) {
+    return this.viewingOriginalFileIds().has(id)
+  }
+
+  viewOriginalFile(doc: IKnowledgeDocument, event?: MouseEvent) {
+    event?.stopPropagation()
+    if (!this.canViewOriginalFile(doc) || this.isOriginalFileViewing(doc.id)) {
+      return
+    }
+
+    this.markOriginalFileViewing(doc.id, true)
+    this.knowledgeDocumentAPI
+      .downloadOriginalFile(doc.id)
+      .pipe(
+        switchMap((blob) => validateOriginalFileResponse(blob, doc)),
+        finalize(() => this.markOriginalFileViewing(doc.id, false))
+      )
+      .subscribe({
+        next: (blob) => {
+          const objectUrl = URL.createObjectURL(blob)
+          try {
+            const dialogRef = openWorkbenchFilePreviewDialog(this._dialog, {
+              id: doc.id,
+              name: getOriginalFileName(doc),
+              mimeType: blob.type || doc.storageFile?.mimetype,
+              url: objectUrl,
+              previewUrl: objectUrl
+            })
+            dialogRef.closed.pipe(take(1)).subscribe(() => URL.revokeObjectURL(objectUrl))
+          } catch (err) {
+            URL.revokeObjectURL(objectUrl)
+            this.#toastr.error(getErrorMessage(err))
+          }
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
   isOriginalFileDownloading(id: string) {
     return this.downloadingOriginalFileIds().has(id)
   }
@@ -579,6 +626,18 @@ export class KnowledgeDocumentsComponent {
     this.downloadingOriginalFileIds.update((ids) => {
       const next = new Set(ids)
       if (downloading) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  private markOriginalFileViewing(id: string, viewing: boolean) {
+    this.viewingOriginalFileIds.update((ids) => {
+      const next = new Set(ids)
+      if (viewing) {
         next.add(id)
       } else {
         next.delete(id)

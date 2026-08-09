@@ -441,6 +441,23 @@
           <td class="px-6 py-2" [style.width.px]="actionsColumnWidth">
             <div class="flex items-center gap-1">
               @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
+                @if (canViewOriginalFile(element)) {
+                  <button
+                    class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-50"
+                    type="button"
+                    [disabled]="isOriginalFileViewing(element.id)"
+                    [attr.aria-label]="
+                      'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' }
+                    "
+                    [zTooltip]="'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' }"
+                    zPosition="left"
+                    (click)="viewOriginalFile(element, $event)"
+                  >
+                    <i
+                      [class]="isOriginalFileViewing(element.id) ? 'ri-loader-4-line animate-spin' : 'ri-eye-line'"
+                    ></i>
+                  </button>
+                }
                 <button
                   class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-hover-bg"
                   [disabled]="vectorMutationLocked()"
@@ -648,6 +665,16 @@
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
+      @if (canViewOriginalFile(doc)) {
+        <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileViewing(doc.id)" (click)="viewOriginalFile(doc)">
+          @if (isOriginalFileViewing(doc.id)) {
+            <i class="ri-loader-4-line mr-2 animate-spin"></i>
+          } @else {
+            <i class="ri-eye-line mr-2"></i>
+          }
+          <span>{{ 'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' } }}</span>
+        </div>
+      }
       @if (canDownloadOriginalFile(doc)) {
         <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileDownloading(doc.id)" (click)="downloadOriginalFile(doc)">
           @if (isOriginalFileDownloading(doc.id)) {
