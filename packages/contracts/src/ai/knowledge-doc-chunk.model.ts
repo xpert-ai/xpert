@@ -74,7 +74,56 @@ export type DocumentAnalysisMetadata = {
   pageCount?: number
   coordinateSystem: 'page-top-left'
   markdownAsset?: TDocumentAsset
+  /** Provider-neutral page/block payload used to materialize the protected analysis preview. */
+  analysisAsset?: TDocumentAsset
+  /** Durable offset map from the merged Markdown back to source pages and layout blocks. */
+  sourceMapAsset?: TDocumentAsset
   rawAssets?: TDocumentAsset[]
+}
+
+/** One source block archived before the converter merges layout fragments into Markdown. */
+export type DocumentAnalysisSourceBlock = {
+  id: string
+  order: number
+  type: DocumentAnalysisBlockType
+  providerType?: string
+  providerSubType?: string
+  markdown: string
+  bounds?: DocumentAnalysisBounds
+  polygon?: DocumentAnalysisPoint[]
+  asset?: TDocumentAsset
+  raw?: Record<string, unknown>
+}
+
+/** Provider-neutral page record stored by a document converter for later preview materialization. */
+export type DocumentAnalysisSourcePage = {
+  schemaVersion: 1
+  page: number
+  width: number
+  height: number
+  blocks: DocumentAnalysisSourceBlock[]
+}
+
+/** File payload referenced by `DocumentAnalysisMetadata.analysisAsset`. */
+export type DocumentAnalysisSource = {
+  schemaVersion: 1
+  pages: DocumentAnalysisSourcePage[]
+}
+
+/** A character interval in merged Markdown and its corresponding source-document range. */
+export type DocumentMarkdownSourceMapEntry = {
+  startOffset: number
+  endOffset: number
+  pageStart: number
+  pageEnd: number
+  blockIds?: string[]
+  assets?: TDocumentAsset[]
+}
+
+/** Ephemeral/durable source map consumed by splitters to restore page and asset provenance. */
+export type DocumentMarkdownSourceMap = {
+  schemaVersion: 1
+  entries: DocumentMarkdownSourceMapEntry[]
 }
 
 /** Read model returned for one block in the paged analysis-preview API. */
@@ -136,6 +185,19 @@ export interface IDocChunkMetadata {
    * Associated assets like images, videos, etc.
    */
   assets?: TDocumentAsset[]
+  /** Explicit content discriminator so generic preprocessing does not flatten Markdown syntax. */
+  contentFormat?: 'text' | 'markdown'
+  /** Global source page for a chunk contained entirely within one page. */
+  page?: number
+  /** Inclusive global source-page interval when a chunk spans multiple pages. */
+  pageStart?: number
+  pageEnd?: number
+  /** Stable pre-merge layout identifiers contributing content to this chunk. */
+  sourceBlockIds?: string[]
+  /** Pre-split offset map; splitters must consume it instead of copying it to every final chunk. */
+  markdownSourceMap?: DocumentMarkdownSourceMap
+  /** Durable source-map asset retained after the inline pre-split map is consumed. */
+  sourceMapAsset?: TDocumentAsset
   /** Original structured layout before text splitting. */
   documentLayout?: DocumentLayoutMetadata
   /**

@@ -3,7 +3,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { finished } from 'node:stream/promises'
+import { KBDocumentCategoryEnum } from '@xpert-ai/contracts'
+import { KnowledgeDocLoadCommand } from './commands'
 import { KnowledgeDocumentController } from './document.controller'
+import { TransformSnapshotUnavailableError } from './transform-snapshot.service'
 
 class TestResponse extends PassThrough {
     statusCode = 200
@@ -97,5 +100,114 @@ describe('KnowledgeDocumentController original file preview', () => {
         expect(response.statusCode).toBe(200)
         expect(response.headers.get('content-length')).toBe('10')
         expect(chunks).toHaveLength(0)
+    })
+})
+
+describe('KnowledgeDocumentController chunk estimate', () => {
+    const persistedDocument = {
+        id: 'doc-1',
+        knowledgebaseId: 'kb-1',
+        name: 'manual.pdf',
+        type: 'pdf',
+        category: KBDocumentCategoryEnum.Text,
+        filePath: 'manual.pdf',
+        parserConfig: {
+            transformerType: 'baidu-paddleocr-vl',
+            textSplitterType: 'recursive-character',
+            chunkSize: 1000
+        },
+        metadata: {
+            transformSnapshot: {
+                transformFingerprint: 'fingerprint'
+            }
+        }
+    }
+
+    function createController(execute: jest.Mock) {
+        const service = {
+            findOne: jest.fn(async () => persistedDocument)
+        }
+        const controller = new KnowledgeDocumentController(
+            service as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            { execute } as never,
+            {} as never,
+            {} as never
+        )
+        return { controller, service }
+    }
+
+    function executedCommand(execute: jest.Mock, index = 0) {
+        return execute.mock.calls[index][0] as KnowledgeDocLoadCommand
+    }
+
+    it('reuses the persisted transform snapshot and applies draft splitter settings', async () => {
+        const execute = jest.fn(async () => ({ chunks: [] }))
+        const { controller, service } = createController(execute)
+        const parserConfig = {
+            ...persistedDocument.parserConfig,
+            chunkSize: 500,
+            chunkOverlap: 50
+        }
+
+        await controller.estimate({ id: 'doc-1', parserConfig })
+
+        expect(service.findOne).toHaveBeenCalledWith('doc-1')
+        expect(execute).toHaveBeenCalledTimes(1)
+        const command = executedCommand(execute)
+        expect(command.input).toMatchObject({
+            stage: 'test',
+            mode: 'rechunk',
+            doc: {
+                id: 'doc-1',
+                filePath: 'manual.pdf',
+                parserConfig
+            }
+        })
+    })
+
+    it.each(['missing', 'stale', 'corrupt'] as const)(
+        'falls back to one full conversion when the transform snapshot is %s',
+        async (reason) => {
+            const execute = jest
+                .fn()
+                .mockRejectedValueOnce(new TransformSnapshotUnavailableError(reason))
+                .mockResolvedValueOnce({ chunks: [] })
+            const { controller } = createController(execute)
+
+            await controller.estimate({ id: 'doc-1', parserConfig: persistedDocument.parserConfig })
+
+            expect(execute).toHaveBeenCalledTimes(2)
+            expect(executedCommand(execute, 0).input.mode).toBe('rechunk')
+            expect(executedCommand(execute, 1).input.mode).toBe('full')
+        }
+    )
+
+    it('does not retry conversion for an unrelated preview failure', async () => {
+        const execute = jest.fn().mockRejectedValueOnce(new Error('Splitter failed'))
+        const { controller } = createController(execute)
+
+        await expect(
+            controller.estimate({ id: 'doc-1', parserConfig: persistedDocument.parserConfig })
+        ).rejects.toThrow('Splitter failed')
+        expect(execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('uses full conversion for a document that has not been saved yet', async () => {
+        const execute = jest.fn(async () => ({ chunks: [] }))
+        const { controller, service } = createController(execute)
+
+        await controller.estimate({
+            knowledgebaseId: 'kb-1',
+            name: 'new.pdf',
+            type: 'pdf',
+            filePath: 'new.pdf',
+            parserConfig: persistedDocument.parserConfig
+        })
+
+        expect(service.findOne).not.toHaveBeenCalled()
+        expect(executedCommand(execute).input.mode).toBe('full')
     })
 })

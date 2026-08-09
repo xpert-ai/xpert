@@ -32,9 +32,11 @@
   >
     <div actions class="w-full flex items-center justify-end gap-2">
       <button
+        z-button
+        zType="outline"
+        zSize="lg"
         type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-large"
-        [disabled]="processing() || !canRechunk()"
+        [zDisabled]="processing() || !canRechunk()"
         [title]="
           canRechunk()
             ? ('XP.Knowledgebase.RechunkWithoutConverterHint'
@@ -48,9 +50,11 @@
         {{ 'XP.Knowledgebase.RechunkOnly' | translate: { Default: 'Re-chunk Only' } }}
       </button>
       <button
+        z-button
+        zType="default"
+        zSize="lg"
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large"
-        [disabled]="processing()"
+        [zDisabled]="processing()"
         (click)="saveAndProcess('full')"
       >
         {{ 'XP.Knowledgebase.FullReprocess' | translate: { Default: 'Convert and Process' } }}
@@ -63,11 +67,13 @@
     [(documents)]="documents"
     [(parserConfig)]="parserConfig"
   >
-    <div actions class="w-full flex items-center justify-end gap-2">
+    <div inline-actions class="contents">
       <button
+        z-button
+        zType="outline"
+        zSize="lg"
         type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-large"
-        [disabled]="processing() || !canRechunk()"
+        [zDisabled]="processing() || !canRechunk()"
         [title]="
           canRechunk()
             ? ('XP.Knowledgebase.RechunkWithoutConverterHint'
@@ -81,9 +87,11 @@
         {{ 'XP.Knowledgebase.RechunkOnly' | translate: { Default: 'Re-chunk Only' } }}
       </button>
       <button
+        z-button
+        zType="default"
+        zSize="lg"
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large"
-        [disabled]="processing()"
+        [zDisabled]="processing()"
         (click)="processDocuments('full')"
       >
         {{ 'XP.Knowledgebase.FullReprocess' | translate: { Default: 'Convert and Process' } }}

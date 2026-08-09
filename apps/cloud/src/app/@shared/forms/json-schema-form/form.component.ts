@@ -12,6 +12,7 @@ import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchemaObjectType, TWorkflowVarGroup } from '@cloud/app/@core'
 import { JSONSchemaPropertyComponent } from '../json-schema-property/property.component'
+import { type JsonSchemaControlDefaults, JsonSchemaFormOptions } from './form-options'
 
 @Component({
   standalone: true,
@@ -19,6 +20,7 @@ import { JSONSchemaPropertyComponent } from '../json-schema-property/property.co
   selector: 'json-schema-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],
+  providers: [JsonSchemaFormOptions],
   hostDirectives: [NgxControlValueAccessor],
   host: {
     '[class]': `xUiSpan() ? 'gap-2 grid grid-cols-' + xUiSpan() : ''`
@@ -26,6 +28,7 @@ import { JSONSchemaPropertyComponent } from '../json-schema-property/property.co
 })
 export class JSONSchemaFormComponent {
   protected cva = inject<NgxControlValueAccessor<Record<string, unknown>>>(NgxControlValueAccessor)
+  private readonly schemaFormOptions = inject(JsonSchemaFormOptions)
   readonly i18n = new XpI18nPipe()
 
   // Inputs
@@ -35,6 +38,13 @@ export class JSONSchemaFormComponent {
     transform: booleanAttribute
   })
   readonly context = input<Record<string, unknown> | undefined>(undefined)
+  /**
+   * Form-scoped defaults for rendered control inputs.
+   *
+   * Example: `{ switch: { zSize: 'sm' } }`. Individual fields can override these
+   * values with `x-ui.inputs` without adding another input to this component.
+   */
+  readonly controlDefaults = input<JsonSchemaControlDefaults>({})
 
   // Attrs
   get invalid() {
@@ -71,11 +81,9 @@ export class JSONSchemaFormComponent {
     return false
   })
 
-  // constructor() {
-  //   effect(() => {
-  //     console.log(this.schema())
-  //   })
-  // }
+  constructor() {
+    effect(() => this.schemaFormOptions.controlDefaults.set(this.controlDefaults()))
+  }
 
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))

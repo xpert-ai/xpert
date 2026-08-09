@@ -1,5 +1,7 @@
 import { Document, BaseDocumentTransformer } from '@langchain/core/documents'
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
+import type { DocumentMarkdownSourceMapEntry, TDocumentAsset } from '@xpert-ai/contracts'
+import type { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'
 
 export interface MarkdownHeader {
@@ -38,11 +40,15 @@ export class MarkdownRecursiveTextSplitter extends BaseDocumentTransformer {
     /**
      * LangChain standard method: transform Documents into chunked Documents.
      */
-    async transformDocuments(documents: Document[]): Promise<Document[]> {
-        const allDocs: Document[] = []
+    async transformDocuments(documents: Document[]): Promise<Document<ChunkMetadata>[]> {
+        const allDocs: Document<ChunkMetadata>[] = []
 
         for (const doc of documents) {
             const sections = this.splitByHeaders(doc.pageContent)
+            // Source documents do not have a chunkId yet. Treat their metadata as a
+            // partial ChunkMetadata contract and add the required chunk fields below.
+            const { markdownSourceMap, ...sourceMetadata } = doc.metadata as Partial<ChunkMetadata>
+            let sectionSearchOffset = 0
 
             const splitter = new RecursiveCharacterTextSplitter({
                 chunkSize: this.chunkSize,
@@ -50,20 +56,39 @@ export class MarkdownRecursiveTextSplitter extends BaseDocumentTransformer {
             })
 
             for (const section of sections) {
+                const sectionOffset = locateContent(doc.pageContent, section.content, sectionSearchOffset)
+                if (sectionOffset !== undefined) {
+                    sectionSearchOffset = sectionOffset + section.content.length
+                }
                 const docs = await splitter.createDocuments([section.content])
+                let chunkSearchOffset = 0
                 for (const d of docs) {
+                    const chunkOffset = locateContent(section.content, d.pageContent, chunkSearchOffset)
+                    if (chunkOffset !== undefined) {
+                        chunkSearchOffset = chunkOffset + 1
+                    }
                     const headersStr = (this.stripHeader ? section.headers : section.headers.slice(0, -1))
                         .map((h) => `${'#'.repeat(h.level)} ${h.text}`)
                         .join('\n')
 
                     const pageContent =
                         this.addHeadersToChunk && headersStr ? headersStr + '\n\n' + d.pageContent : d.pageContent
+                    const sourceStart =
+                        sectionOffset !== undefined && chunkOffset !== undefined
+                            ? sectionOffset + chunkOffset
+                            : undefined
+                    const sourceEnd = sourceStart !== undefined ? sourceStart + d.pageContent.length : undefined
+                    const provenance =
+                        markdownSourceMap && sourceStart !== undefined && sourceEnd !== undefined
+                            ? sourceProvenance(markdownSourceMap.entries, sourceStart, sourceEnd)
+                            : {}
 
                     allDocs.push(
-                        new Document({
+                        new Document<ChunkMetadata>({
                             pageContent,
                             metadata: {
-                                ...doc.metadata,
+                                ...sourceMetadata,
+                                ...provenance,
                                 chunkId: uuid(),
                                 headers: section.headers,
                                 headerText: headersStr.replace(/\n/g, ' / ')
@@ -134,4 +159,32 @@ export class MarkdownRecursiveTextSplitter extends BaseDocumentTransformer {
             content: s.contentLines.join('\n').trim()
         }))
     }
+}
+
+function locateContent(source: string, content: string, fromIndex: number) {
+    const index = source.indexOf(content, Math.max(0, fromIndex))
+    return index >= 0 ? index : undefined
+}
+
+/** Restores page, block, and asset provenance after the merged Markdown is split. */
+function sourceProvenance(entries: DocumentMarkdownSourceMapEntry[], startOffset: number, endOffset: number) {
+    const overlapping = entries.filter((entry) => entry.endOffset > startOffset && entry.startOffset < endOffset)
+    if (!overlapping.length) return { startOffset, endOffset }
+    const pageStart = Math.min(...overlapping.map((entry) => entry.pageStart))
+    const pageEnd = Math.max(...overlapping.map((entry) => entry.pageEnd))
+    const sourceBlockIds = [...new Set(overlapping.flatMap((entry) => entry.blockIds ?? []))]
+    const assets = uniqueAssets(overlapping.flatMap((entry) => entry.assets ?? []))
+    return {
+        startOffset,
+        endOffset,
+        pageStart,
+        pageEnd,
+        ...(pageStart === pageEnd ? { page: pageStart } : {}),
+        ...(sourceBlockIds.length ? { sourceBlockIds } : {}),
+        ...(assets.length ? { assets } : {})
+    }
+}
+
+function uniqueAssets(assets: TDocumentAsset[]) {
+    return [...new Map(assets.map((asset) => [asset.filePath, asset])).values()]
 }

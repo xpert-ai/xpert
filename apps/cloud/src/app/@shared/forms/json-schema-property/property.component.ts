@@ -25,6 +25,7 @@ import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.com
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
+import { JsonSchemaFormOptions } from '../json-schema-form/form-options'
 
 type JsonSchemaTypeWithUi = JsonSchema7Type & {
   'x-ui'?: JsonSchemaUIExtensions
@@ -63,6 +64,7 @@ export class JSONSchemaPropertyComponent implements OnInit {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
   readonly i18n = new XpI18nPipe()
   readonly widgetRegistry? = inject(JsonSchemaWidgetStrategyRegistry, { optional: true })
+  readonly formOptions? = inject(JsonSchemaFormOptions, { optional: true })
 
   // Inputs
   readonly name = input<string>()
@@ -154,6 +156,20 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly xUiSpan = computed(() => this.xUi()?.span)
   readonly xUiCols = computed(() => this.xUi()?.cols)
   readonly xUiStyles = computed(() => this.xUi()?.styles)
+  readonly controlName = computed(() => this.xUiComponent() || (this.type() === 'boolean' ? 'switch' : this.type()))
+  readonly controlInputs = computed(() => {
+    const defaults = this.formOptions?.controlDefaults() ?? {}
+    const type = this.type()
+    const controlName = this.controlName()
+    const typeDefaults = type ? defaults[type] : undefined
+    const controlDefaults = controlName ? defaults[controlName] : undefined
+
+    return {
+      ...(typeDefaults ?? {}),
+      ...(controlDefaults ?? {}),
+      ...(this.xUi()?.inputs ?? {})
+    }
+  })
   readonly visible = computed(() => {
     const visibleWhen = this.xUi()?.visibleWhen
     if (!visibleWhen) {
@@ -171,6 +187,12 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly collapsibleObject = computed(
     () => this.type() === 'object' && !this.hasCustomWidget() && Boolean(this.properties()?.length)
   )
+
+  /** Resolves any renderer input from form defaults, then field-level `x-ui.inputs`. */
+  controlInput<T>(name: string, fallback: T): T {
+    return (this.controlInputs()[name] ?? fallback) as T
+  }
+
   readonly depends = computed(() => {
     const context = this.context()
     const model = context?.model

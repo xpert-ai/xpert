@@ -96,6 +96,87 @@ describe('KnowledgeDocumentAnalysisSnapshotService', () => {
         await expect(service.resolveAsset(storedDocument, '../outside')).rejects.toMatchObject({ status: 404 })
     })
 
+    it('materializes preview pages from a converter-owned analysis sidecar', async () => {
+        const document = sourceDocument()
+        const analysisPath = 'baidu-ocr/doc-1/paddleocr-vl/analysis-source.json'
+        await fsPromises.mkdir(path.dirname(path.join(rootPath, analysisPath)), { recursive: true })
+        await fsPromises.writeFile(
+            path.join(rootPath, analysisPath),
+            JSON.stringify({
+                schemaVersion: 1,
+                pages: [
+                    {
+                        schemaVersion: 1,
+                        page: 1,
+                        width: 1000,
+                        height: 1400,
+                        blocks: [
+                            {
+                                id: 'title-1',
+                                order: 0,
+                                type: 'title',
+                                providerType: 'doc_title',
+                                markdown: '# Contract',
+                                bounds: { x: 10, y: 20, width: 300, height: 40 },
+                                raw: { position: [10, 20, 300, 40] }
+                            },
+                            {
+                                id: 'text-1',
+                                order: 1,
+                                type: 'text',
+                                markdown: 'Body text',
+                                bounds: { x: 10, y: 80, width: 600, height: 60 }
+                            }
+                        ]
+                    }
+                ]
+            })
+        )
+        const transformed = [
+            {
+                id: document.id,
+                metadata: {
+                    chunkId: 'document-1',
+                    documentAnalysis: {
+                        schemaVersion: 1,
+                        provider: 'baidu-cloud',
+                        engine: 'paddleocr-vl',
+                        pageCount: 1,
+                        coordinateSystem: 'page-top-left',
+                        analysisAsset: {
+                            type: 'file',
+                            filePath: analysisPath,
+                            url: 'https://assets.example/analysis-source.json'
+                        }
+                    }
+                },
+                chunks: [
+                    new Document<ChunkMetadata>({
+                        pageContent: '# Contract\n\nBody text',
+                        metadata: { chunkId: 'merged-1', contentFormat: 'markdown' }
+                    })
+                ]
+            }
+        ] as Partial<IKnowledgeDocument<ChunkMetadata>>[]
+
+        const reference = await service.save(document, transformed, { provider: 'baidu-paddleocr-vl' })
+        if (!reference) throw new Error('Expected an analysis snapshot')
+        const storedDocument = { ...document, metadata: { analysisSnapshot: reference } }
+
+        await expect(service.getPage(storedDocument, 1)).resolves.toMatchObject({
+            page: 1,
+            markdown: '# Contract\n\nBody text',
+            blocks: [
+                expect.objectContaining({ id: 'title-1', type: 'title' }),
+                expect.objectContaining({ id: 'text-1', type: 'text' })
+            ]
+        })
+        await expect(service.getRawPage(storedDocument, 1)).resolves.toEqual([
+            expect.objectContaining({ blockId: 'title-1', data: { position: [10, 20, 300, 40] } }),
+            expect.objectContaining({ blockId: 'text-1' })
+        ])
+    })
+
     it('reports stale or corrupt snapshots without exposing filesystem paths', async () => {
         const document = sourceDocument()
         const transformed = [

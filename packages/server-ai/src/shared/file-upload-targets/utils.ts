@@ -4,6 +4,7 @@ import path from 'path'
 import {
     createRuntimeVolumeClient,
     getVolumeSubpath as getSharedVolumeSubpath,
+    VolumeClient,
     VolumeHandle
 } from '../volume/volume'
 
@@ -49,13 +50,14 @@ export function getVolumeSubpath(
 }
 
 export function resolveVolumeTarget(
+    volumeClient: VolumeClient,
     target: IUploadFileVolumeTarget,
     request: { tenantId?: string; userId?: string }
 ): VolumeHandle {
     const tenantId = target.tenantId || request.tenantId
     const userId = target.userId || request.userId
 
-    return createRuntimeVolumeClient().resolve({
+    return volumeClient.resolve({
         tenantId,
         catalog: target.catalog,
         knowledgeId: target.knowledgeId,

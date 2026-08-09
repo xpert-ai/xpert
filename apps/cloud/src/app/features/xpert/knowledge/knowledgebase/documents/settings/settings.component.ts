@@ -12,8 +12,7 @@ import {
   KnowledgebaseService,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
+import { linkedModel, myRxResource, XpSpinComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { finalize, switchMap } from 'rxjs/operators'
@@ -34,6 +33,7 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
     TranslateModule,
     CdkMenuModule,
     XpSpinComponent,
+    ZardButtonComponent,
     KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent
   ]

@@ -1,5 +1,7 @@
 import {
     DocumentAnalysisMetadata,
+    DocumentAnalysisSource,
+    DocumentAnalysisSourceBlock,
     DocumentLayoutMetadata,
     IKnowledgeDocument,
     KnowledgeDocumentAnalysisBlock,
@@ -104,13 +106,18 @@ export class KnowledgeDocumentAnalysisSnapshotService {
     ): Promise<KnowledgeDocumentAnalysisSnapshotRef | undefined> {
         this.assertDocumentScope(document)
         const analysis = findDocumentAnalysis(transformed)
-        const collected = collectAnalysisPages(transformed, analysis)
-        if (!analysis || !collected.pages.length) {
+        if (!analysis) {
             return undefined
         }
 
         const transformFingerprint = computeKnowledgeDocumentTransformFingerprint(document, transformer)
         const workArea = await this.resolveWorkArea(document.knowledgebaseId, document.id)
+        const collected = analysis.analysisAsset
+            ? await collectAnalysisAssetPages(workArea, analysis)
+            : collectAnalysisPages(transformed, analysis)
+        if (!collected.pages.length) {
+            return undefined
+        }
         const snapshotId = randomUUID()
         const rootFolder = analysisRootFolder(workArea.statePath.relativePath, document.id, transformFingerprint)
         const temporaryFolder = path.posix.join(rootFolder, `${snapshotId}.tmp`)
@@ -379,6 +386,79 @@ function findDocumentAnalysis(
 }
 
 /**
+ * Reads the converter-owned provider-neutral sidecar used when the chunking input is one merged
+ * Markdown document. Keeping layouts out of chunk metadata avoids duplicating them after splitting.
+ */
+async function collectAnalysisAssetPages(
+    workArea: AnalysisResolvedWorkArea,
+    analysis: DocumentAnalysisMetadata
+): Promise<{ pages: AnalysisPageRecord[]; assets: AnalysisAssetManifestItem[] }> {
+    const asset = analysis.analysisAsset
+    if (!asset || !isSafeRelativePath(asset.filePath)) {
+        throw new Error('Document analysis source asset is invalid')
+    }
+    const content = await fsPromises.readFile(workArea.volume.path(asset.filePath))
+    const value: unknown = JSON.parse(content.toString('utf8'))
+    if (!isDocumentAnalysisSource(value)) {
+        throw new Error('Document analysis source asset has an unsupported schema')
+    }
+
+    const assetByPath = new Map<string, AnalysisAssetManifestItem>()
+    const pages = value.pages
+        .map((page) => {
+            const blocks = [...page.blocks]
+                .sort((left, right) => left.order - right.order)
+                .map((block) => analysisSourceBlock(block, assetByPath))
+            return {
+                schemaVersion: ANALYSIS_SCHEMA_VERSION,
+                page: page.page,
+                width: page.width,
+                height: page.height,
+                markdown: blocks
+                    .map((block) => block.markdown.trim())
+                    .filter(Boolean)
+                    .join('\n\n'),
+                blocks: blocks.map(publicAnalysisBlock),
+                raw: blocks.map((block) => ({
+                    blockId: block.id,
+                    ...(block.providerType ? { providerType: block.providerType } : {}),
+                    ...(block.providerSubType ? { providerSubType: block.providerSubType } : {}),
+                    ...(block.raw ? { data: block.raw } : {})
+                }))
+            } satisfies AnalysisPageRecord
+        })
+        .sort((left, right) => left.page - right.page)
+
+    for (const relatedAsset of [analysis.markdownAsset, ...(analysis.rawAssets ?? [])]) {
+        if (relatedAsset) registerAsset(relatedAsset, assetByPath)
+    }
+    return { pages, assets: [...assetByPath.values()] }
+}
+
+function analysisSourceBlock(block: DocumentAnalysisSourceBlock, assetByPath: Map<string, AnalysisAssetManifestItem>) {
+    const assetId = block.asset ? registerAsset(block.asset, assetByPath) : undefined
+    return {
+        id: block.id,
+        order: block.order,
+        type: block.type,
+        ...(block.providerType ? { providerType: block.providerType } : {}),
+        ...(block.providerSubType ? { providerSubType: block.providerSubType } : {}),
+        markdown: block.markdown,
+        ...(block.bounds ? { bounds: block.bounds } : {}),
+        ...(block.polygon ? { polygon: block.polygon } : {}),
+        ...(assetId ? { assetId } : {}),
+        ...(block.raw ? { raw: block.raw } : {})
+    }
+}
+
+/** Removes provider-only raw payloads from the default page response; JSON loads them separately. */
+function publicAnalysisBlock(block: ReturnType<typeof analysisSourceBlock>): KnowledgeDocumentAnalysisBlock {
+    const preview = { ...block }
+    delete preview.raw
+    return preview
+}
+
+/**
  * Groups pre-split transformer chunks by global page and reading order. Provider payloads remain
  * attached to their source block instead of being inferred later from indexed chunks.
  */
@@ -467,6 +547,58 @@ function isDocumentAnalysisMetadata(value: unknown): value is DocumentAnalysisMe
         value.schemaVersion === ANALYSIS_SCHEMA_VERSION &&
         typeof value.provider === 'string' &&
         value.coordinateSystem === 'page-top-left'
+    )
+}
+
+function isDocumentAnalysisSource(value: unknown): value is DocumentAnalysisSource {
+    return (
+        isObject(value) &&
+        value.schemaVersion === ANALYSIS_SCHEMA_VERSION &&
+        Array.isArray(value.pages) &&
+        value.pages.every(isDocumentAnalysisSourcePage)
+    )
+}
+
+function isDocumentAnalysisSourcePage(value: unknown): value is DocumentAnalysisSource['pages'][number] {
+    return (
+        isObject(value) &&
+        value.schemaVersion === ANALYSIS_SCHEMA_VERSION &&
+        Number.isInteger(value.page) &&
+        Number(value.page) > 0 &&
+        isFiniteNumber(value.width) &&
+        value.width > 0 &&
+        isFiniteNumber(value.height) &&
+        value.height > 0 &&
+        Array.isArray(value.blocks) &&
+        value.blocks.every(isDocumentAnalysisSourceBlock)
+    )
+}
+
+function isDocumentAnalysisSourceBlock(value: unknown): value is DocumentAnalysisSourceBlock {
+    return (
+        isObject(value) &&
+        typeof value.id === 'string' &&
+        Number.isInteger(value.order) &&
+        typeof value.type === 'string' &&
+        ANALYSIS_BLOCK_TYPES.has(value.type) &&
+        typeof value.markdown === 'string' &&
+        (value.providerType === undefined || typeof value.providerType === 'string') &&
+        (value.providerSubType === undefined || typeof value.providerSubType === 'string') &&
+        (value.bounds === undefined || isAnalysisBounds(value.bounds)) &&
+        (value.polygon === undefined ||
+            (Array.isArray(value.polygon) && value.polygon.length >= 3 && value.polygon.every(isAnalysisPoint))) &&
+        (value.asset === undefined || isDocumentAsset(value.asset)) &&
+        (value.raw === undefined || isObject(value.raw))
+    )
+}
+
+function isDocumentAsset(value: unknown): value is TDocumentAsset {
+    return (
+        isObject(value) &&
+        (value.type === 'image' || value.type === 'video' || value.type === 'audio' || value.type === 'file') &&
+        typeof value.url === 'string' &&
+        typeof value.filePath === 'string' &&
+        isSafeRelativePath(value.filePath)
     )
 }
 

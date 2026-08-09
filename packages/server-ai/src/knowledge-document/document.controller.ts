@@ -58,7 +58,10 @@ import { RagWebLoadCommand } from '../rag-web/commands'
 import { TVectorSearchParams } from '../knowledgebase'
 import { DocumentChunkDTO } from './dto'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
-import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.service'
+import {
+    KnowledgeDocumentTransformSnapshotService,
+    TransformSnapshotUnavailableError
+} from './transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { resolveKnowledgeDocumentTransformerIdentity } from './document-hash'
 import { t } from 'i18next'
@@ -317,15 +320,41 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
                     : isAudioType(entity.type)
                       ? KBDocumentCategoryEnum.Audio
                       : KBDocumentCategoryEnum.Text
-            const result = await this.commandBus.execute<
-                KnowledgeDocLoadCommand,
-                { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }
-            >(new KnowledgeDocLoadCommand({ doc: entity as IKnowledgeDocument, stage: 'test' }))
+            // Reload saved documents so snapshot paths and source identity always come from the
+            // tenant-scoped database entity; only the draft parser settings come from the preview.
+            const persisted = entity.id ? await this.service.findOne(entity.id) : null
+            const previewDocument = persisted
+                ? ({ ...persisted, parserConfig: entity.parserConfig } as IKnowledgeDocument)
+                : (entity as IKnowledgeDocument)
+            let result: { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }
+
+            if (persisted) {
+                try {
+                    // Splitter-only changes should reuse the immutable pre-split converter output.
+                    result = await this.loadPreviewDocument(previewDocument, 'rechunk')
+                } catch (error) {
+                    if (!(error instanceof TransformSnapshotUnavailableError)) {
+                        throw error
+                    }
+                    // Missing, stale, or corrupt snapshots are the only reasons to convert again.
+                    // Preview remains read-only because the load command runs in the test stage.
+                    result = await this.loadPreviewDocument(previewDocument, 'full')
+                }
+            } else {
+                result = await this.loadPreviewDocument(previewDocument, 'full')
+            }
             return buildChunkTree(result.chunks)
         } catch (err) {
             console.error(err)
             throw new BadRequestException(getErrorMessage(err))
         }
+    }
+
+    private loadPreviewDocument(document: IKnowledgeDocument, mode: KnowledgeDocumentProcessingMode) {
+        return this.commandBus.execute<
+            KnowledgeDocLoadCommand,
+            { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }
+        >(new KnowledgeDocLoadCommand({ doc: document, stage: 'test', mode }))
     }
 
     @Get('status')

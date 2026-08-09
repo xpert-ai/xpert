@@ -47,6 +47,32 @@ describe('KnowledgeDocLoadHandler', () => {
         expect(result).toEqual({ chunks })
     })
 
+    it('preserves Markdown line structure when whitespace replacement is enabled', async () => {
+        const handler = new KnowledgeDocLoadHandler({} as any, {} as any, {} as any)
+        const markdown = new Document({
+            pageContent: '# Title\n\n| A | B |\n|---|---|',
+            metadata: { chunkId: 'markdown-1', contentFormat: 'markdown' }
+        }) as any
+        const plainText = new Document({
+            pageContent: 'Plain\n\ntext',
+            metadata: { chunkId: 'text-1', contentFormat: 'text' }
+        }) as any
+        const splitDocuments = jest.fn(async (chunks) => ({ chunks }))
+        ;(handler as any).textSplitterRegistry = { get: jest.fn(() => ({ splitDocuments })) }
+
+        await handler.splitDocuments(
+            {
+                id: 'doc-1',
+                type: 'txt',
+                parserConfig: { replaceWhitespace: true }
+            } as any,
+            [markdown, plainText]
+        )
+
+        expect(markdown.pageContent).toBe('# Title\n\n| A | B |\n|---|---|')
+        expect(plainText.pageContent).toBe('Plain text')
+    })
+
     it('enables default VLM understanding for PDF, DOCX, and image documents', () => {
         expect(resolveKnowledgeDocumentParserConfig({ type: 'pdf' }).imageUnderstandingType).toBe('vlm-default')
         expect(resolveKnowledgeDocumentParserConfig({ type: 'docx' }).imageUnderstandingType).toBe('vlm-default')

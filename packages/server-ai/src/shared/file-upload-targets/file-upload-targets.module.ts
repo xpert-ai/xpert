@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common'
+import { VolumeModule } from '../volume'
 import { FileUploadTargetStrategies } from './strategies'
 
 @Module({
-	providers: [...FileUploadTargetStrategies]
+    imports: [VolumeModule],
+    providers: [...FileUploadTargetStrategies]
 })
 export class FileUploadTargetsModule {}

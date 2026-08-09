@@ -1,197 +1,123 @@
-<div
-  class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-background-default-subtle"
-  [class.w-[240px]]="sideMenuOpened()"
->
-  <div class="group flex flex-col p-2 mx-2 mt-2">
-    <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
-      <div class="relative shrink-0">
-        <emoji-avatar large [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-xl overflow-hidden" />
-      </div>
-
-      <div class="ml-auto">
-        <button type="button" class="action-btn action-btn-m size-8 rounded-lg" [cdkMenuTriggerFor]="menu">
-          <i class="ri-more-fill"></i>
-        </button>
-      </div>
-    </div>
-
-    @if (sideMenuOpened()) {
-      <div class="grow mt-2">
-        <div class="flex justify-between items-center text-base leading-5 font-medium text-text-secondary">
-          <div class="truncate">{{ knowledgebase()?.name }}</div>
-        </div>
-        @if (type(); as type) {
-          <div class="flex items-center text-xs leading-[18px] font-medium text-text-tertiary gap-1">
-            <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{ type }}</div>
-          </div>
-        }
-      </div>
-    }
-  </div>
-
-  <div class="px-4"><div class="mx-auto mt-1 h-[1px] bg-divider-subtle"></div></div>
-
-  <nav class="grow space-y-1 px-2 py-4">
-    @if (!external()) {
-      <a
-        class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'documents']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla1="routerLinkActive"
-        [class.active]="rla1.isActive"
-      >
-        <z-icon zType="file-text" zSize="xl" class="mr-2" />
-        @if (sideMenuOpened()) {
-          {{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
-        }
-      </a>
-
-      <a
-        class="router-menu-item"
-        title=""
-        [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla4="routerLinkActive"
-        [class.active]="rla4.isActive"
-      >
-        <z-icon zType="robot_2" zSize="xl" class="mr-2" />
-        @if (sideMenuOpened()) {
-          {{ 'XP.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}
-        }
-      </a>
-
-      <a
-        class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'graph']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive="active"
-      >
-        <z-icon zType="hub" zSize="xl" class="mr-2" />
-        @if (sideMenuOpened()) {
-          {{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}
-        }
-      </a>
-    }
-    <a
-      class="router-menu-item"
-      title=""
-      [routerLink]="['./', 'test']"
-      [routerLinkActiveOptions]="{ exact: false }"
-      routerLinkActive
-      #rla2="routerLinkActive"
-      [class.active]="rla2.isActive"
-    >
-      <z-icon zType="center_focus_strong" zSize="xl" class="mr-2" />
-      @if (sideMenuOpened()) {
-        {{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}
-      }
-    </a>
-
-    <a
-      class="router-menu-item"
-      title=""
-      [routerLink]="['./', 'configuration']"
-      [routerLinkActiveOptions]="{ exact: false }"
-      routerLinkActive
-      #rla3="routerLinkActive"
-      [class.active]="rla3.isActive"
-    >
-      <z-icon zType="tune" zSize="xl" class="mr-2" />
-      @if (sideMenuOpened()) {
-        {{ 'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
-      }
-    </a>
-  </nav>
-
-  <div class="shrink-0 py-3 px-4 ml-auto">
-    <div
-      class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg"
-      (click)="toggleSideMenu()"
-    >
-      @if (sideMenuOpened()) {
-        <i class="ri-sidebar-fold-line text-2xl"></i>
-      } @else {
-        <i class="ri-sidebar-unfold-line text-2xl"></i>
-      }
-    </div>
-  </div>
-
-  @if (sideMenuOpened()) {
-    <div class="flex items-center gap-x-0.5 p-2 pb-0">
-      <div class="flex grow flex-col px-2 pb-1.5 pt-1">
-        <div class="system-md-semibold-uppercase text-text-secondary">{{ documentNum() }}</div>
-        <div class="text-xs font-medium uppercase text-text-tertiary">
-          {{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
-        </div>
-      </div>
-      <div class="py-2 pl-0.5 pr-1.5">
-        <div class="my-2 bg-divider-regular text-test-divider-regular h-full w-fit"></div>
-      </div>
-      <div class="flex grow flex-col px-2 pb-1.5 pt-1">
-        <div class="system-md-semibold-uppercase text-text-secondary">{{ xpertCount() }}</div>
-        <div
-          class="text-xs font-medium uppercase flex cursor-pointer items-center gap-x-0.5 text-text-tertiary"
-          [cdkMenuTriggerFor]="xpertsMenu"
-        >
-          <span>{{ 'XP.Knowledgebase.LinkedExperts' | translate: { Default: 'Linked Experts' } }}</span>
-          <i class="ri-information-line"></i>
-        </div>
-      </div>
-    </div>
-  }
-
-  <div class="p-3 pt-2">
-    <div
-      class="relative w-full flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-components-panel-border px-3 hover:bg-hover-bg"
-      [cdkMenuTriggerFor]="serviceApiMenu"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class="size-4 shrink-0 text-text-secondary"
-      >
-        <path
-          d="M5.92578 11.0094C5.92578 10.0174 5.12163 9.21256 4.12956 9.21256C3.13752 9.2126 2.33333 10.0174 2.33333 11.0094C2.33349 12.0014 3.13762 12.8056 4.12956 12.8057C5.12153 12.8057 5.92562 12.0014 5.92578 11.0094ZM13.6667 11.0094C13.6667 10.0174 12.8625 9.2126 11.8704 9.21256C10.8784 9.21256 10.0742 10.0174 10.0742 11.0094C10.0744 12.0014 10.8785 12.8057 11.8704 12.8057C12.8624 12.8056 13.6665 12.0014 13.6667 11.0094ZM9.79622 4.32389C9.79619 3.33186 8.99205 2.52767 8 2.52767C7.00796 2.52767 6.20382 3.33186 6.20378 4.32389C6.20378 5.31596 7.00793 6.12012 8 6.12012C8.99207 6.12012 9.79622 5.31596 9.79622 4.32389ZM11.1296 4.32389C11.1296 5.82351 10.0748 7.07628 8.66667 7.38184V7.9196L9.74284 8.71387C10.3012 8.19607 11.0489 7.87923 11.8704 7.87923C13.5989 7.87927 15 9.28101 15 11.0094C14.9998 12.7377 13.5988 14.139 11.8704 14.139C10.1421 14.139 8.74104 12.7378 8.74089 11.0094C8.74089 10.5837 8.82585 10.1776 8.97982 9.80762L8 9.08366L7.01953 9.80762C7.17356 10.1777 7.25911 10.5836 7.25911 11.0094C7.25896 12.7378 5.85791 14.139 4.12956 14.139C2.40124 14.139 1.00016 12.7377 1 11.0094C1 9.28101 2.40114 7.87927 4.12956 7.87923C4.95094 7.87923 5.69819 8.19627 6.25651 8.71387L7.33333 7.9196V7.38184C5.92523 7.07628 4.87044 5.82351 4.87044 4.32389C4.87048 2.59548 6.27158 1.19434 8 1.19434C9.72843 1.19434 11.1295 2.59548 11.1296 4.32389Z"
-          fill="currentColor"
-        ></path>
-      </svg>
-      @if (sideMenuOpened()) {
-        <div class="system-sm-medium grow text-text-secondary">
-          {{ 'XP.KEY_WORDS.Service' | translate: { Default: 'Service' } }}
-          API
-        </div>
-      }
-      @if (apiEnabled()) {
-        <div
-          class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--success"
-          [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
-        ></div>
-      } @else {
-        <div
-          class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--neutral"
-          [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
-        ></div>
-      }
-    </div>
-  </div>
-</div>
-
 @if (loading()) {
   <xp-spin class="absolute left-0 top-0 w-full h-full z-10" />
 }
 
-<div
-  class="flex-1 relative flex overflow-hidden bg-components-card-bg"
-  [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
->
-  <router-outlet #o="outlet"></router-outlet>
+<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-background">
+  <header class="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background px-4">
+    <div class="flex min-w-[220px] items-center gap-3">
+      <emoji-avatar [avatar]="avatar()" small class="size-9 overflow-hidden rounded-lg" />
+      <div class="min-w-0">
+        <div class="truncate text-sm font-semibold text-text-primary">{{ knowledgebase()?.name }}</div>
+        <div class="flex items-center gap-1.5 text-xs text-text-tertiary">
+          @if (knowledgebase()?.workspace?.name; as workspaceName) {
+            <span class="max-w-36 truncate">{{ workspaceName }}</span>
+          } @else {
+            <span>{{ 'XP.Knowledgebase.Knowledgebase' | translate: { Default: 'Knowledge base' } }}</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <nav
+      z-tab-nav-bar
+      zSize="default"
+      alignTabs="center"
+      class="h-full min-w-0 flex-1 self-stretch border-b-0 mb-0"
+      aria-label="Knowledge base"
+    >
+      @if (!external()) {
+        <a
+          z-tab-link
+          [routerLink]="['./', 'documents']"
+          [routerLinkActiveOptions]="{ exact: false }"
+          routerLinkActive=""
+          #documentsActive="routerLinkActive"
+          [active]="documentsActive.isActive"
+        >
+          <z-icon zType="file-text" />
+          <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}</span>
+        </a>
+        <a
+          z-tab-link
+          [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
+          [routerLinkActiveOptions]="{ exact: false }"
+          routerLinkActive=""
+          #pipelineActive="routerLinkActive"
+          [active]="pipelineActive.isActive"
+        >
+          <z-icon zType="robot_2" />
+          <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}</span>
+        </a>
+        <a
+          z-tab-link
+          [routerLink]="['./', 'graph']"
+          [routerLinkActiveOptions]="{ exact: false }"
+          routerLinkActive=""
+          #graphActive="routerLinkActive"
+          [active]="graphActive.isActive"
+        >
+          <z-icon zType="hub" />
+          <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}</span>
+        </a>
+      }
+      <a
+        z-tab-link
+        [routerLink]="['./', 'test']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive=""
+        #testActive="routerLinkActive"
+        [active]="testActive.isActive"
+      >
+        <z-icon zType="center_focus_strong" />
+        <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}</span>
+      </a>
+      <a
+        z-tab-link
+        [routerLink]="['./', 'configuration']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive=""
+        #configurationActive="routerLinkActive"
+        [active]="configurationActive.isActive"
+      >
+        <z-icon zType="tune" />
+        <span class="hidden lg:inline">{{
+          'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' }
+        }}</span>
+      </a>
+    </nav>
+
+    <div class="flex shrink-0 items-center gap-1.5">
+      <a
+        z-button
+        zType="outline"
+        [routerLink]="workspaceId() ? ['/xpert/w', workspaceId(), 'knowledges'] : ['/xpert/w']"
+      >
+        <z-icon zType="arrow-left" />
+        <span class="hidden xl:inline">{{
+          'XP.Knowledgebase.BackToWorkspace' | translate: { Default: 'Workspace' }
+        }}</span>
+      </a>
+      <button z-button zType="ghost" zSize="icon-sm" [cdkMenuTriggerFor]="serviceApiMenu">
+        <span
+          class="size-2 rounded-full"
+          [class.bg-text-success]="apiEnabled()"
+          [class.bg-text-tertiary]="!apiEnabled()"
+        ></span>
+        <span class="sr-only">{{ 'XP.Knowledgebase.ServiceAPI' | translate: { Default: 'Service API' } }}</span>
+      </button>
+      <button z-button zType="ghost" zSize="icon-sm" [cdkMenuTriggerFor]="menu">
+        <z-icon zType="ellipsis" />
+        <span class="sr-only">{{ 'XP.KEY_WORDS.More' | translate: { Default: 'More' } }}</span>
+      </button>
+    </div>
+  </header>
+
+  <main
+    class="relative flex min-h-0 flex-1 overflow-hidden bg-background"
+    [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
+  >
+    <router-outlet #o="outlet"></router-outlet>
+  </main>
 </div>
 
 <ng-template #menu>

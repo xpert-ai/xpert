@@ -183,7 +183,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 // Chunker with caching
                 const chunkerCacheConfig = {
                     document: transItem,
-                    parserConfig: pick(docParserConfig, ['textSplitterType', 'textSplitter']),
+                    parserConfig: pick(docParserConfig, [
+                        'textSplitterType',
+                        'textSplitter',
+                        'replaceWhitespace',
+                        'removeSensitive'
+                    ]),
                     stage
                 }
                 const cacheKey = 'knowledges:chunker:' + computeObjectHash(chunkerCacheConfig)
@@ -331,6 +336,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         // Text Preprocessing
         if (documentParserConfig.replaceWhitespace) {
             chunks.forEach((doc) => {
+                // Markdown line boundaries carry headings, tables, and lists and must remain structural.
+                if (doc.metadata?.contentFormat === 'markdown') return
                 doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
             })
         }

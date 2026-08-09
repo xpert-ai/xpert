@@ -256,6 +256,7 @@
             }
             @case ('boolean') {
               <z-switch
+                [zSize]="controlInput('zSize', 'default')"
                 [disabled]="readonly()"
                 [ngModel]="value$()"
                 [ngModelOptions]="{ standalone: true }"
