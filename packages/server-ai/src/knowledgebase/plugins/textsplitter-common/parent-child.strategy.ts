@@ -146,6 +146,7 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
                 const parentDoc = new Document<ChunkMetadata>({
                     pageContent: parentContent.content,
                     metadata: {
+                        ...doc.metadata,
                         documentId: doc.metadata['documentId'],
                         chunkId: parentId,
                         type: 'parent',
@@ -162,6 +163,7 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
                         new Document<ChunkMetadata>({
                             pageContent: childContent.content,
                             metadata: {
+                                ...doc.metadata,
                                 documentId: doc.metadata['documentId'],
                                 chunkId: uuid(),
                                 parentId: parentId,
