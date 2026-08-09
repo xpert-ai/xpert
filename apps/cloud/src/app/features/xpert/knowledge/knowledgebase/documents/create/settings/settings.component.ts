@@ -17,14 +17,19 @@ import { attrModel, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
+import { JSONSchemaFormComponent, type JsonSchemaControlDefaults } from '@cloud/app/@shared/forms'
 import { KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
 import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardIconComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-create-settings',
@@ -37,7 +42,9 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     XpI18nPipe,
-    XpCheckboxComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardIconComponent,
     XpSelectComponent,
     IconComponent,
     JSONSchemaFormComponent,
@@ -53,6 +60,10 @@ export class KnowledgeDocumentCreateSettingsComponent {
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum
   eModelType = AiModelTypeEnum
   eModelFeature = ModelFeature
+
+  readonly compactControlDefaults = {
+    switch: { zSize: 'sm' }
+  } satisfies JsonSchemaControlDefaults
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)

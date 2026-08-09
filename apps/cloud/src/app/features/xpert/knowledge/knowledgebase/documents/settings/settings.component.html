@@ -30,9 +30,34 @@
     [documents]="documents()"
     [(parametersValue)]="parametersValue"
   >
-    <div actions class="w-full flex justify-end">
-      <button type="button" class="btn btn-primary btn-large" (click)="saveAndProcess()">
-        {{ 'XP.Knowledgebase.SaveAndProcess' | translate: { Default: 'Save and Process' } }}
+    <div actions class="w-full flex items-center justify-end gap-2">
+      <button
+        z-button
+        zType="outline"
+        zSize="lg"
+        type="button"
+        [zDisabled]="processing() || !canRechunk()"
+        [title]="
+          canRechunk()
+            ? ('XP.Knowledgebase.RechunkWithoutConverterHint'
+              | translate: { Default: 'Reuse the saved conversion result without calling the converter.' })
+            : ('XP.Knowledgebase.TransformSnapshotRequired'
+              | translate: { Default: 'Run a full conversion once to create a reusable conversion snapshot.' })
+        "
+        (click)="saveAndProcess('rechunk')"
+      >
+        <i class="ri-scissors-cut-line mr-1"></i>
+        {{ 'XP.Knowledgebase.RechunkOnly' | translate: { Default: 'Re-chunk Only' } }}
+      </button>
+      <button
+        z-button
+        zType="default"
+        zSize="lg"
+        type="button"
+        [zDisabled]="processing()"
+        (click)="saveAndProcess('full')"
+      >
+        {{ 'XP.Knowledgebase.FullReprocess' | translate: { Default: 'Convert and Process' } }}
       </button>
     </div>
   </xp-knowledge-document-pipeline-settings>
@@ -42,9 +67,34 @@
     [(documents)]="documents"
     [(parserConfig)]="parserConfig"
   >
-    <div actions class="w-full flex justify-end">
-      <button type="button" class="btn btn-primary btn-large" (click)="processDocuments()">
-        {{ 'XP.Knowledgebase.SaveAndProcess' | translate: { Default: 'Save and Process' } }}
+    <div inline-actions class="contents">
+      <button
+        z-button
+        zType="outline"
+        zSize="lg"
+        type="button"
+        [zDisabled]="processing() || !canRechunk()"
+        [title]="
+          canRechunk()
+            ? ('XP.Knowledgebase.RechunkWithoutConverterHint'
+              | translate: { Default: 'Reuse the saved conversion result without calling the converter.' })
+            : ('XP.Knowledgebase.TransformSnapshotRequired'
+              | translate: { Default: 'Run a full conversion once to create a reusable conversion snapshot.' })
+        "
+        (click)="processDocuments('rechunk')"
+      >
+        <i class="ri-scissors-cut-line mr-1"></i>
+        {{ 'XP.Knowledgebase.RechunkOnly' | translate: { Default: 'Re-chunk Only' } }}
+      </button>
+      <button
+        z-button
+        zType="default"
+        zSize="lg"
+        type="button"
+        [zDisabled]="processing()"
+        (click)="processDocuments('full')"
+      >
+        {{ 'XP.Knowledgebase.FullReprocess' | translate: { Default: 'Convert and Process' } }}
       </button>
     </div>
   </xp-knowledge-document-create-settings>

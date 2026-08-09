@@ -2,7 +2,11 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { RouterModule } from '@angular/router'
-import { KnowledgeChunkComponent, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
+import {
+  KnowledgeChunkComponent,
+  KnowledgeRetrievalSettingsComponent,
+  XpertKnowledgeFilterFormComponent
+} from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
@@ -10,9 +14,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
   DateRelativePipe,
+  DocumentTypeEnum,
   DocumentMetadata,
   GraphRagRetrievalMode,
   IKnowledgeRetrievalLog,
+  KBMetadataFieldDef,
+  KnowledgeFilterDiagnostics,
+  KnowledgeFilterNode,
+  KnowledgeDocumentService,
   KnowledgebaseService,
   OrderTypeEnum,
   TKBRetrievalSettings,
@@ -38,7 +47,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
-    KnowledgeRetrievalSettingsComponent
+    KnowledgeRetrievalSettingsComponent,
+    XpertKnowledgeFilterFormComponent
   ],
   animations: [routeAnimations]
 })
@@ -46,6 +56,7 @@ export class KnowledgeTestComponent {
   eAiModelTypeEnum = AiModelTypeEnum
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
+  readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/retrieval')
@@ -69,8 +80,41 @@ export class KnowledgeTestComponent {
   })
 
   readonly query = model<string>('')
+  readonly requestFilter = model<KnowledgeFilterNode>()
+  readonly filterFields = computed<KBMetadataFieldDef[]>(() => [
+    ...SYSTEM_KNOWLEDGE_FILTER_FIELDS,
+    ...(this.knowledgebase()?.metadataSchema ?? []).map((field) => ({
+      ...field,
+      scope: field.scope ?? 'document',
+      key: `${field.scope === 'chunk' ? 'chunk.metadata' : 'metadata'}.${field.key}`
+    }))
+  ])
   readonly results = signal<DocumentInterface<DocumentMetadata>[]>(null)
+  readonly diagnostics = signal<KnowledgeFilterDiagnostics[]>([])
+  readonly diagnosticsText = computed(() => JSON.stringify(this.diagnostics(), null, 2))
   readonly error = signal<string>(null)
+
+  readonly #folders = myRxResource({
+    request: () => ({ knowledgebaseId: this.knowledgebase()?.id }),
+    loader: ({ request }) =>
+      request.knowledgebaseId
+        ? this.knowledgeDocumentAPI.getAll({
+            select: ['id', 'name', 'folder', 'sourceType'],
+            where: {
+              knowledgebaseId: request.knowledgebaseId,
+              sourceType: DocumentTypeEnum.FOLDER
+            },
+            take: 1000
+          })
+        : null
+  })
+  readonly folderOptions = computed(() =>
+    (this.#folders.value()?.items ?? [])
+      .map((folder) => [folder.folder, folder.name].filter(Boolean).join('/'))
+      .filter(Boolean)
+      .sort((left, right) => left.localeCompare(right))
+      .map((folder) => ({ label: folder, value: folder }))
+  )
 
   readonly #loading = signal<boolean>(false)
 
@@ -101,11 +145,13 @@ export class KnowledgeTestComponent {
         query: this.query(),
         k: this.topK() ?? 10,
         score: this.score(),
+        filters: this.requestFilter() ? { request: this.requestFilter() } : undefined,
         retrieval: this.retrievalSettings()
       })
       .subscribe({
-        next: (results) => {
-          this.results.set(results)
+        next: (result) => {
+          this.results.set(result.documents)
+          this.diagnostics.set(result.diagnostics)
           this.#loading.set(false)
         },
         error: (err) => {
@@ -130,3 +176,26 @@ export class KnowledgeTestComponent {
     }
   }
 }
+
+const SYSTEM_KNOWLEDGE_FILTER_FIELDS: KBMetadataFieldDef[] = [
+  { key: 'document.fileName', type: 'string', scope: 'document', description: 'Document file name' },
+  { key: 'document.folderPath', type: 'string', scope: 'document', description: 'Logical folder path' },
+  { key: 'document.fileExtension', type: 'string', scope: 'document', description: 'Normalized extension' },
+  { key: 'document.mimeType', type: 'string', scope: 'document', description: 'MIME type' },
+  {
+    key: 'document.category',
+    type: 'enum',
+    scope: 'document',
+    enumValues: ['text', 'image', 'audio', 'video', 'sheet', 'other'],
+    description: 'Document category'
+  },
+  {
+    key: 'document.sourceType',
+    type: 'enum',
+    scope: 'document',
+    enumValues: ['local-file', 'file-system', 'online-document', 'web-crawl', 'database', 'folder', 'file'],
+    description: 'Document source type'
+  },
+  { key: 'document.createdAt', type: 'datetime', scope: 'document', description: 'Creation time in UTC' },
+  { key: 'document.updatedAt', type: 'datetime', scope: 'document', description: 'Last update time in UTC' }
+]

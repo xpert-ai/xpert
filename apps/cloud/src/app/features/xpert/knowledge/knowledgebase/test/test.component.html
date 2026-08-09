@@ -114,6 +114,19 @@
     </div>
   </div>
 
+  <details class="mb-4 rounded-xl border border-divider-subtle bg-components-card-bg px-3 py-2">
+    <summary class="cursor-pointer text-sm font-medium text-text-secondary">
+      {{ 'XP.Knowledgebase.KnowledgeFilters' | translate: { Default: 'Knowledge Filters' } }}
+    </summary>
+    <xp-knowledge-filter-form
+      class="mt-3 block"
+      [(filter)]="requestFilter"
+      [fields]="filterFields()"
+      [allowVariables]="false"
+      [folderOptions]="folderOptions()"
+    />
+  </details>
+
   <div class="mb-3 mt-6 text-base font-semibold text-text-primary">
     {{ 'XP.Knowledgebase.TestRecords' | translate: { Default: 'Test Records' } }}
   </div>
@@ -177,6 +190,14 @@
       <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">
         {{ results().length }} {{ 'XP.Knowledgebase.RecallParagraphs' | translate: { Default: 'recall paragraphs' } }}
       </div>
+      @if (diagnostics().length) {
+        <details class="mb-3 rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-xs">
+          <summary class="cursor-pointer font-medium text-text-secondary">
+            {{ 'XP.Knowledgebase.FilterDiagnostics' | translate: { Default: 'Filter diagnostics' } }}
+          </summary>
+          <pre class="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-text-tertiary">{{ diagnosticsText() }}</pre>
+        </details>
+      }
       <div class="grow space-y-2">
         @for (chunk of results(); track chunk.id; let i = $index) {
           <xp-knowledge-chunk showMetadata [chunk]="chunk" [index]="i" />

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import { IKnowledgeDocument, IKnowledgeDocumentChunk, KnowledgeDocumentTransformerIdentity } from '@xpert-ai/contracts'
+import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 const VOLATILE_CHUNK_METADATA_KEYS = new Set([
     'chunkId',
@@ -39,6 +40,7 @@ function normalizeString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+/** Canonicalizes objects recursively so hashes do not depend on property insertion order. */
 function normalizeStableValue(value: unknown, ignoredKeys = new Set<string>()): unknown {
     if (value === null) {
         return null
@@ -178,5 +180,54 @@ export function computeKnowledgeDocumentProcessingHash(
         filePath: document.filePath ?? null,
         fileUrl: document.fileUrl ?? null,
         storageFileId: document.storageFileId ?? null
+    })
+}
+
+/** Captures only settings that can change the converter's pre-split output. */
+export function resolveKnowledgeDocumentTransformerIdentity(
+    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig'>
+): KnowledgeDocumentTransformerIdentity {
+    const parserConfig = resolveKnowledgeDocumentParserConfig(document)
+    return {
+        provider: parserConfig.transformerType || 'default',
+        integrationId: parserConfig.transformerIntegration ?? null,
+        config: parserConfig.transformer ?? null
+    }
+}
+
+/**
+ * Identifies the reusable converter result. Splitter/image-understanding settings are deliberately
+ * excluded because changing them must not invalidate a transform snapshot used for rechunking.
+ */
+export function computeKnowledgeDocumentTransformFingerprint(
+    document: Partial<
+        Pick<
+            IKnowledgeDocument,
+            | 'sourceHash'
+            | 'metadata'
+            | 'sourceKey'
+            | 'sourceType'
+            | 'sourceConfig'
+            | 'type'
+            | 'category'
+            | 'filePath'
+            | 'fileUrl'
+            | 'storageFileId'
+            | 'name'
+        >
+    >,
+    transformer: KnowledgeDocumentTransformerIdentity
+) {
+    return computeStableHash({
+        sourceKey: resolveKnowledgeDocumentSourceKey(document),
+        sourceHash: resolveKnowledgeDocumentSourceHash(document),
+        sourceType: document.sourceType ?? null,
+        sourceConfig: document.sourceConfig ?? null,
+        type: document.type ?? null,
+        category: document.category ?? null,
+        filePath: document.filePath ?? null,
+        fileUrl: document.fileUrl ?? null,
+        storageFileId: document.storageFileId ?? null,
+        transformer
     })
 }

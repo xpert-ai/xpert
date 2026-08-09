@@ -16,32 +16,42 @@ import { QueryHandlers } from './queries/handlers'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { KnowledgeDocumentChunk } from './chunk/chunk.entity'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
+import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.service'
+import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
-		TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
-		DiscoveryModule,
-		TenantModule,
-		CqrsModule,
-		UserModule,
-		StorageFileModule,
-		CopilotModule,
-		IntegrationModule,
-		forwardRef(() => KnowledgebaseModule),
+    imports: [
+        RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
+        TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
+        DiscoveryModule,
+        TenantModule,
+        CqrsModule,
+        UserModule,
+        StorageFileModule,
+        CopilotModule,
+        IntegrationModule,
+        forwardRef(() => KnowledgebaseModule),
 
-		BullModule.registerQueue({
-			name: JOB_EMBEDDING_DOCUMENT
-		})
-	],
-	controllers: [KnowledgeDocumentController],
-	providers: [
-		KnowledgeDocumentService,
-		KnowledgeDocumentChunkService,
-		KnowledgeDocumentConsumer,
-		...CommandHandlers,
-		...QueryHandlers
-	],
-	exports: [KnowledgeDocumentService, KnowledgeDocumentChunkService, TypeOrmModule]
+        BullModule.registerQueue({
+            name: JOB_EMBEDDING_DOCUMENT
+        })
+    ],
+    controllers: [KnowledgeDocumentController],
+    providers: [
+        KnowledgeDocumentService,
+        KnowledgeDocumentChunkService,
+        KnowledgeDocumentTransformSnapshotService,
+        KnowledgeDocumentAnalysisSnapshotService,
+        KnowledgeDocumentConsumer,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ],
+    exports: [
+        KnowledgeDocumentService,
+        KnowledgeDocumentChunkService,
+        KnowledgeDocumentTransformSnapshotService,
+        KnowledgeDocumentAnalysisSnapshotService,
+        TypeOrmModule
+    ]
 })
 export class KnowledgeDocumentModule {}

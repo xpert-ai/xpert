@@ -1,8 +1,10 @@
 import { DocumentTypeEnum, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
 import {
     computeKnowledgeDocumentProcessingHash,
+    computeKnowledgeDocumentTransformFingerprint,
     computeKnowledgeDocumentChunkHash,
     computeStableHash,
+    resolveKnowledgeDocumentTransformerIdentity,
     resolveKnowledgeDocumentSourceKey
 } from './document-hash'
 import { TDocChunkMetadata } from './types'
@@ -122,6 +124,62 @@ describe('knowledge document hashes', () => {
                     chunkSize: 800
                 }
             } as IKnowledgeDocument)
+        )
+    })
+
+    it('keeps transform fingerprint when only chunker config changes', () => {
+        const document = {
+            sourceHash: 'source-hash',
+            type: 'pdf',
+            filePath: 'files/document.pdf',
+            parserConfig: {
+                transformerType: 'unlimited-ocr',
+                transformerIntegration: 'integration-1',
+                transformer: { preserveRawOutput: true },
+                textSplitterType: 'recursive-character',
+                textSplitter: { chunkSize: 1000, chunkOverlap: 200 }
+            }
+        } satisfies Partial<IKnowledgeDocument>
+        const documentWithUpdatedChunker = {
+            ...document,
+            parserConfig: {
+                ...document.parserConfig,
+                textSplitter: { chunkSize: 2000, chunkOverlap: 100 }
+            }
+        } satisfies Partial<IKnowledgeDocument>
+
+        expect(
+            computeKnowledgeDocumentTransformFingerprint(
+                document,
+                resolveKnowledgeDocumentTransformerIdentity(document)
+            )
+        ).toBe(
+            computeKnowledgeDocumentTransformFingerprint(
+                documentWithUpdatedChunker,
+                resolveKnowledgeDocumentTransformerIdentity(documentWithUpdatedChunker)
+            )
+        )
+    })
+
+    it('changes transform fingerprint when transformer config changes', () => {
+        const document = {
+            sourceHash: 'source-hash',
+            type: 'pdf',
+            filePath: 'files/document.pdf'
+        } satisfies Partial<IKnowledgeDocument>
+
+        expect(
+            computeKnowledgeDocumentTransformFingerprint(document, {
+                provider: 'unlimited-ocr',
+                integrationId: 'integration-1',
+                config: { preserveRawOutput: true }
+            })
+        ).not.toBe(
+            computeKnowledgeDocumentTransformFingerprint(document, {
+                provider: 'unlimited-ocr',
+                integrationId: 'integration-1',
+                config: { preserveRawOutput: false }
+            })
         )
     })
 

@@ -31,6 +31,9 @@ import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
 import { TDocChunkMetadata } from '../../types'
 import { KnowledgeDocumentService } from '../../document.service'
 import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
+import { resolveKnowledgeDocumentTransformerIdentity } from '../../document-hash'
+import { KnowledgeDocumentTransformSnapshotService } from '../../transform-snapshot.service'
+import { KnowledgeDocumentAnalysisSnapshotService } from '../../analysis-snapshot.service'
 
 type ImageUnderstandingWarning = {
     type: 'image_understanding_skipped' | 'image_understanding_failed'
@@ -61,6 +64,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
     @Inject(KnowledgeWorkAreaResolver)
     private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
 
+    @Inject(KnowledgeDocumentTransformSnapshotService)
+    private readonly transformSnapshotService: KnowledgeDocumentTransformSnapshotService
+
+    @Inject(KnowledgeDocumentAnalysisSnapshotService)
+    private readonly analysisSnapshotService: KnowledgeDocumentAnalysisSnapshotService
+
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly commandBus: CommandBus,
@@ -68,7 +77,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
     ) {}
 
     public async execute(command: KnowledgeDocLoadCommand): Promise<{ chunks: Document[]; pages?: Document[] }> {
-        const { doc, stage } = command.input
+        const { doc, stage, mode = 'full' } = command.input
         const docParserConfig = resolveKnowledgeDocumentParserConfig(doc)
 
         let visionModel: BaseChatModel = null
@@ -112,10 +121,17 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         }
 
         if (doc.filePath || doc.fileUrl) {
-            // let docs: Document[]
             const transformerType = docParserConfig.transformerType || 'default'
-            const transformer = this.transformerRegistry.get(transformerType)
-            if (transformer) {
+            const transformerIdentity = resolveKnowledgeDocumentTransformerIdentity(doc)
+            let transformed: Partial<IKnowledgeDocument<ChunkMetadata>>[]
+            if (mode === 'rechunk') {
+                // Rechunk is a strict resume point: loading must succeed without invoking plugin code.
+                transformed = await this.transformSnapshotService.load(doc, transformerIdentity)
+            } else {
+                const transformer = this.transformerRegistry.get(transformerType)
+                if (!transformer) {
+                    throw new Error(`Transformer not found: ${transformerType}`)
+                }
                 const permissions = await this.commandBus.execute(
                     new PluginPermissionsCommand(transformer.permissions, {
                         knowledgebaseId: doc.knowledgebaseId,
@@ -129,7 +145,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     stage
                 }
                 const cacheKey = 'knowledges:transformer:' + computeObjectHash(cacheConfig)
-                let transformed: Partial<IKnowledgeDocument<ChunkMetadata>>[] = await this.cacheManager.get(cacheKey)
+                transformed = await this.cacheManager.get(cacheKey)
                 if (!transformed) {
                     transformed = await transformer.transformDocuments([doc], {
                         ...(docParserConfig.transformer ?? {}),
@@ -140,118 +156,132 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     await this.cacheManager.set(cacheKey, transformed, 60 * 10 * 1000) // 10 min
                 }
 
+                if (stage !== 'test') {
+                    // Persist both snapshots before splitting; final chunks no longer preserve the source layout verbatim.
+                    const [transformSnapshot, analysisSnapshot] = await Promise.all([
+                        this.transformSnapshotService.save(doc, transformed, transformerIdentity),
+                        this.analysisSnapshotService.save(doc, transformed, transformerIdentity)
+                    ])
+                    doc.metadata = {
+                        ...omit(doc.metadata ?? {}, 'analysisSnapshot'),
+                        ...(transformed.length === 1 ? omit(transformed[0].metadata ?? {}, 'analysisSnapshot') : {}),
+                        transformSnapshot,
+                        ...(analysisSnapshot ? { analysisSnapshot } : {})
+                    }
+                }
+            }
+
+            if (stage !== 'test') {
+                await this.kbDocumentService.update(doc.id, {
+                    status: KBDocumentStatusEnum.TRANSFORMED,
+                    ...(doc.metadata ? { metadata: doc.metadata } : {})
+                })
+            }
+
+            const chunks = []
+            for await (const transItem of transformed) {
+                // Chunker with caching
+                const chunkerCacheConfig = {
+                    document: transItem,
+                    parserConfig: pick(docParserConfig, [
+                        'textSplitterType',
+                        'textSplitter',
+                        'replaceWhitespace',
+                        'removeSensitive'
+                    ]),
+                    stage
+                }
+                const cacheKey = 'knowledges:chunker:' + computeObjectHash(chunkerCacheConfig)
+                let splitted = await this.cacheManager.get<{
+                    chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+                }>(cacheKey)
+                if (!splitted) {
+                    splitted = await this.splitDocuments(
+                        doc,
+                        transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+                    )
+                    await this.cacheManager.set(cacheKey, splitted, 60 * 10 * 1000) // 10 min
+                }
+
                 // Update document status
                 if (stage !== 'test') {
-                    await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.TRANSFORMED })
+                    await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.SPLITTED })
                 }
 
-                const chunks = []
-                // const pages = []
-                for await (const transItem of transformed) {
-                    // Chunker with caching
-                    const chunkerCacheConfig = {
-                        document: transItem,
-                        parserConfig: pick(docParserConfig, ['textSplitterType', 'textSplitter']),
-                        stage
-                    }
-                    const cacheKey = 'knowledges:chunker:' + computeObjectHash(chunkerCacheConfig)
-                    let splitted = await this.cacheManager.get<{
-                        chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-                    }>(cacheKey)
-                    if (!splitted) {
-                        splitted = await this.splitDocuments(
-                            doc,
-                            transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-                        )
-                        await this.cacheManager.set(cacheKey, splitted, 60 * 10 * 1000) // 10 min
-                    }
-
-                    // Update document status
-                    if (stage !== 'test') {
-                        await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.SPLITTED })
-                    }
-
-                    // Image understanding
-                    const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
-                    if (images?.length && docParserConfig.imageUnderstandingType) {
-                        try {
-                            const imageCacheConfig = {
-                                document: { ...transItem, chunks: splitted.chunks },
-                                parserConfig: pick(docParserConfig, [
-                                    'imageUnderstandingType',
-                                    'imageUnderstandingIntegration',
-                                    'imageUnderstanding'
-                                ]),
-                                stage
+                // Image understanding
+                const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
+                if (images?.length && docParserConfig.imageUnderstandingType) {
+                    try {
+                        const imageCacheConfig = {
+                            document: { ...transItem, chunks: splitted.chunks },
+                            parserConfig: pick(docParserConfig, [
+                                'imageUnderstandingType',
+                                'imageUnderstandingIntegration',
+                                'imageUnderstanding'
+                            ]),
+                            stage
+                        }
+                        const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
+                        let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
+                        if (!imgTransformed) {
+                            if (!visionModel) {
+                                visionModel = await this.knowledgebaseService.getVisionModel(
+                                    doc.knowledgebaseId,
+                                    docParserConfig.imageUnderstandingModel
+                                )
                             }
-                            const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
-                            let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
-                            if (!imgTransformed) {
-                                if (!visionModel) {
-                                    visionModel = await this.knowledgebaseService.getVisionModel(
-                                        doc.knowledgebaseId,
-                                        docParserConfig.imageUnderstandingModel
-                                    )
+                            const imageUnderstanding = this.imageUnderstandingRegistry.get(
+                                docParserConfig.imageUnderstandingType
+                            )
+                            const permissions = await this.commandBus.execute(
+                                new PluginPermissionsCommand(imageUnderstanding.permissions, {
+                                    knowledgebaseId: doc.knowledgebaseId,
+                                    integrationId: docParserConfig.imageUnderstandingIntegration
+                                    // folder: stage === 'test' ? 'temp/' : `/`
+                                })
+                            )
+                            imgTransformed = await imageUnderstanding.understandImages(
+                                {
+                                    ...transItem,
+                                    chunks: splitted.chunks
+                                } as IKnowledgeDocument<ChunkMetadata>,
+                                {
+                                    ...(docParserConfig.imageUnderstanding ?? {}),
+                                    stage,
+                                    visionModel,
+                                    permissions
                                 }
-                                const imageUnderstanding = this.imageUnderstandingRegistry.get(
-                                    docParserConfig.imageUnderstandingType
-                                )
-                                const permissions = await this.commandBus.execute(
-                                    new PluginPermissionsCommand(imageUnderstanding.permissions, {
-                                        knowledgebaseId: doc.knowledgebaseId,
-                                        integrationId: docParserConfig.imageUnderstandingIntegration
-                                        // folder: stage === 'test' ? 'temp/' : `/`
-                                    })
-                                )
-                                imgTransformed = await imageUnderstanding.understandImages(
-                                    {
-                                        ...transItem,
-                                        chunks: splitted.chunks
-                                    } as IKnowledgeDocument<ChunkMetadata>,
-                                    {
-                                        ...(docParserConfig.imageUnderstanding ?? {}),
-                                        stage,
-                                        visionModel,
-                                        permissions
-                                    }
-                                )
-
-                                await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
-                            }
-
-                            chunks.push(...imgTransformed.chunks)
-                            await this.recordImageUnderstandingWarnings(
-                                doc,
-                                stage,
-                                normalizeImageUnderstandingWarnings(imgTransformed.metadata?.warnings)
                             )
 
-                            // Update document status
-                            if (stage !== 'test') {
-                                await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.UNDERSTOOD })
-                            }
-                        } catch (error) {
-                            chunks.push(...splitted.chunks)
-                            await this.recordImageUnderstandingWarnings(doc, stage, [
-                                {
-                                    type: 'image_understanding_skipped',
-                                    message: getErrorMessage(error),
-                                    assetCount: images.length
-                                }
-                            ])
+                            await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
                         }
-                    } else {
+
+                        chunks.push(...imgTransformed.chunks)
+                        await this.recordImageUnderstandingWarnings(
+                            doc,
+                            stage,
+                            normalizeImageUnderstandingWarnings(imgTransformed.metadata?.warnings)
+                        )
+
+                        // Update document status
+                        if (stage !== 'test') {
+                            await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.UNDERSTOOD })
+                        }
+                    } catch (error) {
                         chunks.push(...splitted.chunks)
+                        await this.recordImageUnderstandingWarnings(doc, stage, [
+                            {
+                                type: 'image_understanding_skipped',
+                                message: getErrorMessage(error),
+                                assetCount: images.length
+                            }
+                        ])
                     }
+                } else {
+                    chunks.push(...splitted.chunks)
                 }
-                return { chunks }
-            } else {
-                throw new Error(`Transformer not found: ${transformerType}`)
             }
-            // else {
-            // 	docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
-            // }
-            // return await this.splitDocuments(doc, docs)
+            return { chunks }
         }
 
         return this.loadWeb(doc)
@@ -306,6 +336,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         // Text Preprocessing
         if (documentParserConfig.replaceWhitespace) {
             chunks.forEach((doc) => {
+                // Markdown line boundaries carry headings, tables, and lists and must remain structural.
+                if (doc.metadata?.contentFormat === 'markdown') return
                 doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
             })
         }

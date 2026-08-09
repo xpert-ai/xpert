@@ -1,7 +1,6 @@
 import { HttpEventType, HttpParams } from '@angular/common/http'
 import { inject, Injectable, signal } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
-import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
 import {
   _TFile,
   API_PREFIX,
@@ -24,10 +23,12 @@ import {
   KnowledgeGraphMentionListQuery,
   KnowledgeGraphRelationCreateInput,
   KnowledgeGraphRelationUpdateInput,
-  KnowledgeDocumentMetadata,
+  KnowledgeDocumentProcessingMode,
   KnowledgeGraphStatusResponse,
   KnowledgeGraphVisualizationQuery,
   KnowledgeGraphViewResponse,
+  KnowledgeFilterDiagnostics,
+  KnowledgeFilterSources,
   PaginationParams,
   TKBRetrievalSettings,
   toHttpParams
@@ -133,11 +134,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
       query: string
       k: number
       score: number
-      filter?: KnowledgeDocumentMetadata
+      filters?: KnowledgeFilterSources
+      variables?: Record<string, unknown>
       retrieval?: TKBRetrievalSettings
     }
   ) {
-    return this.httpClient.post<DocumentInterface<DocumentMetadata>[]>(this.apiBaseUrl + '/' + id + '/test', options)
+    return this.httpClient.post<{
+      documents: DocumentInterface<DocumentMetadata>[]
+      diagnostics: KnowledgeFilterDiagnostics[]
+    }>(this.apiBaseUrl + '/' + id + '/test', options)
   }
 
   getGraphStatus(id: string) {
@@ -217,22 +222,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.delete<IKnowledgeGraphRelation>(this.apiBaseUrl + `/${id}/graph/relations/${relationId}`)
   }
 
-  similaritySearch(
-    query: string,
-    options: { k?: number; filter?: VectorStoreInterface['FilterType']; role: string; score: number }
-  ) {
-    return this.httpClient.post<DocumentInterface[]>(`${this.apiBaseUrl}/similarity-search`, { query, options })
-  }
-
-  maxMarginalRelevanceSearch(
-    query: string,
-    options: MaxMarginalRelevanceSearchOptions<VectorStoreInterface['FilterType']> & {
-      role: string
-    }
-  ) {
-    return this.httpClient.post<DocumentInterface[]>(`${this.apiBaseUrl}/mmr-search`, { query, options })
-  }
-
   createExternal(entity: Partial<IKnowledgebase>) {
     return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + '/external', entity)
   }
@@ -280,6 +269,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     body: {
       sources?: { [key: string]: { documents: string[] } }
       stage: 'preview' | 'prod'
+      mode?: KnowledgeDocumentProcessingMode
       options?: any
       isDraft?: boolean
     }

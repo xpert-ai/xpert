@@ -3,7 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router } from '@angular/router'
-import { injectConfirmDelete, XpCommonModule } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, myRxResource, XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { nonBlank } from '@xpert-ai/contracts'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -21,13 +21,21 @@ import {
   IKnowledgeDocument,
   IKnowledgeDocumentChunk,
   injectToastr,
+  KBMetadataFieldDef,
   KnowledgeDocumentService,
   STANDARD_METADATA_FIELDS
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { CopyComponent } from '@cloud/app/@shared/common'
+import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.component'
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-chunk',
@@ -38,6 +46,7 @@ import { CopyComponent } from '@cloud/app/@shared/common'
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
+    ZardInputDirective,
     ZardSwitchComponent,
     ...ZardTooltipImports,
     ZardIconComponent,
@@ -47,7 +56,8 @@ import { CopyComponent } from '@cloud/app/@shared/common'
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent,
-    CopyComponent
+    CopyComponent,
+    KnowledgeDocumentAnalysisPreviewComponent
   ]
 })
 export class KnowledgeDocumentChunkComponent {
@@ -60,6 +70,7 @@ export class KnowledgeDocumentChunkComponent {
   readonly #toastr = injectToastr()
   readonly paramId = injectParams('id')
   readonly parentId = injectQueryParams('parentId')
+  readonly requestedView = injectQueryParams('view')
   readonly confirmDelete = injectConfirmDelete()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
@@ -77,6 +88,19 @@ export class KnowledgeDocumentChunkComponent {
       )
     )
   )
+  readonly #analysisPreviewResource = myRxResource({
+    request: () => this.documentId(),
+    loader: ({ request }) => this.knowledgeDocumentService.getAnalysisPreview(request)
+  })
+  readonly analysisPreview = this.#analysisPreviewResource.value
+  readonly availableAnalysisPreview = computed(() => {
+    const preview = this.analysisPreview()
+    return preview?.available ? preview : null
+  })
+  readonly activeView = computed<'analysis' | 'chunks'>(() => {
+    if (this.requestedView() === 'chunks') return 'chunks'
+    return this.availableAnalysisPreview() ? 'analysis' : 'chunks'
+  })
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
   readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
   readonly docEnabled = model(false)
@@ -98,6 +122,8 @@ export class KnowledgeDocumentChunkComponent {
 
   // Metadata schema
   readonly metadataSchema = computed(() => this.knowledgebase()?.metadataSchema || [])
+  readonly documentMetadataSchema = computed(() => this.metadataSchema().filter((field) => field.scope !== 'chunk'))
+  readonly chunkMetadataSchema = computed(() => this.metadataSchema().filter((field) => field.scope === 'chunk'))
   readonly showMetadata = signal(false)
   readonly editMetadata = signal(false)
   readonly metadata = linkedModel({
@@ -150,6 +176,18 @@ export class KnowledgeDocumentChunkComponent {
 
   close() {
     this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
+  }
+
+  setView(view: 'analysis' | 'chunks') {
+    if (view === 'analysis' && !this.availableAnalysisPreview()) return
+    this.closeChunkMetadata()
+    this.showMetadata.set(false)
+    void this.#router.navigate([], {
+      relativeTo: this.#route,
+      queryParams: view === 'chunks' ? { view, page: null, block: null } : { view },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
   }
 
   toggleAllPreview() {
@@ -346,11 +384,104 @@ export class KnowledgeDocumentChunkComponent {
     this.editMetadata.update((state) => !state)
   }
 
-  updateMetadata(name: string, value: string) {
-    this.metadata.update((meta) => ({
-      ...meta,
-      [name]: value
-    }))
+  updateMetadata(field: KBMetadataFieldDef, rawValue: unknown) {
+    const parsed = this.parseMetadataValue(field, rawValue)
+    if (!parsed.success) return
+    this.metadata.update((meta) => this.assignMetadataValue(meta, field.key, parsed.value))
+  }
+
+  updateEditChunkMetadata(field: KBMetadataFieldDef, rawValue: unknown) {
+    const parsed = this.parseMetadataValue(field, rawValue)
+    if (!parsed.success) return
+    this.editChunk.update(
+      (chunk) =>
+        ({
+          ...chunk,
+          metadata: this.assignMetadataValue(chunk?.metadata, field.key, parsed.value)
+        }) as IKnowledgeDocumentChunk
+    )
+  }
+
+  metadataInputValue(field: KBMetadataFieldDef, value: unknown) {
+    if (value == null) return ''
+    if (field.type === 'datetime') {
+      const date = new Date(String(value))
+      if (Number.isNaN(date.valueOf())) return ''
+      return new Date(date.valueOf() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+    }
+    if (field.type === 'string[]' || field.type === 'number[]') {
+      return Array.isArray(value) ? value.join(', ') : ''
+    }
+    if (field.type === 'object') {
+      return typeof value === 'object' ? JSON.stringify(value) : String(value)
+    }
+    return value
+  }
+
+  private parseMetadataValue(
+    field: KBMetadataFieldDef,
+    rawValue: unknown
+  ): { success: true; value: unknown } | { success: false } {
+    if (rawValue === '' || rawValue == null) return { success: true, value: undefined }
+    try {
+      switch (field.type) {
+        case 'number': {
+          const value = Number(rawValue)
+          if (!Number.isFinite(value)) throw new Error('A finite number is required.')
+          return { success: true, value }
+        }
+        case 'boolean':
+          return { success: true, value: rawValue === true || rawValue === 'true' }
+        case 'datetime': {
+          const value = new Date(String(rawValue))
+          if (Number.isNaN(value.valueOf())) throw new Error('A valid datetime is required.')
+          return { success: true, value: value.toISOString() }
+        }
+        case 'string[]':
+          return {
+            success: true,
+            value: String(rawValue)
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          }
+        case 'number[]': {
+          const value = String(rawValue)
+            .split(',')
+            .map((item) => Number(item.trim()))
+          if (!value.length || value.some((item) => !Number.isFinite(item))) {
+            throw new Error('A comma-separated list of numbers is required.')
+          }
+          return { success: true, value }
+        }
+        case 'object': {
+          const value = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue
+          if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            throw new Error('A JSON object is required.')
+          }
+          return { success: true, value }
+        }
+        default:
+          return { success: true, value: String(rawValue) }
+      }
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+      return { success: false }
+    }
+  }
+
+  private assignMetadataValue<T extends Record<string, unknown>>(
+    metadata: T | null | undefined,
+    key: string,
+    value: unknown
+  ) {
+    const next: Record<string, unknown> = { ...(metadata ?? {}) }
+    if (value === undefined) {
+      delete next[key]
+    } else {
+      next[key] = value
+    }
+    return next as T
   }
 
   saveMetadata() {

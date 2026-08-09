@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
-import { CloseSvgComponent } from '@xpert-ai/headless-ui'
+import { CloseSvgComponent, ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IKnowledgebase,
@@ -7,10 +7,8 @@ import {
   KnowledgebaseService,
   AiModelTypeEnum,
   getErrorMessage,
-  TSelectOption,
-  STANDARD_METADATA_FIELDS,
   KBMetadataFieldDef,
-  WorkflowLogicalOperator
+  KnowledgeFilterNode
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelComponent } from '../panel.component'
@@ -23,12 +21,9 @@ import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { omit } from 'lodash-es'
 import { Router } from '@angular/router'
-import { KnowledgeRecallParamsComponent, XpertKnowledgeCaseFormComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeRecallParamsComponent, XpertKnowledgeFilterFormComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
-import { XpSelectPanelComponent } from '@cloud/app/@shared/common'
-import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { CapitalizePipe } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -42,14 +37,14 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    CapitalizePipe,
-    XpSelectPanelComponent,
     CloseSvgComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     XpertKnowledgeTestComponent,
     KnowledgeRecallParamsComponent,
-    XpertKnowledgeCaseFormComponent
+    XpertKnowledgeFilterFormComponent
   ],
   host: {
     tabindex: '-1'
@@ -63,7 +58,6 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly studioService = inject(XpertStudioApiService)
-  readonly i18nService = injectI18nService()
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
@@ -88,26 +82,14 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly loading = computed(() => this.#knowledgebase()?.loading)
 
   readonly copilotModel = computed(() => this.knowledgebase()?.copilotModel)
-  readonly metadataFields = computed(() => {
-    const schema: KBMetadataFieldDef[] = [...(this.knowledgebase()?.metadataSchema || [])]
-    STANDARD_METADATA_FIELDS.forEach(({ fields }) => {
-      fields.forEach((field) => {
-        if (!schema?.some((_) => _.key === field.key)) {
-          schema.push(field)
-        }
-      })
-    })
-    return schema
-  })
-
-  readonly metadataFieldsOptions = computed(() => {
-    const schema = this.metadataFields()
-    return schema.map((field) => ({
-      value: field.key,
-      label: field.label || field.key,
-      description: field.description
+  readonly filterFields = computed<KBMetadataFieldDef[]>(() => [
+    ...SYSTEM_KNOWLEDGE_FILTER_FIELDS,
+    ...(this.knowledgebase()?.metadataSchema ?? []).map((field) => ({
+      ...field,
+      scope: field.scope ?? 'document',
+      key: `${field.scope === 'chunk' ? 'chunk.metadata' : 'metadata'}.${field.key}`
     }))
-  })
+  ])
 
   readonly openedTest = signal(false)
 
@@ -138,58 +120,25 @@ export class XpertStudioPanelKnowledgeComponent {
       }))
     }
   })
-  readonly metadataFiltering = attrModel(this.retrieval, 'metadata')
-  readonly filtering_mode = attrModel(this.metadataFiltering, 'filtering_mode', 'disabled')
-  readonly filtering_conditions = attrModel(this.metadataFiltering, 'filtering_conditions', {
-    caseId: '0',
-    logicalOperator: WorkflowLogicalOperator.AND,
-    conditions: []
-  })
-  readonly filterModeOptions: TSelectOption[] = [
-    {
-      value: 'disabled',
-      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_disabled', { Default: 'Disabled' }),
-      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_disabled_Description', {
-        Default: 'No metadata filtering applied.'
-      })
-    },
-    {
-      value: 'automatic',
-      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_automatic', { Default: 'Automatic' }),
-      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_automatic_Description', {
-        Default: 'Automatically apply metadata filtering based on context by Agent.'
-      })
-    },
-    {
-      value: 'manual',
-      label: this.i18nService.instant('XP.Xpert.MetadataFilterMode_manual', { Default: 'Manual' }),
-      description: this.i18nService.instant('XP.Xpert.MetadataFilterMode_manual_Description', {
-        Default: 'Manually configure metadata filtering options by user.'
-      })
-    }
-  ]
-  readonly #filteringFields = attrModel(this.metadataFiltering, 'fields', {})
-  readonly filteringFieldNames = linkedModel({
-    initialValue: [] as string[],
-    compute: () => Object.keys(this.#filteringFields() || {}),
-    update: (value) => {
-      this.#filteringFields.set(
-        (value || []).reduce(
-          (acc, field) => ({
-            ...acc,
-            [field]: {}
-          }),
-          {}
-        )
-      )
-    }
-  })
+  readonly retrievalMode = attrModel(this.retrieval, 'mode', 'vector')
+  readonly filtering = attrModel(this.retrieval, 'filtering')
+  readonly fixedFilter = attrModel(this.filtering, 'fixed')
+  readonly agentFiltering = attrModel(this.filtering, 'agent')
+  readonly agentFilteringEnabled = attrModel(this.agentFiltering, 'enabled', false)
+  readonly fixedConditionCount = computed(() => countFilterConditions(this.fixedFilter()))
 
-  readonly filteringFields = computed(() =>
-    this.filteringFieldNames()
-      .map((field) => this.metadataFields().find((f) => f.key === field))
-      .filter((f) => f)
-  )
+  filterFieldOperators(field: KBMetadataFieldDef) {
+    return filterFieldOperators(field)
+  }
+
+  constructor() {
+    effect(() => {
+      const id = this.id()
+      if (id && !this.retrieval()) {
+        this.retrieval.set({ mode: 'vector', filtering: { agent: { enabled: false } } })
+      }
+    })
+  }
 
   openTest() {
     this.openedTest.set(true)
@@ -218,8 +167,44 @@ export class XpertStudioPanelKnowledgeComponent {
   moveToNode() {
     this.xpertStudioComponent.centerGroupOrNode(this.id())
   }
+}
 
-  clearFilteringFields() {
-    this.#filteringFields.set({})
-  }
+const SYSTEM_KNOWLEDGE_FILTER_FIELDS: KBMetadataFieldDef[] = [
+  { key: 'document.fileName', type: 'string', scope: 'document', description: 'Document file name' },
+  { key: 'document.folderPath', type: 'string', scope: 'document', description: 'Logical folder path' },
+  { key: 'document.fileExtension', type: 'string', scope: 'document', description: 'Normalized extension' },
+  { key: 'document.mimeType', type: 'string', scope: 'document', description: 'MIME type' },
+  {
+    key: 'document.category',
+    type: 'enum',
+    scope: 'document',
+    enumValues: ['text', 'image', 'audio', 'video', 'sheet', 'other'],
+    description: 'Document category'
+  },
+  {
+    key: 'document.sourceType',
+    type: 'enum',
+    scope: 'document',
+    enumValues: ['local-file', 'file-system', 'online-document', 'web-crawl', 'database', 'folder', 'file'],
+    description: 'Document source type'
+  },
+  { key: 'document.createdAt', type: 'datetime', scope: 'document', description: 'Creation time in UTC' },
+  { key: 'document.updatedAt', type: 'datetime', scope: 'document', description: 'Last update time in UTC' }
+]
+
+function countFilterConditions(node?: KnowledgeFilterNode): number {
+  if (!node) return 0
+  if (node.kind === 'condition') return 1
+  return node.children.reduce((count, child) => count + countFilterConditions(child), 0)
+}
+
+function filterFieldOperators(field: KBMetadataFieldDef) {
+  if (field.key === 'document.folderPath') return 'eq, neq, in, notIn, contains, startsWith, endsWith, under, exists'
+  if (field.type === 'number' || field.type === 'datetime') return 'eq, neq, in, gt, gte, lt, lte, between, exists'
+  if (field.type === 'boolean') return 'eq, neq, exists'
+  if (field.type === 'string[]' || field.type === 'number[]')
+    return 'contains, containsAny, containsAll, isEmpty, exists'
+  if (field.type === 'object') return 'jsonContains, exists'
+  if (field.type === 'enum') return 'eq, neq, in, notIn, exists'
+  return 'eq, neq, in, notIn, contains, notContains, startsWith, endsWith, exists'
 }

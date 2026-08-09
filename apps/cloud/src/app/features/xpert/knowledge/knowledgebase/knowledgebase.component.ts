@@ -27,7 +27,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
-import { ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,8 +44,10 @@ import { ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     XpSpinComponent,
     XpertInlineProfileComponent,
+    ZardButtonComponent,
     ZardIconComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ...ZardTabsImports
   ],
   animations: [routeAnimations, OverlayAnimation1]
 })
@@ -81,6 +83,7 @@ export class KnowledgebaseComponent {
   readonly knowledgebase = this.#knowledgebase.value
 
   readonly type = computed(() => this.knowledgebase()?.type)
+  readonly workspaceId = computed(() => this.knowledgebase()?.workspaceId)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly external = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.External)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)

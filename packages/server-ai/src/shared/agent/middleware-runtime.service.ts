@@ -27,7 +27,6 @@ import {
     AgentMiddlewareFileReference,
     AgentMiddlewareResolvedFile,
     AgentMiddlewareCreateModelClientOptions,
-    KnowledgebaseDocument,
     KnowledgebaseDeleteChunksInput,
     KnowledgebaseDeleteChunksResult,
     KnowledgebaseCreateDocumentsInput,
@@ -41,6 +40,7 @@ import {
     KnowledgebaseListInput,
     KnowledgebaseListItem,
     KnowledgebaseSearchInput,
+    KnowledgebaseSearchResult,
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput,
     KnowledgebaseUploadedFile,
@@ -281,7 +281,7 @@ export class AgentMiddlewareRuntimeService {
         )
     }
 
-    async searchKnowledgebase(input: KnowledgebaseSearchInput): Promise<KnowledgebaseDocument[]> {
+    async searchKnowledgebase(input: KnowledgebaseSearchInput): Promise<KnowledgebaseSearchResult> {
         return this.queryBus.execute(
             new KnowledgeSearchQuery({
                 tenantId: input.tenantId ?? RequestContext.currentTenantId(),
@@ -290,7 +290,7 @@ export class AgentMiddlewareRuntimeService {
                 query: input.query,
                 k: input.k,
                 score: input.score,
-                filter: input.filter,
+                filters: { request: input.filter },
                 retrieval: input.retrieval,
                 source: input.source,
                 id: input.requestId

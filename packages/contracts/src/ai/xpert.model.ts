@@ -12,10 +12,11 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
 import { TChatFrom } from './chat.model'
-import { IWorkflowNode, TVariableAssigner, TWFCase, VariableOperationEnum } from './xpert-workflow.model'
+import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { TXpertCommandProfile } from './prompt-workflow.model'
 import type { TXpertMarketplaceProfile } from './xpert-marketplace.model'
+import type { KnowledgeFilterNode } from './knowledge-filter.model'
 
 export type ToolCall = LToolCall
 
@@ -706,16 +707,13 @@ export type TKBRetrievalSettings = {
   entityTopK?: number
   communityTopK?: number
   graphWeight?: number
-  metadata?: {
-    filtering_mode: 'disabled' | 'automatic' | 'manual'
-    /**
-     * Conditions (filter) when mode is manual
-     */
-    filtering_conditions?: TWFCase
-    /**
-     * Parameter fields (tool call) when mode is automatic
-     */
-    fields?: Record<string, object>
+  filtering?: {
+    /** Mandatory filter owned by the Agent/workflow to knowledgebase binding. */
+    fixed?: KnowledgeFilterNode
+    /** Agent-authored filters can only narrow `fixed` filters. */
+    agent?: {
+      enabled: boolean
+    }
   }
 }
 

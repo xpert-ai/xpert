@@ -51,6 +51,11 @@ const bigintNumberTransformer = {
 @Entity('knowledge_document')
 @Index('IDX_knowledge_document_kb_source_hash', ['knowledgebaseId', 'sourceHash'])
 @Index('IDX_knowledge_document_kb_source_key', ['knowledgebaseId', 'sourceType', 'sourceKey'])
+@Index('IDX_knowledge_document_kb_disabled', ['tenantId', 'organizationId', 'knowledgebaseId', 'disabled'])
+@Index('IDX_knowledge_document_kb_name', ['knowledgebaseId', 'name'])
+@Index('IDX_knowledge_document_kb_folder', ['knowledgebaseId', 'folder'])
+@Index('IDX_knowledge_document_kb_type_mime', ['knowledgebaseId', 'type', 'mimeType'])
+@Index('IDX_knowledge_document_kb_category_source', ['knowledgebaseId', 'category', 'sourceType'])
 @Tree('closure-table')
 export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata>
     extends TenantOrganizationBaseEntity
@@ -271,7 +276,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()
     @IsOptional()
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'jsonb', nullable: true })
     metadata?: T
 
     @ApiPropertyOptional({ type: () => Object })

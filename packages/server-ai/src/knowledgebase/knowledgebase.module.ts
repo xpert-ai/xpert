@@ -29,6 +29,8 @@ import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
 import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware'
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
+import { KnowledgeFilterV2MigrationService } from './migration'
+import { KnowledgeGraphFilterScopeService } from './filter'
 
 @Module({
     imports: [
@@ -62,6 +64,8 @@ import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
         ImageUnderstandingRegistry,
         KnowledgebaseViewHostDefinition,
         KnowledgebaseWriterMiddleware,
+        KnowledgeFilterV2MigrationService,
+        KnowledgeGraphFilterScopeService,
         ...KnowledgeWorkbenchProviders,
         ...QueryHandlers,
         ...CommandHandlers,
@@ -75,7 +79,9 @@ import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
         RetrieverRegistry,
         TextSplitterRegistry,
         DocumentTransformerRegistry,
-        ImageUnderstandingRegistry
+        ImageUnderstandingRegistry,
+        KnowledgeFilterV2MigrationService,
+        KnowledgeGraphFilterScopeService
     ]
 })
 export class KnowledgebaseModule {}

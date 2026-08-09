@@ -376,30 +376,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             `\nUse tools:\n${tools.length ? tools.map((_, i) => `${i + 1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`
         )
 
-        // Knowledgebases
-        const knowledgebaseIds = agent.knowledgebaseIds
-        if (knowledgebaseIds?.length) {
-            const recalls = team.agentConfig?.recalls
-            const retrievals = team.agentConfig?.retrievals
-            const recall = agent.options?.recall
-            for (const id of knowledgebaseIds) {
-                const retriever = createKnowledgeRetriever(this.queryBus, id, {
-                    recall: { ...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {}) },
-                    retrieval: retrievals?.[id]
-                })
-                tools.push({
-                    toolset: {
-                        id: knowledgebaseIds.join(','),
-                        provider: 'knowledgebase',
-                        title: translate({ en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
-                    },
-                    caller: agent.key,
-                    tool: await retriever.toTool({
-                        name: 'retriever-' + id
-                    })
-                })
-            }
-        }
+        await this.appendKnowledgebaseTools(tools, agent)
 
         /**
          * Sub agents: include followers (agents in one xpert team) and collaborators (external xperts: primary agent is entry)
@@ -1652,15 +1629,53 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
     }
 
-    /**
-     * Create two types of sub-agent graphs (isTool):
-     * - Tool: Sub graph as a tool
-     * - Node: Sub graph as subsequent node
-     *
-     * @param agent
-     * @param config
-     * @returns
-     */
+    private async appendKnowledgebaseTools(tools: TGraphTool[], agent: IXpertAgent) {
+        const knowledgebaseIds = agent.knowledgebaseIds
+        if (!knowledgebaseIds?.length) return
+
+        const recalls = agent.team.agentConfig?.recalls
+        const retrievals = agent.team.agentConfig?.retrievals
+        const recall = agent.options?.recall
+        for (const id of knowledgebaseIds) {
+            const retrieval = retrievals?.[id]
+            const retriever = createKnowledgeRetriever(this.queryBus, id, {
+                recall: { ...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {}) },
+                retrieval
+            })
+            const knowledgeToolset = {
+                id: knowledgebaseIds.join(','),
+                provider: 'knowledgebase',
+                title: translate({ en_US: 'Knowledge Tools', zh_Hans: '知识库工具' })
+            }
+            tools.push({
+                toolset: knowledgeToolset,
+                caller: agent.key,
+                tool: await retriever.toTool({
+                    name: 'retriever-' + id
+                })
+            })
+            if (retrieval?.filtering?.agent?.enabled) {
+                tools.push({
+                    toolset: knowledgeToolset,
+                    caller: agent.key,
+                    tool: await retriever.toFilterOptionsTool({
+                        name: 'knowledge-filter-options-' + id
+                    })
+                })
+            }
+            const graphExplorerTool = await retriever.toGraphExplorerTool({
+                name: 'knowledge-graph-explorer-' + id
+            })
+            if (graphExplorerTool) {
+                tools.push({
+                    toolset: knowledgeToolset,
+                    caller: agent.key,
+                    tool: graphExplorerTool
+                })
+            }
+        }
+    }
+
     private getAgentWorkflowEdges(graph: TXpertGraph, agentKey: string) {
         const nodeMap = new Map(graph.nodes.map((node) => [node.key, node]))
         const nextNodes = graph.connections
@@ -1683,6 +1698,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
     }
 
+    /**
+     * Create two types of sub-agent graphs (isTool):
+     * - Tool: Sub graph as a tool
+     * - Node: Sub graph as subsequent node
+     */
     async createAgentSubgraph(
         agent: IXpertAgent,
         config: TAgentSubgraphParams & {

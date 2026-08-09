@@ -20,7 +20,7 @@ import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-cor
 import * as tar from 'tar'
 import { In } from 'typeorm'
 import unzipper from 'unzipper'
-import { KnowledgeDocumentService } from '../../../knowledge-document'
+import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
 import { KnowledgeWorkAreaResolver } from '../../../shared'
 import { KnowledgebaseService } from '../../knowledgebase.service'
@@ -354,10 +354,7 @@ async function uploadKnowledgebaseFile(
     let parentFolder = ''
     if (input.parentId) {
         const parents = await deps.documentService.findAncestors(input.parentId)
-        parentFolder = parents
-            .map((item) => item.name)
-            .filter(Boolean)
-            .join('/')
+        parentFolder = buildLogicalFolderPath(parents)
     }
     const fileName = buildUniqueFileName(normalizeKnowledgebaseUploadedFileName(input.file.originalname))
     const folder = deps.knowledgeWorkAreaResolver.getFilesPath(path.posix.join(parentFolder, input.path ?? ''))

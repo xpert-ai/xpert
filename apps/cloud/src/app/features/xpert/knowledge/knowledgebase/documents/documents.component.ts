@@ -7,9 +7,26 @@ import { FormsModule } from '@angular/forms'
 import { Dialog } from '@angular/cdk/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { injectConfirmDelete, injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
-import { debouncedSignal, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
+import {
+  debouncedSignal,
+  injectConfirmDelete,
+  injectConfirmUnique,
+  linkedModel,
+  XpCommonModule,
+  XpI18nPipe,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardInputGroupComponent,
+  ZardSwitchComponent,
+  ZardStepperImports,
+  ZardTableImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { format } from 'date-fns/format'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -39,6 +56,7 @@ import {
   IXpert,
   KBDocumentStatusEnum,
   KBMetadataFieldDef,
+  MetadataFieldType,
   KDocumentSourceType,
   KnowledgebaseService,
   KnowledgeGraphIndexJobStatus,
@@ -52,15 +70,28 @@ import {
   ToastrService
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
+import { openWorkbenchFilePreviewDialog } from '../../../../assistant/workbench-file-preview-dialog.component'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { KnowledgeDocumentCoverPreviewComponent } from './document-cover-preview.component'
+import { validateOriginalFileResponse } from './original-file-preview'
 
 const REFRESH_DEBOUNCE_TIME = 5000
-const SELECT_COLUMN_WIDTH = 80
-const ACTIONS_COLUMN_WIDTH = 144
+const SELECT_COLUMN_WIDTH = 48
+const ACTIONS_COLUMN_WIDTH = 88
+const DOCUMENT_COLUMNS_STORAGE_KEY = 'xpert.knowledge.documents.table.columns.v1'
 
 type DocumentTableColumnKey = 'name' | 'type' | 'createdAtRelative' | 'disabled' | 'processMsg' | 'progress'
 type DocumentTableSortDirection = 'asc' | 'desc' | ''
+type DocumentStatusFilter = 'all' | 'errors' | 'processing'
+type DocumentProcessStage = 'transform' | 'split' | 'index'
+type DocumentProcessStageState = 'complete' | 'active' | 'error' | 'pending'
+const DOCUMENT_PROCESS_STAGES: DocumentProcessStage[] = ['transform', 'split', 'index']
+const DOCUMENT_PROCESS_STAGE_DEFAULT_LABELS: Record<DocumentProcessStageState, string> = {
+  complete: 'Complete',
+  active: 'Processing',
+  error: 'Failed',
+  pending: 'Pending'
+}
 type ActiveDocumentTableSortState = DocumentTableSortState & {
   active: DocumentTableColumnKey
   direction: Exclude<DocumentTableSortDirection, ''>
@@ -100,8 +131,8 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     key: 'type',
     labelKey: 'XP.KEY_WORDS.Type',
     defaultLabel: 'Type',
-    width: 176,
-    minWidth: 120,
+    width: 96,
+    minWidth: 80,
     visible: true,
     hideable: true,
     sortable: true,
@@ -111,8 +142,8 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     key: 'createdAtRelative',
     labelKey: 'XP.KEY_WORDS.Created At',
     defaultLabel: 'Created At',
-    width: 176,
-    minWidth: 140,
+    width: 148,
+    minWidth: 128,
     visible: true,
     hideable: true,
     sortable: true,
@@ -122,9 +153,9 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     key: 'disabled',
     labelKey: 'XP.KEY_WORDS.Enabled',
     defaultLabel: 'Enabled',
-    width: 112,
-    minWidth: 96,
-    visible: true,
+    width: 88,
+    minWidth: 76,
+    visible: false,
     hideable: true,
     sortable: true,
     resizable: true
@@ -133,9 +164,9 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     key: 'processMsg',
     labelKey: 'XP.KEY_WORDS.Message',
     defaultLabel: 'Message',
-    width: 240,
+    width: 220,
     minWidth: 160,
-    visible: true,
+    visible: false,
     hideable: true,
     sortable: true,
     resizable: true
@@ -144,8 +175,8 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     key: 'progress',
     labelKey: 'XP.Knowledgebase.ParsingProgress',
     defaultLabel: 'Parsing Progress',
-    width: 192,
-    minWidth: 160,
+    width: 116,
+    minWidth: 104,
     visible: true,
     hideable: true,
     sortable: true,
@@ -173,10 +204,19 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
+    ...ZardTableImports,
+    ...ZardStepperImports,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardInputGroupComponent,
     ZardSwitchComponent,
     XpCommonModule,
     KnowledgeDocIdComponent,
-    XpI18nPipe
+    XpI18nPipe,
+    KnowledgeDocumentCoverPreviewComponent
   ],
   animations: [
     trigger('detailExpand', [
@@ -193,6 +233,16 @@ export class KnowledgeDocumentsComponent {
   eKnowledgeGraphStatus = KnowledgeGraphStatus
   eKnowledgebaseStatusEnum = KnowledgebaseStatusEnum
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
+  readonly METADATA_FIELD_TYPES: MetadataFieldType[] = [
+    'string',
+    'number',
+    'boolean',
+    'enum',
+    'datetime',
+    'string[]',
+    'number[]',
+    'object'
+  ]
 
   readonly kbAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
@@ -238,6 +288,7 @@ export class KnowledgeDocumentsComponent {
   expandedElement: any | null
 
   readonly isLoading = signal(false)
+  readonly viewingOriginalFileIds = signal<Set<string>>(new Set())
   readonly downloadingOriginalFileIds = signal<Set<string>>(new Set())
   readonly downloadingSelectedOriginalFiles = signal(false)
   isRateLimitReached = false
@@ -256,12 +307,40 @@ export class KnowledgeDocumentsComponent {
   readonly selectionModel = new SelectionModel<string>(true, [])
   readonly search = model<string>()
   readonly searchTerm = debouncedSignal(this.search, 300)
+  readonly statusFilter = signal<DocumentStatusFilter>('all')
+  readonly selectedDocumentId = signal<string | null>(null)
+  readonly documentInspectorDismissed = signal(false)
+  readonly selectedDocument = computed(() =>
+    this.documentInspectorDismissed()
+      ? null
+      : (this.#data().find((document) => document.id === this.selectedDocumentId()) ?? null)
+  )
+  /** Reuses the protected range-enabled endpoint so the inspector renders page one without downloading a whole PDF. */
+  readonly selectedPdfPreviewSource = computed(() => {
+    const document = this.selectedDocument()
+    return document && this.canInlinePreview(document)
+      ? this.knowledgeDocumentAPI.originalFilePreviewSource(document.id)
+      : null
+  })
   readonly notFolderItems = computed(() =>
     this.#data().filter((item) => item.sourceType !== KDocumentSourceType.FOLDER)
   )
+  readonly errorCount = computed(
+    () => this.notFolderItems().filter((document) => document.status === KBDocumentStatusEnum.ERROR).length
+  )
+  readonly processingCount = computed(
+    () => this.notFolderItems().filter((document) => isDocumentProcessing(document.status)).length
+  )
   readonly filteredData = computed(() => {
     const filterValue = this.searchTerm()?.toLowerCase() ?? ''
-    const rows = this.#data().filter((item) => item.name?.toLowerCase().includes(filterValue))
+    const statusFilter = this.statusFilter()
+    const rows = this.#data().filter(
+      (item) =>
+        item.name?.toLowerCase().includes(filterValue) &&
+        (statusFilter === 'all' ||
+          (statusFilter === 'errors' && item.status === KBDocumentStatusEnum.ERROR) ||
+          (statusFilter === 'processing' && isDocumentProcessing(item.status)))
+    )
     const sortState = this.sortState()
     if (!sortState.active || !sortState.direction) {
       return rows
@@ -290,6 +369,9 @@ export class KnowledgeDocumentsComponent {
   })
 
   constructor() {
+    this.tableColumns.set(loadDocumentColumns())
+    effect(() => saveDocumentColumns(this.tableColumns()))
+
     effect(() => {
       if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
         this.#router.navigate(['../test'], { relativeTo: this.#route })
@@ -326,6 +408,13 @@ export class KnowledgeDocumentsComponent {
                   'updatedAt',
                   'processMsg',
                   'progress',
+                  'size',
+                  'mimeType',
+                  'tokenNum',
+                  'chunkNum',
+                  'processBeginAt',
+                  'processDuation',
+                  'processDuration',
                   'sourceConfig',
                   'folder',
                   'version',
@@ -356,18 +445,27 @@ export class KnowledgeDocumentsComponent {
           })
         )
         .subscribe((data) => {
-          this.#data.set(
-            data.map(
-              (item) =>
-                ({
-                  ...item,
-                  createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-                    locale: getDateLocale(this.#translate.currentLanguage)
-                  }),
-                  parserConfig: item.parserConfig ?? {}
-                }) as IKnowledgeDocument
-            )
+          const documents = data.map(
+            (item) =>
+              ({
+                ...item,
+                createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
+                  locale: getDateLocale(this.#translate.currentLanguage)
+                }),
+                parserConfig: item.parserConfig ?? {}
+              }) as IKnowledgeDocument
           )
+          this.#data.set(documents)
+          if (
+            !this.documentInspectorDismissed() &&
+            !documents.some((document) => document.id === this.selectedDocumentId())
+          ) {
+            this.selectedDocumentId.set(
+              documents.find((document) => document.status === KBDocumentStatusEnum.ERROR)?.id ??
+                documents[0]?.id ??
+                null
+            )
+          }
           this.refreshGraphJobs()
         })
     })
@@ -413,6 +511,204 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
+  selectDocument(document: IKnowledgeDocument) {
+    this.documentInspectorDismissed.set(false)
+    this.selectedDocumentId.set(document.id)
+  }
+
+  closeDocumentInspector() {
+    this.documentInspectorDismissed.set(true)
+    this.selectedDocumentId.set(null)
+  }
+
+  setStatusFilter(filter: DocumentStatusFilter) {
+    this.statusFilter.set(filter)
+  }
+
+  documentStatusLabelKey(status?: KBDocumentStatusEnum) {
+    return `XP.Knowledgebase.Status_${documentStatusSuffix(status)}`
+  }
+
+  documentStatusDefaultLabel(status?: KBDocumentStatusEnum) {
+    return documentStatusDefaultLabel(status)
+  }
+
+  isProcessing(status?: KBDocumentStatusEnum) {
+    return isDocumentProcessing(status)
+  }
+
+  selectedDocumentProvider(document: IKnowledgeDocument) {
+    const metadata = document.metadata
+    const analysis = metadata?.documentAnalysis
+    const snapshot = metadata?.analysisSnapshot
+    const transformer = metadata?.transformSnapshot?.transformer
+    const provider = [
+      analysis?.provider ?? snapshot?.provider ?? transformer?.provider,
+      analysis?.engine ?? snapshot?.engine
+    ]
+      .filter(Boolean)
+      .join(' · ')
+
+    if (provider) {
+      return provider
+    }
+
+    if (document.processMsg?.includes('PaddleOCR')) {
+      return 'Baidu Cloud · PaddleOCR-VL'
+    }
+    if (document.processMsg?.includes('Unlimited-OCR')) {
+      return 'Baidu Cloud · Unlimited-OCR'
+    }
+    return ''
+  }
+
+  selectedDocumentSize(document: IKnowledgeDocument) {
+    const size = document.storageFile?.size ?? document.size ?? document.metadata?.originalFileSize
+    return formatDocumentSize(size)
+  }
+
+  selectedDocumentMimeType(document: IKnowledgeDocument) {
+    return document.storageFile?.mimetype || document.mimeType || '-'
+  }
+
+  selectedDocumentPageCount(document: IKnowledgeDocument) {
+    return document.metadata?.analysisSnapshot?.pageCount ?? document.metadata?.documentAnalysis?.pageCount ?? null
+  }
+
+  selectedDocumentChunkCount(document: IKnowledgeDocument) {
+    return document.chunkNum ?? document.metadata?.segmentCount ?? null
+  }
+
+  selectedDocumentTokenCount(document: IKnowledgeDocument) {
+    return document.tokenNum ?? document.metadata?.tokens ?? null
+  }
+
+  selectedDocumentProcessDuration(document: IKnowledgeDocument) {
+    const duration = document.processDuration ?? document.processDuation
+    if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 0) {
+      return '-'
+    }
+
+    if (duration < 1000) {
+      return `${Math.round(duration)} ms`
+    }
+    if (duration < 60_000) {
+      return `${(duration / 1000).toFixed(1)} s`
+    }
+    return `${Math.floor(duration / 60_000)}m ${Math.round((duration % 60_000) / 1000)}s`
+  }
+
+  selectedDocumentCreatedAt(document: IKnowledgeDocument) {
+    if (!document.createdAt) {
+      return '-'
+    }
+
+    return formatRelative(new Date(document.createdAt), new Date(), {
+      locale: getDateLocale(this.#translate.currentLanguage)
+    })
+  }
+
+  selectedDocumentCreatedTimestamp(document: IKnowledgeDocument) {
+    return formatDocumentTimestamp(document.createdAt)
+  }
+
+  selectedDocumentLastRun(document: IKnowledgeDocument) {
+    return formatDocumentTimestamp(document.processBeginAt ?? document.updatedAt)
+  }
+
+  selectedDocumentFailureReason(document: IKnowledgeDocument) {
+    const message = document.processMsg?.trim()
+    if (!message) {
+      return '-'
+    }
+
+    const pageRange = message.match(/source pages\s+(\d+)\s*[-–]\s*(\d+)/i)
+    if (pageRange && /quota exceed/i.test(message)) {
+      return this.#translate.translate('XP.Knowledgebase.PageRangeQuotaExceeded', {
+        Default: `Pages ${pageRange[1]}–${pageRange[2]}: quota exceeded`,
+        start: pageRange[1],
+        end: pageRange[2]
+      })
+    }
+
+    return message
+  }
+
+  selectedDocumentLanguage(document: IKnowledgeDocument) {
+    const metadata = document.metadata as Record<string, any> | undefined
+    const language = metadata?.['language'] ?? metadata?.['documentAnalysis']?.language
+    if (Array.isArray(language)) {
+      return language.filter(Boolean).join(', ') || '-'
+    }
+    return typeof language === 'string' && language.trim() ? language : '-'
+  }
+
+  selectedDocumentSource(document: IKnowledgeDocument) {
+    switch (document.sourceType) {
+      case 'local-file':
+      case 'file':
+        return this.#translate.translate('XP.Knowledgebase.SourceUserUpload', { Default: 'User upload' })
+      case 'file-system':
+        return this.#translate.translate('XP.Knowledgebase.SourceFileSystem', { Default: 'File system' })
+      case 'online-document':
+        return this.#translate.translate('XP.Knowledgebase.SourceOnlineDocument', { Default: 'Online document' })
+      case 'web-crawl':
+        return this.#translate.translate('XP.Knowledgebase.SourceWebCrawl', { Default: 'Web crawl' })
+      default:
+        return this.#translate.translate('XP.Knowledgebase.SourceSystem', { Default: 'System' })
+    }
+  }
+
+  canInlinePreview(document: IKnowledgeDocument) {
+    return this.canViewOriginalFile(document) && document.type?.toLowerCase() === 'pdf'
+  }
+
+  hasAnalysisPreview(document: IKnowledgeDocument) {
+    return !!document.metadata?.analysisSnapshot
+  }
+
+  processStageState(document: IKnowledgeDocument, stage: DocumentProcessStage): DocumentProcessStageState {
+    return resolveProcessStageState(document.status, stage)
+  }
+
+  processStageIndex(document: IKnowledgeDocument) {
+    const activeIndex = DOCUMENT_PROCESS_STAGES.findIndex((stage) => {
+      const state = this.processStageState(document, stage)
+      return state === 'active' || state === 'error'
+    })
+    if (activeIndex >= 0) {
+      return activeIndex
+    }
+    return document.status === KBDocumentStatusEnum.FINISH ? 2 : 0
+  }
+
+  processStageStatusLabelKey(state: DocumentProcessStageState) {
+    return `XP.Knowledgebase.StageStatus_${state}`
+  }
+
+  processStageStatusDefaultLabel(state: DocumentProcessStageState) {
+    return DOCUMENT_PROCESS_STAGE_DEFAULT_LABELS[state]
+  }
+
+  processStageTimestamp(document: IKnowledgeDocument, stage: DocumentProcessStage) {
+    if (stage === 'transform' && document.processBeginAt) {
+      return formatDocumentTimestamp(document.processBeginAt)
+    }
+
+    if (DOCUMENT_PROCESS_STAGES[this.processStageIndex(document)] === stage) {
+      return formatDocumentTimestamp(document.updatedAt ?? document.processBeginAt)
+    }
+
+    return null
+  }
+
+  openDocument(document: IKnowledgeDocument, view?: 'analysis' | 'chunks') {
+    this.#router.navigate(['./', document.id], {
+      relativeTo: this.#route,
+      queryParams: { parentId: this.parentId(), ...(view ? { view } : {}) }
+    })
+  }
+
   getValue(row: any, name: string) {
     return get(row, name)
   }
@@ -430,7 +726,7 @@ export class KnowledgeDocumentsComponent {
     )
   }
 
-  startColumnResize(event: MouseEvent, column: DocumentTableColumn, headerCell: HTMLElement) {
+  startColumnResize(event: MouseEvent, column: DocumentTableColumn) {
     if (!column.resizable || event.button !== 0) {
       return
     }
@@ -439,7 +735,8 @@ export class KnowledgeDocumentsComponent {
     event.stopPropagation()
 
     const startX = event.clientX
-    const startWidth = headerCell.getBoundingClientRect().width || column.width
+    const headerCell = (event.currentTarget as HTMLElement | null)?.parentElement
+    const startWidth = headerCell?.getBoundingClientRect().width || column.width
 
     // Keep listening on the document so the drag does not stop when the pointer leaves the header cell.
     const onMouseMove = (moveEvent: MouseEvent) => {
@@ -518,6 +815,50 @@ export class KnowledgeDocumentsComponent {
     return doc.sourceType !== KDocumentSourceType.FOLDER && !isSystemManagedDocument(doc) && !!doc.filePath
   }
 
+  canViewOriginalFile(doc: IKnowledgeDocument) {
+    return this.canDownloadOriginalFile(doc)
+  }
+
+  isOriginalFileViewing(id: string) {
+    return this.viewingOriginalFileIds().has(id)
+  }
+
+  viewOriginalFile(doc: IKnowledgeDocument, event?: MouseEvent) {
+    event?.stopPropagation()
+    if (!this.canViewOriginalFile(doc) || this.isOriginalFileViewing(doc.id)) {
+      return
+    }
+
+    this.markOriginalFileViewing(doc.id, true)
+    this.knowledgeDocumentAPI
+      .downloadOriginalFile(doc.id)
+      .pipe(
+        switchMap((blob) => validateOriginalFileResponse(blob, doc)),
+        finalize(() => this.markOriginalFileViewing(doc.id, false))
+      )
+      .subscribe({
+        next: (blob) => {
+          const objectUrl = URL.createObjectURL(blob)
+          try {
+            const dialogRef = openWorkbenchFilePreviewDialog(this._dialog, {
+              id: doc.id,
+              name: getOriginalFileName(doc),
+              mimeType: blob.type || doc.storageFile?.mimetype,
+              url: objectUrl,
+              previewUrl: objectUrl
+            })
+            dialogRef.closed.pipe(take(1)).subscribe(() => URL.revokeObjectURL(objectUrl))
+          } catch (err) {
+            URL.revokeObjectURL(objectUrl)
+            this.#toastr.error(getErrorMessage(err))
+          }
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
   isOriginalFileDownloading(id: string) {
     return this.downloadingOriginalFileIds().has(id)
   }
@@ -579,6 +920,18 @@ export class KnowledgeDocumentsComponent {
     this.downloadingOriginalFileIds.update((ids) => {
       const next = new Set(ids)
       if (downloading) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  private markOriginalFileViewing(id: string, viewing: boolean) {
+    this.viewingOriginalFileIds.update((ids) => {
+      const next = new Set(ids)
+      if (viewing) {
         next.add(id)
       } else {
         next.delete(id)
@@ -924,7 +1277,8 @@ export class KnowledgeDocumentsComponent {
     this.metadataSchema.update((schema) => {
       const newField: KBMetadataFieldDef = {
         key: 'new_field_' + (schema?.length ?? 0),
-        type: 'string'
+        type: 'string',
+        scope: 'document'
       }
       return [...(schema ?? []), newField]
     })
@@ -949,11 +1303,40 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
+  updateMetadataType(index: number, type: MetadataFieldType) {
+    this.metadataSchema.update((schema) => {
+      const updatedSchema = [...(schema ?? [])]
+      updatedSchema[index] = {
+        ...updatedSchema[index],
+        type,
+        ...(type === 'enum'
+          ? { enumValues: updatedSchema[index].enumValues?.length ? updatedSchema[index].enumValues : ['value'] }
+          : { enumValues: undefined })
+      }
+      return updatedSchema
+    })
+  }
+
+  updateMetadataEnumValues(index: number, value: string) {
+    this.updateMetadataField(
+      index,
+      'enumValues',
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  }
+
   saveMetadataSchema(ref: CdkMenuTrigger) {
     this.isLoading.set(true)
     this.knowledgebaseComponent.knowledgebaseAPI
       .update(this.knowledgebase().id, {
-        metadataSchema: this.metadataSchema()
+        metadataSchema: (this.metadataSchema() ?? []).map((field) => ({
+          ...field,
+          key: field.key.trim(),
+          scope: field.scope ?? 'document'
+        }))
       })
       .subscribe({
         next: () => {
@@ -1003,6 +1386,52 @@ function createDefaultDocumentColumns() {
   return DEFAULT_DOCUMENT_COLUMNS.map((column) => ({ ...column }))
 }
 
+function loadDocumentColumns(): DocumentTableColumn[] {
+  if (typeof localStorage === 'undefined') {
+    return createDefaultDocumentColumns()
+  }
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(DOCUMENT_COLUMNS_STORAGE_KEY) ?? '[]') as Array<
+      Partial<DocumentTableColumn> & Pick<DocumentTableColumn, 'key'>
+    >
+    const defaultsByKey = new Map(DEFAULT_DOCUMENT_COLUMNS.map((column) => [column.key, column]))
+    const restored = saved
+      .map((column) => {
+        const defaults = defaultsByKey.get(column.key)
+        if (!defaults) {
+          return null
+        }
+        defaultsByKey.delete(column.key)
+        return {
+          ...defaults,
+          visible: defaults.hideable ? (column.visible ?? defaults.visible) : true,
+          width: normalizeColumnWidth(Number(column.width ?? defaults.width), defaults)
+        }
+      })
+      .filter((column): column is DocumentTableColumn => !!column)
+
+    return [...restored, ...defaultsByKey.values().map((column) => ({ ...column }))]
+  } catch {
+    return createDefaultDocumentColumns()
+  }
+}
+
+function saveDocumentColumns(columns: DocumentTableColumn[]) {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  try {
+    localStorage.setItem(
+      DOCUMENT_COLUMNS_STORAGE_KEY,
+      JSON.stringify(columns.map(({ key, visible, width }) => ({ key, visible, width })))
+    )
+  } catch {
+    // Column customization is progressive enhancement; storage failures must not block document management.
+  }
+}
+
 function normalizeColumnWidth(width: number, column: Pick<DocumentTableColumn, 'minWidth' | 'maxWidth'>) {
   const maxWidth = column.maxWidth ?? Number.POSITIVE_INFINITY
   return Math.min(Math.max(Math.round(width), column.minWidth), maxWidth)
@@ -1048,4 +1477,126 @@ function normalizeSortValue(value: unknown): number | string {
   }
 
   return ''
+}
+
+function isDocumentProcessing(status?: KBDocumentStatusEnum) {
+  if (!status) {
+    return false
+  }
+
+  return [
+    KBDocumentStatusEnum.WAITING,
+    KBDocumentStatusEnum.VALIDATE,
+    KBDocumentStatusEnum.RUNNING,
+    KBDocumentStatusEnum.TRANSFORMED,
+    KBDocumentStatusEnum.SPLITTED,
+    KBDocumentStatusEnum.UNDERSTOOD,
+    KBDocumentStatusEnum.EMBEDDING
+  ].includes(status)
+}
+
+function documentStatusSuffix(status?: KBDocumentStatusEnum) {
+  switch (status) {
+    case KBDocumentStatusEnum.FINISH:
+      return 'Finish'
+    case KBDocumentStatusEnum.ERROR:
+      return 'Error'
+    case KBDocumentStatusEnum.WAITING:
+      return 'Waiting'
+    case KBDocumentStatusEnum.RUNNING:
+    case KBDocumentStatusEnum.VALIDATE:
+      return 'Running'
+    case KBDocumentStatusEnum.TRANSFORMED:
+      return 'Transformed'
+    case KBDocumentStatusEnum.SPLITTED:
+      return 'Splitted'
+    case KBDocumentStatusEnum.UNDERSTOOD:
+      return 'Understood'
+    case KBDocumentStatusEnum.EMBEDDING:
+      return 'Embedding'
+    default:
+      return 'NotStart'
+  }
+}
+
+function documentStatusDefaultLabel(status?: KBDocumentStatusEnum) {
+  switch (status) {
+    case KBDocumentStatusEnum.FINISH:
+      return 'Complete'
+    case KBDocumentStatusEnum.ERROR:
+      return 'Error'
+    case KBDocumentStatusEnum.WAITING:
+      return 'Queued'
+    case KBDocumentStatusEnum.RUNNING:
+    case KBDocumentStatusEnum.VALIDATE:
+      return 'Processing'
+    case KBDocumentStatusEnum.TRANSFORMED:
+      return 'Transformed'
+    case KBDocumentStatusEnum.SPLITTED:
+      return 'Splitting'
+    case KBDocumentStatusEnum.UNDERSTOOD:
+      return 'Understanding'
+    case KBDocumentStatusEnum.EMBEDDING:
+      return 'Indexing'
+    default:
+      return 'Not started'
+  }
+}
+
+function resolveProcessStageState(
+  status: KBDocumentStatusEnum | undefined,
+  stage: DocumentProcessStage
+): DocumentProcessStageState {
+  if (status === KBDocumentStatusEnum.ERROR) {
+    return stage === 'transform' ? 'error' : 'pending'
+  }
+
+  const order: Record<DocumentProcessStage, number> = { transform: 0, split: 1, index: 2 }
+  const activeStage =
+    status === KBDocumentStatusEnum.FINISH
+      ? 3
+      : [KBDocumentStatusEnum.SPLITTED, KBDocumentStatusEnum.UNDERSTOOD, KBDocumentStatusEnum.EMBEDDING].includes(
+            status
+          )
+        ? 2
+        : status === KBDocumentStatusEnum.TRANSFORMED
+          ? 1
+          : 0
+  const stageOrder = order[stage]
+  return activeStage > stageOrder
+    ? 'complete'
+    : activeStage === stageOrder && isDocumentProcessing(status)
+      ? 'active'
+      : 'pending'
+}
+
+function formatDocumentSize(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric)) {
+      return value
+    }
+    value = numeric
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return '-'
+  }
+
+  if (value < 1024) {
+    return `${value} B`
+  }
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`
+  }
+  return `${(value / 1024 / 1024).toFixed(1)} MB`
+}
+
+function formatDocumentTimestamp(value: Date | string | null | undefined) {
+  if (!value) {
+    return '-'
+  }
+
+  const timestamp = new Date(value)
+  return Number.isNaN(timestamp.getTime()) ? '-' : format(timestamp, 'yyyy-MM-dd HH:mm:ss')
 }

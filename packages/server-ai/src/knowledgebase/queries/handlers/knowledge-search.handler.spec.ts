@@ -16,6 +16,13 @@ function chunk(chunkId: string, metadata: Partial<DocumentMetadata> = {}): Docum
     }
 }
 
+const diagnostics = { filterVersion: 2 as const, filterStatus: 'not_applied' as const, hitCount: 0 }
+
+function attachHandlerServices(handler: KnowledgeSearchQueryHandler) {
+    Object.defineProperty(handler, 'retrievalLogService', { value: { create: jest.fn() } })
+    Object.defineProperty(handler, 'chunkService', { value: { findAll: jest.fn(async () => ({ items: [] })) } })
+}
+
 describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
     it('routes graph mode to graph search without vector search', async () => {
         const graphDocs = [chunk('graph-1', { graphScore: 0.9, score: 0.9 })]
@@ -38,6 +45,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
+        attachHandlerServices(handler)
         const vectorSearch = jest.spyOn(handler, 'similaritySearchWithScore')
 
         const results = await handler.execute(
@@ -55,7 +63,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
         expect(vectorSearch).not.toHaveBeenCalled()
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(KnowledgeGraphSearchQuery))
-        expect(results).toEqual(graphDocs)
+        expect(results.documents).toEqual(graphDocs)
     })
 
     it('deduplicates and fuses vector and graph chunks in hybrid mode', async () => {
@@ -83,10 +91,11 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue([
-            chunk('chunk-1', { score: 0.8 }),
-            chunk('chunk-2', { score: 0.6 })
-        ])
+        attachHandlerServices(handler)
+        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue({
+            documents: [chunk('chunk-1', { score: 0.8 }), chunk('chunk-2', { score: 0.6 })],
+            diagnostics
+        })
 
         const results = await handler.execute(
             new KnowledgeSearchQuery({
@@ -102,22 +111,76 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             })
         )
 
-        expect(results.map((doc) => doc.metadata.chunkId)).toEqual(['chunk-1', 'chunk-2', 'chunk-3'])
-        expect(results[0].metadata).toEqual(
+        expect(results.documents.map((doc) => doc.metadata.chunkId)).toEqual(['chunk-1', 'chunk-2', 'chunk-3'])
+        expect(results.documents[0].metadata).toEqual(
             expect.objectContaining({
                 vectorScore: 0.8,
                 graphScore: 0.4,
                 matchedEntities: ['entity-1']
             })
         )
-        expect(results[0].metadata.score).toBeCloseTo(0.7)
-        expect(results[1].metadata).toEqual(
+        expect(results.documents[0].metadata.score).toBeCloseTo(0.7)
+        expect(results.documents[1].metadata).toEqual(
             expect.objectContaining({
                 vectorScore: 0.6,
                 graphScore: 0
             })
         )
-        expect(results[1].metadata.score).toBeCloseTo(0.45)
+        expect(results.documents[1].metadata.score).toBeCloseTo(0.45)
+    })
+
+    it('falls back only to the filtered vector branch when graph fails in hybrid mode', async () => {
+        const queryBus = {
+            execute: jest.fn(async () => ({ docs: [], failed: true, error: 'scoped graph query failed' }))
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 },
+                        graphRag: { enabled: true }
+                    }
+                ]
+            }))
+        }
+        const handler = new KnowledgeSearchQueryHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            queryBus as unknown as QueryBus
+        )
+        attachHandlerServices(handler)
+        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue({
+            documents: [chunk('filtered-vector', { score: 0.8 })],
+            diagnostics: { filterVersion: 2, filterStatus: 'applied', hitCount: 1 }
+        })
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: '水利定额',
+                source: 'spec',
+                filters: {
+                    request: {
+                        kind: 'condition',
+                        field: 'document.folderPath',
+                        operator: 'under',
+                        value: { kind: 'literal', value: '水利' }
+                    }
+                },
+                retrieval: { mode: 'hybrid' }
+            })
+        )
+
+        expect(result.documents.map((doc) => doc.metadata.chunkId)).toEqual(['filtered-vector'])
+        expect(result.diagnostics[0]).toMatchObject({
+            filterStatus: 'applied',
+            vectorBranchHitCount: 1,
+            graphBranchHitCount: 0,
+            hybridGraphFallbackReason: 'scoped graph query failed'
+        })
     })
 
     it('uses the knowledgebase retrieval mode when the request does not override it', async () => {
@@ -142,9 +205,10 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
+        attachHandlerServices(handler)
         const vectorSearch = jest
             .spyOn(handler, 'similaritySearchWithScore')
-            .mockResolvedValue([chunk('chunk-1', { score: 0.8 })])
+            .mockResolvedValue({ documents: [chunk('chunk-1', { score: 0.8 })], diagnostics })
 
         const results = await handler.execute(
             new KnowledgeSearchQuery({
@@ -158,18 +222,12 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
         expect(vectorSearch).toHaveBeenCalled()
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(KnowledgeGraphSearchQuery))
-        expect(results.map((doc) => doc.metadata.chunkId)).toEqual(['chunk-1', 'graph-1'])
+        expect(results.documents.map((doc) => doc.metadata.chunkId)).toEqual(['chunk-1', 'graph-1'])
     })
 
-    it('applies metadata filters stored on agent-written chunks', async () => {
+    it('passes Knowledge Filter V2 scope to graph mode', async () => {
         const queryBus = {
-            execute: jest.fn()
-        }
-        const vectorStore = {
-            embeddingModel: 'test-embedding',
-            similaritySearchWithScore: jest.fn(async () => [
-                [chunk('agent-write-key'), 0.4] as [DocumentInterface, number]
-            ])
+            execute: jest.fn(async () => ({ docs: [chunk('graph-filtered', { graphScore: 0.9, score: 0.9 })] }))
         }
         const knowledgebaseService = {
             findAll: jest.fn(async () => ({
@@ -178,57 +236,109 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                         id: 'kb-1',
                         type: KnowledgebaseTypeEnum.Standard,
                         recall: {},
-                        graphRag: { enabled: false }
+                        graphRag: { enabled: true }
                     }
                 ]
-            })),
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            }))
         }
         const handler = new KnowledgeSearchQueryHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        const documentService = {
-            findAll: jest.fn(async () => ({ items: [] }))
-        }
-        const chunkService = {
-            findAll: jest.fn(async () => ({
-                items: [
-                    {
-                        id: 'db-chunk-1',
-                        metadata: {
-                            chunkId: 'agent-write-key',
-                            documentType: 'bom-product-profile'
-                        }
-                    }
-                ]
-            }))
-        }
-        Object.defineProperty(handler, 'documentService', { value: documentService })
-        Object.defineProperty(handler, 'chunkService', { value: chunkService })
+        attachHandlerServices(handler)
 
-        const results = await handler.execute(
+        const result = await handler.execute(
             new KnowledgeSearchQuery({
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 knowledgebases: ['kb-1'],
                 query: 'YBX4 180M2 22kW',
                 source: 'spec',
-                k: 20,
-                filter: {
-                    documentType: 'bom-product-profile'
+                retrieval: {
+                    mode: 'graph',
+                    filtering: {
+                        fixed: {
+                            kind: 'condition',
+                            field: 'document.folderPath',
+                            operator: 'under',
+                            value: { kind: 'literal', value: '水利/华东' }
+                        },
+                        agent: { enabled: true }
+                    }
+                }
+            })
+        )
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    filterScope: expect.objectContaining({
+                        tenantId: 'tenant-1',
+                        organizationId: 'org-1',
+                        knowledgebaseId: 'kb-1',
+                        compiledPostgres: expect.objectContaining({ parameters: ['水利/华东', '水利/华东/%'] })
+                    })
+                })
+            })
+        )
+        expect(result.documents.map((doc) => doc.metadata.chunkId)).toEqual(['graph-filtered'])
+    })
+
+    it('reports zero final hits after the score threshold and allows an Agent-controlled retry', async () => {
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 },
+                        metadataSchema: []
+                    }
+                ]
+            }))
+        }
+        const handler = new KnowledgeSearchQueryHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            { execute: jest.fn() } as unknown as QueryBus
+        )
+        attachHandlerServices(handler)
+        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue({
+            documents: [chunk('chunk-1', { score: 0.7 })],
+            diagnostics: {
+                filterVersion: 2,
+                filterStatus: 'applied',
+                dynamicFilter: {
+                    kind: 'condition',
+                    field: 'document.fileExtension',
+                    operator: 'eq',
+                    value: { kind: 'literal', value: 'pdf' }
+                },
+                hitCount: 1
+            }
+        })
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: '2025 定额',
+                score: 0.8,
+                source: 'spec',
+                filters: {
+                    dynamic: {
+                        kind: 'condition',
+                        field: 'document.fileExtension',
+                        operator: 'eq',
+                        value: { kind: 'literal', value: 'pdf' }
+                    }
                 }
             })
         )
 
-        expect(documentService.findAll).toHaveBeenCalled()
-        expect(chunkService.findAll).toHaveBeenCalled()
-        expect(vectorStore.similaritySearchWithScore).toHaveBeenCalledWith('YBX4 180M2 22kW', 20, {
-            chunkId: {
-                in: ['agent-write-key']
-            }
+        expect(result.documents).toHaveLength(0)
+        expect(result.diagnostics[0]).toMatchObject({
+            hitCount: 0,
+            retryableWithoutDynamic: true
         })
-        expect(results).toHaveLength(1)
-        expect(results[0].metadata.score).toBeCloseTo(0.6)
     })
 })

@@ -1,0 +1,353 @@
+<div #analysisShell class="analysis-shell">
+  <div
+    class="mobile-pane-switch"
+    role="tablist"
+    [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PreviewPanes' | translate"
+  >
+    <button type="button" [class.active]="mobilePane() === 'source'" (click)="setMobilePane('source')">
+      <i class="ri-file-pdf-2-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Source' | translate }}
+    </button>
+    <button type="button" [class.active]="mobilePane() === 'result'" (click)="setMobilePane('result')">
+      <i class="ri-file-list-3-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Result' | translate }}
+    </button>
+  </div>
+  <section
+    class="source-pane"
+    [class.mobile-pane-hidden]="mobilePane() !== 'source'"
+    [style.flex-basis.%]="splitPercent()"
+  >
+    <div class="pane-toolbar">
+      <div class="flex min-w-0 items-center gap-2">
+        <i class="ri-file-pdf-2-line text-text-tertiary"></i>
+        <span class="truncate text-sm font-medium text-text-primary">{{ fileName() }}</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button
+          type="button"
+          class="toolbar-button"
+          (click)="previousPage()"
+          [disabled]="page() === preview().pages[0]"
+          [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PreviousPage' | translate"
+        >
+          <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <label class="page-field">
+          <input
+            #pageInput
+            [ngModel]="page()"
+            (keydown.enter)="goToPage(pageInput.value)"
+            [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PageNumber' | translate"
+          />
+          <span>/ {{ preview().pageCount }}</span>
+        </label>
+        <button
+          type="button"
+          class="toolbar-button"
+          (click)="nextPage()"
+          [disabled]="page() === preview().pages[preview().pages.length - 1]"
+          [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.NextPage' | translate"
+        >
+          <i class="ri-arrow-right-s-line"></i>
+        </button>
+        <span class="toolbar-divider"></span>
+        <button
+          type="button"
+          class="toolbar-button"
+          (click)="zoomOut()"
+          [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.ZoomOut' | translate"
+        >
+          <i class="ri-subtract-line"></i>
+        </button>
+        <span class="w-12 text-center text-xs text-text-tertiary">{{ (zoom() * 100).toFixed(0) }}%</span>
+        <button
+          type="button"
+          class="toolbar-button"
+          (click)="zoomIn()"
+          [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.ZoomIn' | translate"
+        >
+          <i class="ri-add-line"></i>
+        </button>
+        <button
+          type="button"
+          class="toolbar-button"
+          (click)="fitWidth()"
+          [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.FitWidth' | translate"
+        >
+          <i class="ri-focus-3-line"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="type-filter" [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.LayoutTypeFilter' | translate">
+      @for (type of pageTypes(); track type) {
+        <button
+          type="button"
+          class="type-chip"
+          [attr.data-type]="type"
+          [class.type-chip-disabled]="!isTypeEnabled(type)"
+          (click)="toggleType(type)"
+        >
+          <i [class]="typeLabel(type).icon"></i>
+          <span>{{ typeLabel(type).labelKey | translate }}</span>
+        </button>
+      }
+    </div>
+
+    <div #viewerHost class="pdf-viewer" (scroll)="onPaneScroll('source', $event)">
+      @if (pdfLoading() && !pdfError()) {
+        <div class="viewer-state"><xp-spin /></div>
+      }
+      @if (pdfError()) {
+        <div class="viewer-state text-text-destructive">
+          <i class="ri-error-warning-line text-xl"></i>
+          <span>{{ pdfError() }}</span>
+        </div>
+      } @else if (!isPdf()) {
+        <div class="viewer-state text-text-tertiary">
+          {{ 'XP.Knowledgebase.AnalysisPreview.PdfOnly' | translate }}
+        </div>
+      } @else {
+        <div class="pdf-document-flow">
+          @for (pageNumber of preview().pages; track pageNumber) {
+            @let pageSize = canvasSizeFor(pageNumber);
+            <section
+              class="pdf-page-slot"
+              [class.current-page]="page() === pageNumber"
+              [attr.data-analysis-page]="pageNumber"
+              [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PdfPageAria' | translate: { page: pageNumber }"
+            >
+              <span class="page-number-badge">
+                {{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}
+              </span>
+              <div class="pdf-page" [style.width.px]="pageSize.width" [style.height.px]="pageSize.height">
+                @if (isPageInRenderWindow(pageNumber) && pageDataFor(pageNumber); as analysisPage) {
+                  <canvas [attr.data-pdf-page]="pageNumber"></canvas>
+                  @if (isOverlayCompatible(pageNumber)) {
+                    <svg
+                      class="layout-overlay"
+                      [attr.viewBox]="'0 0 ' + analysisPage.width + ' ' + analysisPage.height"
+                      preserveAspectRatio="none"
+                      [attr.aria-label]="
+                        'XP.Knowledgebase.AnalysisPreview.OcrLayoutBounds' | translate: { page: pageNumber }
+                      "
+                    >
+                      @for (block of visibleBlocksForPage(pageNumber); track block.id) {
+                        @if (block.polygon?.length) {
+                          <polygon
+                            tabindex="0"
+                            role="button"
+                            [attr.points]="polygonPoints(block)"
+                            [attr.data-type]="block.type"
+                            [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
+                            [attr.aria-label]="blockAriaLabel(block)"
+                            (click)="selectBlock(block, pageNumber)"
+                            (keydown.enter)="selectBlock(block, pageNumber)"
+                          />
+                        } @else if (block.bounds; as bounds) {
+                          <rect
+                            tabindex="0"
+                            role="button"
+                            [attr.x]="bounds.x"
+                            [attr.y]="bounds.y"
+                            [attr.width]="bounds.width"
+                            [attr.height]="bounds.height"
+                            [attr.data-type]="block.type"
+                            [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
+                            [attr.aria-label]="blockAriaLabel(block)"
+                            (click)="selectBlock(block, pageNumber)"
+                            (keydown.enter)="selectBlock(block, pageNumber)"
+                          />
+                        }
+                      }
+                    </svg>
+                  } @else {
+                    <div class="overlay-warning">
+                      {{ 'XP.Knowledgebase.AnalysisPreview.OverlayMismatch' | translate }}
+                    </div>
+                  }
+                } @else {
+                  <div class="page-placeholder">
+                    @if (isPageLoading(pageNumber) || isPageRendering(pageNumber)) {
+                      <xp-spin />
+                    } @else if (pageErrorFor(pageNumber) || pdfPageErrorFor(pageNumber); as error) {
+                      <i class="ri-error-warning-line"></i>
+                      <span>{{ error }}</span>
+                    } @else {
+                      <span>
+                        {{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <div
+    class="pane-splitter"
+    role="separator"
+    [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.ResizeDivider' | translate"
+    aria-orientation="vertical"
+    aria-valuemin="28"
+    aria-valuemax="72"
+    [attr.aria-valuenow]="splitPercent()"
+    tabindex="0"
+    (pointerdown)="startResize($event)"
+    (keydown)="resizeByKeyboard($event)"
+  >
+    <span></span>
+  </div>
+
+  <section class="result-pane" [class.mobile-pane-hidden]="mobilePane() !== 'result'">
+    <div class="pane-toolbar">
+      <div class="flex items-center gap-2">
+        <i class="ri-file-list-3-line text-primary-500"></i>
+        <span class="text-sm font-semibold text-text-primary">
+          {{ 'XP.Knowledgebase.AnalysisPreview.Result' | translate }}
+        </span>
+        <span class="rounded-md bg-background-default-subtle px-2 py-0.5 text-xs text-text-tertiary">
+          {{ preview().engine || preview().provider }}
+        </span>
+      </div>
+    </div>
+
+    <div class="result-tabs" role="tablist">
+      <button type="button" [class.active]="tab() === 'markdown'" (click)="setTab('markdown')">
+        <i class="ri-markdown-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Markdown' | translate }}
+      </button>
+      <button type="button" [class.active]="tab() === 'structure'" (click)="setTab('structure')">
+        <i class="ri-node-tree"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Structure' | translate }}
+      </button>
+      @if (preview().views.includes('tables')) {
+        <button type="button" [class.active]="tab() === 'tables'" (click)="setTab('tables')">
+          <i class="ri-table-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Tables' | translate }}
+        </button>
+      }
+      @if (preview().views.includes('images')) {
+        <button type="button" [class.active]="tab() === 'images'" (click)="setTab('images')">
+          <i class="ri-image-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Images' | translate }}
+        </button>
+      }
+      <button type="button" [class.active]="tab() === 'json'" (click)="setTab('json')">
+        <i class="ri-braces-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Json' | translate }}
+      </button>
+    </div>
+
+    <div #resultHost class="result-content" (scroll)="onPaneScroll('result', $event)">
+      @for (pageNumber of preview().pages; track pageNumber) {
+        <section
+          class="result-page"
+          [class.current-page]="page() === pageNumber"
+          [attr.data-analysis-page]="pageNumber"
+          [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PageResultAria' | translate: { page: pageNumber }"
+        >
+          <header class="result-page-header">
+            <span>{{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}</span>
+            @if (page() === pageNumber) {
+              <span class="current-page-label">
+                {{ 'XP.Knowledgebase.AnalysisPreview.CurrentPage' | translate }}
+              </span>
+            }
+          </header>
+
+          @if (pageDataFor(pageNumber); as analysisPage) {
+            @if (tab() === 'json') {
+              @if (rawPageFor(pageNumber); as rawPage) {
+                <div
+                  class="json-view"
+                  role="region"
+                  [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.RawJsonAria' | translate: { page: pageNumber }"
+                >
+                  <ngx-json-viewer [json]="rawPage" [depth]="3" />
+                </div>
+              } @else if (isRawPageLoading(pageNumber)) {
+                <xp-spin class="flex min-h-40 items-center justify-center" />
+              } @else {
+                <div class="result-page-empty">
+                  {{ 'XP.Knowledgebase.AnalysisPreview.RawJsonScrollHint' | translate }}
+                </div>
+              }
+            } @else if (tab() === 'markdown') {
+              @for (block of analysisPage.blocks; track block.id) {
+                <article
+                  [id]="'analysis-result-' + pageNumber + '-' + block.id"
+                  class="result-block markdown-block"
+                  [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
+                  (click)="selectBlock(block, pageNumber)"
+                >
+                  <div class="block-label" [attr.data-type]="block.type">
+                    <i [class]="typeLabel(block.type).icon"></i>
+                    {{ typeLabel(block.type).labelKey | translate }}
+                  </div>
+                  @if (block.type === 'image' && block.assetId) {
+                    <xp-knowledge-document-analysis-asset
+                      [documentId]="documentId()"
+                      [assetId]="block.assetId"
+                      [alt]="block.providerType || ('XP.Knowledgebase.AnalysisPreview.ParsedImage' | translate)"
+                    />
+                  }
+                  <markdown class="xp-copilot-markdown block" [data]="block.markdown" />
+                </article>
+              } @empty {
+                <markdown class="xp-copilot-markdown result-page-markdown" [data]="analysisPage.markdown" />
+              }
+            } @else {
+              @for (block of filteredBlocksForPage(pageNumber); track block.id) {
+                <article
+                  [id]="'analysis-result-' + pageNumber + '-' + block.id"
+                  class="result-block"
+                  [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
+                  (click)="selectBlock(block, pageNumber)"
+                >
+                  <header class="flex items-center justify-between gap-3">
+                    <div class="block-label" [attr.data-type]="block.type">
+                      <i [class]="typeLabel(block.type).icon"></i>
+                      {{ typeLabel(block.type).labelKey | translate }}
+                      @if (block.providerType) {
+                        <span>· {{ block.providerType }}</span>
+                      }
+                    </div>
+                    <span class="text-xs text-text-quaternary">#{{ block.order + 1 }}</span>
+                  </header>
+                  @if (block.type === 'image' && block.assetId) {
+                    <xp-knowledge-document-analysis-asset
+                      class="mt-3 block"
+                      [documentId]="documentId()"
+                      [assetId]="block.assetId"
+                      [alt]="block.providerType || ('XP.Knowledgebase.AnalysisPreview.ParsedImage' | translate)"
+                    />
+                  }
+                  <markdown class="xp-copilot-markdown mt-3 block" [data]="block.markdown" />
+                  @if (tab() === 'structure' && block.bounds; as bounds) {
+                    <div class="mt-3 font-mono text-xs text-text-quaternary">
+                      x={{ bounds.x }}, y={{ bounds.y }}, w={{ bounds.width }}, h={{ bounds.height }}
+                    </div>
+                  }
+                </article>
+              } @empty {
+                <div class="result-page-empty">
+                  {{ 'XP.Knowledgebase.AnalysisPreview.NoElements' | translate }}
+                </div>
+              }
+            }
+          } @else if (isPageLoading(pageNumber)) {
+            <xp-spin class="flex min-h-48 items-center justify-center" />
+          } @else if (pageErrorFor(pageNumber); as error) {
+            <div class="result-page-empty text-text-destructive">
+              <i class="ri-error-warning-line"></i>
+              {{ error }}
+            </div>
+          } @else {
+            <div class="result-page-empty">
+              {{ 'XP.Knowledgebase.AnalysisPreview.AnalysisScrollHint' | translate }}
+            </div>
+          }
+        </section>
+      }
+    </div>
+  </section>
+</div>

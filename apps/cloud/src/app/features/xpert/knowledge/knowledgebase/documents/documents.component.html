@@ -1,525 +1,845 @@
-<div class="flex flex-col justify-center gap-1 px-6 pt-4">
-  @if (parentId()) {
-    <nav class="flex" aria-label="Breadcrumb">
-      <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
-        <li class="inline-flex items-center">
-          <a
-            class="inline-flex items-center font-medium cursor-pointer text-text-secondary hover:text-text-accent"
-            (click)="backHome()"
-          >
-            <i class="ri-home-2-line"></i>
-            {{ 'XP.Knowledgebase.Root' | translate: { Default: 'Root' } }}
-          </a>
-        </li>
-        @if (grandParent(); as grand) {
-          <li>
-            <div class="flex items-center">
-              <i class="ri-arrow-right-s-line text-lg text-text-quaternary mx-1"></i>
-              <i class="ri-folder-2-line text-text-quaternary"></i>
-              <a
-                [routerLink]="['.']"
-                [queryParams]="{ parentId: grand.id }"
-                class="ms-1 font-medium text-text-secondary hover:text-text-accent md:ms-2"
-              >
-                {{ grand.name }}
-              </a>
-            </div>
-          </li>
-        }
-        <li aria-current="page">
-          <div class="flex items-center">
-            <i class="ri-arrow-right-s-line text-lg text-text-quaternary mx-1"></i>
-            <i class="ri-folder-2-line text-text-quaternary"></i>
-            <span class="ms-1 font-medium text-text-tertiary md:ms-2">
-              {{ parentFolder()?.name }}
-            </span>
-          </div>
-        </li>
-      </ol>
-    </nav>
-  } @else {
-    <h1 class="text-lg font-semibold text-text-primary">
-      {{ 'XP.Knowledgebase.Files' | translate: { Default: 'Files' } }}
-    </h1>
-  }
-  <div class="flex items-center space-x-0.5 text-sm font-normal text-text-tertiary">
-    <span>
-      {{
-        'XP.Knowledgebase.DocumentsDescription'
-          | translate
-            : {
-                Default:
-                  'All files in the knowledge base are displayed here, and the entire knowledge base can be applied to the digital expert agent or project space.'
-              }
-      }}
-    </span>
-    <a class="flex items-center text-text-accent" target="_blank" [href]="helpUrl()">
-      <span>{{ 'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}</span>
-      <i class="ri-corner-right-up-line"></i>
-    </a>
-    @if (knowledgebase()?.graphRag?.enabled) {
-      <span class="mx-2 h-3 w-px bg-divider-regular"></span>
-      <span class="inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs">
-        <i class="ri-node-tree"></i>
-        @switch (knowledgebase()?.graphStatus) {
-          @case (eKnowledgeGraphStatus.INDEXING) {
-            <span class="text-text-accent">
-              {{ 'XP.Knowledgebase.GraphStatus_Indexing' | translate: { Default: 'Graph indexing' } }}
-            </span>
-          }
-          @case (eKnowledgeGraphStatus.READY) {
-            <span class="text-text-success">
-              {{ 'XP.Knowledgebase.GraphStatus_Ready' | translate: { Default: 'Graph ready' } }}
-            </span>
-          }
-          @case (eKnowledgeGraphStatus.FAILED) {
-            <span class="text-text-danger" [zTooltip]="knowledgebase()?.graphIndexError" zPosition="top">
-              {{ 'XP.Knowledgebase.GraphStatus_Failed' | translate: { Default: 'Graph failed' } }}
-            </span>
-          }
-          @case (eKnowledgeGraphStatus.REBUILD_REQUIRED) {
-            <span class="text-text-warning">
-              {{ 'XP.Knowledgebase.GraphStatus_RebuildRequired' | translate: { Default: 'Graph rebuild required' } }}
-            </span>
-          }
-          @default {
-            <span>
-              {{ 'XP.Knowledgebase.GraphStatus_Pending' | translate: { Default: 'Graph pending' } }}
-            </span>
-          }
-        }
-      </span>
-    }
-  </div>
-</div>
-
-<div
-  class="flex items-center justify-between flex-column md:flex-row flex-wrap space-y-4 md:space-y-0 p-4 bg-components-card-bg"
->
-  <div class="relative w-[160px]">
-    <i
-      class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
-    ></i>
-    <input
-      class="xp-input w-full pl-[26px]"
-      [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-      [(ngModel)]="search"
-    />
-    @if (search()) {
-      <i
-        class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
-        (click)="search.set('')"
-      ></i>
-    }
-  </div>
-
-  <div class="flex items-center gap-4">
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
-      [cdkMenuTriggerFor]="columnsMenu"
-    >
-      <i class="ri-layout-column-line mr-1"></i>
-      {{ 'XP.KEY_WORDS.Columns' | translate: { Default: 'Columns' } }}
-    </button>
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
-      [cdkMenuTriggerFor]="metadataTemplate"
-      #ref="cdkMenuTriggerFor"
-      [cdkMenuTriggerData]="{ ref: ref }"
-    >
-      <i class="ri-file-info-line mr-1"></i>
-      {{ 'XP.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
-    </button>
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-primary btn-large flex justify-center items-center gap-2"
-      [zTooltip]="'XP.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' }"
-      zPosition="left"
-      [disabled]="vectorMutationLocked()"
-      [cdkMenuTriggerFor]="docMenu"
-    >
-      <i class="ri-folder-shared-fill"></i>
-      <span>{{ 'XP.Knowledgebase.NewUpload' | translate: { Default: 'New / Upload' } }}</span>
-    </button>
-  </div>
-</div>
-<div class="relative px-4 overflow-auto">
-  <table class="table-fixed w-full text-sm text-left text-text-tertiary" [style.min-width.px]="tableMinWidth()">
-    <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle">
-      <tr>
-        <th scope="col" class="px-6 py-3 whitespace-nowrap" [style.width.px]="selectColumnWidth">
-          <xp-checkbox
-            class="shrink-0"
-            [indeterminate]="isPartialSelected()"
-            [ngModel]="isAllSelected()"
-            (ngModelChange)="selectAll($event)"
-            >#</xp-checkbox
-          >
-        </th>
-        @for (column of visibleDocumentColumns(); track column.key) {
-          <th
-            #headerCell
-            scope="col"
-            class="group relative px-6 py-3 whitespace-nowrap"
-            [style.width.px]="column.width"
-            [style.min-width.px]="column.minWidth"
-          >
-            <button
-              type="button"
-              class="flex min-w-0 items-center gap-1 text-left"
-              [class.cursor-pointer]="column.sortable"
-              [class.cursor-default]="!column.sortable"
-              (click)="toggleSort(column)"
-            >
-              <span class="truncate">
-                {{ column.labelKey | translate: { Default: column.defaultLabel } }}
-              </span>
-              @if (column.sortable) {
-                @switch (sortDirection(column)) {
-                  @case ('asc') {
-                    <i class="ri-sort-asc text-text-accent"></i>
-                  }
-                  @case ('desc') {
-                    <i class="ri-sort-desc text-text-accent"></i>
-                  }
-                  @default {
-                    <i class="ri-arrow-up-down-line text-text-tertiary opacity-0 group-hover:opacity-100"></i>
-                  }
-                }
-              }
-            </button>
-            @if (column.resizable) {
-              <button
-                type="button"
-                class="absolute inset-y-0 right-0 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100"
-                [attr.aria-label]="
-                  ('XP.Knowledgebase.ResizeColumn' | translate: { Default: 'Resize column' }) +
-                  ': ' +
-                  (column.labelKey | translate: { Default: column.defaultLabel })
-                "
-                tabindex="-1"
-                (mousedown)="startColumnResize($event, column, headerCell)"
-                (click)="$event.preventDefault(); $event.stopPropagation()"
-              >
-                <span class="pointer-events-none h-6 w-px bg-divider-deep"></span>
+<div class="flex h-full min-w-0 flex-1 overflow-hidden bg-muted/20 p-3">
+  <section class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background">
+    <div class="shrink-0 border-b border-border px-4 py-3">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          @if (parentId()) {
+            <div class="flex items-center gap-1.5 text-sm text-text-secondary">
+              <button z-button zType="ghost" zSize="xs" (click)="backHome()">
+                <z-icon zType="home" />
+                {{ 'XP.Knowledgebase.Root' | translate: { Default: 'Root' } }}
               </button>
-            }
-          </th>
-        }
-        <th scope="col" class="px-6 py-3 whitespace-nowrap" [style.width.px]="actionsColumnWidth">
-          {{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
-        </th>
-      </tr>
-    </thead>
+              @if (grandParent(); as grand) {
+                <z-icon zType="chevron-right" class="size-3.5 text-text-tertiary" />
+                <a [routerLink]="['.']" [queryParams]="{ parentId: grand.id }" class="hover:text-text-primary">
+                  {{ grand.name }}
+                </a>
+              }
+              <z-icon zType="chevron-right" class="size-3.5 text-text-tertiary" />
+              <span class="truncate text-text-primary">{{ parentFolder()?.name }}</span>
+            </div>
+          } @else {
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-semibold text-text-primary">
+                {{ 'XP.Knowledgebase.Files' | translate: { Default: 'Files' } }}
+              </h1>
+              <z-badge zType="outline" zShape="pill">{{ total() }}</z-badge>
+            </div>
+          }
+          <p class="mt-0.5 max-w-2xl truncate text-xs text-text-tertiary">
+            {{
+              'XP.Knowledgebase.DocumentsCompactDescription'
+                | translate: { Default: 'Manage source files, processing status, and search availability.' }
+            }}
+          </p>
+        </div>
 
-    <tbody>
-      @for (element of filteredData(); track element.id; let i = $index) {
-        <tr class="bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg">
-          <td class="px-6 py-2" [style.width.px]="selectColumnWidth">
-            <xp-checkbox
-              class="shrink-0"
-              [disabled]="element.sourceType === eKDocumentSourceType.FOLDER"
-              [ngModel]="selectionModel.isSelected(element.id)"
-              (ngModelChange)="selectionModel.toggle(element.id)"
-            >
-              {{ i + 1 }}
-            </xp-checkbox>
-          </td>
+        <div class="flex shrink-0 items-center gap-1.5">
+          <button z-button zType="outline" [cdkMenuTriggerFor]="columnsMenu">
+            <z-icon zType="table_view" />
+            {{ 'XP.KEY_WORDS.Columns' | translate: { Default: 'Columns' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            [cdkMenuTriggerFor]="metadataTemplate"
+            #ref="cdkMenuTriggerFor"
+            [cdkMenuTriggerData]="{ ref: ref }"
+          >
+            <z-icon zType="info" />
+            {{ 'XP.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
+          </button>
+          <button z-button zType="default" [zDisabled]="vectorMutationLocked()" [cdkMenuTriggerFor]="docMenu">
+            <z-icon zType="folder-plus" />
+            {{ 'XP.Knowledgebase.NewUpload' | translate: { Default: 'New / Upload' } }}
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <ng-template #searchIcon><z-icon zType="search" class="size-4 text-text-tertiary" /></ng-template>
+        <z-input-group class="min-w-[240px] flex-1 xl:max-w-[400px]" [zAddonBefore]="searchIcon">
+          <input
+            z-input
+            type="search"
+            [placeholder]="'XP.Knowledgebase.SearchDocuments' | translate: { Default: 'Search documents' }"
+            [(ngModel)]="search"
+          />
+        </z-input-group>
+
+        <div class="flex items-center gap-1 rounded-md bg-muted p-1">
+          <button z-button [zType]="statusFilter() === 'all' ? 'secondary' : 'ghost'" (click)="setStatusFilter('all')">
+            {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
+          </button>
+          <button
+            z-button
+            [zType]="statusFilter() === 'errors' ? 'secondary' : 'ghost'"
+            (click)="setStatusFilter('errors')"
+          >
+            {{ 'XP.Knowledgebase.Errors' | translate: { Default: 'Errors' } }}
+            @if (errorCount()) {
+              <span class="text-text-destructive">{{ errorCount() }}</span>
+            }
+          </button>
+          <button
+            z-button
+            [zType]="statusFilter() === 'processing' ? 'secondary' : 'ghost'"
+            (click)="setStatusFilter('processing')"
+          >
+            {{ 'XP.Knowledgebase.Processing' | translate: { Default: 'Processing' } }}
+            @if (processingCount()) {
+              <span>{{ processingCount() }}</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative min-h-0 flex-1 overflow-auto">
+      <table z-table zSize="compact" class="w-full table-fixed text-sm" [style.min-width.px]="tableMinWidth()">
+        <colgroup>
+          <col [style.width.px]="selectColumnWidth" />
           @for (column of visibleDocumentColumns(); track column.key) {
-            <td class="px-6 py-2" [style.width.px]="column.width" [style.min-width.px]="column.minWidth">
-              @switch (column.key) {
-                @case ('name') {
-                  @if (element.sourceType === eKDocumentSourceType.FOLDER) {
-                    <a [routerLink]="['.']" [queryParams]="{ parentId: element.id }" class="hover:underline">
-                      <knowledge-doc-id [doc]="element" [searchText]="search()" />
-                    </a>
-                  } @else {
-                    <a
-                      [routerLink]="['.', element.id]"
-                      [queryParams]="{ parentId: parentId() }"
-                      class="cursor-pointer hover:underline"
-                    >
-                      <knowledge-doc-id [doc]="element" [searchText]="search()" />
-                    </a>
-                  }
+            <col [style.width.px]="column.width" />
+          }
+          <col [style.width.px]="actionsColumnWidth" />
+        </colgroup>
+        <thead z-table-header>
+          <tr z-table-row class="border-b bg-muted/40 hover:bg-muted/40">
+            <th z-table-head class="sticky top-0 z-10 bg-background" [style.width.px]="selectColumnWidth">
+              <z-checkbox
+                displayDensity="compact"
+                [indeterminate]="isPartialSelected()"
+                [ngModel]="isAllSelected()"
+                (checkChange)="selectAll($event)"
+              >
+                <span class="sr-only">{{ 'XP.KEY_WORDS.SelectAll' | translate: { Default: 'Select all' } }}</span>
+              </z-checkbox>
+            </th>
+            @for (column of visibleDocumentColumns(); track column.key) {
+              <th
+                z-table-head
+                scope="col"
+                class="group sticky top-0 z-10 bg-background"
+                [style.width.px]="column.width"
+                [style.min-width.px]="column.minWidth"
+              >
+                <button
+                  z-table-sort-header
+                  [zDirection]="sortDirection(column)"
+                  [zDisabled]="!column.sortable"
+                  (zSortChange)="toggleSort(column)"
+                >
+                  {{ column.labelKey | translate: { Default: column.defaultLabel } }}
+                </button>
+                @if (column.resizable) {
+                  <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    [attr.aria-label]="
+                      ('XP.Knowledgebase.ResizeColumn' | translate: { Default: 'Resize column' }) +
+                      ': ' +
+                      (column.labelKey | translate: { Default: column.defaultLabel })
+                    "
+                    tabindex="-1"
+                    (mousedown)="startColumnResize($event, column)"
+                    (click)="$event.preventDefault(); $event.stopPropagation()"
+                  >
+                    <span class="pointer-events-none h-6 w-px bg-divider-deep"></span>
+                  </button>
                 }
-                @case ('disabled') {
-                  <div class="flex items-center text-sm">
-                    <z-switch
-                      [ngModel]="!element.disabled"
-                      zSize="sm"
-                      (ngModelChange)="updateDocument(element.id, { disabled: !$event })"
-                    />
-                  </div>
-                }
-                @case ('processMsg') {
-                  <div class="max-w-full truncate text-sm text-text-danger" [title]="element.processMsg">
-                    {{ element.processMsg }}
-                  </div>
-                }
-                @case ('progress') {
-                  @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-                    <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
-                      @switch (knowledgebase()?.status) {
-                        @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
-                          <xp-tags
-                            class="text-sm"
-                            [tags]="[
-                              {
-                                caption:
-                                  'XP.Knowledgebase.Status_RebuildRequired'
-                                  | translate: { Default: 'Pending vector rebuild' }
-                              }
-                            ]"
-                            color="orange"
-                          />
-                        }
-                        @case (eKnowledgebaseStatusEnum.REBUILDING) {
-                          <xp-tags
-                            class="text-sm"
-                            [tags]="[
-                              {
-                                caption:
-                                  'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
-                              }
-                            ]"
-                            color="blue"
-                          />
-                        }
-                        @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
-                          <xp-tags
-                            class="text-sm"
-                            [zTooltip]="knowledgebase()?.embeddingRebuildError"
-                            zPosition="left"
-                            [tags]="[
-                              {
-                                caption:
-                                  'XP.Knowledgebase.Status_RebuildFailed'
-                                  | translate: { Default: 'Vector rebuild failed' }
-                              }
-                            ]"
-                            color="red"
-                          />
-                        }
-                        @default {
-                          @switch (element.status) {
-                            @case (eKBDocumentStatusEnum.RUNNING) {
-                              <xp-tags
-                                class="text-sm"
-                                [tags]="[
-                                  { caption: 'XP.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
-                                ]"
-                                color="blue"
-                              />
-                            }
-                            @case (eKBDocumentStatusEnum.FINISH) {
-                              <xp-tags
-                                class="text-sm"
-                                [tags]="[
-                                  { caption: 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
-                                ]"
-                                color="green"
-                              />
-                            }
-                            @case (eKBDocumentStatusEnum.ERROR) {
-                              <xp-tags
-                                class="text-sm"
-                                [zTooltip]="element.processMsg"
-                                zPosition="left"
-                                [tags]="[
-                                  { caption: 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }
-                                ]"
-                                color="red"
-                              />
-                            }
-                            @case (eKBDocumentStatusEnum.WAITING) {
-                              <xp-tags
-                                class="text-sm"
-                                [tags]="[
-                                  { caption: 'XP.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
-                                ]"
-                                color="orange"
-                              />
-                            }
-                            @case (eKBDocumentStatusEnum.TRANSFORMED) {
+              </th>
+            }
+            <th z-table-head class="sticky top-0 z-10 bg-background text-right" [style.width.px]="actionsColumnWidth">
+              {{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
+            </th>
+          </tr>
+        </thead>
+
+        <tbody z-table-body>
+          @for (element of filteredData(); track element.id; let i = $index) {
+            <tr
+              z-table-row
+              class="cursor-pointer bg-background"
+              [attr.data-state]="selectedDocumentId() === element.id ? 'selected' : null"
+              (click)="selectDocument(element)"
+            >
+              <td z-table-cell [style.width.px]="selectColumnWidth" (click)="$event.stopPropagation()">
+                <z-checkbox
+                  displayDensity="compact"
+                  [zDisabled]="element.sourceType === eKDocumentSourceType.FOLDER"
+                  [ngModel]="selectionModel.isSelected(element.id)"
+                  (checkChange)="selectionModel.toggle(element.id)"
+                >
+                  <span class="sr-only">{{ i + 1 }}</span>
+                </z-checkbox>
+              </td>
+              @for (column of visibleDocumentColumns(); track column.key) {
+                <td
+                  z-table-cell
+                  class="overflow-hidden whitespace-nowrap"
+                  [style.width.px]="column.width"
+                  [style.min-width.px]="column.minWidth"
+                >
+                  @switch (column.key) {
+                    @case ('name') {
+                      @if (element.sourceType === eKDocumentSourceType.FOLDER) {
+                        <a [routerLink]="['.']" [queryParams]="{ parentId: element.id }" class="hover:underline">
+                          <knowledge-doc-id [doc]="element" [searchText]="search()" />
+                        </a>
+                      } @else {
+                        <a
+                          [routerLink]="['.', element.id]"
+                          [queryParams]="{ parentId: parentId() }"
+                          class="cursor-pointer hover:underline"
+                          (click)="$event.stopPropagation()"
+                        >
+                          <knowledge-doc-id [doc]="element" [searchText]="search()" />
+                        </a>
+                      }
+                    }
+                    @case ('disabled') {
+                      <div class="flex items-center text-sm">
+                        <z-switch
+                          [ngModel]="!element.disabled"
+                          zSize="sm"
+                          (ngModelChange)="updateDocument(element.id, { disabled: !$event })"
+                        />
+                      </div>
+                    }
+                    @case ('processMsg') {
+                      <div class="max-w-full truncate text-sm text-text-danger" [title]="element.processMsg">
+                        {{ element.processMsg }}
+                      </div>
+                    }
+                    @case ('progress') {
+                      @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
+                        <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
+                          @switch (knowledgebase()?.status) {
+                            @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                               <xp-tags
                                 class="text-sm"
                                 [tags]="[
                                   {
                                     caption:
-                                      'XP.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
+                                      'XP.Knowledgebase.Status_RebuildRequired'
+                                      | translate: { Default: 'Pending vector rebuild' }
                                   }
                                 ]"
                                 color="orange"
                               />
                             }
-                            @case (eKBDocumentStatusEnum.SPLITTED) {
+                            @case (eKnowledgebaseStatusEnum.REBUILDING) {
                               <xp-tags
                                 class="text-sm"
                                 [tags]="[
                                   {
-                                    caption: 'XP.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' }
+                                    caption:
+                                      'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
                                   }
                                 ]"
-                                color="orange"
+                                color="blue"
                               />
                             }
-                            @case (eKBDocumentStatusEnum.UNDERSTOOD) {
+                            @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
                               <xp-tags
                                 class="text-sm"
+                                [zTooltip]="knowledgebase()?.embeddingRebuildError"
+                                zPosition="left"
                                 [tags]="[
                                   {
-                                    caption: 'XP.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                                    caption:
+                                      'XP.Knowledgebase.Status_RebuildFailed'
+                                      | translate: { Default: 'Vector rebuild failed' }
                                   }
                                 ]"
-                                color="orange"
+                                color="red"
                               />
-                            }
-                            @case (eKBDocumentStatusEnum.EMBEDDING) {
-                              <div class="flex items-center gap-1">
-                                <xp-progress-spinner
-                                  class="w-6 h-6 shrink-0 text-text-success"
-                                  [value]="element.progress"
-                                />
-                                <span>{{ element.progress }}%</span>
-                              </div>
                             }
                             @default {
-                              <xp-tags
-                                class="text-sm"
-                                [tags]="[
-                                  {
-                                    caption: 'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' }
-                                  }
-                                ]"
-                                color="gray"
-                              />
+                              @switch (element.status) {
+                                @case (eKBDocumentStatusEnum.RUNNING) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      { caption: 'XP.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
+                                    ]"
+                                    color="blue"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.FINISH) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      { caption: 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
+                                    ]"
+                                    color="green"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.ERROR) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [zTooltip]="element.processMsg"
+                                    zPosition="left"
+                                    [tags]="[
+                                      { caption: 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }
+                                    ]"
+                                    color="red"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.WAITING) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      { caption: 'XP.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
+                                    ]"
+                                    color="orange"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.TRANSFORMED) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      {
+                                        caption:
+                                          'XP.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
+                                      }
+                                    ]"
+                                    color="orange"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.SPLITTED) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      {
+                                        caption: 'XP.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' }
+                                      }
+                                    ]"
+                                    color="orange"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.UNDERSTOOD) {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      {
+                                        caption:
+                                          'XP.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                                      }
+                                    ]"
+                                    color="orange"
+                                  />
+                                }
+                                @case (eKBDocumentStatusEnum.EMBEDDING) {
+                                  <div class="flex items-center gap-1">
+                                    <xp-progress-spinner
+                                      class="w-6 h-6 shrink-0 text-text-success"
+                                      [value]="element.progress"
+                                    />
+                                    <span>{{ element.progress }}%</span>
+                                  </div>
+                                }
+                                @default {
+                                  <xp-tags
+                                    class="text-sm"
+                                    [tags]="[
+                                      {
+                                        caption:
+                                          'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' }
+                                      }
+                                    ]"
+                                    color="gray"
+                                  />
+                                }
+                              }
                             }
                           }
-                        }
-                      }
-                      @if (graphJobStatus(element.id); as graphJob) {
-                        <div
-                          class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
-                        >
-                          <i class="ri-node-tree"></i>
-                          @switch (graphJob.status) {
-                            @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
-                              <span>
-                                {{ 'XP.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}
-                              </span>
-                            }
-                            @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
-                              <span class="text-text-accent">
-                                {{ 'XP.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
-                              </span>
-                            }
-                            @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
-                              <span class="text-text-success">
-                                {{ 'XP.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
-                              </span>
-                            }
-                            @case (eKnowledgeGraphIndexJobStatus.FAILED) {
-                              <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
-                                {{ 'XP.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
-                              </span>
-                            }
+                          @if (graphJobStatus(element.id); as graphJob) {
+                            <div
+                              class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
+                            >
+                              <i class="ri-node-tree"></i>
+                              @switch (graphJob.status) {
+                                @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
+                                  <span>
+                                    {{ 'XP.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}
+                                  </span>
+                                }
+                                @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
+                                  <span class="text-text-accent">
+                                    {{ 'XP.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
+                                  </span>
+                                }
+                                @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
+                                  <span class="text-text-success">
+                                    {{ 'XP.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
+                                  </span>
+                                }
+                                @case (eKnowledgeGraphIndexJobStatus.FAILED) {
+                                  <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
+                                    {{ 'XP.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
+                                  </span>
+                                }
+                              }
+                            </div>
                           }
                         </div>
                       }
-                    </div>
+                    }
+                    @default {
+                      {{ getValue(element, column.key) }}
+                    }
                   }
-                }
-                @default {
-                  {{ getValue(element, column.key) }}
-                }
+                </td>
               }
-            </td>
-          }
-          <td class="px-6 py-2" [style.width.px]="actionsColumnWidth">
-            <div class="flex items-center gap-1">
-              @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-                <button
-                  class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-hover-bg"
-                  [disabled]="vectorMutationLocked()"
-                  (click)="openChunkSettings(element)"
-                >
-                  <i class="ri-equalizer-2-line"></i>
-                </button>
-                <div class="shrink-0 w-[1px] mx-1 bg-divider-deep !h-3"></div>
-              }
-              <button
-                class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-hover-bg"
-                type="button"
-                [cdkMenuTriggerFor]="rowMenu"
-                [cdkMenuTriggerData]="{ doc: element }"
+              <td
+                z-table-cell
+                class="text-right"
+                [style.width.px]="actionsColumnWidth"
+                (click)="$event.stopPropagation()"
               >
-                <i class="ri-more-fill"></i>
-              </button>
+                <div class="flex items-center justify-end gap-0.5">
+                  @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
+                    @if (canViewOriginalFile(element)) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon-sm"
+                        type="button"
+                        [zDisabled]="isOriginalFileViewing(element.id)"
+                        [attr.aria-label]="
+                          'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' }
+                        "
+                        [zTooltip]="'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' }"
+                        zPosition="left"
+                        (click)="viewOriginalFile(element, $event)"
+                      >
+                        <i
+                          [class]="isOriginalFileViewing(element.id) ? 'ri-loader-4-line animate-spin' : 'ri-eye-line'"
+                        ></i>
+                      </button>
+                    }
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon-sm"
+                      [zDisabled]="vectorMutationLocked()"
+                      (click)="openChunkSettings(element)"
+                    >
+                      <i class="ri-equalizer-2-line"></i>
+                    </button>
+                  }
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon-sm"
+                    type="button"
+                    [cdkMenuTriggerFor]="rowMenu"
+                    [cdkMenuTriggerData]="{ doc: element }"
+                  >
+                    <i class="ri-more-fill"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside
+    class="ml-3 hidden w-[440px] shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-background xl:flex"
+  >
+    @if (selectedDocument(); as document) {
+      <header class="border-b border-border px-5 pb-5 pt-3">
+        <div class="flex items-center gap-2">
+          @switch (document.status) {
+            @case (eKBDocumentStatusEnum.FINISH) {
+              <z-badge
+                zType="outline"
+                zShape="pill"
+                class="border-text-success/30 bg-text-success/10 text-text-success"
+              >
+                <z-icon zType="circle" class="mr-1 inline size-2 fill-current" />
+                {{ 'XP.Knowledgebase.ParsingComplete' | translate: { Default: 'Parsing complete' } }}
+              </z-badge>
+            }
+            @case (eKBDocumentStatusEnum.ERROR) {
+              <z-badge zType="destructive" zShape="pill">
+                <z-icon zType="circle" class="mr-1 inline size-2 fill-current" />
+                {{ 'XP.Knowledgebase.ParsingFailed' | translate: { Default: 'Parsing failed' } }}
+              </z-badge>
+            }
+            @default {
+              <z-badge [zType]="isProcessing(document.status) ? 'secondary' : 'outline'" zShape="pill">
+                @if (isProcessing(document.status)) {
+                  <z-icon zType="loader-circle" class="mr-1 inline size-3.5 animate-spin" />
+                }
+                {{
+                  documentStatusLabelKey(document.status)
+                    | translate: { Default: documentStatusDefaultLabel(document.status) }
+                }}
+              </z-badge>
+            }
+          }
+
+          <span class="flex-1"></span>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            type="button"
+            [attr.aria-label]="'XP.Knowledgebase.CloseInspector' | translate: { Default: 'Close details' }"
+            (click)="closeDocumentInspector()"
+          >
+            <z-icon zType="x" />
+          </button>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            type="button"
+            [attr.aria-label]="'XP.Knowledgebase.MoreActions' | translate: { Default: 'More actions' }"
+            [cdkMenuTriggerFor]="rowMenu"
+            [cdkMenuTriggerData]="{ doc: document }"
+          >
+            <z-icon zType="ellipsis" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="mt-3 block w-full truncate text-left text-xl font-semibold tracking-tight text-text-primary hover:underline"
+          (click)="openDocument(document, hasAnalysisPreview(document) ? 'analysis' : 'chunks')"
+        >
+          {{ document.name }}
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto p-5">
+        <section class="grid grid-cols-[8rem_minmax(0,1fr)] gap-5">
+          @if (selectedPdfPreviewSource(); as previewSource) {
+            <button
+              type="button"
+              class="group relative isolate block h-44 w-32 cursor-pointer overflow-hidden rounded-xl border border-border bg-muted/30 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              [attr.aria-label]="
+                'XP.Knowledgebase.OpenDocumentDetails' | translate: { Default: 'Open document details' }
+              "
+              (click)="openDocument(document, hasAnalysisPreview(document) ? 'analysis' : 'chunks')"
+            >
+              <xp-knowledge-document-cover-preview
+                class="block h-full w-full"
+                [source]="previewSource"
+                [fileName]="document.name"
+              />
+              <span
+                class="pointer-events-none absolute -inset-x-px -bottom-px flex translate-y-full items-center justify-center gap-1 rounded-b-xl border-t border-border bg-background px-2 py-1.5 text-xs font-medium text-text-primary transition-transform duration-150 ease-out group-hover:translate-y-0 group-focus-visible:translate-y-0"
+              >
+                <z-icon zType="fullscreen" class="size-3.5" />
+                {{ 'XP.Knowledgebase.OpenDocumentDetails' | translate: { Default: 'Open details' } }}
+              </span>
+            </button>
+          } @else {
+            <div
+              class="flex h-44 w-32 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 p-3 text-center"
+            >
+              <z-icon zType="document_scanner" class="size-7 text-text-tertiary" />
+              <p class="mt-2 text-xs leading-5 text-text-tertiary">
+                {{ 'XP.Knowledgebase.CoverUnavailable' | translate: { Default: 'Cover unavailable.' } }}
+              </p>
             </div>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
+          }
+
+          <dl class="min-w-0 space-y-4 pt-1 text-sm">
+            @if (document.processMsg) {
+              <div class="grid grid-cols-[5rem_minmax(0,1fr)] items-start gap-2">
+                <dt class="text-text-tertiary">
+                  {{ 'XP.Knowledgebase.FailureReason' | translate: { Default: 'Failure reason' } }}
+                </dt>
+                <dd
+                  class="line-clamp-4 break-words font-medium leading-5 text-text-destructive"
+                  [title]="document.processMsg"
+                >
+                  {{ selectedDocumentFailureReason(document) }}
+                </dd>
+              </div>
+            } @else {
+              <div class="grid grid-cols-[5rem_minmax(0,1fr)] items-start gap-2">
+                <dt class="text-text-tertiary">
+                  {{ 'XP.Knowledgebase.ProcessingResult' | translate: { Default: 'Result' } }}
+                </dt>
+                <dd class="font-medium text-text-primary">
+                  {{
+                    documentStatusLabelKey(document.status)
+                      | translate: { Default: documentStatusDefaultLabel(document.status) }
+                  }}
+                </dd>
+              </div>
+            }
+            <div class="grid grid-cols-[5rem_minmax(0,1fr)] items-start gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.ParsingEngine' | translate: { Default: 'Parser' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary" [title]="selectedDocumentProvider(document)">
+                {{ selectedDocumentProvider(document) || '-' }}
+              </dd>
+            </div>
+            <div class="grid grid-cols-[5rem_minmax(0,1fr)] items-start gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.LastRun' | translate: { Default: 'Last run' } }}
+              </dt>
+              <dd class="font-medium tabular-nums text-text-primary">
+                {{ selectedDocumentLastRun(document) }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="mt-6 grid grid-cols-3 gap-2.5">
+          <button
+            z-button
+            zType="default"
+            zSize="lg"
+            class="w-full"
+            [zDisabled]="vectorMutationLocked()"
+            (click)="reprocess([document.id])"
+          >
+            <z-icon zType="autorenew" />
+            {{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            zSize="lg"
+            class="w-full"
+            [zDisabled]="!canViewOriginalFile(document) || isOriginalFileViewing(document.id)"
+            (click)="viewOriginalFile(document)"
+          >
+            <z-icon zType="open_in_new" />
+            {{ 'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'Original' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            zSize="lg"
+            class="w-full"
+            [zDisabled]="vectorMutationLocked()"
+            (click)="openChunkSettings(document)"
+          >
+            <z-icon zType="tune" />
+            {{ 'XP.Knowledgebase.ModifyProcessingSettings' | translate: { Default: 'Settings' } }}
+          </button>
+        </section>
+
+        <section class="mt-6 border-t border-border pt-5">
+          <h2 class="text-base font-semibold text-text-primary">
+            {{ 'XP.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing progress' } }}
+          </h2>
+          <z-stepper
+            orientation="horizontal"
+            [class]="
+              document.status === eKBDocumentStatusEnum.ERROR
+                ? 'mt-4 pointer-events-none [&_[role=tabpanel]]:hidden! [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:border-text-success/30 [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:bg-text-success [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:text-primary-foreground [&_.z-stepper__item:nth-child(1)_.z-stepper__indicator]:border-text-destructive [&_.z-stepper__item:nth-child(1)_.z-stepper__indicator]:bg-text-destructive [&_.z-stepper__item:nth-child(1)_.z-stepper__indicator]:text-primary-foreground'
+                : 'mt-4 pointer-events-none [&_[role=tabpanel]]:hidden! [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:border-text-success/30 [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:bg-text-success [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:text-primary-foreground'
+            "
+            [selectedIndex]="processStageIndex(document)"
+          >
+            @for (
+              stage of [
+                { key: 'transform', labelKey: 'XP.Knowledgebase.TransformStage', defaultLabel: 'Convert' },
+                { key: 'split', labelKey: 'XP.Knowledgebase.SplitStage', defaultLabel: 'Chunk' },
+                { key: 'index', labelKey: 'XP.Knowledgebase.IndexStage', defaultLabel: 'Index' }
+              ];
+              track stage.key
+            ) {
+              <z-step [completed]="processStageState(document, $any(stage.key)) === 'complete'">
+                <ng-template zStepLabel>
+                  <span [class.text-text-destructive]="processStageState(document, $any(stage.key)) === 'error'">
+                    @if (processStageState(document, $any(stage.key)) === 'active') {
+                      <z-icon zType="loader-circle" class="mr-1 inline size-4 animate-spin text-text-accent" />
+                    }
+                    {{ stage.labelKey | translate: { Default: stage.defaultLabel } }}
+                  </span>
+                </ng-template>
+              </z-step>
+            }
+          </z-stepper>
+
+          <div class="mt-3 grid grid-cols-3 gap-3">
+            @for (
+              stage of [
+                {
+                  key: 'transform',
+                  descriptionKey: 'XP.Knowledgebase.TransformStageDescription',
+                  defaultDescription: 'Document conversion'
+                },
+                {
+                  key: 'split',
+                  descriptionKey: 'XP.Knowledgebase.SplitStageDescription',
+                  defaultDescription: 'Layout analysis and chunking'
+                },
+                {
+                  key: 'index',
+                  descriptionKey: 'XP.Knowledgebase.IndexStageDescription',
+                  defaultDescription: 'Recognition and indexing'
+                }
+              ];
+              track stage.key
+            ) {
+              <div class="min-w-0 text-center">
+                <p class="truncate text-xs text-text-tertiary">
+                  {{ stage.descriptionKey | translate: { Default: stage.defaultDescription } }}
+                </p>
+                <p
+                  class="mt-2 text-sm font-medium"
+                  [class.text-text-destructive]="processStageState(document, $any(stage.key)) === 'error'"
+                  [class.text-text-success]="processStageState(document, $any(stage.key)) === 'complete'"
+                  [class.text-text-secondary]="
+                    processStageState(document, $any(stage.key)) === 'pending' ||
+                    processStageState(document, $any(stage.key)) === 'active'
+                  "
+                >
+                  {{
+                    processStageStatusLabelKey(processStageState(document, $any(stage.key)))
+                      | translate
+                        : {
+                            Default: processStageStatusDefaultLabel(processStageState(document, $any(stage.key)))
+                          }
+                  }}
+                </p>
+                @if (processStageTimestamp(document, $any(stage.key)); as timestamp) {
+                  <p class="mt-1 text-xs tabular-nums text-text-tertiary">{{ timestamp }}</p>
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="mt-6 border-t border-border pt-5">
+          <h2 class="text-sm font-semibold text-text-primary">
+            {{ 'XP.Knowledgebase.DocumentInformation' | translate: { Default: 'Document information' } }}
+          </h2>
+          <dl class="mt-4 grid grid-cols-2 gap-x-5 gap-y-4 text-sm">
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</dt>
+              <dd class="truncate font-medium text-text-primary">{{ document.type || '-' }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.KEY_WORDS.Language' | translate: { Default: 'Language' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentLanguage(document) }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.FileSize' | translate: { Default: 'File size' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentSize(document) }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.KEY_WORDS.CreatedAt' | translate: { Default: 'Created at' } }}
+              </dt>
+              <dd class="truncate font-medium tabular-nums text-text-primary">
+                {{ selectedDocumentCreatedTimestamp(document) }}
+              </dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.PageCount' | translate: { Default: 'Pages' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentPageCount(document) ?? '-' }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.InspectorDocumentSource' | translate: { Default: 'Source' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentSource(document) }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.MimeType' | translate: { Default: 'MIME type' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary" [title]="selectedDocumentMimeType(document)">
+                {{ selectedDocumentMimeType(document) }}
+              </dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.ChunkCount' | translate: { Default: 'Chunks' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentChunkCount(document) ?? '-' }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.TokenCount' | translate: { Default: 'Tokens' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentTokenCount(document) ?? '-' }}</dd>
+            </div>
+            <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.ProcessingDuration' | translate: { Default: 'Duration' } }}
+              </dt>
+              <dd class="truncate font-medium text-text-primary">{{ selectedDocumentProcessDuration(document) }}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    } @else {
+      <div class="flex h-full flex-col items-center justify-center p-8 text-center text-sm text-text-tertiary">
+        <z-icon zType="document_scanner" class="mb-3 size-6" />
+        {{ 'XP.Knowledgebase.SelectDocumentHint' | translate: { Default: 'Select a document to inspect it.' } }}
+      </div>
+    }
+  </aside>
 </div>
 
 @if (selectionModel.hasValue()) {
-  <div class="absolute bottom-12 left-1/2 -translate-x-1/2 px-16 py-2 whitespace-nowrap z-10">
-    <div
-      class="rounded-xl flex justify-center items-center gap-2 p-2 shadow-lg border-[0.5px] border-solid border-primary-400 bg-primary-50"
-    >
-      <div class="inline-flex items-center gap-x-2 py-1 pl-2 pr-3">
-        <span
-          class="system-xs-medium flex h-5 w-5 items-center justify-center rounded-md bg-text-accent text-components-button-primary-text"
-        >
+  <div class="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap">
+    <div class="flex items-center gap-1.5 rounded-lg border border-border bg-background p-1.5 shadow-lg">
+      <div class="inline-flex items-center gap-2 px-2 text-xs font-medium text-text-secondary">
+        <span class="flex size-5 items-center justify-center rounded bg-primary text-primary-foreground">
           {{ selectionModel.selected.length }}
         </span>
-        <span class="system-sm-semibold text-text-accent">
-          {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
-        </span>
+        {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
       </div>
-      <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
-      <button type="button" class="btn btn-secondary btn-large" (click)="enableSelected()">
-        <i class="ri-checkbox-circle-line mr-1"></i>
+      <div class="mx-1 h-4 w-px bg-border"></div>
+      <button z-button zType="ghost" zSize="sm" (click)="enableSelected()">
+        <z-icon zType="circle-check" />
         {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
       </button>
-      <button type="button" class="btn btn-secondary btn-large" (click)="disableSelected()">
-        <i class="ri-close-circle-line mr-1"></i>
+      <button z-button zType="ghost" zSize="sm" (click)="disableSelected()">
+        <z-icon zType="circle-x" />
         {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
       </button>
       <button
-        type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-large"
-        [disabled]="vectorMutationLocked()"
+        z-button
+        zType="ghost"
+        zSize="sm"
+        [zDisabled]="vectorMutationLocked()"
         (click)="reprocess(selectionModel.selected)"
       >
-        <i class="ri-reset-right-line mr-1"></i>
+        <z-icon zType="autorenew" />
         <span>{{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
       </button>
       <button
-        type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-large"
-        [disabled]="downloadingSelectedOriginalFiles() || !hasSelectedDownloadableOriginalFiles()"
+        z-button
+        zType="ghost"
+        zSize="sm"
+        [zDisabled]="downloadingSelectedOriginalFiles() || !hasSelectedDownloadableOriginalFiles()"
         (click)="downloadSelectedOriginalFiles()"
       >
-        @if (downloadingSelectedOriginalFiles()) {
-          <i class="ri-loader-4-line mr-1 animate-spin"></i>
-        } @else {
-          <i class="ri-download-2-line mr-1"></i>
-        }
+        <z-icon
+          [zType]="downloadingSelectedOriginalFiles() ? 'loader-circle' : 'file_download'"
+          [class.animate-spin]="downloadingSelectedOriginalFiles()"
+        />
         <span>{{ 'XP.Knowledgebase.DownloadOriginalFiles' | translate: { Default: 'Download Originals' } }}</span>
       </button>
-      <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-large btn-secondary danger"
-        [disabled]="vectorMutationLocked()"
-        (click)="deleteSelected()"
-      >
-        <i class="ri-delete-bin-line mr-1"></i>
+      <div class="mx-1 h-4 w-px bg-border"></div>
+      <button z-button zType="destructive" zSize="sm" [zDisabled]="vectorMutationLocked()" (click)="deleteSelected()">
+        <z-icon zType="trash" />
         {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
       </button>
     </div>
@@ -538,8 +858,8 @@
       <div class="system-sm-semibold text-text-primary">
         {{ 'XP.Knowledgebase.TableColumns' | translate: { Default: 'Table columns' } }}
       </div>
-      <button type="button" class="btn btn-ghost btn-small" (click)="resetColumns()">
-        <i class="ri-reset-left-line mr-1"></i>
+      <button z-button zType="ghost" zSize="xs" (click)="resetColumns()">
+        <z-icon zType="restart_alt" />
         {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
       </button>
     </div>
@@ -550,19 +870,21 @@
     <div class="space-y-1">
       @for (column of tableColumns(); track column.key; let first = $first; let last = $last) {
         <div class="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-hover-bg">
-          <xp-checkbox
+          <z-checkbox
+            displayDensity="compact"
             class="min-w-0 flex-1"
-            [disabled]="!column.hideable"
+            [zDisabled]="!column.hideable"
             [ngModel]="column.visible"
-            (ngModelChange)="toggleColumnVisibility(column.key, $event)"
+            (checkChange)="toggleColumnVisibility(column.key, $event)"
           >
             <span class="truncate">
               {{ column.labelKey | translate: { Default: column.defaultLabel } }}
             </span>
-          </xp-checkbox>
+          </z-checkbox>
 
           <input
-            class="xp-input h-7 w-20 px-2 text-xs"
+            z-input
+            class="h-7 w-20 px-2 text-xs"
             type="number"
             [min]="column.minWidth"
             [max]="column.maxWidth || null"
@@ -577,24 +899,26 @@
 
           <div class="flex items-center">
             <button
-              type="button"
-              class="btn btn-ghost btn-small h-7 w-7 p-0"
-              [disabled]="first"
+              z-button
+              zType="ghost"
+              zSize="icon-xs"
+              [zDisabled]="first"
               [zTooltip]="'XP.ACTIONS.MoveUp' | translate: { Default: 'Move up' }"
               zPosition="top"
               (click)="moveColumn(column.key, -1)"
             >
-              <i class="ri-arrow-up-s-line"></i>
+              <z-icon zType="chevron-up" />
             </button>
             <button
-              type="button"
-              class="btn btn-ghost btn-small h-7 w-7 p-0"
-              [disabled]="last"
+              z-button
+              zType="ghost"
+              zSize="icon-xs"
+              [zDisabled]="last"
               [zTooltip]="'XP.ACTIONS.MoveDown' | translate: { Default: 'Move down' }"
               zPosition="top"
               (click)="moveColumn(column.key, 1)"
             >
-              <i class="ri-arrow-down-s-line"></i>
+              <z-icon zType="chevron-down" />
             </button>
           </div>
         </div>
@@ -648,6 +972,16 @@
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
+      @if (canViewOriginalFile(doc)) {
+        <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileViewing(doc.id)" (click)="viewOriginalFile(doc)">
+          @if (isOriginalFileViewing(doc.id)) {
+            <i class="ri-loader-4-line mr-2 animate-spin"></i>
+          } @else {
+            <i class="ri-eye-line mr-2"></i>
+          }
+          <span>{{ 'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' } }}</span>
+        </div>
+      }
       @if (canDownloadOriginalFile(doc)) {
         <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileDownloading(doc.id)" (click)="downloadOriginalFile(doc)">
           @if (isOriginalFileDownloading(doc.id)) {
@@ -684,7 +1018,7 @@
 </ng-template>
 
 <ng-template #metadataTemplate let-ref="ref">
-  <div class="p-4 rounded-2xl shadow-lg w-[500px] overflow-hidden bg-components-panel-bg-blur">
+  <div class="p-4 rounded-2xl shadow-lg w-[720px] max-w-[calc(100vw-2rem)] overflow-hidden bg-components-panel-bg-blur">
     <div class="flex justify-between">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
         {{ 'XP.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
@@ -706,7 +1040,7 @@
     </div>
 
     <div class="inline-block">
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3" (click)="addMetadataField()">
+      <button type="button" z-button class="mt-3" (click)="addMetadataField()">
         <i class="ri-add-large-line"></i>
         {{ 'XP.Knowledgebase.AddField' | translate: { Default: 'Add Field' } }}
       </button>
@@ -717,7 +1051,7 @@
         <div
           class="group/item cursor-pointer hover:shadow-xs rounded-md border border-divider-subtle bg-components-card-bg"
         >
-          <div class="flex h-8 items-center justify-between px-2">
+          <div class="flex min-h-10 items-center justify-between gap-2 px-2 py-1">
             <div class="flex-1 flex h-full items-center space-x-1 text-sm text-text-tertiary">
               @switch (field.type) {
                 @case ('string') {
@@ -731,19 +1065,52 @@
                 }
               }
               <input
-                class="xp-input system-sm-medium max-w-[250px] truncate text-text-primary rounded-sm"
+                z-input
+                class="max-w-[250px] truncate text-sm font-medium"
                 [ngModel]="field.key"
                 (ngModelChange)="updateMetadataField(i, 'key', $event)"
               />
-              <div
-                class="system-xs-regular shrink-0 px-2 rounded-md"
+              <button
+                type="button"
+                z-button
+                zType="outline"
+                zSize="sm"
+                class="shrink-0"
                 [cdkMenuTriggerFor]="metadataTypeMenu"
                 [cdkMenuTriggerData]="{ index: i }"
               >
-                {{ field.type }}
-              </div>
+                {{
+                  'XP.Knowledgebase.FilterForm.MetadataFieldTypes.' + field.type | translate: { Default: field.type }
+                }}
+              </button>
+              <button
+                type="button"
+                z-button
+                zType="outline"
+                zSize="sm"
+                class="shrink-0"
+                [cdkMenuTriggerFor]="metadataScopeMenu"
+                [cdkMenuTriggerData]="{ index: i }"
+              >
+                {{
+                  'XP.Knowledgebase.FilterForm.MetadataScopes.' + (field.scope || 'document')
+                    | translate: { Default: field.scope || 'document' }
+                }}
+              </button>
+              @if (field.type === 'enum') {
+                <input
+                  z-input
+                  class="min-w-32 grow truncate text-sm font-medium"
+                  [placeholder]="
+                    'XP.Knowledgebase.FilterForm.EnumValuesPlaceholder' | translate: { Default: 'value1, value2' }
+                  "
+                  [ngModel]="field.enumValues?.join(', ')"
+                  (ngModelChange)="updateMetadataEnumValues(i, $event)"
+                />
+              }
               <input
-                class="xp-input system-sm-medium grow truncate text-text-primary rounded-sm"
+                z-input
+                class="min-w-28 grow truncate text-sm font-medium"
                 [placeholder]="'XP.KEY_WORDS.Description' | translate: { Default: 'description' }"
                 [ngModel]="field.description"
                 (ngModelChange)="updateMetadataField(i, 'description', $event)"
@@ -751,12 +1118,16 @@
             </div>
             <!-- <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div> -->
             <div class="ml-2 hidden items-center space-x-1 text-text-tertiary group-hover/item:flex">
-              <div
-                class="w-6 h-6 flex justify-center items-center rounded-md hover:bg-hover-bg hover:text-text-destructive"
+              <button
+                type="button"
+                z-button
+                zType="destructive"
+                zSize="icon-xs"
+                [attr.aria-label]="'XP.ACTIONS.Remove' | translate: { Default: 'Remove' }"
                 (click)="removeMetadata(i)"
               >
                 <i class="ri-delete-bin-line"></i>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -796,7 +1167,7 @@
     </div>
 
     <div class="w-full flex justify-end mt-4">
-      <button type="button" class="mt-2 btn btn-primary btn-large" (click)="saveMetadataSchema(ref)">
+      <button type="button" z-button zSize="lg" class="mt-2" (click)="saveMetadataSchema(ref)">
         {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
@@ -805,17 +1176,25 @@
 
 <ng-template #metadataTypeMenu let-index="index">
   <div cdkMenu class="cdk-menu__medium">
-    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'string')">
-      <i class="ri-text-snippet mr-2"></i>
-      <span>String</span>
+    @for (type of METADATA_FIELD_TYPES; track type) {
+      <div cdkMenuItem (click)="updateMetadataType(index, type)">
+        <span>
+          {{ 'XP.Knowledgebase.FilterForm.MetadataFieldTypes.' + type | translate: { Default: type } }}
+        </span>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #metadataScopeMenu let-index="index">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem (click)="updateMetadataField(index, 'scope', 'document')">
+      <span>
+        {{ 'XP.Knowledgebase.FilterForm.MetadataScopes.document' | translate: { Default: 'Document' } }}
+      </span>
     </div>
-    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'number')">
-      <i class="ri-hashtag mr-2"></i>
-      <span>Number</span>
-    </div>
-    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'datetime')">
-      <i class="ri-time-line mr-2"></i>
-      <span>DateTime</span>
+    <div cdkMenuItem (click)="updateMetadataField(index, 'scope', 'chunk')">
+      <span>{{ 'XP.Knowledgebase.FilterForm.MetadataScopes.chunk' | translate: { Default: 'Chunk' } }}</span>
     </div>
   </div>
 </ng-template>

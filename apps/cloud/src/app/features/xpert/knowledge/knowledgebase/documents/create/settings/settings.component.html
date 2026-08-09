@@ -116,6 +116,7 @@
             <json-schema-form
               class="grid grid-cols-2 gap-2"
               [schema]="transformerConfigSchema"
+              [controlDefaults]="compactControlDefaults"
               [(ngModel)]="transformer"
             />
           }
@@ -207,6 +208,7 @@
             <json-schema-form
               class="grid grid-cols-2 gap-2"
               [schema]="textSplitterConfigSchema()"
+              [controlDefaults]="compactControlDefaults"
               [ngModel]="textSplitter()"
               (ngModelChange)="textSplitter.set($event)"
             />
@@ -218,7 +220,7 @@
 
       <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
         <div class="flex-1">
-          <z-switch class="inline-flex items-center mr-1" [(ngModel)]="enableImageUnderstanding" />
+          <z-switch zSize="sm" class="inline-flex items-center mr-1" [(ngModel)]="enableImageUnderstanding" />
           <span>{{ 'XP.Knowledgebase.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}</span>
 
           <i
@@ -345,6 +347,7 @@
               <json-schema-form
                 class="grid grid-cols-2 gap-2"
                 [schema]="imageUnderstandingConfigSchema"
+                [controlDefaults]="compactControlDefaults"
                 [(ngModel)]="imageUnderstanding"
               />
             }
@@ -387,28 +390,25 @@
               [(ngModel)]="chunkOverlap" />
           </div>
         </div> -->
-        <div class="mt-1">
-          <xp-checkbox
-            [label]="
+        <div class="mt-1 flex flex-col items-start gap-3">
+          <z-checkbox displayDensity="cosy" [(ngModel)]="replaceWhitespace">
+            {{
               'XP.Knowledgebase.ReplaceWhiteChar'
                 | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
-            "
-            class="mb-4"
-            [(ngModel)]="replaceWhitespace"
-          />
-          <xp-checkbox
-            [label]="'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }"
-            class="mb-2"
-            [(ngModel)]="removeSensitive"
-          />
+            }}
+          </z-checkbox>
+          <z-checkbox displayDensity="cosy" [(ngModel)]="removeSensitive">
+            {{ 'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' } }}
+          </z-checkbox>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 mt-4">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium" (click)="onPreview()">
-          <i class="ri-search-eye-line"></i>
+      <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+        <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
+          <z-icon zType="search" />
           {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
         </button>
+        <ng-content select="[inline-actions]"></ng-content>
       </div>
     }
     <ng-content select="[actions]"></ng-content>

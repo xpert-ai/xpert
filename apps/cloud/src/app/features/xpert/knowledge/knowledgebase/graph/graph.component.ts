@@ -1,5 +1,17 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  model,
+  NgZone,
+  signal,
+  untracked,
+  viewChild
+} from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -15,8 +27,7 @@ import {
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
-import { EChartsOption } from 'echarts'
+import cytoscape from 'cytoscape'
 import { firstValueFrom } from 'rxjs'
 import {
   getErrorMessage,
@@ -48,30 +59,9 @@ type GraphSelection =
 
 type GraphEditorMode = 'create-entity' | 'edit-entity' | 'create-relation' | 'edit-relation'
 
+type InspectorTab = 'overview' | 'entities' | 'relations'
+
 type GraphSelectValue = string | number | Array<string | number>
-
-type ChartEventPayload = {
-  dataType?: unknown
-  data?: unknown
-}
-
-type ChartDatumPayload = {
-  id?: unknown
-}
-
-function toChartEventPayload(value: unknown): ChartEventPayload | null {
-  if (typeof value !== 'object' || value === null || !('data' in value)) {
-    return null
-  }
-  return value as ChartEventPayload
-}
-
-function toChartDatumPayload(value: unknown): ChartDatumPayload | null {
-  if (typeof value !== 'object' || value === null || !('id' in value)) {
-    return null
-  }
-  return value as ChartDatumPayload
-}
 
 function parseAliases(value: string) {
   return value
@@ -93,7 +83,6 @@ const ALL_SELECT_VALUE = '__all__'
     ReactiveFormsModule,
     TranslateModule,
     XpSpinComponent,
-    EchartsDirective,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardEmptyComponent,
@@ -107,6 +96,8 @@ const ALL_SELECT_VALUE = '__all__'
     :host {
       display: block;
       width: 100%;
+      min-width: 0;
+      min-height: 0;
     }
   `
 })
@@ -119,7 +110,16 @@ export class KnowledgeGraphComponent {
   readonly #fb = inject(FormBuilder)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #toastr = inject(ToastrService)
+  readonly #ngZone = inject(NgZone)
+  readonly #destroyRef = inject(DestroyRef)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
+  readonly graphCanvas = viewChild<ElementRef<HTMLElement>>('graphCanvas')
+
+  #cy: cytoscape.Core | null = null
+  #graphDataKey = ''
+  #loadedKnowledgebaseId: string | null = null
+  #resizeObserver: ResizeObserver | null = null
+  #themeObserver: MutationObserver | null = null
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly chatModelName = computed(() => {
@@ -147,6 +147,9 @@ export class KnowledgeGraphComponent {
   readonly selectedRelation = signal<IKnowledgeGraphRelation | null>(null)
   readonly relatedRelations = signal<IKnowledgeGraphRelation[]>([])
   readonly editorMode = signal<GraphEditorMode | null>(null)
+  readonly inspectorTab = signal<InspectorTab>('overview')
+  readonly graphZoom = signal(100)
+  readonly themeRevision = signal(0)
 
   readonly entityForm = this.#fb.nonNullable.group({
     name: ['', Validators.required],
@@ -184,80 +187,51 @@ export class KnowledgeGraphComponent {
     () => this.status()?.status === KnowledgeGraphStatus.DISABLED || this.status()?.enabled === false
   )
   readonly empty = computed(() => !this.loading() && !this.disabled() && !this.nodes().length)
-
-  readonly chartOptions = computed<EChartsOption>(() => {
-    const nodes = this.nodes()
-    const edges = this.edges()
-    const categories = this.entityTypes().map((name) => ({ name }))
-    const textColor = this.cssVar('--color-text-secondary')
-    const borderColor = this.cssVar('--color-components-panel-border')
-
-    return {
-      tooltip: {
-        trigger: 'item'
-      },
-      legend: {
-        show: categories.length > 0,
-        bottom: 8,
-        textStyle: {
-          color: textColor
-        },
-        data: categories.map((category) => category.name)
-      },
-      series: [
-        {
-          type: 'graph',
-          layout: 'force',
-          roam: true,
-          draggable: true,
-          categories,
-          data: nodes.map((node) => ({
-            id: node.id,
-            name: node.name,
-            value: node.value,
-            symbolSize: node.symbolSize,
-            category: node.type,
-            label: {
-              show: true,
-              formatter: node.name,
-              color: textColor
-            }
-          })),
-          links: edges.map((edge) => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-            value: edge.weight ?? edge.evidenceCount ?? 1,
-            label: {
-              show: true,
-              formatter: edge.type,
-              color: textColor
-            }
-          })),
-          edgeLabel: {
-            show: true,
-            fontSize: 11
-          },
-          lineStyle: {
-            color: borderColor,
-            opacity: 0.7,
-            width: 1.4,
-            curveness: 0.08
-          },
-          force: {
-            repulsion: 180,
-            edgeLength: 100
-          },
-          emphasis: {
-            focus: 'adjacency'
-          }
-        }
-      ]
-    }
+  readonly activeFilterCount = computed(
+    () =>
+      [this.search().trim(), this.entityType(), this.relationType(), this.origin(), this.focusEntityId()].filter(
+        Boolean
+      ).length + (this.visibility() === 'hidden' ? 1 : 0)
+  )
+  readonly totalEntityCount = computed(
+    () => this.status()?.entityCount ?? this.view()?.totalNodes ?? this.nodes().length
+  )
+  readonly totalRelationCount = computed(
+    () => this.status()?.relationCount ?? this.view()?.totalEdges ?? this.edges().length
+  )
+  readonly legendItems = computed(() => {
+    this.themeRevision()
+    return this.entityTypes().map((type, index) => ({
+      type,
+      color: this.entityColor(type, index)
+    }))
   })
 
   constructor() {
-    void this.loadGraph()
+    this.#destroyRef.onDestroy(() => this.destroyGraph())
+
+    effect(() => {
+      const knowledgebaseId = this.knowledgebase()?.id
+      if (knowledgebaseId && knowledgebaseId !== this.#loadedKnowledgebaseId) {
+        this.#loadedKnowledgebaseId = knowledgebaseId
+        untracked(() => void this.loadGraph())
+      }
+    })
+
+    effect(() => {
+      const container = this.graphCanvas()?.nativeElement
+      const nodes = this.nodes()
+      const edges = this.edges()
+      const selected = this.selected()
+      untracked(() => {
+        if (!container || !nodes.length) {
+          this.destroyGraph()
+          return
+        }
+        this.renderGraph(container, nodes, edges)
+        this.syncGraphSelection(selected)
+      })
+    })
   }
 
   async loadGraph() {
@@ -306,6 +280,7 @@ export class KnowledgeGraphComponent {
       return
     }
     this.selected.set({ kind: 'entity', id: entityId })
+    this.inspectorTab.set('overview')
     this.selectedRelation.set(null)
     try {
       const neighborhood = await firstValueFrom(
@@ -326,6 +301,7 @@ export class KnowledgeGraphComponent {
     }
     const relation = this.relations().find((item) => item.id === relationId)
     this.selected.set({ kind: 'relation', id: relationId })
+    this.inspectorTab.set('overview')
     this.selectedEntity.set(null)
     this.selectedRelation.set(relation ?? null)
     this.relatedRelations.set([])
@@ -370,19 +346,6 @@ export class KnowledgeGraphComponent {
 
   setFocusEntityFilter(value: GraphSelectValue) {
     this.focusEntityId.set(this.selectValueToString(value))
-  }
-
-  selectChartItem(event: unknown) {
-    const payload = toChartEventPayload(event)
-    const datum = toChartDatumPayload(payload?.data)
-    if (!datum || typeof datum.id !== 'string') {
-      return
-    }
-    if (payload?.dataType === 'edge') {
-      void this.selectRelation(datum.id)
-      return
-    }
-    void this.selectEntity(datum.id)
   }
 
   openCreateEntity() {
@@ -574,6 +537,98 @@ export class KnowledgeGraphComponent {
     return `${this.entityName(relation.sourceEntityId)} ${relation.type} ${this.entityName(relation.targetEntityId)}`
   }
 
+  setInspectorTab(tab: InspectorTab) {
+    this.inspectorTab.set(tab)
+  }
+
+  async clearFilters() {
+    this.search.set('')
+    this.entityType.set('')
+    this.relationType.set('')
+    this.origin.set('')
+    this.visibility.set('active')
+    this.focusEntityId.set('')
+    this.depth.set(1)
+    this.take.set(80)
+    await this.loadGraph()
+  }
+
+  clearSelection() {
+    this.selected.set(null)
+    this.selectedEntity.set(null)
+    this.selectedRelation.set(null)
+    this.relatedRelations.set([])
+    this.mentions.set([])
+  }
+
+  async exploreSelectedEntity() {
+    const entity = this.selectedEntity()
+    if (!entity) {
+      return
+    }
+    this.focusEntityId.set(entity.id)
+    this.depth.set(Math.max(1, this.depth()))
+    await this.loadGraph()
+    this.focusGraphElement(entity.id)
+  }
+
+  fitGraph() {
+    this.#cy?.fit(this.#cy.elements(), 64)
+  }
+
+  runGraphLayout() {
+    if (!this.#cy) {
+      return
+    }
+    this.#cy
+      .layout({
+        name: 'cose',
+        animate: true,
+        animationDuration: 420,
+        fit: true,
+        padding: 64,
+        randomize: true,
+        nodeRepulsion: 6800,
+        idealEdgeLength: 128,
+        edgeElasticity: 90,
+        gravity: 0.18,
+        numIter: 850
+      })
+      .run()
+  }
+
+  zoomGraph(factor: number) {
+    if (!this.#cy) {
+      return
+    }
+    const nextZoom = Math.min(this.#cy.maxZoom(), Math.max(this.#cy.minZoom(), this.#cy.zoom() * factor))
+    this.#cy.zoom(nextZoom)
+    this.#cy.center()
+  }
+
+  focusGraphElement(id?: string) {
+    const elementId = id ?? this.selected()?.id
+    if (!elementId || !this.#cy) {
+      return
+    }
+    const element = this.#cy.getElementById(elementId)
+    if (!element.length) {
+      return
+    }
+    this.#cy.animate({
+      center: { eles: element },
+      zoom: Math.max(this.#cy.zoom(), 1.15),
+      duration: 260
+    })
+  }
+
+  entityColor(type: string, fallbackIndex?: number) {
+    const palette = ['--color-chart-1', '--color-chart-2', '--color-chart-3', '--color-chart-4', '--color-chart-5']
+    const typeIndex = this.entityTypes().indexOf(type)
+    const index = typeIndex >= 0 ? typeIndex : (fallbackIndex ?? 0)
+    return this.cssVar(palette[index % palette.length], '--color-primary')
+  }
+
   trackById(_: number, item: { id: string }) {
     return item.id
   }
@@ -597,12 +652,274 @@ export class KnowledgeGraphComponent {
     this.mentions.set([])
   }
 
-  private cssVar(name: string) {
-    if (typeof window === 'undefined') {
-      return undefined
+  private renderGraph(
+    container: HTMLElement,
+    nodes: KnowledgeGraphViewResponse['nodes'],
+    edges: KnowledgeGraphViewResponse['edges']
+  ) {
+    const dataKey = [
+      ...nodes.map((node) => `${node.id}:${node.type}:${node.symbolSize ?? node.value ?? ''}`),
+      ...edges.map((edge) => `${edge.id}:${edge.source}:${edge.target}:${edge.type}`)
+    ].join('|')
+
+    if (this.#cy?.container() === container && dataKey === this.#graphDataKey) {
+      return
     }
-    const value = window.getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-    return value || undefined
+
+    this.destroyGraph()
+    this.#graphDataKey = dataKey
+    const elements: cytoscape.ElementDefinition[] = [
+      ...nodes.map((node) => ({
+        group: 'nodes' as const,
+        data: {
+          id: node.id,
+          label: node.name,
+          type: node.type,
+          color: this.entityColor(node.type),
+          size: Math.max(30, Math.min(56, node.symbolSize ?? 30 + Math.min(node.mentionCount ?? 0, 13)))
+        }
+      })),
+      ...edges.map((edge) => ({
+        group: 'edges' as const,
+        data: {
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          label: edge.type,
+          weight: Math.max(1, Math.min(4, (edge.weight ?? 0.45) * 2.4))
+        }
+      }))
+    ]
+
+    this.#cy = cytoscape({
+      container,
+      elements,
+      style: this.cytoscapeStyles(),
+      layout: {
+        name: 'cose',
+        animate: nodes.length <= 100,
+        animationDuration: 420,
+        animationEasing: 'ease-out',
+        fit: true,
+        padding: 64,
+        randomize: true,
+        componentSpacing: 72,
+        nodeRepulsion: 6800,
+        nodeOverlap: 18,
+        idealEdgeLength: 128,
+        edgeElasticity: 90,
+        gravity: 0.18,
+        numIter: 850
+      },
+      minZoom: 0.18,
+      maxZoom: 3.2,
+      wheelSensitivity: 0.22,
+      selectionType: 'single',
+      boxSelectionEnabled: false
+    })
+
+    this.#cy.on('tap', 'node', (event) => {
+      this.#ngZone.run(() => void this.selectEntity(event.target.id()))
+    })
+    this.#cy.on('tap', 'edge', (event) => {
+      this.#ngZone.run(() => void this.selectRelation(event.target.id()))
+    })
+    this.#cy.on('tap', (event) => {
+      if (event.target === this.#cy) {
+        this.#ngZone.run(() => this.clearSelection())
+      }
+    })
+    this.#cy.on('mouseover', 'node, edge', (event) => event.target.addClass('is-hovered'))
+    this.#cy.on('mouseout', 'node, edge', (event) => event.target.removeClass('is-hovered'))
+    this.#cy.on('zoom', () => {
+      const zoom = this.#cy?.zoom()
+      if (zoom) {
+        this.#ngZone.run(() => this.graphZoom.set(Math.round(zoom * 100)))
+      }
+    })
+
+    this.#resizeObserver = new ResizeObserver(() => this.#cy?.resize())
+    this.#resizeObserver.observe(container)
+
+    this.#themeObserver = new MutationObserver(() => {
+      this.#ngZone.run(() => this.themeRevision.update((revision) => revision + 1))
+      this.applyGraphTheme()
+    })
+    this.#themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme']
+    })
+  }
+
+  private syncGraphSelection(selection: GraphSelection | null) {
+    if (!this.#cy) {
+      return
+    }
+    this.#cy.elements().removeClass('is-muted is-contextual')
+    this.#cy.elements().unselect()
+    if (!selection) {
+      return
+    }
+    const element = this.#cy.getElementById(selection.id)
+    if (!element.length) {
+      return
+    }
+    element.select()
+    const context = element.closedNeighborhood()
+    this.#cy.elements().not(context).addClass('is-muted')
+    context.addClass('is-contextual')
+  }
+
+  private applyGraphTheme() {
+    if (!this.#cy) {
+      return
+    }
+    this.#cy.nodes().forEach((node) => {
+      const type = node.data('type')
+      if (typeof type === 'string') {
+        node.data('color', this.entityColor(type))
+      }
+    })
+    this.#cy.style(this.cytoscapeStyles()).update()
+  }
+
+  private cytoscapeStyles(): cytoscape.StylesheetJson {
+    const textPrimary = this.cssVar('--color-text-primary', '--foreground')
+    const textSecondary = this.cssVar('--color-text-secondary', '--muted-foreground')
+    const textTertiary = this.cssVar('--color-text-tertiary', '--muted-foreground')
+    const border = this.cssVar('--color-components-panel-border', '--border')
+    const background = this.cssVar('--color-components-card-bg', '--background')
+    const primary = this.cssVar('--color-primary', '--primary')
+    const fontFamily = window.getComputedStyle(document.body).fontFamily
+
+    return [
+      {
+        selector: 'node',
+        style: {
+          'background-color': 'data(color)',
+          'border-color': background,
+          'border-width': 3,
+          width: 'data(size)',
+          height: 'data(size)',
+          label: 'data(label)',
+          color: textSecondary,
+          'font-family': fontFamily,
+          'font-size': 12,
+          'font-weight': 500,
+          'text-valign': 'bottom',
+          'text-halign': 'center',
+          'text-margin-y': 9,
+          'text-wrap': 'ellipsis',
+          'text-max-width': '132px',
+          'text-background-color': background,
+          'text-background-opacity': 0.86,
+          'text-background-padding': '3px',
+          'overlay-opacity': 0,
+          'transition-property': 'opacity, border-width, border-color',
+          'transition-duration': 160
+        }
+      },
+      {
+        selector: 'edge',
+        style: {
+          width: 'data(weight)',
+          'line-color': border,
+          'target-arrow-color': border,
+          'target-arrow-shape': 'triangle',
+          'arrow-scale': 0.76,
+          'curve-style': 'bezier',
+          'control-point-step-size': 54,
+          label: 'data(label)',
+          color: textTertiary,
+          'font-family': fontFamily,
+          'font-size': 10,
+          'font-weight': 500,
+          'text-rotation': 'autorotate',
+          'text-background-color': background,
+          'text-background-opacity': 0.94,
+          'text-background-padding': '3px',
+          'text-opacity': 0,
+          opacity: 0.72,
+          'overlay-opacity': 0,
+          'transition-property': 'opacity, line-color, target-arrow-color, text-opacity, width',
+          'transition-duration': 160
+        }
+      },
+      {
+        selector: 'node:selected',
+        style: {
+          'border-color': primary,
+          'border-width': 5,
+          color: textPrimary,
+          'font-weight': 700
+        }
+      },
+      {
+        selector: 'edge:selected',
+        style: {
+          'line-color': primary,
+          'target-arrow-color': primary,
+          'text-opacity': 1,
+          opacity: 1,
+          width: 3
+        }
+      },
+      {
+        selector: '.is-contextual',
+        style: {
+          opacity: 1
+        }
+      },
+      {
+        selector: '.is-hovered',
+        style: {
+          'text-opacity': 1,
+          opacity: 1
+        }
+      },
+      {
+        selector: '.is-muted',
+        style: {
+          opacity: 0.12,
+          'text-opacity': 0
+        }
+      }
+    ]
+  }
+
+  private destroyGraph() {
+    this.#resizeObserver?.disconnect()
+    this.#resizeObserver = null
+    this.#themeObserver?.disconnect()
+    this.#themeObserver = null
+    this.#cy?.destroy()
+    this.#cy = null
+    this.#graphDataKey = ''
+    this.graphZoom.set(100)
+  }
+
+  private cssVar(name: string, fallbackName?: string) {
+    if (typeof window === 'undefined') {
+      return ''
+    }
+    const style = window.getComputedStyle(document.documentElement)
+    const value =
+      style.getPropertyValue(name).trim() || (fallbackName ? style.getPropertyValue(fallbackName).trim() : '')
+    if (!value) {
+      return ''
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = 1
+    canvas.height = 1
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    if (!context) {
+      return value
+    }
+    context.fillStyle = value
+    context.fillRect(0, 0, 1, 1)
+    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data
+    return `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`
   }
 
   private selectValueToString(value: GraphSelectValue) {

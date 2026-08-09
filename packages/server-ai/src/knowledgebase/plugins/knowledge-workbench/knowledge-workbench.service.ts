@@ -12,7 +12,6 @@ import {
     KBDocumentStatusEnum,
     KDocumentSourceType,
     KnowledgeGraphEntityChunksQuery,
-    KnowledgeDocumentMetadata,
     KnowledgeGraphStatus,
     KnowledgeGraphStatusResponse,
     KnowledgeGraphViewResponse,
@@ -25,6 +24,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { In, ILike, IsNull, Raw } from 'typeorm'
 import { GetKnowledgebaseDocumentStatusCommand, UploadKnowledgebaseDocumentFileCommand } from '../../commands'
 import { KnowledgeSearchQuery } from '../../queries'
+import { KnowledgeSearchResult } from '../../queries/knowledge-search.query'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
@@ -656,26 +656,27 @@ export class KnowledgeWorkbenchService {
         }
 
         const topK = Math.min(Math.max(input.topK ?? DEFAULT_SEARCH_TOP_K, 1), MAX_SEARCH_TOP_K)
-        const queries = documentIds.length
-            ? documentIds.map((documentId) => ({ filter: { documentId } as KnowledgeDocumentMetadata }))
-            : [{ filter: undefined as KnowledgeDocumentMetadata | undefined }]
-
-        const docs: DocumentInterface<DocumentMetadata>[] = []
-        for (const query of queries) {
-            docs.push(
-                ...(await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
-                    new KnowledgeSearchQuery({
-                        tenantId: input.tenantId,
-                        organizationId: input.organizationId ?? null,
-                        knowledgebases: [knowledgebaseId],
-                        query: input.query,
-                        k: topK,
-                        filter: query.filter,
-                        source: KNOWLEDGE_WORKBENCH_SEARCH_SOURCE
-                    })
-                ))
-            )
-        }
+        const searchResult = await this.queryBus.execute<KnowledgeSearchQuery, KnowledgeSearchResult>(
+            new KnowledgeSearchQuery({
+                tenantId: input.tenantId,
+                organizationId: input.organizationId ?? null,
+                knowledgebases: [knowledgebaseId],
+                query: input.query,
+                k: topK,
+                filters: documentIds.length
+                    ? {
+                          request: {
+                              kind: 'condition',
+                              field: 'document.id',
+                              operator: 'in',
+                              value: { kind: 'literal', value: documentIds }
+                          }
+                      }
+                    : undefined,
+                source: KNOWLEDGE_WORKBENCH_SEARCH_SOURCE
+            })
+        )
+        const docs = searchResult.documents
 
         const citations = dedupeAndSortCitations(docs)
             .slice(0, topK)

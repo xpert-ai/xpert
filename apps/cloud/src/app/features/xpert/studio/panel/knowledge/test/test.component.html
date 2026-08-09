@@ -42,6 +42,14 @@
   </div>
 
   <div class="grow flex flex-col items-stretch gap-4 mt-4 pb-4">
+    @if (diagnostics().length) {
+      <details class="rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-xs">
+        <summary class="cursor-pointer font-medium text-text-secondary">
+          {{ 'XP.Knowledgebase.FilterDiagnostics' | translate: { Default: 'Filter diagnostics' } }}
+        </summary>
+        <pre class="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-text-tertiary">{{ diagnosticsText() }}</pre>
+      </details>
+    }
     @for (item of docs(); track $index) {
       <div
         class="group rounded-xl border border-solid border-transparent cursor-pointer overflow-hidden hover:shadow-lg bg-background-default-subtle hover:bg-hover-bg hover:border-divider-deep"
