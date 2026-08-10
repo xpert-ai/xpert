@@ -2,7 +2,6 @@ import { ChatOpenAICompletions, ChatOpenAIFields, ClientOptions, OpenAIClient } 
 
 export type TOAIAPICompatLLMParams = ChatOpenAIFields & { configuration: ClientOptions }
 
-
 /**
  * A model extended from ChatOpenAICompletions, compatible with OpenAI-style chat completions,
  * and supports structuring content within `<think>` reasoning tags into the `reasoning_content` field.
@@ -15,49 +14,65 @@ export type TOAIAPICompatLLMParams = ChatOpenAIFields & { configuration: ClientO
  * In this way, the reasoning process in the model output can be separated from the main content, making it easier for subsequent structured processing and display.
  */
 export class ChatOAICompatReasoningModel extends ChatOpenAICompletions {
-	private thinking = false
-	/**
-	 * 
-	 */
-	protected override _convertCompletionsDeltaToBaseMessageChunk(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		delta: Record<string, any>,
-		rawResponse: OpenAIClient.ChatCompletionChunk,
-		defaultRole?: 'function' | 'user' | 'system' | 'developer' | 'assistant' | 'tool'
-	) {
-		const messageChunk = super._convertCompletionsDeltaToBaseMessageChunk(delta, rawResponse, defaultRole)
-		if (delta['content'] === '<think>') {
-			this.thinking = true
-			messageChunk.content = ''
-		} else if (delta['content'] === '</think>') {
-			this.thinking = false
-			messageChunk.content = ''
-		} else if (this.thinking) {
-			messageChunk.additional_kwargs['reasoning_content'] = messageChunk.content
-			messageChunk.content = ''
-		} else {
-			messageChunk.additional_kwargs['reasoning_content'] = delta['reasoning_content']
-		}
-		return messageChunk
-	}
+  private thinking = false
+  /**
+   *
+   */
+  protected override _convertCompletionsDeltaToBaseMessageChunk(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delta: Record<string, any>,
+    rawResponse: OpenAIClient.ChatCompletionChunk,
+    defaultRole?: 'function' | 'user' | 'system' | 'developer' | 'assistant' | 'tool'
+  ) {
+    // Some OpenAI-compatible providers omit `delta.role` on the final usage
+    // chunk. Without a role, LangChain creates a generic ChatMessageChunk;
+    // persisting that chunk makes the next request contain `role: undefined`.
+    // Treat role-less completion deltas as assistant output so they remain
+    // valid both in the current stream and when the conversation is resumed.
+    const messageChunk = super._convertCompletionsDeltaToBaseMessageChunk(
+      delta,
+      rawResponse,
+      defaultRole ?? 'assistant'
+    )
+    if (delta['content'] === '<think>') {
+      this.thinking = true
+      messageChunk.content = ''
+    } else if (delta['content'] === '</think>') {
+      this.thinking = false
+      messageChunk.content = ''
+    } else if (this.thinking) {
+      messageChunk.additional_kwargs['reasoning_content'] = messageChunk.content
+      messageChunk.content = ''
+    } else {
+      messageChunk.additional_kwargs['reasoning_content'] = delta['reasoning_content']
+    }
+    return messageChunk
+  }
 
-	protected override _convertCompletionsMessageToBaseMessage(
-		message: OpenAIClient.ChatCompletionMessage,
-		rawResponse: OpenAIClient.ChatCompletion
-	) {
-		const langChainMessage = super._convertCompletionsMessageToBaseMessage(message, rawResponse)
-		console.log(langChainMessage.content)
-		
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		if ((message as any).reasoning_content) {
-			langChainMessage.additional_kwargs['reasoning_content'] = (message as any).reasoning_content
-		} else if (typeof langChainMessage.content === 'string') {
-			const match = langChainMessage.content.match(/<think>([\s\S]*?)<\/think>/)
-			if (match) {
-				langChainMessage.additional_kwargs['reasoning_content'] = match[1]
-				langChainMessage.content = langChainMessage.content.replace(match[0], '')
-			}
-		}
-		return langChainMessage
-	}
+  protected override _convertCompletionsMessageToBaseMessage(
+    message: OpenAIClient.ChatCompletionMessage,
+    rawResponse: OpenAIClient.ChatCompletion
+  ) {
+    // Some compatible providers also omit the role on non-stream responses.
+    // Normalize that response before LangChain falls back to a generic
+    // message with role `unknown`.
+    const normalizedMessage = {
+      ...message,
+      role: message.role ?? 'assistant'
+    } as OpenAIClient.ChatCompletionMessage
+    const langChainMessage = super._convertCompletionsMessageToBaseMessage(normalizedMessage, rawResponse)
+    console.log(langChainMessage.content)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((message as any).reasoning_content) {
+      langChainMessage.additional_kwargs['reasoning_content'] = (message as any).reasoning_content
+    } else if (typeof langChainMessage.content === 'string') {
+      const match = langChainMessage.content.match(/<think>([\s\S]*?)<\/think>/)
+      if (match) {
+        langChainMessage.additional_kwargs['reasoning_content'] = match[1]
+        langChainMessage.content = langChainMessage.content.replace(match[0], '')
+      }
+    }
+    return langChainMessage
+  }
 }
