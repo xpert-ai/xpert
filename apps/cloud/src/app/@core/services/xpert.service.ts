@@ -44,7 +44,7 @@ import {
   XpertTypeEnum
 } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
-import { appendOrganizationIdQueryParam } from './query-params'
+import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import type { IAiAssistantRuntimeCapabilities } from './ai-assistant.service'
 
@@ -58,6 +58,11 @@ export type TXpertVariablesOptions = {
   connections: string[]
   inputs?: string[]
   revision?: number
+}
+
+export type TXpertUserGroupAuthorizations = {
+  items: IXpert[]
+  selectedXpertIds: string[]
 }
 
 type StatisticsFilters = {
@@ -239,6 +244,22 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<IUserGroup[]>(this.apiBaseUrl + `/${id}/user-groups`, userGroupIds, {
       params: appendOrganizationIdQueryParam(null, organizationId)
     })
+  }
+
+  getUserGroupAuthorizations(groupId?: string, organizationId?: string) {
+    return this.httpClient.get<TXpertUserGroupAuthorizations>(this.apiBaseUrl + '/user-groups/authorizations', {
+      params: createOptionalQueryParams({ groupId, organizationId })
+    })
+  }
+
+  updateUserGroupAuthorizations(groupId: string, xpertIds: string[], organizationId?: string) {
+    return this.httpClient.put<TXpertUserGroupAuthorizations>(
+      this.apiBaseUrl + `/user-groups/${groupId}/authorizations`,
+      xpertIds,
+      {
+        params: createOptionalQueryParams({ organizationId })
+      }
+    )
   }
 
   getMyCopilots(relations?: string[]) {

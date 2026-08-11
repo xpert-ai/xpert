@@ -1,12 +1,17 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectOrganization } from '@cloud/app/@core/state'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  XpSpinComponent,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { combineLatest, firstValueFrom } from 'rxjs'
 import { map, take } from 'rxjs/operators'
 import {
@@ -24,16 +29,20 @@ import {
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { UserAvatarComponent } from '../../../@shared/user'
 
+type UserGroupWorkspacePanel = 'details' | 'members' | 'xperts'
+
 @Component({
   standalone: true,
   selector: 'xp-user-groups-settings',
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     XpSpinComponent,
     ZardButtonComponent,
+    ZardCheckboxComponent,
     ZardInputDirective,
     UserAvatarComponent
   ],
@@ -52,14 +61,18 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
 
+  #xpertAuthorizationRequestId = 0
+
   readonly organization = injectOrganization()
   readonly loading = signal(false)
   readonly xpertsLoading = signal(false)
   readonly saving = signal(false)
   readonly deleting = signal(false)
   readonly preferCreateMode = signal(false)
+  readonly activePanel = signal<UserGroupWorkspacePanel>('details')
   readonly groupQuery = signal('')
   readonly memberQuery = signal('')
+  readonly xpertQuery = signal('')
   readonly groups = signal<IUserGroup[]>([])
   readonly organizationUsers = signal<IUser[]>([])
   readonly activeOrganizationUserIds = signal<string[]>([])
@@ -85,9 +98,6 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
   readonly selectedMemberCount = computed(() => this.selectedMemberIds().length)
   readonly selectedXpertCount = computed(() => this.selectedXpertIds().length)
   readonly hasOrganizationUsers = computed(() => this.organizationUsers().length > 0)
-  readonly selectedXperts = computed(() =>
-    this.availableXperts().filter((xpert) => this.selectedXpertIds().includes(xpert.id))
-  )
   readonly hasXpertChanges = computed(() => {
     const current = [...this.selectedXpertIds()].sort()
     const initial = [...this.initialSelectedXpertIds()].sort()
@@ -148,6 +158,24 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     return this.visibleUsers().some((user) => !selectedIds.has(user.id))
   })
 
+  readonly filteredXperts = computed(() => {
+    const query = this.normalizeSearch(this.xpertQuery())
+    if (!query) {
+      return this.availableXperts()
+    }
+
+    return this.availableXperts().filter((xpert) =>
+      [this.xpertLabel(xpert), xpert.description, xpert.id]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    )
+  })
+
+  readonly canSelectVisibleXperts = computed(() => {
+    const selectedIds = new Set(this.selectedXpertIds())
+    return this.filteredXperts().some((xpert) => !selectedIds.has(xpert.id))
+  })
+
   readonly name = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required]
@@ -192,6 +220,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
       const groupId = this.selectedGroup()?.id ?? null
 
       if (!organizationId) {
+        this.#xpertAuthorizationRequestId++
         this.availableXperts.set([])
         this.selectedXpertIds.set([])
         this.initialSelectedXpertIds.set([])
@@ -272,6 +301,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
 
   startCreate() {
     this.preferCreateMode.set(true)
+    this.activePanel.set('details')
     this.#router.navigate(['/settings/groups'], {
       queryParams: {
         mode: 'create'
@@ -285,6 +315,14 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
 
   updateMemberQuery(value: string) {
     this.memberQuery.set(value)
+  }
+
+  updateXpertQuery(value: string) {
+    this.xpertQuery.set(value)
+  }
+
+  showPanel(panel: UserGroupWorkspacePanel) {
+    this.activePanel.set(panel)
   }
 
   toggleMember(userId: string, checked: boolean) {
@@ -331,6 +369,16 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     this.selectedXpertIds.update((state) =>
       state.includes(xpertId) ? state.filter((id) => id !== xpertId) : [...state, xpertId]
     )
+  }
+
+  selectVisibleXperts() {
+    const nextIds = new Set(this.selectedXpertIds())
+    this.filteredXperts().forEach((xpert) => nextIds.add(xpert.id))
+    this.selectedXpertIds.set([...nextIds])
+  }
+
+  clearSelectedXperts() {
+    this.selectedXpertIds.set([])
   }
 
   xpertLabel(xpert: IXpert) {
@@ -486,45 +534,35 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
   }
 
   private async loadXpertAuthorizations(organizationId: string, groupId: string | null) {
+    const requestId = ++this.#xpertAuthorizationRequestId
     this.xpertsLoading.set(true)
     try {
-      const { items } = await firstValueFrom(
-        this.#xpertService.getAllInOrg({
-          where: {
-            latest: true
-          },
-          order: {
-            updatedAt: OrderTypeEnum.DESC
-          }
-        } as any)
+      const result = await firstValueFrom(
+        this.#xpertService.getUserGroupAuthorizations(groupId ?? undefined, organizationId)
       )
-
-      const availableXperts = (items ?? []).filter((item) => !!item.publishAt)
-      this.availableXperts.set(availableXperts)
-
-      if (!groupId) {
-        this.selectedXpertIds.set([])
-        this.initialSelectedXpertIds.set([])
+      if (requestId !== this.#xpertAuthorizationRequestId) {
         return
       }
 
-      const results = await Promise.all(
-        availableXperts.map(async (xpert) => {
-          const groups = await firstValueFrom(this.#xpertService.getXpertUserGroups(xpert.id, organizationId))
-          return groups.some((group) => group.id === groupId) ? xpert.id : null
-        })
-      )
-
-      const selectedXpertIds = results.filter(Boolean) as string[]
+      const availableXperts = result.items ?? []
+      const availableXpertIds = new Set(availableXperts.map((xpert) => xpert.id))
+      const selectedXpertIds = [...new Set(result.selectedXpertIds ?? [])].filter((id) => availableXpertIds.has(id))
+      this.availableXperts.set(availableXperts)
       this.selectedXpertIds.set(selectedXpertIds)
       this.initialSelectedXpertIds.set(selectedXpertIds)
     } catch (error) {
+      if (requestId !== this.#xpertAuthorizationRequestId) {
+        return
+      }
+
       this.availableXperts.set([])
       this.selectedXpertIds.set([])
       this.initialSelectedXpertIds.set([])
       this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.xpertsLoading.set(false)
+      if (requestId === this.#xpertAuthorizationRequestId) {
+        this.xpertsLoading.set(false)
+      }
     }
   }
 
@@ -535,24 +573,15 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
       return
     }
 
-    const selectedIds = new Set(this.selectedXpertIds())
-    const initialIds = new Set(this.initialSelectedXpertIds())
-    const changedXperts = this.availableXperts().filter(
-      (xpert) => selectedIds.has(xpert.id) !== initialIds.has(xpert.id)
+    const result = await firstValueFrom(
+      this.#xpertService.updateUserGroupAuthorizations(groupId, this.selectedXpertIds(), organizationId)
     )
 
-    await Promise.all(
-      changedXperts.map(async (xpert) => {
-        const groups = await firstValueFrom(this.#xpertService.getXpertUserGroups(xpert.id, organizationId))
-        const currentGroupIds = groups.map((group) => group.id)
-        const nextGroupIds = selectedIds.has(xpert.id)
-          ? [...new Set([...currentGroupIds, groupId])]
-          : currentGroupIds.filter((id) => id !== groupId)
-
-        await firstValueFrom(this.#xpertService.updateXpertUserGroups(xpert.id, nextGroupIds, organizationId))
-      })
-    )
-
-    this.initialSelectedXpertIds.set([...this.selectedXpertIds()])
+    const availableXperts = result.items ?? []
+    const availableXpertIds = new Set(availableXperts.map((xpert) => xpert.id))
+    const selectedXpertIds = [...new Set(result.selectedXpertIds ?? [])].filter((id) => availableXpertIds.has(id))
+    this.availableXperts.set(availableXperts)
+    this.selectedXpertIds.set(selectedXpertIds)
+    this.initialSelectedXpertIds.set(selectedXpertIds)
   }
 }
