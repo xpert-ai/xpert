@@ -38,6 +38,7 @@ describe('CopilotService', () => {
     let service: CopilotService
 
     beforeEach(async () => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         repository = {
             create: jest.fn((entity) => createCopilot(entity)),
             find: jest.fn().mockResolvedValue([]),
@@ -98,6 +99,10 @@ describe('CopilotService', () => {
         }).compile()
 
         service = moduleRef.get(CopilotService)
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
     })
 
     afterEach(async () => {
@@ -373,7 +378,8 @@ describe('CopilotService', () => {
         expect(copilotProviderService.findVisibleByCopilotIds).not.toHaveBeenCalled()
     })
 
-    it('keeps copilots outside the membership access scope unavailable even with configured credentials', async () => {
+    it('keeps copilots outside the membership access scope unavailable to membership managers', async () => {
+        const permissionSpy = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         membershipService.findModelAccess.mockResolvedValue({
             tenantId: 'tenant-1',
             organizationId: null,
@@ -414,9 +420,11 @@ describe('CopilotService', () => {
         const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
 
         expect(result.map((copilot) => copilot.id)).toEqual(['tenant-copilot'])
+        permissionSpy.mockRestore()
     })
 
-    it('returns no organization copilots with configured credentials when membership access is missing', async () => {
+    it('returns organization copilots with configured credentials directly when membership edit permission is missing', async () => {
+        const permissionSpy = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         membershipService.findModelAccess.mockResolvedValue(null)
         repository.find.mockResolvedValue([
             createCopilot({
@@ -440,10 +448,12 @@ describe('CopilotService', () => {
 
         const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
 
-        expect(result).toEqual([])
+        expect(result.map((copilot) => copilot.id)).toEqual(['organization-copilot'])
+        permissionSpy.mockRestore()
     })
 
     it('returns no organization copilots without configured credentials when membership access is missing', async () => {
+        const permissionSpy = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         membershipService.findModelAccess.mockResolvedValue(null)
         repository.find.mockResolvedValue([
             createCopilot({
@@ -466,6 +476,7 @@ describe('CopilotService', () => {
         )
 
         await expect(service.findAllAvailablesCopilots('tenant-1', 'org-1')).resolves.toEqual([])
+        permissionSpy.mockRestore()
     })
 
     it('lists only direct organization copilots when organization and tenant membership are disabled', async () => {

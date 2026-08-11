@@ -43,6 +43,7 @@ import { AIProvidersService } from '../ai-model'
 import { Copilot } from '../copilot/copilot.entity'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot/queries/copilot-model-find.query'
 import { CopilotWithProviderDto } from '../copilot/dto'
+import { usesOrganizationCredentials } from '../copilot/utils'
 import { CopilotProviderModel } from '../copilot-provider/models/copilot-provider-model.entity'
 import { ExceedingLimitException } from '../core/errors'
 import { MembershipModelAccess, MembershipService } from '../membership/membership.service'
@@ -85,6 +86,7 @@ type ModelTarget = {
     capabilities: ModelFeature[]
     deprecated: boolean
     enabled: boolean
+    usesOrganizationCredentials: boolean
     listedForRequest?: boolean
 }
 
@@ -1196,7 +1198,16 @@ export class ModelAccessService {
         }
 
         const membershipFeatureState = await this.resolveMembershipFeatureState(input.tenantId, runtimeOrganizationId)
-        const accessMode = this.resolveTargetAccessMode(target, runtimeOrganizationId, membershipFeatureState)
+        const canManageMembership =
+            !target.usesOrganizationCredentials || !membershipFeatureState.organizationEnabled
+                ? true
+                : await this.hasUserPermission(input.tenantId, billableUserId, AIPermissionsEnum.MEMBERSHIP_EDIT)
+        const accessMode = this.resolveTargetAccessMode(
+            target,
+            runtimeOrganizationId,
+            membershipFeatureState,
+            canManageMembership
+        )
         if (accessMode === ModelTargetAccessMode.Direct) {
             return {
                 allowed: target.enabled,
@@ -1612,11 +1623,16 @@ export class ModelAccessService {
             runtimeOrganizationId: string | null
         }
     ): Promise<IModelAccessCatalogItem> {
-        const accessMode = this.resolveTargetAccessMode(target, features.runtimeOrganizationId, {
-            tenantEnabled: features.tenantMembershipEnabled,
-            organizationEnabled: features.organizationMembershipEnabled,
-            organizationModelsConfigured: features.organizationModelsConfigured
-        })
+        const accessMode = this.resolveTargetAccessMode(
+            target,
+            features.runtimeOrganizationId,
+            {
+                tenantEnabled: features.tenantMembershipEnabled,
+                organizationEnabled: features.organizationMembershipEnabled,
+                organizationModelsConfigured: features.organizationModelsConfigured
+            },
+            this.userHasPermission(user, AIPermissionsEnum.MEMBERSHIP_EDIT) === true
+        )
         const planIncluded =
             accessMode === ModelTargetAccessMode.Membership && this.isPlanIncluded(target, membershipAccess)
         const grant =
@@ -1820,7 +1836,8 @@ export class ModelAccessService {
                 copilot.enabled === true &&
                 copilot.modelProvider.isValid !== false &&
                 custom?.isValid !== false &&
-                predefined?.deprecated !== true
+                predefined?.deprecated !== true,
+            usesOrganizationCredentials: usesOrganizationCredentials(copilot, organizationId)
         }
     }
 
@@ -2124,12 +2141,16 @@ export class ModelAccessService {
     private resolveTargetAccessMode(
         target: ModelTarget,
         runtimeOrganizationId: string | null,
-        membershipFeatures: MembershipFeatureState
+        membershipFeatures: MembershipFeatureState,
+        canManageMembership: boolean
     ): ModelTargetAccessMode {
         if (target.organizationId) {
-            return membershipFeatures.organizationEnabled
-                ? ModelTargetAccessMode.Membership
-                : ModelTargetAccessMode.Direct
+            if (!membershipFeatures.organizationEnabled) {
+                return ModelTargetAccessMode.Direct
+            }
+            return target.usesOrganizationCredentials && !canManageMembership
+                ? ModelTargetAccessMode.Direct
+                : ModelTargetAccessMode.Membership
         }
         if (!runtimeOrganizationId) {
             return membershipFeatures.tenantEnabled ? ModelTargetAccessMode.Membership : ModelTargetAccessMode.Direct
@@ -2216,6 +2237,14 @@ export class ModelAccessService {
         return user.role?.rolePermissions?.some(
             (rolePermission) => rolePermission.enabled && rolePermission.permission === permission
         )
+    }
+
+    private async hasUserPermission(tenantId: string, userId: string, permission: AIPermissionsEnum) {
+        const user = await this.userRepository.findOne({
+            where: { tenantId, id: userId },
+            relations: ['role', 'role.rolePermissions']
+        })
+        return !!user && this.userHasPermission(user, permission) === true
     }
 
     private async isModelAccessFeatureEnabled(

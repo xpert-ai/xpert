@@ -19,6 +19,7 @@ import { MembershipService } from '../membership'
 import { ModelAccessService } from '../model-access'
 import { Copilot } from './copilot.entity'
 import { CopilotDto } from './dto'
+import { usesOrganizationCredentials } from './utils'
 
 export const ProviderRolePriority = [
     AiProviderRole.Embedding,
@@ -123,34 +124,40 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
                   organizationId
               })
             : null
-        const allowedScopes = new Set<string | null>()
+        const membershipAllowedScopes = new Set<string | null>()
         if (!organizationId) {
             if (!tenantMembershipEnabled || access?.organizationId === null) {
-                allowedScopes.add(null)
+                membershipAllowedScopes.add(null)
             }
         } else if (organizationModelsConfigured) {
             if (!organizationMembershipEnabled || access?.organizationId === organizationId) {
-                allowedScopes.add(organizationId)
+                membershipAllowedScopes.add(organizationId)
             }
         } else if (organizationMembershipEnabled) {
             if (access?.organizationId === organizationId) {
-                allowedScopes.add(access.membership.plan.catalogSourcePlanId ? null : organizationId)
+                membershipAllowedScopes.add(access.membership.plan.catalogSourcePlanId ? null : organizationId)
             } else if (tenantMembershipEnabled && access?.organizationId === null) {
-                allowedScopes.add(null)
+                membershipAllowedScopes.add(null)
             }
         } else {
-            allowedScopes.add(organizationId)
+            membershipAllowedScopes.add(organizationId)
             if (tenantMembershipEnabled && access?.organizationId === null) {
-                allowedScopes.add(null)
+                membershipAllowedScopes.add(null)
             }
         }
-        if (!allowedScopes.size) {
+        const allowDirectOrganizationCredentials =
+            !!organizationId && !RequestContext.hasPermission(AIPermissionsEnum.MEMBERSHIP_EDIT, false)
+        const queryScopes = new Set(membershipAllowedScopes)
+        if (allowDirectOrganizationCredentials) {
+            queryScopes.add(organizationId)
+        }
+        if (!queryScopes.size) {
             return []
         }
 
         const resolvedRelations = this.mergeCopilotRelations(relations)
         const baseWhere = { ...(where ?? {}), tenantId, enabled: true }
-        const scopeWhere = Array.from(allowedScopes).map((scopeOrganizationId) => ({
+        const scopeWhere = Array.from(queryScopes).map((scopeOrganizationId) => ({
             ...baseWhere,
             organizationId: scopeOrganizationId ? scopeOrganizationId : IsNull()
         }))
@@ -158,8 +165,15 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
             where: organizationId ? scopeWhere : scopeWhere[0],
             relations: resolvedRelations
         })
-        const scopedItems = items.filter((copilot) => allowedScopes.has(copilot.organizationId ?? null))
-        return this.hydrateVisibleModelProviders(scopedItems, tenantId, organizationId ?? null)
+        const scopedItems = items.filter((copilot) => queryScopes.has(copilot.organizationId ?? null))
+        const hydratedItems = await this.hydrateVisibleModelProviders(scopedItems, tenantId, organizationId ?? null)
+        return hydratedItems.filter((copilot) => {
+            const scopeOrganizationId = copilot.organizationId ?? null
+            return (
+                membershipAllowedScopes.has(scopeOrganizationId) ||
+                (allowDirectOrganizationCredentials && usesOrganizationCredentials(copilot, organizationId))
+            )
+        })
     }
 
     async findAllEnabledCopilotsWithoutMembership(
