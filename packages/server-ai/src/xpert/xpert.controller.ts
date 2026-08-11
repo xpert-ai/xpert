@@ -545,6 +545,35 @@ export class XpertController extends CrudController<Xpert> {
         return this.service.getUserGroups(id, organizationId)
     }
 
+    @UseGuards(PermissionGuard)
+    @Permissions(PermissionsEnum.ORG_USERS_VIEW)
+    @Get('user-groups/authorizations')
+    async getUserGroupAuthorizations(
+        @Query('groupId') groupId?: string,
+        @Query('organizationId') organizationId?: string
+    ) {
+        const result = await this.service.getUserGroupAuthorizations(groupId, organizationId)
+        return {
+            ...result,
+            items: result.items.map((item) => new XpertPublicDTO(item))
+        }
+    }
+
+    @UseGuards(PermissionGuard)
+    @Permissions(PermissionsEnum.ORG_USERS_EDIT)
+    @Put('user-groups/:groupId/authorizations')
+    async updateUserGroupAuthorizations(
+        @Param('groupId') groupId: string,
+        @Body() xpertIds: string[],
+        @Query('organizationId') organizationId?: string
+    ) {
+        const result = await this.service.updateUserGroupAuthorizations(groupId, xpertIds, organizationId)
+        return {
+            ...result,
+            items: result.items.map((item) => new XpertPublicDTO(item))
+        }
+    }
+
     @UseGuards(XpertGuard)
     @Put(':id/user-groups')
     async updateUserGroups(
