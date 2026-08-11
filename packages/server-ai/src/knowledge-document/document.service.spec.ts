@@ -202,6 +202,39 @@ describe('KnowledgeDocumentService logical folder paths', () => {
     })
 })
 
+describe('KnowledgeDocumentService folder child counts', () => {
+    it('returns direct document and child-folder counts, including empty folders', async () => {
+        const getRawMany = jest.fn(async () => [{ folderId: 'folder-a', documentCount: '3', folderCount: '2' }])
+        const queryBuilder = {
+            innerJoin: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            setParameter: jest.fn().mockReturnThis(),
+            groupBy: jest.fn().mockReturnThis(),
+            getRawMany
+        }
+        const service = createService(
+            [
+                { id: 'folder-a', knowledgebaseId: 'kb-1', sourceType: DocumentTypeEnum.FOLDER },
+                { id: 'folder-empty', knowledgebaseId: 'kb-1', sourceType: DocumentTypeEnum.FOLDER }
+            ],
+            { repo: { createQueryBuilder: jest.fn(() => queryBuilder) } }
+        )
+
+        await expect(
+            service.getFolderChildCounts({ knowledgebaseId: 'kb-1', folderIds: ['folder-a', 'folder-empty'] })
+        ).resolves.toEqual([
+            { folderId: 'folder-a', documentCount: 3, folderCount: 2 },
+            { folderId: 'folder-empty', documentCount: 0, folderCount: 0 }
+        ])
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('parent.id IN (:...folderIds)', {
+            folderIds: ['folder-a', 'folder-empty']
+        })
+    })
+})
+
 describe('KnowledgeDocumentService original file downloads', () => {
     it('selects uploaded workspace files with original file paths', async () => {
         const service = createService([

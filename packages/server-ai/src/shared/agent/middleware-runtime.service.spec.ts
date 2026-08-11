@@ -69,6 +69,7 @@ import {
     CancelConversationCommand,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
+    KnowledgebaseProvisioningRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
     ArtifactsRuntimeCapability,
@@ -87,13 +88,18 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { CreateWorkspaceFileAssetCommand, GetFileAssetQuery } from '../../file-understanding'
 import {
+    CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
     DeleteAgentKnowledgeChunksCommand,
     DeleteKnowledgebaseDocumentsCommand,
     ImportKnowledgebaseArchiveCommand,
+    ListKnowledgebaseDocumentsCommand,
+    MoveKnowledgebaseDocumentCommand,
+    EnsureKnowledgebasesCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
 } from '../../knowledgebase/commands'
+import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
@@ -598,7 +604,13 @@ describe('AgentMiddlewareRuntimeService', () => {
             query: 'YBX4 180M',
             k: 5,
             filter: {
-                documentType: 'bom-product-profile'
+                kind: 'condition',
+                field: 'documentType',
+                operator: 'eq',
+                value: {
+                    kind: 'literal',
+                    value: 'bom-product-profile'
+                }
             },
             retrieval: {
                 mode: 'hybrid'
@@ -661,6 +673,69 @@ describe('AgentMiddlewareRuntimeService', () => {
             published: undefined,
             limit: 20
         })
+    })
+
+    it('exposes managed knowledgebase provisioning and Agent binding through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof EnsureKnowledgebasesCommand) {
+                return {
+                    namespace: command.input.namespace,
+                    workspaceId: command.input.workspaceId,
+                    knowledgebases: command.input.knowledgebases.map((item, index) => ({
+                        id: `kb-${index + 1}`,
+                        key: item.key,
+                        name: item.name,
+                        operation: 'created'
+                    }))
+                }
+            }
+            if (command instanceof ConnectAgentKnowledgebasesCommand) {
+                return {
+                    xpertId: command.input.xpertId,
+                    agentKey: command.input.agentKey,
+                    knowledgebaseIds: command.input.knowledgebaseIds,
+                    addedKnowledgebaseIds: command.input.knowledgebaseIds
+                }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const capability = service.api.capabilities?.require(KnowledgebaseProvisioningRuntimeCapability)
+        const ensured = await capability?.ensure({
+            workspaceId: 'workspace-1',
+            namespace: 'bom_lifecycle_four_layer',
+            inheritEmbeddingModel: true,
+            knowledgebases: [
+                {
+                    key: 'source',
+                    name: 'BOM Source',
+                    description: 'Managed source documents',
+                    permission: 'private'
+                }
+            ]
+        })
+        const connected = await capability?.connectAgent({
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1',
+            agentKey: 'Agent_Main',
+            knowledgebaseIds: ensured?.knowledgebases.map((item) => item.id) ?? []
+        })
+
+        expect(ensured?.knowledgebases).toEqual([
+            expect.objectContaining({ id: 'kb-1', key: 'source', operation: 'created' })
+        ])
+        expect((commandBus.execute.mock.calls[0][0] as EnsureKnowledgebasesCommand).input.inheritEmbeddingModel).toBe(
+            true
+        )
+        expect(connected).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                agentKey: 'Agent_Main',
+                knowledgebaseIds: ['kb-1']
+            })
+        )
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(EnsureKnowledgebasesCommand)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(ConnectAgentKnowledgebasesCommand)
     })
 
     it('exposes knowledgebase chunk write through the runtime facade', async () => {
@@ -730,6 +805,60 @@ describe('AgentMiddlewareRuntimeService', () => {
                 writeKeyPrefix: 'bom-product-profile:v2:root-1:'
             })
         )
+    })
+
+    it('exposes the knowledgebase document catalog through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ListKnowledgebaseDocumentsCommand) {
+                return { documents: [{ id: 'doc-1', name: 'agreement.pdf' }], total: 1, page: 1, pageSize: 20 }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(KnowledgebaseDocumentsRuntimeCapability).listDocuments({
+            knowledgebaseId: 'kb-1',
+            page: 1,
+            pageSize: 20,
+            search: 'agreement'
+        })
+
+        expect(result?.documents[0]?.id).toBe('doc-1')
+        const command = commandBus.execute.mock.calls[0][0] as ListKnowledgebaseDocumentsCommand
+        expect(command.input).toEqual({ knowledgebaseId: 'kb-1', page: 1, pageSize: 20, search: 'agreement' })
+    })
+
+    it('exposes idempotent folder creation and governed document moves through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateKnowledgebaseFolderCommand) {
+                return { knowledgebaseId: 'kb-1', folder: { id: 'folder-case', name: '26B31301' } }
+            }
+            if (command instanceof MoveKnowledgebaseDocumentCommand) {
+                return {
+                    knowledgebaseId: 'kb-1',
+                    document: { id: 'doc-1', parentId: 'folder-case' },
+                    affectedDocumentIds: ['doc-1']
+                }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const api = service.api.capabilities?.require(KnowledgebaseDocumentsRuntimeCapability)
+        const folder = await api?.createFolder({ knowledgebaseId: 'kb-1', parentId: 'folder-cases', name: '26B31301' })
+        const moved = await api?.moveDocument({
+            knowledgebaseId: 'kb-1',
+            documentId: 'doc-1',
+            parentId: 'folder-case',
+            expectedVersion: 2
+        })
+
+        expect(folder?.folder.id).toBe('folder-case')
+        expect(moved?.document.parentId).toBe('folder-case')
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CreateKnowledgebaseFolderCommand)
+        ).toBe(true)
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof MoveKnowledgebaseDocumentCommand)
+        ).toBe(true)
     })
 
     it('exposes knowledgebase document upload through the runtime facade', async () => {
@@ -1258,6 +1387,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             ],
             context: {
                 source: 'test'
+            },
+            humanInput: {
+                caseKnowledgeFolders: { source: 'customers/JNGL/cases/26B31301' }
             }
         })
 
@@ -1276,6 +1408,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 message: expect.objectContaining({
                     input: expect.objectContaining({
                         input: '重新解析合同',
+                        caseKnowledgeFolders: { source: 'customers/JNGL/cases/26B31301' },
                         files: [
                             expect.objectContaining({
                                 fileId: 'file-asset-1',

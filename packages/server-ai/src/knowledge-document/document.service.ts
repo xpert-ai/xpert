@@ -896,6 +896,135 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         return result
     }
 
+    async getFolderChildCounts(input: { knowledgebaseId: string; folderIds: string[] }) {
+        const knowledgebaseId = input.knowledgebaseId?.trim()
+        const requestedFolderIds = uniq((input.folderIds ?? []).map((id) => id?.trim()).filter(Boolean))
+        if (!knowledgebaseId || !requestedFolderIds.length) {
+            return []
+        }
+
+        // Resolve the requested folders through the scoped CRUD service first. This prevents
+        // aggregate queries from exposing counts for folders outside the active tenant/organization.
+        const { items: folders } = await this.findAll({
+            where: {
+                id: In(requestedFolderIds),
+                knowledgebaseId,
+                sourceType: KDocumentSourceType.FOLDER
+            },
+            select: { id: true }
+        })
+        const folderIds = folders.map((folder) => folder.id)
+        if (!folderIds.length) {
+            return []
+        }
+
+        const rows: Array<{ folderId: string; documentCount: string; folderCount: string }> = await this.repo
+            .createQueryBuilder('document')
+            .innerJoin('document.parent', 'parent')
+            .select('parent.id', 'folderId')
+            .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 0 ELSE 1 END)', 'documentCount')
+            .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 1 ELSE 0 END)', 'folderCount')
+            .where('document.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+            .andWhere('parent.id IN (:...folderIds)', { folderIds })
+            .setParameter('folderType', KDocumentSourceType.FOLDER)
+            .groupBy('parent.id')
+            .getRawMany()
+        const countsByFolderId = new Map(rows.map((row) => [row.folderId, row]))
+
+        return folderIds.map((folderId) => {
+            const row = countsByFolderId.get(folderId)
+            return {
+                folderId,
+                documentCount: Number(row?.documentCount ?? 0),
+                folderCount: Number(row?.folderCount ?? 0)
+            }
+        })
+    }
+
+    async moveDocument(input: {
+        knowledgebaseId: string
+        documentId: string
+        parentId?: string | null
+        expectedVersion?: number
+    }) {
+        const knowledgebaseId = input.knowledgebaseId?.trim()
+        const documentId = input.documentId?.trim()
+        if (!knowledgebaseId || !documentId) {
+            throw new BadRequestException('knowledgebaseId and documentId are required')
+        }
+        await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
+        const document = await this.findOne(documentId, { relations: ['parent'] })
+        if (document.knowledgebaseId !== knowledgebaseId) {
+            throw new BadRequestException('Document is not in the selected knowledgebase')
+        }
+        if (input.expectedVersion !== undefined && document.version !== input.expectedVersion) {
+            throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
+        }
+        const parent = input.parentId ? await this.findOne(input.parentId, { relations: ['parent'] }) : null
+        if (
+            parent &&
+            (parent.knowledgebaseId !== knowledgebaseId || parent.sourceType !== KDocumentSourceType.FOLDER)
+        ) {
+            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+        }
+        if (parent) {
+            const ancestors = await this.findAncestors(parent.id)
+            if (ancestors.some((ancestor) => ancestor.id === document.id)) {
+                throw new BadRequestException('A folder cannot be moved into itself or one of its descendants')
+            }
+        }
+
+        const oldFolder = normalizeLogicalFolderPath(document.folder ?? '')
+        const newFolder = normalizeLogicalFolderPath(
+            parent ? path.posix.join(parent.folder ?? '', parent.name ?? '') : ''
+        )
+        if ((document.parent?.id ?? null) === (parent?.id ?? null) && oldFolder === newFolder) {
+            return { document, affectedDocumentIds: [document.id] }
+        }
+
+        const oldPrefix =
+            document.sourceType === KDocumentSourceType.FOLDER
+                ? normalizeLogicalFolderPath(path.posix.join(oldFolder, document.name ?? ''))
+                : null
+        const newPrefix =
+            document.sourceType === KDocumentSourceType.FOLDER
+                ? normalizeLogicalFolderPath(path.posix.join(newFolder, document.name ?? ''))
+                : null
+        const affectedDocumentIds = [document.id]
+
+        await this.dataSource.transaction(async (manager) => {
+            const treeRepository = manager.getTreeRepository(KnowledgeDocument)
+            document.parent = parent
+            document.folder = newFolder
+            document.updatedById = RequestContext.currentUserId()
+            await treeRepository.save(document)
+            if (oldPrefix && newPrefix && oldPrefix !== newPrefix) {
+                const descendants: Array<{ id: string }> = await manager.query(
+                    `SELECT "id" FROM "knowledge_document"
+                     WHERE "knowledgebaseId" = $1
+                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
+                    [knowledgebaseId, oldPrefix]
+                )
+                affectedDocumentIds.push(...descendants.map((item) => item.id))
+                await manager.query(
+                    `UPDATE "knowledge_document"
+                     SET "folder" = $1 || substring("folder" from char_length($2) + 1),
+                         "updatedAt" = CURRENT_TIMESTAMP,
+                         "version" = "version" + 1
+                     WHERE "knowledgebaseId" = $3
+                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
+                    [newPrefix, oldPrefix, knowledgebaseId]
+                )
+            }
+        })
+        const uniqueAffectedIds = uniq(affectedDocumentIds)
+        await this.syncMilvusFilterAttributes(uniqueAffectedIds)
+        return {
+            document: await this.findOne(document.id, { relations: ['parent'] }),
+            affectedDocumentIds: uniqueAffectedIds
+        }
+    }
+
     private async syncMilvusFilterAttributes(documentIds: string[]) {
         if (environment.vectorStore !== VectorTypeEnum.MILVUS || !documentIds.length) return
         const { items: documents } = await this.findAll({ where: { id: In(documentIds) } })

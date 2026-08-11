@@ -1,11 +1,26 @@
 import {
     KnowledgebaseCreateDocumentsInput,
+    KnowledgebaseCreateFolderInput,
     KnowledgebaseDeleteDocumentsInput,
     KnowledgebaseDocumentStatusInput,
     KnowledgebaseImportArchiveInput,
+    KnowledgebaseListDocumentsInput,
+    KnowledgebaseMoveDocumentInput,
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput
 } from '@xpert-ai/plugin-sdk'
+
+export class ListKnowledgebaseDocumentsCommand {
+    constructor(public readonly input: KnowledgebaseListDocumentsInput) {}
+}
+
+export class CreateKnowledgebaseFolderCommand {
+    constructor(public readonly input: KnowledgebaseCreateFolderInput) {}
+}
+
+export class MoveKnowledgebaseDocumentCommand {
+    constructor(public readonly input: KnowledgebaseMoveDocumentInput) {}
+}
 
 export class UploadKnowledgebaseDocumentFileCommand {
     constructor(public readonly input: KnowledgebaseUploadFileInput) {}

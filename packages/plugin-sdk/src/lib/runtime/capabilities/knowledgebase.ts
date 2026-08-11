@@ -96,6 +96,86 @@ export type KnowledgebaseDeleteChunksResult = {
   writeKeyPrefix?: string
 }
 
+export type KnowledgebaseProvisioningPermission = 'private' | 'organization' | 'public'
+
+export type KnowledgebaseProvisioningMetadataField = {
+  key: string
+  label?: {
+    en_US?: string
+    zh_Hans?: string
+  }
+  type: 'string' | 'number' | 'boolean' | 'enum' | 'datetime' | 'string[]' | 'number[]' | 'object'
+  scope?: 'document' | 'chunk'
+  enumValues?: string[]
+  description?: string
+}
+
+export type KnowledgebaseProvisioningSpec = {
+  key: string
+  name: string
+  description: string
+  permission: KnowledgebaseProvisioningPermission
+  language?: 'Chinese' | 'English'
+  chunkSize?: number
+  chunkOverlap?: number
+  delimiter?: string
+  topK?: number
+  score?: number
+  metadataSchema?: KnowledgebaseProvisioningMetadataField[]
+  incrementalSyncEnabled?: boolean
+}
+
+export type KnowledgebaseEnsureInput = {
+  workspaceId: string
+  namespace: string
+  /**
+   * Reuse the most recently updated accessible knowledgebase embedding-model configuration when
+   * creating a managed set. This keeps one-click provisioning usable without exposing provider
+   * credentials to plugins. Provisioning fails explicitly when no configured model is available.
+   */
+  inheritEmbeddingModel?: boolean
+  knowledgebases: KnowledgebaseProvisioningSpec[]
+}
+
+export type KnowledgebaseEnsureItem = KnowledgebaseListItem & {
+  key: string
+  operation: 'created' | 'updated'
+}
+
+export type KnowledgebaseEnsureResult = {
+  namespace: string
+  workspaceId: string
+  knowledgebases: KnowledgebaseEnsureItem[]
+}
+
+export type KnowledgebaseConnectAgentInput = {
+  workspaceId: string
+  xpertId: string
+  agentKey: string
+  knowledgebaseIds: string[]
+  /** Optional administrator-owned retrieval policies keyed by knowledgebase id. */
+  retrievals?: Record<
+    string,
+    KnowledgebaseRetrievalSettings & {
+      fixedFilter?: KnowledgeFilterNode
+      allowAgentFilter?: boolean
+    }
+  >
+}
+
+export type KnowledgebaseConnectAgentResult = {
+  xpertId: string
+  agentKey: string
+  knowledgebaseIds: string[]
+  addedKnowledgebaseIds: string[]
+}
+
+export interface KnowledgebaseProvisioningApi {
+  ensure(input: KnowledgebaseEnsureInput): Promise<KnowledgebaseEnsureResult>
+
+  connectAgent(input: KnowledgebaseConnectAgentInput): Promise<KnowledgebaseConnectAgentResult>
+}
+
 export interface KnowledgebaseApi {
   list(input: KnowledgebaseListInput): Promise<KnowledgebaseListItem[]>
 
@@ -109,3 +189,10 @@ export interface KnowledgebaseApi {
 export const KnowledgebaseRuntimeCapability = createRuntimeCapability<KnowledgebaseApi>('platform.knowledgebase', {
   description: 'List, search, and write chunks in platform knowledgebases.'
 })
+
+export const KnowledgebaseProvisioningRuntimeCapability = createRuntimeCapability<KnowledgebaseProvisioningApi>(
+  'platform.knowledgebase.provisioning',
+  {
+    description: 'Idempotently provision managed platform knowledgebases and connect them to an Agent.'
+  }
+)

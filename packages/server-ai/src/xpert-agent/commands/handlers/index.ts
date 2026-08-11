@@ -7,15 +7,17 @@ import { XpertAgentInvokeHandler } from './invoke.handler'
 import { XpertAgentSubgraphHandler } from './subgraph.handler'
 import { CreateSummarizeTitleAgentHandler } from './summarize-title.handler'
 import { XpertWorkflowSubgraphHandler } from './workflow-subgraph.handler'
+import { ConnectAgentKnowledgebasesHandler } from './connect-agent-knowledgebases.handler'
 
 export const CommandHandlers = [
-	XpertAgentChatHandler,
-	XpertAgentSubgraphHandler,
-	XpertWorkflowSubgraphHandler,
-	XpertAgentSwarmHandler,
-	XpertAgentInvokeHandler,
-	CompileGraphHandler,
-	CreateSummarizeTitleAgentHandler,
-	CreateNodeStagePendingSteerFollowUpsHandler,
-	CreateNodeConsumePendingSteerFollowUpsHandler
+    ConnectAgentKnowledgebasesHandler,
+    XpertAgentChatHandler,
+    XpertAgentSubgraphHandler,
+    XpertWorkflowSubgraphHandler,
+    XpertAgentSwarmHandler,
+    XpertAgentInvokeHandler,
+    CompileGraphHandler,
+    CreateSummarizeTitleAgentHandler,
+    CreateNodeStagePendingSteerFollowUpsHandler,
+    CreateNodeConsumePendingSteerFollowUpsHandler
 ]

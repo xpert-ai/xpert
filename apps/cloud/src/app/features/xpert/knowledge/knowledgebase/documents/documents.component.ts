@@ -1,10 +1,11 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
-import { afterNextRender, Component, computed, effect, inject, model, signal } from '@angular/core'
+import { NgTemplateOutlet } from '@angular/common'
+import { afterNextRender, Component, computed, effect, inject, model, signal, TemplateRef } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { Dialog } from '@angular/cdk/dialog'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import {
@@ -38,6 +39,8 @@ import {
   EMPTY,
   filter,
   finalize,
+  firstValueFrom,
+  forkJoin,
   map,
   merge,
   Observable,
@@ -78,9 +81,18 @@ import { validateOriginalFileResponse } from './original-file-preview'
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 48
 const ACTIONS_COLUMN_WIDTH = 88
-const DOCUMENT_COLUMNS_STORAGE_KEY = 'xpert.knowledge.documents.table.columns.v1'
+// Bump the layout version when changing defaults so previously saved layouts receive
+// the product default while users can still opt back into the Type column.
+const DOCUMENT_COLUMNS_STORAGE_KEY = 'xpert.knowledge.documents.table.columns.v3'
 
-type DocumentTableColumnKey = 'name' | 'type' | 'createdAtRelative' | 'disabled' | 'processMsg' | 'progress'
+type DocumentTableColumnKey =
+  | 'name'
+  | 'type'
+  | 'contents'
+  | 'createdAtRelative'
+  | 'disabled'
+  | 'processMsg'
+  | 'progress'
 type DocumentTableSortDirection = 'asc' | 'desc' | ''
 type DocumentStatusFilter = 'all' | 'errors' | 'processing'
 type DocumentProcessStage = 'transform' | 'split' | 'index'
@@ -115,6 +127,23 @@ interface DocumentTableSortState {
   direction: DocumentTableSortDirection
 }
 
+interface FolderChildCount {
+  documentCount: number
+  folderCount: number
+}
+
+interface FolderBrowserNode {
+  document: IKnowledgeDocument
+  children: FolderBrowserNode[]
+}
+
+interface MoveFolderOption {
+  id: string
+  name: string
+  path: string
+  depth: number
+}
+
 const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
   {
     key: 'name',
@@ -133,9 +162,20 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     defaultLabel: 'Type',
     width: 96,
     minWidth: 80,
-    visible: true,
+    visible: false,
     hideable: true,
     sortable: true,
+    resizable: true
+  },
+  {
+    key: 'contents',
+    labelKey: 'XP.Knowledgebase.FolderContents',
+    defaultLabel: 'Contents',
+    width: 164,
+    minWidth: 148,
+    visible: true,
+    hideable: true,
+    sortable: false,
     resizable: true
   },
   {
@@ -187,6 +227,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
 const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledgeDocument) => unknown> = {
   name: (document) => document.name,
   type: (document) => document.type,
+  contents: () => '',
   createdAtRelative: (document) => document.updatedAt ?? document.createdAt,
   disabled: (document) => (document.disabled ? 0 : 1),
   processMsg: (document) => document.processMsg,
@@ -201,6 +242,7 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   imports: [
     RouterModule,
     FormsModule,
+    NgTemplateOutlet,
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
@@ -291,6 +333,29 @@ export class KnowledgeDocumentsComponent {
   readonly viewingOriginalFileIds = signal<Set<string>>(new Set())
   readonly downloadingOriginalFileIds = signal<Set<string>>(new Set())
   readonly downloadingSelectedOriginalFiles = signal(false)
+  readonly movingSelectedDocuments = signal(false)
+  readonly moveFolderLoading = signal(false)
+  readonly moveFolderSearch = signal('')
+  readonly moveTargetFolderId = signal<string | null>(null)
+  readonly moveFolderOptions = signal<MoveFolderOption[]>([])
+  readonly filteredMoveFolderOptions = computed(() => {
+    const search = this.moveFolderSearch().trim().toLocaleLowerCase()
+    return search
+      ? this.moveFolderOptions().filter((folder) => folder.path.toLocaleLowerCase().includes(search))
+      : this.moveFolderOptions()
+  })
+  readonly moveDestinationChanged = computed(() => (this.moveTargetFolderId() ?? null) !== (this.parentId() ?? null))
+  readonly folderChildCounts = signal<Record<string, FolderChildCount>>({})
+  readonly folderBrowserRootId = signal<string | null>(null)
+  readonly folderBrowserItems = signal<IKnowledgeDocument[]>([])
+  readonly folderBrowserLoading = signal(false)
+  readonly folderBrowserExpandedIds = signal<Set<string>>(new Set())
+  readonly folderBrowserLoadedIds = signal<Set<string>>(new Set())
+  readonly folderBrowserLoadingIds = signal<Set<string>>(new Set())
+  readonly folderBrowserNodes = computed(() =>
+    buildFolderBrowserTree(this.folderBrowserItems(), this.folderBrowserRootId())
+  )
+  #moveDialogRef: DialogRef<unknown, unknown> | null = null
   isRateLimitReached = false
   readonly #data = signal<IKnowledgeDocument[]>([])
   readonly graphJobs = signal<KnowledgeGraphStatusResponse['jobs']>([])
@@ -310,11 +375,18 @@ export class KnowledgeDocumentsComponent {
   readonly statusFilter = signal<DocumentStatusFilter>('all')
   readonly selectedDocumentId = signal<string | null>(null)
   readonly documentInspectorDismissed = signal(false)
-  readonly selectedDocument = computed(() =>
-    this.documentInspectorDismissed()
-      ? null
-      : (this.#data().find((document) => document.id === this.selectedDocumentId()) ?? null)
-  )
+  readonly folderBrowserSelectedDocument = signal<IKnowledgeDocument | null>(null)
+  readonly selectedDocument = computed(() => {
+    if (this.documentInspectorDismissed()) {
+      return null
+    }
+    const selectedDocumentId = this.selectedDocumentId()
+    const browserDocument = this.folderBrowserSelectedDocument()
+    return (
+      this.#data().find((document) => document.id === selectedDocumentId) ??
+      (browserDocument?.id === selectedDocumentId ? browserDocument : null)
+    )
+  })
   /** Reuses the protected range-enabled endpoint so the inspector renders page one without downloading a whole PDF. */
   readonly selectedPdfPreviewSource = computed(() => {
     const document = this.selectedDocument()
@@ -456,15 +528,23 @@ export class KnowledgeDocumentsComponent {
               }) as IKnowledgeDocument
           )
           this.#data.set(documents)
+          this.refreshFolderChildCounts(documents)
           if (
             !this.documentInspectorDismissed() &&
-            !documents.some((document) => document.id === this.selectedDocumentId())
+            !documents.some((document) => document.id === this.selectedDocumentId()) &&
+            this.folderBrowserSelectedDocument()?.id !== this.selectedDocumentId()
           ) {
             this.selectedDocumentId.set(
               documents.find((document) => document.status === KBDocumentStatusEnum.ERROR)?.id ??
                 documents[0]?.id ??
                 null
             )
+          }
+          const selectedDocument = documents.find((document) => document.id === this.selectedDocumentId())
+          if (selectedDocument?.sourceType === KDocumentSourceType.FOLDER) {
+            void this.loadFolderBrowser(selectedDocument)
+          } else {
+            this.resetFolderBrowser()
           }
           this.refreshGraphJobs()
         })
@@ -513,16 +593,200 @@ export class KnowledgeDocumentsComponent {
 
   selectDocument(document: IKnowledgeDocument) {
     this.documentInspectorDismissed.set(false)
+    this.folderBrowserSelectedDocument.set(null)
     this.selectedDocumentId.set(document.id)
+    if (document.sourceType === KDocumentSourceType.FOLDER) {
+      void this.loadFolderBrowser(document)
+    } else {
+      this.resetFolderBrowser()
+    }
   }
 
   closeDocumentInspector() {
     this.documentInspectorDismissed.set(true)
+    this.folderBrowserSelectedDocument.set(null)
     this.selectedDocumentId.set(null)
+    this.resetFolderBrowser()
   }
 
   setStatusFilter(filter: DocumentStatusFilter) {
     this.statusFilter.set(filter)
+  }
+
+  isStatusFilterActive(filter: DocumentStatusFilter) {
+    return this.statusFilter() === filter
+  }
+
+  folderChildCount(documentId: string) {
+    return this.folderChildCounts()[documentId] ?? { documentCount: 0, folderCount: 0 }
+  }
+
+  folderBrowserPath(document: IKnowledgeDocument) {
+    return normalizeMoveFolderPath([document.folder, document.name].filter(Boolean).join('/')) || document.name
+  }
+
+  isFolderBrowserExpanded(documentId: string) {
+    return this.folderBrowserExpandedIds().has(documentId)
+  }
+
+  isFolderBrowserNodeLoading(documentId: string) {
+    return this.folderBrowserLoadingIds().has(documentId)
+  }
+
+  async toggleFolderBrowserNode(document: IKnowledgeDocument) {
+    if (document.sourceType !== KDocumentSourceType.FOLDER) {
+      await this.selectFolderBrowserDocument(document)
+      return
+    }
+
+    if (this.folderBrowserExpandedIds().has(document.id)) {
+      this.folderBrowserExpandedIds.update((ids) => withoutSetValue(ids, document.id))
+      return
+    }
+
+    this.folderBrowserExpandedIds.update((ids) => withSetValue(ids, document.id))
+    if (this.folderBrowserLoadedIds().has(document.id)) {
+      return
+    }
+
+    this.folderBrowserLoadingIds.update((ids) => withSetValue(ids, document.id))
+    try {
+      const children = await this.getFolderBrowserChildren(document.id)
+      if (!this.folderBrowserRootId()) {
+        return
+      }
+      this.folderBrowserItems.update((items) => mergeFolderBrowserItems(items, children))
+      this.folderBrowserLoadedIds.update((ids) => withSetValue(ids, document.id))
+    } catch (err) {
+      this.#toastr.error(getErrorMessage(err))
+      this.folderBrowserExpandedIds.update((ids) => withoutSetValue(ids, document.id))
+    } finally {
+      this.folderBrowserLoadingIds.update((ids) => withoutSetValue(ids, document.id))
+    }
+  }
+
+  openFolder(document: IKnowledgeDocument) {
+    this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
+  }
+
+  uploadIntoFolder(document: IKnowledgeDocument) {
+    if (this.vectorMutationLocked()) {
+      return
+    }
+    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
+  }
+
+  private async selectFolderBrowserDocument(document: IKnowledgeDocument) {
+    this.documentInspectorDismissed.set(false)
+    this.folderBrowserSelectedDocument.set(document)
+    this.selectedDocumentId.set(document.id)
+    try {
+      const completeDocument = await firstValueFrom(
+        this.knowledgeDocumentAPI.getById(document.id, { relations: ['parent', 'storageFile'] }).pipe(take(1))
+      )
+      if (this.selectedDocumentId() === document.id) {
+        this.folderBrowserSelectedDocument.set(completeDocument)
+      }
+    } catch (err) {
+      this.#toastr.error(getErrorMessage(err))
+    }
+  }
+
+  private async loadFolderBrowser(folder: IKnowledgeDocument) {
+    const rootId = folder.id
+    this.folderBrowserRootId.set(rootId)
+    this.folderBrowserItems.set([])
+    this.folderBrowserExpandedIds.set(new Set())
+    this.folderBrowserLoadedIds.set(new Set([rootId]))
+    this.folderBrowserLoadingIds.set(new Set())
+    this.folderBrowserLoading.set(true)
+    try {
+      const children = await this.getFolderBrowserChildren(rootId)
+      if (this.folderBrowserRootId() === rootId) {
+        this.folderBrowserItems.set(children)
+      }
+    } catch (err) {
+      if (this.folderBrowserRootId() === rootId) {
+        this.folderBrowserItems.set([])
+        this.#toastr.error(getErrorMessage(err))
+      }
+    } finally {
+      if (this.folderBrowserRootId() === rootId) {
+        this.folderBrowserLoading.set(false)
+      }
+    }
+  }
+
+  private async getFolderBrowserChildren(parentId: string) {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (!knowledgebaseId) {
+      return []
+    }
+
+    const { items } = await firstValueFrom(
+      this.knowledgeDocumentAPI
+        .getAll({
+          select: ['id', 'name', 'sourceType', 'type', 'status', 'folder', 'updatedAt', 'version'],
+          where: {
+            knowledgebaseId,
+            parent: { id: parentId } as IKnowledgeDocument
+          },
+          relations: ['parent'],
+          order: { name: OrderTypeEnum.ASC }
+        })
+        .pipe(take(1))
+    )
+    return items
+  }
+
+  private resetFolderBrowser() {
+    this.folderBrowserRootId.set(null)
+    this.folderBrowserItems.set([])
+    this.folderBrowserLoading.set(false)
+    this.folderBrowserExpandedIds.set(new Set())
+    this.folderBrowserLoadedIds.set(new Set())
+    this.folderBrowserLoadingIds.set(new Set())
+  }
+
+  private refreshFolderChildCounts(documents: IKnowledgeDocument[]) {
+    const knowledgebaseId = this.knowledgebase()?.id
+    const folderIds = documents
+      .filter((document) => document.sourceType === KDocumentSourceType.FOLDER)
+      .map((document) => document.id)
+    this.folderChildCounts.set({})
+    if (!knowledgebaseId || !folderIds.length) {
+      return
+    }
+
+    const requestedFolderIds = new Set(folderIds)
+    this.knowledgeDocumentAPI
+      .getFolderChildCounts(knowledgebaseId, folderIds)
+      .pipe(take(1))
+      .subscribe({
+        next: (counts) => {
+          // Ignore a response from a folder that is no longer visible after navigation or refresh.
+          const currentFolderIds = new Set(
+            this.#data()
+              .filter((document) => document.sourceType === KDocumentSourceType.FOLDER)
+              .map((document) => document.id)
+          )
+          if (
+            requestedFolderIds.size !== currentFolderIds.size ||
+            [...requestedFolderIds].some((folderId) => !currentFolderIds.has(folderId))
+          ) {
+            return
+          }
+          this.folderChildCounts.set(
+            Object.fromEntries(
+              counts.map((count) => [
+                count.folderId,
+                { documentCount: count.documentCount, folderCount: count.folderCount }
+              ])
+            )
+          )
+        },
+        error: () => this.folderChildCounts.set({})
+      })
   }
 
   documentStatusLabelKey(status?: KBDocumentStatusEnum) {
@@ -713,8 +977,7 @@ export class KnowledgeDocumentsComponent {
     return get(row, name)
   }
 
-  setColumnWidth(columnKey: DocumentTableColumnKey, value: number | string) {
-    const width = Number(value)
+  setColumnWidth(columnKey: DocumentTableColumnKey, width: number) {
     if (!Number.isFinite(width)) {
       return
     }
@@ -724,6 +987,35 @@ export class KnowledgeDocumentsComponent {
         column.key === columnKey ? { ...column, width: normalizeColumnWidth(width, column) } : column
       )
     )
+  }
+
+  commitColumnWidth(columnKey: DocumentTableColumnKey, event: Event) {
+    const input = event.target
+    if (!(input instanceof HTMLInputElement)) {
+      return
+    }
+
+    const column = this.tableColumns().find((item) => item.key === columnKey)
+    if (!column) {
+      return
+    }
+    if (!Number.isFinite(input.valueAsNumber)) {
+      input.value = `${column.width}`
+      return
+    }
+
+    this.setColumnWidth(columnKey, input.valueAsNumber)
+    input.value = `${this.tableColumns().find((item) => item.key === columnKey)?.width ?? column.width}`
+  }
+
+  restoreColumnWidth(columnKey: DocumentTableColumnKey, event: Event) {
+    const input = event.target
+    const column = this.tableColumns().find((item) => item.key === columnKey)
+    if (!(input instanceof HTMLInputElement) || !column) {
+      return
+    }
+    input.value = `${column.width}`
+    input.blur()
   }
 
   startColumnResize(event: MouseEvent, column: DocumentTableColumn) {
@@ -1091,6 +1383,116 @@ export class KnowledgeDocumentsComponent {
       .filter((document): document is IKnowledgeDocument => !!document)
   }
 
+  openMoveSelectedDialog(template: TemplateRef<unknown>) {
+    const knowledgebaseId = this.knowledgebase()?.id
+    if (!knowledgebaseId || !this.selectionModel.hasValue() || this.vectorMutationLocked()) {
+      return
+    }
+
+    this.moveTargetFolderId.set(this.parentId() ?? null)
+    this.moveFolderSearch.set('')
+    this.moveFolderOptions.set([])
+    this.moveFolderLoading.set(true)
+    this.#moveDialogRef = this._dialog.open(template, {
+      width: '32rem',
+      maxWidth: 'calc(100vw - 2rem)',
+      disableClose: true,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-card'
+    })
+    this.#moveDialogRef.closed.pipe(take(1)).subscribe(() => {
+      this.#moveDialogRef = null
+      this.moveFolderSearch.set('')
+    })
+
+    this.knowledgeDocumentAPI
+      .getAll({
+        select: ['id', 'name', 'sourceType', 'folder'],
+        where: {
+          knowledgebaseId,
+          sourceType: KDocumentSourceType.FOLDER
+        },
+        order: { folder: OrderTypeEnum.ASC, name: OrderTypeEnum.ASC }
+      })
+      .pipe(
+        take(1),
+        finalize(() => this.moveFolderLoading.set(false))
+      )
+      .subscribe({
+        next: ({ items }) => {
+          this.moveFolderOptions.set(
+            items
+              .map((folder) => {
+                const parentPath = normalizeMoveFolderPath(folder.folder)
+                const path = normalizeMoveFolderPath([parentPath, folder.name].filter(Boolean).join('/'))
+                return {
+                  id: folder.id,
+                  name: folder.name,
+                  path,
+                  depth: parentPath ? parentPath.split('/').length : 0
+                }
+              })
+              .sort((left, right) => left.path.localeCompare(right.path, this.#translate.currentLanguage))
+          )
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+          this.closeMoveSelectedDialog()
+        }
+      })
+  }
+
+  closeMoveSelectedDialog() {
+    this.#moveDialogRef?.close()
+    this.#moveDialogRef = null
+  }
+
+  moveSelectedDocuments() {
+    const knowledgebaseId = this.knowledgebase()?.id
+    const documents = this.selectedDocuments()
+    if (
+      !knowledgebaseId ||
+      !documents.length ||
+      !this.moveDestinationChanged() ||
+      this.movingSelectedDocuments() ||
+      this.vectorMutationLocked()
+    ) {
+      return
+    }
+
+    this.movingSelectedDocuments.set(true)
+    forkJoin(
+      documents.map((document) =>
+        this.knowledgeDocumentAPI.move(document.id, {
+          knowledgebaseId,
+          parentId: this.moveTargetFolderId(),
+          version: document.version
+        })
+      )
+    )
+      .pipe(finalize(() => this.movingSelectedDocuments.set(false)))
+      .subscribe({
+        next: () => {
+          const movedCount = documents.length
+          this.selectionModel.clear()
+          this.closeMoveSelectedDialog()
+          this.refresh()
+          this.#toastr.success(
+            this.#translate.instant('XP.Knowledgebase.DocumentsMoved', {
+              Default: `${movedCount} document(s) moved`,
+              count: movedCount
+            })
+          )
+        },
+        error: (err) => {
+          this.handleMutationError(err)
+          // A concurrent batch can partially succeed before one item returns a conflict.
+          // Refresh so the list always reflects the server's actual folder membership.
+          this.refresh()
+        }
+      })
+  }
+
   private handleMutationError(err: { status?: number }) {
     this.#toastr.error(getErrorMessage(err))
     if (err?.status === 409) {
@@ -1364,6 +1766,61 @@ function getOriginalFileName(doc: IKnowledgeDocument) {
 function getOriginalFilesZipName(knowledgebaseName?: string) {
   const baseName = (knowledgebaseName || 'knowledge-documents').replace(/[\\/:*?"<>|]+/g, '_')
   return `${baseName}-original-files.zip`
+}
+
+function normalizeMoveFolderPath(value?: string | null) {
+  return (value ?? '').replace(/\\/g, '/').split('/').filter(Boolean).join('/')
+}
+
+function buildFolderBrowserTree(items: IKnowledgeDocument[], rootId: string | null) {
+  if (!rootId) {
+    return []
+  }
+
+  const nodeById = new Map<string, FolderBrowserNode>(
+    items.map((document) => [document.id, { document, children: [] }])
+  )
+  const roots: FolderBrowserNode[] = []
+  for (const node of nodeById.values()) {
+    const parentId = node.document.parent?.id
+    if (parentId === rootId || !parentId) {
+      roots.push(node)
+      continue
+    }
+    const parent = nodeById.get(parentId)
+    if (parent) {
+      parent.children.push(node)
+    }
+  }
+
+  const sortNodes = (nodes: FolderBrowserNode[]) => {
+    nodes.sort((left, right) => {
+      const leftFolder = left.document.sourceType === KDocumentSourceType.FOLDER ? 0 : 1
+      const rightFolder = right.document.sourceType === KDocumentSourceType.FOLDER ? 0 : 1
+      return leftFolder - rightFolder || left.document.name.localeCompare(right.document.name)
+    })
+    nodes.forEach((node) => sortNodes(node.children))
+  }
+  sortNodes(roots)
+  return roots
+}
+
+function mergeFolderBrowserItems(current: IKnowledgeDocument[], incoming: IKnowledgeDocument[]) {
+  const byId = new Map(current.map((document) => [document.id, document]))
+  incoming.forEach((document) => byId.set(document.id, document))
+  return [...byId.values()]
+}
+
+function withSetValue(values: Set<string>, value: string) {
+  const next = new Set(values)
+  next.add(value)
+  return next
+}
+
+function withoutSetValue(values: Set<string>, value: string) {
+  const next = new Set(values)
+  next.delete(value)
+  return next
 }
 
 function isSystemManagedDocument(doc: IKnowledgeDocument) {

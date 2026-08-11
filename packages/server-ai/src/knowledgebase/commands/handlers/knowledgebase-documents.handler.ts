@@ -8,17 +8,22 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     classificateDocumentCategory,
     DocumentSourceProviderCategoryEnum,
-    IKnowledgeDocument
+    DocumentTypeEnum,
+    IKnowledgeDocument,
+    KDocumentSourceType
 } from '@xpert-ai/contracts'
 import {
     KnowledgebaseDocumentRecord,
     KnowledgebaseDocumentStatusResult,
+    KnowledgebaseCreateFolderResult,
+    KnowledgebaseListDocumentsResult,
+    KnowledgebaseMoveDocumentResult,
     KnowledgebaseUploadedFile
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import * as tar from 'tar'
-import { In } from 'typeorm'
+import { ILike, In, IsNull, Not, Raw } from 'typeorm'
 import unzipper from 'unzipper'
 import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
@@ -26,9 +31,12 @@ import { KnowledgeWorkAreaResolver } from '../../../shared'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import {
     CreateKnowledgebaseDocumentsCommand,
+    CreateKnowledgebaseFolderCommand,
     DeleteKnowledgebaseDocumentsCommand,
     GetKnowledgebaseDocumentStatusCommand,
     ImportKnowledgebaseArchiveCommand,
+    ListKnowledgebaseDocumentsCommand,
+    MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand
 } from '../knowledgebase-documents.command'
@@ -69,6 +77,130 @@ const DEFAULT_SUPPORTED_ARCHIVE_EXTENSIONS = new Set([
     'yaml',
     'yml'
 ])
+
+@Injectable()
+@CommandHandler(ListKnowledgebaseDocumentsCommand)
+export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKnowledgebaseDocumentsCommand> {
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService
+    ) {}
+
+    async execute(command: ListKnowledgebaseDocumentsCommand): Promise<KnowledgebaseListDocumentsResult> {
+        const knowledgebaseId = command.input.knowledgebaseId?.trim()
+        if (!knowledgebaseId) {
+            throw new BadRequestException('knowledgebaseId is required')
+        }
+        await this.knowledgebaseService.findOne(knowledgebaseId)
+        const page = normalizePositiveInteger(command.input.page, 1)
+        const pageSize = Math.min(normalizePositiveInteger(command.input.pageSize, 20), 100)
+        const search = command.input.search?.trim().slice(0, 120)
+        const hasParentBoundary = Object.prototype.hasOwnProperty.call(command.input, 'parentId')
+        const parent = command.input.parentId
+            ? await this.documentService.findOne(command.input.parentId, { relations: ['parent'] })
+            : null
+        if (
+            parent &&
+            (parent.knowledgebaseId !== knowledgebaseId || parent.sourceType !== KDocumentSourceType.FOLDER)
+        ) {
+            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+        }
+        const folderPath = normalizeKnowledgebaseFolderPath(command.input.folderPath)
+        const folderMode = command.input.folderMode ?? 'direct'
+        const { items, total } = await this.documentService.findAll({
+            where: {
+                knowledgebaseId,
+                ...(hasParentBoundary ? { parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : IsNull() } : {}),
+                ...(folderPath !== undefined
+                    ? {
+                          folder:
+                              folderMode === 'descendants'
+                                  ? Raw(
+                                        (alias) =>
+                                            folderPath
+                                                ? `(${alias} = :folderPath OR left(${alias}, char_length(:folderPath) + 1) = :folderPath || '/')`
+                                                : 'TRUE',
+                                        { folderPath }
+                                    )
+                                  : folderPath
+                      }
+                    : {}),
+                ...(command.input.includeFolders ? {} : { sourceType: Not(KDocumentSourceType.FOLDER) }),
+                ...(search ? { name: ILike(`%${escapeLikePattern(search)}%`) } : {})
+            } as any,
+            relations: hasParentBoundary ? ['parent'] : undefined,
+            order: { updatedAt: 'DESC' } as any,
+            skip: (page - 1) * pageSize,
+            take: pageSize
+        })
+        return { documents: items.map(serializeKnowledgeDocument), total, page, pageSize }
+    }
+}
+
+@Injectable()
+@CommandHandler(CreateKnowledgebaseFolderCommand)
+export class CreateKnowledgebaseFolderHandler implements ICommandHandler<CreateKnowledgebaseFolderCommand> {
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService
+    ) {}
+
+    async execute(command: CreateKnowledgebaseFolderCommand): Promise<KnowledgebaseCreateFolderResult> {
+        const knowledgebaseId = command.input.knowledgebaseId?.trim()
+        const name = normalizeFolderName(command.input.name)
+        if (!knowledgebaseId) throw new BadRequestException('knowledgebaseId is required')
+        await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
+        const parent = command.input.parentId
+            ? await this.documentService.findOne(command.input.parentId, { relations: ['parent'] })
+            : null
+        if (
+            parent &&
+            (parent.knowledgebaseId !== knowledgebaseId || parent.sourceType !== KDocumentSourceType.FOLDER)
+        ) {
+            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+        }
+        const duplicate = await this.documentService.findAll({
+            where: {
+                knowledgebaseId,
+                name,
+                sourceType: KDocumentSourceType.FOLDER,
+                parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : IsNull()
+            } as any,
+            relations: ['parent'],
+            take: 1
+        })
+        const folder =
+            duplicate.items[0] ??
+            (await this.documentService.createDocument({
+                knowledgebaseId,
+                parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : null,
+                sourceType: DocumentTypeEnum.FOLDER,
+                type: DocumentTypeEnum.FOLDER,
+                name
+            }))
+        return { knowledgebaseId, folder: serializeKnowledgeDocument(folder) }
+    }
+}
+
+@Injectable()
+@CommandHandler(MoveKnowledgebaseDocumentCommand)
+export class MoveKnowledgebaseDocumentHandler implements ICommandHandler<MoveKnowledgebaseDocumentCommand> {
+    constructor(private readonly documentService: KnowledgeDocumentService) {}
+
+    async execute(command: MoveKnowledgebaseDocumentCommand): Promise<KnowledgebaseMoveDocumentResult> {
+        const result = await this.documentService.moveDocument({
+            knowledgebaseId: command.input.knowledgebaseId,
+            documentId: command.input.documentId,
+            parentId: command.input.parentId,
+            expectedVersion: command.input.expectedVersion
+        })
+        return {
+            knowledgebaseId: command.input.knowledgebaseId,
+            document: serializeKnowledgeDocument(result.document),
+            affectedDocumentIds: result.affectedDocumentIds
+        }
+    }
+}
 
 type KnowledgebaseDocumentHandlerDeps = {
     knowledgebaseService: KnowledgebaseService
@@ -228,33 +360,50 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
     async execute(command: CreateKnowledgebaseDocumentsCommand) {
         const input = command.input
         await this.knowledgebaseService.assertNotRebuilding(input.knowledgebaseId)
-        const syncResult = await this.documentService.createBulkWithIncrementalSync(
-            input.documents.map((document) => {
-                const type = normalizeDocumentType(document.type, document.name ?? document.filePath, document.mimeType)
+        const drafts = await Promise.all(
+            input.documents.map(async (document) => {
+                const parent = document.parentId
+                    ? await this.documentService.findOne(document.parentId, { relations: ['parent'] })
+                    : null
+                if (
+                    parent &&
+                    (parent.knowledgebaseId !== input.knowledgebaseId ||
+                        parent.sourceType !== KDocumentSourceType.FOLDER)
+                ) {
+                    throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+                }
+                const { parentId: _parentId, ...documentDraft } = document
+                const type = normalizeDocumentType(
+                    documentDraft.type,
+                    documentDraft.name ?? documentDraft.filePath,
+                    documentDraft.mimeType
+                )
                 const category =
-                    (document.category as IKnowledgeDocument['category']) ??
+                    (documentDraft.category as IKnowledgeDocument['category']) ??
                     classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>)
                 return {
-                    ...document,
+                    ...documentDraft,
                     knowledgebaseId: input.knowledgebaseId,
-                    sourceType: (document.sourceType ??
+                    parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : null,
+                    sourceType: (documentDraft.sourceType ??
                         DocumentSourceProviderCategoryEnum.LocalFile) as IKnowledgeDocument['sourceType'],
-                    name: document.name ?? path.posix.basename(document.filePath ?? 'knowledge-document'),
+                    name: documentDraft.name ?? path.posix.basename(documentDraft.filePath ?? 'knowledge-document'),
                     type,
                     category,
                     parserConfig: resolveKnowledgeDocumentParserConfig({
                         type,
                         category,
-                        parserConfig: document.parserConfig ?? input.parserConfig
+                        parserConfig: documentDraft.parserConfig ?? input.parserConfig
                     }),
                     metadata: {
                         ...(input.metadata ?? {}),
-                        ...(document.metadata ?? {})
+                        ...(documentDraft.metadata ?? {})
                     },
-                    size: document.size == null ? undefined : String(document.size)
+                    size: documentDraft.size == null ? undefined : String(documentDraft.size)
                 } satisfies Partial<IKnowledgeDocument>
             })
         )
+        const syncResult = await this.documentService.createBulkWithIncrementalSync(drafts)
         const docs = syncResult.documents
         let processingStarted = false
         if (input.process && syncResult.processableIds.length) {
@@ -646,6 +795,7 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
 function serializeKnowledgeDocument(document: IKnowledgeDocument): KnowledgebaseDocumentRecord {
     return {
         id: document.id,
+        version: document.version,
         name: document.name,
         type: document.type,
         category: document.category,
@@ -658,8 +808,35 @@ function serializeKnowledgeDocument(document: IKnowledgeDocument): Knowledgebase
         progress: document.progress,
         processMsg: document.processMsg,
         knowledgebaseId: document.knowledgebaseId,
+        sourceHash: document.sourceHash,
+        contentHash: document.contentHash,
+        tokenNum: document.tokenNum,
+        chunkNum: document.chunkNum,
+        disabled: document.disabled,
+        createdAt: document.createdAt?.toISOString(),
+        updatedAt: document.updatedAt?.toISOString(),
+        folderPath: document.folder ?? null,
+        parentId: document.parent?.id ?? null,
         metadata: document.metadata as KnowledgebaseDocumentRecord['metadata']
     }
+}
+
+function normalizeKnowledgebaseFolderPath(value: string | undefined) {
+    if (value === undefined) return undefined
+    return value.replace(/\\/g, '/').split('/').filter(Boolean).join('/')
+}
+
+function normalizeFolderName(value: string) {
+    const name = value?.trim()
+    if (!name) throw new BadRequestException('Folder name is required')
+    if (name === '.' || name === '..' || /[\\/]/.test(name)) {
+        throw new BadRequestException('Folder name must be one path segment')
+    }
+    return name.slice(0, 240)
+}
+
+function escapeLikePattern(value: string) {
+    return value.replace(/[\\%_]/g, (character) => `\\${character}`)
 }
 
 function buildUniqueFileName(originalname: string) {

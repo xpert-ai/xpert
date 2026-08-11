@@ -31,12 +31,18 @@ import {
     KnowledgebaseDeleteChunksResult,
     KnowledgebaseCreateDocumentsInput,
     KnowledgebaseCreateDocumentsResult,
+    KnowledgebaseCreateFolderInput,
+    KnowledgebaseCreateFolderResult,
     KnowledgebaseDeleteDocumentsInput,
     KnowledgebaseDeleteDocumentsResult,
     KnowledgebaseDocumentStatusInput,
     KnowledgebaseDocumentStatusResult,
     KnowledgebaseImportArchiveInput,
     KnowledgebaseImportArchiveResult,
+    KnowledgebaseListDocumentsInput,
+    KnowledgebaseListDocumentsResult,
+    KnowledgebaseMoveDocumentInput,
+    KnowledgebaseMoveDocumentResult,
     KnowledgebaseListInput,
     KnowledgebaseListItem,
     KnowledgebaseSearchInput,
@@ -61,6 +67,11 @@ import {
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
+    KnowledgebaseProvisioningRuntimeCapability,
+    KnowledgebaseEnsureInput,
+    KnowledgebaseEnsureResult,
+    KnowledgebaseConnectAgentInput,
+    KnowledgebaseConnectAgentResult,
     RequestContext,
     ArtifactsRuntimeCapability,
     CancelConversationCommand,
@@ -78,15 +89,19 @@ import { CopilotModelNotFoundException, ExceedingLimitException } from '../../co
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
 import {
+    CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
     DeleteAgentKnowledgeChunksCommand,
     DeleteKnowledgebaseDocumentsCommand,
     GetKnowledgebaseDocumentStatusCommand,
     ImportKnowledgebaseArchiveCommand,
+    ListKnowledgebaseDocumentsCommand,
+    MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
 } from '../../knowledgebase/commands'
+import { EnsureKnowledgebasesCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
@@ -94,6 +109,7 @@ import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { CollaborationService } from '../../collaboration/collaboration.service'
@@ -281,6 +297,14 @@ export class AgentMiddlewareRuntimeService {
         )
     }
 
+    async ensureKnowledgebases(input: KnowledgebaseEnsureInput): Promise<KnowledgebaseEnsureResult> {
+        return this.commandBus.execute(new EnsureKnowledgebasesCommand(input))
+    }
+
+    async connectAgentKnowledgebases(input: KnowledgebaseConnectAgentInput): Promise<KnowledgebaseConnectAgentResult> {
+        return this.commandBus.execute(new ConnectAgentKnowledgebasesCommand(input))
+    }
+
     async searchKnowledgebase(input: KnowledgebaseSearchInput): Promise<KnowledgebaseSearchResult> {
         return this.queryBus.execute(
             new KnowledgeSearchQuery({
@@ -308,6 +332,20 @@ export class AgentMiddlewareRuntimeService {
 
     async uploadKnowledgebaseDocumentFile(input: KnowledgebaseUploadFileInput): Promise<KnowledgebaseUploadedFile> {
         return this.commandBus.execute(new UploadKnowledgebaseDocumentFileCommand(input))
+    }
+
+    async listKnowledgebaseDocuments(
+        input: KnowledgebaseListDocumentsInput
+    ): Promise<KnowledgebaseListDocumentsResult> {
+        return this.commandBus.execute(new ListKnowledgebaseDocumentsCommand(input))
+    }
+
+    async createKnowledgebaseFolder(input: KnowledgebaseCreateFolderInput): Promise<KnowledgebaseCreateFolderResult> {
+        return this.commandBus.execute(new CreateKnowledgebaseFolderCommand(input))
+    }
+
+    async moveKnowledgebaseDocument(input: KnowledgebaseMoveDocumentInput): Promise<KnowledgebaseMoveDocumentResult> {
+        return this.commandBus.execute(new MoveKnowledgebaseDocumentCommand(input))
     }
 
     async importKnowledgebaseArchive(
@@ -495,6 +533,7 @@ export class AgentMiddlewareRuntimeService {
             message: {
                 clientMessageId: normalizeOptionalString(input.clientMessageId) ?? `assistant-task:${taskId}`,
                 input: {
+                    ...(input.humanInput ?? {}),
                     input: prompt,
                     files: normalizeTaskFiles(input.files)
                 }
@@ -579,12 +618,22 @@ export class AgentMiddlewareRuntimeService {
             [
                 KnowledgebaseDocumentsRuntimeCapability,
                 {
+                    listDocuments: (input) => this.listKnowledgebaseDocuments(input),
+                    createFolder: (input) => this.createKnowledgebaseFolder(input),
+                    moveDocument: (input) => this.moveKnowledgebaseDocument(input),
                     uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
                     importArchive: (input) => this.importKnowledgebaseArchive(input),
                     createDocuments: (input) => this.createKnowledgebaseDocuments(input),
                     startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
                     getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
                     deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
+                }
+            ],
+            [
+                KnowledgebaseProvisioningRuntimeCapability,
+                {
+                    ensure: (input) => this.ensureKnowledgebases(input),
+                    connectAgent: (input) => this.connectAgentKnowledgebases(input)
                 }
             ],
             [
