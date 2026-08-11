@@ -1166,6 +1166,9 @@ importers:
       underscore:
         specifier: ^1.13.1
         version: 1.13.7
+      undici:
+        specifier: ^7.28.0
+        version: 7.28.0
       unzipper:
         specifier: ^0.12.3
         version: 0.12.3

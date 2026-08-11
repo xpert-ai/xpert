@@ -79,6 +79,7 @@
 		"tslib": "^2.3.0",
 		"typeorm": "^0.3.24",
 		"underscore": "^1.13.1",
+		"undici": "^7.28.0",
 		"unzipper": "^0.12.3",
 		"zod-to-json-schema": "^3.23.2"
 	},
