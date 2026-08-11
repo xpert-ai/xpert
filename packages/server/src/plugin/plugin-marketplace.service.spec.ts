@@ -489,6 +489,70 @@ describe('PluginMarketplaceService marketplace trial shortcuts', () => {
 	})
 })
 
+describe('PluginMarketplaceService dedicated proxy', () => {
+	const originalProxyUrl = process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL
+
+	afterEach(() => {
+		if (originalProxyUrl === undefined) {
+			delete process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL
+		} else {
+			process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL = originalProxyUrl
+		}
+		jest.restoreAllMocks()
+	})
+
+	it('routes marketplace HTTP requests through the configured proxy', async () => {
+		process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL = 'http://127.0.0.1:7890'
+		const service = new PluginMarketplaceService({} as any, {} as any, [], {} as any)
+		const fetchMarketplaceJson = service as unknown as {
+			fetchJson(url: string): Promise<unknown>
+		}
+		const fetchRegistry = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			json: async () => ({ plugins: [] })
+		} as Response)
+		const registryUrl = 'https://xpert-ai.github.io/xpert-plugin-registry/plugins/index.json'
+
+		await fetchMarketplaceJson.fetchJson(registryUrl)
+
+		expect(fetchRegistry).toHaveBeenCalledWith(
+			registryUrl,
+			expect.objectContaining({ dispatcher: expect.anything() })
+		)
+	})
+
+	it('preserves direct marketplace requests when the proxy is not configured', async () => {
+		delete process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL
+		const service = new PluginMarketplaceService({} as any, {} as any, [], {} as any)
+		const fetchMarketplaceJson = service as unknown as {
+			fetchJson(url: string): Promise<unknown>
+		}
+		const fetchRegistry = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			json: async () => ({ plugins: [] })
+		} as Response)
+		const registryUrl = 'https://xpert-ai.github.io/xpert-plugin-registry/plugins/index.json'
+
+		await fetchMarketplaceJson.fetchJson(registryUrl)
+
+		expect(fetchRegistry).toHaveBeenCalledWith(registryUrl)
+	})
+
+	it('rejects invalid proxy protocols without exposing the configured URL', async () => {
+		process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL = 'ftp://proxy-user:proxy-secret@127.0.0.1:7890'
+		const service = new PluginMarketplaceService({} as any, {} as any, [], {} as any)
+		const fetchMarketplaceJson = service as unknown as {
+			fetchJson(url: string): Promise<unknown>
+		}
+		const fetchRegistry = jest.spyOn(globalThis, 'fetch')
+
+		await expect(
+			fetchMarketplaceJson.fetchJson('https://xpert-ai.github.io/xpert-plugin-registry/plugins/index.json')
+		).rejects.toThrow('XPERT_PLUGIN_MARKETPLACE_PROXY_URL must be a valid HTTP or HTTPS URL')
+		expect(fetchRegistry).not.toHaveBeenCalled()
+	})
+})
+
 describe('PluginMarketplaceService public marketplace', () => {
 	afterEach(() => {
 		jest.restoreAllMocks()
