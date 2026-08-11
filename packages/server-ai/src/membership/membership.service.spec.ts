@@ -663,7 +663,22 @@ describe('MembershipService', () => {
                     rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
                 }
             })),
-            find: jest.fn().mockResolvedValue([{ id: 'user-1' }, { id: 'user-2' }])
+            find: jest.fn().mockResolvedValue([
+                {
+                    id: 'user-1',
+                    type: UserType.USER,
+                    role: {
+                        rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+                    }
+                },
+                {
+                    id: 'user-2',
+                    type: UserType.USER,
+                    role: {
+                        rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+                    }
+                }
+            ])
         }
         const membershipRepository = {
             createQueryBuilder: jest.fn(() => {
@@ -1962,6 +1977,28 @@ describe('MembershipService', () => {
         })
     })
 
+    it('does not grant the tenant default membership without membership use permission', async () => {
+        const { ledgers, memberships, plans, service, userRepository } = createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-tenant-default' }))
+        userRepository.findOne.mockImplementation(async ({ where }) => ({
+            id: where.id,
+            tenantId: where.tenantId,
+            type: UserType.USER,
+            role: { rolePermissions: [] }
+        }))
+
+        await expect(
+            service.ensureTenantDefaultMembership({
+                tenantId: 'tenant-1',
+                userId: 'trial-user'
+            })
+        ).resolves.toBeNull()
+
+        expect(plans).toHaveLength(1)
+        expect(memberships).toHaveLength(0)
+        expect(ledgers).toHaveLength(0)
+    })
+
     it('does not grant or assign membership plans to technical users', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
@@ -2576,6 +2613,46 @@ describe('MembershipService', () => {
         expect(ledgers).toHaveLength(2)
         expect(firstResult).toEqual({ scanned: 2, assigned: 2, nextCursor: null })
         expect(secondResult).toEqual({ scanned: 2, assigned: 0, nextCursor: null })
+    })
+
+    it('creates the organization default plan but skips members without membership use permission', async () => {
+        const { ledgers, memberships, plans, service, userRepository } = createScopeInitializationHarness()
+        userRepository.find.mockResolvedValue([
+            {
+                id: 'user-1',
+                type: UserType.USER,
+                role: {
+                    rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+                }
+            },
+            {
+                id: 'user-2',
+                type: UserType.USER,
+                role: { rolePermissions: [] }
+            }
+        ])
+
+        const result = await service.backfillOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+
+        expect(plans).toEqual([
+            expect.objectContaining({
+                organizationId: 'org-1',
+                code: 'default',
+                status: MembershipPlanStatusEnum.Active
+            })
+        ])
+        expect(memberships).toEqual([
+            expect.objectContaining({
+                organizationId: 'org-1',
+                userId: 'user-1',
+                source: MembershipSourceEnum.Organization
+            })
+        ])
+        expect(ledgers).toHaveLength(1)
+        expect(result).toEqual({ scanned: 2, assigned: 1, nextCursor: null })
     })
 
     it('does not assign a user who leaves the organization after the batch is scanned', async () => {
