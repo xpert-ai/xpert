@@ -60,7 +60,7 @@ describe('FindCopilotModelsHandler', () => {
             get: jest.fn().mockReturnValue('http://localhost:3000')
         }
         const modelAccessService = {
-            canUseCatalogModel: jest.fn().mockResolvedValue(true)
+            canUseCatalogModels: jest.fn().mockImplementation(async ({ models }) => models.map(() => true))
         }
         const handler = new FindCopilotModelsHandler(
             queryBus as never,
@@ -84,13 +84,17 @@ describe('FindCopilotModelsHandler', () => {
                 })
             ])
         )
-        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledWith({
+        expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: null,
             userId: 'user-1',
-            copilotId: 'copilot-primary',
-            copilotModelId: 'qwen3.6-plus',
-            modelType: AiModelTypeEnum.LLM
+            models: expect.arrayContaining([
+                expect.objectContaining({
+                    copilotId: 'copilot-primary',
+                    copilotModelId: 'qwen3.6-plus',
+                    modelType: AiModelTypeEnum.LLM
+                })
+            ])
         })
     })
 
@@ -144,7 +148,7 @@ describe('FindCopilotModelsHandler', () => {
             })
         }
         const modelAccessService = {
-            canUseCatalogModel: jest.fn()
+            canUseCatalogModels: jest.fn()
         }
         const handler = new FindCopilotModelsHandler(
             queryBus as never,
@@ -166,7 +170,7 @@ describe('FindCopilotModelsHandler', () => {
             'selected-configured'
         ])
         expect(getProviderModels).toHaveBeenCalledWith(AiModelTypeEnum.LLM)
-        expect(modelAccessService.canUseCatalogModel).not.toHaveBeenCalled()
+        expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()
     })
 
     it('does not infer LLM for a selected copilot model without an explicit model type', async () => {
@@ -200,7 +204,7 @@ describe('FindCopilotModelsHandler', () => {
                 })
             } as never,
             {
-                canUseCatalogModel: jest.fn().mockResolvedValue(true)
+                canUseCatalogModels: jest.fn()
             } as never
         )
         Object.defineProperty(handler, 'configService', {
@@ -225,6 +229,13 @@ describe('FindCopilotModelsHandler', () => {
                     id: 'copilot-primary',
                     modelProvider: {
                         id: 'provider-1',
+                        providerName: 'openai-compatible'
+                    }
+                },
+                {
+                    id: 'copilot-secondary',
+                    modelProvider: {
+                        id: 'provider-2',
                         providerName: 'openai-compatible'
                     }
                 }
@@ -259,7 +270,11 @@ describe('FindCopilotModelsHandler', () => {
             })
         }
         const modelAccessService = {
-            canUseCatalogModel: jest.fn().mockImplementation(async ({ copilotModelId }) => copilotModelId === 'free-model')
+            canUseCatalogModels: jest
+                .fn()
+                .mockImplementation(async ({ models }) =>
+                    models.map(({ copilotModelId }) => copilotModelId === 'free-model')
+                )
         }
         const handler = new FindCopilotModelsHandler(
             queryBus as never,
@@ -273,20 +288,40 @@ describe('FindCopilotModelsHandler', () => {
 
         const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
 
-        expect(result).toHaveLength(1)
-        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['free-model'])
-        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledTimes(2)
+        expect(result).toHaveLength(2)
+        expect(result.map((copilot) => copilot.providerWithModels.models.map((model) => model.model))).toEqual([
+            ['free-model'],
+            ['free-model']
+        ])
+        expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledTimes(1)
         expect(service.findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
-        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledWith(
-            expect.objectContaining({
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                userId: 'user-1',
-                copilotId: 'copilot-primary',
-                copilotModelId: 'free-model',
-                modelType: AiModelTypeEnum.LLM
-            })
-        )
+        expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            models: expect.arrayContaining([
+                expect.objectContaining({
+                    copilotId: 'copilot-primary',
+                    copilotModelId: 'free-model',
+                    modelType: AiModelTypeEnum.LLM
+                }),
+                expect.objectContaining({
+                    copilotId: 'copilot-primary',
+                    copilotModelId: 'paid-model',
+                    modelType: AiModelTypeEnum.LLM
+                }),
+                expect.objectContaining({
+                    copilotId: 'copilot-secondary',
+                    copilotModelId: 'free-model',
+                    modelType: AiModelTypeEnum.LLM
+                }),
+                expect.objectContaining({
+                    copilotId: 'copilot-secondary',
+                    copilotModelId: 'paid-model',
+                    modelType: AiModelTypeEnum.LLM
+                })
+            ])
+        })
     })
 
     it('uses an explicit internal access user for Xpert creator catalogs', async () => {
@@ -319,7 +354,7 @@ describe('FindCopilotModelsHandler', () => {
             })
         }
         const modelAccessService = {
-            canUseCatalogModel: jest.fn().mockResolvedValue(true)
+            canUseCatalogModels: jest.fn().mockImplementation(async ({ models }) => models.map(() => true))
         }
         const handler = new FindCopilotModelsHandler(
             { execute: jest.fn().mockResolvedValue([]) } as never,
@@ -339,12 +374,16 @@ describe('FindCopilotModelsHandler', () => {
             )
         )
 
-        expect(modelAccessService.canUseCatalogModel).toHaveBeenCalledWith(
-            expect.objectContaining({
-                userId: 'creator-user',
-                copilotModelId: 'creator-model'
-            })
-        )
+        expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'creator-user',
+            models: [
+                expect.objectContaining({
+                    copilotModelId: 'creator-model'
+                })
+            ]
+        })
     })
 
     it('loads only models from the current organization scope for membership management', async () => {
@@ -392,7 +431,7 @@ describe('FindCopilotModelsHandler', () => {
             })
         }
         const modelAccessService = {
-            canUseCatalogModel: jest.fn()
+            canUseCatalogModels: jest.fn()
         }
         const handler = new FindCopilotModelsHandler(
             { execute: jest.fn().mockResolvedValue([]) } as never,
@@ -412,6 +451,6 @@ describe('FindCopilotModelsHandler', () => {
         expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['paid-model'])
         expect(service.findAllAvailablesCopilots).not.toHaveBeenCalled()
         expect(service.findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
-        expect(modelAccessService.canUseCatalogModel).not.toHaveBeenCalled()
+        expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()
     })
 })

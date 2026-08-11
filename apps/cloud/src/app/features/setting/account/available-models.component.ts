@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IModelAccessRequest, ModelAccessSourceEnum, ModelAccessRequestStatusEnum } from '@xpert-ai/contracts'
+import {
+  IModelAccessCatalog,
+  IModelAccessRequest,
+  ModelAccessRequestStatusEnum,
+  ModelAccessSourceEnum,
+  UserModelGrantStatusEnum
+} from '@xpert-ai/contracts'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
@@ -57,10 +63,12 @@ export class XpAccountAvailableModelsComponent {
   readonly #dialog = inject(ZardDialogService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
+  readonly #destroyRef = inject(DestroyRef)
+  #catalogSubscribed = false
 
   readonly state = toSignal(
-    combineLatest([this.#service.catalog$, this.#service.myRequests$, this.#service.myGrants$]).pipe(
-      map(([catalog, requests, grants]) => ({ catalog, requests, grants })),
+    combineLatest([this.#service.myRequests$, this.#service.myGrants$]).pipe(
+      map(([requests, grants]) => ({ requests, grants })),
       catchError((error) => {
         this.#toastr.error(getErrorMessage(error))
         return of(null)
@@ -68,20 +76,19 @@ export class XpAccountAvailableModelsComponent {
     ),
     { initialValue: undefined }
   )
+  readonly catalog = signal<IModelAccessCatalog | null>(null)
+  readonly catalogLoading = signal(false)
+  readonly catalogLoadFailed = signal(false)
+  readonly requestAvailability = computed<boolean | null>(() => this.catalog()?.canRequest ?? null)
   readonly availableModels = computed(
     () =>
-      this.state()?.catalog.items.filter(
-        (item) => item.planIncluded || item.accessSource === ModelAccessSourceEnum.Direct
-      ) ?? []
+      this.catalog()?.items.filter((item) => item.planIncluded || item.accessSource === ModelAccessSourceEnum.Direct) ??
+      []
   )
   readonly grantModels = computed(
-    () =>
-      this.state()?.catalog.items.filter(
-        (item) =>
-          !item.planIncluded && item.accessSource === ModelAccessSourceEnum.Grant && item.grant?.status === 'active'
-      ) ?? []
+    () => this.state()?.grants.filter((item) => item.status === UserModelGrantStatusEnum.Active) ?? []
   )
-  readonly requestableModels = computed(() => this.state()?.catalog.items.filter((item) => item.requestable) ?? [])
+  readonly requestableModels = computed(() => this.catalog()?.items.filter((item) => item.requestable) ?? [])
   readonly availableModelSearchControl = new FormControl('', { nonNullable: true })
   readonly availableModelSearch = toSignal(this.availableModelSearchControl.valueChanges.pipe(startWith('')), {
     initialValue: ''
@@ -107,6 +114,29 @@ export class XpAccountAvailableModelsComponent {
   })
 
   readonly requestedStatus = ModelAccessRequestStatusEnum.Requested
+
+  loadAvailableModels() {
+    if (this.#catalogSubscribed || this.catalogLoading()) {
+      return
+    }
+
+    this.#catalogSubscribed = true
+    this.catalogLoading.set(true)
+    this.catalogLoadFailed.set(false)
+    this.#service.catalog$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
+      next: (catalog) => {
+        this.catalog.set(catalog)
+        this.catalogLoading.set(false)
+      },
+      error: (error) => {
+        this.#catalogSubscribed = false
+        this.catalog.set(null)
+        this.catalogLoading.set(false)
+        this.catalogLoadFailed.set(true)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
 
   currentRequestStatus(request: IModelAccessRequest) {
     return getCurrentModelAccessStatus(request, this.state()?.grants ?? [])
