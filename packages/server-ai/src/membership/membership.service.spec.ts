@@ -576,6 +576,7 @@ describe('MembershipService', () => {
         }
         const backfillQueueService = {
             enqueueTenantDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined),
+            enqueueTenantOrganizationDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined),
             enqueueOrganizationDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined)
         }
         const updateBuilder = {
@@ -660,7 +661,12 @@ describe('MembershipService', () => {
                 tenantId: where.tenantId,
                 type: UserType.USER,
                 role: {
-                    rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+                    rolePermissions: [
+                        { permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true },
+                        ...(where.id === 'admin-1'
+                            ? [{ permission: AIPermissionsEnum.MEMBERSHIP_EDIT, enabled: true }]
+                            : [])
+                    ]
                 }
             })),
             find: jest.fn().mockResolvedValue([
@@ -1058,6 +1064,9 @@ describe('MembershipService', () => {
                 }
             })
         }
+        const organizationRepository = {
+            find: jest.fn().mockResolvedValue([{ id: 'org-1' }, { id: 'org-2' }])
+        }
 
         return {
             dataSource,
@@ -1065,6 +1074,7 @@ describe('MembershipService', () => {
             ledgerRepository,
             memberships,
             membershipRepository,
+            organizationRepository,
             userRepository,
             planRepository,
             plans,
@@ -1085,7 +1095,7 @@ describe('MembershipService', () => {
                 featureOrganizationRepository as never,
                 tenantSettingRepository as never,
                 periodRepository as never,
-                undefined,
+                organizationRepository as never,
                 backfillQueueService as never
             )
         }
@@ -1921,6 +1931,29 @@ describe('MembershipService', () => {
         expect(ensureScopeInitialized).not.toHaveBeenCalled()
     })
 
+    it('assigns an initialized organization Default to a user with use permission but no edit permission', async () => {
+        const { memberships, plans, service } = createScopeInitializationHarness()
+        plans.push(
+            createPlan({
+                id: 'plan-org-default',
+                organizationId: 'org-1'
+            })
+        )
+
+        const membership = await service.ensureUserAssignedIfScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
+
+        expect(membership).toMatchObject({
+            organizationId: 'org-1',
+            userId: 'user-1',
+            planId: 'plan-org-default'
+        })
+        expect(memberships).toHaveLength(1)
+    })
+
     it('grants the tenant default membership idempotently without treating an organization membership as tenant-level', async () => {
         const { dataSource, ledgers, ledgerRepository, memberships, membershipRepository, plans, service } =
             createScopeInitializationHarness()
@@ -2495,8 +2528,63 @@ describe('MembershipService', () => {
         expect(ledgerRepository.save).not.toHaveBeenCalled()
         expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
             'tenant-1',
-            'org-1'
+            'org-1',
+            'admin-1'
         )
+    })
+
+    it('does not queue organization initialization for an actor without membership edit permission', async () => {
+        const { backfillQueueService, service } = createScopeInitializationHarness()
+
+        await service.ensureScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            assignedById: 'builder-1'
+        })
+
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).not.toHaveBeenCalled()
+    })
+
+    it('queues new organization initialization only when effective Feature and actor permission are both enabled', async () => {
+        const { backfillQueueService, service } = createScopeInitializationHarness()
+
+        await expect(
+            service.enqueueOrganizationDefaultMembershipInitialization({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                actorUserId: 'admin-1'
+            })
+        ).resolves.toBe(true)
+        await expect(
+            service.enqueueOrganizationDefaultMembershipInitialization({
+                tenantId: 'tenant-1',
+                organizationId: 'org-2',
+                actorUserId: 'builder-1'
+            })
+        ).resolves.toBe(false)
+
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledTimes(1)
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
+            'tenant-1',
+            'org-1',
+            'admin-1'
+        )
+    })
+
+    it('does not queue new organization initialization when the effective Feature is disabled', async () => {
+        const { backfillQueueService, service } = createScopeInitializationHarness(undefined, () => [
+            { isEnabled: false }
+        ])
+
+        await expect(
+            service.enqueueOrganizationDefaultMembershipInitialization({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                actorUserId: 'admin-1'
+            })
+        ).resolves.toBe(false)
+
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).not.toHaveBeenCalled()
     })
 
     it('initializes tenant scope by enqueueing an idempotent backfill', async () => {
@@ -2563,17 +2651,45 @@ describe('MembershipService', () => {
         expect(secondResult).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
     })
 
+    it('queues inherited organizations in bounded batches after tenant membership Feature activation', async () => {
+        const { backfillQueueService, organizationRepository, service } = createScopeInitializationHarness()
+
+        const result = await service.backfillTenantOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            actorUserId: 'admin-1',
+            take: 1
+        })
+
+        expect(organizationRepository.find).toHaveBeenCalledWith({
+            select: ['id'],
+            where: {
+                tenantId: 'tenant-1',
+                isActive: true
+            },
+            order: { id: 'ASC' },
+            take: 2
+        })
+        expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
+            'tenant-1',
+            'org-1',
+            'admin-1'
+        )
+        expect(result).toEqual({ scanned: 1, enqueued: 1, nextCursor: 'org-1' })
+    })
+
     it('creates one default organization plan and backfills active members idempotently', async () => {
         const { ledgers, memberships, plans, service } = createScopeInitializationHarness()
 
         const [firstResult, secondResult] = await Promise.all([
             service.backfillOrganizationDefaultMembershipBatch({
                 tenantId: 'tenant-1',
-                organizationId: 'org-1'
+                organizationId: 'org-1',
+                actorUserId: 'admin-1'
             }),
             service.backfillOrganizationDefaultMembershipBatch({
                 tenantId: 'tenant-1',
-                organizationId: 'org-1'
+                organizationId: 'org-1',
+                actorUserId: 'admin-1'
             })
         ])
 
@@ -2634,7 +2750,8 @@ describe('MembershipService', () => {
 
         const result = await service.backfillOrganizationDefaultMembershipBatch({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            actorUserId: 'admin-1'
         })
 
         expect(plans).toEqual([
@@ -2655,6 +2772,29 @@ describe('MembershipService', () => {
         expect(result).toEqual({ scanned: 2, assigned: 1, nextCursor: null })
     })
 
+    it('does not create an organization default plan when the triggering actor cannot edit membership plans', async () => {
+        const { ledgers, memberships, plans, service, userRepository } = createScopeInitializationHarness()
+        userRepository.findOne.mockImplementation(async ({ where }) => ({
+            id: where.id,
+            tenantId: where.tenantId,
+            type: UserType.USER,
+            role: {
+                rolePermissions: [{ permission: AIPermissionsEnum.MEMBERSHIP_USE, enabled: true }]
+            }
+        }))
+
+        const result = await service.backfillOrganizationDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            actorUserId: 'builder-1'
+        })
+
+        expect(plans).toHaveLength(0)
+        expect(memberships).toHaveLength(0)
+        expect(ledgers).toHaveLength(0)
+        expect(result).toEqual({ scanned: 0, assigned: 0, nextCursor: null })
+    })
+
     it('does not assign a user who leaves the organization after the batch is scanned', async () => {
         const { memberships, service, userOrganizationRepository } = createScopeInitializationHarness()
         userOrganizationRepository.find
@@ -2666,7 +2806,8 @@ describe('MembershipService', () => {
 
         const result = await service.backfillOrganizationDefaultMembershipBatch({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            actorUserId: 'admin-1'
         })
 
         expect(memberships).toEqual([
@@ -2800,7 +2941,8 @@ describe('MembershipService', () => {
         expect(ledgerRepository.save).not.toHaveBeenCalled()
         expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
             'tenant-1',
-            'org-1'
+            'org-1',
+            'admin-1'
         )
     })
 
@@ -2817,11 +2959,13 @@ describe('MembershipService', () => {
 
         const beforeBackfill = await service.ensureScopeInitialized({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            assignedById: 'admin-1'
         })
         await service.backfillOrganizationDefaultMembershipBatch({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            actorUserId: 'admin-1'
         })
         const afterBackfill = await service.getScopeStatus({
             tenantId: 'tenant-1',
@@ -2835,7 +2979,8 @@ describe('MembershipService', () => {
         })
         expect(backfillQueueService.enqueueOrganizationDefaultMembershipBackfill).toHaveBeenCalledWith(
             'tenant-1',
-            'org-1'
+            'org-1',
+            'admin-1'
         )
         expect(catalogClone.isDefault).toBe(false)
         expect(plans).toEqual(
@@ -2928,11 +3073,13 @@ describe('MembershipService', () => {
 
         const firstResult = await service.backfillOrganizationDefaultMembershipBatch({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            actorUserId: 'admin-1'
         })
         const secondResult = await service.backfillOrganizationDefaultMembershipBatch({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            actorUserId: 'admin-1'
         })
 
         expect(plans).toEqual([
@@ -2989,7 +3136,8 @@ describe('MembershipService', () => {
 
         const result = await service.backfillOrganizationDefaultMembershipBatch({
             tenantId: 'tenant-1',
-            organizationId: 'org-1'
+            organizationId: 'org-1',
+            actorUserId: 'admin-1'
         })
 
         expect(plans).toEqual(
