@@ -596,6 +596,9 @@ export class MembershipService {
         if (!scope.organizationId) {
             return null
         }
+        if (!(await this.hasMembershipUsePermission(scope.tenantId, input.userId))) {
+            return null
+        }
         if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId))) {
             return null
         }
@@ -644,7 +647,7 @@ export class MembershipService {
         if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
             return null
         }
-        if (!(await this.isMembershipEligibleUser(scope.tenantId, input.userId))) {
+        if (!(await this.hasMembershipUsePermission(scope.tenantId, input.userId))) {
             return null
         }
 
@@ -692,6 +695,7 @@ export class MembershipService {
             return { scanned: 0, assigned: 0, nextCursor: null }
         }
         const userIds = batch.map((user) => user.id)
+        const permittedUserIds = new Set(await this.findMembershipUsePermissionUserIds(input.tenantId, userIds))
         const nextCursor = users.length > take ? userIds[userIds.length - 1] : null
 
         const result = await this.dataSource.transaction(async (manager) => {
@@ -714,7 +718,7 @@ export class MembershipService {
             let created = 0
 
             for (const userId of userIds) {
-                if (existingUserIds.has(userId)) {
+                if (existingUserIds.has(userId) || !permittedUserIds.has(userId)) {
                     continue
                 }
                 const assignment = await this.ensureTenantDefaultMembershipWithPlan(
@@ -781,18 +785,7 @@ export class MembershipService {
         }
 
         const candidateUserIds = Array.from(new Set(batch.map((membership) => membership.userId).filter(Boolean)))
-        const candidateUserIdSet = new Set(candidateUserIds)
-        const users = candidateUserIds.length
-            ? await this.userRepository.find({
-                  select: ['id'],
-                  where: {
-                      tenantId: input.tenantId,
-                      id: In(candidateUserIds),
-                      type: UserType.USER
-                  }
-              })
-            : []
-        const eligibleUserIds = users.map((user) => user.id).filter((userId) => candidateUserIdSet.has(userId))
+        const permittedUserIds = await this.findMembershipUsePermissionUserIds(input.tenantId, candidateUserIds)
         const nextCursor = organizationMemberships.length > take ? (batch[batch.length - 1]?.id ?? null) : null
 
         const result = await this.dataSource.transaction(async (manager) => {
@@ -804,20 +797,20 @@ export class MembershipService {
                 return { assigned: 0, canContinue: false }
             }
 
-            const activeOrganizationMemberships = eligibleUserIds.length
+            const activeOrganizationMemberships = permittedUserIds.length
                 ? await manager.getRepository(UserOrganization).find({
                       select: ['userId'],
                       where: {
                           tenantId: input.tenantId,
                           organizationId: input.organizationId,
-                          userId: In(eligibleUserIds),
+                          userId: In(permittedUserIds),
                           isActive: true
                       }
                   })
                 : []
             const activeUserIds = new Set(activeOrganizationMemberships.map((membership) => membership.userId))
             let created = 0
-            for (const userId of eligibleUserIds) {
+            for (const userId of permittedUserIds) {
                 if (!activeUserIds.has(userId)) {
                     continue
                 }
@@ -3266,7 +3259,8 @@ export class MembershipService {
             return
         }
 
-        const userIds = await this.findActiveOrganizationUserIds(scope.tenantId, scope.organizationId, manager)
+        const activeUserIds = await this.findActiveOrganizationUserIds(scope.tenantId, scope.organizationId, manager)
+        const userIds = await this.findMembershipUsePermissionUserIds(scope.tenantId, activeUserIds)
         if (!userIds.length) {
             return
         }
@@ -3460,6 +3454,26 @@ export class MembershipService {
             where: { tenantId, id: userId },
             relations: ['role', 'role.rolePermissions']
         })
+        return this.userHasMembershipUsePermission(user)
+    }
+
+    private async findMembershipUsePermissionUserIds(tenantId: string, userIds: string[]): Promise<string[]> {
+        if (!userIds.length) {
+            return []
+        }
+
+        const users = await this.userRepository.find({
+            where: {
+                tenantId,
+                id: In(userIds),
+                type: UserType.USER
+            },
+            relations: ['role', 'role.rolePermissions']
+        })
+        return users.filter((user) => this.userHasMembershipUsePermission(user)).map((user) => user.id)
+    }
+
+    private userHasMembershipUsePermission(user: User | null | undefined) {
         return (
             user?.type === UserType.USER &&
             !!user.role?.rolePermissions?.some(
