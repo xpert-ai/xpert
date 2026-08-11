@@ -105,6 +105,7 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 				new FeatureOrganizationUpdatedEvent(
 					tenantId,
 					isNotEmpty(organizationId) ? organizationId : null,
+					RequestContext.currentUserId() ?? null,
 					featureId,
 					feature.code,
 					previousIsEnabled,

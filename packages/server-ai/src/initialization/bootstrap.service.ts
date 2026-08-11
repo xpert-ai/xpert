@@ -103,6 +103,12 @@ export class ServerAIBootstrapService {
         const organization = await this.organizationService.findOne(event.organizationId)
         const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
 
+        await this.membershipService.enqueueOrganizationDefaultMembershipInitialization({
+            tenantId: event.tenantId,
+            organizationId: event.organizationId,
+            actorUserId: event.ownerUserId ?? null
+        })
+
         await this.runInOrganizationContext(owner, event.organizationId, async () => {
             const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
             await this.ensureDefaultEnvironment(workspace.id)

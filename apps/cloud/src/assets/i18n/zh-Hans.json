@@ -6440,7 +6440,12 @@
       "XpertAuthorizationHint": "选择该用户组可访问的已发布 XPERT。",
       "NoPublishedXperts": "暂无可授权的已发布 XPERT。",
       "NoAuthorizedXperts": "暂无已授权的 XPERT。",
-      "NoGroupsInOrganization": "当前组织下暂无用户组。"
+      "NoGroupsInOrganization": "当前组织下暂无用户组。",
+      "BasicInfo": "基础信息",
+      "XpertAccess": "XPERT 授权",
+      "SearchXperts": "搜索已发布的 XPERT",
+      "NoMatchingXperts": "没有匹配的 XPERT",
+      "WorkspaceTabsLabel": "用户组配置"
     },
     "MCP": {
       "Logs": "日志",
