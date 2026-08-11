@@ -985,6 +985,8 @@
       "TasksActive": "tasks active",
       "UpdateTask": "Update Task",
       "CreateTask": "Create Task",
+      "CreateDirectly": "Create directly",
+      "CreateAndPublishDirectly": "Create and publish directly",
       "ToolParameters": "Tool Parameters",
       "ToolName": "Tool Name",
       "ToolDescription": "Tool Description",

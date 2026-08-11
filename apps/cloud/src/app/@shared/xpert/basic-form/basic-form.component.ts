@@ -53,7 +53,9 @@ export class XpertBasicFormComponent {
   readonly description = model<string>()
   readonly copilotModel = model<ICopilotModel>()
 
-  readonly invalid = computed(() => this.checking() || this.error() || !this.copilotModel()?.copilotId)
+  readonly invalid = computed(
+    () => this.checking() || !!this.error() || !this.name()?.trim() || !this.copilotModel()?.copilotId
+  )
   readonly checking = signal(false)
   readonly error = signal<string>('')
 

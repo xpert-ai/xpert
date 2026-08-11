@@ -5679,6 +5679,8 @@
       "CreateClawXpert": "创建专家",
       "CreateBlankXpert": "创建空白专家",
       "CreateAndPublish": "创建并发布",
+      "CreateDirectly": "直接创建",
+      "CreateAndPublishDirectly": "直接创建并发布",
       "ChooseXpertType": "想要哪种专家类型？",
       "StartFrom": "起始方式",
       "StartFromHelp": "选择空白起始项，或先加载一个模板。创建 Xpert 前，你仍可以继续编辑向导内容。",

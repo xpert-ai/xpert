@@ -2816,6 +2816,8 @@
       "TasksActive": "活动任务",
       "UpdateTask": "更新任务",
       "CreateTask": "创建任务",
+      "CreateDirectly": "直接创建",
+      "CreateAndPublishDirectly": "直接创建并发布",
       "ModelProvider": "模型提供商",
       "CheckingModelProviders": "正在检查可用模型提供商...",
       "ConfigureModelProviderBeforeBasic": "进入基础信息前，请先配置主模型提供商，确保这个 ClawXpert 创建后可以立即运行。",

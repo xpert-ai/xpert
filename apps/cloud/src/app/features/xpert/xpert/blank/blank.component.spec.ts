@@ -79,6 +79,7 @@ type BlankSpecContext = {
     importDSL: jest.Mock
     publish: jest.Mock
     saveDraft: jest.Mock
+    validateName: jest.Mock
   }
   workspaceService: { getAllMy: jest.Mock }
 }
@@ -495,10 +496,12 @@ async function createComponent(
   options?: {
     agentTemplateDetail?: any
     agentTemplates?: any[]
+    basicForm?: { checking: () => boolean; invalid: () => boolean } | null
     createdXpert?: any
     importedXpert?: any
     installedSkillPackage?: any
     language?: string
+    nameAvailable?: boolean
     pluginSkillInstallError?: unknown
     pluginSkillInstallResult?: any
     copilotModels?: any[]
@@ -566,7 +569,8 @@ async function createComponent(
     getTriggerProviders: jest.fn(() => of(triggerProviders)),
     importDSL: jest.fn(() => of(importedXpert)),
     publish: jest.fn(() => of(publishedXpert)),
-    saveDraft: jest.fn(() => of({ checklist: [] }))
+    saveDraft: jest.fn(() => of({ checklist: [] })),
+    validateName: jest.fn(() => of(options?.nameAvailable ?? true))
   }
   const xpertAgentService = {
     agentMiddlewares$: of(middlewareProviders)
@@ -742,10 +746,13 @@ async function createComponent(
   const component = fixture.componentInstance
 
   Object.defineProperty(component, 'basicForm', {
-    value: () => ({
-      checking: () => false,
-      invalid: () => false
-    })
+    value: () =>
+      options?.basicForm === null
+        ? null
+        : (options?.basicForm ?? {
+            checking: () => false,
+            invalid: () => false
+          })
   })
 
   fixture.detectChanges()
@@ -947,6 +954,118 @@ describe('XpertNewBlankComponent', () => {
     expect(component.skipTemplateSelectionStep).toBe(true)
     expect(component.agentInitialStepIndex).toBe(1)
     expect(component.selectedTemplateId()).toBe('template-agent')
+  })
+
+  it('creates directly from a complete marketplace template without visiting the intermediate steps', async () => {
+    const templateYaml = createAgentTemplateYaml().replace(
+      '  copilotModel:\n    modelType: llm',
+      '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+    )
+    const { component, skillPackageService, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: templateYaml },
+        basicForm: null,
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    expect(component.directCreateDisabled()).toBe(false)
+
+    await component.createDirectly()
+
+    expect(xpertService.validateName).toHaveBeenCalledWith('template-agent')
+    expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
+    expect(xpertService.importDSL).toHaveBeenCalled()
+  })
+
+  it('does not create directly from an unlocked agent template', async () => {
+    const templateYaml = createAgentTemplateYaml().replace(
+      '  copilotModel:\n    modelType: llm',
+      '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+    )
+    const { component, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: templateYaml },
+        basicForm: null
+      }
+    )
+
+    expect(component.directCreateDisabled()).toBe(true)
+
+    await component.createDirectly()
+
+    expect(xpertService.validateName).not.toHaveBeenCalled()
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('does not create a blank agent directly', async () => {
+    const { component, xpertService } = await createComponent({
+      completionMode: 'create',
+      initialStartMode: 'blank',
+      type: XpertTypeEnum.Agent
+    })
+    component.name.set('blank-expert')
+    component.copilotModel.set({
+      copilotId: 'copilot-primary',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'gpt-4o'
+    })
+
+    expect(component.directCreateDisabled()).toBe(true)
+
+    await component.createDirectly()
+
+    expect(xpertService.validateName).not.toHaveBeenCalled()
+    expect(xpertService.create).not.toHaveBeenCalled()
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('does not create directly when the template name is no longer available', async () => {
+    const templateYaml = createAgentTemplateYaml().replace(
+      '  copilotModel:\n    modelType: llm',
+      '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+    )
+    const { component, toastr, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: templateYaml },
+        basicForm: null,
+        nameAvailable: false,
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.createDirectly()
+
+    expect(toastr.error).toHaveBeenCalledWith('ID not available')
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
   })
 
   it('does not add the model provider setup step for non-ClawXpert Agent creation', async () => {

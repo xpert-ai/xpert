@@ -4253,6 +4253,8 @@
       "AskQuestion": "提問問題",
       "StartRun": "開始運行",
       "CreateBlankXpert": "創建空白專家",
+      "CreateDirectly": "直接創建",
+      "CreateAndPublishDirectly": "直接創建並發布",
       "ChooseXpertType": "想要哪種專家類型？",
       "StartFrom": "開始方式",
       "BlankStart": "空白",

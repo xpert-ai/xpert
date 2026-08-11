@@ -911,6 +911,24 @@
                 {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
               </button>
             }
+
+            @if (canCreateDirectly()) {
+              <button
+                type="button"
+                class="btn disabled:btn-disabled btn-primary btn-large"
+                [disabled]="directCreateDisabled()"
+                (click)="createDirectly()"
+              >
+                <i class="ri-save-line mr-1"></i>
+                {{
+                  (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublishDirectly' : 'XP.Xpert.CreateDirectly')
+                    | translate
+                      : {
+                          Default: completionMode === 'publish' ? 'Create and publish directly' : 'Create directly'
+                        }
+                }}
+              </button>
+            }
           } @else {
             <button
               type="button"
