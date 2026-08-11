@@ -5,6 +5,8 @@ import type { Queue } from 'bull'
 export const MEMBERSHIP_MAINTENANCE_QUEUE = 'membership-maintenance'
 export const TENANT_DEFAULT_MEMBERSHIP_BACKFILL_JOB = 'tenant-default-membership-backfill'
 export const TENANT_DEFAULT_MEMBERSHIP_BACKFILL_BATCH_SIZE = 100
+export const TENANT_ORGANIZATION_DEFAULT_MEMBERSHIP_BACKFILL_JOB = 'tenant-organization-default-membership-backfill'
+export const TENANT_ORGANIZATION_DEFAULT_MEMBERSHIP_BACKFILL_BATCH_SIZE = 100
 export const ORGANIZATION_DEFAULT_MEMBERSHIP_BACKFILL_JOB = 'organization-default-membership-backfill'
 export const ORGANIZATION_DEFAULT_MEMBERSHIP_BACKFILL_BATCH_SIZE = 100
 
@@ -16,10 +18,20 @@ export type TenantDefaultMembershipBackfillJob = {
 export type OrganizationDefaultMembershipBackfillJob = {
     tenantId: string
     organizationId: string
+    actorUserId: string
     afterUserOrganizationId: string | null
 }
 
-type MembershipBackfillJob = TenantDefaultMembershipBackfillJob | OrganizationDefaultMembershipBackfillJob
+export type TenantOrganizationDefaultMembershipBackfillJob = {
+    tenantId: string
+    actorUserId: string
+    afterOrganizationId: string | null
+}
+
+type MembershipBackfillJob =
+    | TenantDefaultMembershipBackfillJob
+    | TenantOrganizationDefaultMembershipBackfillJob
+    | OrganizationDefaultMembershipBackfillJob
 
 @Injectable()
 export class MembershipBackfillQueueService {
@@ -46,6 +58,7 @@ export class MembershipBackfillQueueService {
     async enqueueOrganizationDefaultMembershipBackfill(
         tenantId: string,
         organizationId: string,
+        actorUserId: string,
         afterUserOrganizationId: string | null = null
     ) {
         await this.queue.add(
@@ -53,7 +66,28 @@ export class MembershipBackfillQueueService {
             {
                 tenantId,
                 organizationId,
+                actorUserId,
                 afterUserOrganizationId
+            },
+            {
+                attempts: 5,
+                backoff: 10_000,
+                removeOnComplete: true
+            }
+        )
+    }
+
+    async enqueueTenantOrganizationDefaultMembershipBackfill(
+        tenantId: string,
+        actorUserId: string,
+        afterOrganizationId: string | null = null
+    ) {
+        await this.queue.add(
+            TENANT_ORGANIZATION_DEFAULT_MEMBERSHIP_BACKFILL_JOB,
+            {
+                tenantId,
+                actorUserId,
+                afterOrganizationId
             },
             {
                 attempts: 5,

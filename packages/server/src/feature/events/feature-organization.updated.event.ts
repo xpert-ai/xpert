@@ -4,6 +4,7 @@ export class FeatureOrganizationUpdatedEvent {
 	constructor(
 		public readonly tenantId: string,
 		public readonly organizationId: string | null,
+		public readonly actorUserId: string | null,
 		public readonly featureId: string,
 		public readonly featureCode: string,
 		public readonly previousIsEnabled: boolean,

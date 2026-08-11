@@ -246,6 +246,7 @@ describe('ServerAIBootstrapService', () => {
             })
         }
         const membershipService = {
+            enqueueOrganizationDefaultMembershipInitialization: jest.fn().mockResolvedValue(false),
             ensureTenantDefaultMembership: jest.fn().mockResolvedValue(null),
             ensureUserAssignedIfScopeInitialized: jest.fn().mockResolvedValue(null),
             revokeOrganizationMembershipForRemovedUser: jest.fn().mockResolvedValue(null)
@@ -314,8 +315,14 @@ describe('ServerAIBootstrapService', () => {
     }
 
     it('keeps organization bootstrap focused on workspace and membership setup', async () => {
-        const { environmentService, service, skillPackageService, skillRepositoryService, workspaceService } =
-            createService()
+        const {
+            environmentService,
+            membershipService,
+            service,
+            skillPackageService,
+            skillRepositoryService,
+            workspaceService
+        } = createService()
 
         const result = await service.bootstrapOrganization({
             organizationId: 'org-1',
@@ -341,6 +348,11 @@ describe('ServerAIBootstrapService', () => {
         expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'owner-1')
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'member-2')
+        expect(membershipService.enqueueOrganizationDefaultMembershipInitialization).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            actorUserId: 'owner-1'
+        })
         expect(result).toEqual({
             repositoryIds: []
         })
@@ -923,7 +935,8 @@ connections: []`
     })
 
     it('removes the user from non-personal org workspaces on membership deletion', async () => {
-        const { membershipService, modelAccessService, modelGatewayService, service, workspaceService } = createService()
+        const { membershipService, modelAccessService, modelGatewayService, service, workspaceService } =
+            createService()
 
         await service.cleanupUserInOrganization({
             tenantId: 'tenant-1',
