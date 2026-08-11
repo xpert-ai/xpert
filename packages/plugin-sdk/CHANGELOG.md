@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.16.1
+
+### Patch Changes
+
+- 57721a6: Normalize missing assistant roles in OpenAI-compatible completion responses.
+
 ## 3.16.0
 
 ### Minor Changes
