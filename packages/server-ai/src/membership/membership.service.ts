@@ -572,15 +572,19 @@ export class MembershipService {
             await this.enqueueTenantDefaultMembershipBackfill(scope.tenantId)
             return this.buildScopeStatus(scope, manager)
         }
+        const actorUserId = input?.assignedById ?? RequestContext.currentUserId()
+        if (!actorUserId || !(await this.hasMembershipEditPermission(scope.tenantId, actorUserId))) {
+            return this.buildScopeStatus(scope, manager)
+        }
         if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId, manager))) {
-            await this.enqueueOrganizationDefaultMembershipBackfill(scope.tenantId, scope.organizationId)
+            await this.enqueueOrganizationDefaultMembershipBackfill(scope.tenantId, scope.organizationId, actorUserId)
             return this.buildScopeStatus(scope, manager)
         }
 
         const initialize = async (txManager: EntityManager) => {
             const plan = await this.ensureDefaultOrganizationPlan(scope, txManager)
             if (plan) {
-                await this.ensureOrganizationMemberMemberships(scope, plan, input?.assignedById ?? null, txManager)
+                await this.ensureOrganizationMemberMemberships(scope, plan, actorUserId, txManager)
             }
             return this.buildScopeStatus(scope, txManager)
         }
@@ -596,12 +600,65 @@ export class MembershipService {
         if (!scope.organizationId) {
             return null
         }
-        if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId))) {
+        if (!(await this.hasMembershipUsePermission(scope.tenantId, input.userId))) {
+            return null
+        }
+        if (!(await this.isActiveOrganizationMember(scope.tenantId, scope.organizationId, input.userId))) {
             return null
         }
 
-        await this.ensureScopeInitialized(input)
-        return this.findActiveMembership(scope.tenantId, scope.organizationId, input.userId)
+        return this.dataSource.transaction(async (manager) => {
+            if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
+                return null
+            }
+            const plan = await this.findDefaultPlan(scope.tenantId, scope.organizationId, manager)
+            if (!plan) {
+                return null
+            }
+            return (
+                await this.ensureOrganizationMemberMembershipWithPlan(
+                    {
+                        tenantId: scope.tenantId,
+                        organizationId: scope.organizationId,
+                        userId: input.userId
+                    },
+                    plan,
+                    input.assignedById ?? input.userId,
+                    manager
+                )
+            ).membership
+        })
+    }
+
+    async enqueueOrganizationDefaultMembershipInitialization(input: {
+        tenantId: string
+        organizationId: string
+        actorUserId?: string | null
+    }): Promise<boolean> {
+        const actorUserId = input.actorUserId ?? null
+        if (!actorUserId || !(await this.canInitializeOrganizationDefaultMembership(input))) {
+            return false
+        }
+
+        await this.enqueueOrganizationDefaultMembershipBackfill(input.tenantId, input.organizationId, actorUserId)
+        return true
+    }
+
+    async canInitializeOrganizationDefaultMembership(input: {
+        tenantId: string
+        organizationId?: string | null
+        actorUserId?: string | null
+    }): Promise<boolean> {
+        const actorUserId = input.actorUserId ?? null
+        if (!actorUserId) {
+            return false
+        }
+        return (
+            (await this.isMembershipPlanEnabledForScope({
+                tenantId: input.tenantId,
+                organizationId: input.organizationId ?? null
+            })) && (await this.hasMembershipEditPermission(input.tenantId, actorUserId))
+        )
     }
 
     async revokeOrganizationMembershipForRemovedUser(input: {
@@ -644,7 +701,7 @@ export class MembershipService {
         if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
             return null
         }
-        if (!(await this.isMembershipEligibleUser(scope.tenantId, input.userId))) {
+        if (!(await this.hasMembershipUsePermission(scope.tenantId, input.userId))) {
             return null
         }
 
@@ -692,6 +749,7 @@ export class MembershipService {
             return { scanned: 0, assigned: 0, nextCursor: null }
         }
         const userIds = batch.map((user) => user.id)
+        const permittedUserIds = new Set(await this.findMembershipUsePermissionUserIds(input.tenantId, userIds))
         const nextCursor = users.length > take ? userIds[userIds.length - 1] : null
 
         const result = await this.dataSource.transaction(async (manager) => {
@@ -714,7 +772,7 @@ export class MembershipService {
             let created = 0
 
             for (const userId of userIds) {
-                if (existingUserIds.has(userId)) {
+                if (existingUserIds.has(userId) || !permittedUserIds.has(userId)) {
                     continue
                 }
                 const assignment = await this.ensureTenantDefaultMembershipWithPlan(
@@ -742,6 +800,7 @@ export class MembershipService {
     async backfillOrganizationDefaultMembershipBatch(input: {
         tenantId: string
         organizationId: string
+        actorUserId: string
         afterUserOrganizationId?: string | null
         take?: number
     }): Promise<{
@@ -752,6 +811,9 @@ export class MembershipService {
         const scope: MembershipScope = {
             tenantId: input.tenantId,
             organizationId: input.organizationId
+        }
+        if (!(await this.hasMembershipEditPermission(input.tenantId, input.actorUserId))) {
+            return { scanned: 0, assigned: 0, nextCursor: null }
         }
         const defaultPlan = await this.dataSource.transaction(async (manager) => {
             if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
@@ -781,18 +843,7 @@ export class MembershipService {
         }
 
         const candidateUserIds = Array.from(new Set(batch.map((membership) => membership.userId).filter(Boolean)))
-        const candidateUserIdSet = new Set(candidateUserIds)
-        const users = candidateUserIds.length
-            ? await this.userRepository.find({
-                  select: ['id'],
-                  where: {
-                      tenantId: input.tenantId,
-                      id: In(candidateUserIds),
-                      type: UserType.USER
-                  }
-              })
-            : []
-        const eligibleUserIds = users.map((user) => user.id).filter((userId) => candidateUserIdSet.has(userId))
+        const permittedUserIds = await this.findMembershipUsePermissionUserIds(input.tenantId, candidateUserIds)
         const nextCursor = organizationMemberships.length > take ? (batch[batch.length - 1]?.id ?? null) : null
 
         const result = await this.dataSource.transaction(async (manager) => {
@@ -804,20 +855,20 @@ export class MembershipService {
                 return { assigned: 0, canContinue: false }
             }
 
-            const activeOrganizationMemberships = eligibleUserIds.length
+            const activeOrganizationMemberships = permittedUserIds.length
                 ? await manager.getRepository(UserOrganization).find({
                       select: ['userId'],
                       where: {
                           tenantId: input.tenantId,
                           organizationId: input.organizationId,
-                          userId: In(eligibleUserIds),
+                          userId: In(permittedUserIds),
                           isActive: true
                       }
                   })
                 : []
             const activeUserIds = new Set(activeOrganizationMemberships.map((membership) => membership.userId))
             let created = 0
-            for (const userId of eligibleUserIds) {
+            for (const userId of permittedUserIds) {
                 if (!activeUserIds.has(userId)) {
                     continue
                 }
@@ -842,6 +893,50 @@ export class MembershipService {
             scanned: batch.length,
             assigned: result.assigned,
             nextCursor: result.canContinue ? nextCursor : null
+        }
+    }
+
+    async backfillTenantOrganizationDefaultMembershipBatch(input: {
+        tenantId: string
+        actorUserId: string
+        afterOrganizationId?: string | null
+        take?: number
+    }): Promise<{
+        scanned: number
+        enqueued: number
+        nextCursor: string | null
+    }> {
+        const tenantScope: MembershipScope = { tenantId: input.tenantId, organizationId: null }
+        if (
+            !this.organizationRepository?.find ||
+            !(await this.isMembershipPlanEnabledForScope(tenantScope)) ||
+            !(await this.hasMembershipEditPermission(input.tenantId, input.actorUserId))
+        ) {
+            return { scanned: 0, enqueued: 0, nextCursor: null }
+        }
+
+        const take = Math.min(Math.max(Math.trunc(input.take ?? 100), 1), 500)
+        const organizations = await this.organizationRepository.find({
+            select: ['id'],
+            where: {
+                tenantId: input.tenantId,
+                isActive: true,
+                ...(input.afterOrganizationId ? { id: MoreThan(input.afterOrganizationId) } : {})
+            },
+            order: { id: 'ASC' },
+            take: take + 1
+        })
+        const batch = organizations.slice(0, take)
+        const nextCursor = organizations.length > take ? (batch[batch.length - 1]?.id ?? null) : null
+
+        for (const organization of batch) {
+            await this.enqueueOrganizationDefaultMembershipBackfill(input.tenantId, organization.id, input.actorUserId)
+        }
+
+        return {
+            scanned: batch.length,
+            enqueued: batch.length,
+            nextCursor
         }
     }
 
@@ -907,13 +1002,28 @@ export class MembershipService {
         await this.backfillQueueService?.enqueueTenantDefaultMembershipBackfill(tenantId)
     }
 
-    private async enqueueOrganizationDefaultMembershipBackfill(tenantId: string, organizationId: string) {
-        await this.backfillQueueService?.enqueueOrganizationDefaultMembershipBackfill(tenantId, organizationId)
+    private async enqueueOrganizationDefaultMembershipBackfill(
+        tenantId: string,
+        organizationId: string,
+        actorUserId: string
+    ) {
+        await this.backfillQueueService?.enqueueOrganizationDefaultMembershipBackfill(
+            tenantId,
+            organizationId,
+            actorUserId
+        )
     }
 
     private async enqueueDefaultMembershipBackfill(scope: MembershipScope) {
         if (scope.organizationId) {
-            await this.enqueueOrganizationDefaultMembershipBackfill(scope.tenantId, scope.organizationId)
+            const actorUserId = RequestContext.currentUserId()
+            if (actorUserId) {
+                await this.enqueueOrganizationDefaultMembershipBackfill(
+                    scope.tenantId,
+                    scope.organizationId,
+                    actorUserId
+                )
+            }
         } else {
             await this.enqueueTenantDefaultMembershipBackfill(scope.tenantId)
         }
@@ -3266,7 +3376,8 @@ export class MembershipService {
             return
         }
 
-        const userIds = await this.findActiveOrganizationUserIds(scope.tenantId, scope.organizationId, manager)
+        const activeUserIds = await this.findActiveOrganizationUserIds(scope.tenantId, scope.organizationId, manager)
+        const userIds = await this.findMembershipUsePermissionUserIds(scope.tenantId, activeUserIds)
         if (!userIds.length) {
             return
         }
@@ -3460,6 +3571,39 @@ export class MembershipService {
             where: { tenantId, id: userId },
             relations: ['role', 'role.rolePermissions']
         })
+        return this.userHasMembershipUsePermission(user)
+    }
+
+    private async hasMembershipEditPermission(tenantId: string, userId: string) {
+        const user = await this.userRepository.findOne({
+            where: { tenantId, id: userId },
+            relations: ['role', 'role.rolePermissions']
+        })
+        return (
+            user?.type === UserType.USER &&
+            !!user.role?.rolePermissions?.some(
+                (permission) => permission.enabled && permission.permission === AIPermissionsEnum.MEMBERSHIP_EDIT
+            )
+        )
+    }
+
+    private async findMembershipUsePermissionUserIds(tenantId: string, userIds: string[]): Promise<string[]> {
+        if (!userIds.length) {
+            return []
+        }
+
+        const users = await this.userRepository.find({
+            where: {
+                tenantId,
+                id: In(userIds),
+                type: UserType.USER
+            },
+            relations: ['role', 'role.rolePermissions']
+        })
+        return users.filter((user) => this.userHasMembershipUsePermission(user)).map((user) => user.id)
+    }
+
+    private userHasMembershipUsePermission(user: User | null | undefined) {
         return (
             user?.type === UserType.USER &&
             !!user.role?.rolePermissions?.some(
