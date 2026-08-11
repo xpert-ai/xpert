@@ -1,6 +1,7 @@
 jest.mock('../core/context', () => ({
 	RequestContext: {
-		currentTenantId: jest.fn(() => 'tenant-1')
+		currentTenantId: jest.fn(() => 'tenant-1'),
+		currentUserId: jest.fn(() => 'admin-1')
 	}
 }))
 
@@ -243,6 +244,7 @@ describe('FeatureOrganizationService', () => {
 			expect.objectContaining({
 				tenantId: 'tenant-1',
 				organizationId: null,
+				actorUserId: 'admin-1',
 				featureId: 'feature-1',
 				featureCode: 'FEATURE_MEMBERSHIP_PLAN',
 				previousIsEnabled: false,
