@@ -204,7 +204,9 @@ export async function createHumanMessage(
     const { human } = state
     const agentHuman = await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
     const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
-    const references = await hydrateImageReferenceWorkspacePaths(queryBus, normalizeReferences(agentHuman?.references))
+    const normalizedReferences = normalizeReferences(agentHuman?.references)
+    const originalReferencePrompt = buildReferencedPrompt(normalizedReferences)
+    const references = await hydrateImageReferenceWorkspacePaths(queryBus, normalizedReferences)
     const referencePrompt = buildReferencedPrompt(references)
     const selectedSkillsPrompt = await buildSelectedRuntimeSkillsPrompt(
         queryBus,
@@ -213,14 +215,16 @@ export async function createHumanMessage(
         agentHuman,
         options?.xpert
     )
-    const finalTextWithoutSkills =
-        input.trim().length > 0 && referencePrompt.trim().length > 0
-            ? input.includes(referencePrompt)
-                ? input
-                : `${input.trimEnd()}\n\n${referencePrompt}`
-            : input.trim().length > 0
-              ? input
-              : referencePrompt
+    let finalTextWithoutSkills: string
+    if (!input.trim().length) {
+        finalTextWithoutSkills = referencePrompt
+    } else if (!referencePrompt.trim().length || input.includes(referencePrompt)) {
+        finalTextWithoutSkills = input
+    } else if (originalReferencePrompt.trim().length && input.endsWith(originalReferencePrompt)) {
+        finalTextWithoutSkills = `${input.slice(0, -originalReferencePrompt.length)}${referencePrompt}`
+    } else {
+        finalTextWithoutSkills = `${input.trimEnd()}\n\n${referencePrompt}`
+    }
     const finalText = appendPromptSection(finalTextWithoutSkills, selectedSkillsPrompt)
     const imageReferences = references.filter(
         (reference): reference is Extract<(typeof references)[number], { type: 'image' }> => reference.type === 'image'
