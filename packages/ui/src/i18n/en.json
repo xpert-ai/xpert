@@ -24,6 +24,16 @@
     "moreItemsSelected_one": "{{count}} more item selected",
     "moreItemsSelected_other": "{{count}} more items selected"
   },
+  "paginator": {
+    "itemsPerPage": "Items per page:",
+    "itemsPerPagePlaceholder": "Items per page",
+    "firstPage": "First page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "lastPage": "Last page",
+    "range": "{{start}} – {{end}} of {{length}}",
+    "emptyRange": "0 of {{length}}"
+  },
   "chipGrid": {
     "emptyPlaceholder": "Select or add items"
   }

@@ -33,7 +33,8 @@ import {
   ZardInputDirective,
   type ZardPageEvent,
   ZardPaginatorComponent,
-  ZardSelectImports
+  ZardSelectImports,
+  ZardTabsImports
 } from '@xpert-ai/headless-ui'
 import { userLabel } from '../../../@shared/pipes'
 import { format } from 'date-fns'
@@ -43,6 +44,8 @@ type MembershipModelOption = {
   provider: string
   model: string
 }
+
+type MembershipAdminTab = 'plans' | 'users'
 
 const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'day', 'week', 'cycle']
 
@@ -64,7 +67,8 @@ const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'da
     ZardPaginatorComponent,
     ...ZardFormImports,
     ...ZardCardImports,
-    ...ZardSelectImports
+    ...ZardSelectImports,
+    ...ZardTabsImports
   ],
   templateUrl: './membership.component.html',
   styleUrls: ['./membership.component.scss']
@@ -80,6 +84,7 @@ export class MembershipAdminComponent implements OnInit {
   readonly plans = signal<IMembershipPlan[]>([])
   readonly scopeStatus = signal<IMembershipScopeStatus | null>(null)
   readonly loading = signal(false)
+  readonly activeTab = signal<MembershipAdminTab>('plans')
   readonly editing = signal(false)
   readonly selectedPlanId = signal<string | null>(null)
   readonly planMembers = signal<IUserMembership[]>([])
@@ -170,6 +175,10 @@ export class MembershipAdminComponent implements OnInit {
 
   ngOnInit() {
     this.load()
+  }
+
+  setActiveTab(tab: MembershipAdminTab) {
+    this.activeTab.set(tab)
   }
 
   load() {

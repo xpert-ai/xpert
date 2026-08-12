@@ -3490,7 +3490,7 @@
       }
     },
     "Membership": {
-      "AdminTitle": "会员套餐",
+      "AdminTitle": "会员管理",
       "Level": "等级",
       "LevelValidation": "等级必须为非负整数。",
       "PriceCurrency": "币种",
@@ -3511,6 +3511,7 @@
       "DefaultPlanLabel": "默认套餐",
       "NoDefaultPlan": "无默认套餐",
       "NewPlan": "新建套餐",
+      "PlanManagement": "套餐配置",
       "TotalPlans": "套餐总数",
       "ActivePlans": "启用套餐",
       "ArchivedPlans": "归档套餐",
@@ -3654,6 +3655,7 @@
       "SearchUsersPlaceholder": "姓名、用户名或邮箱",
       "ExpiringBefore": "到期时间不晚于",
       "SelectedUsers": "已选择 {{count}} 人",
+      "SelectVisibleUsers": "选择当前页用户",
       "BulkAction": "批量操作",
       "ApplyBulkAction": "执行操作",
       "BulkActionConfirmTitle": "确认执行会员操作？",
