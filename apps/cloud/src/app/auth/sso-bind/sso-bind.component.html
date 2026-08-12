@@ -60,16 +60,24 @@
       <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
         <div>
           <label for="sso-bind-user-name" class="mb-2 block text-base font-medium text-text-primary">
-            {{ 'AUTH.LOGIN.ACCOUNT' | translate: { Default: 'Account' } }}
+            {{ 'Auth.SSO_BIND.ACCOUNT' | translate: { Default: 'Xpert account' } }}
           </label>
           <input
             z-input
             id="sso-bind-user-name"
             type="text"
+            name="username"
+            autocomplete="username"
             formControlName="userName"
-            [placeholder]="'AUTH.LOGIN.USERNAME' | translate: { Default: 'Username / Email' }"
+            [placeholder]="'Auth.SSO_BIND.ACCOUNT_PLACEHOLDER' | translate: { Default: 'Xpert username / email' }"
+            [attr.aria-invalid]="userName.invalid && userName.dirty"
             required
           />
+          @if (userName.invalid && userName.dirty) {
+            <p class="mb-0 mt-1.5 text-sm text-text-destructive">
+              {{ 'Auth.SSO_BIND.ACCOUNT_REQUIRED' | translate: { Default: 'Enter your Xpert username or email.' } }}
+            </p>
+          }
         </div>
 
         <div>
@@ -80,10 +88,18 @@
             z-input
             id="sso-bind-password"
             type="password"
+            name="password"
+            autocomplete="current-password"
             formControlName="password"
-            placeholder="••••••••"
+            [placeholder]="'Auth.SSO_BIND.PASSWORD_PLACEHOLDER' | translate: { Default: 'Xpert account password' }"
+            [attr.aria-invalid]="password.invalid && password.dirty"
             required
           />
+          @if (password.invalid && password.dirty) {
+            <p class="mb-0 mt-1.5 text-sm text-text-destructive">
+              {{ 'Auth.SSO_BIND.PASSWORD_REQUIRED' | translate: { Default: 'Enter your Xpert account password.' } }}
+            </p>
+          }
         </div>
 
         @if (submitError) {
@@ -101,7 +117,7 @@
             type="submit"
             class="h-10 text-sm font-medium"
             [zLoading]="submitting"
-            [disabled]="form.invalid || submitting"
+            [disabled]="submitting"
           >
             {{ 'Auth.SSO_BIND.SUBMIT' | translate: { Default: 'Bind and Sign In' } }}
           </button>

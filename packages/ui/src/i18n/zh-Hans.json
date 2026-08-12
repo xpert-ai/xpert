@@ -21,6 +21,7 @@
     "cancel": "取消"
   },
   "select": {
+    "placeholder": "请选择一个选项...",
     "moreItemsSelected_other": "还有 {{count}} 项已选择"
   },
   "paginator": {

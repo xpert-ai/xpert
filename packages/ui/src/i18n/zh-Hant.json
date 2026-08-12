@@ -21,6 +21,7 @@
     "cancel": "取消"
   },
   "select": {
+    "placeholder": "請選擇一個選項...",
     "moreItemsSelected_other": "還有 {{count}} 項已選擇"
   },
   "paginator": {
