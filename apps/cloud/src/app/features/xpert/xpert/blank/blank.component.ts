@@ -31,6 +31,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AIPermissionsEnum,
   CopilotServerService,
+  convertToUrlPath,
   EnvironmentService,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
@@ -861,6 +862,27 @@ export class XpertNewBlankComponent {
   readonly basicStepInvalid = computed(
     () => this.basicInvalid() || this.workspaceSelectionInvalid() || this.noAvailableWorkspaces()
   )
+  readonly directBasicStepInvalid = computed(() => {
+    const basicForm = this.basicForm()
+    if (basicForm) {
+      return (
+        basicForm.checking() ||
+        !!basicForm.invalid() ||
+        this.workspaceSelectionInvalid() ||
+        this.noAvailableWorkspaces()
+      )
+    }
+
+    const name = this.name()?.trim()
+    return (
+      !name ||
+      /[^a-zA-Z0-9-\s]/.test(name) ||
+      convertToUrlPath(name).length < 5 ||
+      !this.copilotModel()?.copilotId ||
+      this.workspaceSelectionInvalid() ||
+      this.noAvailableWorkspaces()
+    )
+  })
   readonly selectedTriggersInvalid = computed(() =>
     this.hasInvalidTriggerSelections(this.selectedTriggers(), this.triggerProviderOptions())
   )
@@ -879,6 +901,25 @@ export class XpertNewBlankComponent {
   readonly loading = signal(false)
   readonly enablingPrimaryCopilot = signal(false)
   readonly modelProviderSetupCompleted = signal(false)
+  readonly canCreateDirectly = computed(
+    () => this.lockStartMode && this.startMode() === 'template' && !!this.selectedTemplateId()
+  )
+  readonly directCreateDisabled = computed(
+    () =>
+      !this.canCreateDirectly() ||
+      this.loading() ||
+      this.startStepInvalid() ||
+      this.checkingModelProviders() ||
+      this.modelProviderStepInvalid() ||
+      this.directBasicStepInvalid() ||
+      this.selectedTriggersInvalid() ||
+      this.installingSkillPackage() ||
+      this.loadingTemplateToolsets() ||
+      !!this.configuringTemplateToolsetKey() ||
+      !!this.templatePluginSkillInstallError() ||
+      !!this.templateToolsetInstallError() ||
+      (this.templateToolsetSelectionStates().length > 0 && this.templateToolsetsStepInvalid())
+  )
 
   refreshWorkspaces() {
     this.#refreshWorkspaces$.next()
@@ -1016,23 +1057,56 @@ export class XpertNewBlankComponent {
   }
 
   async create() {
-    if (
-      this.loading() ||
+    if (this.loading() || this.creationInvalid(!!this.basicStepInvalid())) {
+      return
+    }
+
+    await this.runCreate()
+  }
+
+  async createDirectly() {
+    if (this.directCreateDisabled()) {
+      return
+    }
+
+    const name = this.name()?.trim()
+    if (!name) {
+      return
+    }
+
+    await this.runCreate(async () => {
+      const nameAvailable = await firstValueFrom(this.xpertService.validateName(name).pipe(take(1)))
+      if (!nameAvailable) {
+        this.#toastr.error(this.#translate.instant('XP.Xpert.IDNotAvailable', { Default: 'ID not available' }))
+        return false
+      }
+
+      await this.prepareAgentSkillStep()
+      return this.name()?.trim() === name && !this.creationInvalid(!!this.directBasicStepInvalid())
+    })
+  }
+
+  private creationInvalid(basicStepInvalid: boolean) {
+    return (
       this.startStepInvalid() ||
       this.modelProviderStepInvalid() ||
-      this.basicStepInvalid() ||
+      basicStepInvalid ||
       (this.isAgentType() && this.selectedTriggersInvalid()) ||
       (this.isKnowledgeType() && this.selectedKnowledgeTriggersInvalid()) ||
       this.installingSkillPackage() ||
       this.loadingTemplateToolsets() ||
       !!this.templatePluginSkillInstallError() ||
       !!this.templateToolsetInstallError()
-    ) {
-      return
-    }
+    )
+  }
 
+  private async runCreate(preflight?: () => Promise<boolean>) {
     this.loading.set(true)
     try {
+      if (preflight && !(await preflight())) {
+        return
+      }
+
       if (this.isAgentType()) {
         const templatePluginSkillsReady = await this.prepareTemplatePluginSkillsForCurrentWorkspace()
         if (!templatePluginSkillsReady) {
