@@ -17,6 +17,8 @@ jest.mock('@xpert-ai/server-core', () => {
 })
 
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { GetStorageFileQuery } from '@xpert-ai/server-core'
+import { GetFileAssetByStorageFileQuery } from '../../file-understanding/queries/get-file-asset-by-storage-file.query'
 import { GetFileAssetQuery } from '../../file-understanding/queries/get-file-asset.query'
 import { GetFilePreviewQuery } from '../../file-understanding/queries/get-file-preview.query'
 import { LoadFileCommand } from '../commands'
@@ -287,6 +289,65 @@ describe('createHumanMessage', () => {
                 text: expect.stringContaining('[Image] reference-only.png')
             }
         ])
+    })
+
+    it('overrides client-supplied image workspace paths with the authoritative file asset path', async () => {
+        const workspacePath = '/workspace/sessions/conversation-1/files/asset-1/diagram.png'
+        const clientWorkspacePath = '/workspace/forged/diagram.png'
+        const imageReference = {
+            type: 'image' as const,
+            fileId: 'storage-1',
+            url: 'https://example.com/diagram.png',
+            workspacePath: clientWorkspacePath,
+            name: 'diagram.png',
+            mimeType: 'image/png',
+            text: 'Pasted image: diagram.png'
+        }
+        const queryBus = {
+            execute: jest.fn().mockImplementation(async (query: unknown) => {
+                if (query instanceof GetFileAssetByStorageFileQuery) {
+                    return {
+                        id: 'asset-1',
+                        storageFileId: 'storage-1',
+                        workspacePath
+                    }
+                }
+                if (query instanceof GetStorageFileQuery) {
+                    return [
+                        {
+                            id: 'storage-1',
+                            file: '',
+                            originalName: 'diagram.png',
+                            mimetype: 'image/png',
+                            size: 2048,
+                            storageProvider: 'local'
+                        }
+                    ]
+                }
+                return null
+            })
+        }
+
+        const message = await createHumanMessage(
+            {
+                execute: jest.fn()
+            } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: 'Animate this image',
+                    references: [imageReference]
+                }
+            },
+            undefined
+        )
+
+        const textPart = (message.content as Array<{ type: string; text?: string }>).find(
+            (part) => part.type === 'text'
+        )
+        expect(textPart?.text).toContain(`Workspace Path: ${workspacePath}`)
+        expect(textPart?.text).not.toContain(clientWorkspacePath)
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.objectContaining({ storageFileId: imageReference.fileId }))
     })
 
     it('adds file understanding cards without inlining preview chunks', async () => {

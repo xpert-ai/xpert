@@ -125,6 +125,24 @@ function fileAssetUrl(fileAsset?: FileAsset | null) {
     return typeof url === 'string' && url.trim() ? url.trim() : undefined
 }
 
+async function hydrateImageReferenceWorkspacePaths(
+    queryBus: QueryBus,
+    references: ReturnType<typeof normalizeReferences>
+) {
+    return Promise.all(
+        references.map(async (reference) => {
+            if (reference.type !== 'image' || !reference.fileId) {
+                return reference
+            }
+
+            const fileAsset = await queryBus.execute<GetFileAssetByStorageFileQuery, FileAsset | null>(
+                new GetFileAssetByStorageFileQuery(reference.fileId)
+            )
+            return fileAsset?.workspacePath ? { ...reference, workspacePath: fileAsset.workspacePath } : reference
+        })
+    )
+}
+
 async function toImageContentPart(
     file: ResolvedFile,
     attachment?: TXpertAgentOptions['attachment'] | TXpertAgentOptions['vision']
@@ -186,7 +204,7 @@ export async function createHumanMessage(
     const { human } = state
     const agentHuman = await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
     const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
-    const references = normalizeReferences(agentHuman?.references)
+    const references = await hydrateImageReferenceWorkspacePaths(queryBus, normalizeReferences(agentHuman?.references))
     const referencePrompt = buildReferencedPrompt(references)
     const selectedSkillsPrompt = await buildSelectedRuntimeSkillsPrompt(
         queryBus,
