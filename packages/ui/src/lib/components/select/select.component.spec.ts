@@ -39,6 +39,19 @@ class TestHostComponent {
 
 @Component({
   standalone: true,
+  imports: [ReactiveFormsModule, ZardSelectComponent, ZardSelectItemComponent],
+  template: `
+    <z-select [formControl]="control">
+      <z-select-item zValue="ADMIN">ADMIN</z-select-item>
+    </z-select>
+  `
+})
+class DefaultPlaceholderHostComponent {
+  readonly control = new FormControl<string | null>(null)
+}
+
+@Component({
+  standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ZardSelectComponent, ZardSelectItemComponent],
   template: `
     <z-select [formControl]="control" zPlaceholder="Select a role">
@@ -75,6 +88,10 @@ function createI18nProvider(language: WritableSignal<string>) {
       const count = Number(options?.count ?? 0)
       const locale = options?.lng ?? language()
 
+      if (key === 'xp-ui:select.placeholder') {
+        return locale.startsWith('zh') ? '请选择一个选项...' : 'Select an option...'
+      }
+
       if (key === 'xp-ui:select.moreItemsSelected') {
         if (locale.startsWith('zh')) {
           return `还有 ${count} 项已选择`
@@ -89,6 +106,42 @@ function createI18nProvider(language: WritableSignal<string>) {
 }
 
 describe('ZardSelectComponent', () => {
+  it('localizes the default placeholder when the language changes', async () => {
+    const language = signal('en-US')
+    const fixture = TestBed.configureTestingModule({
+      imports: [DefaultPlaceholderHostComponent],
+      providers: [createI18nProvider(language)]
+    }).createComponent(DefaultPlaceholderHostComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    let trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement
+    expect(trigger.textContent).toContain('Select an option...')
+
+    language.set('zh-Hans')
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement
+    expect(trigger.textContent).toContain('请选择一个选项...')
+  })
+
+  it('keeps an explicitly provided placeholder unchanged', async () => {
+    const language = signal('zh-Hans')
+    const fixture = TestBed.configureTestingModule({
+      imports: [TestHostComponent],
+      providers: [createI18nProvider(language)]
+    }).createComponent(TestHostComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement
+    expect(trigger.textContent).toContain('Select a role')
+    expect(trigger.textContent).not.toContain('请选择一个选项...')
+  })
+
   it('selects an option from the overlay after pointer and mouse down events', async () => {
     const fixture = TestBed.configureTestingModule({
       imports: [TestHostComponent]
