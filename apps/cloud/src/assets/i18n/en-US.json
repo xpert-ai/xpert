@@ -1215,7 +1215,7 @@
       "PriceTotalUsed": "Price Total Used"
     },
     "Membership": {
-      "AdminTitle": "Membership Plans",
+      "AdminTitle": "Membership management",
       "Level": "Level",
       "LevelValidation": "Level must be a non-negative integer.",
       "PriceCurrency": "Currency",
@@ -1236,6 +1236,7 @@
       "DefaultPlanLabel": "Default plan",
       "NoDefaultPlan": "No default plan",
       "NewPlan": "New plan",
+      "PlanManagement": "Plan configuration",
       "TotalPlans": "Total plans",
       "ActivePlans": "Active plans",
       "ArchivedPlans": "Archived plans",
@@ -1379,6 +1380,7 @@
       "SearchUsersPlaceholder": "Name, username, or email",
       "ExpiringBefore": "Expiring before",
       "SelectedUsers": "{{count}} selected",
+      "SelectVisibleUsers": "Select visible users",
       "BulkAction": "Batch action",
       "ApplyBulkAction": "Apply action",
       "BulkActionConfirmTitle": "Apply membership action?",
