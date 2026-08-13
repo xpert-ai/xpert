@@ -4448,6 +4448,8 @@
         "Browser": "浏览器",
         "BrowserLauncherDesc": "打开网站",
         "NewWorkspaceTab": "新增工作区标签",
+        "ScrollTabsLeft": "向左滚动标签",
+        "ScrollTabsRight": "向右滚动标签",
         "ShowDetailPanel": "显示工作区面板",
         "HideDetailPanel": "隐藏工作区面板",
         "MaximizeWorkspace": "最大化工作区",

@@ -1468,6 +1468,8 @@
         "Browser": "Browser",
         "BrowserLauncherDesc": "Open website",
         "NewWorkspaceTab": "New workspace tab",
+        "ScrollTabsLeft": "Scroll tabs left",
+        "ScrollTabsRight": "Scroll tabs right",
         "ShowDetailPanel": "Show workspace panel",
         "HideDetailPanel": "Hide workspace panel",
         "MaximizeWorkspace": "Maximize workspace",

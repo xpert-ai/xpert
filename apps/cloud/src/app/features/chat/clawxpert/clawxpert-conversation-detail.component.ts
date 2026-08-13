@@ -161,101 +161,107 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         <div [class]="detailPanelContentClasses()">
           <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-1 py-0.5">
-            <nav
-              z-tab-nav-bar
-              [tabPanel]="tabPanel"
-              color="accent"
-              alignTabs="start"
-              stretchTabs="false"
-              disableRipple
-              zSize="sm"
-              class="m-0 min-w-0 max-w-full shrink border-0 p-1"
+            <z-tab-nav-scroll
+              class="min-w-0 flex-1"
+              [previousLabel]="'XP.Chat.ClawXpert.ScrollTabsLeft' | translate: { Default: 'Scroll tabs left' }"
+              [nextLabel]="'XP.Chat.ClawXpert.ScrollTabsRight' | translate: { Default: 'Scroll tabs right' }"
             >
-              @for (tab of workspaceTabs(); track tab.id; let last = $last) {
-                <button
-                  z-tab-link
-                  type="button"
-                  [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
-                  [attr.data-tab-id]="tab.id"
-                  class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
-                  tabindex="0"
-                  [active]="activeTabId() === tab.id"
-                  (click)="selectTab(tab.id)"
-                >
-                  <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
-                    <span class="flex h-5 w-5 items-center justify-center text-text-primary">
-                      @switch (tab.kind) {
-                        @case ('files') {
-                          <i class="ri-folder-3-line shrink-0 text-lg"></i>
-                        }
-                        @case ('terminal') {
-                          <i class="ri-terminal-window-line shrink-0 text-lg"></i>
-                        }
-                        @case ('tasks') {
-                          <i class="ri-calendar-line shrink-0 text-lg"></i>
-                        }
-                        @case ('browser') {
-                          <i class="ri-global-line shrink-0 text-lg"></i>
-                        }
-                        @case ('fixed-view') {
-                          <xp-icon
-                            [icon]="tab.icon ?? defaultFixedViewIcon"
-                            [size]="18"
-                            class="shrink-0 text-text-primary"
-                          />
-                        }
-                      }
-                    </span>
-                  </span>
-                  @switch (tab.kind) {
-                    @case ('files') {
-                      <span class="truncate">{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                    }
-                    @case ('terminal') {
-                      <span class="truncate">
-                        {{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
-                      </span>
-                    }
-                    @case ('tasks') {
-                      <span class="truncate">{{ 'XP.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
-                    }
-                    @case ('browser') {
-                      <span class="max-w-[12rem] truncate">
-                        {{ tab.displayUrl || ('XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
-                      </span>
-                    }
-                    @case ('fixed-view') {
-                      <span class="max-w-[12rem] truncate">
-                        {{ tab.title }}
-                      </span>
-                    }
-                  }
-
+              <nav
+                z-tab-nav-bar
+                [tabPanel]="tabPanel"
+                color="accent"
+                alignTabs="start"
+                stretchTabs="false"
+                disableRipple
+                zSize="sm"
+                class="m-0 w-max min-w-full border-0 p-1 !overflow-visible"
+              >
+                @for (tab of workspaceTabs(); track tab.id; let last = $last) {
                   <button
-                    z-button
-                    class="absolute right-0.5 flex w-6 h-6 shrink-0 items-center justify-center opacity-0 transition-[background-color,opacity] group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                    z-tab-link
                     type="button"
+                    [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
+                    [attr.data-tab-id]="tab.id"
+                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     tabindex="0"
-                    [attr.data-close-tab]="tab.id"
-                    zType="secondary"
-                    zSize="icon"
-                    (click)="closeWorkspaceTab($event, tab.id)"
-                    (keydown.enter)="closeWorkspaceTab($event, tab.id)"
-                    (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                    [active]="activeTabId() === tab.id"
+                    (click)="selectTab(tab.id)"
                   >
-                    <span
-                      class="flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg hover:bg-text-secondary"
-                    >
-                      <i class="ri-close-line text-sm"></i>
+                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
+                      <span class="flex h-5 w-5 items-center justify-center text-text-primary">
+                        @switch (tab.kind) {
+                          @case ('files') {
+                            <i class="ri-folder-3-line shrink-0 text-lg"></i>
+                          }
+                          @case ('terminal') {
+                            <i class="ri-terminal-window-line shrink-0 text-lg"></i>
+                          }
+                          @case ('tasks') {
+                            <i class="ri-calendar-line shrink-0 text-lg"></i>
+                          }
+                          @case ('browser') {
+                            <i class="ri-global-line shrink-0 text-lg"></i>
+                          }
+                          @case ('fixed-view') {
+                            <xp-icon
+                              [icon]="tab.icon ?? defaultFixedViewIcon"
+                              [size]="18"
+                              class="shrink-0 text-text-primary"
+                            />
+                          }
+                        }
+                      </span>
                     </span>
-                  </button>
+                    @switch (tab.kind) {
+                      @case ('files') {
+                        <span class="truncate">{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                      }
+                      @case ('terminal') {
+                        <span class="truncate">
+                          {{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                        </span>
+                      }
+                      @case ('tasks') {
+                        <span class="truncate">{{ 'XP.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
+                      }
+                      @case ('browser') {
+                        <span class="max-w-[12rem] truncate">
+                          {{ tab.displayUrl || ('XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
+                        </span>
+                      }
+                      @case ('fixed-view') {
+                        <span class="max-w-[12rem] truncate">
+                          {{ tab.title }}
+                        </span>
+                      }
+                    }
 
-                  @if (!last) {
-                    <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
-                  }
-                </button>
-              }
-            </nav>
+                    <button
+                      z-button
+                      class="absolute right-0.5 flex w-6 h-6 shrink-0 items-center justify-center opacity-0 transition-[background-color,opacity] group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                      type="button"
+                      tabindex="0"
+                      [attr.data-close-tab]="tab.id"
+                      zType="secondary"
+                      zSize="icon"
+                      (click)="closeWorkspaceTab($event, tab.id)"
+                      (keydown.enter)="closeWorkspaceTab($event, tab.id)"
+                      (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                    >
+                      <span
+                        class="flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg hover:bg-text-secondary"
+                      >
+                        <i class="ri-close-line text-sm"></i>
+                      </span>
+                    </button>
+
+                    @if (!last) {
+                      <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
+                    }
+                  </button>
+                }
+              </nav>
+            </z-tab-nav-scroll>
 
             <button
               z-button

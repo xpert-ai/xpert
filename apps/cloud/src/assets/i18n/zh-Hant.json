@@ -3289,6 +3289,8 @@
         "Browser": "瀏覽器",
         "BrowserLauncherDesc": "開啟網站",
         "NewWorkspaceTab": "新增工作區標籤",
+        "ScrollTabsLeft": "向左捲動標籤",
+        "ScrollTabsRight": "向右捲動標籤",
         "ShowDetailPanel": "顯示工作區面板",
         "HideDetailPanel": "隱藏工作區面板",
         "MaximizeWorkspace": "最大化工作區",

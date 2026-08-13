@@ -68,6 +68,16 @@ jest.mock('@xpert-ai/headless-ui', () => {
   })
   class ZardTabNavPanelComponent {}
 
+  @Component({
+    standalone: true,
+    selector: 'z-tab-nav-scroll',
+    template: '<ng-content />'
+  })
+  class ZardTabNavScrollComponent {
+    @Input() previousLabel?: string
+    @Input() nextLabel?: string
+  }
+
   @Directive({
     standalone: true,
     selector: '[z-menu]'
@@ -101,7 +111,12 @@ jest.mock('@xpert-ai/headless-ui', () => {
     ZardButtonComponent,
     ZardIconComponent,
     ZardMenuImports: [ZardMenuDirective, ZardMenuContentDirective, ZardMenuItemDirective],
-    ZardTabsImports: [ZardTabNavBarDirective, ZardTabLinkDirective, ZardTabNavPanelComponent],
+    ZardTabsImports: [
+      ZardTabNavBarDirective,
+      ZardTabLinkDirective,
+      ZardTabNavPanelComponent,
+      ZardTabNavScrollComponent
+    ],
     ZardTooltipImports: [ZardTooltipDirective]
   }
 })
@@ -1496,13 +1511,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
     expect(chatSurface?.className).toContain('border-l')
-    expect(tabHeader?.className).toContain('py-1.5')
+    expect(tabHeader?.className).toContain('py-0.5')
     expect(tabHeader?.className).toContain('items-center')
     expect(tabHeader?.className).not.toContain('pt-4')
     expect(tabHeader?.className).not.toContain('flex-col')
     expect(tabNav).not.toBeNull()
     expect(tabNav?.className).not.toContain('flex-1')
-    expect(tabNav?.className).toContain('min-w-0')
+    expect(tabNav?.className).toContain('min-w-full')
+    expect(tabNav?.className).toContain('!overflow-visible')
     expect(tabNav?.contains(addTabButton)).toBe(false)
     expect(tabButton?.className).toContain('rounded-lg')
     expect(tabButton?.className).toContain('bg-hover-bg')
