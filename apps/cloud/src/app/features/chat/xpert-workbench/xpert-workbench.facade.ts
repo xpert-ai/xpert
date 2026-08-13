@@ -67,6 +67,8 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   })
   readonly xpertId = computed(() => this.currentXpert()?.id ?? null)
   readonly assistantId = computed(() => this.xpertId())
+  readonly initialLayout = computed(() => this.currentXpert()?.options?.workbench?.initialLayout ?? null)
+  readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly identity = computed(() => {
     const xpertId = this.xpertId()
     return xpertId ? `chat-xpert-workbench:${xpertId}` : null

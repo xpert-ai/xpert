@@ -5,6 +5,7 @@ import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type {
   IconDefinition,
   I18nObject,
@@ -57,6 +58,10 @@ import {
   ClawXpertSkillTrialIntentService,
   type ClawXpertSkillTrialIntent
 } from './clawxpert-skill-trial-intent.service'
+import {
+  ClawXpertWorkbenchLayoutStorage,
+  type ClawXpertWorkbenchLayoutState
+} from './clawxpert-workbench-layout-storage.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import {
@@ -739,6 +744,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #skillTrialIntent = inject(ClawXpertSkillTrialIntentService)
+  readonly #workbenchLayoutStorage = inject(ClawXpertWorkbenchLayoutStorage)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
@@ -750,6 +756,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #fixedViewsHostId: string | null = null
   #markReadRequestVersion = 0
   #chatkitResizeCleanup: (() => void) | null = null
+  #activeWorkbenchLayoutAssistantId: string | null = null
+  #initializedWorkbenchLayoutAssistantId: string | null = null
+  #pendingWorkbenchLayoutRestore: { assistantId: string | null; state: ClawXpertWorkbenchLayoutState } | null = null
+  #hasInitialWorkbenchLayoutPreference = false
+  #appliedDefaultFixedViewSelection: string | null = null
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
@@ -882,6 +893,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly detailPanelVisible = signal(false)
   readonly workspaceMaximized = signal(false)
+  readonly #workbenchLayoutAssistantId = computed(
+    () => this.facade.assistantId()?.trim() || this.facade.xpertId()?.trim() || null
+  )
+  readonly #workbenchLayoutState = computed<ClawXpertWorkbenchLayoutState>(() =>
+    !this.detailPanelVisible() ? 'minimized' : this.workspaceMaximized() ? 'maximized' : 'normal'
+  )
   readonly chatkitWidthPx = signal(CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX)
   readonly isResizingChatkit = signal(false)
   readonly chatkitMinWidth = CLAWXPERT_CHATKIT_MIN_WIDTH_PX
@@ -988,21 +1005,62 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
+    effect(() => {
+      const assistantId = this.#workbenchLayoutAssistantId()
+      const viewState = this.facade.viewState()
+      const configuredInitialLayout = this.facade.initialLayout()
+      const currentState = this.#workbenchLayoutState()
+
+      if (assistantId !== this.#activeWorkbenchLayoutAssistantId) {
+        this.#activeWorkbenchLayoutAssistantId = assistantId
+        this.#initializedWorkbenchLayoutAssistantId = null
+        this.#pendingWorkbenchLayoutRestore = null
+        this.#hasInitialWorkbenchLayoutPreference = false
+      }
+
+      if (!assistantId || viewState !== 'ready') {
+        return
+      }
+
+      if (assistantId !== this.#initializedWorkbenchLayoutAssistantId) {
+        this.#initializedWorkbenchLayoutAssistantId = assistantId
+        const restoredState = this.#workbenchLayoutStorage.load(assistantId)
+        const configuredState = toConfiguredWorkbenchLayoutState(configuredInitialLayout)
+        const nextState = restoredState ?? configuredState ?? 'minimized'
+        this.#hasInitialWorkbenchLayoutPreference = restoredState !== null || configuredState !== null
+        this.#pendingWorkbenchLayoutRestore = { assistantId, state: nextState }
+        this.applyWorkbenchLayoutState(nextState)
+        return
+      }
+
+      const pendingRestore = this.#pendingWorkbenchLayoutRestore
+      if (pendingRestore?.assistantId === assistantId && pendingRestore.state === currentState) {
+        this.#pendingWorkbenchLayoutRestore = null
+        return
+      }
+
+      this.#pendingWorkbenchLayoutRestore = null
+      this.#hasInitialWorkbenchLayoutPreference = this.#workbenchLayoutStorage.save(assistantId, currentState)
+    })
+
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
+      const defaultViewKey = this.facade.defaultViewKey()
       if (!hostId) {
         this.#fixedViewsHostId = null
+        this.#appliedDefaultFixedViewSelection = null
         this.resetFixedViews(true)
         return
       }
 
       if (this.#fixedViewsHostId !== hostId) {
         this.#fixedViewsHostId = hostId
+        this.#appliedDefaultFixedViewSelection = null
         this.resetFixedViews(true)
       }
 
       let cancelled = false
-      void this.loadFixedViews(hostId, () => cancelled)
+      void this.loadFixedViews(hostId, defaultViewKey, () => cancelled)
 
       onCleanup(() => {
         cancelled = true
@@ -1238,6 +1296,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   closeDetailPanel() {
     this.workspaceMaximized.set(false)
     this.detailPanelVisible.set(false)
+  }
+
+  private applyWorkbenchLayoutState(state: ClawXpertWorkbenchLayoutState) {
+    this.detailPanelVisible.set(state !== 'minimized')
+    this.workspaceMaximized.set(state === 'maximized')
   }
 
   toggleWorkspaceMaximized() {
@@ -1672,7 +1735,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
-  private async loadFixedViews(hostId: string, isCancelled: () => boolean) {
+  private async loadFixedViews(hostId: string, defaultViewKey: string | null, isCancelled: () => boolean) {
     const version = ++this.#fixedViewsLoadVersion
     this.loadingFixedViews.set(true)
     this.fixedViewError.set(null)
@@ -1691,7 +1754,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         .sort((a, b) => a.order - b.order)
 
       this.fixedViewMenuItems.set(items)
-      this.syncFixedViewTabs(items)
+      this.syncFixedViewTabs(items, defaultViewKey)
     } catch (error) {
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
@@ -1729,7 +1792,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
   }
 
-  private syncFixedViewTabs(items: ClawXpertFixedViewMenuItem[]) {
+  private syncFixedViewTabs(items: ClawXpertFixedViewMenuItem[], defaultViewKey: string | null) {
     const itemByViewKey = new Map(items.map((item) => [item.viewKey, item]))
     const tabs = this.workspaceTabs()
     const fixedTabsByViewKey = new Map(
@@ -1766,14 +1829,22 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     const activeTabId = this.activeTabId()
-    if (
+    const initialSelectionKey = `${this.#fixedViewsHostId ?? ''}:${defaultViewKey ?? ''}`
+    const shouldApplyInitialSelection =
+      nextFixedTabs.length > 0 && this.#appliedDefaultFixedViewSelection !== initialSelectionKey
+
+    if (shouldApplyInitialSelection) {
+      const defaultTab = defaultViewKey ? nextFixedTabs.find((tab) => tab.viewKey === defaultViewKey) : null
+      this.activeTabId.set(defaultTab?.id ?? nextFixedTabs[0]?.id ?? nextTabs[0]?.id ?? '')
+      this.#appliedDefaultFixedViewSelection = initialSelectionKey
+    } else if (
       !nextTabs.some((tab) => tab.id === activeTabId) ||
       isInitialWorkspaceTab(tabs.find((tab) => tab.id === activeTabId))
     ) {
       this.activeTabId.set(nextFixedTabs[0]?.id ?? nextTabs[0]?.id ?? '')
     }
 
-    if (nextFixedTabs.length > 0) {
+    if (nextFixedTabs.length > 0 && (!this.#hasInitialWorkbenchLayoutPreference || this.detailPanelVisible())) {
       this.openDetailPanel()
     }
   }
@@ -2081,6 +2152,21 @@ function resolveConversationId(metadata?: { id?: string }) {
 
 function clampChatkitWidth(width: number) {
   return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
+}
+
+function toConfiguredWorkbenchLayoutState(
+  layout: XpertWorkbenchInitialLayoutEnum | null
+): ClawXpertWorkbenchLayoutState | null {
+  if (layout === null || layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
+    return 'normal'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
+    return 'minimized'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized) {
+    return 'maximized'
+  }
+  return null
 }
 
 function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {

@@ -279,12 +279,28 @@ export interface IXpertPrincipalReference {
   workspaceName?: string | null
 }
 
+export enum XpertWorkbenchInitialLayoutEnum {
+  TwoColumns = 'two-columns',
+  ChatkitMaximized = 'chatkit-maximized',
+  WorkbenchMaximized = 'workbench-maximized'
+}
+
+export type TXpertWorkbenchOptions = {
+  /**
+   * Initial layout used before this user has a saved Workbench layout preference.
+   */
+  initialLayout?: XpertWorkbenchInitialLayoutEnum
+  /** Public extension view key selected when the Workbench first loads. */
+  defaultViewKey?: string
+}
+
 export type TXpertOptions = {
   bootstrap?: {
     source: 'template'
     templateKey: string
     workspaceKind: 'org-default'
   }
+  workbench?: TXpertWorkbenchOptions
   knowledge?: Record<
     string,
     {
