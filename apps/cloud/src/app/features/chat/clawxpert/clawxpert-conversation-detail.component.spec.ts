@@ -278,6 +278,7 @@ import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-d
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertSkillTrialIntentService } from './clawxpert-skill-trial-intent.service'
 import { getClawXpertWorkbenchLayoutStorageKey } from './clawxpert-workbench-layout-storage.service'
+import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 const TEST_LAYOUT_ICON = {
@@ -456,6 +457,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     set: jest.Mock
     clear: jest.Mock
   }
+  let workbenchViewUrlState: {
+    viewKey: ReturnType<typeof signal<string | null>>
+    setViewKey: jest.Mock
+  }
   let hostEvents: ViewHostEventBus
 
   beforeEach(async () => {
@@ -465,6 +470,14 @@ describe('ClawXpertConversationDetailComponent', () => {
       consume: jest.fn(() => null),
       set: jest.fn(),
       clear: jest.fn()
+    }
+    const viewKey = signal<string | null>(null)
+    workbenchViewUrlState = {
+      viewKey,
+      setViewKey: jest.fn((nextViewKey: string | null) => {
+        viewKey.set(nextViewKey)
+        return Promise.resolve(true)
+      })
     }
     const activeConversation = signal<IChatConversation | null>(null)
     facade = {
@@ -585,6 +598,10 @@ describe('ClawXpertConversationDetailComponent', () => {
         {
           provide: ClawXpertSkillTrialIntentService,
           useValue: skillTrialIntent
+        },
+        {
+          provide: ClawXpertWorkbenchViewUrlState,
+          useValue: workbenchViewUrlState
         }
       ]
     }).compileComponents()
@@ -957,6 +974,83 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).toBeNull()
+  })
+
+  it('selects the extension view requested by the view query parameter before the configured default', async () => {
+    facade.defaultViewKey.set('review')
+    workbenchViewUrlState.viewKey.set('metrics')
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' },
+          order: 10
+        }),
+        buildFixedViewManifest('metrics', {
+          title: { en_US: 'Metrics', zh_Hans: '指标' },
+          order: 20
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'metrics'
+      })
+    )
+    expect(workbenchViewUrlState.setViewKey).toHaveBeenCalledWith('metrics', { replaceUrl: true })
+  })
+
+  it('keeps extension view selection synchronized with URL changes and browser history state', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' },
+          order: 10
+        }),
+        buildFixedViewManifest('metrics', {
+          title: { en_US: 'Metrics', zh_Hans: '指标' },
+          order: 20
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    workbenchViewUrlState.setViewKey.mockClear()
+
+    const metricsTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'metrics')
+    expect(metricsTab).toBeDefined()
+    if (!metricsTab) {
+      throw new Error('Metrics fixed view tab was not created')
+    }
+
+    fixture.componentInstance.selectTab(metricsTab.id)
+    await settle(fixture)
+
+    expect(workbenchViewUrlState.viewKey()).toBe('metrics')
+    expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith('metrics', { replaceUrl: false })
+
+    const filesTab = fixture.componentInstance.addWorkspaceTab('files')
+    await settle(fixture)
+
+    expect(workbenchViewUrlState.viewKey()).toBeNull()
+    expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith(null, { replaceUrl: false })
+
+    workbenchViewUrlState.viewKey.set('review')
+    await settle(fixture)
+    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('review')
+
+    workbenchViewUrlState.viewKey.set('metrics')
+    await settle(fixture)
+    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('metrics')
+
+    workbenchViewUrlState.viewKey.set(null)
+    await settle(fixture)
+    expect(fixture.componentInstance.activeTabId()).toBe(filesTab.id)
+    expect(fixture.componentInstance.activeFixedViewTab()).toBeNull()
   })
 
   it('opens fixed views as reusable workspace tabs rendered through the extension host outlet', async () => {

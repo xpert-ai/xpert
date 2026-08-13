@@ -62,6 +62,7 @@ import {
   ClawXpertWorkbenchLayoutStorage,
   type ClawXpertWorkbenchLayoutState
 } from './clawxpert-workbench-layout-storage.service'
+import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import {
@@ -745,6 +746,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #router = inject(Router)
   readonly #skillTrialIntent = inject(ClawXpertSkillTrialIntentService)
   readonly #workbenchLayoutStorage = inject(ClawXpertWorkbenchLayoutStorage)
+  readonly #workbenchViewUrlState = inject(ClawXpertWorkbenchViewUrlState)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
@@ -761,6 +763,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #pendingWorkbenchLayoutRestore: { assistantId: string | null; state: ClawXpertWorkbenchLayoutState } | null = null
   #hasInitialWorkbenchLayoutPreference = false
   #appliedDefaultFixedViewSelection: string | null = null
+  #lastNonFixedTabId: string | null = INITIAL_WORKSPACE_TAB.id
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
@@ -1065,6 +1068,49 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       onCleanup(() => {
         cancelled = true
       })
+    })
+
+    effect(() => {
+      const requestedViewKey = this.#workbenchViewUrlState.viewKey()
+      const hostId = this.fixedViewHostId()
+      const loading = this.loadingFixedViews()
+      const fixedTabs = this.fixedViewTabs()
+
+      if (!hostId || loading) {
+        return
+      }
+
+      if (requestedViewKey) {
+        const requestedTab = findFixedViewTab(fixedTabs, requestedViewKey)
+        if (requestedTab) {
+          this.activateWorkspaceTab(requestedTab.id, 'none')
+          if (requestedTab.viewKey !== requestedViewKey) {
+            void this.#workbenchViewUrlState.setViewKey(requestedTab.viewKey, { replaceUrl: true })
+          }
+          return
+        }
+
+        const fallbackTab = findFixedViewTab(fixedTabs, this.facade.defaultViewKey()) ?? fixedTabs[0]
+        if (fallbackTab) {
+          this.activateWorkspaceTab(fallbackTab.id, 'none')
+          void this.#workbenchViewUrlState.setViewKey(fallbackTab.viewKey, { replaceUrl: true })
+        } else {
+          void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: true })
+        }
+        return
+      }
+
+      if (this.activeFixedViewTab()) {
+        const fallbackTab = this.findLastNonFixedTab()
+        if (fallbackTab) {
+          this.activateWorkspaceTab(fallbackTab.id, 'none')
+        } else {
+          const activeFixedView = this.activeFixedViewTab()
+          if (activeFixedView) {
+            void this.#workbenchViewUrlState.setViewKey(activeFixedView.viewKey, { replaceUrl: true })
+          }
+        }
+      }
     })
 
     effect((onCleanup) => {
@@ -1398,12 +1444,36 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   selectTab(tabId: string) {
-    if (!this.workspaceTabs().some((tab) => tab.id === tabId)) {
+    this.activateWorkspaceTab(tabId, 'push')
+  }
+
+  private activateWorkspaceTab(tabId: string, urlMode: 'none' | 'push' | 'replace') {
+    const tab = this.workspaceTabs().find((candidate) => candidate.id === tabId)
+    if (!tab) {
       return
     }
 
-    this.activeTabId.set(tabId)
+    this.activeTabId.set(tab.id)
+    if (tab.kind === 'fixed-view') {
+      if (urlMode !== 'none') {
+        void this.#workbenchViewUrlState.setViewKey(tab.viewKey, { replaceUrl: urlMode === 'replace' })
+      }
+    } else {
+      this.#lastNonFixedTabId = tab.id
+      if (urlMode !== 'none') {
+        void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: urlMode === 'replace' })
+      }
+    }
     this.openDetailPanel()
+  }
+
+  private findLastNonFixedTab() {
+    const tabs = this.workspaceTabs()
+    return (
+      tabs.find((tab) => tab.kind !== 'fixed-view' && tab.id === this.#lastNonFixedTabId) ??
+      tabs.find((tab) => tab.kind !== 'fixed-view') ??
+      null
+    )
   }
 
   addWorkspaceTab(kind: ClawXpertAddableWorkspaceTabKind) {
@@ -1420,16 +1490,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
-    this.activeTabId.set(tab.id)
-    this.openDetailPanel()
+    this.activateWorkspaceTab(tab.id, 'push')
     return tab
   }
 
   openTasksTab() {
     const existing = this.workspaceTabs().find((tab) => tab.kind === 'tasks')
     if (existing) {
-      this.activeTabId.set(existing.id)
-      this.openDetailPanel()
+      this.activateWorkspaceTab(existing.id, 'push')
       return existing
     }
 
@@ -1439,8 +1507,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
-    this.activeTabId.set(tab.id)
-    this.openDetailPanel()
+    this.activateWorkspaceTab(tab.id, 'push')
     return tab
   }
 
@@ -1524,16 +1591,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {
     const existing = this.fixedViewTabs().find((tab) => tab.viewKey === fixedView.viewKey)
     if (existing) {
-      this.activeTabId.set(existing.id)
-      this.openDetailPanel()
+      this.activateWorkspaceTab(existing.id, 'push')
       return existing
     }
 
     const tab = this.createFixedViewTab(fixedView)
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
-    this.activeTabId.set(tab.id)
-    this.openDetailPanel()
+    this.activateWorkspaceTab(tab.id, 'push')
     return tab
   }
 
@@ -1573,8 +1638,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
-    this.activeTabId.set(tab.id)
-    this.openDetailPanel()
+    this.activateWorkspaceTab(tab.id, 'push')
     return tab
   }
 
@@ -1595,7 +1659,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     const fallbackTab = nextTabs[Math.min(closedIndex, nextTabs.length - 1)]
-    this.activeTabId.set(fallbackTab?.id ?? '')
+    if (fallbackTab) {
+      this.activateWorkspaceTab(fallbackTab.id, 'push')
+    } else {
+      this.activeTabId.set('')
+      void this.#workbenchViewUrlState.setViewKey(null)
+    }
   }
 
   updateActiveBrowserTab(change: ClawXpertBrowserTabChange) {
@@ -1615,8 +1684,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         ...(target.serviceId !== undefined ? { serviceId: target.serviceId } : {}),
         ...(target.url !== undefined ? { url: target.url } : {})
       })
-      this.activeTabId.set(matchedTab.id)
-      this.openDetailPanel()
+      this.activateWorkspaceTab(matchedTab.id, 'push')
       return matchedTab
     }
 
@@ -1627,8 +1695,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         ...(target.serviceId !== undefined ? { serviceId: target.serviceId } : {}),
         ...(target.url !== undefined ? { url: target.url } : {})
       })
-      this.activeTabId.set(reusableTab.id)
-      this.openDetailPanel()
+      this.activateWorkspaceTab(reusableTab.id, 'push')
       return reusableTab
     }
 
@@ -1832,20 +1899,35 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const initialSelectionKey = `${this.#fixedViewsHostId ?? ''}:${defaultViewKey ?? ''}`
     const shouldApplyInitialSelection =
       nextFixedTabs.length > 0 && this.#appliedDefaultFixedViewSelection !== initialSelectionKey
+    const requestedViewKey = this.#workbenchViewUrlState.viewKey()
+    const requestedTab = findFixedViewTab(nextFixedTabs, requestedViewKey)
 
     if (shouldApplyInitialSelection) {
       const defaultTab = defaultViewKey ? nextFixedTabs.find((tab) => tab.viewKey === defaultViewKey) : null
-      this.activeTabId.set(defaultTab?.id ?? nextFixedTabs[0]?.id ?? nextTabs[0]?.id ?? '')
+      const selectedTab = requestedTab ?? defaultTab ?? nextFixedTabs[0] ?? nextTabs[0]
+      this.activeTabId.set(selectedTab?.id ?? '')
+      if (selectedTab?.kind === 'fixed-view') {
+        void this.#workbenchViewUrlState.setViewKey(selectedTab.viewKey, { replaceUrl: true })
+      }
       this.#appliedDefaultFixedViewSelection = initialSelectionKey
     } else if (
       !nextTabs.some((tab) => tab.id === activeTabId) ||
       isInitialWorkspaceTab(tabs.find((tab) => tab.id === activeTabId))
     ) {
-      this.activeTabId.set(nextFixedTabs[0]?.id ?? nextTabs[0]?.id ?? '')
+      const selectedTab = requestedTab ?? nextFixedTabs[0] ?? nextTabs[0]
+      this.activeTabId.set(selectedTab?.id ?? '')
+      if (selectedTab?.kind === 'fixed-view') {
+        void this.#workbenchViewUrlState.setViewKey(selectedTab.viewKey, { replaceUrl: true })
+      }
     }
 
-    if (nextFixedTabs.length > 0 && (!this.#hasInitialWorkbenchLayoutPreference || this.detailPanelVisible())) {
+    if (
+      nextFixedTabs.length > 0 &&
+      (Boolean(requestedViewKey) || !this.#hasInitialWorkbenchLayoutPreference || this.detailPanelVisible())
+    ) {
       this.openDetailPanel()
+    } else if (nextFixedTabs.length === 0 && requestedViewKey) {
+      void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: true })
     }
   }
 
@@ -1867,8 +1949,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const existing = this.fixedViewTabs().find((tab) => tab.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
     if (existing) {
       const wasActive = this.activeTabId() === existing.id
-      this.activeTabId.set(existing.id)
-      this.openDetailPanel()
+      this.activateWorkspaceTab(existing.id, 'push')
       return !wasActive
     }
 
@@ -1966,7 +2047,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const filesTab = this.workspaceTabs().find((tab) => tab.kind === 'files')
     if (filesTab) {
       if (!this.showDetailPanel()) {
-        this.activeTabId.set(filesTab.id)
+        this.activateWorkspaceTab(filesTab.id, 'push')
+        return
       }
       this.openDetailPanel()
       return
@@ -2229,6 +2311,15 @@ function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
 
 function isInitialWorkspaceTab(tab: ClawXpertWorkspaceTab | undefined) {
   return tab?.kind === INITIAL_WORKSPACE_TAB.kind && tab.id === INITIAL_WORKSPACE_TAB.id
+}
+
+function findFixedViewTab(tabs: ClawXpertFixedViewTab[], viewKey: string | null | undefined) {
+  const normalizedViewKey = viewKey?.trim()
+  if (!normalizedViewKey) {
+    return undefined
+  }
+
+  return tabs.find((tab) => tab.viewKey === normalizedViewKey || tab.viewKey.endsWith(`__${normalizedViewKey}`))
 }
 
 function hasTaskSummaryRefresh(

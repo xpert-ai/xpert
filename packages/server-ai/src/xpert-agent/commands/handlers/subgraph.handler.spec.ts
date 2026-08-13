@@ -1362,6 +1362,26 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         expect(thrownMessage).toContain('story_upsert_production_episode: Malformed args.')
         expect(thrownMessage).toContain('Likely unescaped ASCII double quote in JSON string field "script"')
         expect(thrownMessage).toContain('use typographic quotation marks')
+        expect(thrown).toEqual(
+            expect.objectContaining({
+                name: 'ModelOutputValidationError',
+                code: 'MODEL_OUTPUT_VALIDATION_ERROR',
+                retryable: true,
+                repairContext: {
+                    kind: 'invalid_tool_calls',
+                    issues: [
+                        expect.objectContaining({
+                            toolName: 'story_upsert_production_episode',
+                            fieldName: 'script',
+                            error: 'Malformed args.',
+                            characterOffset: expect.any(Number),
+                            hint: expect.stringContaining('unescaped ASCII double quote')
+                        })
+                    ]
+                }
+            })
+        )
+        expect(JSON.stringify(Reflect.get(thrown as object, 'repairContext'))).not.toContain('孩子呼喊')
         expect(getFirstLoggedInvalidToolCall(loggerError)).toEqual(
             expect.objectContaining({
                 name: 'story_upsert_production_episode',
