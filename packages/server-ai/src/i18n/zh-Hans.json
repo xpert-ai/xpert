@@ -133,6 +133,7 @@
         "MembershipRefundReservationNotFound": "未找到已预留的退款会员周期。",
         "MembershipRefundSourceReferenceRequired": "会员退款必须提供来源标识。",
         "MembershipRefundTailRequired": "只能退还连续的未开始末尾会员周期。",
+        "BillingRefundResultUnconfirmed": "无法确认已保存的退款结果。",
         "MembershipUpgradeFulfillmentMismatch": "会员升级请求与已有履约记录不一致。",
         "MembershipUpgradePointsInvalid": "会员升级点数必须是非负整数。",
         "MembershipUpgradeSourceReferenceRequired": "会员升级必须提供来源标识。",
