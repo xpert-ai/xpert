@@ -65,6 +65,7 @@ import {
     BeforeModelHandler,
     IAgentMiddlewareContext,
     JumpToTarget,
+    ModelOutputValidationError,
     ModelRequest,
     RequestContext,
     WrapModelCallHandler,
@@ -131,7 +132,11 @@ import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import { buildAgentDecisionPathMap, getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
-import { createInvalidToolCallDiagnostics, createInvalidToolCallErrorMessage } from './invalid-tool-call-diagnostics'
+import {
+    createInvalidToolCallDiagnostics,
+    createInvalidToolCallErrorMessage,
+    createInvalidToolCallRepairContext
+} from './invalid-tool-call-diagnostics'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
@@ -1227,8 +1232,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                                 aiMessageId: response.id
                             })
                         )
-                        throw new InternalServerErrorException(
-                            createInvalidToolCallErrorMessage(invalidToolCalls, diagnosticId)
+                        throw new ModelOutputValidationError(
+                            createInvalidToolCallErrorMessage(invalidToolCalls, diagnosticId),
+                            createInvalidToolCallRepairContext(invalidToolCalls)
                         )
                     }
                 }

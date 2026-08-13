@@ -1,5 +1,6 @@
 import type { InvalidToolCall } from '@langchain/core/messages'
 import type { TAgentExecutionMetadata } from '@xpert-ai/contracts'
+import type { ModelOutputRepairContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 
 const INVALID_TOOL_CALL_LOG_EVENT = 'xpert.invalid_tool_calls'
@@ -85,6 +86,30 @@ export function createInvalidToolCallErrorMessage(invalidToolCalls: InvalidToolC
     return `${prefix}${detail ? `${detail} ` : ''}(diagnosticId: ${diagnosticId})`
 }
 
+/**
+ * Build compact retry feedback without repeating the model's raw tool args.
+ * This value may be sent back to the model by retry middleware, so it must
+ * remain bounded and free of complete documents or credentials.
+ */
+export function createInvalidToolCallRepairContext(invalidToolCalls: InvalidToolCall[]): ModelOutputRepairContext {
+    return {
+        kind: 'invalid_tool_calls',
+        issues: invalidToolCalls.slice(0, 5).map((call) => {
+            const malformedJson = inspectMalformedJson(call.args ?? '')
+
+            return {
+                ...(call.name ? { toolName: call.name } : {}),
+                error: normalizeRepairError(call.error),
+                ...(malformedJson?.fieldName ? { fieldName: malformedJson.fieldName } : {}),
+                ...(malformedJson?.characterOffset !== undefined
+                    ? { characterOffset: malformedJson.characterOffset }
+                    : {}),
+                ...(malformedJson?.hint ? { hint: malformedJson.hint } : {})
+            }
+        })
+    }
+}
+
 function summarizeInvalidToolCallArgs(args: string, maximum: number) {
     if (!args) return '(empty)'
     const redactedArgs = redactInvalidToolCallArgs(args)
@@ -145,14 +170,34 @@ function findJsonParseErrorOffset(args: string) {
 }
 
 function createMalformedJsonHint(args: string) {
+    const malformedJson = inspectMalformedJson(args)
+    if (!malformedJson?.hint || malformedJson.characterOffset === undefined) return null
+
+    return `${malformedJson.hint.replace(/\.$/, '')} near character ${malformedJson.characterOffset}.`
+}
+
+function inspectMalformedJson(args: string) {
     const parseErrorOffset = findJsonParseErrorOffset(args)
     if (parseErrorOffset === null) return null
     const quoteOffset = findLikelyUnescapedQuoteOffset(args, parseErrorOffset)
-    if (quoteOffset === null) return null
-    const fieldName = findJsonStringFieldName(args, quoteOffset)
+    if (quoteOffset === null) {
+        return {
+            characterOffset: parseErrorOffset,
+            hint: 'Return one complete tool call whose arguments are valid JSON.'
+        }
+    }
+    const fieldName = findJsonStringFieldName(args, quoteOffset) ?? undefined
     const fieldLabel = fieldName ? ` in JSON string field "${fieldName}"` : ''
 
-    return `Likely unescaped ASCII double quote${fieldLabel} near character ${quoteOffset}. Escape it as \\" or use typographic quotation marks (“…” or 「…」) inside prose.`
+    return {
+        fieldName,
+        characterOffset: quoteOffset,
+        hint: `Likely unescaped ASCII double quote${fieldLabel}. Escape it as \\" or use typographic quotation marks (“…” or 「…」) inside prose.`
+    }
+}
+
+function normalizeRepairError(error?: string) {
+    return (error || 'Invalid tool call').replace(/\s+/g, ' ').trim().slice(0, 240)
 }
 
 function findLikelyUnescapedQuoteOffset(args: string, parseErrorOffset: number) {
