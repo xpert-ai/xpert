@@ -554,6 +554,7 @@
       "UntitledConversation": "Untitled conversation",
       "ClawXpert": {
         "Loading": "Preparing ClawXpert...",
+        "LoadingDesc": "Loading your assistant settings and workspace. This usually takes only a moment.",
         "OrganizationRequired": "Select an organization to use ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert stores one assistant binding per user and per organization.",
         "LoadFailed": "Failed to load ClawXpert.",

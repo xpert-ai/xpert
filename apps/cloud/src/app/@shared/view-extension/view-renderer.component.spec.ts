@@ -207,6 +207,48 @@ describe('ViewRendererComponent', () => {
     expect(api.getViewData).toHaveBeenLastCalledWith('project', 'project-1', 'provider__status', {})
   })
 
+  it('applies a supported deep-link selection as the initial view query', async () => {
+    api.getViewData.mockReset()
+    api.getViewData.mockReturnValue(of({ item: { state: 'connected' } }))
+
+    const fixture = TestBed.createComponent(ViewRendererComponent)
+    const manifest: XpertExtensionViewManifest = {
+      key: 'provider__status',
+      title: text('Status', '状态'),
+      hostType: 'project',
+      slot: 'detail.sections',
+      source: { provider: 'provider' },
+      view: {
+        type: 'detail',
+        fields: [{ key: 'state', label: text('State', '状态') }]
+      },
+      dataSource: {
+        mode: 'platform',
+        querySchema: { supportsSelection: true, supportsParameters: true }
+      }
+    }
+
+    fixture.componentRef.setInput('hostType', 'project')
+    fixture.componentRef.setInput('hostId', 'project-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.componentRef.setInput('initialQuery', {
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+    fixture.componentRef.setInput('active', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.query()).toEqual({
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+    expect(api.getViewData).toHaveBeenCalledWith('project', 'project-1', 'provider__status', {
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+  })
+
   it('uses backend supplied i18n keys for view data errors', async () => {
     api.getViewData.mockReset()
     api.getViewData.mockReturnValue(

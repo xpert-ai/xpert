@@ -154,6 +154,7 @@ export class ViewRendererComponent {
   readonly hostType = input.required<string>()
   readonly hostId = input.required<string>()
   readonly manifest = input.required<XpertExtensionViewManifest>()
+  readonly initialQuery = input<XpertViewQuery>({})
   readonly active = input<boolean>(true)
   readonly fillAvailableHeight = input(false)
 
@@ -177,6 +178,7 @@ export class ViewRendererComponent {
     effect(() => {
       const manifest = this.manifest()
       const defaultPageSize = this.defaultPageSize()
+      const initialQuery = normalizeViewQuery(this.initialQuery(), manifest.dataSource.querySchema)
 
       this.items.set([])
       this.data.set({})
@@ -185,13 +187,14 @@ export class ViewRendererComponent {
 
       if (manifest.view.type === 'table' || manifest.view.type === 'list') {
         this.query.set({
+          ...initialQuery,
           page: 1,
-          pageSize: defaultPageSize
+          pageSize: initialQuery.pageSize ?? defaultPageSize
         })
         return
       }
 
-      this.query.set({})
+      this.query.set(initialQuery)
     })
 
     effect(() => {

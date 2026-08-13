@@ -3207,6 +3207,7 @@
         "CollapseTasks": "收起",
         "NoScheduledTasksHint": "暫無定時任務，你可以通過對話創建",
         "Loading": "正在準備 ClawXpert…",
+        "LoadingDesc": "正在載入助手設定與工作區，通常只需片刻。",
         "OrganizationRequired": "請選擇一個組織以使用 ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert 會按用戶和組織維度保存一份助手綁定。",
         "LoadFailed": "ClawXpert 載入失敗。",

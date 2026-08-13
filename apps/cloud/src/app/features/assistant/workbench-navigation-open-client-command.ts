@@ -1,22 +1,28 @@
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
-  type WorkbenchAssistantConversationOpenRequest
+  type WorkbenchAssistantConversationOpenRequest,
+  type WorkbenchExtensionViewOpenRequest,
+  type XpertViewScalar
 } from '@xpert-ai/contracts'
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 
 export {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
   type WorkbenchAssistantConversationOpenRequest,
+  type WorkbenchExtensionViewOpenRequest,
   type WorkbenchNavigationOpenPayload,
   type WorkbenchNavigationOpenTarget
 } from '@xpert-ai/contracts'
 
 type WorkbenchNavigationOpenCommandOptions = {
-  navigate?: (commands: string[]) => Promise<unknown> | unknown
+  navigate?: (commands: string[], options?: { queryParams?: Record<string, string> }) => Promise<unknown> | unknown
   openAssistantConversation?: (request: WorkbenchAssistantConversationOpenRequest) => Promise<unknown> | unknown
+  openWorkbenchView?: (request: WorkbenchExtensionViewOpenRequest) => Promise<unknown> | unknown
 }
 
 export function registerWorkbenchNavigationOpenCommand(
@@ -33,7 +39,11 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    if (target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET && target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET) {
+    if (
+      target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET &&
+      target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET &&
+      target !== WORKBENCH_EXTENSION_VIEW_TARGET
+    ) {
       return {
         success: false,
         code: 'unsupported_target',
@@ -44,7 +54,9 @@ export function registerWorkbenchNavigationOpenCommand(
     const resourceId =
       target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
         ? getString(payload, 'conversationId')
-        : getString(payload, 'knowledgebaseId')
+        : target === WORKBENCH_EXTENSION_VIEW_TARGET
+          ? getString(payload, 'viewKey')
+          : getString(payload, 'knowledgebaseId')
     if (!resourceId) {
       return {
         success: false,
@@ -52,7 +64,36 @@ export function registerWorkbenchNavigationOpenCommand(
         message:
           target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
             ? 'Conversation id is required.'
-            : 'Knowledgebase id is required.'
+            : target === WORKBENCH_EXTENSION_VIEW_TARGET
+              ? 'Workbench view key is required.'
+              : 'Knowledgebase id is required.'
+      }
+    }
+
+    if (target === WORKBENCH_EXTENSION_VIEW_TARGET) {
+      if (!options.openWorkbenchView) {
+        return {
+          success: false,
+          code: 'unsupported',
+          message: 'Workbench view opening is not available in this host.'
+        }
+      }
+
+      const selectionId = getString(payload, 'selectionId')
+      const parameters = getScalarParameters(payload, 'parameters')
+      await options.openWorkbenchView({
+        viewKey: resourceId,
+        ...(selectionId ? { selectionId } : {}),
+        ...(parameters ? { parameters } : {})
+      })
+
+      return {
+        success: true,
+        status: 'opened',
+        target,
+        viewKey: resourceId,
+        ...(selectionId ? { selectionId } : {}),
+        ...(parameters ? { parameters } : {})
       }
     }
 
@@ -91,15 +132,41 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    await options.navigate(['/xpert/knowledges', resourceId, 'documents'])
+    const documentId = getString(payload, 'documentId')
+    const parentId = getString(payload, 'parentId')
+    await options.navigate(
+      ['/xpert/knowledges', resourceId, 'documents', ...(documentId ? [documentId] : [])],
+      parentId ? { queryParams: { parentId } } : undefined
+    )
 
     return {
       success: true,
       status: 'opened',
       target,
-      knowledgebaseId: resourceId
+      knowledgebaseId: resourceId,
+      ...(documentId ? { documentId } : {}),
+      ...(parentId ? { parentId } : {})
     }
   })
+}
+
+function getScalarParameters(
+  payload: unknown,
+  key: string
+): Record<string, XpertViewScalar | XpertViewScalar[]> | undefined {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined
+  const value = (payload as Record<string, unknown>)[key]
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const parameters: Record<string, XpertViewScalar | XpertViewScalar[]> = {}
+  for (const [parameterKey, item] of Object.entries(value)) {
+    if (isScalar(item)) parameters[parameterKey] = item
+    else if (Array.isArray(item) && item.every(isScalar)) parameters[parameterKey] = item
+  }
+  return Object.keys(parameters).length ? parameters : undefined
+}
+
+function isScalar(value: unknown): value is XpertViewScalar {
+  return value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
 }
 
 function getString(payload: unknown, key: string) {

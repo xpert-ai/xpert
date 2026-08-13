@@ -164,6 +164,7 @@ export class RemoteComponentRendererComponent {
     effect(() => {
       const entryUrl = this.entryUrl()
       this.remoteThemeMode()
+      this.query()
       if (!entryUrl || !this.frame()?.nativeElement.contentWindow) {
         return
       }

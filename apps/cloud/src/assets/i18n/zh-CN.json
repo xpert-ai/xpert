@@ -557,6 +557,7 @@
       "UntitledConversation": "未命名会话",
       "ClawXpert": {
         "Loading": "正在准备 ClawXpert…",
+        "LoadingDesc": "正在加载助手配置与工作区，通常只需片刻。",
         "OrganizationRequired": "请选择一个组织以使用 ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert 会按用户和组织维度保存一份助手绑定。",
         "LoadFailed": "ClawXpert 加载失败。",

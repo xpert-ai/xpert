@@ -221,6 +221,7 @@ jest.mock('../../../@shared/view-extension', () => {
     @Input() hostId?: string | null
     @Input() slot?: string
     @Input() viewKey?: string | null
+    @Input() query?: object | null
     @Input() fillAvailableHeight?: boolean
   }
 
@@ -934,7 +935,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('opens fixed views as reusable workspace tabs rendered through the extension host outlet', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(
       of([
-        buildFixedViewManifest('bom_document_intake__review', {
+        buildFixedViewManifest('bom_document_intake_provider__bom_document_intake__review', {
           title: {
             en_US: 'BOM Review',
             zh_Hans: 'BOM 审核台'
@@ -955,7 +956,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.activeTab()).toEqual(
       expect.objectContaining({
         kind: 'fixed-view',
-        viewKey: 'bom_document_intake__review',
+        viewKey: 'bom_document_intake_provider__bom_document_intake__review',
         title: 'BOM Review',
         icon: TEST_FILE_LIST_ICON
       })
@@ -968,7 +969,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         hostType: 'agent',
         hostId: 'assistant-1',
         slot: 'agent.workbench.fixed',
-        viewKey: 'bom_document_intake__review',
+        viewKey: 'bom_document_intake_provider__bom_document_intake__review',
         fillAvailableHeight: true
       })
     )
@@ -979,7 +980,85 @@ describe('ClawXpertConversationDetailComponent', () => {
     fixedViewTabs = fixture.componentInstance.workspaceTabs().filter((tab) => tab.kind === 'fixed-view')
     outlet = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent))
     expect(fixedViewTabs).toHaveLength(1)
-    expect(outlet.componentInstance.viewKey).toBe('bom_document_intake__review')
+    expect(outlet.componentInstance.viewKey).toBe('bom_document_intake_provider__bom_document_intake__review')
+
+    fixture.componentInstance.openWorkbenchView({
+      viewKey: 'bom_document_intake__review',
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'bom_document_intake_provider__bom_document_intake__review',
+        query: { selectionId: 'record-1', parameters: { section: 'features' } }
+      })
+    )
+    expect(fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance.query).toEqual({
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+  })
+
+  it('keeps visited extension views mounted while switching workspace tabs', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' },
+          order: 10
+        }),
+        buildFixedViewManifest('metrics', {
+          title: { en_US: 'Metrics', zh_Hans: '指标' },
+          order: 20
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const findOutlet = (viewKey: string) =>
+      fixture.debugElement
+        .queryAll(By.directive(ExtensionHostOutletComponent))
+        .find((outlet) => outlet.componentInstance.viewKey === viewKey)
+
+    const reviewOutlet = findOutlet('review')
+    expect(reviewOutlet).toBeDefined()
+    expect(findOutlet('metrics')).toBeUndefined()
+
+    const metricsTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'metrics')
+    expect(metricsTab).toBeDefined()
+    if (!metricsTab) {
+      throw new Error('Metrics fixed view tab was not created')
+    }
+    fixture.componentInstance.selectTab(metricsTab.id)
+    await settle(fixture)
+
+    const preservedReviewOutlet = findOutlet('review')
+    const metricsOutlet = findOutlet('metrics')
+    expect(preservedReviewOutlet?.componentInstance).toBe(reviewOutlet?.componentInstance)
+    expect(preservedReviewOutlet?.nativeElement.classList.contains('hidden')).toBe(true)
+    expect(metricsOutlet?.nativeElement.classList.contains('hidden')).toBe(false)
+
+    const reviewTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'review')
+    expect(reviewTab).toBeDefined()
+    if (!reviewTab) {
+      throw new Error('Review fixed view tab was not created')
+    }
+    fixture.componentInstance.selectTab(reviewTab.id)
+    await settle(fixture)
+
+    expect(findOutlet('review')?.componentInstance).toBe(reviewOutlet?.componentInstance)
+    expect(findOutlet('metrics')?.componentInstance).toBe(metricsOutlet?.componentInstance)
+    expect(findOutlet('review')?.nativeElement.classList.contains('hidden')).toBe(false)
+    expect(findOutlet('metrics')?.nativeElement.classList.contains('hidden')).toBe(true)
+
+    fixture.componentInstance.closeWorkspaceTab(new Event('click'), metricsTab.id)
+    await settle(fixture)
+
+    expect(findOutlet('review')?.componentInstance).toBe(reviewOutlet?.componentInstance)
+    expect(findOutlet('metrics')).toBeUndefined()
   })
 
   it('renders a fixed view even when the thread conversation context cannot be resolved', async () => {

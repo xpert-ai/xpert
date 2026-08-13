@@ -11,6 +11,7 @@ import type {
   TChatElementReference,
   TChatFileElementReference,
   XpertExtensionViewManifest,
+  XpertViewQuery,
   XpertViewHostEventMessage
 } from '@xpert-ai/contracts'
 import {
@@ -24,7 +25,6 @@ import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
-import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
@@ -46,7 +46,8 @@ import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowle
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
 import {
   registerWorkbenchNavigationOpenCommand,
-  type WorkbenchAssistantConversationOpenRequest
+  type WorkbenchAssistantConversationOpenRequest,
+  type WorkbenchExtensionViewOpenRequest
 } from '../../assistant/workbench-navigation-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
@@ -72,6 +73,7 @@ import {
   getTaskSummaryResourceTarget,
   type ClawXpertTaskSummaryResourceTarget
 } from './clawxpert-task-summary-effect.utils'
+import { ClawXpertFixedViewStackComponent, type ClawXpertFixedViewTab } from './clawxpert-fixed-view-stack.component'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
@@ -117,13 +119,6 @@ type ClawXpertBrowserTab = {
   deviceToolbarVisible: boolean
   reloadKey: number
 }
-type ClawXpertFixedViewTab = {
-  id: string
-  kind: 'fixed-view'
-  viewKey: string
-  title: string
-  icon: IconDefinition | null
-}
 type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab
 
 type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview' | 'fixed-view'
@@ -159,13 +154,13 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
     ChatTasksComponent,
     ChatSharedTerminalComponent,
     IconComponent,
-    ExtensionHostOutletComponent
+    ClawXpertFixedViewStackComponent
   ],
   template: `
     <div [class]="workspaceLayoutClasses()" [style.--clawxpert-chatkit-width]="chatkitWidthStyle()">
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         <div [class]="detailPanelContentClasses()">
-          <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5">
+          <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-1 py-0.5">
             <nav
               z-tab-nav-bar
               [tabPanel]="tabPanel"
@@ -174,7 +169,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
               stretchTabs="false"
               disableRipple
               zSize="sm"
-              class="m-0 min-w-0 max-w-full shrink border-0 p-0"
+              class="m-0 min-w-0 max-w-full shrink border-0 p-1"
             >
               @for (tab of workspaceTabs(); track tab.id; let last = $last) {
                 <button
@@ -183,6 +178,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                   [attr.data-tab-id]="tab.id"
                   class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                  tabindex="0"
                   [active]="activeTabId() === tab.id"
                   (click)="selectTab(tab.id)"
                 >
@@ -482,122 +478,125 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   </button>
                 </div>
               </div>
-            } @else if (activeFixedViewTab(); as fixedViewTab) {
+            } @else {
               @if (fixedViewHostId(); as hostId) {
-                <xp-extension-host-outlet
-                  class="block h-full min-h-0 overflow-hidden"
-                  mode="single-view"
+                <xp-clawxpert-fixed-view-stack
+                  class="contents"
+                  [tabs]="fixedViewTabs()"
+                  [activeTabId]="activeTabId()"
                   hostType="agent"
                   [hostId]="hostId"
                   [slot]="agentWorkbenchFixedSlot"
-                  [viewKey]="fixedViewTab.viewKey"
-                  [fillAvailableHeight]="true"
                 />
-              } @else {
+              }
+
+              @if (activeFixedViewTab()) {
+                @if (!fixedViewHostId()) {
+                  <div
+                    class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                  >
+                    {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
+                  </div>
+                }
+              } @else if (activeTab()?.kind === 'tasks') {
+                <div class="h-full min-h-0 overflow-hidden px-4 py-3">
+                  <xp-chat-tasks
+                    class="block h-full min-h-0"
+                    [embedded]="true"
+                    [xpertId]="facade.xpertId()"
+                    (tasksChanged)="handleTasksChanged()"
+                    (conversationSelected)="openTaskHistoryConversation($event)"
+                  />
+                </div>
+              } @else if (contextLoading() && !resolvedConversationId()) {
                 <div
                   class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
                 >
-                  {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
-                </div>
-              }
-            } @else if (activeTab()?.kind === 'tasks') {
-              <div class="h-full min-h-0 overflow-hidden px-4 py-3">
-                <xp-chat-tasks
-                  class="block h-full min-h-0"
-                  [embedded]="true"
-                  [xpertId]="facade.xpertId()"
-                  (tasksChanged)="handleTasksChanged()"
-                  (conversationSelected)="openTaskHistoryConversation($event)"
-                />
-              </div>
-            } @else if (contextLoading() && !resolvedConversationId()) {
-              <div
-                class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
-              >
-                {{ 'XP.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
-              </div>
-            } @else {
-              @if (!resolvedConversationId()) {
-                <div class="block h-full p-2">
-                  <div
-                    class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-                  >
-                    <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
-                    <div class="mt-4 text-base font-medium text-text-primary">
-                      {{
-                        'XP.Chat.ClawXpert.DetailPanelEmptyTitle'
-                          | translate: { Default: 'Start a conversation to unlock workspace tools' }
-                      }}
-                    </div>
-                    <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                      @if (activeTab()?.kind === 'files') {
-                        {{
-                          'XP.Chat.ClawXpert.FilesEmptyDesc'
-                            | translate
-                              : {
-                                  Default:
-                                    'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
-                                }
-                        }}
-                      } @else if (activeTab()?.kind === 'browser') {
-                        {{
-                          'XP.Chat.ClawXpert.PreviewDetailEmptyDesc'
-                            | translate
-                              : {
-                                  Default:
-                                    'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
-                                }
-                        }}
-                      } @else {
-                        {{
-                          'XP.Chat.ClawXpert.TerminalEmptyDesc'
-                            | translate
-                              : {
-                                  Default:
-                                    'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
-                                }
-                        }}
-                      }
-                    </div>
-                  </div>
+                  {{ 'XP.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
                 </div>
               } @else {
-                @if (contextError()) {
-                  <div
-                    class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-                  >
-                    {{ contextError() }}
+                @if (!resolvedConversationId()) {
+                  <div class="block h-full p-2">
+                    <div
+                      class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                    >
+                      <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-base font-medium text-text-primary">
+                        {{
+                          'XP.Chat.ClawXpert.DetailPanelEmptyTitle'
+                            | translate: { Default: 'Start a conversation to unlock workspace tools' }
+                        }}
+                      </div>
+                      <div class="mt-2 max-w-sm text-sm text-text-secondary">
+                        @if (activeTab()?.kind === 'files') {
+                          {{
+                            'XP.Chat.ClawXpert.FilesEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                  }
+                          }}
+                        } @else if (activeTab()?.kind === 'browser') {
+                          {{
+                            'XP.Chat.ClawXpert.PreviewDetailEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
+                                  }
+                          }}
+                        } @else {
+                          {{
+                            'XP.Chat.ClawXpert.TerminalEmptyDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
+                                  }
+                          }}
+                        }
+                      </div>
+                    </div>
                   </div>
-                }
-
-                @if (activeTab()?.kind === 'files') {
-                  <xp-clawxpert-conversation-files
-                    class="h-full p-2 pr-0"
-                    [conversationId]="resolvedConversationId()"
-                    [xpertId]="facade.xpertId()"
-                    [mode]="'editable'"
-                    [reloadKey]="fileListReloadKey()"
-                    (referenceRequest)="handleWorkspaceReference($event)"
-                  />
-                } @else if (activeTab()?.kind === 'browser') {
-                  <xp-clawxpert-conversation-preview
-                    class="h-full p-2 pr-0"
-                    [conversationId]="resolvedConversationId()"
-                    [serviceId]="activeBrowserTab()?.serviceId"
-                    [url]="activeBrowserTab()?.url"
-                    [zoom]="activeBrowserTab()?.zoom"
-                    [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
-                    [reloadKey]="activeBrowserTab()?.reloadKey"
-                    (browserStateChange)="updateActiveBrowserTab($event)"
-                    (referenceRequest)="handleElementReference($event)"
-                  />
                 } @else {
-                  <xp-chat-shared-terminal
-                    class="h-full"
-                    [mode]="'interactive'"
-                    [conversationId]="resolvedConversationId()"
-                    [projectId]="resolvedConversation()?.projectId ?? null"
-                  />
+                  @if (contextError()) {
+                    <div
+                      class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                    >
+                      {{ contextError() }}
+                    </div>
+                  }
+
+                  @if (activeTab()?.kind === 'files') {
+                    <xp-clawxpert-conversation-files
+                      class="h-full p-2 pr-0"
+                      [conversationId]="resolvedConversationId()"
+                      [xpertId]="facade.xpertId()"
+                      [mode]="'editable'"
+                      [reloadKey]="fileListReloadKey()"
+                      (referenceRequest)="handleWorkspaceReference($event)"
+                    />
+                  } @else if (activeTab()?.kind === 'browser') {
+                    <xp-clawxpert-conversation-preview
+                      class="h-full p-2 pr-0"
+                      [conversationId]="resolvedConversationId()"
+                      [serviceId]="activeBrowserTab()?.serviceId"
+                      [url]="activeBrowserTab()?.url"
+                      [zoom]="activeBrowserTab()?.zoom"
+                      [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
+                      [reloadKey]="activeBrowserTab()?.reloadKey"
+                      (browserStateChange)="updateActiveBrowserTab($event)"
+                      (referenceRequest)="handleElementReference($event)"
+                    />
+                  } @else {
+                    <xp-chat-shared-terminal
+                      class="h-full"
+                      [mode]="'interactive'"
+                      [conversationId]="resolvedConversationId()"
+                      [projectId]="resolvedConversation()?.projectId ?? null"
+                    />
+                  }
                 }
               }
             }
@@ -978,8 +977,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     })
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
-      navigate: (commands) => this.#router.navigate(commands),
-      openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request)
+      navigate: (commands, options) => this.#router.navigate(commands, options),
+      openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
+      openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
     effect((onCleanup) => {
@@ -1468,6 +1468,29 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return tab
   }
 
+  openWorkbenchView(request: WorkbenchExtensionViewOpenRequest) {
+    const menuItem = this.fixedViewMenuItems().find(
+      (item) => item.viewKey === request.viewKey || item.viewKey.endsWith(`__${request.viewKey}`)
+    )
+    if (!menuItem) throw new Error(`Workbench view '${request.viewKey}' is not available.`)
+    const resolvedViewKey = menuItem.viewKey
+    const query: XpertViewQuery = {
+      ...(request.selectionId ? { selectionId: request.selectionId } : {}),
+      ...(request.parameters ? { parameters: request.parameters } : {})
+    }
+    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === resolvedViewKey)
+    if (existing) {
+      this.workspaceTabs.update((tabs) =>
+        tabs.map((tab) => (tab.kind === 'fixed-view' && tab.viewKey === resolvedViewKey ? { ...tab, query } : tab))
+      )
+    }
+    const opened = this.openFixedViewTab(menuItem)
+    if (!existing) {
+      this.workspaceTabs.update((tabs) => tabs.map((tab) => (tab.id === opened.id ? { ...tab, query } : tab)))
+    }
+    return opened
+  }
+
   addBrowserTab(initial?: Partial<Pick<ClawXpertBrowserTab, 'serviceId' | 'url' | 'displayUrl'>>) {
     const tab: ClawXpertBrowserTab = {
       id: this.createWorkspaceTabId('browser'),
@@ -1787,7 +1810,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       kind: 'fixed-view',
       viewKey: fixedView.viewKey,
       title: fixedView.title,
-      icon: fixedView.icon
+      icon: fixedView.icon,
+      query: null
     }
   }
 

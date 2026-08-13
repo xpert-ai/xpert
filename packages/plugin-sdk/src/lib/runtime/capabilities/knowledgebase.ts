@@ -69,6 +69,17 @@ export type KnowledgebaseWriteChunkInput = {
   title?: string
   metadata?: KnowledgebaseMetadata
   writeKey: string
+  /**
+   * Optional system-managed document target. When omitted, the chunk is written to the
+   * Agent's shared writer document for backwards compatibility. A stable key creates an
+   * independently managed document that can be placed in a knowledgebase folder.
+   */
+  document?: {
+    key: string
+    name: string
+    parentId?: string | null
+    metadata?: KnowledgebaseMetadata
+  }
   executionId?: string
   threadId?: string
 }
@@ -76,6 +87,10 @@ export type KnowledgebaseWriteChunkInput = {
 export type KnowledgebaseWriteChunkResult = {
   status?: 'created' | 'skipped'
   chunkId?: string
+  knowledgebaseId?: string
+  knowledgebaseName?: string
+  documentId?: string
+  writeKey?: string
   message?: string
 }
 
@@ -86,6 +101,10 @@ export type KnowledgebaseDeleteChunksInput = {
   knowledgebaseId: string
   writeKeys?: string[]
   writeKeyPrefix?: string
+  /** Restrict deletion to a dedicated system-managed document created by writeChunk. */
+  documentKey?: string
+  /** Remove the managed document after deletion when it has no chunks left. */
+  deleteDocumentIfEmpty?: boolean
 }
 
 export type KnowledgebaseDeleteChunksResult = {
@@ -94,6 +113,7 @@ export type KnowledgebaseDeleteChunksResult = {
   documentId?: string
   writeKeys?: string[]
   writeKeyPrefix?: string
+  documentDeleted?: boolean
 }
 
 export type KnowledgebaseProvisioningPermission = 'private' | 'organization' | 'public'
