@@ -282,6 +282,18 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
+      title: 'Agent Evolution',
+      icon: 'ri-dna-line',
+      link: '/agent-evolution',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Agent Evolution',
+        featureKey: AiFeatureEnum.FEATURE_XPERT,
+        permissionKeys: [AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT]
+      }
+    },
+    {
       title: 'Settings',
       icon: 'settings',
       link: '/settings',

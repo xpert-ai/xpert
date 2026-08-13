@@ -18,5 +18,7 @@ export enum AIPermissionsEnum {
    * Create or edit Xperts in organization.
    */
   XPERT_EDIT = 'XPERT_EDIT',
-  CHAT_VIEW = 'CHAT_VIEW'
+  CHAT_VIEW = 'CHAT_VIEW',
+  EVOLUTION_VIEW = 'EVOLUTION_VIEW',
+  EVOLUTION_MANAGE = 'EVOLUTION_MANAGE'
 }

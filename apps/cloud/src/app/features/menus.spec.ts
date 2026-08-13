@@ -240,6 +240,21 @@ describe('getFeatureMenus', () => {
     expect(workspace?.data?.onboardingTarget).toBe('workspace')
   })
 
+  it('adds Agent Evolution as a native top-level Cloud menu without replacing Plugins', () => {
+    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
+    const evolution = menus.find((item) => item.link === '/agent-evolution')
+
+    expect(evolution).toMatchObject({
+      title: 'Agent Evolution',
+      icon: 'ri-dna-line',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope'
+    })
+    expect(evolution?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_XPERT)
+    expect(evolution?.data?.permissionKeys).toEqual([AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT])
+    expect(menus.some((item) => item.link === '/plugins')).toBe(true)
+  })
+
   it('does not expose the removed Analytics Data menu', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const data = menus.find((item) => item.title === 'Data')

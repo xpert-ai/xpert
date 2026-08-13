@@ -76,6 +76,19 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'agent-evolution',
+        loadChildren: () => import('./agent-evolution/routes').then((m) => m.routes),
+        canActivate: [authGuard, NgxPermissionsGuard],
+        data: {
+          title: 'Agent Evolution',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
         path: 'plugins/marketplace/:scope/:packageName',
         loadComponent: () =>
           import('./setting/plugins/marketplace/marketplace-readme-page.component').then(

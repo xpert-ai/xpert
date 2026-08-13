@@ -5,7 +5,9 @@ const FULL_AI_PERMISSIONS = [
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
     AIPermissionsEnum.XPERT_EDIT,
-    AIPermissionsEnum.CHAT_VIEW
+    AIPermissionsEnum.CHAT_VIEW,
+    AIPermissionsEnum.EVOLUTION_VIEW,
+    AIPermissionsEnum.EVOLUTION_MANAGE
 ]
 
 const MEMBERSHIP_USE_PERMISSIONS = [AIPermissionsEnum.MEMBERSHIP_USE]
@@ -25,6 +27,7 @@ const BILLING_ADMIN_PERMISSIONS = [
 const VIEWER_AI_PERMISSIONS = [
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.CHAT_VIEW,
+    AIPermissionsEnum.EVOLUTION_VIEW,
     ...MEMBERSHIP_USE_PERMISSIONS
 ]
 

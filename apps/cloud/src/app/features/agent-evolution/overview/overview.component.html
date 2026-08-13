@@ -1,0 +1,254 @@
+<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
+  <section
+    class="flex flex-col gap-3 rounded-xl border border-state-success-hover bg-state-success-hover/10 px-4 py-3 lg:flex-row lg:items-center"
+  >
+    <span
+      class="flex size-9 shrink-0 items-center justify-center rounded-full bg-state-success-hover/20 text-text-success"
+    >
+      <i class="ri-shield-check-line text-lg"></i>
+    </span>
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold text-text-primary">整体健康</span>
+        <z-badge zType="outline" class="border-state-success-hover text-text-success">所有阻断门禁正常</z-badge>
+      </div>
+      <p class="mt-0.5 text-xs text-text-tertiary">
+        当前有 {{ todos().length }} 项待处理，{{ severeErrors() }} 个严重错误。所有版本切换均保留可审计回滚指针。
+      </p>
+    </div>
+    @if (todos().length) {
+      <a z-button zType="secondary" [routerLink]="todos()[0].route">处理待办</a>
+    }
+  </section>
+
+  <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-content class="p-4">
+        <div class="flex items-center justify-between text-xs text-text-tertiary">
+          <span>生产能力</span><i class="ri-box-3-line text-base"></i>
+        </div>
+        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
+          {{ facade.dashboard().pointers.length }}
+        </div>
+        <p class="mt-1 text-xs text-text-tertiary">已激活的不可变能力指针</p>
+      </z-card-content>
+    </z-card>
+    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-content class="p-4">
+        <div class="flex items-center justify-between text-xs text-text-tertiary">
+          <span>活跃候选</span><i class="ri-flask-line text-base"></i>
+        </div>
+        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
+          {{ facade.dashboard().candidates.length }}
+        </div>
+        <p class="mt-1 text-xs text-text-success">{{ facade.dashboard().proposals.length }} 条建议已进入验证</p>
+      </z-card-content>
+    </z-card>
+    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-content class="p-4">
+        <div class="flex items-center justify-between text-xs text-text-tertiary">
+          <span>评测通过率</span><i class="ri-checkbox-circle-line text-base"></i>
+        </div>
+        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">{{ percent(passRate()) }}</div>
+        <p class="mt-1 text-xs text-text-success">{{ passedEvaluations() }} 次通过阻断门禁</p>
+      </z-card-content>
+    </z-card>
+    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-content class="p-4">
+        <div class="flex items-center justify-between text-xs text-text-tertiary">
+          <span>严重错误</span><i class="ri-error-warning-line text-base"></i>
+        </div>
+        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">{{ severeErrors() }}</div>
+        <p
+          class="mt-1 text-xs"
+          [class.text-text-success]="severeErrors() === 0"
+          [class.text-text-destructive]="severeErrors() > 0"
+        >
+          {{ severeErrors() === 0 ? '处于安全阈值内' : '需要立即处理' }}
+        </p>
+      </z-card-content>
+    </z-card>
+  </section>
+
+  <section class="grid min-h-80 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]">
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-header class="border-b border-divider-subtle px-5 py-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <z-card-title>今日待办</z-card-title>
+            <z-card-subtitle class="mt-1">需要评审、验证或推进的进化任务</z-card-subtitle>
+          </div>
+          <z-badge zType="secondary" zShape="pill">{{ todos().length }}</z-badge>
+        </div>
+      </z-card-header>
+      <z-card-content class="p-0">
+        @if (todos().length) {
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[620px] text-left text-sm">
+              <thead class="bg-background-default-subtle text-xs text-text-tertiary">
+                <tr>
+                  <th class="px-5 py-3 font-medium">事项</th>
+                  <th class="px-4 py-3 font-medium">进化目标</th>
+                  <th class="px-4 py-3 font-medium">状态</th>
+                  <th class="px-5 py-3 text-right font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-divider-subtle">
+                @for (todo of todos(); track todo.type + todo.title) {
+                  <tr class="hover:bg-background-default-subtle/60">
+                    <td class="px-5 py-3.5">
+                      <div class="flex items-center gap-3">
+                        <span
+                          class="flex size-8 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
+                        >
+                          <i [class]="todo.icon"></i>
+                        </span>
+                        <div>
+                          <div class="font-medium text-text-primary">{{ todo.title }}</div>
+                          <div class="text-xs text-text-tertiary">{{ todo.type }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3.5 font-mono text-xs text-text-secondary">{{ todo.target }}</td>
+                    <td class="px-4 py-3.5">
+                      <z-badge zType="outline">{{ todo.status }}</z-badge>
+                    </td>
+                    <td class="px-5 py-3.5 text-right">
+                      <a z-button zType="ghost" zSize="sm" [routerLink]="todo.route">查看</a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="flex min-h-56 flex-col items-center justify-center px-6 text-center">
+            <span
+              class="flex size-12 items-center justify-center rounded-full bg-state-success-hover/10 text-text-success"
+            >
+              <i class="ri-check-double-line text-2xl"></i>
+            </span>
+            <div class="mt-3 font-medium text-text-primary">当前没有待处理事项</div>
+            <p class="mt-1 max-w-sm text-xs text-text-tertiary">
+              运行完整模拟后，这里会持续跟踪建议、候选评测与灰度发布状态。
+            </p>
+          </div>
+        }
+      </z-card-content>
+    </z-card>
+
+    <div class="flex flex-col gap-4">
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+        <z-card-header class="px-5 py-4">
+          <z-card-title>进化闭环</z-card-title>
+          <z-card-subtitle class="mt-1">从真实执行到生产指针</z-card-subtitle>
+        </z-card-header>
+        <z-card-content class="px-5 pb-5">
+          <div class="space-y-1">
+            @for (stage of loopStages(); track stage.label; let last = $last) {
+              <div class="flex items-center gap-3">
+                <div class="flex w-8 flex-col items-center self-stretch">
+                  <span
+                    class="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-default-subtle"
+                    [class]="stage.tone"
+                  >
+                    <i [class]="stage.icon"></i>
+                  </span>
+                  @if (!last) {
+                    <span class="my-1 w-px flex-1 bg-divider-regular"></span>
+                  }
+                </div>
+                <div class="flex min-w-0 flex-1 items-center justify-between gap-3 py-1">
+                  <span class="text-sm text-text-secondary">{{ stage.label }}</span>
+                  <span class="text-lg font-semibold tabular-nums text-text-primary">{{ stage.value }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </z-card-content>
+      </z-card>
+
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+        <z-card-content class="flex items-start gap-3 p-4">
+          <span
+            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-state-warning-hover/10 text-text-warning"
+          >
+            <i class="ri-shield-keyhole-line"></i>
+          </span>
+          <div>
+            <div class="text-sm font-semibold text-text-primary">治理建议</div>
+            <p class="mt-1 text-xs leading-5 text-text-tertiary">
+              保持评测快照、候选哈希、人工审批和 Active Pointer CAS 为发布前置条件；任何严重错误都应阻断晋级。
+            </p>
+          </div>
+        </z-card-content>
+      </z-card>
+    </div>
+  </section>
+
+  <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+    <z-card-header class="border-b border-divider-subtle px-5 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <z-card-title>进化目标健康度</z-card-title>
+          <z-card-subtitle class="mt-1">Provider 契约、风险等级和运行能力</z-card-subtitle>
+        </div>
+        <z-badge zType="outline">{{ facade.dashboard().targets.length }} targets</z-badge>
+      </div>
+    </z-card-header>
+    <z-card-content class="p-0">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[760px] text-left text-sm">
+          <thead class="bg-background-default-subtle text-xs text-text-tertiary">
+            <tr>
+              <th class="px-5 py-3 font-medium">目标</th>
+              <th class="px-4 py-3 font-medium">类型</th>
+              <th class="px-4 py-3 font-medium">风险</th>
+              <th class="px-4 py-3 font-medium">能力</th>
+              <th class="px-4 py-3 font-medium">Provider</th>
+              <th class="px-5 py-3 text-right font-medium">状态</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-divider-subtle">
+            @for (target of facade.dashboard().targets; track target.targetId) {
+              <tr>
+                <td class="px-5 py-3.5">
+                  <div class="font-medium text-text-primary">{{ target.displayName }}</div>
+                  <div class="font-mono text-[11px] text-text-tertiary">{{ target.targetId }}</div>
+                </td>
+                <td class="px-4 py-3.5 text-text-secondary">{{ target.targetType }}</td>
+                <td class="px-4 py-3.5">
+                  <z-badge zType="outline">{{ target.riskLevel }}</z-badge>
+                </td>
+                <td class="px-4 py-3.5 text-xs text-text-secondary">
+                  {{ target.capabilities.replay ? 'Replay' : '' }} · {{ target.capabilities.shadow ? 'Shadow' : '' }} ·
+                  {{ target.capabilities.canary ? 'Canary' : '' }}
+                </td>
+                <td class="px-4 py-3.5 font-mono text-xs text-text-secondary">
+                  {{ target.providerKey }}@{{ target.providerVersion }}
+                </td>
+                <td class="px-5 py-3.5 text-right">
+                  <z-badge zType="outline" [class.text-text-success]="target.status === 'active'">{{
+                    target.status
+                  }}</z-badge>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-5 py-10 text-center text-sm text-text-tertiary">尚未同步进化目标</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </z-card-content>
+  </z-card>
+
+  <footer
+    class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-tertiary"
+  >
+    <span>数据隔离：Tenant + Organization scope</span>
+    <span>最新刷新：{{ facade.loadedAt() ? (facade.loadedAt() | date: 'yyyy-MM-dd HH:mm:ss') : '—' }}</span>
+    <span>发布指针：CAS revision {{ facade.dashboard().pointers[0]?.revision ?? '—' }}</span>
+  </footer>
+</main>

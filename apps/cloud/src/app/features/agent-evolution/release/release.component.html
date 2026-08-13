@@ -1,0 +1,326 @@
+<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
+  @if (release(); as item) {
+    <section
+      class="flex flex-col gap-4 rounded-xl border border-divider-regular bg-components-card-bg p-5 lg:flex-row lg:items-start lg:justify-between"
+    >
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-1.5 text-xs text-text-tertiary">
+          <span>发布与运行</span><i class="ri-arrow-right-s-line"></i
+          ><span class="font-mono">{{ item.releasePackageId }}</span>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <h2 class="text-xl font-semibold text-text-primary">字段标准化 {{ item.targetVersionId }} 发布</h2>
+          <z-badge zType="outline" class="border-state-success-hover bg-state-success-hover/10 text-text-success">{{
+            item.status
+          }}</z-badge>
+        </div>
+        <p class="mt-1 text-sm text-text-tertiary">
+          Candidate {{ item.candidateId }} · Rollback {{ item.rollbackVersionId }} · {{ item.scope.type }}
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button z-button type="button" [zLoading]="facade.simulating()" (click)="startNextEvolution()">
+          <i class="ri-loop-right-line"></i>开始下一轮进化
+        </button>
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          [zDisabled]="item.status === 'active'"
+          title="仅灰度运行期间可暂停"
+        >
+          <i class="ri-pause-line"></i>暂停
+        </button>
+        <button z-button zType="ghost" zSize="icon" type="button" title="更多"><i class="ri-more-2-fill"></i></button>
+      </div>
+    </section>
+
+    <section class="overflow-x-auto rounded-xl border border-divider-regular bg-components-card-bg px-5 py-5">
+      <div class="flex min-w-[780px] items-start">
+        @for (step of timeline(); track step.label; let last = $last) {
+          <div class="flex flex-1 items-start">
+            <div class="flex min-w-24 flex-col items-center text-center">
+              <span
+                class="flex size-8 items-center justify-center rounded-full border"
+                [ngClass]="
+                  step.done
+                    ? 'border-state-success-hover bg-state-success-hover/20 text-text-success'
+                    : 'border-divider-deep bg-components-card-bg text-text-tertiary'
+                "
+                ><i [class]="step.done ? 'ri-check-line' : 'ri-time-line'"></i
+              ></span>
+              <div
+                class="mt-2 text-xs font-medium"
+                [class.text-text-primary]="step.done"
+                [class.text-text-tertiary]="!step.done"
+              >
+                {{ step.label }}
+              </div>
+              <div class="mt-0.5 text-[10px] text-text-tertiary">{{ step.detail }}</div>
+            </div>
+            @if (!last) {
+              <div
+                class="mt-4 h-px flex-1"
+                [ngClass]="step.done ? 'bg-state-success-hover' : 'bg-divider-regular'"
+              ></div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-tertiary">Candidate 准确率</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ percent(latestAccuracy()) }}</div>
+          <div class="mt-1 text-[11px] text-text-success">持久化观测正常</div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-tertiary">严重错误</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ severeErrors() }}</div>
+          <div class="mt-1 text-[11px] text-text-success">阈值 0</div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-tertiary">累计运行样本</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ totalSamples() }}</div>
+          <div class="mt-1 text-[11px] text-text-tertiary">已持久化的 Shadow + Canary</div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-tertiary">Canary 流量</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ item.canaryPercent }}%</div>
+          <div class="mt-1 text-[11px] text-text-tertiary">确定性切片</div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-tertiary">Pointer revision</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ pointer()?.revision ?? '—' }}</div>
+          <div class="mt-1 text-[11px] text-text-tertiary">CAS protected</div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-state-success-hover bg-state-success-hover/10 shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-success">发布决策</div>
+          <div class="mt-2 text-xl font-semibold text-text-success">{{ releaseDecision().label }}</div>
+          <div class="mt-1 text-[11px] text-text-success">{{ releaseDecision().detail }}</div></z-card-content
+        ></z-card
+      >
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,.75fr)]">
+      <div class="flex min-w-0 flex-col gap-4">
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><div class="flex items-center justify-between gap-3">
+              <div>
+                <z-card-title>持久化运行观测</z-card-title
+                ><z-card-subtitle class="mt-1">Baseline 与 Candidate 按样本批次的实际回放结果</z-card-subtitle>
+              </div>
+              <z-badge zType="outline">{{ runtimeDataSource() }}</z-badge>
+            </div></z-card-header
+          ><z-card-content class="p-4"
+            ><div echarts class="h-72 w-full" [options]="runtimeOptions()"></div></z-card-content
+        ></z-card>
+
+        <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><div class="flex items-center justify-between">
+              <div>
+                <z-card-title>流量切片</z-card-title
+                ><z-card-subtitle class="mt-1">按租户范围确定性分流，可重复审计</z-card-subtitle>
+              </div>
+              <z-badge zType="outline">{{ deployments().length }} deployments</z-badge>
+            </div></z-card-header
+          >
+          <z-card-content class="p-0"
+            ><div class="overflow-x-auto">
+              <table class="w-full min-w-[720px] text-left text-xs">
+                <thead class="bg-background-default-subtle text-text-tertiary">
+                  <tr>
+                    <th class="px-5 py-3 font-medium">Channel</th>
+                    <th class="px-4 py-3 font-medium">状态</th>
+                    <th class="px-4 py-3 font-medium">数据源</th>
+                    <th class="px-4 py-3 font-medium">流量</th>
+                    <th class="px-4 py-3 font-medium">样本</th>
+                    <th class="px-4 py-3 font-medium">准确率</th>
+                    <th class="px-4 py-3 font-medium">严重错误</th>
+                    <th class="px-5 py-3 text-right font-medium">开始时间</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-divider-subtle">
+                  @for (deployment of deployments(); track deployment.deploymentId) {
+                    <tr>
+                      <td class="px-5 py-3.5 font-medium text-text-primary">{{ deployment.channel }}</td>
+                      <td class="px-4 py-3.5">
+                        <z-badge zType="outline" class="text-text-success">{{ deployment.status }}</z-badge>
+                      </td>
+                      <td class="px-4 py-3.5 font-mono text-[11px] text-text-secondary">
+                        {{ deployment.dataSource || 'legacy_aggregate' }}
+                      </td>
+                      <td class="px-4 py-3.5 tabular-nums">{{ deployment.canaryPercent }}%</td>
+                      <td class="px-4 py-3.5 tabular-nums">{{ deployment.sampleCount }}</td>
+                      <td class="px-4 py-3.5 tabular-nums text-text-success">
+                        {{ percent(deployment.candidateAccuracy) }}
+                      </td>
+                      <td class="px-4 py-3.5 tabular-nums">{{ deployment.severeErrors }}</td>
+                      <td class="px-5 py-3.5 text-right text-text-tertiary">
+                        {{ deployment.startedAt | date: 'MM-dd HH:mm:ss' }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="px-5 py-10 text-center text-text-tertiary">尚无部署记录</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div></z-card-content
+          >
+        </z-card>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><div class="flex items-center gap-3">
+              <span
+                class="flex size-9 items-center justify-center rounded-lg bg-state-success-hover/10 text-text-success"
+                ><i class="ri-shield-check-line"></i
+              ></span>
+              <div>
+                <z-card-title>发布决策</z-card-title><z-card-subtitle class="mt-1">治理引擎实时建议</z-card-subtitle>
+              </div>
+            </div></z-card-header
+          ><z-card-content class="space-y-4 p-5"
+            ><div class="rounded-lg bg-state-success-hover/10 p-4">
+              <div class="text-sm font-semibold text-text-success">{{ releaseDecision().label }}</div>
+              <p class="mt-1 text-xs leading-5 text-text-secondary">
+                {{ releaseDecision().detail }}。当前图表共读取 {{ runtimePoints().length }} 条部署观测。
+              </p>
+            </div>
+            <dl class="space-y-3 text-xs">
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-tertiary">Artifact hash</dt>
+                <dd class="break-all text-right font-mono text-text-primary">{{ shortId(item.artifactHash, 18) }}</dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-tertiary">Provider</dt>
+                <dd class="text-right font-mono text-text-primary">
+                  {{ item.providerKey }}@{{ item.providerVersion }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-tertiary">Approvals</dt>
+                <dd class="font-semibold text-text-primary">{{ item.approvalIds.length }}</dd>
+              </div>
+            </dl></z-card-content
+          ></z-card
+        >
+
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><z-card-title>版本与指针</z-card-title></z-card-header
+          ><z-card-content class="space-y-4 p-5"
+            ><div>
+              <div class="text-[11px] uppercase text-text-tertiary">Active version</div>
+              <div
+                class="mt-1 rounded-lg bg-state-success-hover/10 p-3 font-mono text-sm font-semibold text-text-success"
+              >
+                {{ pointer()?.activeVersionId || item.targetVersionId }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[11px] uppercase text-text-tertiary">Rollback version</div>
+              <div class="mt-1 rounded-lg bg-background-default-subtle p-3 font-mono text-sm text-text-primary">
+                {{ pointer()?.rollbackVersionId || item.rollbackVersionId }}
+              </div>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-text-tertiary">Pointer ID</span
+              ><span class="font-mono text-text-primary">{{ shortId(pointer()?.pointerId, 14) }}</span>
+            </div></z-card-content
+          ></z-card
+        >
+      </div>
+    </section>
+
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-header class="border-b border-divider-subtle px-5 py-4"
+        ><div class="flex items-center justify-between">
+          <div>
+            <z-card-title>发布事件</z-card-title
+            ><z-card-subtitle class="mt-1">人工与系统操作的不可变审计轨迹</z-card-subtitle>
+          </div>
+          <z-badge zType="outline">{{ auditEvents().length }} events</z-badge>
+        </div></z-card-header
+      >
+      <z-card-content class="p-0"
+        ><div class="overflow-x-auto">
+          <table class="w-full min-w-[820px] text-left text-xs">
+            <thead class="bg-background-default-subtle text-text-tertiary">
+              <tr>
+                <th class="px-5 py-3 font-medium">时间</th>
+                <th class="px-4 py-3 font-medium">动作</th>
+                <th class="px-4 py-3 font-medium">摘要</th>
+                <th class="px-4 py-3 font-medium">Actor</th>
+                <th class="px-5 py-3 text-right font-medium">Audit ID</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-divider-subtle">
+              @for (audit of auditEvents(); track audit.auditId) {
+                <tr>
+                  <td class="px-5 py-3.5 text-text-tertiary">{{ audit.occurredAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+                  <td class="px-4 py-3.5">
+                    <z-badge zType="outline">{{ audit.action }}</z-badge>
+                  </td>
+                  <td class="px-4 py-3.5 text-text-primary">{{ audit.summary }}</td>
+                  <td class="px-4 py-3.5">
+                    <div>{{ audit.actorId }}</div>
+                    <div class="text-[10px] text-text-tertiary">{{ audit.actorRole }}</div>
+                  </td>
+                  <td class="px-5 py-3.5 text-right font-mono text-text-tertiary">{{ audit.auditId }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="px-5 py-10 text-center text-text-tertiary">尚无审计事件</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div></z-card-content
+      >
+    </z-card>
+
+    <footer
+      class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-tertiary"
+    >
+      <span>Release {{ item.releasePackageId }}</span
+      ><span>Evaluation {{ item.evaluationRunId }}</span
+      ><span>Scope {{ item.scope.type }} / {{ item.scope.key }}</span
+      ><span>Rollback target {{ item.rollbackVersionId }}</span>
+    </footer>
+  } @else {
+    <section
+      class="flex min-h-[560px] flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center"
+    >
+      <span
+        class="flex size-14 items-center justify-center rounded-full bg-background-default-subtle text-text-tertiary"
+        ><i class="ri-rocket-line text-3xl"></i
+      ></span>
+      <h2 class="mt-4 text-lg font-semibold text-text-primary">尚无发布运行</h2>
+      <p class="mt-2 max-w-md text-sm leading-6 text-text-tertiary">
+        执行完整模拟后，这里会展示审批、Shadow、Canary、生产指针和可回滚审计轨迹。
+      </p>
+      <button z-button class="mt-5" type="button" [zLoading]="facade.simulating()" (click)="startNextEvolution()">
+        <i class="ri-play-circle-line"></i>执行完整模拟
+      </button>
+    </section>
+  }
+</main>
