@@ -1273,6 +1273,7 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         expect(thrownMessage).toContain('{"elements":')
         expect(thrownMessage).toContain('Around JSON parse error at character')
         expect(thrownMessage).toContain('BROKEN_VALUE')
+        expect(thrownMessage).not.toContain('Likely unescaped ASCII double quote')
         expect(thrownMessage).toContain('diagnosticId:')
         expect(thrownMessage.length).toBeLessThan(5000)
         expect(loggerError).toHaveBeenCalledWith(
