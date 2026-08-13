@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms'
 import { ReferralService } from '@cloud/app/@core/state'
 import { IReferralRelationView } from '@xpert-ai/contracts'
-import { ZardButtonComponent, ZardInputDirective, ZardTableImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTableImports } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage } from '../../../@core/types'
 import { injectToastr } from '../../../@core/services/toastr.service'
@@ -12,11 +12,15 @@ import { injectToastr } from '../../../@core/services/toastr.service'
   standalone: true,
   selector: 'xp-referral-relations',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'flex min-w-0 w-full max-w-full flex-1'
+  },
   imports: [
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
+    ZardIconComponent,
     ZardInputDirective,
     ...ZardTableImports
   ],
@@ -66,6 +70,11 @@ export class ReferralRelationsComponent implements OnInit {
   }
 
   search() {
+    void this.load(0)
+  }
+
+  clearSearch() {
+    this.filterForm.controls.search.reset()
     void this.load(0)
   }
 
