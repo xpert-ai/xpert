@@ -133,6 +133,7 @@
         "MembershipRefundReservationNotFound": "No membership periods are reserved for this refund.",
         "MembershipRefundSourceReferenceRequired": "Membership refund source reference is required.",
         "MembershipRefundTailRequired": "Only a contiguous tail of unstarted membership periods can be refunded.",
+        "BillingRefundResultUnconfirmed": "The persisted refund result could not be confirmed.",
         "MembershipUpgradeFulfillmentMismatch": "Membership upgrade request does not match the existing fulfillment.",
         "MembershipUpgradePointsInvalid": "Membership upgrade points must be a non-negative integer.",
         "MembershipUpgradeSourceReferenceRequired": "Membership upgrade source reference is required.",
