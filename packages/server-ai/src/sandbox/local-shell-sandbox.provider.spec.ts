@@ -674,6 +674,7 @@ describe('LocalShellSandboxProvider Sandbox Jobs', () => {
 
     it('rejects host-executed jobs in production', async () => {
         process.env.NODE_ENV = 'production'
+        process.env.XPERT_LOCAL_SANDBOX_ENABLED = 'true'
         delete process.env.NSJAIL_RUNNER_URL
         delete process.env.NSJAIL_RUNNER_TOKEN
         const provider = new LocalShellSandboxProvider()
@@ -694,42 +695,38 @@ describe('LocalShellSandboxProvider Sandbox Jobs', () => {
 })
 
 describe('LocalShellSandboxProvider', () => {
-    const originalNodeEnv = process.env.NODE_ENV
-    const originalRunnerUrl = process.env.NSJAIL_RUNNER_URL
-    const originalRunnerToken = process.env.NSJAIL_RUNNER_TOKEN
+    const originalEnvironment = { ...process.env }
 
     beforeEach(() => {
-        process.env.NODE_ENV = 'development'
+        process.env = { ...originalEnvironment }
+        delete process.env.XPERT_LOCAL_SANDBOX_ENABLED
         delete process.env.NSJAIL_RUNNER_URL
         delete process.env.NSJAIL_RUNNER_TOKEN
     })
 
     afterAll(() => {
-        if (originalNodeEnv === undefined) {
-            delete process.env.NODE_ENV
-        } else {
-            process.env.NODE_ENV = originalNodeEnv
-        }
-        if (originalRunnerUrl === undefined) {
-            delete process.env.NSJAIL_RUNNER_URL
-        } else {
-            process.env.NSJAIL_RUNNER_URL = originalRunnerUrl
-        }
-        if (originalRunnerToken === undefined) {
-            delete process.env.NSJAIL_RUNNER_TOKEN
-        } else {
-            process.env.NSJAIL_RUNNER_TOKEN = originalRunnerToken
-        }
+        process.env = { ...originalEnvironment }
     })
 
-    it('remains available when the NsJail Runner is not configured', () => {
-        expect(new LocalShellSandboxProvider().isAvailable()).toBe(true)
+    it.each([undefined, '', 'false', '1', 'yes'])('is unavailable unless explicitly enabled with true', (value) => {
+        if (value === undefined) {
+            delete process.env.XPERT_LOCAL_SANDBOX_ENABLED
+        } else {
+            process.env.XPERT_LOCAL_SANDBOX_ENABLED = value
+        }
+
+        expect(new LocalShellSandboxProvider().isAvailable()).toBe(false)
     })
 
-    it.each(['NSJAIL_RUNNER_URL', 'NSJAIL_RUNNER_TOKEN'] as const)(
-        'remains available in development when %s is configured',
-        async (name) => {
-            process.env[name] = 'configured'
+    it.each(['development', 'test', 'production', undefined])(
+        'is available when explicitly enabled independently of NODE_ENV=%s',
+        async (nodeEnv) => {
+            if (nodeEnv === undefined) {
+                delete process.env.NODE_ENV
+            } else {
+                process.env.NODE_ENV = nodeEnv
+            }
+            process.env.XPERT_LOCAL_SANDBOX_ENABLED = ' TRUE '
             const provider = new LocalShellSandboxProvider()
 
             expect(provider.isAvailable()).toBe(true)
@@ -737,15 +734,18 @@ describe('LocalShellSandboxProvider', () => {
         }
     )
 
-    it.each(['NSJAIL_RUNNER_URL', 'NSJAIL_RUNNER_TOKEN'] as const)(
-        'fails closed in production when %s is configured',
-        async (name) => {
-            process.env.NODE_ENV = 'production'
-            process.env[name] = 'configured'
-            const provider = new LocalShellSandboxProvider()
+    it('remains available when the NsJail Runner is configured', () => {
+        process.env.XPERT_LOCAL_SANDBOX_ENABLED = 'true'
+        process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
+        process.env.NSJAIL_RUNNER_TOKEN = 'secret'
 
-            expect(provider.isAvailable()).toBe(false)
-            await expect(provider.create()).rejects.toThrow('Sandbox provider is unavailable: local-shell-sandbox')
-        }
-    )
+        expect(new LocalShellSandboxProvider().isAvailable()).toBe(true)
+    })
+
+    it('rejects creation when host command execution is not enabled', async () => {
+        const provider = new LocalShellSandboxProvider()
+
+        expect(provider.isAvailable()).toBe(false)
+        await expect(provider.create()).rejects.toThrow('Sandbox provider is unavailable: local-shell-sandbox')
+    })
 })
