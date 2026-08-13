@@ -1020,14 +1020,18 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         return value && typeof value === 'object' ? value.constructor.name : ''
     }
 
-    function createMalformedToolCallFixture(options: { invalidArgs: string; errorHandling?: ErrorHandlingOption }) {
+    function createMalformedToolCallFixture(options: {
+        invalidArgs: string
+        errorHandling?: ErrorHandlingOption
+        toolName?: string
+    }) {
         const invalidMessage = new AIMessage({
             id: 'ai-invalid-1',
             content: '',
             invalid_tool_calls: [
                 {
                     id: 'call-invalid-1',
-                    name: 'excalidraw_create_drawing',
+                    name: options.toolName ?? 'excalidraw_create_drawing',
                     error: 'Malformed args.',
                     args: options.invalidArgs
                 }
@@ -1251,8 +1255,8 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         jest.restoreAllMocks()
     })
 
-    it('logs invalid tool call diagnostics and throws a sanitized error', async () => {
-        const longArgs = `{"elements": ${'x'.repeat(21050)}`
+    it('logs invalid tool call diagnostics and throws a bounded args preview', async () => {
+        const longArgs = `{"elements":"${'x'.repeat(10500)}","broken":BROKEN_VALUE,"tail":"${'y'.repeat(10500)}"}`
         const loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
         const fixture = createMalformedToolCallFixture({ invalidArgs: longArgs })
 
@@ -1265,8 +1269,12 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
 
         const thrownMessage = thrown instanceof Error ? thrown.message : String(thrown)
         expect(thrownMessage).toContain('excalidraw_create_drawing: Malformed args.')
+        expect(thrownMessage).toContain(`Args (${longArgs.length} chars, preview truncated):`)
+        expect(thrownMessage).toContain('{"elements":')
+        expect(thrownMessage).toContain('Around JSON parse error at character')
+        expect(thrownMessage).toContain('BROKEN_VALUE')
         expect(thrownMessage).toContain('diagnosticId:')
-        expect(thrownMessage).not.toContain('{"elements":')
+        expect(thrownMessage.length).toBeLessThan(5000)
         expect(loggerError).toHaveBeenCalledWith(
             expect.objectContaining({
                 event: 'xpert.invalid_tool_calls',
@@ -1318,6 +1326,7 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         expect(rootMessages).toHaveLength(2)
         expect(channelMessages).toHaveLength(2)
         expect(getMessageContent(lastChannelMessage)).toContain('diagnosticId:')
+        expect(getMessageContent(lastChannelMessage)).toContain('[REDACTED]')
         expect(outputJson).not.toContain(invalidArgs)
         expect(outputJson).not.toContain('secret-value')
         expect(outputJson).not.toContain('call-invalid-1')
@@ -1328,6 +1337,34 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
                         argsPreview: expect.stringContaining('[REDACTED]')
                     })
                 ]
+            })
+        )
+    })
+
+    it('identifies an unescaped quote and the affected JSON string field', async () => {
+        const invalidArgs =
+            '{"projectId":"00000000-0000-4000-8000-000000000001","episode":{"script":"孩子呼喊："救命！救命！"。"}}'
+        const loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+        const fixture = createMalformedToolCallFixture({
+            invalidArgs,
+            toolName: 'story_upsert_production_episode'
+        })
+
+        let thrown: unknown
+        try {
+            await invokeMalformedGraph(fixture)
+        } catch (err) {
+            thrown = err
+        }
+
+        const thrownMessage = thrown instanceof Error ? thrown.message : String(thrown)
+        expect(thrownMessage).toContain('story_upsert_production_episode: Malformed args.')
+        expect(thrownMessage).toContain('Likely unescaped ASCII double quote in JSON string field "script"')
+        expect(thrownMessage).toContain('use typographic quotation marks')
+        expect(getFirstLoggedInvalidToolCall(loggerError)).toEqual(
+            expect.objectContaining({
+                name: 'story_upsert_production_episode',
+                jsonHint: expect.stringContaining('field "script"')
             })
         )
     })
