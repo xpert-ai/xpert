@@ -6,6 +6,12 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({
     dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
 }))
 
+jest.mock('../../metrics', () => ({
+    applicationMetrics: {
+        recordLlmUsage: jest.fn()
+    }
+}))
+
 jest.mock('./execution', () => {
     const { XpertAgentExecutionStatusEnum } = require('@xpert-ai/contracts')
     const { XpertAgentExecutionUpsertCommand } = require('../../xpert-agent-execution/commands/upsert.command')
@@ -105,6 +111,7 @@ import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/co
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { CollaborationService } from '../../collaboration'
+import { applicationMetrics } from '../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
@@ -120,6 +127,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
+        ;(applicationMetrics.recordLlmUsage as jest.Mock).mockClear()
         volumeRoot = mkdtempSync(join(tmpdir(), 'xpert-workspace-files-'))
         commandBus = {
             execute: jest.fn()
@@ -407,9 +415,12 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         const modelOptions = getModelInstance.mock.calls[0][2]
         const usage = {
+            promptTokens: 40,
+            completionTokens: 2,
             totalTokens: 42,
             totalPrice: 1.25,
-            currency: 'USD'
+            currency: 'USD',
+            latency: 1200
         }
 
         await modelOptions.handleLLMTokens({
@@ -419,6 +430,16 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         expect(usageCallback).toHaveBeenCalledWith(usage)
         expect(executionUsageCallback).toHaveBeenCalledWith(usage)
+        expect(applicationMetrics.recordLlmUsage).toHaveBeenCalledWith({
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            inputTokens: 40,
+            outputTokens: 2,
+            totalTokens: 42,
+            totalPrice: 1.25,
+            currency: 'USD',
+            responseLatencySeconds: 1.2
+        })
 
         const tokenRecordCommand = commandBus.execute.mock.calls.find(
             ([command]) => command instanceof CopilotTokenRecordCommand
@@ -461,9 +482,35 @@ describe('AgentMiddlewareRuntimeService', () => {
         await modelOptions.handleLLMTokens({ model: 'gpt-4o-mini', usage })
 
         expect(executionUsageCallback).toHaveBeenCalledWith(usage)
+        expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
         expect(
             commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
         ).toBe(false)
+    })
+
+    it('leaves application metrics to the callback for legacy direct model clients', async () => {
+        const { getModelInstance } = mockCreateModelClientDependencies()
+        const usageCallback = jest.fn()
+
+        await service.createModelClient(
+            {
+                copilotId: 'copilot-1',
+                model: 'gpt-4o-mini',
+                modelType: AiModelTypeEnum.LLM
+            } as ICopilotModel,
+            { usageCallback }
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        const usage = {
+            promptTokens: 40,
+            completionTokens: 2,
+            totalTokens: 42
+        }
+        await modelOptions.handleLLMTokens({ model: 'gpt-4o-mini', usage })
+
+        expect(usageCallback).toHaveBeenCalledWith(usage)
+        expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
     })
 
     it('aborts the active model request when token recording hits an exceeding-limit error', async () => {

@@ -108,6 +108,7 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { applicationMetrics } from '../../metrics'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
@@ -150,7 +151,8 @@ export class AgentMiddlewareRuntimeService {
     async createModelClient<T = AgentMiddlewareModelClient>(
         copilotModel: ICopilotModel,
         options: AgentMiddlewareRuntimeModelOptions,
-        scope: AgentMiddlewareRuntimeScope = {}
+        scope: AgentMiddlewareRuntimeScope = {},
+        recordApplicationMetrics = false
     ): Promise<T> {
         const { abortController, usageCallback, modelAccessOverride, skipTokenRecord } = options ?? {}
         const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
@@ -217,6 +219,19 @@ export class AgentMiddlewareRuntimeService {
                         }
                         if (usageCallback && usageCallback !== scope.usageCallback) {
                             await usageCallback(input.usage)
+                        }
+                        if (recordApplicationMetrics && input.usage.type !== 'estimated') {
+                            applicationMetrics.recordLlmUsage({
+                                provider: copilot.modelProvider.providerName,
+                                model: input.model ?? modelName,
+                                inputTokens: input.usage.promptTokens,
+                                outputTokens: input.usage.completionTokens,
+                                totalTokens: input.usage.totalTokens,
+                                totalPrice: input.usage.totalPrice,
+                                currency: input.usage.currency,
+                                responseLatencySeconds:
+                                    typeof input.usage.latency === 'number' ? input.usage.latency / 1000 : undefined
+                            })
                         }
                     }
 
@@ -670,7 +685,7 @@ export class AgentMiddlewareRuntimeService {
         ])
 
         return {
-            createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope),
+            createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope, true),
             wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
             emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
             capabilities
