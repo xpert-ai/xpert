@@ -153,6 +153,51 @@ describe('CopilotModelGetChatModelHandler', () => {
         )
     })
 
+    it('waits for the execution usage callback before recording provider usage', async () => {
+        const { commandBus, getModelInstance, handler, query } = createFixture()
+        let releaseUsage: () => void
+        query.options.usageCallback = jest.fn(
+            () =>
+                new Promise<void>((resolve) => {
+                    releaseUsage = resolve
+                })
+        )
+
+        await handler.execute(query)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        const reporting = modelOptions.handleLLMTokens({
+            model: 'qwen3.6-plus',
+            usage: { totalTokens: 120 }
+        })
+        await Promise.resolve()
+
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
+        ).toBe(false)
+
+        releaseUsage!()
+        await reporting
+
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
+        ).toBe(true)
+    })
+
+    it('does not record estimated usage in the provider billing ledger', async () => {
+        const { commandBus, getModelInstance, handler, query } = createFixture()
+
+        await handler.execute(query)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleLLMTokens({
+            model: 'qwen3.6-plus',
+            usage: { totalTokens: 120, type: 'estimated' }
+        })
+
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
+        ).toBe(false)
+    })
+
     it('marks predefined vision models', async () => {
         const { handler, model, query } = createFixture([ModelFeature.VISION])
 

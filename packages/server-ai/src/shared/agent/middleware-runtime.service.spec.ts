@@ -58,7 +58,7 @@ jest.mock('./execution', () => {
     }
 })
 
-import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ChatMessageEventTypeEnum, ICopilotModel, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
@@ -374,8 +374,10 @@ describe('AgentMiddlewareRuntimeService', () => {
     it('creates a model client and records token usage through the runtime facade', async () => {
         const { getModelInstance, modelInstance } = mockCreateModelClientDependencies()
         const usageCallback = jest.fn()
+        const executionUsageCallback = jest.fn()
+        const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
 
-        const client = await service.createModelClient(
+        const client = await runtime.createModelClient(
             {
                 copilotId: 'copilot-1',
                 model: 'gpt-4o-mini',
@@ -416,6 +418,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         expect(usageCallback).toHaveBeenCalledWith(usage)
+        expect(executionUsageCallback).toHaveBeenCalledWith(usage)
 
         const tokenRecordCommand = commandBus.execute.mock.calls.find(
             ([command]) => command instanceof CopilotTokenRecordCommand
@@ -432,6 +435,35 @@ describe('AgentMiddlewareRuntimeService', () => {
                 currency: 'USD'
             })
         )
+    })
+
+    it('forwards estimated usage to execution without recording provider billing', async () => {
+        const { getModelInstance } = mockCreateModelClientDependencies()
+        const executionUsageCallback = jest.fn()
+        const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
+
+        await runtime.createModelClient(
+            {
+                copilotId: 'copilot-1',
+                model: 'gpt-4o-mini',
+                modelType: AiModelTypeEnum.LLM
+            } as ICopilotModel,
+            {}
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        const usage = {
+            totalTokens: 42,
+            totalPrice: 0,
+            currency: 'USD',
+            type: 'estimated'
+        }
+        await modelOptions.handleLLMTokens({ model: 'gpt-4o-mini', usage })
+
+        expect(executionUsageCallback).toHaveBeenCalledWith(usage)
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
+        ).toBe(false)
     })
 
     it('aborts the active model request when token recording hits an exceeding-limit error', async () => {

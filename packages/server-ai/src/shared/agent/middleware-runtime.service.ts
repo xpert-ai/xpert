@@ -55,6 +55,7 @@ import {
     AgentMiddlewareEvent,
     AgentMiddlewareModelClient,
     AgentMiddlewareRuntimeApi,
+    TLLMUsage,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     ActorTokenRequest,
@@ -131,6 +132,7 @@ export type AgentMiddlewareRuntimeScope = {
     conversationId?: string | null
     agentKey?: string | null
     executionId?: string | null
+    usageCallback?: (usage: TLLMUsage) => void | Promise<void>
     workspaceRoot?: string | null
     workspacePath?: string | null
 }
@@ -209,11 +211,16 @@ export class AgentMiddlewareRuntimeService {
                 verbose: Logger.isLevelEnabled('verbose'),
                 modelProperties: customModels[0]?.modelProperties,
                 handleLLMTokens: async (input) => {
-                    if (usageCallback && input.usage) {
-                        usageCallback(input.usage)
+                    if (input.usage) {
+                        if (scope.usageCallback) {
+                            await scope.usageCallback(input.usage)
+                        }
+                        if (usageCallback && usageCallback !== scope.usageCallback) {
+                            await usageCallback(input.usage)
+                        }
                     }
 
-                    if (skipTokenRecord) {
+                    if (skipTokenRecord || input.usage?.type === 'estimated') {
                         return
                     }
                     try {

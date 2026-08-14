@@ -1,5 +1,6 @@
 import { BaseStore } from '@langchain/langgraph'
 import { ICommand } from '@nestjs/cqrs'
+import type { IXpertAgentExecution } from '@xpert-ai/contracts'
 
 /**
  * Create toolsets instances for given toolset IDs.
@@ -19,6 +20,7 @@ export class ToolsetGetToolsCommand implements ICommand {
             signal?: AbortSignal
             env?: Record<string, unknown>
             store?: BaseStore
+            execution?: IXpertAgentExecution
         }
     ) {}
 }

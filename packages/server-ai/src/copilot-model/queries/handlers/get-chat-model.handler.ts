@@ -95,7 +95,11 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                 modelProperties: customModels[0]?.modelProperties,
                 handleLLMTokens: async (input) => {
                     if (usageCallback && input.usage) {
-                        usageCallback(input.usage)
+                        await usageCallback(input.usage)
+                    }
+
+                    if (input.usage?.type === 'estimated') {
+                        return
                     }
 
                     if (!input.model) {

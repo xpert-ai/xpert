@@ -20,6 +20,10 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
 		return await this.repository.save(_entity)
 	}
 
+	async addTokens(id: string, tokens: number) {
+		await this.repository.increment({ id }, 'tokens', tokens)
+	}
+
 	async findAllByParentId(id: string, options?: Omit<FindManyOptions<XpertAgentExecution>, 'where'>) {
 		const { items } = await this.findAll({
 			...(options ?? {}),

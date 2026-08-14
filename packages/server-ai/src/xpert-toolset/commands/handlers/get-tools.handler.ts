@@ -11,6 +11,11 @@ import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ToolsetGetToolsCommand } from '../get-tools.command'
 import { TBuiltinToolsetParams } from '../../../shared'
+import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import {
+    createExecutionModelUsageRecorder,
+    XpertAgentExecutionAddTokensCommand
+} from '../../../xpert-agent-execution'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
@@ -19,7 +24,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly toolsetService: XpertToolsetService
+        private readonly toolsetService: XpertToolsetService,
+        private readonly modelRuntime: AgentMiddlewareRuntimeService
     ) {}
 
     public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
@@ -31,6 +37,14 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             return []
         }
         const workspaceId = normalizeWorkspaceId(command.environment?.workspaceId)
+        const execution = command.environment?.execution
+        const usageRecorder = execution
+            ? createExecutionModelUsageRecorder(execution, async (executionId, usage) => {
+                  await this.commandBus.execute(
+                      new XpertAgentExecutionAddTokensCommand(executionId, usage.tokens, usage.type)
+                  )
+              })
+            : undefined
         const { items: toolsets } = await this.toolsetService.findAll({
             where: {
                 id: In(ids),
@@ -39,6 +53,18 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             relations: ['tools']
         })
 
+        const scopedModelRuntime = this.modelRuntime.createScopedApi({
+            tenantId,
+            organizationId,
+            userId: RequestContext.currentUserId(),
+            workspaceId: command.environment?.workspaceId,
+            projectId: command.environment?.projectId,
+            xpertId: command.environment?.xpertId,
+            conversationId: command.environment?.conversationId,
+            agentKey: command.environment?.agentKey,
+            executionId: command.environment?.executionId,
+            usageCallback: usageRecorder?.usageCallback
+        })
         const context: TBuiltinToolsetParams = {
             conversationId: command.environment?.conversationId,
             tenantId,
@@ -53,7 +79,11 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             executionId: command.environment?.executionId,
             signal: command.environment?.signal,
             env: command.environment?.env,
-            store: command.environment?.store
+            store: command.environment?.store,
+            modelRuntime: {
+                createModelClient: scopedModelRuntime.createModelClient,
+                reportUsage: usageRecorder?.reportUsage
+            }
         }
 
         return Promise.all(
@@ -65,7 +95,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
                     case XpertToolsetCategoryEnum.API: {
                         switch (toolset.type) {
                             case 'openapi': {
-                                return new OpenAPIToolset(toolset)
+                                return new OpenAPIToolset(toolset, context.modelRuntime?.reportUsage)
                             }
                             case 'odata': {
                                 return new ODataToolset(toolset)

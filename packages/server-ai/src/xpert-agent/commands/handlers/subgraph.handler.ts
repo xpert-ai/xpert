@@ -79,7 +79,12 @@ import z from 'zod'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { prepareMessagesForModel, setModelPreparesOwnMessages } from '../../../copilot-model/model-capabilities'
-import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import {
+    assignExecutionUsage,
+    createExecutionModelUsageRecorder,
+    XpertAgentExecutionAddTokensCommand,
+    XpertAgentExecutionUpsertCommand
+} from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
@@ -272,7 +277,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 executionId: execution.id,
                 signal: abortController.signal,
                 env: toEnvState(environment),
-                store: options.store
+                store: options.store,
+                execution
             })
         )
         const { closeToolsets, installGraphCloseHook } = createToolsetRuntimeCleanup({
@@ -734,6 +740,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const organizationId = RequestContext.getOrganizationId() ?? null
+        const usageRecorder = createExecutionModelUsageRecorder(execution, async (executionId, usage) => {
+            await this.commandBus.execute(
+                new XpertAgentExecutionAddTokensCommand(executionId, usage.tokens, usage.type)
+            )
+        })
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
             tenantId: xpert.tenantId,
             organizationId,
@@ -744,6 +755,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             xpertName: xpert.name,
             conversationId: options.conversationId,
             agentKey,
+            executionId: isRootExecution ? execution.id : undefined,
+            usageCallback: usageRecorder.usageCallback,
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath
         })
@@ -1790,7 +1803,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         predecessor: configurable.agentKey
                     })
                 )
-
+                execution.id = _execution.id
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, _execution))
 

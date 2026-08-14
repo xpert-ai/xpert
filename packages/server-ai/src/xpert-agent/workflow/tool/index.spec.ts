@@ -148,6 +148,22 @@ describe('workflow tool node cleanup', () => {
         expect(toolset.close).toHaveBeenCalledTimes(1)
     })
 
+    it('binds tool model usage to the workflow node execution', async () => {
+        const toolset = new WorkflowTestToolset(createTool(async () => '{"ok":true}'))
+
+        const { commandBus } = await invokeWorkflowToolNode(toolset)
+        const getToolsCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof ToolsetGetToolsCommand
+        )?.[0] as ToolsetGetToolsCommand
+        expect(getToolsCommand.environment.execution).toEqual(
+            expect.objectContaining({
+                id: 'execution-1',
+                type: WorkflowNodeTypeEnum.TOOL,
+                parentId: 'parent-execution-1'
+            })
+        )
+    })
+
     it('closes the toolset when tool errors are handled with a default value', async () => {
         const toolset = new WorkflowTestToolset(
             createTool(async () => {

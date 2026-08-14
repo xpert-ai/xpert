@@ -1,5 +1,5 @@
 import { OpenAPIToolset } from './openapi-toolset'
-import { OpenAPITool } from './openapi/openapi-tool'
+import { OpenAPITool } from './tools/openapi-tool'
 import * as fs from 'fs'
 import * as path from 'path';
 import { ApiAuthType, ApiToolBundle, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
@@ -12,16 +12,18 @@ describe('OpenAPIToolset', () => {
 	let oas = null
 	let toolBundles: ApiToolBundle[]
 	let mock: MockAdapter
+	let reportUsage: jest.Mock
 
 	beforeAll(() => {
-        const yamlPath = path.join(__dirname, './openapi/open-meteo/oas.yaml')
+        const yamlPath = path.join(__dirname, './open-meteo/oas.yaml')
 		oas = fs.readFileSync(yamlPath, 'utf8')
         toolBundles = ApiBasedToolSchemaParser.parseOpenapiYamlToToolBundle(oas)
 
     })
 
-    beforeEach(() => {
+	beforeEach(() => {
 		mock = new MockAdapter(axios)
+		reportUsage = jest.fn()
         toolset = new OpenAPIToolset({
 			name: 'Meteo Weather',
 			type: 'openapi',
@@ -40,7 +42,7 @@ describe('OpenAPIToolset', () => {
 					}
 				}
 			]
-		})
+		}, reportUsage)
     })
 
 	afterEach(() => {
@@ -79,7 +81,49 @@ describe('OpenAPIToolset', () => {
             longitude: 13.41
         })
 
-        expect(_result).toEqual(JSON.stringify(result))
+		expect(_result).toEqual(JSON.stringify(result))
+	})
+
+	it('reports OpenAI-compatible usage returned by the API tool', async () => {
+		mock.onGet('https://api.open-meteo.com/v1/forecast').reply(200, {
+			id: 'chatcmpl-1',
+			model: 'Qwen/Qwen2.5-VL-72B-Instruct',
+			usage: {
+				prompt_tokens: 7632,
+				completion_tokens: 185,
+				total_tokens: 7817,
+				prompt_tokens_details: {
+					cached_tokens: 0,
+					image_tokens: 2122,
+					text_tokens: 5510
+				}
+			}
+		})
+
+		await toolset.getTools()[0].invoke({ latitude: 52.52, longitude: 13.41 })
+
+		expect(reportUsage).toHaveBeenCalledWith({
+			requestId: 'chatcmpl-1',
+			provider: 'Meteo Weather',
+			model: 'Qwen/Qwen2.5-VL-72B-Instruct',
+			promptTokens: 7632,
+			completionTokens: 185,
+			totalTokens: 7817
+		})
+	})
+
+	it('does not report usage without a provider request id', async () => {
+		mock.onGet('https://api.open-meteo.com/v1/forecast').reply(200, {
+			usage: {
+				prompt_tokens: 10,
+				completion_tokens: 2,
+				total_tokens: 12
+			}
+		})
+
+		await toolset.getTools()[0].invoke({ latitude: 52.52, longitude: 13.41 })
+
+		expect(reportUsage).not.toHaveBeenCalled()
 	})
 	
 })
