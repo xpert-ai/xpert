@@ -13,7 +13,7 @@ import {
 import { Logger } from '@nestjs/common'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
-import { AIMessage } from '@langchain/core/messages'
+import { AIMessage, isAIMessageChunk } from '@langchain/core/messages'
 import { AIModel } from './ai-model'
 import { CommonParameterRules, TChatModelOptions, TLLMUsage, TModelUsageType } from './types/'
 
@@ -179,10 +179,10 @@ export abstract class LargeLanguageModel extends AIModel {
           completion: ''
         })
       },
-      handleLLMNewToken: (token, _idx, runId) => {
+      handleLLMNewToken: (token, _idx, runId, _parentRunId, _tags, fields) => {
         const run = runs.get(runId)
         if (run) {
-          run.completion += token
+          run.completion += token + readToolCallChunkText(fields?.chunk)
         }
       },
       handleLLMEnd: async (output, runId) => {
@@ -386,9 +386,10 @@ function readCompletionText(output: LLMResult) {
 }
 
 function estimateTokens(text: string) {
+  const estimatedText = text.replace(/data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/_=-]+/g, '[image]')
   let cjkCharacters = 0
   let otherCharacters = 0
-  for (const character of text) {
+  for (const character of estimatedText) {
     if (/\p{Script=Han}/u.test(character)) {
       cjkCharacters++
     } else {
@@ -396,6 +397,15 @@ function estimateTokens(text: string) {
     }
   }
   return Math.ceil(cjkCharacters / 1.5 + otherCharacters / 4)
+}
+
+function readToolCallChunkText(chunk?: unknown) {
+  if (!(chunk instanceof ChatGenerationChunk) || !isAIMessageChunk(chunk.message)) {
+    return ''
+  }
+  return (chunk.message.tool_call_chunks ?? [])
+    .map((toolCall) => `${toolCall.name ?? ''}${toolCall.args ?? ''}`)
+    .join('')
 }
 
 function isAbortError(error: unknown) {

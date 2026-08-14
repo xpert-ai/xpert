@@ -284,6 +284,71 @@ describe('resolveTokenUsage', () => {
     )
   })
 
+  it('includes streamed tool-call arguments in interrupted completion usage', async () => {
+    const handleLLMTokens = jest.fn()
+    const [callbacks] = new TestLargeLanguageModel().createHandleUsageCallbacks(
+      { role: AiProviderRole.Primary },
+      'provider-independent-model',
+      {},
+      handleLLMTokens
+    )
+
+    callbacks.handleLLMStart?.({}, ['prompt'], 'run-1')
+    callbacks.handleLLMNewToken?.('', { prompt: 0, completion: 0 }, 'run-1', undefined, undefined, {
+      chunk: new ChatGenerationChunk({
+        text: '',
+        message: new AIMessageChunk({
+          content: '',
+          tool_call_chunks: [
+            {
+              name: 'search_documents',
+              args: '{"query":"quarterly revenue by region"}',
+              index: 0
+            }
+          ]
+        })
+      })
+    })
+    await callbacks.handleLLMError?.(new Error('aborted'), 'run-1')
+
+    expect(handleLLMTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usage: expect.objectContaining({
+          type: 'estimated',
+          completionTokens: expect.any(Number)
+        })
+      })
+    )
+    expect(handleLLMTokens.mock.calls[0][0].usage.completionTokens).toBeGreaterThan(0)
+  })
+
+  it('does not count inline image base64 bytes as prompt text on interruption', async () => {
+    const handleLLMTokens = jest.fn()
+    const [callbacks] = new TestLargeLanguageModel().createHandleUsageCallbacks(
+      { role: AiProviderRole.Primary },
+      'provider-independent-model',
+      {},
+      handleLLMTokens
+    )
+    const prompt = JSON.stringify({
+      role: 'human',
+      content: [
+        { type: 'text', text: 'Describe this image' },
+        { type: 'image_url', image_url: { url: `data:image/png;base64,${'A'.repeat(8_000)}` } }
+      ]
+    })
+
+    callbacks.handleLLMStart?.({}, [prompt], 'run-1')
+    const abortError = new Error('Request was aborted')
+    abortError.name = 'AbortError'
+    await callbacks.handleLLMError?.(abortError, 'run-1')
+
+    const recordedUsage = handleLLMTokens.mock.calls[0][0].usage
+    expect(recordedUsage.type).toBe('estimated')
+    expect(recordedUsage.promptTokens).toBeGreaterThan(0)
+    expect(recordedUsage.promptTokens).toBeLessThan(100)
+  })
+
   it('isolates timing and partial output for concurrent model runs', async () => {
     const copilot: ICopilot = { role: AiProviderRole.Primary }
     const handleLLMTokens = jest.fn()
