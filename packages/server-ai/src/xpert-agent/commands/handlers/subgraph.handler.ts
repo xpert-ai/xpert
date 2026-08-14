@@ -14,6 +14,7 @@ import {
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import { DynamicStructuredTool } from '@langchain/core/tools'
+import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import {
     Annotation,
     END,
@@ -1741,7 +1742,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
     ) {
         const { xpert, options, isTool, thread_id, rootController, signal, variables, partners } = config
         const { subscriber, leaderKey } = options
-        const execution: IXpertAgentExecution = {}
+        const executionScope = createInvocationScopedExecution()
+        const execution = executionScope.execution
 
         // Subgraph
         if (!agent.key) {
@@ -1803,9 +1805,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         predecessor: configurable.agentKey
                     })
                 )
-                execution.id = _execution.id
+                const invocationExecution = {
+                    ...execution,
+                    id: _execution.id
+                }
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, _execution))
+                const releaseExecution = executionScope.bind(invocationExecution)
 
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
@@ -1817,7 +1823,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     // Record End time
                     const newExecution = await this.commandBus.execute(
                         new XpertAgentExecutionUpsertCommand({
-                            ...execution,
+                            ...invocationExecution,
                             id: _execution.id,
                             checkpointId: _state.config.configurable.checkpoint_id,
                             elapsedTime: timeEnd - timeStart,
@@ -1922,7 +1928,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     throw err
                 } finally {
                     // End agent execution event
-                    await finalize()
+                    try {
+                        await finalize()
+                    } finally {
+                        releaseExecution()
+                    }
                 }
             }
         )
@@ -1935,6 +1945,55 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             stateGraph: stateGraph.withConfig({ tags: [xpert.id] })
         } as TSubAgent
     }
+}
+
+function createInvocationScopedExecution() {
+    const baseExecution: IXpertAgentExecution = {}
+    const invocationExecutions = new Map<string, IXpertAgentExecution>()
+    const currentExecution = () => {
+        const executionId = getCurrentExecutionId()
+        return (executionId && invocationExecutions.get(executionId)) ?? baseExecution
+    }
+    const execution = new Proxy(baseExecution, {
+        get: (_target, property) => Reflect.get(currentExecution(), property),
+        set: (_target, property, value) => Reflect.set(currentExecution(), property, value),
+        has: (_target, property) => Reflect.has(currentExecution(), property),
+        ownKeys: () => Reflect.ownKeys(currentExecution()),
+        getOwnPropertyDescriptor: (_target, property) => {
+            const descriptor = Reflect.getOwnPropertyDescriptor(currentExecution(), property)
+            return descriptor ? { ...descriptor, configurable: true } : undefined
+        },
+        deleteProperty: (_target, property) => Reflect.deleteProperty(currentExecution(), property)
+    })
+
+    return {
+        execution,
+        bind: (invocationExecution: IXpertAgentExecution) => {
+            if (!invocationExecution.id) {
+                throw new Error('Sub-agent execution id is required')
+            }
+            const executionId = invocationExecution.id
+            invocationExecutions.set(executionId, invocationExecution)
+            return () => {
+                if (invocationExecutions.get(executionId) === invocationExecution) {
+                    invocationExecutions.delete(executionId)
+                }
+            }
+        }
+    }
+}
+
+function getCurrentExecutionId() {
+    const config: unknown = AsyncLocalStorageProviderSingleton.getRunnableConfig()
+    if (!config || typeof config !== 'object') {
+        return undefined
+    }
+    const configurable = Reflect.get(config, 'configurable')
+    if (!configurable || typeof configurable !== 'object') {
+        return undefined
+    }
+    const executionId = Reflect.get(configurable, 'executionId')
+    return typeof executionId === 'string' && executionId ? executionId : undefined
 }
 
 function ensureSummarize(summarize?: TSummarize) {

@@ -7,6 +7,7 @@ jest.mock('yargs', () => ({
 
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
+import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { tool } from '@langchain/core/tools'
 import { Logger } from '@nestjs/common'
 import {
@@ -29,9 +30,155 @@ import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { CreateNodeConsumePendingSteerFollowUpsHandler } from './create-node-consume-pending-steer-follow-ups.handler'
 import { CreateNodeStagePendingSteerFollowUpsHandler } from './create-node-stage-pending-steer-follow-ups.handler'
 import { XpertAgentSubgraphHandler } from './subgraph.handler'
+
+describe('XpertAgentSubgraphHandler invocation execution scope', () => {
+    it('keeps execution state isolated between concurrent sub-agent calls', async () => {
+        type ChildGraphConfig = {
+            configurable?: {
+                executionId?: string
+            }
+        }
+
+        const observedExecutions: Array<{ expected?: string; actual?: string }> = []
+        let activeExecution: IXpertAgentExecution | undefined
+        let startedInvocations = 0
+        let releaseInvocations: (() => void) | undefined
+        const allInvocationsStarted = new Promise<void>((resolve) => {
+            releaseInvocations = resolve
+        })
+        const childGraph = {
+            getState: jest.fn(async () => ({
+                config: {
+                    configurable: {
+                        checkpoint_id: 'checkpoint-1'
+                    }
+                }
+            })),
+            invoke: jest.fn(async (_state: unknown, invokeConfig: ChildGraphConfig) =>
+                AsyncLocalStorageProviderSingleton.runWithConfig(invokeConfig, async () => {
+                    startedInvocations += 1
+                    if (startedInvocations === 2) {
+                        releaseInvocations?.()
+                    }
+                    await allInvocationsStarted
+                    observedExecutions.push({
+                        expected: invokeConfig.configurable?.executionId,
+                        actual: activeExecution?.id
+                    })
+                    return {
+                        messages: [new AIMessage(`result-${invokeConfig.configurable?.executionId}`)]
+                    }
+                })
+            )
+        }
+        let executionSequence = 0
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                if (command instanceof XpertAgentSubgraphCommand) {
+                    activeExecution = command.options.execution
+                    return {
+                        graph: childGraph,
+                        nextNodes: [],
+                        failNode: undefined
+                    }
+                }
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    if (!command.execution.id) {
+                        executionSequence += 1
+                        return {
+                            ...command.execution,
+                            id: `child-execution-${executionSequence}`
+                        }
+                    }
+                    return command.execution
+                }
+                throw new Error(`Unexpected command: ${command?.constructor.name}`)
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                if (query instanceof XpertAgentExecutionOneQuery) {
+                    return { id: query.id }
+                }
+                throw new Error(`Unexpected query: ${query?.constructor.name}`)
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            null,
+            null,
+            {
+                createScopedApi: jest.fn().mockReturnValue({})
+            } as unknown as AgentMiddlewareRuntimeService
+        )
+        const subscriber = {
+            next: jest.fn()
+        }
+        const subAgent = await handler.createAgentSubgraph(
+            {
+                key: 'agent-2',
+                name: 'Agent 2',
+                description: 'Concurrent sub-agent'
+            } as IXpertAgent,
+            {
+                xpert: {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                },
+                options: {
+                    leaderKey: 'agent-1',
+                    isDraft: true,
+                    subscriber
+                },
+                thread_id: 'thread-1',
+                rootController: new AbortController(),
+                signal: new AbortController().signal,
+                isTool: true,
+                partners: [],
+                mute: [],
+                store: null,
+                subscriber,
+                isDraft: true
+            } as unknown as Parameters<XpertAgentSubgraphHandler['createAgentSubgraph']>[1]
+        )
+
+        const invoke = (callId: string) =>
+            subAgent.stateGraph?.invoke(
+                {
+                    messages: [],
+                    toolCall: {
+                        id: callId,
+                        name: 'agent-2',
+                        args: { input: callId }
+                    }
+                },
+                {
+                    configurable: {
+                        executionId: 'parent-execution',
+                        thread_id: 'thread-1',
+                        checkpoint_ns: ''
+                    }
+                }
+            )
+
+        await Promise.all([invoke('call-1'), invoke('call-2')])
+
+        expect(observedExecutions).toHaveLength(2)
+        expect(observedExecutions).toEqual(
+            expect.arrayContaining([
+                { expected: 'child-execution-1', actual: 'child-execution-1' },
+                { expected: 'child-execution-2', actual: 'child-execution-2' }
+            ])
+        )
+    })
+})
 
 describe('subgraph steer follow-up pre-turn node handlers', () => {
     it('stage handler returns a runnable lambda that loads pending steer follow-ups into the staging channel', async () => {
