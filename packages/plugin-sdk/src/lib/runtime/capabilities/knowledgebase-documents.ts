@@ -1,4 +1,4 @@
-import { JSONValue } from '@xpert-ai/contracts'
+import { type I18nObject, JSONValue } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 
 export type KnowledgebaseDocumentFile = {
@@ -42,6 +42,10 @@ export type KnowledgebaseDocumentRecord = {
   status?: string | null
   progress?: number | null
   processMsg?: string | null
+  /** Safe transformer provider key resolved from the document parser configuration. */
+  processorType?: string | null
+  /** Localized label declared by the resolved transformer provider. */
+  processorLabel?: I18nObject | null
   knowledgebaseId?: string
   sourceHash?: string | null
   contentHash?: string | null

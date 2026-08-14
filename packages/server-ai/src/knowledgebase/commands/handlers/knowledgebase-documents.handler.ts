@@ -3,7 +3,7 @@ import fsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { TextDecoder } from 'node:util'
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common'
+import { BadRequestException, Injectable, InternalServerErrorException, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     classificateDocumentCategory,
@@ -18,7 +18,8 @@ import {
     KnowledgebaseCreateFolderResult,
     KnowledgebaseListDocumentsResult,
     KnowledgebaseMoveDocumentResult,
-    KnowledgebaseUploadedFile
+    KnowledgebaseUploadedFile,
+    DocumentTransformerRegistry
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
@@ -83,7 +84,8 @@ const DEFAULT_SUPPORTED_ARCHIVE_EXTENSIONS = new Set([
 export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKnowledgebaseDocumentsCommand> {
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
-        private readonly documentService: KnowledgeDocumentService
+        private readonly documentService: KnowledgeDocumentService,
+        @Optional() private readonly transformerRegistry?: DocumentTransformerRegistry
     ) {}
 
     async execute(command: ListKnowledgebaseDocumentsCommand): Promise<KnowledgebaseListDocumentsResult> {
@@ -133,7 +135,12 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
             skip: (page - 1) * pageSize,
             take: pageSize
         })
-        return { documents: items.map(serializeKnowledgeDocument), total, page, pageSize }
+        return {
+            documents: items.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry)),
+            total,
+            page,
+            pageSize
+        }
     }
 }
 
@@ -341,7 +348,7 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
 
         return {
             archive,
-            documents: documents.map(serializeKnowledgeDocument),
+            documents: documents.map((document) => serializeKnowledgeDocument(document)),
             skipped: state.skipped,
             warnings: state.warnings,
             processingStarted
@@ -411,7 +418,7 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
             processingStarted = true
         }
         return {
-            documents: docs.map(serializeKnowledgeDocument),
+            documents: docs.map((document) => serializeKnowledgeDocument(document)),
             processingStarted
         }
     }
@@ -420,7 +427,10 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
 @Injectable()
 @CommandHandler(StartKnowledgebaseDocumentsProcessingCommand)
 export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHandler<StartKnowledgebaseDocumentsProcessingCommand> {
-    constructor(private readonly documentService: KnowledgeDocumentService) {}
+    constructor(
+        private readonly documentService: KnowledgeDocumentService,
+        @Optional() private readonly transformerRegistry?: DocumentTransformerRegistry
+    ) {}
 
     async execute(command: StartKnowledgebaseDocumentsProcessingCommand): Promise<KnowledgebaseDocumentStatusResult> {
         const docs = await this.documentService.startProcessing(
@@ -428,7 +438,7 @@ export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHan
             command.input.knowledgebaseId
         )
         return {
-            documents: docs.map(serializeKnowledgeDocument)
+            documents: docs.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
         }
     }
 }
@@ -436,7 +446,10 @@ export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHan
 @Injectable()
 @CommandHandler(GetKnowledgebaseDocumentStatusCommand)
 export class GetKnowledgebaseDocumentStatusHandler implements ICommandHandler<GetKnowledgebaseDocumentStatusCommand> {
-    constructor(private readonly documentService: KnowledgeDocumentService) {}
+    constructor(
+        private readonly documentService: KnowledgeDocumentService,
+        @Optional() private readonly transformerRegistry?: DocumentTransformerRegistry
+    ) {}
 
     async execute(command: GetKnowledgebaseDocumentStatusCommand): Promise<KnowledgebaseDocumentStatusResult> {
         const ids = command.input.documentIds.filter(Boolean)
@@ -450,7 +463,7 @@ export class GetKnowledgebaseDocumentStatusHandler implements ICommandHandler<Ge
             } as any
         })
         return {
-            documents: items.map(serializeKnowledgeDocument)
+            documents: items.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
         }
     }
 }
@@ -792,7 +805,18 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
     })
 }
 
-function serializeKnowledgeDocument(document: IKnowledgeDocument): KnowledgebaseDocumentRecord {
+function serializeKnowledgeDocument(
+    document: IKnowledgeDocument,
+    transformerRegistry?: DocumentTransformerRegistry
+): KnowledgebaseDocumentRecord {
+    const parserConfig = resolveKnowledgeDocumentParserConfig(document)
+    const processorType = parserConfig.transformerType || 'default'
+    let processorLabel: KnowledgebaseDocumentRecord['processorLabel']
+    try {
+        processorLabel = transformerRegistry?.get(processorType).meta.label
+    } catch {
+        processorLabel = undefined
+    }
     return {
         id: document.id,
         version: document.version,
@@ -807,6 +831,8 @@ function serializeKnowledgeDocument(document: IKnowledgeDocument): Knowledgebase
         status: document.status,
         progress: document.progress,
         processMsg: document.processMsg,
+        processorType,
+        processorLabel,
         knowledgebaseId: document.knowledgebaseId,
         sourceHash: document.sourceHash,
         contentHash: document.contentHash,
