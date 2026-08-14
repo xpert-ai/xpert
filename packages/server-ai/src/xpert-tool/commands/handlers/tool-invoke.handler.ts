@@ -16,6 +16,7 @@ import {
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { EnvStateQuery } from '../../../environment'
 import { TBuiltinToolsetParams } from '../../../shared'
+import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
 
 @CommandHandler(ToolInvokeCommand)
 export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
@@ -24,12 +25,14 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 	constructor(
 		private readonly toolsetService: XpertToolsetService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly modelRuntime: AgentMiddlewareRuntimeService
 	) {}
 
 	public async execute(command: ToolInvokeCommand): Promise<any> {
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
+		const userId = RequestContext.currentUserId()
 		// Default enabled tool for invoke
 		const tool = { ...command.tool, enabled: true }
 		const toolset = tool.toolset
@@ -54,21 +57,32 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			tenantId,
 			organizationId,
 			user: RequestContext.currentUser(),
-			userId: RequestContext.currentUserId(),
+			userId,
 			subscriber
 		}
 
 		const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
+		const scopedModelRuntime = this.modelRuntime.createScopedApi({
+			tenantId,
+			organizationId,
+			userId,
+			workspaceId: toolset.workspaceId,
+			xpertId: parameters?.form?.xpertId,
+			agentKey: parameters?.form?.agentKey
+		})
 		const context: TBuiltinToolsetParams = {
 			tenantId,
 			organizationId,
 			// toolsetService: this.toolsetService,
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
-			userId: RequestContext.currentUserId(),
+			userId,
 			xpertId: parameters?.form?.xpertId,
 			agentKey: parameters?.form?.agentKey,
-			env: envState
+			env: envState,
+			modelRuntime: {
+				createModelClient: scopedModelRuntime.createModelClient
+			}
 		}
 
 		switch (toolset.category) {
