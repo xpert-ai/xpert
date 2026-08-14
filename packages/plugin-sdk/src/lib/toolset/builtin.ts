@@ -12,14 +12,35 @@ import {
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from './toolset'
+import type { AgentMiddlewareRuntimeApi } from '../agent/middleware/runtime'
 
 /**
  * The context params of creating toolset
  */
+export type TToolModelUsage = {
+	type?: 'estimated'
+	requestId: string
+	provider: string
+	model?: string
+	promptTokens: number
+	completionTokens: number
+	totalTokens: number
+}
+
+export type TToolModelUsageReporter = (usage: TToolModelUsage) => void | Promise<void>
+
+export type TToolModelRuntime = {
+	/** Use the host's configured model provider; tool plugins must not handle provider API keys. */
+	createModelClient: AgentMiddlewareRuntimeApi['createModelClient']
+	/** Report usage only for model APIs called directly by the tool. */
+	reportUsage?: TToolModelUsageReporter
+}
+
 export type TBuiltinToolsetParams = TToolsetParams & {
 	commandBus: CommandBus
 	queryBus: QueryBus
 	store?: BaseStore
+	modelRuntime?: TToolModelRuntime
 }
 
 export interface IBuiltinToolset {
@@ -52,6 +73,9 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
 
 	get xpertId() {
 		return this.params?.xpertId
+	}
+	get modelRuntime() {
+		return this.params?.modelRuntime
 	}
 
 	constructor(

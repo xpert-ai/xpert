@@ -4,9 +4,9 @@ import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { Runtime as LangGraphRuntime, PregelOptions, StreamMode } from '@langchain/langgraph'
 import type { BaseMessage } from '@langchain/core/messages'
-import { ICopilotModel, ILLMUsage, IXpertAgentExecution, JSONValue, TSandboxConfigurable } from '@xpert-ai/contracts'
+import { ICopilotModel, IXpertAgentExecution, JSONValue, TSandboxConfigurable } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
-import { IRerank } from '../../ai-model/types'
+import { IRerank, TLLMUsage } from '../../ai-model/types'
 import type { RuntimeCapabilityRegistry } from '../../core'
 
 export * from './runtime-capability'
@@ -74,7 +74,7 @@ export type AgentMiddlewareModelClient = BaseLanguageModel | BaseChatModel | Emb
 
 export type AgentMiddlewareCreateModelClientOptions = {
   abortController?: AbortController
-  usageCallback: (tokens: ILLMUsage) => void
+  usageCallback?: (tokens: TLLMUsage) => void | Promise<void>
 }
 
 export type AgentMiddlewareWrapWorkflowNodeExecutionResult<T> = {
