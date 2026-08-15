@@ -2,8 +2,8 @@ import { XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
+import { MANAGED_QUEUE_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
-import { ModelInvocationService } from '../../../model-invocation'
 import { createBuiltinToolset, XpertToolsetService } from '../../../xpert-toolset'
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { ToolInvokeHandler } from './tool-invoke.handler'
@@ -24,9 +24,9 @@ describe('ToolInvokeHandler model runtime', () => {
             providerScopeId: 'provider-scope-1',
             copilotId: 'copilot-1',
             provider: 'model-provider',
-            authorization: 'Bearer secret'
+            authorization: 'Bearer secret',
+            reportUsage: jest.fn()
         })
-        const createRecorder = jest.fn().mockReturnValue(jest.fn())
         const createScopedApi = jest.fn().mockReturnValue({ createModelClient, getModelProvider })
         const invoke = jest.fn().mockResolvedValue('ok')
         const createBuiltinToolsetMock = jest.mocked(createBuiltinToolset).mockResolvedValue({
@@ -40,7 +40,7 @@ describe('ToolInvokeHandler model runtime', () => {
                 { provide: QueryBus, useValue: { execute: jest.fn().mockResolvedValue({ API_HOST: 'test' }) } },
                 { provide: XpertToolsetService, useValue: {} },
                 { provide: AgentMiddlewareRuntimeService, useValue: { createScopedApi } },
-                { provide: ModelInvocationService, useValue: { createRecorder } }
+                { provide: MANAGED_QUEUE_SERVICE_TOKEN, useValue: { enqueue: jest.fn() } }
             ]
         }).compile()
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -77,25 +77,16 @@ describe('ToolInvokeHandler model runtime', () => {
                 modelRuntime: {
                     createModelClient,
                     getModelProvider: expect.any(Function)
-                }
+                },
+                managedQueue: expect.objectContaining({ enqueue: expect.any(Function) })
             })
         )
         const params = createBuiltinToolsetMock.mock.calls[0][2]
         const provider = await params?.modelRuntime?.getModelProvider?.('model-provider')
-        expect(provider).toEqual(expect.objectContaining({ recordInvocation: expect.any(Function) }))
-        expect(createRecorder).toHaveBeenCalledWith(
-            expect.objectContaining({
-                toolsetId: 'toolset-1',
-                providerScopeId: 'provider-scope-1',
-                copilotId: 'copilot-1'
-            })
-        )
-        const recorderScope = createRecorder.mock.calls[0][0]
+        expect(provider).toEqual(expect.objectContaining({ reportUsage: expect.any(Function) }))
         const invocationConfig = invoke.mock.calls[0][1]
         expect(invocationConfig).toEqual({
-            configurable: expect.objectContaining({
-                tool_call_id: recorderScope.resolveOrigin().id
-            })
+            configurable: expect.objectContaining({ tool_call_id: expect.any(String) })
         })
     })
 })

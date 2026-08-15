@@ -4,7 +4,7 @@ import {
   ICopilot,
   ICopilotModel,
   ILLMUsage,
-  ModelInvocationPricingSnapshot,
+  ModelUsagePricingSnapshot,
   ModelUsagePricingContext,
   ParameterType,
   PriceInfo,
@@ -39,7 +39,7 @@ export interface IAIModel {
     model: string,
     credentials: Record<string, any>,
     context: ModelUsagePricingContext
-  ): ModelInvocationPricingSnapshot
+  ): ModelUsagePricingSnapshot
   getPrice(
     model: string,
     credentials: Record<string, any>,

@@ -8,7 +8,9 @@ import {
   ICopilotModel,
   IXpertAgentExecution,
   JSONValue,
-  ModelInvocationPricingSnapshot,
+  ModelUsagePricingSnapshot,
+  ModelUsageReport,
+  ModelUsageReportResult,
   ModelUsagePricingContext,
   TSandboxConfigurable
 } from '@xpert-ai/contracts'
@@ -103,8 +105,33 @@ export type AgentMiddlewareModelProviderConnection = {
   baseURL: string
   authorization: string
   /** Resolve the model YAML price rule and freeze it for one invocation. */
-  resolvePricingSnapshot?: (context: ModelUsagePricingContext) => Promise<ModelInvocationPricingSnapshot>
+  resolvePricingSnapshot?: (context: ModelUsagePricingContext) => Promise<ModelUsagePricingSnapshot>
+  /** Persist final authoritative usage and calculate its charge exactly once. */
+  reportUsage(report: ModelUsageReport): Promise<ModelUsageReportResult>
 }
+
+export type AgentMiddlewareRuntimeScope = {
+  tenantId?: string | null
+  organizationId?: string | null
+  providerScopeId?: string | null
+  userId?: string | null
+  workspaceId?: string | null
+  projectId?: string | null
+  xpertId?: string | null
+  xpertName?: string | null
+  conversationId?: string | null
+  agentKey?: string | null
+  executionId?: string | null
+  usageCallback?: (usage: TLLMUsage) => void | Promise<void>
+  workspaceRoot?: string | null
+  workspacePath?: string | null
+}
+
+export interface AgentMiddlewareRuntimeServiceApi {
+  createScopedApi(scope?: AgentMiddlewareRuntimeScope): AgentMiddlewareRuntimeApi
+}
+
+export const XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN = 'XPERT_AGENT_MIDDLEWARE_RUNTIME'
 
 export type AgentMiddlewareWrapWorkflowNodeExecutionResult<T> = {
   output?: string | JSONValue

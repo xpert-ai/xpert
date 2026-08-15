@@ -24,7 +24,10 @@ describe('CreateToolsetHandler', () => {
 				},
 				{
 					provide: ToolsetRegistry,
-					useValue: { get: jest.fn().mockReturnValue(strategy) }
+					useValue: {
+						get: jest.fn().mockReturnValue(strategy),
+						getSource: jest.fn().mockReturnValue({ scopeKey: 'organization-1' })
+					}
 				}
 			]
 		}).compile()
@@ -43,6 +46,9 @@ describe('CreateToolsetHandler', () => {
 		const result = await handler.execute(new CreateToolsetCommand(toolset, params))
 
 		expect(result).toBe(createdToolset)
-		expect(strategy.create).toHaveBeenCalledWith(toolset, params)
+		expect(strategy.create).toHaveBeenCalledWith(toolset, {
+			...params,
+			pluginScopeKey: 'organization-1'
+		})
 	})
 })

@@ -6,7 +6,7 @@ import { ToolsetGetToolsCommand } from '../get-tools.command'
 import { In } from 'typeorm'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
-import { ModelInvocationService } from '../../../model-invocation'
+import { MANAGED_QUEUE_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { CreateToolsetCommand } from '../create-toolset.command'
 
 describe('ToolsetGetToolsHandler', () => {
@@ -15,7 +15,6 @@ describe('ToolsetGetToolsHandler', () => {
     let createScopedApi: jest.Mock
     let getModelProvider: jest.Mock
     let executeCommand: jest.Mock
-    let createInvocationRecorder: jest.Mock
 
     beforeEach(async () => {
         jest.spyOn(AsyncLocalStorageProviderSingleton, 'getRunnableConfig').mockReturnValue(undefined)
@@ -26,11 +25,11 @@ describe('ToolsetGetToolsHandler', () => {
             organizationId: 'org-1',
             provider: 'zhipuai',
             baseURL: 'https://zhipu.example',
-            authorization: 'Bearer provider-key'
+            authorization: 'Bearer provider-key',
+            reportUsage: jest.fn()
         })
         createScopedApi = jest.fn().mockReturnValue({ createModelClient: jest.fn(), getModelProvider })
         executeCommand = jest.fn()
-        createInvocationRecorder = jest.fn().mockReturnValue(jest.fn())
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 ToolsetGetToolsHandler,
@@ -52,10 +51,7 @@ describe('ToolsetGetToolsHandler', () => {
                     provide: AgentMiddlewareRuntimeService,
                     useValue: { createScopedApi }
                 },
-                {
-                    provide: ModelInvocationService,
-                    useValue: { createRecorder: createInvocationRecorder }
-                }
+                { provide: MANAGED_QUEUE_SERVICE_TOKEN, useValue: { enqueue: jest.fn() } }
             ]
         }).compile()
 
@@ -122,7 +118,7 @@ describe('ToolsetGetToolsHandler', () => {
         expect(executeCommand).toHaveBeenCalledWith(expect.objectContaining({ executionId: 'execution-1', tokens: 12 }))
     })
 
-    it('binds a separate invocation recorder when each Toolset resolves its model provider', async () => {
+    it('shares the resolved model provider reporter with each Toolset', async () => {
         findAll.mockResolvedValue({
             items: [
                 { id: 'toolset-1', type: 'video-a', category: 'builtin' },
@@ -139,23 +135,10 @@ describe('ToolsetGetToolsHandler', () => {
             .filter((created) => created instanceof CreateToolsetCommand) as CreateToolsetCommand[]
         await Promise.all(createToolsets.map((created) => created.params.modelRuntime.getModelProvider('zhipuai')))
 
-        expect(createInvocationRecorder).toHaveBeenCalledTimes(2)
-        expect(createInvocationRecorder).toHaveBeenNthCalledWith(
-            1,
-            expect.objectContaining({ toolsetId: 'toolset-1', providerScopeId: 'provider-1' })
-        )
-        expect(createInvocationRecorder).toHaveBeenNthCalledWith(
-            2,
-            expect.objectContaining({ toolsetId: 'toolset-2', providerScopeId: 'provider-1' })
-        )
-        expect(createInvocationRecorder.mock.calls[0][0].resolveOrigin()).toEqual({
-            type: 'execution',
-            id: 'execution-1',
-            executionId: 'execution-1'
-        })
+        expect(getModelProvider).toHaveBeenCalledTimes(2)
     })
 
-    it('binds Provider-backed invocation recording to the resolved model provider scope', async () => {
+    it('binds Provider-backed usage reporting to the resolved model provider scope', async () => {
         findAll.mockResolvedValue({
             items: [{ id: 'toolset-1', type: 'zhipu_cogvideo', category: 'builtin' }]
         })
@@ -172,9 +155,6 @@ describe('ToolsetGetToolsHandler', () => {
 
         expect(getModelProvider).toHaveBeenCalledWith('zhipuai')
         expect(provider.providerScopeId).toBe('provider-1')
-        expect(provider.recordInvocation).toEqual(expect.any(Function))
-        expect(createInvocationRecorder).toHaveBeenLastCalledWith(
-            expect.objectContaining({ toolsetId: 'toolset-1', providerScopeId: 'provider-1' })
-        )
+        expect(provider.reportUsage).toEqual(expect.any(Function))
     })
 })

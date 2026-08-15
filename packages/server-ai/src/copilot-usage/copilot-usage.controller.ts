@@ -21,7 +21,7 @@ import { Body, Controller, Get, Post, Query, UseGuards, UseInterceptors } from '
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { CopilotUsageService } from './copilot-usage.service'
-import { ModelUsageLedgerService } from '../model-invocation'
+import { ModelUsageLedgerService } from '../model-usage'
 
 @ApiTags('CopilotUsage')
 @ApiBearerAuth()

@@ -5,10 +5,7 @@ import {
   IBuiltinTool,
   IXpertToolset,
   AiModelTypeEnum,
-  ModelInvocationEvent,
-  ModelInvocationObservation,
-  ModelInvocationObservationRequest,
-  ModelInvocationRecordResult,
+  ModelUsageReport,
   ToolProviderCredentials,
   TToolCredentials,
   TToolsetParams,
@@ -18,11 +15,12 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from './toolset'
 import type { AgentMiddlewareModelProviderConnection, AgentMiddlewareRuntimeApi } from '../agent/middleware/runtime'
+import type { ManagedQueueService } from '../managed-queue'
 
 /**
  * The context params of creating toolset
  */
-export type TToolModelUsage = {
+export type TToolTokenUsage = {
   type?: 'estimated'
   requestId: string
   provider: string
@@ -33,13 +31,12 @@ export type TToolModelUsage = {
   totalTokens: number
 }
 
+export type TToolModelUsage = TToolTokenUsage | ModelUsageReport
+
 export type TToolModelUsageReporter = (usage: TToolModelUsage) => void | Promise<void>
 
 export type TToolModelProviderRuntime = AgentMiddlewareModelProviderConnection & {
-  /** Report direct Provider API usage in this host-resolved Provider scope. */
-  reportUsage?: TToolModelUsageReporter
-  /** Persist Provider invocation lifecycle in the resolved model provider scope. */
-  recordInvocation?: (event: ModelInvocationEvent) => Promise<ModelInvocationRecordResult>
+  reportUsage: AgentMiddlewareModelProviderConnection['reportUsage']
 }
 
 export type TToolModelRuntime = {
@@ -49,8 +46,6 @@ export type TToolModelRuntime = {
   getModelProvider?: (provider: string) => Promise<TToolModelProviderRuntime>
   /** Report usage only for model APIs called directly by the tool. */
   reportUsage?: TToolModelUsageReporter
-  /** Persist the lifecycle and authoritative usage of a direct Provider invocation. */
-  recordInvocation?: (event: ModelInvocationEvent) => Promise<ModelInvocationRecordResult>
 }
 
 export type TBuiltinToolsetParams = TToolsetParams & {
@@ -58,6 +53,9 @@ export type TBuiltinToolsetParams = TToolsetParams & {
   queryBus: QueryBus
   store?: BaseStore
   modelRuntime?: TToolModelRuntime
+  managedQueue?: ManagedQueueService
+  /** Installation scope used to route jobs back to this plugin instance. */
+  pluginScopeKey?: string
 }
 
 export interface IBuiltinToolset {
@@ -94,11 +92,11 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
   get modelRuntime() {
     return this.params?.modelRuntime
   }
-
-  async observeModelInvocation(
-    _request: ModelInvocationObservationRequest
-  ): Promise<ModelInvocationObservation | null> {
-    return null
+  get managedQueue() {
+    return this.params?.managedQueue
+  }
+  get pluginScopeKey() {
+    return this.params?.pluginScopeKey
   }
 
   constructor(

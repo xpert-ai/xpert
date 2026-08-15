@@ -5,7 +5,7 @@ import {
   FetchFrom,
   ICopilotModel,
   ModelFeature,
-  ModelInvocationPricingSnapshot,
+  ModelUsagePricingSnapshot,
   ModelUsagePricingContext,
   ParameterRule,
   PriceInfo,
@@ -74,7 +74,7 @@ export abstract class AIModel implements IAIModel {
     model: string,
     credentials: Record<string, any>,
     context: ModelUsagePricingContext
-  ): ModelInvocationPricingSnapshot {
+  ): ModelUsagePricingSnapshot {
     return resolveModelUsagePricingSnapshot(this.getModelSchema(model, credentials)?.pricing, context)
   }
 

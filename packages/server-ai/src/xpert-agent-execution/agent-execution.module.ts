@@ -10,7 +10,7 @@ import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
-import { ModelInvocationModule } from '../model-invocation'
+import { ModelUsageModule } from '../model-usage'
 
 @Module({
     imports: [
@@ -20,7 +20,7 @@ import { ModelInvocationModule } from '../model-invocation'
         CqrsModule,
         SuperAdminOrganizationScopeModule,
         AgentMiddlewareRuntimeModule,
-        ModelInvocationModule
+        ModelUsageModule
     ],
     controllers: [XpertAgentExecutionController],
     providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],

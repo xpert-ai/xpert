@@ -8,7 +8,7 @@ import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { CopilotUsageController } from './copilot-usage.controller'
 import { CopilotUsageService } from './copilot-usage.service'
-import { ModelInvocationModule } from '../model-invocation'
+import { ModelUsageModule } from '../model-usage'
 
 @Module({
     imports: [
@@ -16,7 +16,7 @@ import { ModelInvocationModule } from '../model-invocation'
         CqrsModule,
         TypeOrmModule.forFeature([CopilotUser, CopilotOrganization, MembershipPointLedger]),
         TenantModule,
-        ModelInvocationModule
+        ModelUsageModule
     ],
     controllers: [CopilotUsageController],
     providers: [CopilotUsageService],

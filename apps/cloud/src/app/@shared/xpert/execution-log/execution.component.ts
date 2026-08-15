@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import type { StoredMessage } from '@langchain/core/messages'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IModelInvocation } from '@xpert-ai/contracts'
+import type { IModelUsageDetails } from '@xpert-ai/contracts'
 import { IXpertAgentExecution } from '../../../@core'
 import { CopilotStoredMessageComponent } from '../../copilot'
 
@@ -16,18 +16,17 @@ import { CopilotStoredMessageComponent } from '../../copilot'
 export class XpertAgentExecutionLogComponent {
   readonly execution = input<IXpertAgentExecution>(null)
   readonly expand = model<boolean>(false)
-  readonly modelInvocations = computed(
-    () =>
-      new Map((this.execution()?.modelInvocations ?? []).map((invocation) => [invocation.invocationKey, invocation]))
+  readonly modelUsages = computed(
+    () => new Map((this.execution()?.modelUsages ?? []).map((usage) => [usage.requestId, usage]))
   )
 
   toggleExpand() {
     this.expand.update((state) => !state)
   }
 
-  modelInvocation(message: StoredMessage): IModelInvocation | undefined {
+  modelUsage(message: StoredMessage): IModelUsageDetails | undefined {
     if (message.type !== 'tool') return undefined
     const toolCallId = message.data.tool_call_id
-    return toolCallId ? this.modelInvocations().get(toolCallId) : undefined
+    return toolCallId ? this.modelUsages().get(toolCallId) : undefined
   }
 }

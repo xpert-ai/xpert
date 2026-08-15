@@ -1,29 +1,32 @@
-import type { ModelUsageMetric } from '@xpert-ai/contracts'
+import type { ModelUsageMetric, ModelUsagePricingSnapshot, ModelUsageReport } from '@xpert-ai/contracts'
 import { calculateModelUsageCharge } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import type { EntityManager } from 'typeorm'
 import { ModelChargeLedger } from './model-charge-ledger.entity'
-import { ModelInvocation } from './model-invocation.entity'
 import { ModelUsageLedger } from './model-usage-ledger.entity'
+import type { ModelUsageRecordingScope } from './model-usage-ledger.service'
 
 @Injectable()
 export class ModelChargeLedgerService {
-    async recordInvocation(
+    async record(
         manager: EntityManager,
-        invocation: ModelInvocation,
+        scope: ModelUsageRecordingScope,
+        report: ModelUsageReport,
+        pricingSnapshot: ModelUsagePricingSnapshot,
         usageEntries: ModelUsageLedger[]
     ): Promise<void> {
+        const chargedAt = normalizeDate(report.recordedAt) ?? new Date()
         for (const usage of usageEntries) {
-            const calculation = calculateModelUsageCharge(invocation.pricingSnapshot, toMetric(usage))
+            const calculation = calculateModelUsageCharge(pricingSnapshot, toMetric(usage))
             const rule = calculation.pricingRule
             const charge = manager.create(ModelChargeLedger, {
                 id: randomUUID(),
-                tenantId: invocation.tenantId,
-                organizationId: invocation.organizationId,
-                createdById: invocation.userId ?? undefined,
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                createdById: scope.userId ?? undefined,
                 usageLedgerId: usage.id,
-                invocationId: invocation.id,
+                requestId: report.requestId,
                 pricingStatus: calculation.pricingStatus,
                 pricingRuleId: rule?.id ?? null,
                 pricingRuleVersion: rule?.version ?? null,
@@ -34,7 +37,7 @@ export class ModelChargeLedgerService {
                 currency: calculation.currency ?? null,
                 amount: calculation.amount ?? null,
                 pricingRule: rule ?? null,
-                chargedAt: invocation.completedAt ?? new Date()
+                chargedAt
             })
             await manager.createQueryBuilder().insert().into(ModelChargeLedger).values(charge).orIgnore().execute()
         }
@@ -44,7 +47,7 @@ export class ModelChargeLedgerService {
 function toMetric(usage: ModelUsageLedger): ModelUsageMetric {
     if (usage.unit === 'token') {
         return {
-            unit: 'token' as const,
+            unit: 'token',
             promptTokens: usage.promptTokens ?? undefined,
             completionTokens: usage.completionTokens ?? undefined,
             totalTokens: usage.totalTokens ?? undefined,
@@ -63,4 +66,10 @@ function toMetric(usage: ModelUsageLedger): ModelUsageMetric {
         quantity: usage.quantity ?? 0,
         authority: usage.authority === 'request' ? 'request' : 'provider'
     }
+}
+
+function normalizeDate(value?: Date | string) {
+    if (!value) return undefined
+    const date = value instanceof Date ? value : new Date(value)
+    return Number.isNaN(date.getTime()) ? undefined : date
 }

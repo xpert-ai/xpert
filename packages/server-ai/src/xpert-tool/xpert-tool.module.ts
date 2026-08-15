@@ -8,7 +8,6 @@ import { XpertTool } from './xpert-tool.entity'
 import { XpertToolService } from './xpert-tool.service'
 import { CommandHandlers } from './commands/handlers'
 import { XpertToolsetModule } from '../xpert-toolset'
-import { ModelInvocationModule } from '../model-invocation'
 
 @Module({
     imports: [
@@ -16,8 +15,7 @@ import { ModelInvocationModule } from '../model-invocation'
         TypeOrmModule.forFeature([XpertTool]),
         TenantModule,
         CqrsModule,
-        XpertToolsetModule,
-        ModelInvocationModule
+        XpertToolsetModule
     ],
     controllers: [XpertToolController],
     providers: [XpertToolService, ...CommandHandlers],

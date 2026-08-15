@@ -1,6 +1,6 @@
 import { ToolParameterForm, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil } from 'lodash'
 import { Subject } from 'rxjs'
@@ -17,7 +17,7 @@ import { ToolInvokeCommand } from '../tool-invoke.command'
 import { EnvStateQuery } from '../../../environment'
 import { TBuiltinToolsetParams } from '../../../shared'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
-import { ModelInvocationService } from '../../../model-invocation'
+import { MANAGED_QUEUE_SERVICE_TOKEN, type ManagedQueueService } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'node:crypto'
 
 @CommandHandler(ToolInvokeCommand)
@@ -29,7 +29,8 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly modelRuntime: AgentMiddlewareRuntimeService,
-        private readonly modelInvocationService: ModelInvocationService
+        @Inject(MANAGED_QUEUE_SERVICE_TOKEN)
+        private readonly managedQueue: ManagedQueueService
     ) {}
 
     public async execute(command: ToolInvokeCommand): Promise<any> {
@@ -87,29 +88,10 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
             xpertId: parameters?.form?.xpertId,
             agentKey: parameters?.form?.agentKey,
             env: envState,
+            managedQueue: this.managedQueue,
             modelRuntime: {
                 createModelClient: scopedModelRuntime.createModelClient,
-                getModelProvider: getModelProvider
-                    ? async (provider) => {
-                          const connection = await getModelProvider(provider)
-                          return {
-                              ...connection,
-                              recordInvocation:
-                                  toolset.id && connection.copilotId
-                                      ? this.modelInvocationService.createRecorder({
-                                            tenantId,
-                                            organizationId,
-                                            userId,
-                                            agentKey: parameters?.form?.agentKey,
-                                            toolsetId: toolset.id,
-                                            providerScopeId: connection.providerScopeId,
-                                            copilotId: connection.copilotId,
-                                            resolveOrigin: () => ({ type: 'tool', id: originId })
-                                        })
-                                      : undefined
-                          }
-                      }
-                    : undefined
+                getModelProvider
             }
         }
 

@@ -1,5 +1,5 @@
 import { IXpertAgentExecution } from '@xpert-ai/contracts'
-import type { TLLMUsage, TModelUsageType, TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
+import type { TLLMUsage, TModelUsageType, TToolModelUsageReporter, TToolTokenUsage } from '@xpert-ai/plugin-sdk'
 import { applicationMetrics } from '../metrics'
 
 type TExecutionTokenWriter = (
@@ -25,7 +25,7 @@ export function createExecutionModelUsageRecorder(execution: IXpertAgentExecutio
     }
 
     const reportUsage: TToolModelUsageReporter = async (usage) => {
-        if (!isToolModelUsage(usage)) {
+        if (!isToolTokenUsage(usage)) {
             return
         }
         const key = `${usage.provider}:${usage.requestId}`
@@ -58,8 +58,9 @@ function addExecutionTokens(execution: IXpertAgentExecution, tokens: number) {
     execution.tokens = (execution.tokens ?? 0) + tokens
 }
 
-function isToolModelUsage(usage: Parameters<TToolModelUsageReporter>[0]) {
+function isToolTokenUsage(usage: Parameters<TToolModelUsageReporter>[0]): usage is TToolTokenUsage {
     return (
+        'provider' in usage &&
         (usage.type === undefined || usage.type === 'estimated') &&
         typeof usage.requestId === 'string' &&
         usage.requestId.trim().length > 0 &&

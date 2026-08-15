@@ -44,13 +44,7 @@ export class XpertAgentExecutionDTO {
     generatedSeconds?: number
 
     @Expose()
-    pendingVideoInvocations?: number
-
-    @Expose()
-    unknownVideoUsage?: number
-
-    @Expose()
-    modelInvocations?: IXpertAgentExecution['modelInvocations']
+    modelUsages?: IXpertAgentExecution['modelUsages']
 
     @Expose()
     summary?: string

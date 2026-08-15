@@ -6,7 +6,7 @@ import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   IModelUsageLedger,
-  ModelInvocationModality,
+  ModelUsageModality,
   ModelUsageLedgerQuery,
   ModelUsageLedgerTotals,
   ModelUsageMetric,
@@ -61,7 +61,7 @@ export class ModelUsageLedgerComponent {
   readonly userFilter = model('')
   readonly organizationFilter = model('')
   readonly currencyFilter = model('')
-  readonly modalityFilter = model<ModelInvocationModality | ''>('')
+  readonly modalityFilter = model<ModelUsageModality | ''>('')
   readonly pricingStatusFilter = model<ModelUsagePricingStatus | ''>('')
 
   readonly items = signal<IModelUsageLedger[]>([])
@@ -87,7 +87,7 @@ export class ModelUsageLedgerComponent {
       { value: '', label: this.translate.instant('XP.KEY_WORDS.All', { Default: 'All modalities' }) },
       { value: 'image', label: this.translate.instant('XP.KEY_WORDS.Image', { Default: 'Image' }) },
       { value: 'video', label: this.translate.instant('XP.KEY_WORDS.Video', { Default: 'Video' }) }
-    ] as Array<{ value: ModelInvocationModality | ''; label: string }>
+    ] as Array<{ value: ModelUsageModality | ''; label: string }>
   })
   readonly pricingStatuses = computed(() => {
     this.languageChange()

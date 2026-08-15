@@ -19,6 +19,10 @@ export class CreateToolsetHandler implements ICommandHandler<CreateToolsetComman
 			return null
 		}
 
-		return strategy.create(command.toolset, command.params)
+		const source = this.toolsetRegistry.getSource(strategy)
+		return strategy.create(command.toolset, {
+			...command.params,
+			pluginScopeKey: source.scopeKey
+		})
 	}
 }

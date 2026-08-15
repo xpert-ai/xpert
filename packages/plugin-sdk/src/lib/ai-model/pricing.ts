@@ -1,5 +1,5 @@
 import {
-  type ModelInvocationPricingSnapshot,
+  type ModelUsagePricingSnapshot,
   type ModelUsageMetric,
   type ModelUsagePriceRule,
   type ModelUsagePricingConfig,
@@ -51,7 +51,7 @@ export type ModelUsageChargeCalculation = {
 export function resolveModelUsagePricingSnapshot(
   pricing: PriceConfig | ModelUsagePricingConfig | undefined,
   context: ModelUsagePricingContext
-): ModelInvocationPricingSnapshot {
+): ModelUsagePricingSnapshot {
   const capturedAt = normalizeDate(context.startedAt)?.toISOString() ?? new Date().toISOString()
   if (!isModelUsagePricingConfig(pricing)) {
     return { capturedAt, status: 'unpriced', rules: [] }
@@ -76,7 +76,7 @@ export function resolveModelUsagePricingSnapshot(
 }
 
 export function calculateModelUsageCharge(
-  snapshot: ModelInvocationPricingSnapshot | null | undefined,
+  snapshot: ModelUsagePricingSnapshot | null | undefined,
   metric: ModelUsageMetric
 ): ModelUsageChargeCalculation {
   const rule = snapshot?.rules.find((candidate) => candidate.unit === metric.unit)

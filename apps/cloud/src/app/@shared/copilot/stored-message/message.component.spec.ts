@@ -3,7 +3,7 @@ import { StoredMessage } from '@langchain/core/messages'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
-import type { IModelInvocation } from '@xpert-ai/contracts'
+import type { IModelUsageDetails } from '@xpert-ai/contracts'
 import { CopilotStoredMessageComponent } from './message.component'
 
 describe('CopilotStoredMessageComponent', () => {
@@ -75,7 +75,7 @@ describe('CopilotStoredMessageComponent', () => {
     expect(fixture.nativeElement.querySelector('.message-metadata-icon')).toBeNull()
   })
 
-  it('shows model invocation usage on the matching tool message', () => {
+  it('shows model usage on the matching tool message', () => {
     fixture.componentRef.setInput('message', {
       type: 'tool',
       data: {
@@ -85,45 +85,30 @@ describe('CopilotStoredMessageComponent', () => {
         tool_call_id: 'call-seedream-1'
       }
     } satisfies StoredMessage)
-    fixture.componentRef.setInput('modelInvocation', invocation())
+    fixture.componentRef.setInput('modelUsage', usage())
 
     fixture.detectChanges()
 
-    expect(fixture.componentInstance.modelInvocationMetadataText()).toContain('"totalTokens": 16384')
-    expect(fixture.componentInstance.modelInvocationMetadataText()).toContain('"quantity": 1')
+    expect(fixture.componentInstance.modelUsageMetadataText()).toContain('"totalTokens": 16384')
+    expect(fixture.componentInstance.modelUsageMetadataText()).toContain('"quantity": 1')
     expect(fixture.nativeElement.querySelector('.message-metadata-icon')).not.toBeNull()
   })
 })
 
-function invocation(): IModelInvocation {
+function usage(): IModelUsageDetails {
   return {
-    id: 'invocation-1',
-    tenantId: 'tenant-1',
-    organizationId: 'organization-1',
-    invocationKey: 'call-seedream-1',
-    originType: 'execution',
-    originId: 'execution-1',
+    requestId: 'call-seedream-1',
     originExecutionId: 'execution-1',
-    userId: 'user-1',
-    agentKey: 'agent-1',
-    toolsetId: 'toolset-1',
-    providerScopeId: 'provider-scope-1',
-    copilotId: 'copilot-1',
     provider: 'seedream_aigc',
     modelType: AiModelTypeEnum.IMAGE,
     model: 'doubao-seedream-4-5-251128',
     toolName: 'seedream_text_to_image',
     operation: 'text_to_image',
     modality: 'image',
-    providerState: 'succeeded',
-    usageAvailability: 'available',
     metrics: [
       { unit: 'token', promptTokens: 0, completionTokens: 16_384, totalTokens: 16_384, authority: 'provider' },
       { unit: 'generation', quantity: 1, authority: 'provider' }
     ],
-    artifactState: 'ready',
-    reconciliationState: 'finished',
-    reconcileAttempts: 0,
-    startedAt: new Date('2026-08-15T00:00:00.000Z')
+    recordedAt: new Date('2026-08-15T00:00:00.000Z')
   }
 }

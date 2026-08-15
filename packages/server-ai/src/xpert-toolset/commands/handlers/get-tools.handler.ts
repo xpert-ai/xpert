@@ -1,7 +1,8 @@
 import { Tool } from '@langchain/core/tools'
 import { XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
-import type { TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
+import { MANAGED_QUEUE_SERVICE_TOKEN, type ManagedQueueService } from '@xpert-ai/plugin-sdk'
 import { RequestContext } from '@xpert-ai/server-core'
+import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { In } from 'typeorm'
 import { ToolProviderNotFoundError } from '../../errors'
@@ -13,7 +14,6 @@ import { ToolsetGetToolsCommand } from '../get-tools.command'
 import { TBuiltinToolsetParams } from '../../../shared'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
 import { createExecutionModelUsageRecorder, XpertAgentExecutionAddTokensCommand } from '../../../xpert-agent-execution'
-import { ModelInvocationService } from '../../../model-invocation'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
@@ -22,7 +22,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
         private readonly queryBus: QueryBus,
         private readonly toolsetService: XpertToolsetService,
         private readonly modelRuntime: AgentMiddlewareRuntimeService,
-        private readonly modelInvocationService: ModelInvocationService
+        @Inject(MANAGED_QUEUE_SERVICE_TOKEN)
+        private readonly managedQueue: ManagedQueueService
     ) {}
 
     public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
@@ -79,7 +80,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             executionId: originExecutionId,
             signal: command.environment?.signal,
             env: command.environment?.env,
-            store: command.environment?.store
+            store: command.environment?.store,
+            managedQueue: this.managedQueue
         }
 
         return Promise.all(
@@ -88,41 +90,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
                     ...baseContext,
                     modelRuntime: {
                         createModelClient: scopedModelRuntime.createModelClient,
-                        getModelProvider: getModelProvider
-                            ? async (provider) => {
-                                  const connection = await getModelProvider(provider)
-                                  const providerRecorder =
-                                      toolset.id && connection.copilotId && originExecutionId
-                                          ? this.modelInvocationService.createRecorder({
-                                                tenantId,
-                                                organizationId,
-                                                userId: userId ?? execution?.createdById,
-                                                agentKey: command.environment?.agentKey,
-                                                toolsetId: toolset.id,
-                                                providerScopeId: connection.providerScopeId,
-                                                copilotId: connection.copilotId,
-                                                resolveOrigin: () => ({
-                                                    type: 'execution',
-                                                    id: originExecutionId,
-                                                    executionId: originExecutionId
-                                                })
-                                            })
-                                          : undefined
-                                  const reportUsage: TToolModelUsageReporter | undefined = usageRecorder
-                                      ? async (usage) => {
-                                            const scopedUsage = { ...usage, provider: connection.provider }
-                                            await usageRecorder.reportUsage(scopedUsage)
-                                        }
-                                      : undefined
-                                  return {
-                                      ...connection,
-                                      reportUsage,
-                                      recordInvocation: providerRecorder
-                                  }
-                              }
-                            : undefined,
-                        reportUsage: usageRecorder?.reportUsage,
-                        recordInvocation: undefined
+                        getModelProvider,
+                        reportUsage: usageRecorder?.reportUsage
                     }
                 }
                 switch (toolset.category) {

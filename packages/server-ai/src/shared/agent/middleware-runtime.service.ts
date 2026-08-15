@@ -29,6 +29,7 @@ import {
     AgentMiddlewareFileReference,
     AgentMiddlewareResolvedFile,
     AgentMiddlewareCreateModelClientOptions,
+    AgentMiddlewareRuntimeScope,
     KnowledgebaseDeleteChunksInput,
     KnowledgebaseDeleteChunksResult,
     KnowledgebaseCreateDocumentsInput,
@@ -119,29 +120,9 @@ import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { CollaborationService } from '../../collaboration/collaboration.service'
+import { ModelUsageLedgerService } from '../../model-usage'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
-
-/**
- * Scope values captured from the current Agent invocation and bound into
- * runtime capabilities exposed to middleware plugins.
- */
-export type AgentMiddlewareRuntimeScope = {
-    tenantId?: string | null
-    organizationId?: string | null
-    providerScopeId?: string | null
-    userId?: string | null
-    workspaceId?: string | null
-    projectId?: string | null
-    xpertId?: string | null
-    xpertName?: string | null
-    conversationId?: string | null
-    agentKey?: string | null
-    executionId?: string | null
-    usageCallback?: (usage: TLLMUsage) => void | Promise<void>
-    workspaceRoot?: string | null
-    workspacePath?: string | null
-}
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -357,6 +338,15 @@ export class AgentMiddlewareRuntimeService {
             )
         }
 
+        const resolvePricingSnapshot: AgentMiddlewareModelProviderConnection['resolvePricingSnapshot'] = async (
+            context
+        ) => {
+            const modelType = context.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
+            return modelProvider
+                .getModelManager(modelType)
+                .getUsagePricingSnapshot(context.model, connection.credentials, context)
+        }
+
         return {
             providerScopeId: connection.id,
             copilotId: candidates[0].id,
@@ -364,11 +354,32 @@ export class AgentMiddlewareRuntimeService {
             provider: providerName,
             baseURL: modelProvider.getBaseUrl(connection.credentials),
             authorization: modelProvider.getAuthorization(connection.credentials),
-            resolvePricingSnapshot: async (context) => {
-                const modelType = context.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
-                return modelProvider
-                    .getModelManager(modelType)
-                    .getUsagePricingSnapshot(context.model, connection.credentials, context)
+            resolvePricingSnapshot,
+            reportUsage: async (report) => {
+                const pricingSnapshot =
+                    report.pricingSnapshot ??
+                    (report.model
+                        ? await resolvePricingSnapshot({
+                              model: report.model,
+                              operation: report.operation,
+                              modality: report.modality,
+                              pricingDimensions: report.pricingDimensions,
+                              startedAt: report.recordedAt
+                          })
+                        : { capturedAt: new Date().toISOString(), status: 'unpriced' as const, rules: [] })
+                return this.modelUsageLedger.recordUsage(
+                    {
+                        tenantId,
+                        organizationId,
+                        userId: normalizeOptionalString(scope.userId) ?? RequestContext.currentUserId(),
+                        originExecutionId: normalizeOptionalString(scope.executionId),
+                        copilotId: candidates[0].id,
+                        providerScopeId: connection.id,
+                        provider: providerName
+                    },
+                    report,
+                    pricingSnapshot
+                )
             }
         }
     }
@@ -704,6 +715,7 @@ export class AgentMiddlewareRuntimeService {
         private readonly artifacts: ArtifactsService,
         private readonly collaboration: CollaborationService,
         private readonly copilotService: CopilotService,
+        private readonly modelUsageLedger: ModelUsageLedgerService,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {

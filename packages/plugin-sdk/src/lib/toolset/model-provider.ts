@@ -1,12 +1,6 @@
 import type { StructuredToolInterface } from '@langchain/core/tools'
 import { AiModelTypeEnum, type IXpertToolset, type TToolCredentials } from '@xpert-ai/contracts'
-import {
-  type AIGCModelClient,
-  ManagedAIGCModelClient,
-  ManagedAsyncAIGCModelClient,
-  type AsyncAIGCModelClient,
-  type ManagedAIGCModelDefaults
-} from '../ai-model'
+import { type AIGCModelClient, type AsyncAIGCModelClient } from '../ai-model'
 import {
   WorkspaceFilesRuntimeCapability,
   type RuntimeCapabilityResolver,
@@ -99,18 +93,18 @@ export abstract class ModelProviderBuiltinToolset<
     }
   }
 
-  protected async createManagedAsyncModelClient<TInput, TData>(
+  protected async createAsyncModelClient<TInput, TData>(
     model: string,
-    defaults: Omit<ManagedAIGCModelDefaults, 'model'>,
+    modality: 'image' | 'video',
     purpose: 'invoke' | 'observe' = 'invoke'
-  ): Promise<ManagedAsyncAIGCModelClient<TInput, TData>> {
+  ): Promise<AsyncAIGCModelClient<TInput, TData>> {
     const modelProvider = await this.getModelProviderRuntime()
     const copilotId = normalizeOptionalString(modelProvider.copilotId)
     if (!copilotId) {
       throw new Error(this.modelProviderOptions.missingProviderMessage)
     }
-    const modelType = defaults.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
-    const client = await this.modelRuntime.createModelClient<AsyncAIGCModelClient<TInput, TData>>(
+    const modelType = modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
+    return this.modelRuntime.createModelClient<AsyncAIGCModelClient<TInput, TData>>(
       {
         copilotId,
         model,
@@ -118,43 +112,25 @@ export abstract class ModelProviderBuiltinToolset<
       },
       { purpose }
     )
-    return new ManagedAsyncAIGCModelClient(
-      client,
-      modelProvider.recordInvocation,
-      {
-        ...defaults,
-        model
-      },
-      modelProvider.resolvePricingSnapshot
-    )
   }
 
-  protected async createManagedModelClient<TInput, TData>(
+  protected async createModelClient<TInput, TData>(
     model: string,
-    defaults: Omit<ManagedAIGCModelDefaults, 'model'>
-  ): Promise<ManagedAIGCModelClient<TInput, TData>> {
+    modality: 'image' | 'video'
+  ): Promise<AIGCModelClient<TInput, TData>> {
     const modelProvider = await this.getModelProviderRuntime()
     const copilotId = normalizeOptionalString(modelProvider.copilotId)
     if (!copilotId) {
       throw new Error(this.modelProviderOptions.missingProviderMessage)
     }
-    const modelType = defaults.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
-    const client = await this.modelRuntime.createModelClient<AIGCModelClient<TInput, TData>>(
+    const modelType = modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
+    return this.modelRuntime.createModelClient<AIGCModelClient<TInput, TData>>(
       {
         copilotId,
         model,
         modelType
       },
       {}
-    )
-    return new ManagedAIGCModelClient(
-      client,
-      modelProvider.recordInvocation,
-      {
-        ...defaults,
-        model
-      },
-      modelProvider.resolvePricingSnapshot
     )
   }
 }

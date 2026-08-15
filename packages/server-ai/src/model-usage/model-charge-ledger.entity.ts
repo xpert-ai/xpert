@@ -1,8 +1,8 @@
 import type {
     IModelChargeLedger,
+    ModelUsageMetric,
     ModelUsagePriceRule,
-    ModelUsagePricingStatus,
-    ModelUsageMetric
+    ModelUsagePricingStatus
 } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, OneToOne } from 'typeorm'
@@ -24,8 +24,8 @@ export class ModelChargeLedger extends TenantOrganizationBaseEntity implements I
     @JoinColumn({ name: 'usageLedgerId' })
     usageLedger?: ModelUsageLedger
 
-    @Column({ type: 'uuid' })
-    invocationId: string
+    @Column({ type: 'varchar', length: 191 })
+    requestId: string
 
     @Column({ type: 'varchar', length: 20 })
     pricingStatus: ModelUsagePricingStatus

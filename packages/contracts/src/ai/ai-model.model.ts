@@ -2,7 +2,7 @@ import { AiModelTypeEnum } from '../agent/index'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'
-import type { ModelUsagePricingConfig } from './model-invocation.model'
+import type { ModelUsagePricingConfig } from './model-usage.model'
 
 export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
   /**

@@ -1,10 +1,10 @@
 import type {
     IModelUsageLedger,
-    ModelInvocationModality,
-    ModelInvocationOperation,
-    ModelInvocationOriginType,
     ModelUsageLedgerStatus,
-    ModelUsageMetric
+    ModelUsageMetric,
+    ModelUsageModality,
+    ModelUsageOperation,
+    ModelUsageOriginType
 } from '@xpert-ai/contracts'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
@@ -17,12 +17,16 @@ const numberTransformer = {
 }
 
 @Entity('model_usage_ledger')
-@Index('UQ_model_usage_ledger_invocation_unit_revision', ['invocationId', 'unit', 'revision'], { unique: true })
+@Index(
+    'UQ_model_usage_ledger_request_unit_revision',
+    ['tenantId', 'providerScopeId', 'requestId', 'unit', 'revision'],
+    { unique: true }
+)
 @Index('IDX_model_usage_ledger_scope_recorded', ['tenantId', 'organizationId', 'recordedAt'])
 @Index('IDX_model_usage_ledger_provider_model', ['tenantId', 'provider', 'model', 'recordedAt'])
 export class ModelUsageLedger extends TenantOrganizationBaseEntity implements IModelUsageLedger {
-    @Column({ type: 'uuid' })
-    invocationId: string
+    @Column({ type: 'varchar', length: 191 })
+    requestId: string
 
     @Column({ type: 'int', default: 1 })
     revision: number
@@ -31,7 +35,7 @@ export class ModelUsageLedger extends TenantOrganizationBaseEntity implements IM
     userId?: string | null
 
     @Column({ type: 'varchar', length: 20 })
-    originType: ModelInvocationOriginType
+    originType: ModelUsageOriginType
 
     @Column({ type: 'varchar', length: 191 })
     originId: string
@@ -54,11 +58,14 @@ export class ModelUsageLedger extends TenantOrganizationBaseEntity implements IM
     @Column({ type: 'varchar', length: 20 })
     modelType: AiModelTypeEnum
 
+    @Column({ type: 'varchar', length: 191, nullable: true })
+    toolName?: string | null
+
     @Column({ type: 'varchar', length: 20 })
-    modality: ModelInvocationModality
+    modality: ModelUsageModality
 
     @Column({ type: 'varchar', length: 100 })
-    operation: ModelInvocationOperation
+    operation: ModelUsageOperation
 
     @Column({ type: 'varchar', length: 20 })
     unit: ModelUsageMetric['unit']

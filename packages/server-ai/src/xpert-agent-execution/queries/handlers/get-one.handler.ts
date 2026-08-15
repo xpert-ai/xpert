@@ -6,19 +6,15 @@ import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/quer
 import { XpertAgentExecutionService } from '../../agent-execution.service'
 import { XpertAgentExecutionDTO } from '../../dto'
 import { XpertAgentExecutionOneQuery } from '../get-one.query'
-import { ModelInvocationService } from '../../../model-invocation'
-import {
-    attachModelInvocationDetails,
-    attachModelInvocationUsage,
-    collectExecutionIds
-} from '../../model-invocation.execution'
+import { ModelUsageLedgerService } from '../../../model-usage'
+import { attachModelUsageDetails, attachModelUsageSummary, collectExecutionIds } from '../../model-usage.execution'
 
 @QueryHandler(XpertAgentExecutionOneQuery)
 export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentExecutionOneQuery> {
     constructor(
         private readonly service: XpertAgentExecutionService,
         private readonly queryBus: QueryBus,
-        private readonly modelInvocationService: ModelInvocationService
+        private readonly modelUsageLedger: ModelUsageLedgerService
     ) {}
 
     public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
@@ -31,11 +27,11 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
         })
         const executionTree = await this.expandExecutionTree(expandedExecution, agents)
         const executionIds = collectExecutionIds(executionTree)
-        const [usage, invocations] = await Promise.all([
-            this.modelInvocationService.getUsageSummaries(executionIds, execution.tenantId),
-            this.modelInvocationService.getInvocations(executionIds, execution.tenantId)
+        const [usage, details] = await Promise.all([
+            this.modelUsageLedger.getUsageSummaries(executionIds, execution.tenantId),
+            this.modelUsageLedger.getUsages(executionIds, execution.tenantId)
         ])
-        return attachModelInvocationDetails(attachModelInvocationUsage(executionTree, usage), invocations)
+        return attachModelUsageDetails(attachModelUsageSummary(executionTree, usage), details)
     }
 
     private async expandExecutionTree(

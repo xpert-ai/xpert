@@ -63,7 +63,11 @@ export class ManagedQueueProcessor extends WorkerHost {
 			name: envelope.jobName,
 			data: envelope.payload,
 			attemptsMade: job.attemptsMade,
-			opts: job.opts as Record<string, unknown>
+			opts: job.opts as Record<string, unknown>,
+			updateData: async (payload) => {
+				await job.updateData({ ...job.data, payload })
+				managedJob.data = payload
+			}
 		}
 		const jobContext: ManagedQueueJobContext = {
 			pluginName: envelope.pluginName,

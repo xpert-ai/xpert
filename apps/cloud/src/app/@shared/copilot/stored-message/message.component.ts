@@ -1,7 +1,7 @@
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { StoredMessage } from '@langchain/core/messages'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IModelInvocation } from '@xpert-ai/contracts'
+import type { IModelUsageDetails } from '@xpert-ai/contracts'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component, CopyComponent } from '../../common'
 import { CopilotMessageContentComponent } from '../message-content/content.component'
@@ -26,7 +26,7 @@ import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export class CopilotStoredMessageComponent {
   // Inputs
   readonly message = input<StoredMessage>()
-  readonly modelInvocation = input<IModelInvocation>()
+  readonly modelUsage = input<IModelUsageDetails>()
 
   // States
   readonly content = computed(() => this.message()?.data.content)
@@ -45,23 +45,21 @@ export class CopilotStoredMessageComponent {
     const metadata = this.responseMetadata()
     return metadata ? JSON.stringify(metadata, null, 2) : ''
   })
-  readonly modelInvocationMetadataText = computed(() => {
-    const invocation = this.modelInvocation()
-    if (this.message()?.type !== 'tool' || !invocation) return ''
+  readonly modelUsageMetadataText = computed(() => {
+    const usage = this.modelUsage()
+    if (this.message()?.type !== 'tool' || !usage) return ''
     return JSON.stringify(
       {
-        provider: invocation.provider,
-        model: invocation.model,
-        operation: invocation.operation,
-        state: invocation.providerState,
-        usage_availability: invocation.usageAvailability,
-        metrics: invocation.metrics ?? []
+        provider: usage.provider,
+        model: usage.model,
+        operation: usage.operation,
+        metrics: usage.metrics
       },
       null,
       2
     )
   })
-  readonly messageMetadataText = computed(() => this.responseMetadataText() || this.modelInvocationMetadataText())
+  readonly messageMetadataText = computed(() => this.responseMetadataText() || this.modelUsageMetadataText())
 
   readonly toolMessage = computed(() => this.message()?.data)
   readonly toolResponse = computed(() => {

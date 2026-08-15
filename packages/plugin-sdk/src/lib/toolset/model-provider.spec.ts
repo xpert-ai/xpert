@@ -42,15 +42,7 @@ class TestModelProviderToolset extends ModelProviderBuiltinToolset<StructuredToo
   }
 
   async asyncModelClient(purpose: 'invoke' | 'observe' = 'invoke') {
-    return this.createManagedAsyncModelClient(
-      'test-model',
-      {
-        provider: 'test-provider',
-        toolName: 'test-tool',
-        modality: 'video'
-      },
-      purpose
-    )
+    return this.createAsyncModelClient('test-model', 'video', purpose)
   }
 }
 
@@ -60,7 +52,8 @@ describe('ModelProviderBuiltinToolset', () => {
     copilotId: 'copilot-1',
     provider: 'test_provider',
     authorization: 'Bearer secret',
-    baseURL: 'https://example.com'
+    baseURL: 'https://example.com',
+    reportUsage: jest.fn()
   }
 
   it('resolves and caches the configured model provider', async () => {
