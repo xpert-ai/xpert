@@ -3,6 +3,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import { ModelInvocationService } from '../../../model-invocation'
 import { createBuiltinToolset, XpertToolsetService } from '../../../xpert-toolset'
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { ToolInvokeHandler } from './tool-invoke.handler'
@@ -19,7 +20,14 @@ describe('ToolInvokeHandler model runtime', () => {
 
     it('injects the host model client into manually invoked built-in tools', async () => {
         const createModelClient = jest.fn()
-        const createScopedApi = jest.fn().mockReturnValue({ createModelClient })
+        const getModelProvider = jest.fn().mockResolvedValue({
+            providerScopeId: 'provider-scope-1',
+            copilotId: 'copilot-1',
+            provider: 'model-provider',
+            authorization: 'Bearer secret'
+        })
+        const createRecorder = jest.fn().mockReturnValue(jest.fn())
+        const createScopedApi = jest.fn().mockReturnValue({ createModelClient, getModelProvider })
         const invoke = jest.fn().mockResolvedValue('ok')
         const createBuiltinToolsetMock = jest.mocked(createBuiltinToolset).mockResolvedValue({
             initTools: jest.fn(),
@@ -31,7 +39,8 @@ describe('ToolInvokeHandler model runtime', () => {
                 { provide: CommandBus, useValue: { execute: jest.fn() } },
                 { provide: QueryBus, useValue: { execute: jest.fn().mockResolvedValue({ API_HOST: 'test' }) } },
                 { provide: XpertToolsetService, useValue: {} },
-                { provide: AgentMiddlewareRuntimeService, useValue: { createScopedApi } }
+                { provide: AgentMiddlewareRuntimeService, useValue: { createScopedApi } },
+                { provide: ModelInvocationService, useValue: { createRecorder } }
             ]
         }).compile()
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -66,10 +75,27 @@ describe('ToolInvokeHandler model runtime', () => {
             expect.any(Object),
             expect.objectContaining({
                 modelRuntime: {
-                    createModelClient
+                    createModelClient,
+                    getModelProvider: expect.any(Function)
                 }
             })
         )
-        expect(invoke).toHaveBeenCalled()
+        const params = createBuiltinToolsetMock.mock.calls[0][2]
+        const provider = await params?.modelRuntime?.getModelProvider?.('model-provider')
+        expect(provider).toEqual(expect.objectContaining({ recordInvocation: expect.any(Function) }))
+        expect(createRecorder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                toolsetId: 'toolset-1',
+                providerScopeId: 'provider-scope-1',
+                copilotId: 'copilot-1'
+            })
+        )
+        const recorderScope = createRecorder.mock.calls[0][0]
+        const invocationConfig = invoke.mock.calls[0][1]
+        expect(invocationConfig).toEqual({
+            configurable: expect.objectContaining({
+                tool_call_id: recorderScope.resolveOrigin().id
+            })
+        })
     })
 })

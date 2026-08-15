@@ -8,17 +8,19 @@ import { XpertTool } from './xpert-tool.entity'
 import { XpertToolService } from './xpert-tool.service'
 import { CommandHandlers } from './commands/handlers'
 import { XpertToolsetModule } from '../xpert-toolset'
+import { ModelInvocationModule } from '../model-invocation'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-tool', module: XpertToolModule }]),
-		TypeOrmModule.forFeature([XpertTool]),
-		TenantModule,
-		CqrsModule,
-		XpertToolsetModule
-	],
-	controllers: [XpertToolController],
-	providers: [XpertToolService, ...CommandHandlers],
-	exports: [XpertToolService]
+    imports: [
+        RouterModule.register([{ path: '/xpert-tool', module: XpertToolModule }]),
+        TypeOrmModule.forFeature([XpertTool]),
+        TenantModule,
+        CqrsModule,
+        XpertToolsetModule,
+        ModelInvocationModule
+    ],
+    controllers: [XpertToolController],
+    providers: [XpertToolService, ...CommandHandlers],
+    exports: [XpertToolService]
 })
 export class XpertToolModule {}

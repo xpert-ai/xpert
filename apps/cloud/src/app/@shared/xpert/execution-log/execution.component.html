@@ -35,6 +35,6 @@
   }
 
   @for (message of execution().messages; track $index) {
-    <copilot-stored-message [message]="message" class="shrink-0" />
+    <copilot-stored-message [message]="message" [modelInvocation]="modelInvocation(message)" class="shrink-0" />
   }
 }

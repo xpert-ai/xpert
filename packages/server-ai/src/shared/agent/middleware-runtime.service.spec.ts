@@ -64,7 +64,13 @@ jest.mock('./execution', () => {
     }
 })
 
-import { AiModelTypeEnum, ChatMessageEventTypeEnum, ICopilotModel, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    AiProviderRole,
+    ChatMessageEventTypeEnum,
+    ICopilotModel,
+    XpertAgentExecutionStatusEnum
+} from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
@@ -111,6 +117,7 @@ import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/co
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { CollaborationService } from '../../collaboration'
+import { CopilotService } from '../../copilot/copilot.service'
 import { applicationMetrics } from '../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
@@ -123,6 +130,8 @@ describe('AgentMiddlewareRuntimeService', () => {
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     let artifacts: { createScopedApi: jest.Mock }
     let collaboration: CollaborationService
+    let copilotService: CopilotService
+    let findAllEnabledCopilotsWithoutMembership: jest.Mock
     let actorTokenProvider: { mint: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
@@ -157,6 +166,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             }))
         }
         collaboration = new CollaborationService(null!, null!, null!)
+        findAllEnabledCopilotsWithoutMembership = jest.fn().mockResolvedValue([])
+        copilotService = Object.create(CopilotService.prototype)
+        copilotService.findAllEnabledCopilotsWithoutMembership = findAllEnabledCopilotsWithoutMembership
         actorTokenProvider = {
             mint: jest.fn((input) => ({
                 token: 'actor-token-1',
@@ -177,6 +189,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             workspaceFiles,
             artifacts as any,
             collaboration,
+            copilotService,
             actorTokenProvider as any
         )
 
@@ -238,6 +251,120 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('resolves the organization model provider connection before the tenant provider', async () => {
+        findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
+            {
+                id: 'tenant-copilot',
+                role: AiProviderRole.Primary,
+                organizationId: null,
+                modelProvider: {
+                    id: 'tenant-provider',
+                    organizationId: null,
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'tenant-key' },
+                    isValid: true
+                }
+            },
+            {
+                id: 'organization-copilot',
+                role: AiProviderRole.Secondary,
+                organizationId: 'org-1',
+                modelProvider: {
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'organization-key' },
+                    isValid: true
+                }
+            }
+        ])
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof AIModelGetProviderQuery) {
+                return {
+                    getBaseUrl: (credentials: { api_key: string }) =>
+                        `https://${credentials.api_key}.example/api/paas/v4`,
+                    getAuthorization: (credentials: { api_key: string }) => `Bearer ${credentials.api_key}`
+                }
+            }
+            return undefined
+        })
+
+        const runtime = service.createScopedApi({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        expect(runtime.getModelProvider).toBeDefined()
+        const connection = await runtime.getModelProvider?.('zhipuai')
+
+        expect(findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
+        expect(connection).toEqual({
+            providerScopeId: 'organization-provider',
+            copilotId: 'organization-copilot',
+            organizationId: 'org-1',
+            provider: 'zhipuai',
+            baseURL: 'https://organization-key.example/api/paas/v4',
+            authorization: 'Bearer organization-key',
+            resolvePricingSnapshot: expect.any(Function)
+        })
+    })
+
+    it('resolves the exact model provider connection captured by the runtime scope', async () => {
+        findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                role: AiProviderRole.Primary,
+                organizationId: 'org-1',
+                modelProvider: {
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'organization-key' },
+                    isValid: true
+                }
+            },
+            {
+                id: 'tenant-copilot',
+                role: AiProviderRole.Secondary,
+                organizationId: null,
+                modelProvider: {
+                    id: 'captured-provider',
+                    organizationId: null,
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'captured-key' },
+                    isValid: true
+                }
+            }
+        ])
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof AIModelGetProviderQuery) {
+                return {
+                    getBaseUrl: (credentials: { api_key: string }) => `https://${credentials.api_key}.example`,
+                    getAuthorization: (credentials: { api_key: string }) => `Bearer ${credentials.api_key}`
+                }
+            }
+            return undefined
+        })
+
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            providerScopeId: 'captured-provider'
+        })
+        const connection = await runtime.getModelProvider?.('zhipuai')
+
+        expect(connection).toEqual(
+            expect.objectContaining({
+                providerScopeId: 'captured-provider',
+                authorization: 'Bearer captured-key'
+            })
+        )
+    })
+
+    it('requires a configured model provider for provider-backed tools', async () => {
+        const runtime = service.createScopedApi({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        if (!runtime.getModelProvider) {
+            throw new Error('Expected the host runtime to expose model provider resolution.')
+        }
+        await expect(runtime.getModelProvider('zhipuai')).rejects.toThrow(/zhipuai/)
     })
 
     it('registers the actor token runtime capability with scoped act context', async () => {
@@ -458,6 +585,38 @@ describe('AgentMiddlewareRuntimeService', () => {
         )
     })
 
+    it('creates observation clients without checking or recording generation usage', async () => {
+        const { getModelInstance } = mockCreateModelClientDependencies()
+        const usageCallback = jest.fn()
+        const executionUsageCallback = jest.fn()
+        const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
+
+        await runtime.createModelClient(
+            {
+                copilotId: 'copilot-1',
+                model: 'video-model',
+                modelType: AiModelTypeEnum.VIDEO
+            } as ICopilotModel,
+            { purpose: 'observe', usageCallback }
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleLLMTokens({
+            model: 'video-model',
+            usage: { promptTokens: 5, completionTokens: 1, totalTokens: 6 }
+        })
+
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotCheckLimitCommand)).toBe(
+            false
+        )
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            false
+        )
+        expect(usageCallback).not.toHaveBeenCalled()
+        expect(executionUsageCallback).not.toHaveBeenCalled()
+        expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
+    })
+
     it('forwards estimated usage to execution without recording provider billing', async () => {
         const { getModelInstance } = mockCreateModelClientDependencies()
         const executionUsageCallback = jest.fn()
@@ -483,9 +642,9 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         expect(executionUsageCallback).toHaveBeenCalledWith(usage)
         expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
-        expect(
-            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
-        ).toBe(false)
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            false
+        )
     })
 
     it('leaves application metrics to the callback for legacy direct model clients', async () => {

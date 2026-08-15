@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
+    AiModelTypeEnum,
+    AiProviderRole,
     ChatMessageEventTypeEnum,
     ICopilotModel,
     IChatConversation,
@@ -54,6 +56,7 @@ import {
     KnowledgebaseWriteChunkResult,
     AgentMiddlewareEvent,
     AgentMiddlewareModelClient,
+    AgentMiddlewareModelProviderConnection,
     AgentMiddlewareRuntimeApi,
     TLLMUsage,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
@@ -88,6 +91,7 @@ import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limi
 import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-record.command'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
+import { CopilotService } from '../../copilot/copilot.service'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
 import {
     CreateKnowledgebaseFolderCommand,
@@ -125,6 +129,7 @@ import { wrapAgentExecution } from './execution'
 export type AgentMiddlewareRuntimeScope = {
     tenantId?: string | null
     organizationId?: string | null
+    providerScopeId?: string | null
     userId?: string | null
     workspaceId?: string | null
     projectId?: string | null
@@ -141,7 +146,15 @@ export type AgentMiddlewareRuntimeScope = {
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
     skipTokenRecord?: boolean
+    purpose?: 'invoke' | 'observe'
 }
+
+const MODEL_PROVIDER_ROLE_PRIORITY = [
+    AiProviderRole.Primary,
+    AiProviderRole.Secondary,
+    AiProviderRole.Reasoning,
+    AiProviderRole.Embedding
+]
 
 @Injectable()
 export class AgentMiddlewareRuntimeService {
@@ -154,7 +167,13 @@ export class AgentMiddlewareRuntimeService {
         scope: AgentMiddlewareRuntimeScope = {},
         recordApplicationMetrics = false
     ): Promise<T> {
-        const { abortController, usageCallback, modelAccessOverride, skipTokenRecord } = options ?? {}
+        const {
+            abortController,
+            usageCallback,
+            modelAccessOverride,
+            skipTokenRecord,
+            purpose = 'invoke'
+        } = options ?? {}
         const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
         const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
         const userId = scope.userId ?? RequestContext.currentUserId()
@@ -175,17 +194,19 @@ export class AgentMiddlewareRuntimeService {
 
         const modelAccess =
             modelAccessOverride ??
-            (await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
-                new CopilotCheckLimitCommand({
-                    tenantId,
-                    organizationId,
-                    userId,
-                    xpertId,
-                    copilot,
-                    model: modelName,
-                    modelType: copilotModel.modelType
-                })
-            ))
+            (purpose === 'observe'
+                ? undefined
+                : await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
+                      new CopilotCheckLimitCommand({
+                          tenantId,
+                          organizationId,
+                          userId,
+                          xpertId,
+                          copilot,
+                          model: modelName,
+                          modelType: copilotModel.modelType
+                      })
+                  ))
 
         const customModels = await this.queryBus.execute(
             new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
@@ -201,7 +222,9 @@ export class AgentMiddlewareRuntimeService {
             )
         }
 
-        ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
+        if (copilotModel.modelType === AiModelTypeEnum.LLM) {
+            ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
+        }
 
         return modelProvider.getModelInstance(
             copilotModel.modelType,
@@ -213,6 +236,9 @@ export class AgentMiddlewareRuntimeService {
                 verbose: Logger.isLevelEnabled('verbose'),
                 modelProperties: customModels[0]?.modelProperties,
                 handleLLMTokens: async (input) => {
+                    if (purpose === 'observe') {
+                        return
+                    }
                     if (input.usage) {
                         if (scope.usageCallback) {
                             await scope.usageCallback(input.usage)
@@ -271,6 +297,80 @@ export class AgentMiddlewareRuntimeService {
                 }
             }
         ) as T
+    }
+
+    async getModelProvider(
+        provider: string,
+        scope: AgentMiddlewareRuntimeScope = {}
+    ): Promise<AgentMiddlewareModelProviderConnection> {
+        const providerName = normalizeOptionalString(provider)
+        const tenantId = normalizeOptionalString(scope.tenantId) ?? RequestContext.currentTenantId()
+        const organizationId = normalizeOptionalString(scope.organizationId) ?? RequestContext.getOrganizationId()
+        const providerScopeId = normalizeOptionalString(scope.providerScopeId)
+        if (!providerName || !tenantId) {
+            throw new Error(
+                t('server-ai:Error.ToolModelProviderContextRequired', {
+                    defaultValue: 'A tenant-scoped model provider name is required.'
+                }) || 'A tenant-scoped model provider name is required.'
+            )
+        }
+
+        const copilots = await this.copilotService.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId)
+        const candidates = copilots
+            .filter(
+                (copilot) =>
+                    copilot.modelProvider?.providerName === providerName &&
+                    (!providerScopeId || copilot.modelProvider.id === providerScopeId) &&
+                    copilot.modelProvider.isValid !== false &&
+                    !!copilot.modelProvider.id &&
+                    !!copilot.modelProvider.credentials &&
+                    Object.keys(copilot.modelProvider.credentials).length > 0
+            )
+            .sort((left, right) => {
+                const leftOrganization = left.modelProvider?.organizationId === organizationId ? 0 : 1
+                const rightOrganization = right.modelProvider?.organizationId === organizationId ? 0 : 1
+                if (leftOrganization !== rightOrganization) return leftOrganization - rightOrganization
+
+                const leftRole = MODEL_PROVIDER_ROLE_PRIORITY.indexOf(left.role)
+                const rightRole = MODEL_PROVIDER_ROLE_PRIORITY.indexOf(right.role)
+                if (leftRole !== rightRole) return leftRole - rightRole
+                return String(left.modelProvider?.id).localeCompare(String(right.modelProvider?.id))
+            })
+        const connection = candidates[0]?.modelProvider
+        if (!connection) {
+            throw new Error(
+                t('server-ai:Error.ToolModelProviderNotConfigured', {
+                    name: providerName,
+                    defaultValue:
+                        "Model provider '{{name}}' is not configured or enabled. Configure it in Model Providers before using this tool."
+                }) ||
+                    `Model provider '${providerName}' is not configured or enabled. Configure it in Model Providers before using this tool.`
+            )
+        }
+
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+            new AIModelGetProviderQuery(providerName)
+        )
+        if (!modelProvider) {
+            throw new AIModelProviderNotFoundException(
+                t('server-ai:Error.AIModelProviderNotFound', { name: providerName })
+            )
+        }
+
+        return {
+            providerScopeId: connection.id,
+            copilotId: candidates[0].id,
+            organizationId: candidates[0].organizationId ?? null,
+            provider: providerName,
+            baseURL: modelProvider.getBaseUrl(connection.credentials),
+            authorization: modelProvider.getAuthorization(connection.credentials),
+            resolvePricingSnapshot: async (context) => {
+                const modelType = context.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
+                return modelProvider
+                    .getModelManager(modelType)
+                    .getUsagePricingSnapshot(context.model, connection.credentials, context)
+            }
+        }
     }
 
     async wrapWorkflowNodeExecution<T>(
@@ -603,6 +703,7 @@ export class AgentMiddlewareRuntimeService {
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
         private readonly artifacts: ArtifactsService,
         private readonly collaboration: CollaborationService,
+        private readonly copilotService: CopilotService,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
@@ -686,6 +787,7 @@ export class AgentMiddlewareRuntimeService {
 
         return {
             createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope, true),
+            getModelProvider: (provider) => this.getModelProvider(provider, scope),
             wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
             emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
             capabilities

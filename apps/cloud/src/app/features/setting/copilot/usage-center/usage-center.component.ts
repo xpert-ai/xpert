@@ -7,6 +7,7 @@ import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import type { ModelUsageMetric } from '@xpert-ai/contracts'
 import {
   ZardButtonComponent,
   ZardIconComponent,
@@ -30,6 +31,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { ModelUsageLedgerComponent } from './model-usage-ledger.component'
 
 type QuotaAction = TCopilotQuotaAdjustmentMode | 'renew'
 
@@ -53,7 +55,8 @@ type QuotaAction = TCopilotQuotaAdjustmentMode | 'renew'
     ...ZardTableImports,
     OrgAvatarComponent,
     UserProfileInlineComponent,
-    DateRelativePipe
+    DateRelativePipe,
+    ModelUsageLedgerComponent
   ]
 })
 export class CopilotUsageCenterComponent {
@@ -64,6 +67,15 @@ export class CopilotUsageCenterComponent {
   #loadVersion = 0
 
   readonly languageChange = toSignal(this.translate.onLangChange.pipe(startWith(null)))
+  readonly usageModes = computed(() => {
+    this.languageChange()
+    return [
+      { value: 'llm', label: this.translate.instant('XP.Copilot.LlmToken', { Default: 'LLM Token' }) },
+      { value: 'token', label: this.translate.instant('XP.Copilot.AigcToken', { Default: 'Image / Video Token' }) },
+      { value: 'generation', label: this.translate.instant('XP.Copilot.Generation', { Default: 'Generation' }) },
+      { value: 'second', label: this.translate.instant('XP.Copilot.Second', { Default: 'Second' }) }
+    ] as Array<{ value: 'llm' | ModelUsageMetric['unit']; label: string }>
+  })
   readonly dimensions = computed(() => {
     this.languageChange()
 
@@ -90,6 +102,11 @@ export class CopilotUsageCenterComponent {
   readonly selectedOrganization = toSignal(this.#store.selectedOrganization$)
 
   readonly dimension = model<TCopilotUsageDimension>('user')
+  readonly usageMode = model<'llm' | ModelUsageMetric['unit']>('llm')
+  readonly ledgerUnit = computed<ModelUsageMetric['unit']>(() => {
+    const mode = this.usageMode()
+    return mode === 'llm' ? 'token' : mode
+  })
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
   readonly providerFilter = model('')
   readonly modelFilter = model('')

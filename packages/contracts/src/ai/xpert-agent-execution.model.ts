@@ -4,6 +4,7 @@ import { IXpert, TXpertTeamNodeType } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import type { IModelInvocation, ModelInvocationUsageSummary } from './model-invocation.model'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
@@ -83,6 +84,14 @@ export type TXpertAgentExecution = TXpertExecution & {
   // Temporary properties
   agent?: IXpertAgent
   totalTokens?: number
+  videoPromptTokens?: ModelInvocationUsageSummary['videoPromptTokens']
+  videoCompletionTokens?: ModelInvocationUsageSummary['videoCompletionTokens']
+  videoTokens?: ModelInvocationUsageSummary['videoTokens']
+  videoGenerations?: ModelInvocationUsageSummary['videoGenerations']
+  generatedSeconds?: ModelInvocationUsageSummary['generatedSeconds']
+  pendingVideoInvocations?: ModelInvocationUsageSummary['pendingVideoInvocations']
+  unknownVideoUsage?: ModelInvocationUsageSummary['unknownVideoUsage']
+  modelInvocations?: IModelInvocation[]
   /**
    * Summary of conversation
    */

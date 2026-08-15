@@ -19,6 +19,7 @@ import { McpRuntimeAuditService } from './mcp-runtime-audit.service'
 import { McpRuntimeInstanceEntity } from './mcp-runtime-instance.entity'
 import { PluginResourceInstallation } from '../plugin-resource/plugin-resource-installation.entity'
 import { ChatMessageModule } from '../chat-message'
+import { ModelInvocationModule } from '../model-invocation'
 
 @Module({
     imports: [
@@ -29,6 +30,7 @@ import { ChatMessageModule } from '../chat-message'
         CqrsModule,
         CopilotModule,
         ChatMessageModule,
+        ModelInvocationModule,
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => XpertAgentModule)
     ],

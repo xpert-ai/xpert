@@ -54,6 +54,7 @@ import { MobileModule } from './mobile'
 import { MembershipModule } from './membership'
 import { ModelAccessModule } from './model-access'
 import { ModelGatewayModule } from './model-gateway'
+import { ModelInvocationModule } from './model-invocation'
 import { ArtifactsModule } from './artifacts'
 import { CollaborationModule } from './collaboration'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
@@ -91,6 +92,7 @@ import { AgentEvolutionModule } from './agent-evolution'
         MembershipModule,
         ModelAccessModule,
         ModelGatewayModule,
+        ModelInvocationModule,
         MobileModule,
         XpertModule,
         XpertAgentModule,

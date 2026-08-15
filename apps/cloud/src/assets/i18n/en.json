@@ -1581,7 +1581,18 @@
       "LastUsed": "Last Used",
       "PriceUsed": "Price Used",
       "PriceLimit": "Price Limit",
-      "PriceTotalUsed": "Price Total Used"
+      "PriceTotalUsed": "Price Total Used",
+      "LlmToken": "LLM Token",
+      "AigcToken": "Image / Video Token",
+      "Generation": "Generation",
+      "Second": "Second",
+      "Priced": "Priced",
+      "Free": "Free",
+      "Unpriced": "Unpriced",
+      "Records": "Records",
+      "Amount": "Amount",
+      "Operation": "Operation",
+      "Pricing": "Pricing"
     },
     "Membership": {
       "AdminTitle": "Membership management",

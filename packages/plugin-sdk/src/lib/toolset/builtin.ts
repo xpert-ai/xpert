@@ -1,135 +1,158 @@
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { BaseStore } from '@langchain/langgraph'
 import {
-	I18nObject,
-	IBuiltinTool,
-	IXpertToolset,
-	ToolProviderCredentials,
-	TToolCredentials,
-	TToolsetParams,
-	XpertToolsetCategoryEnum
+  I18nObject,
+  IBuiltinTool,
+  IXpertToolset,
+  AiModelTypeEnum,
+  ModelInvocationEvent,
+  ModelInvocationObservation,
+  ModelInvocationObservationRequest,
+  ModelInvocationRecordResult,
+  ToolProviderCredentials,
+  TToolCredentials,
+  TToolsetParams,
+  XpertToolsetCategoryEnum
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from './toolset'
-import type { AgentMiddlewareRuntimeApi } from '../agent/middleware/runtime'
+import type { AgentMiddlewareModelProviderConnection, AgentMiddlewareRuntimeApi } from '../agent/middleware/runtime'
 
 /**
  * The context params of creating toolset
  */
 export type TToolModelUsage = {
-	type?: 'estimated'
-	requestId: string
-	provider: string
-	model?: string
-	promptTokens: number
-	completionTokens: number
-	totalTokens: number
+  type?: 'estimated'
+  requestId: string
+  provider: string
+  model?: string
+  modelType?: AiModelTypeEnum
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
 }
 
 export type TToolModelUsageReporter = (usage: TToolModelUsage) => void | Promise<void>
 
+export type TToolModelProviderRuntime = AgentMiddlewareModelProviderConnection & {
+  /** Report direct Provider API usage in this host-resolved Provider scope. */
+  reportUsage?: TToolModelUsageReporter
+  /** Persist Provider invocation lifecycle in the resolved model provider scope. */
+  recordInvocation?: (event: ModelInvocationEvent) => Promise<ModelInvocationRecordResult>
+}
+
 export type TToolModelRuntime = {
-	/** Use the host's configured model provider; tool plugins must not handle provider API keys. */
-	createModelClient: AgentMiddlewareRuntimeApi['createModelClient']
-	/** Report usage only for model APIs called directly by the tool. */
-	reportUsage?: TToolModelUsageReporter
+  /** Use the host's configured model provider; tool plugins must not handle provider API keys. */
+  createModelClient: AgentMiddlewareRuntimeApi['createModelClient']
+  /** Resolve the host model provider account required by a direct Provider API tool. */
+  getModelProvider?: (provider: string) => Promise<TToolModelProviderRuntime>
+  /** Report usage only for model APIs called directly by the tool. */
+  reportUsage?: TToolModelUsageReporter
+  /** Persist the lifecycle and authoritative usage of a direct Provider invocation. */
+  recordInvocation?: (event: ModelInvocationEvent) => Promise<ModelInvocationRecordResult>
 }
 
 export type TBuiltinToolsetParams = TToolsetParams & {
-	commandBus: CommandBus
-	queryBus: QueryBus
-	store?: BaseStore
-	modelRuntime?: TToolModelRuntime
+  commandBus: CommandBus
+  queryBus: QueryBus
+  store?: BaseStore
+  modelRuntime?: TToolModelRuntime
 }
 
 export interface IBuiltinToolset {
-	validateCredentials(credentials: TToolCredentials): Promise<void>
+  validateCredentials(credentials: TToolCredentials): Promise<void>
 }
 
 export abstract class BuiltinToolset<T extends StructuredToolInterface = StructuredToolInterface, C = TToolCredentials>
-	extends BaseToolset<T>
-	implements IBuiltinToolset
+  extends BaseToolset<T>
+  implements IBuiltinToolset
 {
-	static provider = ''
-	protected logger = new Logger(this.constructor.name)
+  static provider = ''
+  protected logger = new Logger(this.constructor.name)
 
-	providerType: XpertToolsetCategoryEnum.BUILTIN
+  providerType: XpertToolsetCategoryEnum.BUILTIN
 
-	credentialsSchema?: { [key: string]: ToolProviderCredentials }
+  credentialsSchema?: { [key: string]: ToolProviderCredentials }
 
-	get tenantId() {
-		return this.params?.tenantId
-	}
-	get organizationId() {
-		return this.params?.organizationId
-	}
-	get commandBus() {
-		return this.params?.commandBus
-	}
-	get queryBus() {
-		return this.params?.queryBus
-	}
+  get tenantId() {
+    return this.params?.tenantId
+  }
+  get organizationId() {
+    return this.params?.organizationId
+  }
+  get commandBus() {
+    return this.params?.commandBus
+  }
+  get queryBus() {
+    return this.params?.queryBus
+  }
 
-	get xpertId() {
-		return this.params?.xpertId
-	}
-	get modelRuntime() {
-		return this.params?.modelRuntime
-	}
+  get xpertId() {
+    return this.params?.xpertId
+  }
+  get modelRuntime() {
+    return this.params?.modelRuntime
+  }
 
-	constructor(
-		public providerName: string,
-		protected toolset?: IXpertToolset,
-		protected override params?: TBuiltinToolsetParams
-	) {
-		super(params)
-	}
+  async observeModelInvocation(
+    _request: ModelInvocationObservationRequest
+  ): Promise<ModelInvocationObservation | null> {
+    return null
+  }
 
-	async validateCredentials(credentials: C): Promise<void> {
-		await this._validateCredentials(credentials)
-	}
+  constructor(
+    public providerName: string,
+    protected toolset?: IXpertToolset,
+    protected override params?: TBuiltinToolsetParams
+  ) {
+    super(params)
+  }
 
-	async _validateCredentials(credentials: C) {
-		throw new Error('Method not implemented.')
-	}
+  async validateCredentials(credentials: C): Promise<void> {
+    await this._validateCredentials(credentials)
+  }
 
-	getId() {
-		return this.toolset?.id
-	}
+  async _validateCredentials(credentials: C) {
+    throw new Error('Method not implemented.')
+  }
 
-	getCredentials() {
-		return this.toolset?.credentials as C
-	}
+  getId() {
+    return this.toolset?.id
+  }
 
-	getToolTitle(name: string): string | I18nObject {
-		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
-		const identity = (<IBuiltinTool>tool?.schema)?.identity
-		if (identity) {
-			return identity.label
-		}
-		return null
-	}
+  getCredentials() {
+    return this.toolset?.credentials as C
+  }
 
-	/**
-	 * Get credentials schema
-	 *
-	 * @returns Credentials schema
-	 */
-	getCredentialsSchema(): { [key: string]: ToolProviderCredentials } {
-		return { ...this.credentialsSchema }
-	}
+  getToolTitle(name: string): string | I18nObject {
+    const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+    const identity = (<IBuiltinTool>tool?.schema)?.identity
+    if (identity) {
+      return identity.label
+    }
+    return null
+  }
 
-	/**
-	 * Get toolset entity
-	 *
-	 * @returns XpertToolset
-	 */
-	getToolset() {
-		return this.toolset
-	}
+  /**
+   * Get credentials schema
+   *
+   * @returns Credentials schema
+   */
+  getCredentialsSchema(): { [key: string]: ToolProviderCredentials } {
+    return { ...this.credentialsSchema }
+  }
 
-	getName() {
-		return this.getToolset()?.name
-	}
+  /**
+   * Get toolset entity
+   *
+   * @returns XpertToolset
+   */
+  getToolset() {
+    return this.toolset
+  }
+
+  getName() {
+    return this.getToolset()?.name
+  }
 }

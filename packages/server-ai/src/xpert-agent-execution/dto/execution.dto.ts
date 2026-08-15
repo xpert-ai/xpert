@@ -29,6 +29,30 @@ export class XpertAgentExecutionDTO {
     totalTokens?: number
 
     @Expose()
+    videoPromptTokens?: number
+
+    @Expose()
+    videoCompletionTokens?: number
+
+    @Expose()
+    videoTokens?: number
+
+    @Expose()
+    videoGenerations?: number
+
+    @Expose()
+    generatedSeconds?: number
+
+    @Expose()
+    pendingVideoInvocations?: number
+
+    @Expose()
+    unknownVideoUsage?: number
+
+    @Expose()
+    modelInvocations?: IXpertAgentExecution['modelInvocations']
+
+    @Expose()
     summary?: string
 
     @Transform(({ value }) => (value ? new XpertAgentIdentiDto(value) : null))
