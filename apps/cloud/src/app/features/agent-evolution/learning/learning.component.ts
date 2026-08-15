@@ -1,24 +1,38 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { getErrorMessage, injectToastr } from '@cloud/app/@core'
-import type { LearningEvent } from '@xpert-ai/contracts'
+import type { EvolutionCandidateChangeFieldDescriptor, LearningEvent } from '@xpert-ai/contracts'
 import {
   ZardAlertDialogService,
+  XpI18nPipe,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardInputDirective
+  ZardCheckboxComponent,
+  ZardInputDirective,
+  ZardSelectImports,
+  type ZardSelectValue
 } from '@xpert-ai/headless-ui'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { percent, shortId } from '../agent-evolution.types'
+import { evolutionSummaryPresentation, learningEventPresentation, percent, shortId } from '../agent-evolution.types'
 
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-learning',
-  imports: [CommonModule, FormsModule, ZardBadgeComponent, ZardButtonComponent, ZardInputDirective, ...ZardCardImports],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    XpI18nPipe,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardInputDirective,
+    ...ZardSelectImports,
+    ...ZardCardImports
+  ],
   templateUrl: './learning.component.html',
   host: { class: 'block' }
 })
@@ -26,31 +40,30 @@ export class AgentEvolutionLearningComponent {
   readonly facade = inject(AgentEvolutionFacade)
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
-  readonly #toastr = injectToastr()
 
   readonly percent = percent
   readonly shortId = shortId
+  readonly eventPresentation = learningEventPresentation
+  readonly summaryPresentation = evolutionSummaryPresentation
   readonly query = signal('')
-  readonly targetId = signal('all')
   readonly queueTab = signal<'pending' | 'grouped' | 'ignored'>('pending')
   readonly selectedEventId = signal<string | null>(null)
-  readonly ignoredEventIds = signal<Set<string>>(new Set())
-  readonly goldenEventIds = signal<Set<string>>(new Set())
+  readonly candidateDraft = signal<Record<string, string | number | boolean | string[]>>({})
 
   readonly filteredEvents = computed(() => {
     const query = this.query().trim().toLocaleLowerCase()
-    const targetId = this.targetId()
-    const ignoredIds = this.ignoredEventIds()
-    return this.facade.dashboard().events.filter((event) => {
+    return this.facade.contextEvents().filter((event) => {
       if (this.queueTab() === 'ignored') {
-        return ignoredIds.has(event.eventId)
+        return event.reviewStatus === 'ignored'
       }
-      if (ignoredIds.has(event.eventId)) {
+      if (event.reviewStatus === 'ignored') {
         return false
       }
-      if (targetId !== 'all' && event.targetId !== targetId) {
+      if (
+        this.queueTab() === 'grouped' &&
+        !this.facade.dashboard().clusters.some((cluster) => cluster.eventIds.includes(event.eventId))
+      )
         return false
-      }
       if (!query) {
         return true
       }
@@ -68,7 +81,7 @@ export class AgentEvolutionLearningComponent {
 
   readonly selectedProposal = computed(() => {
     const event = this.selectedEvent()
-    const proposals = this.facade.dashboard().proposals
+    const proposals = this.facade.contextProposals()
     return (
       proposals.find((proposal) => event && proposal.evidenceEventIds.includes(event.eventId)) ??
       proposals.find((proposal) => !event || proposal.targetId === event.targetId) ??
@@ -81,58 +94,149 @@ export class AgentEvolutionLearningComponent {
     const events = this.filteredEvents()
     return events.length ? events.reduce((sum, event) => sum + event.confidence, 0) / events.length : 0
   })
+  readonly goldenEventCount = computed(
+    () => this.facade.contextEvents().filter((event) => event.reviewStatus === 'golden').length
+  )
+  readonly candidateTarget = computed(() => {
+    const proposal = this.selectedProposal()
+    return this.facade.dashboard().targets.find((target) => target.targetId === proposal?.targetId) ?? null
+  })
+  readonly candidateFields = computed(() => this.candidateTarget()?.candidateForm?.fields ?? [])
+  readonly canBuildCandidate = computed(
+    () =>
+      this.selectedProposal()?.status === 'ready' &&
+      this.candidateTarget()?.capabilities.candidateBuild === true &&
+      this.candidateFields().length > 0
+  )
+  readonly candidateDraftValid = computed(() =>
+    this.candidateFields().every((field) => !field.required || hasFieldValue(this.candidateDraft()[field.key]))
+  )
+
+  readonly #candidateDraftEffect = effect(() => {
+    const fields = this.candidateFields()
+    this.candidateDraft.set(
+      Object.fromEntries(fields.map((field) => [field.key, cloneDefaultValue(field.defaultValue)])) as Record<
+        string,
+        string | number | boolean | string[]
+      >
+    )
+  })
 
   select(event: LearningEvent) {
     this.selectedEventId.set(event.eventId)
   }
 
-  ignoreSelected() {
+  async ignoreSelected() {
     const event = this.selectedEvent()
     if (!event) {
       return
     }
-    this.ignoredEventIds.update((current) => new Set(current).add(event.eventId))
-    this.selectedEventId.set(null)
-    this.#toastr.success('XP.AgentEvolution.SignalIgnored', { Default: '该学习信号已在当前视图中忽略' })
+    if (await this.facade.reviewEvent(event.eventId, 'ignored')) this.selectedEventId.set(null)
   }
 
-  toggleGolden() {
+  async toggleGolden() {
     const event = this.selectedEvent()
     if (!event) {
       return
     }
-    this.goldenEventIds.update((current) => {
-      const next = new Set(current)
-      if (next.has(event.eventId)) {
-        next.delete(event.eventId)
-      } else {
-        next.add(event.eventId)
-      }
-      return next
-    })
-    this.#toastr.success('XP.AgentEvolution.GoldenDatasetUpdated', { Default: '黄金数据集选择已更新' })
+    await this.facade.reviewEvent(event.eventId, event.reviewStatus === 'golden' ? 'pending' : 'golden')
   }
 
   async generateProposal() {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
         title: this.#translate.instant('XP.AgentEvolution.GenerateProposalTitle', {
-          Default: '从证据信号生成并验证建议？'
+          Default: '从已审核证据信号生成改进建议？'
         }),
         description: this.#translate.instant('XP.AgentEvolution.GenerateProposalDescription', {
-          Default: '当前服务以一致性场景执行完整闭环；建议生成后将继续构建候选、评测、审批并灰度激活。'
+          Default: '只会创建可审计 Proposal，不会构建 Candidate，也不会修改任何 Production 能力版本。'
         }),
-        actionText: this.#translate.instant('XP.AgentEvolution.RunCompleteFlow', { Default: '执行完整流程' }),
+        actionText: this.#translate.instant('XP.AgentEvolution.CreateProposal', { Default: '创建建议' }),
         cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
       })
     )
     if (!confirmed) {
       return
     }
-    try {
-      await this.facade.runSimulation()
-    } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
-    }
+    const event = this.selectedEvent()
+    if (event) await this.facade.createProposalForEvent(event)
   }
+
+  reasonLabel(reason: string) {
+    return this.#translate.instant(`XP.AgentEvolution.ReasonCode.${reason}`, { Default: reason })
+  }
+
+  proposalRootCause(rootCause: string) {
+    const repeated = /^(?:Repeated correction signature|repeated_correction_signature):\s*(.+)$/i.exec(rootCause)
+    if (repeated?.[1]) {
+      const reasons = repeated[1]
+        .split(',')
+        .map((reason) => this.reasonLabel(reason.trim()))
+        .filter(Boolean)
+        .join(this.#translate.instant('XP.AgentEvolution.ListSeparator'))
+      return this.#translate.instant('XP.AgentEvolution.RepeatedFeedbackRootCause', { reasons })
+    }
+    if (/^(?:Unclassified repeated correction|unclassified_repeated_correction)$/i.test(rootCause)) {
+      return this.#translate.instant('XP.AgentEvolution.UnclassifiedRepeatedFeedback')
+    }
+    return rootCause
+  }
+
+  candidateValue(field: EvolutionCandidateChangeFieldDescriptor) {
+    return this.candidateDraft()[field.key] ?? cloneDefaultValue(field.defaultValue)
+  }
+
+  candidateSelectValue(field: EvolutionCandidateChangeFieldDescriptor): string | number {
+    const value = this.candidateValue(field)
+    return typeof value === 'string' || typeof value === 'number' ? value : ''
+  }
+
+  setCandidateValue(field: EvolutionCandidateChangeFieldDescriptor, value: string | number | boolean) {
+    const normalized = field.type === 'number' ? Number(value) : field.type === 'boolean' ? Boolean(value) : `${value}`
+    this.candidateDraft.update((current) => ({ ...current, [field.key]: normalized }))
+  }
+
+  setCandidateSelectValue(field: EvolutionCandidateChangeFieldDescriptor, value: ZardSelectValue | ZardSelectValue[]) {
+    const selected = Array.isArray(value) ? value[0] : value
+    if (selected !== undefined) this.setCandidateValue(field, selected)
+  }
+
+  setCandidateArrayValue(field: EvolutionCandidateChangeFieldDescriptor, value: string) {
+    this.candidateDraft.update((current) => ({
+      ...current,
+      [field.key]: value
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }))
+  }
+
+  candidateArrayText(field: EvolutionCandidateChangeFieldDescriptor) {
+    const value = this.candidateValue(field)
+    return Array.isArray(value) ? value.join('\n') : ''
+  }
+
+  async buildCandidate() {
+    const proposal = this.selectedProposal()
+    if (!proposal || !this.canBuildCandidate() || !this.candidateDraftValid()) return
+    const confirmed = await firstValueFrom(
+      this.#alertDialog.confirm({
+        title: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateTitle'),
+        description: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateDescription'),
+        actionText: this.#translate.instant('XP.AgentEvolution.BuildCandidate'),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+      })
+    )
+    if (confirmed) await this.facade.buildCandidate(proposal, this.candidateDraft())
+  }
+}
+
+function cloneDefaultValue(value: EvolutionCandidateChangeFieldDescriptor['defaultValue']) {
+  return Array.isArray(value) ? [...value] : (value ?? '')
+}
+
+function hasFieldValue(value: string | number | boolean | string[] | undefined) {
+  if (Array.isArray(value)) return value.length > 0
+  if (typeof value === 'string') return value.trim().length > 0
+  return value !== undefined && value !== null && !Number.isNaN(value)
 }

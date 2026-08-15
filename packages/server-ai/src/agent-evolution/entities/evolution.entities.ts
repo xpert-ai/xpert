@@ -8,6 +8,13 @@ import type {
     EvolutionAuditEvent,
     EvolutionCandidate,
     EvolutionReleaseStatus,
+    EvolutionJob,
+    EvolutionJobStatus,
+    EvolutionJobType,
+    EvolutionRuntimeObservation,
+    EvolutionDiagnosis,
+    EvolutionEventCluster,
+    EvolutionExperience,
     EvolutionScopeType,
     EvolutionTargetDescriptor,
     ImprovementProposal,
@@ -119,6 +126,63 @@ export class LearningEventEntity extends EvolutionScopedEntity {
 
     @Column({ type: 'json' })
     value: LearningEvent
+}
+
+@Entity('agent_evolution_diagnosis')
+@Index(['tenantId', 'organizationId', 'diagnosisId'], { unique: true })
+@Index(['tenantId', 'organizationId', 'targetId', 'scopeKey'])
+export class EvolutionDiagnosisEntity extends EvolutionScopedEntity {
+    @Column({ type: 'varchar' })
+    diagnosisId: string
+
+    @Column({ type: 'varchar' })
+    targetId: string
+
+    @Column({ type: 'varchar' })
+    correctionSignature: string
+
+    @Column({ type: 'json' })
+    value: EvolutionDiagnosis
+}
+
+@Entity('agent_evolution_event_cluster')
+@Index(['tenantId', 'organizationId', 'clusterId'], { unique: true })
+@Index(['tenantId', 'organizationId', 'targetId', 'scopeKey', 'correctionSignature'])
+export class EvolutionEventClusterEntity extends EvolutionScopedEntity {
+    @Column({ type: 'varchar' })
+    clusterId: string
+
+    @Column({ type: 'varchar' })
+    targetId: string
+
+    @Column({ type: 'varchar' })
+    correctionSignature: string
+
+    @Column({ type: 'varchar' })
+    status: EvolutionEventCluster['status']
+
+    @Column({ type: 'json' })
+    value: EvolutionEventCluster
+}
+
+@Entity('agent_evolution_experience')
+@Index(['tenantId', 'organizationId', 'experienceId'], { unique: true })
+@Index(['tenantId', 'organizationId', 'targetId', 'scopeKey', 'status'])
+export class EvolutionExperienceEntity extends EvolutionScopedEntity {
+    @Column({ type: 'varchar' })
+    experienceId: string
+
+    @Column({ type: 'varchar' })
+    targetId: string
+
+    @Column({ type: 'varchar' })
+    sourceReleasePackageId: string
+
+    @Column({ type: 'varchar' })
+    status: EvolutionExperience['status']
+
+    @Column({ type: 'json' })
+    value: EvolutionExperience
 }
 
 @Entity('agent_evolution_proposal')
@@ -273,12 +337,58 @@ export class EvolutionAuditEventEntity extends TenantOrganizationBaseEntity {
     value: EvolutionAuditEvent
 }
 
+@Entity('agent_evolution_runtime_observation')
+@Index(['tenantId', 'organizationId', 'observationId'], { unique: true })
+@Index(['tenantId', 'organizationId', 'targetId', 'deploymentId'])
+export class EvolutionRuntimeObservationEntity extends EvolutionScopedEntity {
+    @Column({ type: 'varchar' })
+    observationId: string
+
+    @Column({ type: 'varchar' })
+    targetId: string
+
+    @Column({ type: 'varchar', nullable: true })
+    deploymentId?: string | null
+
+    @Column({ type: 'varchar' })
+    executionId: string
+
+    @Column({ type: 'boolean' })
+    severeError: boolean
+
+    @Column({ type: 'json' })
+    value: EvolutionRuntimeObservation
+}
+
+@Entity('agent_evolution_job')
+@Index(['tenantId', 'organizationId', 'jobId'], { unique: true })
+@Index(['tenantId', 'organizationId', 'resourceId', 'jobType'])
+export class EvolutionJobEntity extends TenantOrganizationBaseEntity {
+    @Column({ type: 'varchar' })
+    jobId: string
+
+    @Column({ type: 'varchar' })
+    jobType: EvolutionJobType
+
+    @Column({ type: 'varchar' })
+    resourceId: string
+
+    @Column({ type: 'varchar' })
+    status: EvolutionJobStatus
+
+    @Column({ type: 'json' })
+    value: EvolutionJob
+}
+
 export const AGENT_EVOLUTION_ENTITIES = [
     EvolutionTargetEntity,
     CapabilityVersionEntity,
     CapabilityVersionBundleEntity,
     ActiveCapabilityPointerEntity,
     LearningEventEntity,
+    EvolutionDiagnosisEntity,
+    EvolutionEventClusterEntity,
+    EvolutionExperienceEntity,
     ImprovementProposalEntity,
     EvolutionCandidateEntity,
     DatasetSnapshotEntity,
@@ -286,5 +396,7 @@ export const AGENT_EVOLUTION_ENTITIES = [
     ApprovalDecisionEntity,
     ReleasePackageEntity,
     ReleaseDeploymentEntity,
-    EvolutionAuditEventEntity
+    EvolutionAuditEventEntity,
+    EvolutionRuntimeObservationEntity,
+    EvolutionJobEntity
 ]

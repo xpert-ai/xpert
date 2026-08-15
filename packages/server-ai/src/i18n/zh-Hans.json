@@ -1,5 +1,10 @@
 {
     "Error": {
+        "AgentEvolutionManualTestGateRequiresAdministrator": "手动测试发布门禁仅允许 SUPER_ADMIN 或 ADMIN 使用。",
+        "AgentEvolutionShadowGateNotSatisfied": "Shadow 需要持续 {{hours}} 小时、累计 {{samples}} 条观测且严重错误为 0。",
+        "AgentEvolutionCanaryGateNotSatisfied": "Canary 扩量需要持续 {{hours}} 小时、累计 {{samples}} 条观测且严重错误为 0。",
+        "AgentEvolutionProductionGateNotSatisfied": "生产激活要求 50% Canary 持续 {{hours}} 小时并累计 {{samples}} 条观测。",
+        "AgentEvolutionExperienceGateNotSatisfied": "经验沉淀要求生产版本稳定 {{hours}} 小时、累计 {{samples}} 条观测且严重错误为 0。",
         "ReferralInvalidCode": "邀请码无效。",
         "ReferralCodeNotFound": "未找到邀请码。",
         "ReferralTenantScopeRequired": "必须在租户范围内访问。",
@@ -222,6 +227,9 @@
         "WorkspaceFileAccessInvalidReference": "View 文件访问需要限定作用域的 Workspace Files 引用。",
         "WorkspaceFileAccessUnavailable": "Workspace 文件访问功能尚未配置。",
         "WorkspaceFileUploadRequired": "必须提供 Workspace 文件。"
+    },
+    "AgentEvolution": {
+        "GatePolicyFrozen": "发布门禁策略已冻结为 {{profile}}。"
     },
     "ModelGateway": {
         "PrivilegedRequestApproved": "模型审批管理员申请后自动通过。"

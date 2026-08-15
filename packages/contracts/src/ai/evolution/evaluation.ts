@@ -1,4 +1,5 @@
 import { CapabilityVersionBundle } from './capability-version'
+import { EvolutionProviderContext, EvolutionScope } from './target'
 
 export interface GoldenCaseRevision {
   caseId: string
@@ -13,6 +14,8 @@ export interface GoldenCaseRevision {
 export interface DatasetSnapshot {
   snapshotId: string
   datasetId: string
+  targetId?: string
+  scope?: EvolutionScope
   name: string
   evaluatorVersion: string
   metricDefinitionVersion: string
@@ -22,6 +25,7 @@ export interface DatasetSnapshot {
 }
 
 export interface ReplayCaseRequest {
+  context?: EvolutionProviderContext
   evaluationRunId: string
   candidateId: string
   datasetSnapshotId: string
@@ -30,6 +34,17 @@ export interface ReplayCaseRequest {
   candidateBundle: CapabilityVersionBundle
   randomSeed: number
   repeatIndex: number
+}
+
+export interface GoldenDataset {
+  datasetId: string
+  targetId: string
+  name: string
+  description?: string
+  caseCount: number
+  status: 'draft' | 'ready' | 'archived'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ReplayCaseResult {
@@ -72,6 +87,8 @@ export interface EvaluationGateResult {
 
 export interface EvaluationRun {
   runId: string
+  targetId?: string
+  scope?: EvolutionScope
   candidateId: string
   datasetSnapshotId: string
   baselineBundle: CapabilityVersionBundle

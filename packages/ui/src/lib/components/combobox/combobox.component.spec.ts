@@ -1,10 +1,10 @@
-import { OverlayContainer } from '@angular/cdk/overlay';
-import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
+import { OverlayContainer } from '@angular/cdk/overlay'
+import { CommonModule } from '@angular/common'
+import { Component } from '@angular/core'
+import { TestBed } from '@angular/core/testing'
+import { By } from '@angular/platform-browser'
 
-import { ZardComboboxComponent, ZardComboboxOptionTemplateDirective } from './combobox.component';
+import { ZardComboboxComponent, ZardComboboxOptionTemplateDirective } from './combobox.component'
 
 @Component({
   standalone: true,
@@ -20,7 +20,7 @@ import { ZardComboboxComponent, ZardComboboxOptionTemplateDirective } from './co
         </div>
       </ng-template>
     </z-combobox>
-  `,
+  `
 })
 class ComboboxProjectionHostComponent {
   readonly options = [
@@ -29,31 +29,55 @@ class ComboboxProjectionHostComponent {
       label: 'Alpha',
       command: 'Alpha first option',
       data: {
-        description: 'First option description',
-      },
-    },
-  ];
+        description: 'First option description'
+      }
+    }
+  ]
 }
 
 describe('ZardComboboxComponent', () => {
   it('renders projected option content inside command options', async () => {
     const fixture = TestBed.configureTestingModule({
-      imports: [ComboboxProjectionHostComponent],
-    }).createComponent(ComboboxProjectionHostComponent);
-    const overlayContainer = TestBed.inject(OverlayContainer);
+      imports: [ComboboxProjectionHostComponent]
+    }).createComponent(ComboboxProjectionHostComponent)
+    const overlayContainer = TestBed.inject(OverlayContainer)
 
-    fixture.detectChanges();
+    fixture.detectChanges()
 
     const combobox = fixture.debugElement.query(By.directive(ZardComboboxComponent))
-      .componentInstance as ZardComboboxComponent;
+      .componentInstance as ZardComboboxComponent
 
-    combobox.popoverDirective().show();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    combobox.popoverDirective().show()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
-    const overlayElement = overlayContainer.getContainerElement();
-    const description = overlayElement.querySelector('.option-description') as HTMLElement | null;
+    const overlayElement = overlayContainer.getContainerElement()
+    const description = overlayElement.querySelector('.option-description') as HTMLElement | null
 
-    expect(description?.textContent).toContain('First option description');
-  });
-});
+    expect(description?.textContent).toContain('First option description')
+  })
+
+  it('keeps the popover border and removes the nested command border', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [ComboboxProjectionHostComponent]
+    }).createComponent(ComboboxProjectionHostComponent)
+    const overlayContainer = TestBed.inject(OverlayContainer)
+
+    fixture.detectChanges()
+
+    const combobox = fixture.debugElement.query(By.directive(ZardComboboxComponent))
+      .componentInstance as ZardComboboxComponent
+
+    combobox.popoverDirective().show()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const overlayElement = overlayContainer.getContainerElement()
+    const popoverPanel = overlayElement.querySelector('z-popover')
+    const commandPanel = overlayElement.querySelector('z-command > div')
+
+    expect(popoverPanel?.classList.contains('border')).toBe(true)
+    expect(commandPanel?.classList.contains('border')).toBe(false)
+    expect(commandPanel?.classList.contains('shadow-md')).toBe(false)
+  })
+})

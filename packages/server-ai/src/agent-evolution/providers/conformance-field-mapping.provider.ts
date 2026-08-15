@@ -31,6 +31,18 @@ export class ConformanceFieldMappingProvider implements EvolutionTargetProvider 
         supportedScopes: ['organization' as const],
         riskLevel: 'R1' as const,
         metricSetId: 'conformance.mapping.accuracy.v1',
+        candidateForm: {
+            description: 'Conformance-only fixture Change Set.',
+            fields: [
+                {
+                    key: 'aliases',
+                    label: 'Localized aliases',
+                    type: 'string_array' as const,
+                    required: true,
+                    defaultValue: [...CONFORMANCE_FIELD_MAPPING_EXAMPLE.candidateAliases]
+                }
+            ]
+        },
         capabilities: {
             candidateBuild: true,
             replay: true,

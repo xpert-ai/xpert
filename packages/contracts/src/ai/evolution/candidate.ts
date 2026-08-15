@@ -1,4 +1,4 @@
-import { EvolutionArtifactRef, EvolutionScope } from './target'
+import { EvolutionArtifactRef, EvolutionProviderContext, EvolutionScope } from './target'
 
 export type EvolutionCandidateStatus =
   | 'building'
@@ -29,11 +29,13 @@ export interface EvolutionCandidate {
 }
 
 export interface BuildEvolutionCandidateRequest {
+  context?: EvolutionProviderContext
   targetId: string
   scope: EvolutionScope
   proposalId: string
   proposalRevision: number
   baseVersionId: string
+  baseArtifact?: EvolutionArtifactRef
   changeSet: Record<string, string | number | boolean | string[]>
   evidenceEventIds: string[]
   dependencyVersionIds: string[]
@@ -52,11 +54,27 @@ export interface CandidateBuildResult {
 }
 
 export interface ValidateEvolutionCandidateRequest {
+  context?: EvolutionProviderContext
   targetId: string
   scope: EvolutionScope
   artifact: EvolutionArtifactRef
   baseVersionId: string
+  baseArtifact?: EvolutionArtifactRef
   dependencyVersionIds: string[]
+}
+
+export interface ExportEvolutionBaselineRequest {
+  context: EvolutionProviderContext
+  targetId: string
+  scope: EvolutionScope
+  requestedVersionId?: string
+}
+
+export interface ExportEvolutionBaselineResult {
+  artifact: EvolutionArtifactRef
+  dependencyVersionIds: string[]
+  semanticVersion: string
+  providerTraceId: string
 }
 
 export interface CandidateValidationResult {

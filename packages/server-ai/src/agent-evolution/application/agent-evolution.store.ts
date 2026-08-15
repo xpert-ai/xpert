@@ -12,6 +12,14 @@ import type {
     EvolutionPersistenceEvidence,
     EvolutionPersistenceTable,
     EvolutionReleaseStatus,
+    EvolutionJob,
+    EvolutionJobStatus,
+    EvolutionPage,
+    EvolutionPageQuery,
+    EvolutionRuntimeObservation,
+    EvolutionDiagnosis,
+    EvolutionEventCluster,
+    EvolutionExperience,
     EvolutionScope,
     EvolutionTargetDescriptor,
     ImprovementProposal,
@@ -21,7 +29,7 @@ import type {
 } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { DataSource, In, IsNull, Repository } from 'typeorm'
+import { DataSource, In, IsNull, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm'
 import {
     ActiveCapabilityPointerEntity,
     ApprovalDecisionEntity,
@@ -31,6 +39,11 @@ import {
     EvaluationRunEntity,
     EvolutionAuditEventEntity,
     EvolutionCandidateEntity,
+    EvolutionJobEntity,
+    EvolutionRuntimeObservationEntity,
+    EvolutionDiagnosisEntity,
+    EvolutionEventClusterEntity,
+    EvolutionExperienceEntity,
     EvolutionTargetEntity,
     ImprovementProposalEntity,
     LearningEventEntity,
@@ -72,6 +85,12 @@ export class AgentEvolutionStore {
         @InjectRepository(ActiveCapabilityPointerEntity)
         private readonly pointerRepository: Repository<ActiveCapabilityPointerEntity>,
         @InjectRepository(LearningEventEntity) private readonly eventRepository: Repository<LearningEventEntity>,
+        @InjectRepository(EvolutionDiagnosisEntity)
+        private readonly diagnosisRepository: Repository<EvolutionDiagnosisEntity>,
+        @InjectRepository(EvolutionEventClusterEntity)
+        private readonly clusterRepository: Repository<EvolutionEventClusterEntity>,
+        @InjectRepository(EvolutionExperienceEntity)
+        private readonly experienceRepository: Repository<EvolutionExperienceEntity>,
         @InjectRepository(ImprovementProposalEntity)
         private readonly proposalRepository: Repository<ImprovementProposalEntity>,
         @InjectRepository(EvolutionCandidateEntity)
@@ -87,7 +106,11 @@ export class AgentEvolutionStore {
         @InjectRepository(ReleaseDeploymentEntity)
         private readonly deploymentRepository: Repository<ReleaseDeploymentEntity>,
         @InjectRepository(EvolutionAuditEventEntity)
-        private readonly auditRepository: Repository<EvolutionAuditEventEntity>
+        private readonly auditRepository: Repository<EvolutionAuditEventEntity>,
+        @InjectRepository(EvolutionRuntimeObservationEntity)
+        private readonly observationRepository: Repository<EvolutionRuntimeObservationEntity>,
+        @InjectRepository(EvolutionJobEntity)
+        private readonly jobRepository: Repository<EvolutionJobEntity>
     ) {}
 
     async upsertTarget(tenant: EvolutionTenantScope, descriptor: EvolutionTargetDescriptor) {
@@ -106,8 +129,353 @@ export class AgentEvolutionStore {
         )
     }
 
+    async findTarget(tenant: EvolutionTenantScope, targetId: string) {
+        return this.targetRepository.findOne({ where: { ...tenantWhere(tenant), targetId } })
+    }
+
     async findVersion(tenant: EvolutionTenantScope, versionId: string) {
         return this.versionRepository.findOne({ where: { ...tenantWhere(tenant), versionId } })
+    }
+
+    async findBundle(tenant: EvolutionTenantScope, bundleId: string) {
+        return this.bundleRepository.findOne({ where: { ...tenantWhere(tenant), bundleId } })
+    }
+
+    async findCandidate(tenant: EvolutionTenantScope, candidateId: string) {
+        return this.candidateRepository.findOne({ where: { ...tenantWhere(tenant), candidateId } })
+    }
+
+    async findProposal(tenant: EvolutionTenantScope, proposalId: string, revision: number) {
+        return this.proposalRepository.findOne({
+            where: { ...tenantWhere(tenant), proposalId, revision }
+        })
+    }
+
+    async findApproval(tenant: EvolutionTenantScope, approvalId: string) {
+        return this.approvalRepository.findOne({ where: { ...tenantWhere(tenant), approvalId } })
+    }
+
+    async listApprovalsForCandidate(tenant: EvolutionTenantScope, candidateId: string) {
+        return this.approvalRepository.find({
+            where: { ...tenantWhere(tenant), candidateId },
+            order: { createdAt: 'ASC' }
+        })
+    }
+
+    async findLatestVersionForTarget(tenant: EvolutionTenantScope, targetId: string) {
+        return this.versionRepository.findOne({
+            where: { ...tenantWhere(tenant), targetId },
+            order: { sequence: 'DESC' }
+        })
+    }
+
+    async findEvaluation(tenant: EvolutionTenantScope, runId: string) {
+        return this.evaluationRepository.findOne({ where: { ...tenantWhere(tenant), runId } })
+    }
+
+    async findRelease(tenant: EvolutionTenantScope, releasePackageId: string) {
+        return this.releaseRepository.findOne({ where: { ...tenantWhere(tenant), releasePackageId } })
+    }
+
+    async findDataset(tenant: EvolutionTenantScope, snapshotId: string) {
+        return this.datasetRepository.findOne({ where: { ...tenantWhere(tenant), snapshotId } })
+    }
+
+    async listTargets(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        const pagination = normalizePage(query)
+        const qb = this.targetRepository.createQueryBuilder('target').where('target.tenantId = :tenantId', {
+            tenantId: tenant.tenantId
+        })
+        applyOrganizationScope(qb, tenant, 'target')
+        if (query.search) {
+            qb.andWhere('(target.targetId ILIKE :search OR target.providerKey ILIKE :search)', {
+                search: `%${query.search}%`
+            })
+        }
+        if (query.status) qb.andWhere('target.status = :status', { status: query.status })
+        const [items, total] = await qb
+            .orderBy('target.targetId', query.order ?? 'ASC')
+            .skip(pagination.skip)
+            .take(pagination.pageSize)
+            .getManyAndCount()
+        return page(
+            items.map((item) => item.descriptor),
+            total,
+            pagination
+        )
+    }
+
+    async listLearningEvents(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        const pagination = normalizePage(query)
+        const qb = this.eventRepository.createQueryBuilder('event').where('event.tenantId = :tenantId', {
+            tenantId: tenant.tenantId
+        })
+        applyOrganizationScope(qb, tenant, 'event')
+        if (query.targetId) qb.andWhere('event.targetId = :targetId', { targetId: query.targetId })
+        if (query.status) qb.andWhere("event.value ->> 'reviewStatus' = :status", { status: query.status })
+        if (query.search) {
+            qb.andWhere(
+                "(event.eventId ILIKE :search OR event.value ->> 'subjectRef' ILIKE :search OR event.value ->> 'predictionSummary' ILIKE :search)",
+                { search: `%${query.search}%` }
+            )
+        }
+        const [items, total] = await qb
+            .orderBy('event.createdAt', query.order ?? 'DESC')
+            .skip(pagination.skip)
+            .take(pagination.pageSize)
+            .getManyAndCount()
+        return page(
+            items.map((item) => item.value),
+            total,
+            pagination
+        )
+    }
+
+    async listCapabilityVersions(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.versionRepository, tenant, query, 'version', 'targetId')
+    }
+
+    async listCapabilityBundles(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.bundleRepository, tenant, query, 'bundle')
+    }
+
+    async listActivePointers(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.pointerRepository, tenant, query, 'pointer', 'targetId', 'channel')
+    }
+
+    async listProposals(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.proposalRepository, tenant, query, 'proposal', 'targetId', 'status')
+    }
+
+    async reviewLearningEvent(
+        tenant: EvolutionTenantScope,
+        eventId: string,
+        reviewStatus: NonNullable<LearningEvent['reviewStatus']>
+    ) {
+        const entity = await this.eventRepository.findOneOrFail({ where: { ...tenantWhere(tenant), eventId } })
+        entity.value = { ...entity.value, reviewStatus }
+        return (await this.eventRepository.save(entity)).value
+    }
+
+    async listCandidates(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.candidateRepository, tenant, query, 'candidate', 'targetId', 'status')
+    }
+
+    async listDatasets(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.datasetRepository, tenant, query, 'dataset', undefined, undefined, true)
+    }
+
+    async listEvaluations(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.evaluationRepository, tenant, query, 'evaluation', undefined, 'status', true)
+    }
+
+    async listReleases(
+        tenant: EvolutionTenantScope,
+        query: EvolutionPageQuery = {}
+    ): Promise<EvolutionPage<ReleasePackage>> {
+        return this.listJsonValues(this.releaseRepository, tenant, query, 'release', 'targetId', 'status')
+    }
+
+    async listDeployments(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.deploymentRepository, tenant, query, 'deployment', undefined, 'status')
+    }
+
+    async listRuntimeObservations(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.observationRepository, tenant, query, 'observation', 'targetId')
+    }
+
+    async listAuditEvents(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        return this.listJsonValues(this.auditRepository, tenant, query, 'audit', undefined, 'action')
+    }
+
+    async listDeploymentsForTarget(tenant: EvolutionTenantScope, targetId: string) {
+        const releases = await this.releaseRepository.find({
+            where: { ...tenantWhere(tenant), targetId }
+        })
+        if (!releases.length) return []
+        return this.deploymentRepository.find({
+            where: {
+                ...tenantWhere(tenant),
+                releasePackageId: In(releases.map((item) => item.releasePackageId))
+            },
+            order: { createdAt: 'DESC' }
+        })
+    }
+
+    async listDeploymentsForRelease(tenant: EvolutionTenantScope, releasePackageId: string) {
+        return this.deploymentRepository.find({
+            where: { ...tenantWhere(tenant), releasePackageId },
+            order: { createdAt: 'DESC' }
+        })
+    }
+
+    async completeDeployment(tenant: EvolutionTenantScope, deploymentId: string, completedAt: string) {
+        const deployment = await this.deploymentRepository.findOneOrFail({
+            where: { ...tenantWhere(tenant), deploymentId }
+        })
+        deployment.value = { ...deployment.value, completedAt }
+        return this.deploymentRepository.save(deployment)
+    }
+
+    async saveRuntimeObservation(tenant: EvolutionTenantScope, observation: EvolutionRuntimeObservation) {
+        return this.dataSource.transaction(async (manager) => {
+            const observationRepository = manager.getRepository(EvolutionRuntimeObservationEntity)
+            const deploymentRepository = manager.getRepository(ReleaseDeploymentEntity)
+            const releaseRepository = manager.getRepository(ReleasePackageEntity)
+            const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
+            const existing = await observationRepository.findOne({
+                where: { ...tenantWhere(tenant), observationId: observation.observationId }
+            })
+            if (existing) return existing.value
+            const saved = await observationRepository.save(
+                observationRepository.create({
+                    ...tenantValues(tenant),
+                    scopeType: observation.scope.type,
+                    scopeKey: observation.scope.key,
+                    observationId: observation.observationId,
+                    targetId: observation.targetId,
+                    deploymentId: observation.deploymentId ?? null,
+                    executionId: observation.executionId,
+                    severeError: observation.severeError,
+                    value: observation
+                })
+            )
+            if (observation.deploymentId) {
+                const deployment = await deploymentRepository.findOne({
+                    where: { ...tenantWhere(tenant), deploymentId: observation.deploymentId },
+                    lock: { mode: 'pessimistic_write' }
+                })
+                if (!deployment) return saved.value
+                const previousCount = deployment.value.sampleCount
+                const sampleCount = previousCount + 1
+                const candidateAccuracy =
+                    (deployment.value.candidateAccuracy * previousCount + (observation.success ? 1 : 0)) / sampleCount
+                const severeErrors = deployment.value.severeErrors + (observation.severeError ? 1 : 0)
+                const previousObservation = deployment.value.observations.at(-1)
+                const runtimeObservation = {
+                    observationId: observation.observationId,
+                    observedAt: observation.observedAt,
+                    sequence: sampleCount,
+                    sampleCount,
+                    baselineAccuracy: previousObservation?.baselineAccuracy ?? candidateAccuracy,
+                    candidateAccuracy,
+                    severeErrors,
+                    p95LatencyMs: Math.max(previousObservation?.p95LatencyMs ?? 0, observation.latencyMs),
+                    averageCost:
+                        ((previousObservation?.averageCost ?? 0) * previousCount + (observation.cost ?? 0)) /
+                        sampleCount
+                }
+                deployment.value = {
+                    ...deployment.value,
+                    sampleCount,
+                    candidateAccuracy,
+                    severeErrors,
+                    observations: [...deployment.value.observations, runtimeObservation]
+                }
+                await deploymentRepository.save(deployment)
+                if (observation.severeError) {
+                    const release = await releaseRepository.findOne({
+                        where: { ...tenantWhere(tenant), releasePackageId: deployment.releasePackageId },
+                        lock: { mode: 'pessimistic_write' }
+                    })
+                    if (release && (release.status === 'shadow' || release.status === 'canary')) {
+                        assertReleaseTransition(release.status, 'paused')
+                        release.status = 'paused'
+                        release.value = { ...release.value, status: 'paused' }
+                        const audit: EvolutionAuditEvent = {
+                            auditId: `AUD-${observation.observationId}-auto-pause`,
+                            releasePackageId: release.releasePackageId,
+                            candidateId: release.candidateId,
+                            action: 'deployment.auto_paused',
+                            actorId: 'agent-evolution-runtime',
+                            actorRole: 'system_safety_guard',
+                            summary: `Deployment automatically paused after severe runtime observation ${observation.observationId}.`,
+                            occurredAt: observation.observedAt
+                        }
+                        await releaseRepository.save(release)
+                        await auditRepository.save(
+                            auditRepository.create({
+                                ...tenantValues(tenant),
+                                auditId: audit.auditId,
+                                releasePackageId: release.releasePackageId,
+                                candidateId: release.candidateId,
+                                action: audit.action,
+                                value: audit
+                            })
+                        )
+                    }
+                }
+            }
+            return saved.value
+        })
+    }
+
+    async saveJob(tenant: EvolutionTenantScope, job: EvolutionJob) {
+        const existing = await this.jobRepository.findOne({ where: { ...tenantWhere(tenant), jobId: job.jobId } })
+        const saved = await this.jobRepository.save(
+            this.jobRepository.create({
+                ...existing,
+                ...tenantValues(tenant),
+                jobId: job.jobId,
+                jobType: job.jobType,
+                resourceId: job.resourceId,
+                status: job.status,
+                value: job
+            })
+        )
+        return saved.value
+    }
+
+    async findJob(tenant: EvolutionTenantScope, jobId: string) {
+        const entity = await this.jobRepository.findOne({ where: { ...tenantWhere(tenant), jobId } })
+        return entity?.value ?? null
+    }
+
+    async updateJobStatus(
+        tenant: EvolutionTenantScope,
+        jobId: string,
+        status: EvolutionJobStatus,
+        patch: Partial<
+            Pick<EvolutionJob, 'queueJobId' | 'errorCode' | 'errorMessage' | 'startedAt' | 'completedAt'>
+        > = {}
+    ) {
+        const entity = await this.jobRepository.findOneOrFail({ where: { ...tenantWhere(tenant), jobId } })
+        entity.status = status
+        entity.value = { ...entity.value, ...patch, status }
+        return (await this.jobRepository.save(entity)).value
+    }
+
+    private async listJsonValues<TEntity extends ObjectLiteral & { value: TValue }, TValue>(
+        repository: Repository<TEntity>,
+        tenant: EvolutionTenantScope,
+        query: EvolutionPageQuery,
+        alias: string,
+        targetColumn?: string,
+        statusColumn?: string,
+        targetInValue = false
+    ): Promise<EvolutionPage<TValue>> {
+        const pagination = normalizePage(query)
+        const qb = repository.createQueryBuilder(alias).where(`${alias}.tenantId = :tenantId`, {
+            tenantId: tenant.tenantId
+        })
+        applyOrganizationScope(qb, tenant, alias)
+        if (query.targetId && targetColumn) {
+            qb.andWhere(`${alias}.${targetColumn} = :targetId`, { targetId: query.targetId })
+        } else if (query.targetId && targetInValue) {
+            qb.andWhere(`${alias}.value ->> 'targetId' = :targetId`, { targetId: query.targetId })
+        }
+        if (query.status && statusColumn) qb.andWhere(`${alias}.${statusColumn} = :status`, { status: query.status })
+        const sortColumn = query.sort === 'updatedAt' ? 'updatedAt' : 'createdAt'
+        const [items, total] = await qb
+            .orderBy(`${alias}.${sortColumn}`, query.order ?? 'DESC')
+            .skip(pagination.skip)
+            .take(pagination.pageSize)
+            .getManyAndCount()
+        return page(
+            items.map((item) => item.value),
+            total,
+            pagination
+        )
     }
 
     async saveVersion(tenant: EvolutionTenantScope, version: CapabilityVersion) {
@@ -203,6 +571,132 @@ export class AgentEvolutionStore {
         )
     }
 
+    async findLearningEvents(tenant: EvolutionTenantScope, eventIds: string[]) {
+        if (!eventIds.length) return []
+        return this.eventRepository.find({ where: { ...tenantWhere(tenant), eventId: In(eventIds) } })
+    }
+
+    async saveDiagnosis(tenant: EvolutionTenantScope, diagnosis: EvolutionDiagnosis) {
+        return this.diagnosisRepository.save(
+            this.diagnosisRepository.create({
+                ...tenantValues(tenant),
+                scopeType: diagnosis.scope.type,
+                scopeKey: diagnosis.scope.key,
+                diagnosisId: diagnosis.diagnosisId,
+                targetId: diagnosis.targetId,
+                correctionSignature: diagnosis.correctionSignature,
+                value: diagnosis
+            })
+        )
+    }
+
+    async saveEventCluster(tenant: EvolutionTenantScope, cluster: EvolutionEventCluster) {
+        const existing = await this.clusterRepository.findOne({
+            where: {
+                ...tenantWhere(tenant),
+                targetId: cluster.targetId,
+                scopeType: cluster.scope.type,
+                scopeKey: cluster.scope.key,
+                correctionSignature: cluster.correctionSignature
+            }
+        })
+        return this.clusterRepository.save(
+            this.clusterRepository.create({
+                ...existing,
+                ...tenantValues(tenant),
+                scopeType: cluster.scope.type,
+                scopeKey: cluster.scope.key,
+                clusterId: existing?.clusterId ?? cluster.clusterId,
+                targetId: cluster.targetId,
+                correctionSignature: cluster.correctionSignature,
+                status: cluster.status,
+                value: existing
+                    ? {
+                          ...cluster,
+                          clusterId: existing.clusterId,
+                          eventIds: [...new Set([...existing.value.eventIds, ...cluster.eventIds])],
+                          caseCount: Math.max(existing.value.caseCount, cluster.caseCount),
+                          createdAt: existing.value.createdAt
+                      }
+                    : cluster
+            })
+        )
+    }
+
+    async listDiagnoses(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        const pagination = normalizePage(query)
+        const [items, total] = await this.diagnosisRepository.findAndCount({
+            where: { ...tenantWhere(tenant), ...(query.targetId ? { targetId: query.targetId } : {}) },
+            order: { createdAt: query.order ?? 'DESC' },
+            skip: pagination.skip,
+            take: pagination.pageSize
+        })
+        return page(
+            items.map((item) => item.value),
+            total,
+            pagination
+        )
+    }
+
+    async listEventClusters(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        const pagination = normalizePage(query)
+        const [items, total] = await this.clusterRepository.findAndCount({
+            where: {
+                ...tenantWhere(tenant),
+                ...(query.targetId ? { targetId: query.targetId } : {}),
+                ...(query.status ? { status: query.status as EvolutionEventCluster['status'] } : {})
+            },
+            order: { updatedAt: query.order ?? 'DESC' },
+            skip: pagination.skip,
+            take: pagination.pageSize
+        })
+        return page(
+            items.map((item) => item.value),
+            total,
+            pagination
+        )
+    }
+
+    async saveExperience(tenant: EvolutionTenantScope, experience: EvolutionExperience) {
+        const existing = await this.experienceRepository.findOne({
+            where: { ...tenantWhere(tenant), sourceReleasePackageId: experience.sourceReleasePackageId }
+        })
+        return this.experienceRepository.save(
+            this.experienceRepository.create({
+                ...existing,
+                ...tenantValues(tenant),
+                scopeType: experience.scope.type,
+                scopeKey: experience.scope.key,
+                experienceId: existing?.experienceId ?? experience.experienceId,
+                targetId: experience.targetId,
+                sourceReleasePackageId: experience.sourceReleasePackageId,
+                status: experience.status,
+                value: existing
+                    ? { ...experience, experienceId: existing.experienceId, createdAt: existing.value.createdAt }
+                    : experience
+            })
+        )
+    }
+
+    async listExperiences(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
+        const pagination = normalizePage(query)
+        const [items, total] = await this.experienceRepository.findAndCount({
+            where: {
+                ...tenantWhere(tenant),
+                ...(query.targetId ? { targetId: query.targetId } : {}),
+                ...(query.status ? { status: query.status as EvolutionExperience['status'] } : {})
+            },
+            order: { createdAt: query.order ?? 'DESC' },
+            skip: pagination.skip,
+            take: pagination.pageSize
+        })
+        return page(
+            items.map((item) => item.value),
+            total,
+            pagination
+        )
+    }
+
     async saveProposal(tenant: EvolutionTenantScope, proposal: ImprovementProposal) {
         return this.proposalRepository.save(
             this.proposalRepository.create({
@@ -216,6 +710,20 @@ export class AgentEvolutionStore {
                 value: proposal
             })
         )
+    }
+
+    async updateProposalStatus(
+        tenant: EvolutionTenantScope,
+        proposalId: string,
+        revision: number,
+        status: ImprovementProposal['status']
+    ) {
+        const entity = await this.proposalRepository.findOneOrFail({
+            where: { ...tenantWhere(tenant), proposalId, revision }
+        })
+        entity.status = status
+        entity.value = { ...entity.value, status }
+        return (await this.proposalRepository.save(entity)).value
     }
 
     async saveCandidate(tenant: EvolutionTenantScope, candidate: EvolutionCandidate) {
@@ -425,6 +933,78 @@ export class AgentEvolutionStore {
         })
     }
 
+    async rollbackPointerCas(input: {
+        tenant: EvolutionTenantScope
+        pointerId: string
+        expectedRevision: number
+        expectedVersionId: string
+        rollbackVersionId: string
+        releasePackageId: string
+        actorId: string
+        actorRole: string
+        occurredAt: string
+    }) {
+        return this.dataSource.transaction(async (manager) => {
+            const pointerRepository = manager.getRepository(ActiveCapabilityPointerEntity)
+            const releaseRepository = manager.getRepository(ReleasePackageEntity)
+            const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
+            const pointer = await pointerRepository.findOneOrFail({
+                where: { ...tenantWhere(input.tenant), pointerId: input.pointerId }
+            })
+            const nextPointer: ActiveCapabilityPointer = {
+                ...pointer.value,
+                activeVersionId: input.rollbackVersionId,
+                rollbackVersionId: input.expectedVersionId,
+                releasePackageId: input.releasePackageId,
+                revision: input.expectedRevision + 1,
+                updatedAt: input.occurredAt,
+                updatedBy: input.actorId
+            }
+            const update = await pointerRepository.update(
+                {
+                    ...tenantWhere(input.tenant),
+                    pointerId: input.pointerId,
+                    revision: input.expectedRevision,
+                    activeVersionId: input.expectedVersionId
+                },
+                {
+                    activeVersionId: nextPointer.activeVersionId,
+                    revision: nextPointer.revision,
+                    value: nextPointer
+                }
+            )
+            if (update.affected !== 1) throw new Error('Active Pointer rollback CAS conflict')
+            const release = await releaseRepository.findOneOrFail({
+                where: { ...tenantWhere(input.tenant), releasePackageId: input.releasePackageId }
+            })
+            assertReleaseTransition(release.status, 'rolled_back')
+            release.status = 'rolled_back'
+            release.value = { ...release.value, status: 'rolled_back' }
+            const audit: EvolutionAuditEvent = {
+                auditId: `AUD-${input.releasePackageId}-rollback-${input.expectedRevision + 1}`,
+                releasePackageId: input.releasePackageId,
+                candidateId: release.candidateId,
+                action: 'active_pointer.cas_rolled_back',
+                actorId: input.actorId,
+                actorRole: input.actorRole,
+                summary: `${input.expectedVersionId} -> ${input.rollbackVersionId}; revision ${input.expectedRevision} -> ${input.expectedRevision + 1}`,
+                occurredAt: input.occurredAt
+            }
+            await releaseRepository.save(release)
+            await auditRepository.save(
+                auditRepository.create({
+                    ...tenantValues(input.tenant),
+                    auditId: audit.auditId,
+                    releasePackageId: input.releasePackageId,
+                    candidateId: release.candidateId,
+                    action: audit.action,
+                    value: audit
+                })
+            )
+            return nextPointer
+        })
+    }
+
     async getDashboard(tenant: EvolutionTenantScope) {
         const [
             targets,
@@ -603,6 +1183,36 @@ export class AgentEvolutionStore {
             rowCount: tables.reduce((sum, table) => sum + table.actualCount, 0),
             tables
         }
+    }
+}
+
+interface NormalizedEvolutionPage {
+    page: number
+    pageSize: number
+    skip: number
+}
+
+function normalizePage(query: EvolutionPageQuery): NormalizedEvolutionPage {
+    const pageNumber = Number(query.page ?? 1)
+    const pageSizeNumber = Number(query.pageSize ?? 20)
+    const page = Number.isFinite(pageNumber) ? Math.max(1, Math.trunc(pageNumber)) : 1
+    const pageSize = Number.isFinite(pageSizeNumber) ? Math.min(100, Math.max(1, Math.trunc(pageSizeNumber))) : 20
+    return { page, pageSize, skip: (page - 1) * pageSize }
+}
+
+function page<T>(items: T[], total: number, pagination: NormalizedEvolutionPage): EvolutionPage<T> {
+    return { items, total, page: pagination.page, pageSize: pagination.pageSize }
+}
+
+function applyOrganizationScope<TEntity extends ObjectLiteral>(
+    qb: SelectQueryBuilder<TEntity>,
+    tenant: EvolutionTenantScope,
+    alias: string
+) {
+    if (tenant.organizationId) {
+        qb.andWhere(`${alias}.organizationId = :organizationId`, { organizationId: tenant.organizationId })
+    } else {
+        qb.andWhere(`${alias}.organizationId IS NULL`)
     }
 }
 

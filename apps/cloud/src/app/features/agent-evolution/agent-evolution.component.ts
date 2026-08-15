@@ -1,17 +1,20 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, computed, inject } from '@angular/core'
+import { Component, computed, effect, inject, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { AIPermissionsEnum } from '@cloud/app/@core'
+import { injectActiveScope } from '@cloud/app/@core/state'
 import {
-  ZardAlertDialogService,
   ZardBadgeComponent,
   ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardComboboxComponent,
   ZardIconComponent,
-  ZardTabsImports
+  ZardTabsImports,
+  type ZardComboboxOption
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
 import { filter, map, startWith } from 'rxjs/operators'
 import { AgentEvolutionFacade } from './agent-evolution.facade'
 
@@ -20,12 +23,15 @@ import { AgentEvolutionFacade } from './agent-evolution.facade'
   selector: 'xp-agent-evolution',
   imports: [
     CommonModule,
+    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardComboboxComponent,
     ZardIconComponent,
     ...ZardTabsImports
   ],
@@ -35,11 +41,11 @@ import { AgentEvolutionFacade } from './agent-evolution.facade'
     class: 'block h-full w-full min-w-0 flex-1'
   }
 })
-export class AgentEvolutionComponent implements OnInit {
+export class AgentEvolutionComponent {
   readonly facade = inject(AgentEvolutionFacade)
-  readonly #alertDialog = inject(ZardAlertDialogService)
-  readonly #translate = inject(TranslateService)
   readonly #router = inject(Router)
+  readonly #translate = inject(TranslateService)
+  readonly #activeScope = injectActiveScope()
 
   readonly AIPermissionsEnum = AIPermissionsEnum
   readonly currentUrl = toSignal(
@@ -50,47 +56,58 @@ export class AgentEvolutionComponent implements OnInit {
     ),
     { initialValue: this.#router.url }
   )
-  readonly activeSubtitle = computed(() => {
+  readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
+  readonly activeSubtitleKey = computed(() => {
     const url = this.currentUrl()
     if (url.includes('/learning')) {
-      return '从真实执行中发现可验证的改进机会'
+      return 'XP.AgentEvolution.SubtitleLearning'
     }
     if (url.includes('/evaluation')) {
-      return '在隔离环境中验证候选能力，阻止回归进入生产'
+      return 'XP.AgentEvolution.SubtitleEvaluation'
     }
     if (url.includes('/release')) {
-      return '以可审计的灰度策略发布能力版本'
+      return 'XP.AgentEvolution.SubtitleRelease'
     }
-    return '持续发现、验证并安全发布智能体能力改进'
+    return 'XP.AgentEvolution.SubtitleOverview'
   })
 
   readonly tabs = [
-    { path: 'overview', label: '概览', icon: 'ri-dashboard-line' },
-    { path: 'learning', label: '学习与建议', icon: 'ri-lightbulb-flash-line' },
-    { path: 'evaluation', label: '候选与评测', icon: 'ri-flask-line' },
-    { path: 'release', label: '发布与运行', icon: 'ri-rocket-line' }
+    { path: 'overview', labelKey: 'XP.AgentEvolution.TabOverview', icon: 'ri-dashboard-line' },
+    { path: 'learning', labelKey: 'XP.AgentEvolution.TabLearning', icon: 'ri-lightbulb-flash-line' },
+    { path: 'evaluation', labelKey: 'XP.AgentEvolution.TabEvaluation', icon: 'ri-flask-line' },
+    { path: 'release', labelKey: 'XP.AgentEvolution.TabRelease', icon: 'ri-rocket-line' }
   ]
 
-  ngOnInit() {
-    void this.facade.load()
+  readonly targetOptions = computed<ZardComboboxOption[]>(() => {
+    this.localeChange()
+    return [
+      { value: 'all', label: this.#translate.instant('XP.AgentEvolution.AllTargets') },
+      ...this.facade.visibleTargets().map((target) => ({
+        value: target.targetId,
+        label: `${target.displayName} · ${target.targetId}`
+      }))
+    ]
+  })
+
+  constructor() {
+    effect(() => {
+      this.#activeScope()
+      untracked(() => {
+        this.facade.resetScopeContext()
+        void this.facade.load()
+      })
+    })
   }
 
-  async simulate() {
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        title: this.#translate.instant('XP.AgentEvolution.SimulateTitle', {
-          Default: '执行完整 Agent Evolution 示例？'
-        }),
-        description: this.#translate.instant('XP.AgentEvolution.SimulateDescription', {
-          Default:
-            '将执行“多语言发票金额字段映射”合成测试案例，并把学习事件、建议、候选、黄金集、评测、审批、Shadow、Canary 和指针切换全部写入当前租户数据表。'
-        }),
-        actionText: this.#translate.instant('XP.AgentEvolution.StartSimulation', { Default: '运行并验证数据' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
-      })
-    )
-    if (confirmed) {
-      await this.facade.runSimulation()
-    }
+  selectTarget(value: string | null) {
+    this.facade.selectTarget(value || 'all')
+  }
+
+  setShowFixtures(value: boolean) {
+    const selected = this.facade
+      .dashboard()
+      .targets.find((target) => target.targetId === this.facade.selectedTargetId())
+    this.facade.showFixtures.set(value)
+    if (!value && selected?.targetType === 'test_fixture') this.facade.selectTarget('all')
   }
 }

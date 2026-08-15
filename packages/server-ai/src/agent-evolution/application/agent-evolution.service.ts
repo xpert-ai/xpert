@@ -43,6 +43,51 @@ export class AgentEvolutionService {
         const tenant = toTenantScope(context)
         const descriptors = this.providers.listDescriptors(context.organizationId ?? undefined)
         await Promise.all(descriptors.map((descriptor) => this.store.upsertTarget(tenant, descriptor)))
+        for (const descriptor of descriptors) {
+            const provider = this.providers.get(descriptor.targetId, context.organizationId ?? undefined)
+            if (!provider.baselineExporter) continue
+            const scope: EvolutionScope = context.organizationId
+                ? { type: 'organization', key: context.organizationId }
+                : { type: 'tenant', key: context.tenantId }
+            const existingPointer = await this.store.findPointer(tenant, descriptor.targetId, scope)
+            if (existingPointer) continue
+            const exported = await provider.baselineExporter.exportBaseline({
+                context: {
+                    tenantId: context.tenantId,
+                    organizationId: context.organizationId ?? null,
+                    targetId: descriptor.targetId,
+                    scope,
+                    correlationId: `bootstrap:${descriptor.targetId}`,
+                    actor: { actorId: 'agent-evolution-bootstrap', actorType: 'system', actorRole: 'system_bootstrap' }
+                },
+                targetId: descriptor.targetId,
+                scope
+            })
+            const now = new Date().toISOString()
+            const version: CapabilityVersion = {
+                versionId: `${descriptor.targetId}:v1`,
+                targetId: descriptor.targetId,
+                sequence: 1,
+                semanticVersion: exported.semanticVersion,
+                artifact: exported.artifact,
+                providerKey: descriptor.providerKey,
+                providerVersion: descriptor.providerVersion,
+                dependencyVersionIds: exported.dependencyVersionIds,
+                createdAt: now,
+                createdBy: 'agent-evolution-bootstrap'
+            }
+            await this.store.saveVersion(tenant, version)
+            await this.store.savePointer(tenant, {
+                pointerId: `PTR-${randomUUID()}`,
+                targetId: descriptor.targetId,
+                scope,
+                channel: 'production',
+                activeVersionId: version.versionId,
+                revision: 1,
+                updatedAt: now,
+                updatedBy: 'agent-evolution-bootstrap'
+            })
+        }
         return descriptors
     }
 
@@ -99,7 +144,7 @@ export class AgentEvolutionService {
             input,
             now
         )
-        const snapshot = await this.createDatasetSnapshot(tenant, simulationId, now)
+        const snapshot = await this.createDatasetSnapshot(tenant, simulationId, scope, now)
         const candidateBundle = await this.createCandidateBundle(tenant, simulationId, candidate, now)
         await this.store.transitionCandidate(tenant, candidate.candidateId, 'evaluating')
         const evaluation = await this.runEvaluation(
@@ -459,6 +504,7 @@ export class AgentEvolutionService {
             proposalId: proposal.proposalId,
             proposalRevision: proposal.revision,
             baseVersionId: baseline.versionId,
+            baseArtifact: baseline.artifact,
             changeSet: {
                 operation: 'add_aliases',
                 aliases: CONFORMANCE_FIELD_MAPPING_EXAMPLE.candidateAliases.filter(
@@ -475,6 +521,7 @@ export class AgentEvolutionService {
             scope,
             artifact: build.artifact,
             baseVersionId: baseline.versionId,
+            baseArtifact: baseline.artifact,
             dependencyVersionIds: build.dependencyVersionIds
         })
         if (!validation.valid) {
@@ -501,7 +548,12 @@ export class AgentEvolutionService {
         return ready.value
     }
 
-    private async createDatasetSnapshot(tenant: EvolutionTenantScope, simulationId: string, now: string) {
+    private async createDatasetSnapshot(
+        tenant: EvolutionTenantScope,
+        simulationId: string,
+        scope: EvolutionScope,
+        now: string
+    ) {
         const cases = CONFORMANCE_FIELD_MAPPING_EXAMPLE.goldenCases.map((fixture, index) => ({
             caseId: `GR-${simulationId}-${index + 1}`,
             revision: 1,
@@ -514,6 +566,8 @@ export class AgentEvolutionService {
         const snapshot: DatasetSnapshot = {
             snapshotId: `DS-${simulationId}`,
             datasetId: 'conformance-field-mapping-v1',
+            targetId: CONFORMANCE_FIELD_MAPPING_TARGET,
+            scope,
             name: 'Conformance field mapping golden snapshot',
             evaluatorVersion: 'exact-match-v1',
             metricDefinitionVersion: 'mapping-gates-v1',
@@ -592,6 +646,8 @@ export class AgentEvolutionService {
         if (metrics.p95LatencyMs > 100) blockingReasons.push('p95_latency_exceeded')
         const evaluation: EvaluationRun = {
             runId,
+            targetId: candidate.targetId,
+            scope: candidate.targetScope,
             candidateId: candidate.candidateId,
             datasetSnapshotId: snapshot.snapshotId,
             baselineBundle,
@@ -630,6 +686,7 @@ export class AgentEvolutionService {
             decision: 'approved',
             actorId: input.actorId,
             actorRole: input.actorRole,
+            approvalAuthority: 'standard',
             reason: 'All conformance gates passed; approve immutable candidate hash for promotion.',
             decidedAt: now
         }

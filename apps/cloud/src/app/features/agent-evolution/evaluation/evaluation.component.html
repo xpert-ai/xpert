@@ -1,47 +1,269 @@
 <main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
+  <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4 shadow-none">
+    <div class="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_minmax(260px,1fr)_auto] lg:items-end">
+      <label class="block text-xs text-text-secondary">
+        <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.Candidate' | translate }}</span>
+        <z-combobox
+          class="w-full"
+          zWidth="full"
+          [value]="candidate()?.candidateId || null"
+          [options]="candidateOptions()"
+          [placeholder]="'XP.AgentEvolution.SelectCandidate' | translate"
+          [searchPlaceholder]="'XP.AgentEvolution.SearchCandidate' | translate"
+          [emptyText]="'XP.AgentEvolution.NoCandidateOptions' | translate"
+          [ariaLabel]="'XP.AgentEvolution.Candidate' | translate"
+          (zValueChange)="selectCandidate($event || '')"
+        />
+      </label>
+      <label class="block text-xs text-text-secondary">
+        <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.GoldenDatasetSnapshot' | translate }}</span>
+        <z-combobox
+          class="w-full"
+          zWidth="full"
+          [value]="dataset()?.snapshotId || null"
+          [options]="datasetOptions()"
+          [zDisabled]="!candidate()"
+          [placeholder]="'XP.AgentEvolution.SelectMatchingDataset' | translate"
+          [searchPlaceholder]="'XP.AgentEvolution.SearchDataset' | translate"
+          [emptyText]="'XP.AgentEvolution.NoDatasetOptions' | translate"
+          [ariaLabel]="'XP.AgentEvolution.GoldenDatasetSnapshot' | translate"
+          (zValueChange)="selectDataset($event || '')"
+        />
+      </label>
+      <div class="flex flex-wrap gap-2">
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          [zDisabled]="!candidate()"
+          (click)="showDatasetBuilder.set(!showDatasetBuilder())"
+        >
+          <i class="ri-database-2-line"></i>{{ 'XP.AgentEvolution.CreateDataset' | translate }}
+        </button>
+        <button
+          z-button
+          type="button"
+          [zLoading]="facade.mutating()"
+          [zDisabled]="candidate()?.status !== 'ready' || !dataset()"
+          (click)="rerun()"
+        >
+          <i class="ri-play-circle-line"></i>{{ 'XP.AgentEvolution.RunGoldenReplay' | translate }}
+        </button>
+      </div>
+    </div>
+
+    @if (candidate(); as item) {
+      <div
+        class="mt-3 flex flex-wrap items-center gap-2 border-t border-divider-subtle pt-3 text-xs text-text-secondary"
+      >
+        <z-badge zType="outline">{{ candidateTarget()?.displayName || item.targetId }}</z-badge>
+        <span
+          >{{ 'XP.AgentEvolution.Scope' | translate }} {{ item.targetScope.type }} / {{ item.targetScope.key }}</span
+        >
+        <span>·</span>
+        <span>{{ 'XP.AgentEvolution.Baseline' | translate }} {{ item.baseVersionId }}</span>
+        <span>·</span>
+        <span class="font-mono"
+          >{{ 'XP.AgentEvolution.Artifact' | translate }} {{ shortId(item.artifact.hash, 18) }}</span
+        >
+        @if (!candidateTarget()?.capabilities?.install) {
+          <z-badge zType="outline" class="text-text-warning">{{
+            'XP.AgentEvolution.EvaluationOnlyNoRelease' | translate
+          }}</z-badge>
+        }
+      </div>
+    }
+  </section>
+
+  @if (showDatasetBuilder() && candidate()) {
+    <z-card class="border border-primary-300/60 bg-components-card-bg shadow-none">
+      <z-card-header class="border-b border-divider-subtle px-5 py-4">
+        <z-card-title>{{ 'XP.AgentEvolution.CreateImmutableDataset' | translate }}</z-card-title>
+        <z-card-subtitle class="mt-1">{{
+          'XP.AgentEvolution.ImmutableDatasetDescription' | translate
+        }}</z-card-subtitle>
+      </z-card-header>
+      <z-card-content class="space-y-4 p-5">
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <label class="text-xs text-text-secondary">
+            <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.DatasetId' | translate }}</span>
+            <input
+              z-input
+              class="w-full"
+              [ngModel]="datasetId()"
+              (ngModelChange)="datasetId.set($event)"
+              [placeholder]="'XP.AgentEvolution.DatasetIdPlaceholder' | translate"
+            />
+          </label>
+          <label class="text-xs text-text-secondary">
+            <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.Name' | translate }}</span>
+            <input
+              z-input
+              class="w-full"
+              [ngModel]="datasetName()"
+              (ngModelChange)="datasetName.set($event)"
+              [placeholder]="'XP.AgentEvolution.DatasetNamePlaceholder' | translate"
+            />
+          </label>
+          <label class="text-xs text-text-secondary">
+            <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.EvaluatorVersion' | translate }}</span>
+            <input
+              z-input
+              class="w-full"
+              [ngModel]="evaluatorVersion()"
+              (ngModelChange)="evaluatorVersion.set($event)"
+            />
+          </label>
+          <label class="text-xs text-text-secondary">
+            <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.MetricDefinition' | translate }}</span>
+            <input
+              z-input
+              class="w-full"
+              [ngModel]="metricDefinitionVersion()"
+              (ngModelChange)="metricDefinitionVersion.set($event)"
+              [placeholder]="candidateTarget()?.metricSetId || 'metrics-v1'"
+            />
+          </label>
+        </div>
+        <div class="block text-xs text-text-secondary">
+          <span class="mb-1.5 flex flex-wrap items-center justify-between gap-2 font-medium">
+            {{ 'XP.AgentEvolution.GoldenCasesJson' | translate }}
+            <label class="cursor-pointer text-primary-600 hover:text-primary-700">
+              <i class="ri-upload-2-line"></i> {{ 'XP.AgentEvolution.ImportJsonFile' | translate }}
+              <input type="file" accept="application/json,.json" class="hidden" (change)="importDatasetFile($event)" />
+            </label>
+          </span>
+          <textarea
+            z-input
+            class="min-h-56 w-full resize-y py-3 font-mono text-xs leading-5"
+            [ngModel]="datasetCasesJson()"
+            (ngModelChange)="datasetCasesJson.set($event)"
+            [placeholder]="'XP.AgentEvolution.GoldenCasesJsonPlaceholder' | translate"
+          ></textarea>
+        </div>
+        <div
+          class="flex flex-col gap-3 rounded-lg bg-background-default-subtle p-3 text-xs text-text-secondary lg:flex-row lg:items-center lg:justify-between"
+        >
+          <span>{{ 'XP.AgentEvolution.DefaultGoldenGateHint' | translate }}</span>
+          <div class="flex gap-2">
+            <button z-button zType="ghost" type="button" (click)="showDatasetBuilder.set(false)">
+              {{ 'XP.ACTIONS.Cancel' | translate }}
+            </button>
+            <button z-button type="button" [zLoading]="facade.mutating()" (click)="createDataset()">
+              {{ 'XP.AgentEvolution.CreateSnapshot' | translate }}
+            </button>
+          </div>
+        </div>
+      </z-card-content>
+    </z-card>
+  }
+
   @if (evaluation(); as run) {
     <section
       class="flex flex-col gap-4 rounded-xl border border-divider-regular bg-components-card-bg p-5 lg:flex-row lg:items-start lg:justify-between"
     >
       <div class="min-w-0">
-        <div class="flex flex-wrap items-center gap-1.5 text-xs text-text-tertiary">
-          <span>候选与评测</span><i class="ri-arrow-right-s-line"></i><span>{{ run.datasetSnapshotId }}</span
+        <div class="flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+          <span>{{ 'XP.AgentEvolution.TabEvaluation' | translate }}</span
+          ><i class="ri-arrow-right-s-line"></i><span>{{ run.datasetSnapshotId }}</span
           ><i class="ri-arrow-right-s-line"></i><span class="font-mono">{{ run.runId }}</span>
         </div>
         <div class="mt-3 flex flex-wrap items-center gap-2">
-          <h2 class="text-xl font-semibold text-text-primary">字段标准化候选</h2>
-          <z-badge zType="outline" [class.text-text-success]="run.status === 'passed'">{{ run.status }}</z-badge>
-          <z-badge zType="outline">固定快照回放完成</z-badge>
+          <h2 class="text-xl font-semibold text-text-primary">
+            {{
+              candidateTarget()?.displayName ||
+                candidate()?.targetId ||
+                ('XP.AgentEvolution.CapabilityCandidate' | translate)
+            }}
+          </h2>
+          <z-badge zType="outline" [class.text-text-success]="run.status === 'passed'">{{
+            'XP.AgentEvolution.Status.' + run.status | translate: { Default: run.status }
+          }}</z-badge>
+          <z-badge zType="outline">{{ 'XP.AgentEvolution.FixedSnapshotReplayCompleted' | translate }}</z-badge>
         </div>
-        <p class="mt-1 text-sm text-text-tertiary">
-          候选 {{ run.candidateId }} · {{ run.metrics.totalCases }} 个黄金样本 · Gate {{ run.gate.decision }}
+        <p class="mt-1 text-sm text-text-secondary">
+          {{
+            'XP.AgentEvolution.EvaluationSummary'
+              | translate: { candidateId: run.candidateId, count: run.metrics.totalCases, decision: run.gate.decision }
+          }}
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button z-button zType="outline" type="button" [zLoading]="facade.simulating()" (click)="rerun()">
-          <i class="ri-restart-line"></i>重新执行评测
+        <button z-button zType="outline" type="button" [zLoading]="facade.mutating()" (click)="rerun()">
+          <i class="ri-restart-line"></i>{{ 'XP.AgentEvolution.RerunEvaluation' | translate }}
         </button>
-        <button z-button type="button" [zDisabled]="candidate()?.status !== 'pending_approval'">
+        <button
+          z-button
+          type="button"
+          [zDisabled]="candidate()?.status !== 'pending_approval' || !approvalReason().trim()"
+          [zLoading]="facade.mutating()"
+          (click)="approve()"
+        >
           <i class="ri-user-follow-line"></i
-          >{{ candidate()?.status === 'pending_approval' ? '提交审批' : '已完成审批' }}
+          >{{
+            (candidate()?.status === 'pending_approval'
+              ? 'XP.AgentEvolution.SubmitApproval'
+              : 'XP.AgentEvolution.ApprovalSatisfied'
+            ) | translate
+          }}
         </button>
-        <button z-button zType="ghost" zSize="icon" type="button" title="更多"><i class="ri-more-2-fill"></i></button>
+        @if (candidate()?.status === 'pending_approval') {
+          <button z-button zType="destructive" type="button" [zLoading]="facade.mutating()" (click)="reject()">
+            <i class="ri-close-circle-line"></i>{{ 'XP.AgentEvolution.Reject' | translate }}
+          </button>
+        }
+        @if (candidateTarget()?.capabilities?.install) {
+          <button
+            z-button
+            zType="secondary"
+            type="button"
+            [zDisabled]="!canPackage()"
+            [zLoading]="facade.mutating()"
+            (click)="packageRelease()"
+          >
+            <i class="ri-archive-stack-line"></i>{{ 'XP.AgentEvolution.CreateReleasePackage' | translate }}
+          </button>
+        }
+        <button z-button zType="ghost" zSize="icon" type="button" [title]="'XP.AgentEvolution.More' | translate">
+          <i class="ri-more-2-fill"></i>
+        </button>
       </div>
     </section>
+
+    @if (candidate()?.status === 'pending_approval' || candidate()?.status === 'approved') {
+      <section
+        class="grid gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-4 lg:grid-cols-[1fr_auto] lg:items-end"
+      >
+        <label class="text-xs text-text-secondary">
+          <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.ApprovalComment' | translate }}</span>
+          <input z-input class="w-full" [ngModel]="approvalReason()" (ngModelChange)="approvalReason.set($event)" />
+        </label>
+        <div class="rounded-lg bg-background-default-subtle px-4 py-2 text-xs text-text-secondary">
+          {{
+            (approvalGate().administratorPath
+              ? 'XP.AgentEvolution.AdministratorApprovalProgress'
+              : 'XP.AgentEvolution.ApprovalRoleProgress'
+            ) | translate: { approved: approvalGate().progress, required: requiredApprovals() }
+          }}
+        </div>
+      </section>
+    }
 
     <section
       class="grid items-center gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-4 lg:grid-cols-[1fr_auto_1fr]"
     >
       <div class="rounded-lg bg-background-default-subtle p-4">
         <div class="flex items-center justify-between gap-3">
-          <span class="text-xs font-medium uppercase text-text-tertiary">Production baseline</span
-          ><z-badge zType="secondary">当前生产</z-badge>
+          <span class="text-xs font-medium uppercase text-text-secondary">{{
+            'XP.AgentEvolution.ProductionBaseline' | translate
+          }}</span
+          ><z-badge zType="secondary">{{ 'XP.AgentEvolution.CurrentProduction' | translate }}</z-badge>
         </div>
         <div class="mt-2 font-mono text-sm font-semibold text-text-primary">
           {{ run.baselineBundle.items[0]?.versionId || '—' }}
         </div>
-        <div class="mt-1 break-all font-mono text-[10px] text-text-tertiary">
-          Bundle {{ shortId(run.baselineBundle.bundleHash, 20) }}
+        <div class="mt-1 break-all font-mono text-[10px] text-text-secondary">
+          {{ 'XP.AgentEvolution.Bundle' | translate }} {{ shortId(run.baselineBundle.bundleHash, 20) }}
         </div>
       </div>
       <span class="flex size-9 items-center justify-center rounded-full bg-primary-100 text-primary-700"
@@ -49,14 +271,18 @@
       ></span>
       <div class="rounded-lg border border-primary-200 bg-primary-50/60 p-4 dark:bg-primary-950/20">
         <div class="flex items-center justify-between gap-3">
-          <span class="text-xs font-medium uppercase text-primary-700">Candidate</span
-          ><z-badge zType="outline" class="border-primary-300 text-primary-700">待发布</z-badge>
+          <span class="text-xs font-medium uppercase text-primary-700">{{
+            'XP.AgentEvolution.Candidate' | translate
+          }}</span
+          ><z-badge zType="outline" class="border-primary-300 text-primary-700">{{
+            'XP.AgentEvolution.PendingRelease' | translate
+          }}</z-badge>
         </div>
         <div class="mt-2 font-mono text-sm font-semibold text-text-primary">
           {{ run.candidateBundle.items[0]?.versionId || candidate()?.candidateId || '—' }}
         </div>
-        <div class="mt-1 break-all font-mono text-[10px] text-text-tertiary">
-          Bundle {{ shortId(run.candidateBundle.bundleHash, 20) }}
+        <div class="mt-1 break-all font-mono text-[10px] text-text-secondary">
+          {{ 'XP.AgentEvolution.Bundle' | translate }} {{ shortId(run.candidateBundle.bundleHash, 20) }}
         </div>
       </div>
     </section>
@@ -64,16 +290,18 @@
     <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-tertiary">黄金集通过</div>
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.GoldenCasesPassed' | translate }}</div>
           <div class="mt-2 text-2xl font-semibold text-text-primary">
             {{ run.metrics.passedCases }}/{{ run.metrics.totalCases }}
           </div>
-          <div class="mt-1 text-[11px] text-text-success">全部样本</div></z-card-content
+          <div class="mt-1 text-[11px] text-text-success">
+            {{ 'XP.AgentEvolution.AllSamples' | translate }}
+          </div></z-card-content
         ></z-card
       >
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-tertiary">字段准确率</div>
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.FieldAccuracy' | translate }}</div>
           <div class="mt-2 text-2xl font-semibold text-text-primary">{{ percent(run.metrics.candidateAccuracy) }}</div>
           <div class="mt-1 text-[11px] text-text-success">
             +{{ (run.metrics.accuracyDelta * 100).toFixed(1) }}pp
@@ -82,40 +310,50 @@
       >
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-tertiary">未映射率</div>
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.UnmappedRate' | translate }}</div>
           <div class="mt-2 text-2xl font-semibold text-text-primary">
             {{ percent(1 - run.metrics.candidateAccuracy) }}
           </div>
-          <div class="mt-1 text-[11px] text-text-success">低于 baseline</div></z-card-content
+          <div class="mt-1 text-[11px] text-text-success">
+            {{ 'XP.AgentEvolution.BelowBaseline' | translate }}
+          </div></z-card-content
         ></z-card
       >
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-tertiary">严重错误</div>
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.SevereErrors' | translate }}</div>
           <div class="mt-2 text-2xl font-semibold text-text-primary">{{ run.metrics.severeErrors }}</div>
-          <div class="mt-1 text-[11px] text-text-success">阻断阈值 0</div></z-card-content
+          <div class="mt-1 text-[11px] text-text-success">
+            {{ 'XP.AgentEvolution.BlockingThresholdZero' | translate }}
+          </div></z-card-content
         ></z-card
       >
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-tertiary">P95 延迟</div>
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.P95Latency' | translate }}</div>
           <div class="mt-2 text-2xl font-semibold text-text-primary">
             {{ (run.metrics.p95LatencyMs / 1000).toFixed(2) }}s
           </div>
-          <div class="mt-1 text-[11px] text-text-tertiary">可接受</div></z-card-content
+          <div class="mt-1 text-[11px] text-text-secondary">
+            {{ 'XP.AgentEvolution.Acceptable' | translate }}
+          </div></z-card-content
         ></z-card
       >
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-tertiary">平均成本</div>
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.AverageCost' | translate }}</div>
           <div class="mt-2 text-2xl font-semibold text-text-primary">${{ run.metrics.averageCost.toFixed(3) }}</div>
-          <div class="mt-1 text-[11px] text-text-tertiary">每次执行</div></z-card-content
+          <div class="mt-1 text-[11px] text-text-secondary">
+            {{ 'XP.AgentEvolution.PerExecution' | translate }}
+          </div></z-card-content
         ></z-card
       >
       <z-card class="border border-state-success-hover bg-state-success-hover/10 shadow-none"
         ><z-card-content class="p-4"
-          ><div class="text-xs text-text-success">门禁建议</div>
-          <div class="mt-2 text-xl font-semibold text-text-success">{{ run.gate.passed ? '通过' : '阻断' }}</div>
+          ><div class="text-xs text-text-success">{{ 'XP.AgentEvolution.GateRecommendation' | translate }}</div>
+          <div class="mt-2 text-xl font-semibold text-text-success">
+            {{ (run.gate.passed ? 'XP.AgentEvolution.Pass' : 'XP.AgentEvolution.Block') | translate }}
+          </div>
           <div class="mt-1 text-[11px] text-text-success">{{ run.gate.decision }}</div></z-card-content
         ></z-card
       >
@@ -125,8 +363,10 @@
       <div class="flex min-w-0 flex-col gap-4">
         <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
           <z-card-header class="border-b border-divider-subtle px-5 py-4"
-            ><z-card-title>Production vs Candidate</z-card-title
-            ><z-card-subtitle class="mt-1">同一黄金集快照、Evaluator 与随机种子</z-card-subtitle></z-card-header
+            ><z-card-title>{{ 'XP.AgentEvolution.ProductionVsCandidate' | translate }}</z-card-title
+            ><z-card-subtitle class="mt-1">{{
+              'XP.AgentEvolution.ComparisonEnvironmentDescription' | translate
+            }}</z-card-subtitle></z-card-header
           >
           <z-card-content class="p-4"
             ><div echarts class="h-64 w-full" [options]="comparisonOptions()"></div
@@ -137,23 +377,27 @@
           <z-card-header class="border-b border-divider-subtle px-5 py-4"
             ><div class="flex items-center justify-between">
               <div>
-                <z-card-title>样本对比</z-card-title
-                ><z-card-subtitle class="mt-1">点击样本查看双版本输出</z-card-subtitle>
+                <z-card-title>{{ 'XP.AgentEvolution.SampleComparison' | translate }}</z-card-title
+                ><z-card-subtitle class="mt-1">{{
+                  'XP.AgentEvolution.SampleComparisonDescription' | translate
+                }}</z-card-subtitle>
               </div>
-              <z-badge zType="outline">{{ run.caseResults.length }} cases</z-badge>
+              <z-badge zType="outline">{{
+                'XP.AgentEvolution.CaseCount' | translate: { count: run.caseResults.length }
+              }}</z-badge>
             </div></z-card-header
           >
           <z-card-content class="p-0">
             <div class="overflow-x-auto">
               <table class="w-full min-w-[760px] text-left text-xs">
-                <thead class="bg-background-default-subtle text-text-tertiary">
+                <thead class="bg-background-default-subtle text-text-secondary">
                   <tr>
-                    <th class="px-5 py-3 font-medium">样本</th>
-                    <th class="px-4 py-3 font-medium">Production</th>
-                    <th class="px-4 py-3 font-medium">Candidate</th>
-                    <th class="px-4 py-3 font-medium">延迟</th>
-                    <th class="px-4 py-3 font-medium">成本</th>
-                    <th class="px-5 py-3 text-right font-medium">Trace</th>
+                    <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Sample' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Production' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Candidate' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Latency' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Cost' | translate }}</th>
+                    <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.Trace' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-divider-subtle">
@@ -169,7 +413,9 @@
                           zType="outline"
                           [class.text-text-success]="result.baselinePassed"
                           [class.text-text-destructive]="!result.baselinePassed"
-                          >{{ result.baselinePassed ? 'PASS' : 'FAIL' }}</z-badge
+                          >{{
+                            (result.baselinePassed ? 'XP.AgentEvolution.Pass' : 'XP.AgentEvolution.Fail') | translate
+                          }}</z-badge
                         >
                       </td>
                       <td class="px-4 py-3.5">
@@ -177,12 +423,14 @@
                           zType="outline"
                           [class.text-text-success]="result.candidatePassed"
                           [class.text-text-destructive]="!result.candidatePassed"
-                          >{{ result.candidatePassed ? 'PASS' : 'FAIL' }}</z-badge
+                          >{{
+                            (result.candidatePassed ? 'XP.AgentEvolution.Pass' : 'XP.AgentEvolution.Fail') | translate
+                          }}</z-badge
                         >
                       </td>
                       <td class="px-4 py-3.5 tabular-nums text-text-secondary">{{ result.latencyMs }}ms</td>
                       <td class="px-4 py-3.5 tabular-nums text-text-secondary">${{ result.cost.toFixed(3) }}</td>
-                      <td class="px-5 py-3.5 text-right font-mono text-text-tertiary">
+                      <td class="px-5 py-3.5 text-right font-mono text-text-secondary">
                         {{ shortId(result.traceRef, 14) }}
                       </td>
                     </tr>
@@ -198,7 +446,10 @@
         <z-card-header class="border-b border-divider-subtle px-5 py-4"
           ><div class="flex items-center justify-between">
             <div>
-              <z-card-title>样本详情</z-card-title><z-card-subtitle class="mt-1">Evaluator 可解释反馈</z-card-subtitle>
+              <z-card-title>{{ 'XP.AgentEvolution.SampleDetails' | translate }}</z-card-title
+              ><z-card-subtitle class="mt-1">{{
+                'XP.AgentEvolution.ExplainableEvaluatorFeedback' | translate
+              }}</z-card-subtitle>
             </div>
             @if (selectedCase(); as result) {
               <z-badge zType="outline">{{ result.caseId }}</z-badge>
@@ -209,18 +460,22 @@
           @if (selectedCase(); as result) {
             <section>
               <div class="mb-2 flex items-center justify-between">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">Production output</h3>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                  {{ 'XP.AgentEvolution.ProductionOutput' | translate }}
+                </h3>
                 <z-badge
                   zType="outline"
                   [class.text-text-success]="result.baselinePassed"
                   [class.text-text-destructive]="!result.baselinePassed"
-                  >{{ result.baselinePassed ? 'PASS' : 'FAIL' }}</z-badge
+                  >{{
+                    (result.baselinePassed ? 'XP.AgentEvolution.Pass' : 'XP.AgentEvolution.Fail') | translate
+                  }}</z-badge
                 >
               </div>
               <dl class="space-y-2 rounded-lg bg-background-default-subtle p-3 text-xs">
                 @for (entry of outputEntries(result.baselineOutput); track entry[0]) {
                   <div class="flex justify-between gap-4">
-                    <dt class="text-text-tertiary">{{ entry[0] }}</dt>
+                    <dt class="text-text-secondary">{{ entry[0] }}</dt>
                     <dd class="break-all text-right font-mono text-text-primary">{{ entry[1] }}</dd>
                   </div>
                 }
@@ -228,18 +483,22 @@
             </section>
             <section>
               <div class="mb-2 flex items-center justify-between">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">Candidate output</h3>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                  {{ 'XP.AgentEvolution.CandidateOutput' | translate }}
+                </h3>
                 <z-badge
                   zType="outline"
                   [class.text-text-success]="result.candidatePassed"
                   [class.text-text-destructive]="!result.candidatePassed"
-                  >{{ result.candidatePassed ? 'PASS' : 'FAIL' }}</z-badge
+                  >{{
+                    (result.candidatePassed ? 'XP.AgentEvolution.Pass' : 'XP.AgentEvolution.Fail') | translate
+                  }}</z-badge
                 >
               </div>
               <dl class="space-y-2 rounded-lg border border-state-success-hover bg-state-success-hover/5 p-3 text-xs">
                 @for (entry of outputEntries(result.candidateOutput); track entry[0]) {
                   <div class="flex justify-between gap-4">
-                    <dt class="text-text-tertiary">{{ entry[0] }}</dt>
+                    <dt class="text-text-secondary">{{ entry[0] }}</dt>
                     <dd class="break-all text-right font-mono text-text-primary">{{ entry[1] }}</dd>
                   </div>
                 }
@@ -247,46 +506,63 @@
             </section>
             <section class="rounded-lg border border-divider-subtle p-4">
               <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
-                <i class="ri-checkbox-circle-line text-text-success"></i>Evaluator 反馈
+                <i class="ri-checkbox-circle-line text-text-success"></i
+                >{{ 'XP.AgentEvolution.EvaluatorFeedback' | translate }}
               </div>
-              <p class="mt-2 text-xs leading-5 text-text-tertiary">
-                候选输出与冻结的 expected output 一致；严重错误为 {{ result.severeError ? 1 : 0 }}。评测 Trace
-                {{ result.traceRef }} 可用于完整审计。
+              <p class="mt-2 text-xs leading-5 text-text-secondary">
+                {{
+                  'XP.AgentEvolution.EvaluatorFeedbackDescription'
+                    | translate: { severe: result.severeError ? 1 : 0, trace: result.traceRef }
+                }}
               </p>
             </section>
             <div class="grid grid-cols-2 gap-2">
-              <button z-button zType="outline" type="button"><i class="ri-flag-line"></i>标记复核</button
-              ><button z-button zType="secondary" type="button"><i class="ri-external-link-line"></i>查看 Trace</button>
+              <button z-button zType="outline" type="button">
+                <i class="ri-flag-line"></i>{{ 'XP.AgentEvolution.MarkForReview' | translate }}</button
+              ><button z-button zType="secondary" type="button">
+                <i class="ri-external-link-line"></i>{{ 'XP.AgentEvolution.ViewTrace' | translate }}
+              </button>
             </div>
           } @else {
-            <div class="py-16 text-center text-sm text-text-tertiary">选择一个回放样本查看详情</div>
+            <div class="py-16 text-center text-sm text-text-secondary">
+              {{ 'XP.AgentEvolution.SelectReplaySample' | translate }}
+            </div>
           }
         </z-card-content>
       </z-card>
     </section>
 
     <footer
-      class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-tertiary"
+      class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-secondary"
     >
       <span>Dataset {{ run.datasetSnapshotId }}</span
       ><span>Eval Run {{ run.runId }}</span
-      ><span>完成时间 {{ run.completedAt | date: 'yyyy-MM-dd HH:mm:ss' }}</span
-      ><span>环境 Replay / isolated</span>
+      ><span>{{ 'XP.AgentEvolution.CompletedAt' | translate }} {{ run.completedAt | date: 'yyyy-MM-dd HH:mm:ss' }}</span
+      ><span>{{ 'XP.AgentEvolution.ReplayEnvironment' | translate }}</span>
     </footer>
   } @else {
     <section
       class="flex min-h-[560px] flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center"
     >
       <span
-        class="flex size-14 items-center justify-center rounded-full bg-background-default-subtle text-text-tertiary"
+        class="flex size-14 items-center justify-center rounded-full bg-background-default-subtle text-text-secondary"
         ><i class="ri-flask-line text-3xl"></i
       ></span>
-      <h2 class="mt-4 text-lg font-semibold text-text-primary">尚无候选评测</h2>
-      <p class="mt-2 max-w-md text-sm leading-6 text-text-tertiary">
-        执行完整模拟后，这里会展示同一黄金集上的 Production / Candidate 对照、阻断门禁和逐样本 Trace。
+      <h2 class="mt-4 text-lg font-semibold text-text-primary">
+        {{ 'XP.AgentEvolution.NoCandidateEvaluation' | translate }}
+      </h2>
+      <p class="mt-2 max-w-md text-sm leading-6 text-text-secondary">
+        {{ 'XP.AgentEvolution.EmptyEvaluationDescription' | translate }}
       </p>
-      <button z-button class="mt-5" type="button" [zLoading]="facade.simulating()" (click)="rerun()">
-        <i class="ri-play-circle-line"></i>执行完整模拟
+      <button
+        z-button
+        class="mt-5"
+        type="button"
+        [zLoading]="facade.mutating()"
+        [zDisabled]="candidate()?.status !== 'ready' || !dataset()"
+        (click)="rerun()"
+      >
+        <i class="ri-play-circle-line"></i>{{ 'XP.AgentEvolution.StartGoldenReplay' | translate }}
       </button>
     </section>
   }

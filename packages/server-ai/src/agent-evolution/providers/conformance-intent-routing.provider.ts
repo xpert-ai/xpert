@@ -21,6 +21,18 @@ export class ConformanceIntentRoutingProvider
         supportedScopes: ['organization' as const],
         riskLevel: 'R1' as const,
         metricSetId: 'conformance.routing.accuracy.v1',
+        candidateForm: {
+            description: 'Conformance-only fixture Change Set.',
+            fields: [
+                {
+                    key: 'aliases',
+                    label: 'Intent aliases',
+                    type: 'string_array' as const,
+                    required: true,
+                    defaultValue: ['route-order', 'route-refund']
+                }
+            ]
+        },
         capabilities: {
             candidateBuild: true,
             replay: true,

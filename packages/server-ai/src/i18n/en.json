@@ -1,5 +1,10 @@
 {
     "Error": {
+        "AgentEvolutionManualTestGateRequiresAdministrator": "The manual-test release gate profile requires SUPER_ADMIN or ADMIN.",
+        "AgentEvolutionShadowGateNotSatisfied": "Shadow requires {{hours}} hours, {{samples}} observations, and zero severe errors.",
+        "AgentEvolutionCanaryGateNotSatisfied": "Canary expansion requires {{hours}} hours, {{samples}} observations, and zero severe errors.",
+        "AgentEvolutionProductionGateNotSatisfied": "Production activation requires a 50% Canary for {{hours}} hours and {{samples}} observations.",
+        "AgentEvolutionExperienceGateNotSatisfied": "Experience creation requires {{hours}} stable hours, {{samples}} Production observations, and zero severe errors.",
         "ReferralInvalidCode": "The invitation code is invalid.",
         "ReferralCodeNotFound": "The invitation code was not found.",
         "ReferralTenantScopeRequired": "Tenant scope is required.",
@@ -221,6 +226,9 @@
         "WorkspaceFileAccessInvalidReference": "View file access requires a scoped Workspace Files reference.",
         "WorkspaceFileAccessUnavailable": "Workspace file access is not configured.",
         "WorkspaceFileUploadRequired": "Workspace file is required."
+    },
+    "AgentEvolution": {
+        "GatePolicyFrozen": "Release gate policy frozen as {{profile}}."
     },
     "ModelGateway": {
         "PrivilegedRequestApproved": "Approved automatically for a model access administrator."

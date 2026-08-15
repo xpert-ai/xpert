@@ -3,34 +3,24 @@
     class="flex flex-col gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-3 shadow-none lg:flex-row lg:items-center"
   >
     <label class="relative min-w-0 flex-1">
-      <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"></i>
+      <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></i>
       <input
         z-input
         class="w-full pl-9"
         type="search"
-        placeholder="搜索执行、字段、原因或目标"
+        [placeholder]="'XP.AgentEvolution.SearchLearningSignals' | translate"
         [ngModel]="query()"
         (ngModelChange)="query.set($event)"
       />
     </label>
-    <label class="flex items-center gap-2 text-xs text-text-tertiary">
-      <span>进化目标</span>
-      <select
-        class="h-9 min-w-52 rounded-lg border border-input bg-background-default px-3 text-sm text-text-primary outline-none focus:border-primary-500"
-        [ngModel]="targetId()"
-        (ngModelChange)="targetId.set($event)"
-      >
-        <option value="all">全部目标</option>
-        @for (target of facade.dashboard().targets; track target.targetId) {
-          <option [value]="target.targetId">{{ target.displayName }}</option>
-        }
-      </select>
-    </label>
-    <button z-button zType="outline" type="button" (click)="query.set(''); targetId.set('all')">
-      <i class="ri-filter-off-line"></i>重置
+    <z-badge zType="outline">{{
+      facade.selectedTarget()?.displayName || ('XP.AgentEvolution.AllTargets' | translate)
+    }}</z-badge>
+    <button z-button zType="outline" type="button" (click)="query.set('')">
+      <i class="ri-filter-off-line"></i>{{ 'XP.AgentEvolution.Reset' | translate }}
     </button>
-    <button z-button type="button" [zLoading]="facade.simulating()" (click)="generateProposal()">
-      <i class="ri-add-line"></i>新建建议
+    <button z-button type="button" [zLoading]="facade.mutating()" (click)="generateProposal()">
+      <i class="ri-add-line"></i>{{ 'XP.AgentEvolution.NewProposal' | translate }}
     </button>
   </section>
 
@@ -39,8 +29,8 @@
       <z-card-header class="border-b border-divider-subtle px-4 py-4">
         <div class="flex items-center justify-between gap-2">
           <div>
-            <z-card-title>信号队列</z-card-title>
-            <z-card-subtitle class="mt-1">可归因的真实执行反馈</z-card-subtitle>
+            <z-card-title>{{ 'XP.AgentEvolution.SignalQueue' | translate }}</z-card-title>
+            <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.SignalQueueDescription' | translate }}</z-card-subtitle>
           </div>
           <z-badge zType="secondary" zShape="pill">{{ filteredEvents().length }}</z-badge>
         </div>
@@ -52,7 +42,7 @@
             [class.font-medium]="queueTab() === 'pending'"
             (click)="queueTab.set('pending')"
           >
-            待归因
+            {{ 'XP.AgentEvolution.PendingAttribution' | translate }}
           </button>
           <button
             type="button"
@@ -61,7 +51,7 @@
             [class.font-medium]="queueTab() === 'grouped'"
             (click)="queueTab.set('grouped')"
           >
-            已聚合
+            {{ 'XP.AgentEvolution.Grouped' | translate }}
           </button>
           <button
             type="button"
@@ -70,12 +60,13 @@
             [class.font-medium]="queueTab() === 'ignored'"
             (click)="queueTab.set('ignored')"
           >
-            已忽略
+            {{ 'XP.AgentEvolution.Ignored' | translate }}
           </button>
         </div>
       </z-card-header>
       <z-card-content class="max-h-[620px] overflow-auto p-2">
         @for (event of filteredEvents(); track event.eventId) {
+          @let presentation = eventPresentation(event);
           <button
             type="button"
             class="mb-1 w-full rounded-lg border px-3 py-3 text-left transition-colors"
@@ -86,24 +77,38 @@
             (click)="select(event)"
           >
             <div class="flex items-start justify-between gap-2">
-              <span class="line-clamp-2 text-sm font-medium text-text-primary">{{ event.predictionSummary }}</span>
+              <span class="line-clamp-2 text-sm font-medium text-text-primary">
+                @if (presentation.titleLabelKey) {
+                  <span class="text-text-secondary">{{ presentation.titleLabelKey | translate }}</span>
+                  <span class="mx-1 text-text-secondary">·</span>
+                }
+                {{ presentation.title }}
+              </span>
               <span class="shrink-0 text-[10px] font-semibold text-text-success">{{
                 percent(event.confidence, 0)
               }}</span>
             </div>
-            <div class="mt-2 flex items-center gap-1.5 text-[11px] text-text-tertiary">
+            <div class="mt-2 flex items-center gap-1.5 text-[11px] text-text-secondary">
               <i class="ri-error-warning-line"></i>
-              <span>{{ event.eventType }}</span>
+              <span>{{
+                'XP.AgentEvolution.EventType.' + event.eventType | translate: { Default: event.eventType }
+              }}</span>
               <span>·</span>
-              <span>{{ event.reasonCodes[0] || 'unclassified' }}</span>
+              <span>{{
+                event.reasonCodes[0]
+                  ? reasonLabel(event.reasonCodes[0])
+                  : ('XP.AgentEvolution.Unclassified' | translate)
+              }}</span>
             </div>
-            <div class="mt-1 truncate font-mono text-[10px] text-text-tertiary">{{ event.subjectRef }}</div>
+            <div class="mt-1 truncate font-mono text-[10px] text-text-secondary">{{ event.subjectRef }}</div>
           </button>
         } @empty {
           <div class="flex min-h-52 flex-col items-center justify-center px-4 text-center">
-            <i class="ri-inbox-2-line text-3xl text-text-tertiary"></i>
-            <div class="mt-3 text-sm font-medium text-text-primary">暂无匹配信号</div>
-            <p class="mt-1 text-xs text-text-tertiary">执行完整模拟可生成脱敏、可追溯的学习事件。</p>
+            <i class="ri-inbox-2-line text-3xl text-text-secondary"></i>
+            <div class="mt-3 text-sm font-medium text-text-primary">
+              {{ 'XP.AgentEvolution.NoMatchingSignals' | translate }}
+            </div>
+            <p class="mt-1 text-xs text-text-secondary">{{ 'XP.AgentEvolution.LearningEmptyHint' | translate }}</p>
           </div>
         }
       </z-card-content>
@@ -111,67 +116,124 @@
 
     <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
       @if (selectedEvent(); as event) {
+        @let presentation = eventPresentation(event);
         <z-card-header class="border-b border-divider-subtle px-5 py-4">
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <z-card-title>{{ event.predictionSummary }}</z-card-title>
+                <z-card-title>
+                  @if (presentation.titleLabelKey) {
+                    <span class="text-text-secondary">{{ presentation.titleLabelKey | translate }}</span>
+                    <span class="mx-1 text-text-secondary">·</span>
+                  }
+                  {{ presentation.title }}
+                </z-card-title>
                 <z-badge zType="outline">{{ event.trustLevel }}</z-badge>
-                <z-badge zType="outline" class="text-text-success">{{ event.redactionStatus }}</z-badge>
+                <z-badge zType="outline" class="text-text-success">{{
+                  'XP.AgentEvolution.Status.' + event.redactionStatus | translate: { Default: event.redactionStatus }
+                }}</z-badge>
               </div>
               <z-card-subtitle class="mt-1">{{ event.targetId }} · {{ event.eventId }}</z-card-subtitle>
             </div>
             <div class="text-right">
               <div class="text-2xl font-semibold text-text-primary">{{ percent(event.confidence, 0) }}</div>
-              <div class="text-[11px] text-text-tertiary">信号置信度</div>
+              <div class="text-[11px] text-text-secondary">{{ 'XP.AgentEvolution.SignalConfidence' | translate }}</div>
             </div>
           </div>
         </z-card-header>
         <z-card-content class="p-0">
           <section class="grid gap-px bg-divider-subtle sm:grid-cols-3">
             <div class="bg-components-card-bg p-4">
-              <div class="text-xs text-text-tertiary">同类信号</div>
+              <div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.SimilarSignals' | translate }}</div>
               <div class="mt-1 text-2xl font-semibold text-text-primary">{{ filteredEvents().length }}</div>
             </div>
             <div class="bg-components-card-bg p-4">
-              <div class="text-xs text-text-tertiary">平均置信度</div>
+              <div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.AverageConfidence' | translate }}</div>
               <div class="mt-1 text-2xl font-semibold text-text-primary">{{ percent(averageConfidence(), 0) }}</div>
             </div>
             <div class="bg-components-card-bg p-4">
-              <div class="text-xs text-text-tertiary">黄金集标记</div>
-              <div class="mt-1 text-2xl font-semibold text-text-primary">{{ goldenEventIds().size }}</div>
+              <div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.GoldenEvidenceMarks' | translate }}</div>
+              <div class="mt-1 text-2xl font-semibold text-text-primary">{{ goldenEventCount() }}</div>
             </div>
           </section>
 
           <section class="border-t border-divider-subtle p-5">
-            <h3 class="text-sm font-semibold text-text-primary">执行证据</h3>
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ 'XP.AgentEvolution.ExecutionEvidence' | translate }}
+            </h3>
             <dl class="mt-4 space-y-4 text-sm">
               <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
-                <dt class="text-text-tertiary">预测摘要</dt>
-                <dd class="text-text-primary">{{ event.predictionSummary }}</dd>
-              </div>
-              <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
-                <dt class="text-text-tertiary">最终结果</dt>
-                <dd class="text-text-primary">{{ event.finalOutcomeSummary }}</dd>
-              </div>
-              <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
-                <dt class="text-text-tertiary">原因代码</dt>
-                <dd class="flex flex-wrap gap-1.5">
-                  @for (reason of event.reasonCodes; track reason) {
-                    <z-badge zType="secondary">{{ reason }}</z-badge>
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.PredictionSummary' | translate }}</dt>
+                <dd class="flex flex-wrap gap-2 text-text-primary">
+                  @for (field of presentation.prediction.fields; track field.key) {
+                    <span
+                      class="inline-flex min-w-0 items-center gap-1.5 rounded-md bg-background-default-subtle px-2 py-1"
+                    >
+                      <span class="text-xs text-text-secondary">{{
+                        field.labelKey | translate: { Default: field.key }
+                      }}</span>
+                      <span class="break-all font-medium">
+                        @if (field.valueKey) {
+                          {{ field.valueKey | translate: { Default: field.value } }}
+                        } @else {
+                          {{ field.value }}
+                        }
+                      </span>
+                    </span>
+                  } @empty {
+                    <span>{{ presentation.prediction.text || '—' }}</span>
                   }
                 </dd>
               </div>
               <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
-                <dt class="text-text-tertiary">能力 Bundle</dt>
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.FinalOutcome' | translate }}</dt>
+                <dd class="flex flex-wrap gap-2 text-text-primary">
+                  @for (field of presentation.finalOutcome.fields; track field.key) {
+                    <span
+                      class="inline-flex min-w-0 items-center gap-1.5 rounded-md bg-background-default-subtle px-2 py-1"
+                    >
+                      <span class="text-xs text-text-secondary">{{
+                        field.labelKey | translate: { Default: field.key }
+                      }}</span>
+                      <span class="break-all font-medium">
+                        @if (field.valueKey) {
+                          {{ field.valueKey | translate: { Default: field.value } }}
+                        } @else {
+                          {{ field.value }}
+                        }
+                      </span>
+                    </span>
+                  } @empty {
+                    <span>{{ presentation.finalOutcome.text || '—' }}</span>
+                  }
+                </dd>
+              </div>
+              <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.ReasonCodes' | translate }}</dt>
+                <dd class="flex flex-wrap gap-1.5">
+                  @for (reason of event.reasonCodes; track reason) {
+                    <z-badge zType="secondary">{{ reasonLabel(reason) }}</z-badge>
+                  }
+                </dd>
+              </div>
+              <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.CapabilityBundle' | translate }}</dt>
                 <dd class="break-all font-mono text-xs text-text-secondary">
                   {{ event.capabilityVersionBundleId }} / {{ shortId(event.bundleHash, 18) }}
                 </dd>
               </div>
               <div class="grid gap-1 sm:grid-cols-[120px_1fr]">
-                <dt class="text-text-tertiary">数据治理</dt>
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.DataGovernance' | translate }}</dt>
                 <dd class="text-text-secondary">
-                  {{ event.classification }} · {{ event.redactionStatus }} · schema {{ event.schemaVersion }}
+                  {{
+                    'XP.AgentEvolution.Status.' + event.classification | translate: { Default: event.classification }
+                  }}
+                  ·
+                  {{
+                    'XP.AgentEvolution.Status.' + event.redactionStatus | translate: { Default: event.redactionStatus }
+                  }}
+                  ·
+                  {{ 'XP.AgentEvolution.SchemaVersion' | translate: { version: event.schemaVersion } }}
                 </dd>
               </div>
             </dl>
@@ -179,17 +241,21 @@
 
           <section class="border-t border-divider-subtle p-5">
             <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold text-text-primary">事件明细</h3>
-              <span class="text-xs text-text-tertiary">{{ event.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</span>
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{ 'XP.AgentEvolution.EventDetails' | translate }}
+              </h3>
+              <span class="text-xs text-text-secondary">{{ event.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</span>
             </div>
             <div class="mt-3 overflow-x-auto rounded-lg border border-divider-subtle">
               <table class="w-full min-w-[560px] text-left text-xs">
-                <thead class="bg-background-default-subtle text-text-tertiary">
+                <thead class="bg-background-default-subtle text-text-secondary">
                   <tr>
-                    <th class="px-3 py-2 font-medium">执行</th>
-                    <th class="px-3 py-2 font-medium">决策点</th>
-                    <th class="px-3 py-2 font-medium">主体</th>
-                    <th class="px-3 py-2 font-medium">Scope</th>
+                    <th class="px-3 py-2 font-medium">{{ 'XP.AgentEvolution.Execution' | translate }}</th>
+                    <th class="px-3 py-2 font-medium">{{ 'XP.AgentEvolution.DecisionPoint' | translate }}</th>
+                    <th class="px-3 py-2 font-medium">{{ 'XP.AgentEvolution.Subject' | translate }}</th>
+                    <th class="whitespace-nowrap px-3 py-2 font-medium">
+                      {{ 'XP.AgentEvolution.Scope' | translate }}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,7 +263,9 @@
                     <td class="px-3 py-3 font-mono">{{ event.executionId || '—' }}</td>
                     <td class="px-3 py-3">{{ event.decisionPoint }}</td>
                     <td class="px-3 py-3 font-mono">{{ event.subjectRef }}</td>
-                    <td class="px-3 py-3">{{ event.scope.type }}</td>
+                    <td class="whitespace-nowrap px-3 py-3">
+                      {{ 'XP.AgentEvolution.ScopeType.' + event.scope.type | translate: { Default: event.scope.type } }}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -206,9 +274,13 @@
         </z-card-content>
       } @else {
         <z-card-content class="flex min-h-[560px] flex-col items-center justify-center text-center">
-          <i class="ri-radar-line text-4xl text-text-tertiary"></i>
-          <div class="mt-3 font-medium text-text-primary">选择一条学习信号</div>
-          <p class="mt-1 text-xs text-text-tertiary">查看证据、归因与 Analyst 建议。</p>
+          <i class="ri-radar-line text-4xl text-text-secondary"></i>
+          <div class="mt-3 font-medium text-text-primary">
+            {{ 'XP.AgentEvolution.SelectLearningSignal' | translate }}
+          </div>
+          <p class="mt-1 text-xs text-text-secondary">
+            {{ 'XP.AgentEvolution.SelectLearningSignalDescription' | translate }}
+          </p>
         </z-card-content>
       }
     </z-card>
@@ -220,49 +292,184 @@
             <i class="ri-sparkling-2-line"></i>
           </span>
           <div>
-            <z-card-title>Analyst 建议</z-card-title>
-            <z-card-subtitle class="mt-1">证据驱动，不直接修改生产</z-card-subtitle>
+            <z-card-title>{{ 'XP.AgentEvolution.AnalystProposal' | translate }}</z-card-title>
+            <z-card-subtitle class="mt-1">{{
+              'XP.AgentEvolution.AnalystProposalDescription' | translate
+            }}</z-card-subtitle>
           </div>
         </div>
       </z-card-header>
       <z-card-content class="space-y-5 p-5">
         @if (selectedProposal(); as proposal) {
+          @let problem = summaryPresentation(proposal.problemStatement);
           <div class="flex items-center justify-between rounded-lg bg-state-success-hover/10 px-3 py-2">
-            <span class="text-xs font-medium text-text-success">建议置信度</span>
+            <span class="text-xs font-medium text-text-success">{{
+              'XP.AgentEvolution.ProposalConfidence' | translate
+            }}</span>
             <span class="text-lg font-semibold text-text-success">{{ percent(averageConfidence(), 0) }}</span>
           </div>
           <div>
-            <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">问题判断</div>
-            <p class="mt-2 text-sm leading-6 text-text-primary">{{ proposal.problemStatement }}</p>
+            <div class="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              {{ 'XP.AgentEvolution.ProblemAssessment' | translate }}
+            </div>
+            @if (problem.fields.length) {
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                @for (field of problem.fields; track field.key) {
+                  <span
+                    class="inline-flex min-w-0 items-center gap-1.5 rounded-md bg-background-default-subtle px-2 py-1 text-sm"
+                  >
+                    <span class="text-xs text-text-secondary">{{
+                      field.labelKey | translate: { Default: field.key }
+                    }}</span>
+                    <span class="break-all font-medium text-text-primary">
+                      @if (field.valueKey) {
+                        {{ field.valueKey | translate: { Default: field.value } }}
+                      } @else {
+                        {{ field.value }}
+                      }
+                    </span>
+                  </span>
+                }
+              </div>
+            } @else {
+              <p class="mt-2 text-sm leading-6 text-text-primary">{{ problem.text || '—' }}</p>
+            }
           </div>
           <div>
-            <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">根因</div>
-            <p class="mt-2 text-sm leading-6 text-text-secondary">{{ proposal.rootCause }}</p>
+            <div class="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              {{ 'XP.AgentEvolution.RootCause' | translate }}
+            </div>
+            <p class="mt-2 text-sm leading-6 text-text-secondary">{{ proposalRootCause(proposal.rootCause) }}</p>
           </div>
           <div>
-            <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">拟议改动</div>
+            <div class="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              {{ 'XP.AgentEvolution.ProposedChange' | translate }}
+            </div>
             <p class="mt-2 rounded-lg bg-background-default-subtle p-3 text-sm leading-6 text-text-primary">
               {{ proposal.changeHypothesis }}
             </p>
           </div>
           <div class="grid grid-cols-2 gap-2 text-center text-xs">
             <div class="rounded-lg border border-divider-subtle p-3">
-              <div class="text-text-tertiary">风险</div>
+              <div class="text-text-secondary">{{ 'XP.AgentEvolution.Risk' | translate }}</div>
               <div class="mt-1 font-semibold text-text-primary">{{ proposal.riskLevel }}</div>
             </div>
             <div class="rounded-lg border border-divider-subtle p-3">
-              <div class="text-text-tertiary">证据</div>
-              <div class="mt-1 font-semibold text-text-primary">{{ proposal.evidenceEventIds.length }} events</div>
+              <div class="text-text-secondary">{{ 'XP.AgentEvolution.Evidence' | translate }}</div>
+              <div class="mt-1 font-semibold text-text-primary">
+                {{ 'XP.AgentEvolution.EventCount' | translate: { count: proposal.evidenceEventIds.length } }}
+              </div>
             </div>
           </div>
+          @if (proposal.status === 'ready') {
+            <section class="space-y-3 border-t border-divider-subtle pt-4">
+              <div>
+                <div class="text-sm font-semibold text-text-primary">
+                  {{ 'XP.AgentEvolution.CandidateChangeSet' | translate }}
+                </div>
+                <p class="mt-1 text-xs leading-5 text-text-secondary">
+                  @if (candidateTarget()?.candidateForm?.description; as description) {
+                    {{ description | i18n }}
+                  } @else {
+                    {{ 'XP.AgentEvolution.ProviderDefinedCandidateFields' | translate }}
+                  }
+                </p>
+              </div>
+              @if (candidateTarget()?.capabilities?.candidateBuild && candidateFields().length) {
+                @for (field of candidateFields(); track field.key) {
+                  <label class="block text-xs text-text-secondary">
+                    <span class="mb-1.5 flex items-center gap-1 font-medium">
+                      {{ field.label | i18n }}
+                      @if (field.required) {
+                        <span class="text-text-destructive">*</span>
+                      }
+                    </span>
+                    @switch (field.type) {
+                      @case ('select') {
+                        <z-select
+                          class="w-full"
+                          [zValue]="candidateSelectValue(field)"
+                          [zPlaceholder]="
+                            field.placeholder
+                              ? (field.placeholder | i18n)
+                              : ('XP.AgentEvolution.SelectValue' | translate)
+                          "
+                          (zSelectionChange)="setCandidateSelectValue(field, $event)"
+                        >
+                          @for (option of field.options || []; track option.value) {
+                            <z-select-item [zValue]="option.value">{{ option.label | i18n }}</z-select-item>
+                          }
+                        </z-select>
+                      }
+                      @case ('string_array') {
+                        <textarea
+                          z-input
+                          class="min-h-20 w-full resize-y py-2 font-mono text-xs"
+                          [placeholder]="
+                            field.placeholder
+                              ? (field.placeholder | i18n)
+                              : ('XP.AgentEvolution.OneValuePerLine' | translate)
+                          "
+                          [ngModel]="candidateArrayText(field)"
+                          (ngModelChange)="setCandidateArrayValue(field, $event)"
+                        ></textarea>
+                      }
+                      @case ('boolean') {
+                        <z-checkbox
+                          [ngModel]="candidateValue(field)"
+                          (ngModelChange)="setCandidateValue(field, $event)"
+                          >{{ field.label | i18n }}</z-checkbox
+                        >
+                      }
+                      @default {
+                        <input
+                          z-input
+                          class="w-full"
+                          [type]="field.type === 'number' ? 'number' : 'text'"
+                          [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
+                          [ngModel]="candidateValue(field)"
+                          (ngModelChange)="setCandidateValue(field, $event)"
+                        />
+                      }
+                    }
+                    @if (field.description) {
+                      <span class="mt-1 block text-[11px] leading-4 text-text-secondary">{{
+                        field.description | i18n
+                      }}</span>
+                    }
+                  </label>
+                }
+                <button
+                  z-button
+                  class="w-full"
+                  type="button"
+                  [zLoading]="facade.mutating()"
+                  [zDisabled]="!candidateDraftValid()"
+                  (click)="buildCandidate()"
+                >
+                  <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.BuildIsolatedCandidate' | translate }}
+                </button>
+              } @else {
+                <div
+                  class="rounded-lg border border-state-warning-hover bg-state-warning-hover/10 p-3 text-xs leading-5 text-text-warning"
+                >
+                  {{ 'XP.AgentEvolution.CandidateBuildUnavailable' | translate }}
+                </div>
+              }
+            </section>
+          }
         } @else {
-          <div class="rounded-lg bg-background-default-subtle p-4 text-sm leading-6 text-text-tertiary">
-            尚未形成改进建议。运行完整模拟会把选定证据冻结到建议 revision，并继续执行候选评测和发布门禁。
+          <div class="rounded-lg bg-background-default-subtle p-4 text-sm leading-6 text-text-secondary">
+            {{ 'XP.AgentEvolution.NoProposalHint' | translate }}
           </div>
         }
 
-        <button z-button class="w-full" type="button" [zLoading]="facade.simulating()" (click)="generateProposal()">
-          <i class="ri-magic-line"></i>{{ selectedProposal() ? '重新执行完整闭环' : '生成建议并完整模拟' }}
+        <button z-button class="w-full" type="button" [zLoading]="facade.mutating()" (click)="generateProposal()">
+          <i class="ri-magic-line"></i
+          >{{
+            (selectedProposal() ? 'XP.AgentEvolution.CreateProposalRevision' : 'XP.AgentEvolution.GenerateProposal')
+              | translate
+          }}
         </button>
         <button
           z-button
@@ -273,11 +480,14 @@
           (click)="toggleGolden()"
         >
           <i
-            [class]="
-              goldenEventIds().has(selectedEvent()?.eventId || '') ? 'ri-checkbox-circle-fill' : 'ri-add-circle-line'
-            "
+            [class]="selectedEvent()?.reviewStatus === 'golden' ? 'ri-checkbox-circle-fill' : 'ri-add-circle-line'"
           ></i>
-          {{ goldenEventIds().has(selectedEvent()?.eventId || '') ? '已加入黄金数据集' : '加入黄金数据集' }}
+          {{
+            (selectedEvent()?.reviewStatus === 'golden'
+              ? 'XP.AgentEvolution.RemoveGoldenEvidence'
+              : 'XP.AgentEvolution.MarkGoldenEvidence'
+            ) | translate
+          }}
         </button>
         <button
           z-button
@@ -287,17 +497,16 @@
           [zDisabled]="!selectedEvent()"
           (click)="ignoreSelected()"
         >
-          <i class="ri-eye-off-line"></i>忽略此信号
+          <i class="ri-eye-off-line"></i>{{ 'XP.AgentEvolution.IgnoreSignal' | translate }}
         </button>
       </z-card-content>
     </z-card>
   </section>
 
   <footer
-    class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-tertiary"
+    class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-secondary"
   >
-    <span>归因标准：同一 target + decision point + reason code</span>
-    <span>敏感数据：写入前必须 redacted</span>
-    <span>当前范围：Tenant / Organization</span>
+    <span>{{ 'XP.AgentEvolution.AttributionStandard' | translate }}</span>
+    <span>{{ 'XP.AgentEvolution.SensitiveDataRule' | translate }}</span>
   </footer>
 </main>

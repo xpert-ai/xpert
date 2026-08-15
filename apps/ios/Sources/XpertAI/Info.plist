@@ -23,8 +23,8 @@
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>XPERT_API_BASE_URL</key>
-	<string>http://localhost:3333</string>
+	<string>http://localhost:3000</string>
 	<key>XPERT_CHATKIT_FRAME_URL</key>
-	<string>http://localhost:4300/chatkit/</string>
+	<string>http://localhost:4200/chatkit/</string>
 </dict>
 </plist>

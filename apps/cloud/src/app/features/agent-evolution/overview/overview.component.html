@@ -9,54 +9,66 @@
     </span>
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="font-semibold text-text-primary">整体健康</span>
-        <z-badge zType="outline" class="border-state-success-hover text-text-success">所有阻断门禁正常</z-badge>
+        <span class="font-semibold text-text-primary">{{ 'XP.AgentEvolution.OverallHealth' | translate }}</span>
+        <z-badge zType="outline" class="border-state-success-hover text-text-success">{{
+          'XP.AgentEvolution.AllBlockingGatesHealthy' | translate
+        }}</z-badge>
       </div>
-      <p class="mt-0.5 text-xs text-text-tertiary">
-        当前有 {{ todos().length }} 项待处理，{{ severeErrors() }} 个严重错误。所有版本切换均保留可审计回滚指针。
+      <p class="mt-0.5 text-xs text-text-secondary">
+        {{ 'XP.AgentEvolution.HealthSummary' | translate: { pending: todos().length, severe: severeErrors() } }}
       </p>
     </div>
     @if (todos().length) {
-      <a z-button zType="secondary" [routerLink]="todos()[0].route">处理待办</a>
+      <a z-button zType="secondary" [routerLink]="todos()[0].route">{{
+        'XP.AgentEvolution.ProcessTodo' | translate
+      }}</a>
     }
   </section>
 
   <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
     <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
       <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-tertiary">
-          <span>生产能力</span><i class="ri-box-3-line text-base"></i>
+        <div class="flex items-center justify-between text-xs text-text-secondary">
+          <span>{{ 'XP.AgentEvolution.ProductionCapabilities' | translate }}</span
+          ><i class="ri-box-3-line text-base"></i>
         </div>
         <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
-          {{ facade.dashboard().pointers.length }}
+          {{ facade.contextPointers().length }}
         </div>
-        <p class="mt-1 text-xs text-text-tertiary">已激活的不可变能力指针</p>
+        <p class="mt-1 text-xs text-text-secondary">{{ 'XP.AgentEvolution.ActiveImmutablePointers' | translate }}</p>
       </z-card-content>
     </z-card>
     <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
       <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-tertiary">
-          <span>活跃候选</span><i class="ri-flask-line text-base"></i>
+        <div class="flex items-center justify-between text-xs text-text-secondary">
+          <span>{{ 'XP.AgentEvolution.ActiveCandidates' | translate }}</span
+          ><i class="ri-flask-line text-base"></i>
         </div>
         <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
-          {{ facade.dashboard().candidates.length }}
+          {{ facade.contextCandidates().length }}
         </div>
-        <p class="mt-1 text-xs text-text-success">{{ facade.dashboard().proposals.length }} 条建议已进入验证</p>
+        <p class="mt-1 text-xs text-text-success">
+          {{ 'XP.AgentEvolution.ProposalsInValidation' | translate: { count: facade.contextProposals().length } }}
+        </p>
       </z-card-content>
     </z-card>
     <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
       <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-tertiary">
-          <span>评测通过率</span><i class="ri-checkbox-circle-line text-base"></i>
+        <div class="flex items-center justify-between text-xs text-text-secondary">
+          <span>{{ 'XP.AgentEvolution.EvaluationPassRate' | translate }}</span
+          ><i class="ri-checkbox-circle-line text-base"></i>
         </div>
         <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">{{ percent(passRate()) }}</div>
-        <p class="mt-1 text-xs text-text-success">{{ passedEvaluations() }} 次通过阻断门禁</p>
+        <p class="mt-1 text-xs text-text-success">
+          {{ 'XP.AgentEvolution.PassedBlockingGates' | translate: { count: passedEvaluations() } }}
+        </p>
       </z-card-content>
     </z-card>
     <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
       <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-tertiary">
-          <span>严重错误</span><i class="ri-error-warning-line text-base"></i>
+        <div class="flex items-center justify-between text-xs text-text-secondary">
+          <span>{{ 'XP.AgentEvolution.SevereErrors' | translate }}</span
+          ><i class="ri-error-warning-line text-base"></i>
         </div>
         <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">{{ severeErrors() }}</div>
         <p
@@ -64,7 +76,12 @@
           [class.text-text-success]="severeErrors() === 0"
           [class.text-text-destructive]="severeErrors() > 0"
         >
-          {{ severeErrors() === 0 ? '处于安全阈值内' : '需要立即处理' }}
+          {{
+            (severeErrors() === 0
+              ? 'XP.AgentEvolution.WithinSafetyThreshold'
+              : 'XP.AgentEvolution.RequiresImmediateAction'
+            ) | translate
+          }}
         </p>
       </z-card-content>
     </z-card>
@@ -75,8 +92,8 @@
       <z-card-header class="border-b border-divider-subtle px-5 py-4">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <z-card-title>今日待办</z-card-title>
-            <z-card-subtitle class="mt-1">需要评审、验证或推进的进化任务</z-card-subtitle>
+            <z-card-title>{{ 'XP.AgentEvolution.TodayTodos' | translate }}</z-card-title>
+            <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.TodayTodosDescription' | translate }}</z-card-subtitle>
           </div>
           <z-badge zType="secondary" zShape="pill">{{ todos().length }}</z-badge>
         </div>
@@ -85,16 +102,16 @@
         @if (todos().length) {
           <div class="overflow-x-auto">
             <table class="w-full min-w-[620px] text-left text-sm">
-              <thead class="bg-background-default-subtle text-xs text-text-tertiary">
+              <thead class="bg-background-default-subtle text-xs text-text-secondary">
                 <tr>
-                  <th class="px-5 py-3 font-medium">事项</th>
-                  <th class="px-4 py-3 font-medium">进化目标</th>
-                  <th class="px-4 py-3 font-medium">状态</th>
-                  <th class="px-5 py-3 text-right font-medium">操作</th>
+                  <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Item' | translate }}</th>
+                  <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.EvolutionTarget' | translate }}</th>
+                  <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.StatusLabel' | translate }}</th>
+                  <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.Actions' | translate }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-divider-subtle">
-                @for (todo of todos(); track todo.type + todo.title) {
+                @for (todo of todos(); track todo.typeKey + todo.title) {
                   <tr class="hover:bg-background-default-subtle/60">
                     <td class="px-5 py-3.5">
                       <div class="flex items-center gap-3">
@@ -104,17 +121,23 @@
                           <i [class]="todo.icon"></i>
                         </span>
                         <div>
-                          <div class="font-medium text-text-primary">{{ todo.title }}</div>
-                          <div class="text-xs text-text-tertiary">{{ todo.type }}</div>
+                          <div class="font-medium text-text-primary">
+                            {{ todo.titleKey ? (todo.titleKey | translate: todo.titleParams) : todo.title }}
+                          </div>
+                          <div class="text-xs text-text-secondary">{{ todo.typeKey | translate }}</div>
                         </div>
                       </div>
                     </td>
                     <td class="px-4 py-3.5 font-mono text-xs text-text-secondary">{{ todo.target }}</td>
                     <td class="px-4 py-3.5">
-                      <z-badge zType="outline">{{ todo.status }}</z-badge>
+                      <z-badge zType="outline">{{
+                        'XP.AgentEvolution.Status.' + todo.status | translate: { Default: todo.status }
+                      }}</z-badge>
                     </td>
                     <td class="px-5 py-3.5 text-right">
-                      <a z-button zType="ghost" zSize="sm" [routerLink]="todo.route">查看</a>
+                      <a z-button zType="ghost" zSize="sm" [routerLink]="todo.route">{{
+                        'XP.AgentEvolution.View' | translate
+                      }}</a>
                     </td>
                   </tr>
                 }
@@ -128,9 +151,9 @@
             >
               <i class="ri-check-double-line text-2xl"></i>
             </span>
-            <div class="mt-3 font-medium text-text-primary">当前没有待处理事项</div>
-            <p class="mt-1 max-w-sm text-xs text-text-tertiary">
-              运行完整模拟后，这里会持续跟踪建议、候选评测与灰度发布状态。
+            <div class="mt-3 font-medium text-text-primary">{{ 'XP.AgentEvolution.NoPendingTodos' | translate }}</div>
+            <p class="mt-1 max-w-sm text-xs text-text-secondary">
+              {{ 'XP.AgentEvolution.NoPendingTodosDescription' | translate }}
             </p>
           </div>
         }
@@ -140,12 +163,12 @@
     <div class="flex flex-col gap-4">
       <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
         <z-card-header class="px-5 py-4">
-          <z-card-title>进化闭环</z-card-title>
-          <z-card-subtitle class="mt-1">从真实执行到生产指针</z-card-subtitle>
+          <z-card-title>{{ 'XP.AgentEvolution.EvolutionLoop' | translate }}</z-card-title>
+          <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.EvolutionLoopDescription' | translate }}</z-card-subtitle>
         </z-card-header>
         <z-card-content class="px-5 pb-5">
           <div class="space-y-1">
-            @for (stage of loopStages(); track stage.label; let last = $last) {
+            @for (stage of loopStages(); track stage.labelKey; let last = $last) {
               <div class="flex items-center gap-3">
                 <div class="flex w-8 flex-col items-center self-stretch">
                   <span
@@ -159,7 +182,7 @@
                   }
                 </div>
                 <div class="flex min-w-0 flex-1 items-center justify-between gap-3 py-1">
-                  <span class="text-sm text-text-secondary">{{ stage.label }}</span>
+                  <span class="text-sm text-text-secondary">{{ stage.labelKey | translate }}</span>
                   <span class="text-lg font-semibold tabular-nums text-text-primary">{{ stage.value }}</span>
                 </div>
               </div>
@@ -176,9 +199,11 @@
             <i class="ri-shield-keyhole-line"></i>
           </span>
           <div>
-            <div class="text-sm font-semibold text-text-primary">治理建议</div>
-            <p class="mt-1 text-xs leading-5 text-text-tertiary">
-              保持评测快照、候选哈希、人工审批和 Active Pointer CAS 为发布前置条件；任何严重错误都应阻断晋级。
+            <div class="text-sm font-semibold text-text-primary">
+              {{ 'XP.AgentEvolution.GovernanceAdvice' | translate }}
+            </div>
+            <p class="mt-1 text-xs leading-5 text-text-secondary">
+              {{ 'XP.AgentEvolution.GovernanceAdviceDescription' | translate }}
             </p>
           </div>
         </z-card-content>
@@ -190,52 +215,65 @@
     <z-card-header class="border-b border-divider-subtle px-5 py-4">
       <div class="flex items-center justify-between">
         <div>
-          <z-card-title>进化目标健康度</z-card-title>
-          <z-card-subtitle class="mt-1">Provider 契约、风险等级和运行能力</z-card-subtitle>
+          <z-card-title>{{ 'XP.AgentEvolution.TargetHealth' | translate }}</z-card-title>
+          <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.TargetHealthDescription' | translate }}</z-card-subtitle>
         </div>
-        <z-badge zType="outline">{{ facade.dashboard().targets.length }} targets</z-badge>
+        <z-badge zType="outline">{{
+          'XP.AgentEvolution.TargetCount' | translate: { count: facade.contextTargets().length }
+        }}</z-badge>
       </div>
     </z-card-header>
     <z-card-content class="p-0">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[760px] text-left text-sm">
-          <thead class="bg-background-default-subtle text-xs text-text-tertiary">
+          <thead class="bg-background-default-subtle text-xs text-text-secondary">
             <tr>
-              <th class="px-5 py-3 font-medium">目标</th>
-              <th class="px-4 py-3 font-medium">类型</th>
-              <th class="px-4 py-3 font-medium">风险</th>
-              <th class="px-4 py-3 font-medium">能力</th>
-              <th class="px-4 py-3 font-medium">Provider</th>
-              <th class="px-5 py-3 text-right font-medium">状态</th>
+              <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Target' | translate }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Type' | translate }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Risk' | translate }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Capabilities' | translate }}</th>
+              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Provider' | translate }}</th>
+              <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.StatusLabel' | translate }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-divider-subtle">
-            @for (target of facade.dashboard().targets; track target.targetId) {
+            @for (target of facade.contextTargets(); track target.targetId) {
               <tr>
                 <td class="px-5 py-3.5">
                   <div class="font-medium text-text-primary">{{ target.displayName }}</div>
-                  <div class="font-mono text-[11px] text-text-tertiary">{{ target.targetId }}</div>
+                  <div class="font-mono text-[11px] text-text-secondary">{{ target.targetId }}</div>
                 </td>
-                <td class="px-4 py-3.5 text-text-secondary">{{ target.targetType }}</td>
+                <td class="px-4 py-3.5 text-text-secondary">
+                  {{ 'XP.AgentEvolution.TargetType.' + target.targetType | translate: { Default: target.targetType } }}
+                </td>
                 <td class="px-4 py-3.5">
                   <z-badge zType="outline">{{ target.riskLevel }}</z-badge>
                 </td>
                 <td class="px-4 py-3.5 text-xs text-text-secondary">
-                  {{ target.capabilities.replay ? 'Replay' : '' }} · {{ target.capabilities.shadow ? 'Shadow' : '' }} ·
-                  {{ target.capabilities.canary ? 'Canary' : '' }}
+                  @if (target.capabilities.replay) {
+                    <span>{{ 'XP.AgentEvolution.Replay' | translate }}</span>
+                  }
+                  @if (target.capabilities.shadow) {
+                    <span> · {{ 'XP.AgentEvolution.Shadow' | translate }}</span>
+                  }
+                  @if (target.capabilities.canary) {
+                    <span> · {{ 'XP.AgentEvolution.Canary' | translate }}</span>
+                  }
                 </td>
                 <td class="px-4 py-3.5 font-mono text-xs text-text-secondary">
                   {{ target.providerKey }}@{{ target.providerVersion }}
                 </td>
                 <td class="px-5 py-3.5 text-right">
                   <z-badge zType="outline" [class.text-text-success]="target.status === 'active'">{{
-                    target.status
+                    'XP.AgentEvolution.Status.' + target.status | translate: { Default: target.status }
                   }}</z-badge>
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="px-5 py-10 text-center text-sm text-text-tertiary">尚未同步进化目标</td>
+                <td colspan="6" class="px-5 py-10 text-center text-sm text-text-secondary">
+                  {{ 'XP.AgentEvolution.NoSynchronizedTargets' | translate }}
+                </td>
               </tr>
             }
           </tbody>
@@ -245,10 +283,17 @@
   </z-card>
 
   <footer
-    class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-tertiary"
+    class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-secondary"
   >
-    <span>数据隔离：Tenant + Organization scope</span>
-    <span>最新刷新：{{ facade.loadedAt() ? (facade.loadedAt() | date: 'yyyy-MM-dd HH:mm:ss') : '—' }}</span>
-    <span>发布指针：CAS revision {{ facade.dashboard().pointers[0]?.revision ?? '—' }}</span>
+    <span>{{ 'XP.AgentEvolution.DataIsolation' | translate }}</span>
+    <span
+      >{{ 'XP.AgentEvolution.LastRefresh' | translate }}：{{
+        facade.loadedAt() ? (facade.loadedAt() | date: 'yyyy-MM-dd HH:mm:ss') : '—'
+      }}</span
+    >
+    <span
+      >{{ 'XP.AgentEvolution.ReleasePointer' | translate }}：CAS revision
+      {{ facade.contextPointers()[0]?.revision ?? '—' }}</span
+    >
   </footer>
 </main>

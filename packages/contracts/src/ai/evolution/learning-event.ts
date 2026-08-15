@@ -32,6 +32,30 @@ export interface LearningEventInput {
 export interface LearningEvent extends LearningEventInput {
   eventId: string
   createdAt: string
+  reviewStatus?: 'pending' | 'ignored' | 'golden'
+}
+
+export interface EvolutionDiagnosis {
+  diagnosisId: string
+  targetId: string
+  scope: EvolutionScope
+  eventIds: string[]
+  rootCause: string
+  correctionSignature: string
+  confidence: number
+  createdAt: string
+}
+
+export interface EvolutionEventCluster {
+  clusterId: string
+  targetId: string
+  scope: EvolutionScope
+  correctionSignature: string
+  eventIds: string[]
+  caseCount: number
+  status: 'collecting' | 'proposal_ready' | 'closed'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ImprovementProposal {

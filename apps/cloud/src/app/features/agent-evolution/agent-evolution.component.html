@@ -1,41 +1,50 @@
 <div class="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden bg-background-default">
   <header class="xp-page-header shrink-0 pb-0">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <div class="xp-page-title">智能体进化</div>
+          <div class="xp-page-title">{{ 'XP.AgentEvolution.Title' | translate }}</div>
           <z-badge zType="outline" class="border-state-success-hover bg-state-success-hover/10 text-text-success">
-            Cloud Native
+            {{ 'XP.AgentEvolution.CloudNative' | translate }}
           </z-badge>
         </div>
-        <p class="mt-1 text-sm text-text-tertiary">{{ activeSubtitle() }}</p>
+        <p class="mt-1 text-sm text-text-secondary">{{ activeSubtitleKey() | translate }}</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex min-w-0 flex-wrap items-center gap-2 xl:justify-end">
+        <z-combobox
+          class="w-full sm:w-64"
+          zWidth="full"
+          [value]="facade.selectedTargetId()"
+          [options]="targetOptions()"
+          [placeholder]="'XP.AgentEvolution.SelectTarget' | translate"
+          [searchPlaceholder]="'XP.AgentEvolution.SearchTarget' | translate"
+          [emptyText]="'XP.AgentEvolution.NoTargetOptions' | translate"
+          [ariaLabel]="'XP.AgentEvolution.Target' | translate"
+          (zValueChange)="selectTarget($event)"
+        />
+        <z-checkbox
+          displayDensity="cosy"
+          class="whitespace-nowrap text-xs text-text-secondary"
+          [ngModel]="facade.showFixtures()"
+          (ngModelChange)="setShowFixtures($event)"
+        >
+          {{ 'XP.AgentEvolution.ShowConformanceFixtures' | translate }}
+        </z-checkbox>
         <button z-button zType="secondary" type="button" [zDisabled]="facade.loading()" (click)="facade.load()">
           <i class="ri-refresh-line"></i>
-          刷新
+          {{ 'XP.AgentEvolution.Refresh' | translate }}
         </button>
         <button
           z-button
           zType="outline"
           type="button"
           [zLoading]="facade.synchronizing()"
-          [zDisabled]="facade.synchronizing() || facade.simulating()"
+          [zDisabled]="facade.synchronizing() || facade.mutating()"
           (click)="facade.synchronize()"
         >
           <i class="ri-focus-3-line"></i>
-          同步目标
-        </button>
-        <button
-          z-button
-          type="button"
-          [zLoading]="facade.simulating()"
-          [zDisabled]="facade.simulating() || facade.synchronizing()"
-          (click)="simulate()"
-        >
-          <i class="ri-play-circle-line"></i>
-          运行完整示例
+          {{ 'XP.AgentEvolution.SyncTargets' | translate }}
         </button>
       </div>
     </div>
@@ -52,7 +61,7 @@
       @for (tab of tabs; track tab.path) {
         <a z-tab-link [routerLink]="[tab.path]" routerLinkActive #active="routerLinkActive" [active]="active.isActive">
           <i [class]="tab.icon"></i>
-          {{ tab.label }}
+          {{ tab.labelKey | translate }}
         </a>
       }
     </nav>
@@ -71,48 +80,26 @@
       </div>
     }
 
-    @if (facade.simulating()) {
+    @if (facade.activeJob(); as job) {
       <section
         class="mx-4 mt-4 rounded-xl border border-primary-300/60 bg-primary-50/60 px-4 py-3 lg:mx-6 dark:bg-primary-950/20"
       >
         <div class="flex items-center gap-3">
-          <span class="size-4 animate-spin rounded-full border-2 border-primary-300 border-t-primary-600"></span>
+          <span
+            class="size-4 rounded-full border-2 border-primary-300 border-t-primary-600"
+            [class.animate-spin]="job.status === 'queued' || job.status === 'running'"
+          ></span>
           <div>
-            <div class="text-sm font-semibold text-text-primary">正在执行完整进化闭环</div>
-            <div class="mt-0.5 text-xs text-text-tertiary">
-              学习信号 → 改进建议 → 候选构建 → 黄金集评测 → 审批 → Shadow → Canary → 激活
+            <div class="text-sm font-semibold text-text-primary">
+              {{ 'XP.AgentEvolution.AsyncGovernanceJob' | translate }}：
+              {{ 'XP.AgentEvolution.JobType.' + job.jobType | translate: { Default: job.jobType } }} ·
+              {{ 'XP.AgentEvolution.Status.' + job.status | translate: { Default: job.status } }}
+            </div>
+            <div class="mt-0.5 text-xs text-text-secondary">
+              {{ job.jobId }} · {{ 'XP.AgentEvolution.JobIsolationHint' | translate }}
             </div>
           </div>
         </div>
-      </section>
-    } @else if (facade.simulation(); as result) {
-      <section
-        class="mx-4 mt-4 flex flex-col gap-3 rounded-xl border border-state-success-hover bg-state-success-hover/10 px-4 py-3 lg:mx-6 lg:flex-row lg:items-center"
-      >
-        <i class="ri-checkbox-circle-fill text-xl text-text-success"></i>
-        <div class="min-w-0 flex-1">
-          <div class="text-sm font-semibold text-text-primary">
-            {{ result.example.name }} · {{ result.simulationId }} 已完成并激活新版本
-          </div>
-          <div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-tertiary">
-            <span>候选 {{ result.candidateId }}</span>
-            <span>评测 {{ result.evaluationRunId }}</span>
-            <span>{{ result.previousVersionId }} → {{ result.activeVersionId }}</span>
-            <span>Pointer revision {{ result.pointerRevision }}</span>
-            <span>{{ result.persistence.rowCount }} 条案例关联记录 / {{ result.persistence.tables.length }} 张表</span>
-          </div>
-        </div>
-        <z-badge zType="outline" class="border-state-success-hover text-text-success">
-          {{ result.persistence.verified ? '数据表核验通过' : '数据表核验失败' }}
-        </z-badge>
-        <button
-          type="button"
-          class="flex size-7 items-center justify-center rounded-md text-text-tertiary hover:bg-background-default-subtle hover:text-text-primary"
-          title="关闭结果提示"
-          (click)="facade.simulation.set(null)"
-        >
-          <i class="ri-close-line"></i>
-        </button>
       </section>
     }
 

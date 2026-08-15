@@ -2,12 +2,15 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
+import { TranslateModule } from '@ngx-translate/core'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
 import { percent, shortId } from '../agent-evolution.types'
 
 interface TodoRow {
-  type: '建议' | '候选' | '发布'
+  typeKey: string
   title: string
+  titleKey?: string
+  titleParams?: Record<string, string>
   target: string
   status: string
   route: string
@@ -17,7 +20,7 @@ interface TodoRow {
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-overview',
-  imports: [CommonModule, RouterLink, ZardBadgeComponent, ZardButtonComponent, ...ZardCardImports],
+  imports: [CommonModule, RouterLink, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ...ZardCardImports],
   templateUrl: './overview.component.html',
   host: { class: 'block' }
 })
@@ -27,48 +30,54 @@ export class AgentEvolutionOverviewComponent {
   readonly shortId = shortId
 
   readonly passedEvaluations = computed(
-    () => this.facade.dashboard().evaluations.filter((evaluation) => evaluation.gate.passed).length
+    () => this.facade.contextEvaluations().filter((evaluation) => evaluation.gate.passed).length
   )
   readonly passRate = computed(() => {
-    const evaluations = this.facade.dashboard().evaluations
+    const evaluations = this.facade.contextEvaluations()
     return evaluations.length ? this.passedEvaluations() / evaluations.length : 0
   })
   readonly severeErrors = computed(() =>
-    this.facade.dashboard().evaluations.reduce((total, evaluation) => total + evaluation.metrics.severeErrors, 0)
+    this.facade.contextEvaluations().reduce((total, evaluation) => total + evaluation.metrics.severeErrors, 0)
   )
   readonly activeReleases = computed(
-    () => this.facade.dashboard().releases.filter((release) => release.status === 'active').length
+    () => this.facade.contextReleases().filter((release) => release.status === 'active').length
   )
   readonly todos = computed<TodoRow[]>(() => {
-    const dashboard = this.facade.dashboard()
-    const proposals = dashboard.proposals
+    const proposals = this.facade
+      .contextProposals()
       .filter((proposal) => proposal.status === 'draft' || proposal.status === 'ready')
       .slice(0, 2)
       .map<TodoRow>((proposal) => ({
-        type: '建议',
+        typeKey: 'XP.AgentEvolution.Proposal',
         title: proposal.title,
         target: proposal.targetId,
-        status: proposal.status === 'ready' ? '待构建' : '待完善',
+        status: proposal.status === 'ready' ? 'waiting_build' : 'needs_details',
         route: '../learning',
         icon: 'ri-lightbulb-flash-line'
       }))
-    const candidates = dashboard.candidates
+    const candidates = this.facade
+      .contextCandidates()
       .filter((candidate) => !['packaged', 'rejected', 'expired'].includes(candidate.status))
       .slice(0, 2)
       .map<TodoRow>((candidate) => ({
-        type: '候选',
-        title: `候选 ${shortId(candidate.candidateId)}`,
+        typeKey: 'XP.AgentEvolution.Candidate',
+        title: shortId(candidate.candidateId),
+        titleKey: 'XP.AgentEvolution.CandidateTodoTitle',
+        titleParams: { id: shortId(candidate.candidateId) },
         target: candidate.targetId,
         status: candidate.status,
         route: '../evaluation',
         icon: 'ri-flask-line'
       }))
-    const releases = dashboard.releases
+    const releases = this.facade
+      .contextReleases()
       .filter((release) => !['active', 'rolled_back', 'superseded'].includes(release.status))
       .slice(0, 2)
       .map<TodoRow>((release) => ({
-        type: '发布',
-        title: `发布 ${shortId(release.releasePackageId)}`,
+        typeKey: 'XP.AgentEvolution.Release',
+        title: shortId(release.releasePackageId),
+        titleKey: 'XP.AgentEvolution.ReleaseTodoTitle',
+        titleParams: { id: shortId(release.releasePackageId) },
         target: release.targetId,
         status: release.status,
         route: '../release',
@@ -78,18 +87,37 @@ export class AgentEvolutionOverviewComponent {
   })
 
   readonly loopStages = computed(() => {
-    const dashboard = this.facade.dashboard()
     return [
-      { label: '学习信号', value: dashboard.events.length, icon: 'ri-radar-line', tone: 'text-text-accent' },
       {
-        label: '改进建议',
-        value: dashboard.proposals.length,
+        labelKey: 'XP.AgentEvolution.LearningSignals',
+        value: this.facade.contextEvents().length,
+        icon: 'ri-radar-line',
+        tone: 'text-text-accent'
+      },
+      {
+        labelKey: 'XP.AgentEvolution.ImprovementProposals',
+        value: this.facade.contextProposals().length,
         icon: 'ri-lightbulb-flash-line',
         tone: 'text-text-warning'
       },
-      { label: '候选版本', value: dashboard.candidates.length, icon: 'ri-flask-line', tone: 'text-text-accent' },
-      { label: '发布运行', value: dashboard.releases.length, icon: 'ri-rocket-line', tone: 'text-text-success' },
-      { label: '生产指针', value: dashboard.pointers.length, icon: 'ri-focus-3-line', tone: 'text-text-primary' }
+      {
+        labelKey: 'XP.AgentEvolution.CandidateVersions',
+        value: this.facade.contextCandidates().length,
+        icon: 'ri-flask-line',
+        tone: 'text-text-accent'
+      },
+      {
+        labelKey: 'XP.AgentEvolution.ReleaseRuns',
+        value: this.facade.contextReleases().length,
+        icon: 'ri-rocket-line',
+        tone: 'text-text-success'
+      },
+      {
+        labelKey: 'XP.AgentEvolution.ProductionPointers',
+        value: this.facade.contextPointers().length,
+        icon: 'ri-focus-3-line',
+        tone: 'text-text-primary'
+      }
     ]
   })
 }
