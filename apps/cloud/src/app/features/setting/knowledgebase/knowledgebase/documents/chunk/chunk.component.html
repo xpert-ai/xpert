@@ -1,6 +1,6 @@
 <div class="flex justify-between items-center p-4">
   <div>{{ 'XP.Knowledgebase.Chunks' | translate: { Default: 'Chunks' } }}: {{ total() }}</div>
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button z-button zType="ghost" (click)="close()">
       {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
@@ -14,11 +14,9 @@
         <div class="mb-2 flex justify-between items-center">
           <button
             z-button
-            zType="ghost"
-            zSize="icon"
+            zType="destructive"
+            zSize="icon-xs"
             zShape="circle"
-            xpAppearance="danger"
-            displayDensity="compact"
             [zTooltip]="'XP.Knowledgebase.DeleteChunk' | translate: { Default: 'Delete Chunk' }"
             (click)="deleteChunk(chunk)"
           >

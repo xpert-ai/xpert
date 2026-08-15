@@ -187,7 +187,7 @@
           @for (element of filteredData(); track element.id; let i = $index) {
             <tr
               z-table-row
-              class="cursor-pointer bg-background"
+              class="group cursor-pointer bg-background transition-colors duration-150 hover:bg-muted/50 focus-within:bg-muted/50"
               [attr.data-state]="selectedDocumentId() === element.id ? 'selected' : null"
               (click)="selectDocument(element)"
             >
@@ -263,140 +263,109 @@
                         <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
                           @switch (knowledgebase()?.status) {
                             @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
-                              <xp-tags
-                                class="text-sm"
-                                [tags]="[
-                                  {
-                                    caption:
-                                      'XP.Knowledgebase.Status_RebuildRequired'
-                                      | translate: { Default: 'Pending vector rebuild' }
-                                  }
-                                ]"
-                                color="orange"
-                              />
+                              <z-badge
+                                zType="outline"
+                                zShape="pill"
+                                class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                              >
+                                {{
+                                  'XP.Knowledgebase.Status_RebuildRequired'
+                                    | translate: { Default: 'Pending vector rebuild' }
+                                }}
+                              </z-badge>
                             }
                             @case (eKnowledgebaseStatusEnum.REBUILDING) {
-                              <xp-tags
-                                class="text-sm"
-                                [tags]="[
-                                  {
-                                    caption:
-                                      'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
-                                  }
-                                ]"
-                                color="blue"
-                              />
+                              <z-badge zType="secondary" zShape="pill">
+                                <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                                {{ 'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' } }}
+                              </z-badge>
                             }
                             @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
-                              <xp-tags
-                                class="text-sm"
+                              <z-badge
+                                zType="destructive"
+                                zShape="pill"
                                 [zTooltip]="knowledgebase()?.embeddingRebuildError"
                                 zPosition="left"
-                                [tags]="[
-                                  {
-                                    caption:
-                                      'XP.Knowledgebase.Status_RebuildFailed'
-                                      | translate: { Default: 'Vector rebuild failed' }
-                                  }
-                                ]"
-                                color="red"
-                              />
+                              >
+                                {{
+                                  'XP.Knowledgebase.Status_RebuildFailed'
+                                    | translate: { Default: 'Vector rebuild failed' }
+                                }}
+                              </z-badge>
                             }
                             @default {
                               @switch (element.status) {
                                 @case (eKBDocumentStatusEnum.RUNNING) {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      { caption: 'XP.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
-                                    ]"
-                                    color="blue"
-                                  />
+                                  <z-badge zType="secondary" zShape="pill">
+                                    <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                                    {{ 'XP.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.FINISH) {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      { caption: 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
-                                    ]"
-                                    color="green"
-                                  />
+                                  <z-badge
+                                    zType="outline"
+                                    zShape="pill"
+                                    class="border-text-success/30 bg-text-success/10 text-text-success"
+                                  >
+                                    {{ 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.ERROR) {
-                                  <xp-tags
-                                    class="text-sm"
+                                  <z-badge
+                                    zType="destructive"
+                                    zShape="pill"
                                     [zTooltip]="element.processMsg"
                                     zPosition="left"
-                                    [tags]="[
-                                      { caption: 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }
-                                    ]"
-                                    color="red"
-                                  />
+                                  >
+                                    {{ 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.WAITING) {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      { caption: 'XP.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
-                                    ]"
-                                    color="orange"
-                                  />
+                                  <z-badge
+                                    zType="outline"
+                                    zShape="pill"
+                                    class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                                  >
+                                    {{ 'XP.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.TRANSFORMED) {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      {
-                                        caption:
-                                          'XP.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
-                                      }
-                                    ]"
-                                    color="orange"
-                                  />
+                                  <z-badge
+                                    zType="outline"
+                                    zShape="pill"
+                                    class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                                  >
+                                    {{ 'XP.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.SPLITTED) {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      {
-                                        caption: 'XP.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' }
-                                      }
-                                    ]"
-                                    color="orange"
-                                  />
+                                  <z-badge
+                                    zType="outline"
+                                    zShape="pill"
+                                    class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                                  >
+                                    {{ 'XP.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.UNDERSTOOD) {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      {
-                                        caption:
-                                          'XP.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
-                                      }
-                                    ]"
-                                    color="orange"
-                                  />
+                                  <z-badge
+                                    zType="outline"
+                                    zShape="pill"
+                                    class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                                  >
+                                    {{ 'XP.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' } }}
+                                  </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.EMBEDDING) {
-                                  <div class="flex items-center gap-1">
-                                    <xp-progress-spinner
-                                      class="w-6 h-6 shrink-0 text-text-success"
-                                      [value]="element.progress"
-                                    />
-                                    <span>{{ element.progress }}%</span>
-                                  </div>
+                                  <z-badge zType="secondary" zShape="pill">
+                                    <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                                    {{ element.progress }}%
+                                  </z-badge>
                                 }
                                 @default {
-                                  <xp-tags
-                                    class="text-sm"
-                                    [tags]="[
-                                      {
-                                        caption:
-                                          'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' }
-                                      }
-                                    ]"
-                                    color="gray"
-                                  />
+                                  <z-badge zType="outline" zShape="pill">
+                                    {{ 'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }}
+                                  </z-badge>
                                 }
                               }
                             }
@@ -446,7 +415,13 @@
                 [style.width.px]="actionsColumnWidth"
                 (click)="$event.stopPropagation()"
               >
-                <div class="flex items-center justify-end gap-0.5">
+                <div
+                  [class]="
+                    selectedDocumentId() === element.id
+                      ? 'flex items-center justify-end gap-0.5 opacity-100 transition-opacity duration-150'
+                      : 'flex items-center justify-end gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100'
+                  "
+                >
                   @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
                     @if (canViewOriginalFile(element)) {
                       <button
@@ -497,9 +472,28 @@
   </section>
 
   <aside
-    class="ml-3 hidden w-[440px] shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-background xl:flex"
+    [class]="
+      selectedDocument()
+        ? 'relative ml-3 hidden shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-background xl:flex'
+        : 'hidden'
+    "
+    [style.width.px]="documentInspectorWidth()"
   >
     @if (selectedDocument(); as document) {
+      <button
+        type="button"
+        role="separator"
+        aria-orientation="vertical"
+        class="absolute inset-y-0 left-0 z-20 hidden w-2 touch-none cursor-col-resize items-center justify-center bg-transparent p-0 text-border transition-colors hover:bg-primary/10 hover:text-primary focus-visible:bg-primary/10 focus-visible:text-primary focus-visible:outline-none xl:flex"
+        [attr.aria-label]="'XP.Knowledgebase.ResizeInspector' | translate: { Default: 'Resize details panel' }"
+        [attr.aria-valuemin]="documentInspectorMinWidth"
+        [attr.aria-valuemax]="documentInspectorMaxWidth()"
+        [attr.aria-valuenow]="documentInspectorWidth()"
+        (pointerdown)="startDocumentInspectorResize($event)"
+        (keydown)="resizeDocumentInspectorFromKeyboard($event)"
+      >
+        <span class="h-12 w-1 rounded-full bg-current"></span>
+      </button>
       @if (document.sourceType === eKDocumentSourceType.FOLDER) {
         <header class="border-b border-border px-5 pb-5 pt-3">
           <div class="flex items-center gap-2">
@@ -1018,7 +1012,9 @@
                 <dt class="text-text-tertiary">
                   {{ 'XP.Knowledgebase.PageCount' | translate: { Default: 'Pages' } }}
                 </dt>
-                <dd class="truncate font-medium text-text-primary">{{ selectedDocumentPageCount(document) ?? '-' }}</dd>
+                <dd class="truncate font-medium text-text-primary">
+                  {{ selectedDocumentPageCount(document) ?? '-' }}
+                </dd>
               </div>
               <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
                 <dt class="text-text-tertiary">
@@ -1054,17 +1050,14 @@
                 <dt class="text-text-tertiary">
                   {{ 'XP.Knowledgebase.ProcessingDuration' | translate: { Default: 'Duration' } }}
                 </dt>
-                <dd class="truncate font-medium text-text-primary">{{ selectedDocumentProcessDuration(document) }}</dd>
+                <dd class="truncate font-medium text-text-primary">
+                  {{ selectedDocumentProcessDuration(document) }}
+                </dd>
               </div>
             </dl>
           </section>
         </div>
       }
-    } @else {
-      <div class="flex h-full flex-col items-center justify-center p-8 text-center text-sm text-text-tertiary">
-        <z-icon zType="document_scanner" class="mb-3 size-6" />
-        {{ 'XP.Knowledgebase.SelectDocumentHint' | translate: { Default: 'Select a document to inspect it.' } }}
-      </div>
     }
   </aside>
 </div>

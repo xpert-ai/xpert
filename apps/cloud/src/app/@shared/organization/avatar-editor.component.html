@@ -23,12 +23,12 @@
 />
 
 <ng-template #editorMenu>
-  <div cdkMenu displayDensity="cosy" class="xp-cdk-menu p-2">
+  <div cdkMenu class="xp-cdk-menu xp-density__cosy p-2">
     <button cdkMenuItem class="xp-cdk-menu-item px-2 py-1" (click)="fileUpload.click()">
       {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
     </button>
     @if (org()?.imageUrl) {
-      <button cdkMenuItem class="xp-cdk-menu-item px-2 py-1" xpAppearance="danger" (click)="remove()">
+      <button cdkMenuItem class="xp-cdk-menu-item danger px-2 py-1" (click)="remove()">
         {{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
       </button>
     }

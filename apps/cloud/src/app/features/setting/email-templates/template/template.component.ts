@@ -12,7 +12,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
-import { XpButtonGroupDirective, ISelectOption } from '@xpert-ai/headless-ui'
+import { ISelectOption } from '@xpert-ai/headless-ui'
 import { EditorThemeMap } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
@@ -32,8 +32,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MonacoEditorModule,
-    XpButtonGroupDirective
+    MonacoEditorModule
   ],
   selector: 'xp-email-template',
   templateUrl: './template.component.html',

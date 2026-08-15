@@ -11,7 +11,6 @@ import {
 } from '@angular/core'
 import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { OcapCoreModule } from '@xpert-ai/headless-ui'
 import { cloneDeep } from 'lodash-es'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -43,9 +42,7 @@ import {
     ...ZardTableImports,
     FormlyModule,
 
-    TranslateModule,
-
-    OcapCoreModule
+    TranslateModule
   ]
 })
 export class XpFormlyTableComponent extends FieldArrayType implements OnInit {

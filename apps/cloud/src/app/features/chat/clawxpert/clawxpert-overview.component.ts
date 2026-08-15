@@ -197,7 +197,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                   class="flex-1 rounded-l-lg rounded-r-none"
                   z-button
                   zType="ghost"
-                  displayDensity="cosy"
+                  zSize="sm"
                   type="button"
                   z-menu
                   [zMenuTriggerFor]="copilotModelMenu"
@@ -211,9 +211,8 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 <button
                   z-button
                   zType="ghost"
-                  displayDensity="cosy"
                   type="button"
-                  zSize="icon"
+                  zSize="icon-sm"
                   class="shrink-0 rounded-none rounded-r-lg border-0 border-l border-border px-3"
                   z-menu
                   [zMenuTriggerFor]="actionMenu"

@@ -4258,6 +4258,7 @@
       "ParsingComplete": "解析完成",
       "ParsingFailed": "解析失敗",
       "CloseInspector": "關閉詳情",
+      "ResizeInspector": "調整詳情面板寬度",
       "MoreActions": "更多操作",
       "FailureReason": "失敗原因",
       "PageRangeQuotaExceeded": "第 {{start}}–{{end}} 頁：額度不足",

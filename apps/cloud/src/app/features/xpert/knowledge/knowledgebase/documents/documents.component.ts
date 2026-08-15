@@ -81,6 +81,9 @@ import { validateOriginalFileResponse } from './original-file-preview'
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 48
 const ACTIONS_COLUMN_WIDTH = 88
+const DOCUMENT_INSPECTOR_DEFAULT_WIDTH = 440
+const DOCUMENT_INSPECTOR_MIN_WIDTH = 360
+const DOCUMENT_INSPECTOR_MAX_WIDTH = 720
 // Bump the layout version when changing defaults so previously saved layouts receive
 // the product default while users can still opt back into the Type column.
 const DOCUMENT_COLUMNS_STORAGE_KEY = 'xpert.knowledge.documents.table.columns.v3'
@@ -317,6 +320,7 @@ export class KnowledgeDocumentsComponent {
 
   readonly selectColumnWidth = SELECT_COLUMN_WIDTH
   readonly actionsColumnWidth = ACTIONS_COLUMN_WIDTH
+  readonly documentInspectorMinWidth = DOCUMENT_INSPECTOR_MIN_WIDTH
   // One table-column model drives width, visibility, order, and sort affordances.
   readonly tableColumns = signal<DocumentTableColumn[]>(createDefaultDocumentColumns())
   readonly visibleDocumentColumns = computed(() => this.tableColumns().filter((column) => column.visible))
@@ -375,6 +379,7 @@ export class KnowledgeDocumentsComponent {
   readonly statusFilter = signal<DocumentStatusFilter>('all')
   readonly selectedDocumentId = signal<string | null>(null)
   readonly documentInspectorDismissed = signal(false)
+  readonly documentInspectorWidth = signal(DOCUMENT_INSPECTOR_DEFAULT_WIDTH)
   readonly folderBrowserSelectedDocument = signal<IKnowledgeDocument | null>(null)
   readonly selectedDocument = computed(() => {
     if (this.documentInspectorDismissed()) {
@@ -607,6 +612,61 @@ export class KnowledgeDocumentsComponent {
     this.folderBrowserSelectedDocument.set(null)
     this.selectedDocumentId.set(null)
     this.resetFolderBrowser()
+  }
+
+  startDocumentInspectorResize(event: PointerEvent) {
+    if (event.button !== 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const startX = event.clientX
+    const startWidth = this.documentInspectorWidth()
+    const resizeHandle = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
+    resizeHandle?.setPointerCapture(event.pointerId)
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      this.documentInspectorWidth.set(
+        normalizeDocumentInspectorWidth(startWidth + startX - moveEvent.clientX, this.documentInspectorMaxWidth())
+      )
+    }
+    const finishResize = (endEvent: PointerEvent) => {
+      if (resizeHandle?.hasPointerCapture(endEvent.pointerId)) {
+        resizeHandle.releasePointerCapture(endEvent.pointerId)
+      }
+      resizeHandle?.removeEventListener('pointermove', onPointerMove)
+      resizeHandle?.removeEventListener('pointerup', finishResize)
+      resizeHandle?.removeEventListener('pointercancel', finishResize)
+    }
+
+    resizeHandle?.addEventListener('pointermove', onPointerMove)
+    resizeHandle?.addEventListener('pointerup', finishResize)
+    resizeHandle?.addEventListener('pointercancel', finishResize)
+  }
+
+  resizeDocumentInspectorFromKeyboard(event: KeyboardEvent) {
+    const resizeDelta = event.shiftKey ? 40 : 16
+    const direction = event.key === 'ArrowLeft' ? 1 : event.key === 'ArrowRight' ? -1 : 0
+    if (!direction) {
+      return
+    }
+
+    event.preventDefault()
+    this.documentInspectorWidth.update((width) =>
+      normalizeDocumentInspectorWidth(width + direction * resizeDelta, this.documentInspectorMaxWidth())
+    )
+  }
+
+  documentInspectorMaxWidth() {
+    if (typeof window === 'undefined') {
+      return DOCUMENT_INSPECTOR_MAX_WIDTH
+    }
+    return Math.max(
+      DOCUMENT_INSPECTOR_MIN_WIDTH,
+      Math.min(DOCUMENT_INSPECTOR_MAX_WIDTH, Math.floor(window.innerWidth * 0.55))
+    )
   }
 
   setStatusFilter(filter: DocumentStatusFilter) {
@@ -1892,6 +1952,10 @@ function saveDocumentColumns(columns: DocumentTableColumn[]) {
 function normalizeColumnWidth(width: number, column: Pick<DocumentTableColumn, 'minWidth' | 'maxWidth'>) {
   const maxWidth = column.maxWidth ?? Number.POSITIVE_INFINITY
   return Math.min(Math.max(Math.round(width), column.minWidth), maxWidth)
+}
+
+function normalizeDocumentInspectorWidth(width: number, maxWidth: number) {
+  return Math.min(Math.max(Math.round(width), DOCUMENT_INSPECTOR_MIN_WIDTH), maxWidth)
 }
 
 function compareDocumentSortValues(

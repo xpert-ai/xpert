@@ -94,7 +94,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
                   z-button
                   zType="outline"
                   type="button"
-                  displayDensity="cosy"
+                  zSize="sm"
                   class="trigger-add-button"
                   z-menu
                   [zMenuTriggerFor]="addTriggerMenu"
@@ -172,7 +172,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
                 z-button
                 zType="outline"
                 type="button"
-                displayDensity="cosy"
+                zSize="sm"
                 [disabled]="facade.savingTriggerDraft() || !dirty()"
                 (click)="reset()"
               >
@@ -182,7 +182,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
                 z-button
                 zType="default"
                 type="button"
-                displayDensity="cosy"
+                zSize="sm"
                 [disabled]="facade.savingTriggerDraft() || !dirty() || invalid()"
                 (click)="save()"
               >

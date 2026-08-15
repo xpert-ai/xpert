@@ -1946,6 +1946,7 @@
       "ParsingComplete": "解析完成",
       "ParsingFailed": "解析失败",
       "CloseInspector": "关闭详情",
+      "ResizeInspector": "调整详情面板宽度",
       "MoreActions": "更多操作",
       "FailureReason": "失败原因",
       "PageRangeQuotaExceeded": "第 {{start}}–{{end}} 页：额度不足",

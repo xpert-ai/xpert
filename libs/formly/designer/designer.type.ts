@@ -15,14 +15,7 @@ const noopDesignerPanelService: DesignerPanelService = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'xp-formly-designer',
   standalone: false,
-  template: `<button
-    z-button
-    zType="ghost"
-    type="button"
-    xpAppearance="dashed"
-    displayDensity="cosy"
-    (click)="openDesigner()"
-  >
+  template: `<button z-button zType="outline" type="button" class="border-dashed" zSize="sm" (click)="openDesigner()">
     {{ 'FORMLY.COMMON.Options' | translate: { Default: 'Options' } }}
   </button>`,
   styles: [

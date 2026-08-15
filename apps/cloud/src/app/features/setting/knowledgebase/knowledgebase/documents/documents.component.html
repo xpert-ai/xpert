@@ -1,7 +1,7 @@
 <div class="filter-bar p-2 flex items-center gap-4">
   <span class="flex-1"></span>
 
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button
       z-button
       zType="default"
@@ -67,35 +67,33 @@
                 </div>
               }
               @case ('finish') {
-                <xp-tags
-                  class="text-sm"
-                  [tags]="[{ caption: 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
-                  color="green"
-                />
+                <z-badge
+                  zType="outline"
+                  zShape="pill"
+                  class="border-text-success/30 bg-text-success/10 text-text-success"
+                >
+                  {{ 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }}
+                </z-badge>
               }
               @case ('error') {
-                <xp-tags
-                  class="text-sm"
-                  [tags]="[{ caption: 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
-                  color="red"
-                />
+                <z-badge zType="destructive" zShape="pill">
+                  {{ 'XP.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }}
+                </z-badge>
               }
               @default {
-                <xp-tags
-                  class="text-sm"
-                  [tags]="[{ caption: 'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }]"
-                  color="gray"
-                />
+                <z-badge zType="outline" zShape="pill">
+                  {{ 'XP.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }}
+                </z-badge>
               }
             }
           </td>
 
           <td z-table-cell class="w-32">
-            <div class="flex items-center gap-2" displayDensity="cosy">
+            <div class="flex items-center gap-2">
               <button
                 z-button
-                zType="ghost"
-                zSize="icon"
+                zType="destructive"
+                zSize="icon-sm"
                 zShape="circle"
                 aria-label="expand row"
                 (click)="
@@ -113,7 +111,7 @@
                 <button
                   z-button
                   zType="ghost"
-                  zSize="icon"
+                  zSize="icon-sm"
                   zShape="circle"
                   [zTooltip]="'XP.Knowledgebase.RestartParsing' | translate: { Default: 'Restart parsing' }"
                   zPosition="top"
@@ -125,7 +123,7 @@
                 <button
                   z-button
                   zType="ghost"
-                  zSize="icon"
+                  zSize="icon-sm"
                   zShape="circle"
                   [zTooltip]="'XP.Knowledgebase.StopParsing' | translate: { Default: 'Stop parsing' }"
                   zPosition="top"
@@ -137,7 +135,7 @@
                 <button
                   z-button
                   zType="ghost"
-                  zSize="icon"
+                  zSize="icon-sm"
                   zShape="circle"
                   [zTooltip]="'XP.Knowledgebase.StartParsing' | translate: { Default: 'Start parsing' }"
                   zPosition="top"
@@ -151,9 +149,8 @@
               <button
                 z-button
                 zType="ghost"
-                zSize="icon"
+                zSize="icon-sm"
                 zShape="circle"
-                xpAppearance="danger"
                 [zTooltip]="
                   'XP.Knowledgebase.DeleteKnowledgeDocument' | translate: { Default: 'Delete Knowledge Document' }
                 "
@@ -169,8 +166,7 @@
         <tr z-table-row class="example-detail-row">
           <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="p-0">
             <div
-              class="example-element-detail"
-              displayDensity="compact"
+              class="example-element-detail xp-density__compact"
               [@detailExpand]="element.id === expandedElement?.id ? 'expanded' : 'collapsed'"
             >
               <div

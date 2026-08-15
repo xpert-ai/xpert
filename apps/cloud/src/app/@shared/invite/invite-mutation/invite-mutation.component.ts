@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '../../../@core'
 import { ToastrService } from '../../../@core/services'
@@ -15,14 +14,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    TranslateModule,
-    ZardButtonComponent,
-    DragDropModule,
-    XpButtonGroupDirective,
-    InviteFormsModule
-  ],
+  imports: [FormsModule, TranslateModule, ZardButtonComponent, DragDropModule, InviteFormsModule],
   selector: 'xp-invite-mutation',
   templateUrl: './invite-mutation.component.html',
   styleUrls: ['./invite-mutation.component.scss'],

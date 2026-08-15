@@ -30,7 +30,7 @@
           class="flex w-full items-center justify-start gap-3 rounded-none border-b border-divider-regular px-3 py-3 text-left last:border-b-0"
           [class.bg-hover-bg]="selectedOrganizationId() === organization.id"
           (click)="selectOrganization(organization)"
-          displayDensity="cosy"
+          zSize="sm"
         >
           <xp-org-avatar [organization]="organization" class="block h-10 w-10 shrink-0 overflow-hidden rounded-xl" />
 
@@ -64,7 +64,7 @@
 </div>
 
 <div xpDialogActions align="end">
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button z-button zType="ghost" cdkFocusInitial (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>

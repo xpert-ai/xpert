@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core'
-import { OcapCoreModule } from '../core'
 import { XpCheckboxComponent } from './checkbox/checkbox.component'
 import { XpCopyComponent } from './copy/copy.component'
 import { XpHighlightDirective, XpResizableDirective } from './directives'
@@ -14,16 +13,13 @@ import { XpSliderInputComponent } from './slider-input/slider-input.component'
 import { XpSpinComponent } from './spin/spin.component'
 import { XpStepperComponent } from './stepper/stepper.component'
 import { XpTableComponent } from './table/table/table.component'
-import { XpTagsComponent } from './tag/tag.component'
 
 const COMMON_IMPORTS = [
-  OcapCoreModule,
   XpHighlightDirective,
   XpResizableDirective,
   XpDisplayBehaviourComponent,
   XpSelectComponent,
   XpSliderInputComponent,
-  XpTagsComponent,
   XpInputComponent,
   XpDrawerTriggerComponent,
   XpTableComponent,

@@ -7,7 +7,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgebaseService, Store, ToastrService, getErrorMessage, routeAnimations } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
-import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 /**
@@ -18,7 +18,15 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   selector: 'xp-settings-knowledgebase-test',
   templateUrl: './test.component.html',
   styleUrls: ['./test.component.scss'],
-  imports: [RouterModule, FormsModule, TranslateModule, SharedUiModule, XpCommonModule, ZardLoaderComponent],
+  imports: [
+    RouterModule,
+    FormsModule,
+    TranslateModule,
+    SharedUiModule,
+    XpCommonModule,
+    ZardBadgeComponent,
+    ZardLoaderComponent
+  ],
   animations: [routeAnimations]
 })
 export class KnowledgeTestComponent extends TranslationBaseComponent {

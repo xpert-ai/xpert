@@ -1,6 +1,6 @@
 <div class="w-full xp-page-body-toolbar p-1">
   <div></div>
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button z-button zType="default" [cdkMenuTriggerFor]="orgMenu">
       <div class="flex items-center">
         <z-icon zType="add"></z-icon>
@@ -77,12 +77,9 @@
   @if (membership && canRemoveMembership(membership)) {
     <button
       z-button
-      zType="ghost"
-      zSize="icon"
+      zType="destructive"
+      zSize="icon-sm"
       zShape="circle"
-      xpAppearance="danger"
-      displayDensity="cosy"
-      class="text-text-quaternary"
       [disabled]="loading"
       (click)="removeOrg(id, organization)"
     >

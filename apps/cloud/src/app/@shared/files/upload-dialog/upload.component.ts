@@ -3,7 +3,6 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardSearchInputComponent } from '@xpert-ai/headless-ui'
-import { XpAppearanceDirective, XpButtonGroupDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { catchError, combineLatest, of, startWith, tap } from 'rxjs'
@@ -23,9 +22,6 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
     ReactiveFormsModule,
     SharedUiModule,
     TranslateModule,
-    XpButtonGroupDirective,
-    XpAppearanceDirective,
-    DensityDirective,
     ZardSearchInputComponent,
     FilesUploadComponent
   ],

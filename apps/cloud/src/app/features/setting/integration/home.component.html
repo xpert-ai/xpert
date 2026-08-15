@@ -65,7 +65,13 @@
           <emoji-avatar [avatar]="item.avatar" class="rounded-lg overflow-hidden shadow-sm" />
           <div class="flex flex-col items-start">
             <p class="text-sm flex items-center gap-1 text-text-secondary opacity-80">
-              <xp-tags [tags]="[{ key: item.provider, caption: item.provider, color: 'green' }]" small />
+              <z-badge
+                zType="outline"
+                zShape="pill"
+                class="border-text-success/30 bg-text-success/10 text-text-success"
+              >
+                {{ item.provider }}
+              </z-badge>
               <span>{{ item.updatedAt | date: 'short' }}</span>
             </p>
             <div class="font-bold text-base">{{ item.name }}</div>
@@ -112,7 +118,7 @@
       </span>
     </button>
 
-    <button cdkMenuItem xpAppearance="danger" class="xp-cdk-menu-item p-1" (click)="remove(item)">
+    <button cdkMenuItem class="xp-cdk-menu-item danger p-1" (click)="remove(item)">
       <i class="ri-delete-bin-line mr-1"></i>
       <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>

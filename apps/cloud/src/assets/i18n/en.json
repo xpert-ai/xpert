@@ -3348,6 +3348,7 @@
       "ParsingComplete": "Parsing complete",
       "ParsingFailed": "Parsing failed",
       "CloseInspector": "Close details",
+      "ResizeInspector": "Resize details panel",
       "MoreActions": "More actions",
       "FailureReason": "Failure reason",
       "PageRangeQuotaExceeded": "Pages {{start}}–{{end}}: quota exceeded",

@@ -22,7 +22,7 @@
           z-button
           zType="default"
           type="button"
-          displayDensity="cosy"
+          zSize="sm"
           class="min-h-10 shrink-0"
           [disabled]="isBusy()"
           (click)="startCreate()"
@@ -150,10 +150,9 @@
         @if (!isNewGroup()) {
           <button
             z-button
-            zType="ghost"
-            xpAppearance="danger"
+            zType="destructive"
             type="button"
-            displayDensity="cosy"
+            zSize="sm"
             class="min-h-10"
             [disabled]="isBusy()"
             (click)="deleteSelected()"
@@ -167,7 +166,7 @@
           z-button
           zType="default"
           type="button"
-          displayDensity="cosy"
+          zSize="sm"
           class="min-h-10"
           [disabled]="isBusy()"
           (click)="save()"
@@ -353,7 +352,7 @@
                     z-button
                     zType="ghost"
                     type="button"
-                    displayDensity="cosy"
+                    zSize="sm"
                     class="min-h-10"
                     [disabled]="!canSelectVisibleUsers()"
                     (click)="selectVisibleMembers()"
@@ -364,7 +363,7 @@
                     z-button
                     zType="ghost"
                     type="button"
-                    displayDensity="cosy"
+                    zSize="sm"
                     class="min-h-10"
                     [disabled]="!selectedMemberCount()"
                     (click)="clearSelectedMembers()"
@@ -492,7 +491,7 @@
                     z-button
                     zType="ghost"
                     type="button"
-                    displayDensity="cosy"
+                    zSize="sm"
                     class="min-h-10"
                     [disabled]="!canSelectVisibleXperts()"
                     (click)="selectVisibleXperts()"
@@ -503,7 +502,7 @@
                     z-button
                     zType="ghost"
                     type="button"
-                    displayDensity="cosy"
+                    zSize="sm"
                     class="min-h-10"
                     [disabled]="!selectedXpertCount()"
                     (click)="clearSelectedXperts()"

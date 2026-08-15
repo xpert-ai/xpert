@@ -29,10 +29,9 @@
       <button
         z-button
         zType="ghost"
-        zSize="icon"
+        zSize="icon-sm"
         zShape="circle"
         class="xp-card__menu transition-opacity opacity-0 group-hover:opacity-100"
-        displayDensity="cosy"
         #mt="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="menu"
         [cdkMenuTriggerData]="{ item: item }"
@@ -106,7 +105,7 @@
       </span>
     </button>
 
-    <button cdkMenuItem xpAppearance="danger" class="xp-cdk-menu-item p-1" (click)="remove(item)">
+    <button cdkMenuItem class="xp-cdk-menu-item danger p-1" (click)="remove(item)">
       <i class="ri-delete-bin-line mr-1"></i>
       <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>

@@ -14,17 +14,12 @@
     formControlName="password"
   />
 
-  <!-- 目前没有意义，因为 Auth 必须保存到 Server 才能被使用
-  <z-checkbox formControlName="remeberMe">
-    {{ 'XP.KEY_WORDS.RemeberMe' | translate: {Default: 'Remeber Me'} }}
-  </z-checkbox> -->
-
   <div class="flex justify-end items-center">
-    <div xpButtonGroup displayDensity="cosy">
-      <button z-button zType="secondary" type="button" displayDensity="cosy" (click)="onCancel()">
+    <div class="flex items-center gap-1">
+      <button z-button zType="secondary" type="button" zSize="sm" (click)="onCancel()">
         {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
-      <button z-button zType="default" displayDensity="cosy">
+      <button z-button zType="default" zSize="sm">
         {{ 'XP.KEY_WORDS.Confirm' | translate: { Default: 'Confirm' } }}
       </button>
     </div>

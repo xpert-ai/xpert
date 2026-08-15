@@ -84,7 +84,7 @@
 
 <ng-template #cardMenu let-xpert="xpert">
   <div class="xp-cdk-menu p-2" cdkMenu>
-    <button class="xp-cdk-menu-item px-2 py-1.5" cdkMenuItem xpAppearance="danger" (click)="deleteXpert(xpert)">
+    <button class="xp-cdk-menu-item danger px-2 py-1.5" cdkMenuItem (click)="deleteXpert(xpert)">
       <i class="ri-delete-bin-line mr-1"></i>
       {{ 'XP.KEY_WORDS.Delete' | translate: { Default: 'Delete' } }}
     </button>

@@ -48,7 +48,6 @@
     <div class="xp-card min-h-[160px] flex-1 flex flex-col p-4 group bg-background-default-subtle hover:bg-hover-bg">
       <button
         class="xp-card__menu transition-opacity h-8 w-8 rounded-md border-none opacity-0 group-hover:opacity-100"
-        displayDensity="cosy"
         #mt="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="menu"
         [cdkMenuTriggerData]="{ item: item }"
@@ -122,7 +121,7 @@
       </span>
     </button>
 
-    <button cdkMenuItem xpAppearance="danger" class="xp-cdk-menu-item p-1" (click)="remove(item)">
+    <button cdkMenuItem class="xp-cdk-menu-item danger p-1" (click)="remove(item)">
       <i class="ri-delete-bin-line mr-1"></i>
       <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>

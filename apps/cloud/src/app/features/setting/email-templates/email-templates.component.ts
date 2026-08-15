@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { DisappearFadeOut, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { XpSelectComponent, XpTagsComponent } from '@xpert-ai/headless-ui'
+import { XpSelectComponent, ZardSegmentedComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'
 import { EmailTemplateNameEnum } from '../../../@core/types'
@@ -16,7 +16,6 @@ import { injectOrganization } from '@cloud/app/@core/state'
 import { LanguagesEnum } from '@xpert-ai/contracts'
 import { EmailTemplateComponent } from './template/template.component'
 
-import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
@@ -33,10 +32,9 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     ZardButtonComponent,
     XpSelectComponent,
-    XpTagsComponent,
+    ZardSegmentedComponent,
     CardCreateComponent,
     XpDynamicGridDirective,
-    XpButtonGroupDirective,
     LanguageSelectorComponent,
     EmailTemplateComponent
   ],
@@ -64,13 +62,12 @@ export class EmailTemplatesComponent {
     const languages = groupBy(this.emailTemplates(), 'languageCode')
     return languages
   })
-  readonly languages = computed(() => {
+  readonly languageOptions = computed(() => {
     const allLanguages = this.allLanguages()
     const languages = this.langGroup()
     return Object.keys(languages).map((l) => ({
-      key: l,
-      caption: allLanguages?.find((_) => _.code === l)?.name,
-      color: ['red', 'green', 'blue', 'yellow', 'gray'][Math.floor(Math.random() * 5)]
+      value: l,
+      label: allLanguages?.find((_) => _.code === l)?.name ?? l
     }))
   })
 
@@ -80,7 +77,7 @@ export class EmailTemplatesComponent {
   get languageCode() {
     return this.languageCodes()[0]
   }
-  set languageCode(value) {
+  set languageCode(value: LanguagesEnum) {
     this.languageCodes.set([value])
   }
   readonly name = model<EmailTemplateNameEnum>(null)
