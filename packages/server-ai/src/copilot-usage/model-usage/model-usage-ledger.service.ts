@@ -7,7 +7,7 @@ import type {
     ModelUsageMetric,
     ModelUsagePricingSnapshot,
     ModelUsageReport,
-    ModelUsageReportResult,
+    ModelUsageReportResult
 } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -15,19 +15,10 @@ import { randomUUID } from 'node:crypto'
 import { In, type Repository } from 'typeorm'
 import { RequestContext } from '@xpert-ai/server-core'
 import { t } from 'i18next'
+import type { CopilotModelUsageRecordingScope } from '../copilot-usage.types'
 import { ModelChargeLedgerService } from './model-charge-ledger.service'
 import { ModelUsageLedger } from './model-usage-ledger.entity'
 import { normalizeModelUsageMetrics } from './model-usage.utils'
-
-export type ModelUsageRecordingScope = {
-    tenantId: string
-    organizationId?: string | null
-    userId?: string | null
-    originExecutionId?: string | null
-    copilotId: string
-    providerScopeId: string
-    provider: string
-}
 
 @Injectable()
 export class ModelUsageLedgerService {
@@ -38,7 +29,7 @@ export class ModelUsageLedgerService {
     ) {}
 
     async recordUsage(
-        scope: ModelUsageRecordingScope,
+        scope: CopilotModelUsageRecordingScope,
         report: ModelUsageReport,
         pricingSnapshot: ModelUsagePricingSnapshot
     ): Promise<ModelUsageReportResult> {
@@ -174,7 +165,7 @@ export class ModelUsageLedgerService {
 }
 
 function toLedgerEntry(
-    scope: ModelUsageRecordingScope,
+    scope: CopilotModelUsageRecordingScope,
     report: ModelUsageReport & { recordedAt: Date },
     metric: ModelUsageMetric
 ): Partial<ModelUsageLedger> {

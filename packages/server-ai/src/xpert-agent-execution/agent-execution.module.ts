@@ -10,7 +10,7 @@ import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
-import { ModelUsageModule } from '../model-usage'
+import { CopilotUsageModule } from '../copilot-usage'
 
 @Module({
     imports: [
@@ -20,7 +20,7 @@ import { ModelUsageModule } from '../model-usage'
         CqrsModule,
         SuperAdminOrganizationScopeModule,
         AgentMiddlewareRuntimeModule,
-        ModelUsageModule
+        CopilotUsageModule
     ],
     controllers: [XpertAgentExecutionController],
     providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],

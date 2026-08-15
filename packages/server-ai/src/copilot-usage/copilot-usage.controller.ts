@@ -21,7 +21,6 @@ import { Body, Controller, Get, Post, Query, UseGuards, UseInterceptors } from '
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { CopilotUsageService } from './copilot-usage.service'
-import { ModelUsageLedgerService } from '../model-usage'
 
 @ApiTags('CopilotUsage')
 @ApiBearerAuth()
@@ -30,10 +29,7 @@ import { ModelUsageLedgerService } from '../model-usage'
 @Permissions(AIPermissionsEnum.COPILOT_EDIT)
 @Controller()
 export class CopilotUsageController {
-    constructor(
-        private readonly service: CopilotUsageService,
-        private readonly modelUsageLedger: ModelUsageLedgerService
-    ) {}
+    constructor(private readonly service: CopilotUsageService) {}
 
     @Get('ledger')
     async getLedger(
@@ -41,12 +37,12 @@ export class CopilotUsageController {
         @Query('$take') take?: number,
         @Query('$skip') skip?: number
     ) {
-        return this.modelUsageLedger.findPage(query, { take, skip })
+        return this.service.findModelUsagePage(query, { take, skip })
     }
 
     @Get('ledger/totals')
     async getLedgerTotals(@Query() query: ModelUsageLedgerQuery) {
-        return this.modelUsageLedger.totals(query)
+        return this.service.findModelUsageTotals(query)
     }
 
     @Get('summary')

@@ -132,7 +132,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let collaboration: CollaborationService
     let copilotService: CopilotService
     let findAllEnabledCopilotsWithoutMembership: jest.Mock
-    let modelUsageLedger: { recordUsage: jest.Mock }
+    let copilotUsage: { recordModelUsage: jest.Mock }
     let actorTokenProvider: { mint: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
@@ -170,8 +170,8 @@ describe('AgentMiddlewareRuntimeService', () => {
         findAllEnabledCopilotsWithoutMembership = jest.fn().mockResolvedValue([])
         copilotService = Object.create(CopilotService.prototype)
         copilotService.findAllEnabledCopilotsWithoutMembership = findAllEnabledCopilotsWithoutMembership
-        modelUsageLedger = {
-            recordUsage: jest.fn().mockResolvedValue({ requestId: 'request-1', recorded: true, ledgerIds: [] })
+        copilotUsage = {
+            recordModelUsage: jest.fn().mockResolvedValue({ requestId: 'request-1', recorded: true, ledgerIds: [] })
         }
         actorTokenProvider = {
             mint: jest.fn((input) => ({
@@ -194,7 +194,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             artifacts as any,
             collaboration,
             copilotService,
-            modelUsageLedger as never,
+            copilotUsage as never,
             actorTokenProvider as any
         )
 

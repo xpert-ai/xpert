@@ -9,7 +9,7 @@ import { ConnectorModule } from '../../connector/connector.module'
 import { ArtifactsModule } from '../../artifacts/artifacts.module'
 import { CollaborationModule } from '../../collaboration/collaboration.module'
 import { CopilotModule } from '../../copilot/copilot.module'
-import { ModelUsageModule } from '../../model-usage'
+import { CopilotUsageModule } from '../../copilot-usage'
 
 @Global()
 @Module({
@@ -20,7 +20,7 @@ import { ModelUsageModule } from '../../model-usage'
         ArtifactsModule,
         CollaborationModule,
         forwardRef(() => CopilotModule),
-        ModelUsageModule,
+        CopilotUsageModule,
         ActorTokenModule
     ],
     providers: [

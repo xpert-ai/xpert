@@ -1,10 +1,11 @@
-import { OrderTypeEnum, RolesEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, OrderTypeEnum, RolesEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Repository, SelectQueryBuilder } from 'typeorm'
 import { CopilotOrganization } from '../copilot-organization/copilot-organization.entity'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { CopilotUsageService } from './copilot-usage.service'
+import { ModelUsageLedgerService } from './model-usage/model-usage-ledger.service'
 
 jest.mock('@xpert-ai/server-core', () => {
     const actual = jest.requireActual('@xpert-ai/server-core')
@@ -63,12 +64,19 @@ function createService(
         findOne: jest.fn(),
         create: jest.fn((input) => input),
         save: jest.fn()
+    },
+    modelUsageLedger: Pick<ModelUsageLedgerService, 'recordUsage' | 'getUsages' | 'findPage' | 'totals'> = {
+        recordUsage: jest.fn(),
+        getUsages: jest.fn(),
+        findPage: jest.fn(),
+        totals: jest.fn()
     }
 ) {
     return new CopilotUsageService(
         userRepository as unknown as Repository<CopilotUser>,
         orgRepository as unknown as Repository<CopilotOrganization>,
-        ledgerRepository as unknown as Repository<MembershipPointLedger>
+        ledgerRepository as unknown as Repository<MembershipPointLedger>,
+        modelUsageLedger as ModelUsageLedgerService
     )
 }
 
@@ -76,6 +84,50 @@ describe('CopilotUsageService', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockRequestContext()
+    })
+
+    it('exposes model usage recording and queries through the copilot usage interface', async () => {
+        const repository: RepositoryMock = {
+            createQueryBuilder: jest.fn(),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const usageResult = { requestId: 'request-1', recorded: true, ledgerIds: ['ledger-1'] }
+        const page = { items: [], total: 0 }
+        const modelUsageLedger: Pick<ModelUsageLedgerService, 'recordUsage' | 'getUsages' | 'findPage' | 'totals'> = {
+            recordUsage: jest.fn().mockResolvedValue(usageResult),
+            getUsages: jest.fn().mockResolvedValue([]),
+            findPage: jest.fn().mockResolvedValue(page),
+            totals: jest.fn().mockResolvedValue([])
+        }
+        const service = createService(repository, repository, undefined, modelUsageLedger)
+        const scope = {
+            tenantId: 'tenant-1',
+            copilotId: 'copilot-1',
+            providerScopeId: 'provider-scope-1',
+            provider: 'volcengine'
+        }
+        const report = {
+            requestId: 'request-1',
+            model: 'seedream',
+            modelType: AiModelTypeEnum.IMAGE,
+            operation: 'text_to_image' as const,
+            modality: 'image' as const,
+            metrics: [{ unit: 'generation' as const, quantity: 1, authority: 'provider' as const }]
+        }
+        const pricingSnapshot = { capturedAt: '2026-08-15T00:00:00.000Z', rules: [] }
+
+        await expect(service.recordModelUsage(scope, report, pricingSnapshot)).resolves.toEqual(usageResult)
+        await expect(service.getModelUsages(['execution-1'], 'tenant-1')).resolves.toEqual([])
+        await expect(service.findModelUsagePage({ unit: 'generation' })).resolves.toEqual(page)
+        await expect(service.findModelUsageTotals({ unit: 'generation' })).resolves.toEqual([])
+
+        expect(modelUsageLedger.recordUsage).toHaveBeenCalledWith(scope, report, pricingSnapshot)
+        expect(modelUsageLedger.getUsages).toHaveBeenCalledWith(['execution-1'], 'tenant-1')
+        expect(modelUsageLedger.findPage).toHaveBeenCalledWith({ unit: 'generation' }, undefined)
+        expect(modelUsageLedger.totals).toHaveBeenCalledWith({ unit: 'generation' })
     })
 
     it('summarizes user usage by xpert creator with current and grand totals', async () => {

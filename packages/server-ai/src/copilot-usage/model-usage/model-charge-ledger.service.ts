@@ -3,15 +3,15 @@ import { calculateModelUsageCharge } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import type { EntityManager } from 'typeorm'
+import type { CopilotModelUsageRecordingScope } from '../copilot-usage.types'
 import { ModelChargeLedger } from './model-charge-ledger.entity'
 import { ModelUsageLedger } from './model-usage-ledger.entity'
-import type { ModelUsageRecordingScope } from './model-usage-ledger.service'
 
 @Injectable()
 export class ModelChargeLedgerService {
     async record(
         manager: EntityManager,
-        scope: ModelUsageRecordingScope,
+        scope: CopilotModelUsageRecordingScope,
         report: ModelUsageReport,
         pricingSnapshot: ModelUsagePricingSnapshot,
         usageEntries: ModelUsageLedger[]

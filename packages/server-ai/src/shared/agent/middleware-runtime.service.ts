@@ -93,6 +93,7 @@ import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-rec
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { CopilotService } from '../../copilot/copilot.service'
+import { CopilotUsageService } from '../../copilot-usage'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
 import {
     CreateKnowledgebaseFolderCommand,
@@ -120,7 +121,6 @@ import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { CollaborationService } from '../../collaboration/collaboration.service'
-import { ModelUsageLedgerService } from '../../model-usage'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
@@ -367,7 +367,7 @@ export class AgentMiddlewareRuntimeService {
                               startedAt: report.recordedAt
                           })
                         : { capturedAt: new Date().toISOString(), rules: [] })
-                return this.modelUsageLedger.recordUsage(
+                return this.copilotUsage.recordModelUsage(
                     {
                         tenantId,
                         organizationId,
@@ -715,7 +715,7 @@ export class AgentMiddlewareRuntimeService {
         private readonly artifacts: ArtifactsService,
         private readonly collaboration: CollaborationService,
         private readonly copilotService: CopilotService,
-        private readonly modelUsageLedger: ModelUsageLedgerService,
+        private readonly copilotUsage: CopilotUsageService,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
