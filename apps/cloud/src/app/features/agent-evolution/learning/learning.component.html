@@ -2,17 +2,13 @@
   <section
     class="flex flex-col gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-3 shadow-none lg:flex-row lg:items-center"
   >
-    <label class="relative min-w-0 flex-1">
-      <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></i>
-      <input
-        z-input
-        class="w-full pl-9"
-        type="search"
-        [placeholder]="'XP.AgentEvolution.SearchLearningSignals' | translate"
-        [ngModel]="query()"
-        (ngModelChange)="query.set($event)"
-      />
-    </label>
+    <z-search-input
+      class="min-w-0 flex-1"
+      [placeholder]="'XP.AgentEvolution.SearchLearningSignals' | translate"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+      [value]="query()"
+      (valueChange)="query.set($event)"
+    />
     <z-badge zType="outline">{{
       facade.selectedTarget()?.displayName || ('XP.AgentEvolution.AllTargets' | translate)
     }}</z-badge>

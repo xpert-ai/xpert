@@ -1,13 +1,10 @@
 <div class="var-search-input-wrapper p-2">
-  <div class="relative w-full">
-    <i class="ri-search-2-line absolute left-1.5 top-1"></i>
-    <input
-      class="xp-input w-full pl-[26px]"
-      [placeholder]="'XP.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
-      tabindex="0"
-      [(ngModel)]="searchTerm"
-    />
-  </div>
+  <z-search-input
+    class="w-full"
+    [placeholder]="'XP.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+    [(ngModel)]="searchTerm"
+  />
 </div>
 
 <ul class="grow px-2 pb-2 overflow-auto">

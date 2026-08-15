@@ -138,25 +138,13 @@
         ></i>
 
         <div class="grow flex justify-end items-center gap-2">
-          <div class="relative w-52">
-            <i
-              class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"
-            ></i>
-            <input
-              class="xp-input w-full"
-              [placeholder]="'XP.Knowledgebase.Search' | translate: { Default: 'Search' }"
-              [ngModel]="search()"
-              (ngModelChangeDebounced)="onSearch($event)"
-            />
-            @if (search()) {
-              <div
-                class="absolute right-2 top-1/2 -translate-y-1/2 group p-[1px] cursor-pointer"
-                (click)="search.set(null)"
-              >
-                <i class="ri-close-circle-fill text-text-quaternary cursor-pointer group-hover:text-text-tertiary"></i>
-              </div>
-            }
-          </div>
+          <z-search-input
+            class="w-52"
+            [placeholder]="'XP.Knowledgebase.Search' | translate: { Default: 'Search' }"
+            [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+            [ngModel]="search()"
+            (ngModelChangeDebounced)="onSearch($event)"
+          />
         </div>
       </div>
 

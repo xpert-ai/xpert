@@ -31,6 +31,7 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardInputDirective,
+  ZardSearchInputComponent,
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
@@ -47,6 +48,7 @@ import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.co
     CdkMenuModule,
     ZardButtonComponent,
     ZardInputDirective,
+    ZardSearchInputComponent,
     ZardSwitchComponent,
     ...ZardTooltipImports,
     ZardIconComponent,

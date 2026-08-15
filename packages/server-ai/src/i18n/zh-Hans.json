@@ -1,6 +1,13 @@
 {
     "Error": {
         "AgentEvolutionManualTestGateRequiresAdministrator": "手动测试发布门禁仅允许 SUPER_ADMIN 或 ADMIN 使用。",
+        "AgentEvolutionCanaryTestOverrideRequiresAdministrator": "只有 SUPER_ADMIN 或 ADMIN 可以强制一次性命中 Candidate。",
+        "AgentEvolutionCanaryTestOverrideInvalidSubject": "测试主体不能为空，且长度不能超过 200 个字符。",
+        "AgentEvolutionCanaryTestOverrideInvalidReason": "必须填写审计原因，且长度不能超过 500 个字符。",
+        "AgentEvolutionCanaryTestOverrideInvalidExpiry": "一次性覆盖的有效期必须为 1 到 120 分钟。",
+        "AgentEvolutionCanaryTestOverrideRequiresManualTestProfile": "一次性命中 Candidate 仅允许在非生产环境的手动测试发布中使用。",
+        "AgentEvolutionCanaryTestOverrideRequiresCanary": "一次性命中 Candidate 需要存在运行中的 Canary 部署。",
+        "AgentEvolutionCanaryTestOverrideAlreadyPending": "该主体已有一个等待消费的一次性 Candidate 覆盖。",
         "AgentEvolutionShadowGateNotSatisfied": "Shadow 需要持续 {{hours}} 小时、累计 {{samples}} 条观测且严重错误为 0。",
         "AgentEvolutionCanaryGateNotSatisfied": "Canary 扩量需要持续 {{hours}} 小时、累计 {{samples}} 条观测且严重错误为 0。",
         "AgentEvolutionProductionGateNotSatisfied": "生产激活要求 50% Canary 持续 {{hours}} 小时并累计 {{samples}} 条观测。",

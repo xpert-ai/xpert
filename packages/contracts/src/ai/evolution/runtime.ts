@@ -38,6 +38,16 @@ export interface CapabilityExecutionAssignment {
   channel: EvolutionChannel
   versionId: string
   deploymentId?: string
+  selectionReason?: 'manual_test_override'
+  manualTestOverrideId?: string
+}
+
+export interface CapabilityExecutionManualTestOverride {
+  overrideId: string
+  releasePackageId: string
+  deploymentId: string
+  targetId: string
+  consumedAt: string
 }
 
 export interface CapabilityExecutionPlan {
@@ -46,6 +56,8 @@ export interface CapabilityExecutionPlan {
   subjectKey: string
   bundle: CapabilityVersionBundle
   assignments: CapabilityExecutionAssignment[]
+  /** Explicit audit marker; never present for normal deterministic Canary routing. */
+  manualTestOverrides?: CapabilityExecutionManualTestOverride[]
   shadowBundle?: CapabilityVersionBundle
   shadowAssignments?: CapabilityExecutionAssignment[]
   resolvedAt: string

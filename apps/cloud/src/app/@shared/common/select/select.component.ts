@@ -9,6 +9,7 @@ import {
   debouncedSignal,
   formatSelectOptionValue,
   hasSelectOptionValue,
+  ZardSearchInputComponent,
   XpDensityDirective,
   XpI18nPipe,
   TSelectOption
@@ -29,7 +30,8 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     CdkListboxModule,
     CdkMenuModule,
     XpHighlightDirective,
-    XpI18nPipe
+    XpI18nPipe,
+    ZardSearchInputComponent
   ],
   selector: 'xp-select',
   templateUrl: 'select.component.html',

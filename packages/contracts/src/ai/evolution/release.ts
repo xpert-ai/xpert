@@ -130,5 +130,39 @@ export interface EvolutionAuditEvent {
   actorId: string
   actorRole: string
   summary: string
+  metadata?: EvolutionAuditEventMetadata
   occurredAt: string
+}
+
+export interface EvolutionAuditEventMetadata {
+  manualTestOverrideId?: string
+  deploymentId?: string
+  subjectKey?: string
+  executionId?: string
+  reason?: string
+  overrideStatus?: EvolutionCanaryTestOverrideStatus
+}
+
+export type EvolutionCanaryTestOverrideStatus = 'pending' | 'consumed' | 'expired'
+
+/**
+ * Administrator-created, single-use Candidate assignment for one Canary subject.
+ * It is available only to releases frozen with the non-production `manual_test` gate profile.
+ */
+export interface EvolutionCanaryTestOverride {
+  overrideId: string
+  releasePackageId: string
+  candidateId: string
+  deploymentId: string
+  targetId: string
+  scope: EvolutionScope
+  subjectKey: string
+  status: EvolutionCanaryTestOverrideStatus
+  reason: string
+  createdBy: string
+  createdByRole: string
+  createdAt: string
+  expiresAt: string
+  consumedAt?: string
+  consumedByExecutionId?: string
 }

@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { XpConfirmDeleteService, XpSearchComponent, XpTagsComponent } from '@xpert-ai/headless-ui'
+import { XpConfirmDeleteService, XpTagsComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, EMPTY, map, startWith, switchMap } from 'rxjs'
 import {
@@ -41,7 +41,7 @@ import { XpI18nPipe } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     XpDynamicGridDirective,
     XpSelectComponent,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     IconComponent,
     XpI18nPipe
   ],

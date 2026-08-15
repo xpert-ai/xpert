@@ -13,7 +13,12 @@
 </header>
 
 <div xpDialogContent class="flex w-full max-w-2xl flex-col gap-3">
-  <xp-search class="w-full overflow-hidden rounded-lg" [(ngModel)]="searchTerm" />
+  <z-search-input
+    class="w-full"
+    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+    [(ngModel)]="searchTerm"
+  />
 
   <div class="max-h-96 overflow-y-auto rounded-xl border border-divider-deep bg-components-card-bg">
     @if (organizations().length) {

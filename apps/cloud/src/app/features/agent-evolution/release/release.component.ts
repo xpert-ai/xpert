@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { DOCUMENT } from '@angular/common'
-import { Component, computed, inject } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { Store } from '@cloud/app/@core'
 import { injectTheme } from '@cloud/app/@core/theme'
 import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
 import {
@@ -10,16 +11,22 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardComboboxComponent
+  ZardComboboxComponent,
+  ZardInputDirective
 } from '@xpert-ai/headless-ui'
-import type { EvolutionReleaseGatePolicy, ReleaseDeployment, ReleaseRuntimeObservation } from '@xpert-ai/contracts'
+import type {
+  EvolutionAuditEvent,
+  EvolutionReleaseGatePolicy,
+  ReleaseDeployment,
+  ReleaseRuntimeObservation
+} from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import type { EChartsOption } from 'echarts'
 import { firstValueFrom } from 'rxjs'
 import { startWith } from 'rxjs/operators'
 import { readAgentEvolutionChartTheme } from '../agent-evolution-chart-theme'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { percent, sameEvolutionScope, shortId } from '../agent-evolution.types'
+import { isEvolutionAdministratorRole, percent, sameEvolutionScope, shortId } from '../agent-evolution.types'
 
 interface RuntimePoint extends ReleaseRuntimeObservation {
   channel: string
@@ -55,6 +62,7 @@ const LEGACY_STANDARD_GATE_POLICY: EvolutionReleaseGatePolicy = {
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardComboboxComponent,
+    ZardInputDirective,
     ...ZardCardImports
   ],
   templateUrl: './release.component.html',
@@ -66,12 +74,39 @@ export class AgentEvolutionReleaseComponent {
   readonly #translate = inject(TranslateService)
   readonly #document = inject(DOCUMENT)
   readonly #theme = injectTheme()
+  readonly #store = inject(Store)
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
+  readonly currentUser = toSignal(this.#store.user$, { initialValue: this.#store.user })
+
+  readonly manualTestSubjectKey = signal('')
+  readonly manualTestReason = signal('')
+  readonly manualTestExpiresInMinutes = signal(30)
 
   readonly percent = percent
   readonly shortId = shortId
   readonly release = this.facade.latestRelease
   readonly gatePolicy = computed(() => this.release()?.gatePolicy ?? LEGACY_STANDARD_GATE_POLICY)
+  readonly isAdministrator = computed(() => isEvolutionAdministratorRole(this.currentUser()?.role?.name))
+  readonly showManualTestOverride = computed(
+    () => this.isAdministrator() && this.gatePolicy().profile === 'manual_test'
+  )
+  readonly canCreateManualTestOverride = computed(
+    () =>
+      this.showManualTestOverride() &&
+      this.release()?.status === 'canary' &&
+      !!this.manualTestSubjectKey().trim() &&
+      !!this.manualTestReason().trim() &&
+      Number.isInteger(this.manualTestExpiresInMinutes()) &&
+      this.manualTestExpiresInMinutes() >= 1 &&
+      this.manualTestExpiresInMinutes() <= 120
+  )
+  readonly manualTestOverrides = computed(() => {
+    const releasePackageId = this.release()?.releasePackageId
+    return this.facade
+      .dashboard()
+      .canaryTestOverrides.filter((item) => item.releasePackageId === releasePackageId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+  })
   readonly releaseOptions = computed(() => {
     this.localeChange()
     return this.facade.contextReleases().map((item) => ({
@@ -400,6 +435,50 @@ export class AgentEvolutionReleaseComponent {
       })
     )
     if (confirmed) await this.facade.rollbackRelease(release.releasePackageId)
+  }
+
+  async createManualTestOverride() {
+    const release = this.release()
+    if (!release || !this.canCreateManualTestOverride()) return
+    const subjectKey = this.manualTestSubjectKey().trim()
+    const reason = this.manualTestReason().trim()
+    const confirmed = await firstValueFrom(
+      this.#alertDialog.confirm({
+        title: this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConfirmTitle'),
+        description: this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConfirmDescription', {
+          subjectKey
+        }),
+        actionText: this.#translate.instant('XP.AgentEvolution.CreateCanaryTestOverride'),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+      })
+    )
+    if (!confirmed) return
+    const created = await this.facade.createCanaryTestOverride(release.releasePackageId, {
+      subjectKey,
+      reason,
+      expiresInMinutes: this.manualTestExpiresInMinutes()
+    })
+    if (created) {
+      this.manualTestSubjectKey.set('')
+      this.manualTestReason.set('')
+      this.manualTestExpiresInMinutes.set(30)
+    }
+  }
+
+  auditSummary(audit: EvolutionAuditEvent) {
+    if (audit.action === 'canary.manual_test_override_created') {
+      return this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideCreatedAuditSummary', {
+        subjectKey: audit.metadata?.subjectKey ?? '—',
+        reason: audit.metadata?.reason ?? '—'
+      })
+    }
+    if (audit.action === 'canary.manual_test_override_consumed') {
+      return this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConsumedAuditSummary', {
+        subjectKey: audit.metadata?.subjectKey ?? '—',
+        executionId: audit.metadata?.executionId ?? '—'
+      })
+    }
+    return audit.summary
   }
 }
 

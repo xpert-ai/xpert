@@ -68,17 +68,14 @@
 
   <section class="shrink-0 border-b border-components-panel-border bg-components-card-bg px-5 py-3">
     <div class="grid gap-2 lg:grid-cols-[minmax(220px,1.6fr)_repeat(4,minmax(130px,1fr))_auto]">
-      <label class="relative flex min-w-0 items-center">
-        <z-icon zType="search" class="pointer-events-none absolute left-3 text-text-tertiary" />
-        <input
-          z-input
-          class="h-9 min-w-0 pl-9"
-          [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
-          (keyup.enter)="loadGraph()"
-          [placeholder]="'XP.Knowledgebase.SearchGraph' | translate: { Default: 'Search graph' }"
-        />
-      </label>
+      <z-search-input
+        class="min-w-0"
+        [value]="search()"
+        [placeholder]="'XP.Knowledgebase.SearchGraph' | translate: { Default: 'Search graph' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        (valueChange)="search.set($event)"
+        (keyup.enter)="loadGraph()"
+      />
 
       <z-select
         [zValue]="selectFilterValue(entityType())"

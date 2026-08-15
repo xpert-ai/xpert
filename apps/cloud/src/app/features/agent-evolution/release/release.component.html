@@ -329,6 +329,114 @@
           </z-card-content></z-card
         >
 
+        @if (showManualTestOverride()) {
+          <z-card class="border border-text-warning/50 bg-text-warning/5 shadow-none"
+            ><z-card-header class="border-b border-text-warning/20 px-5 py-4"
+              ><div class="flex items-start justify-between gap-3">
+                <div>
+                  <z-card-title>{{ 'XP.AgentEvolution.CanaryTestOverrideTitle' | translate }}</z-card-title>
+                  <z-card-subtitle class="mt-1">{{
+                    'XP.AgentEvolution.CanaryTestOverrideSubtitle' | translate
+                  }}</z-card-subtitle>
+                </div>
+                <z-badge zType="outline" class="shrink-0 border-text-warning/50 text-text-warning">{{
+                  'XP.AgentEvolution.AdministratorOnly' | translate
+                }}</z-badge>
+              </div></z-card-header
+            ><z-card-content class="space-y-4 p-5">
+              <div
+                class="rounded-lg border border-text-warning/30 bg-components-card-bg p-3 text-xs leading-5 text-text-warning"
+              >
+                <i class="ri-error-warning-line mr-1"></i
+                >{{ 'XP.AgentEvolution.CanaryTestOverrideWarning' | translate }}
+              </div>
+              <label class="block space-y-1.5 text-xs">
+                <span class="font-medium text-text-primary">{{
+                  'XP.AgentEvolution.CanaryTestSubjectKey' | translate
+                }}</span>
+                <input
+                  z-input
+                  class="w-full"
+                  [ngModel]="manualTestSubjectKey()"
+                  (ngModelChange)="manualTestSubjectKey.set($event)"
+                  [placeholder]="'XP.AgentEvolution.CanaryTestSubjectKeyPlaceholder' | translate"
+                />
+              </label>
+              <label class="block space-y-1.5 text-xs">
+                <span class="font-medium text-text-primary">{{
+                  'XP.AgentEvolution.CanaryTestReason' | translate
+                }}</span>
+                <textarea
+                  z-input
+                  class="min-h-20 w-full resize-y"
+                  [ngModel]="manualTestReason()"
+                  (ngModelChange)="manualTestReason.set($event)"
+                  [placeholder]="'XP.AgentEvolution.CanaryTestReasonPlaceholder' | translate"
+                ></textarea>
+              </label>
+              <label class="block space-y-1.5 text-xs">
+                <span class="font-medium text-text-primary">{{
+                  'XP.AgentEvolution.CanaryTestExpiryMinutes' | translate
+                }}</span>
+                <input
+                  z-input
+                  class="w-full"
+                  type="number"
+                  min="1"
+                  max="120"
+                  [ngModel]="manualTestExpiresInMinutes()"
+                  (ngModelChange)="manualTestExpiresInMinutes.set(+$event)"
+                />
+              </label>
+              <button
+                z-button
+                type="button"
+                class="w-full"
+                [zLoading]="facade.mutating()"
+                [zDisabled]="!canCreateManualTestOverride()"
+                (click)="createManualTestOverride()"
+              >
+                <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.CreateCanaryTestOverride' | translate }}
+              </button>
+
+              @if (manualTestOverrides().length) {
+                <div class="space-y-2 border-t border-text-warning/20 pt-4">
+                  <div class="text-xs font-medium text-text-primary">
+                    {{ 'XP.AgentEvolution.CanaryTestOverrideHistory' | translate }}
+                  </div>
+                  @for (override of manualTestOverrides().slice(0, 3); track override.overrideId) {
+                    <div class="rounded-lg border border-divider-regular bg-components-card-bg p-3 text-[11px]">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="truncate font-mono text-text-primary" [title]="override.subjectKey">{{
+                          override.subjectKey
+                        }}</span>
+                        <z-badge zType="outline">{{
+                          'XP.AgentEvolution.CanaryTestOverrideStatus.' + override.status
+                            | translate: { Default: override.status }
+                        }}</z-badge>
+                      </div>
+                      <p class="mt-1 line-clamp-2 text-text-secondary">{{ override.reason }}</p>
+                      <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-text-secondary">
+                        <span>{{ shortId(override.overrideId, 18) }}</span>
+                        @if (override.consumedByExecutionId) {
+                          <span
+                            >{{ 'XP.AgentEvolution.Execution' | translate }} {{ override.consumedByExecutionId }}</span
+                          >
+                        } @else {
+                          <span
+                            >{{ 'XP.AgentEvolution.ExpiresAt' | translate }}
+                            {{ override.expiresAt | date: 'MM-dd HH:mm:ss' }}</span
+                          >
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </z-card-content></z-card
+          >
+        }
+
         <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
           ><z-card-header class="border-b border-divider-subtle px-5 py-4"
             ><z-card-title>{{ 'XP.AgentEvolution.VersionsAndPointers' | translate }}</z-card-title></z-card-header
@@ -395,7 +503,7 @@
                       'XP.AgentEvolution.AuditAction.' + audit.action | translate: { Default: audit.action }
                     }}</z-badge>
                   </td>
-                  <td class="px-4 py-3.5 text-text-primary">{{ audit.summary }}</td>
+                  <td class="px-4 py-3.5 text-text-primary">{{ auditSummary(audit) }}</td>
                   <td class="px-4 py-3.5">
                     <div>{{ audit.actorId }}</div>
                     <div class="text-[10px] text-text-secondary">{{ audit.actorRole }}</div>

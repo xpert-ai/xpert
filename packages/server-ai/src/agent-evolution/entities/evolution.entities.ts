@@ -6,6 +6,7 @@ import type {
     DatasetSnapshot,
     EvaluationRun,
     EvolutionAuditEvent,
+    EvolutionCanaryTestOverride,
     EvolutionCandidate,
     EvolutionReleaseStatus,
     EvolutionJob,
@@ -317,6 +318,43 @@ export class ReleaseDeploymentEntity extends EvolutionScopedEntity {
     value: ReleaseDeployment
 }
 
+@Entity('agent_evolution_canary_test_override')
+@Index(['tenantId', 'organizationId', 'overrideId'], { unique: true })
+@Index(['activeKey'], { unique: true })
+@Index(['tenantId', 'organizationId', 'releasePackageId', 'status'])
+export class EvolutionCanaryTestOverrideEntity extends EvolutionScopedEntity {
+    @Column({ type: 'varchar' })
+    overrideId: string
+
+    @Column({ type: 'varchar' })
+    releasePackageId: string
+
+    @Column({ type: 'varchar' })
+    candidateId: string
+
+    @Column({ type: 'varchar' })
+    deploymentId: string
+
+    @Column({ type: 'varchar' })
+    targetId: string
+
+    @Column({ type: 'varchar' })
+    subjectKey: string
+
+    /** Non-null only while pending; unique so a subject has one live override per deployment. */
+    @Column({ type: 'varchar', nullable: true })
+    activeKey?: string | null
+
+    @Column({ type: 'varchar' })
+    status: EvolutionCanaryTestOverride['status']
+
+    @Column({ type: 'timestamptz' })
+    expiresAt: Date
+
+    @Column({ type: 'json' })
+    value: EvolutionCanaryTestOverride
+}
+
 @Entity('agent_evolution_audit_event')
 @Index(['tenantId', 'organizationId', 'auditId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'releasePackageId'])
@@ -396,6 +434,7 @@ export const AGENT_EVOLUTION_ENTITIES = [
     ApprovalDecisionEntity,
     ReleasePackageEntity,
     ReleaseDeploymentEntity,
+    EvolutionCanaryTestOverrideEntity,
     EvolutionAuditEventEntity,
     EvolutionRuntimeObservationEntity,
     EvolutionJobEntity

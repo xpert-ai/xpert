@@ -3,6 +3,7 @@ import type {
     DiagnoseLearningEventsRequest,
     CreateDatasetSnapshotRequest,
     CreateEvolutionExperienceRequest,
+    CreateEvolutionCanaryTestOverrideRequest,
     CreateImprovementProposalRequest,
     CreateReleasePackageRequest,
     DecideCandidateApprovalRequest,
@@ -182,6 +183,23 @@ export class AgentEvolutionController {
     @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
     listDeployments(@Query() query: EvolutionPageQuery) {
         return this.governance.listDeployments(commandContext(), normalizeQuery(query))
+    }
+
+    @Get('releases/:releasePackageId/canary-test-overrides')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
+    listCanaryTestOverrides(@Param('releasePackageId') releasePackageId: string) {
+        return this.governance.listCanaryTestOverrides(commandContext(), releasePackageId)
+    }
+
+    @Post('releases/:releasePackageId/canary-test-overrides')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
+    createCanaryTestOverride(
+        @Param('releasePackageId') releasePackageId: string,
+        @Body() body: CreateEvolutionCanaryTestOverrideRequest
+    ) {
+        return this.governance.createCanaryTestOverride(commandContext(), releasePackageId, body)
     }
 
     @Get('runtime-observations')

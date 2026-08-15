@@ -10,6 +10,7 @@ import {
   ZardCardImports,
   ZardCheckboxComponent,
   ZardInputDirective,
+  ZardSearchInputComponent,
   ZardSelectImports,
   type ZardSelectValue
 } from '@xpert-ai/headless-ui'
@@ -30,6 +31,7 @@ import { evolutionSummaryPresentation, learningEventPresentation, percent, short
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardInputDirective,
+    ZardSearchInputComponent,
     ...ZardSelectImports,
     ...ZardCardImports
   ],

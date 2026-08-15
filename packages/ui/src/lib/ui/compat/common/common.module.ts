@@ -9,7 +9,6 @@ import { XpInputComponent } from './input/input.component'
 import { XpProgressSpinnerComponent } from './progress-spinner/spinner.component'
 import { XpRadioSelectComponent } from './radio-select/select.component'
 import { XpRemoteSelectComponent } from './remote-select/select.component'
-import { XpSearchComponent } from './search/search.component'
 import { XpSelectComponent } from './select/select/select.component'
 import { XpSliderInputComponent } from './slider-input/slider-input.component'
 import { XpSpinComponent } from './spin/spin.component'
@@ -22,7 +21,6 @@ const COMMON_IMPORTS = [
   XpHighlightDirective,
   XpResizableDirective,
   XpDisplayBehaviourComponent,
-  XpSearchComponent,
   XpSelectComponent,
   XpSliderInputComponent,
   XpTagsComponent,

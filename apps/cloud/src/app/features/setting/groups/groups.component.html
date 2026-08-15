@@ -42,21 +42,15 @@
         }
       </div>
 
-      <div class="relative mt-2">
-        <i
-          class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
-          aria-hidden="true"
-        ></i>
-        <input
-          z-input
-          type="search"
-          class="min-h-10 w-full rounded-lg pl-9 text-sm"
-          [value]="groupQuery()"
-          [attr.aria-label]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
-          [placeholder]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
-          (input)="updateGroupQuery($any($event.target).value)"
-        />
-      </div>
+      <z-search-input
+        class="mt-2 w-full"
+        zSize="lg"
+        [value]="groupQuery()"
+        [aria-label]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
+        [placeholder]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        (valueChange)="updateGroupQuery($event)"
+      />
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto p-2">
@@ -345,21 +339,15 @@
               </div>
 
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div class="relative min-w-0 sm:w-64">
-                  <i
-                    class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
-                    aria-hidden="true"
-                  ></i>
-                  <input
-                    z-input
-                    type="search"
-                    class="min-h-10 w-full rounded-lg pl-9 text-sm"
-                    [value]="memberQuery()"
-                    [attr.aria-label]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
-                    [placeholder]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
-                    (input)="updateMemberQuery($any($event.target).value)"
-                  />
-                </div>
+                <z-search-input
+                  class="min-w-0 sm:w-64"
+                  zSize="lg"
+                  [value]="memberQuery()"
+                  [aria-label]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
+                  [placeholder]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
+                  [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+                  (valueChange)="updateMemberQuery($event)"
+                />
                 <div class="flex items-center gap-2">
                   <button
                     z-button
@@ -490,21 +478,15 @@
               </div>
 
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div class="relative min-w-0 sm:w-64">
-                  <i
-                    class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
-                    aria-hidden="true"
-                  ></i>
-                  <input
-                    z-input
-                    type="search"
-                    class="min-h-10 w-full rounded-lg pl-9 text-sm"
-                    [value]="xpertQuery()"
-                    [attr.aria-label]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
-                    [placeholder]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
-                    (input)="updateXpertQuery($any($event.target).value)"
-                  />
-                </div>
+                <z-search-input
+                  class="min-w-0 sm:w-64"
+                  zSize="lg"
+                  [value]="xpertQuery()"
+                  [aria-label]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
+                  [placeholder]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
+                  [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+                  (valueChange)="updateXpertQuery($event)"
+                />
                 <div class="flex items-center gap-2">
                   <button
                     z-button

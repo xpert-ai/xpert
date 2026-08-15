@@ -1,6 +1,13 @@
 {
     "Error": {
         "AgentEvolutionManualTestGateRequiresAdministrator": "The manual-test release gate profile requires SUPER_ADMIN or ADMIN.",
+        "AgentEvolutionCanaryTestOverrideRequiresAdministrator": "Only SUPER_ADMIN or ADMIN can force a one-time Candidate assignment.",
+        "AgentEvolutionCanaryTestOverrideInvalidSubject": "The test subject is required and must not exceed 200 characters.",
+        "AgentEvolutionCanaryTestOverrideInvalidReason": "An audit reason is required and must not exceed 500 characters.",
+        "AgentEvolutionCanaryTestOverrideInvalidExpiry": "The one-time override expiry must be between 1 and 120 minutes.",
+        "AgentEvolutionCanaryTestOverrideRequiresManualTestProfile": "One-time Candidate assignment is available only in a non-production manual-test release.",
+        "AgentEvolutionCanaryTestOverrideRequiresCanary": "One-time Candidate assignment requires an active Canary deployment.",
+        "AgentEvolutionCanaryTestOverrideAlreadyPending": "This subject already has a pending one-time Candidate assignment.",
         "AgentEvolutionShadowGateNotSatisfied": "Shadow requires {{hours}} hours, {{samples}} observations, and zero severe errors.",
         "AgentEvolutionCanaryGateNotSatisfied": "Canary expansion requires {{hours}} hours, {{samples}} observations, and zero severe errors.",
         "AgentEvolutionProductionGateNotSatisfied": "Production activation requires a 50% Canary for {{hours}} hours and {{samples}} observations.",

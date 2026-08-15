@@ -38,7 +38,11 @@
       </div>
     </ng-template>
   </xp-select>
-  <xp-search [formControl]="searchControl" />
+  <z-search-input
+    [formControl]="searchControl"
+    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+  />
 </div>
 
 <nav

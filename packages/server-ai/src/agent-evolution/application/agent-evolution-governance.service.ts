@@ -6,6 +6,7 @@ import type {
     CapabilityVersionBundle,
     CreateDatasetSnapshotRequest,
     CreateEvolutionExperienceRequest,
+    CreateEvolutionCanaryTestOverrideRequest,
     CreateImprovementProposalRequest,
     CreateReleasePackageRequest,
     DatasetSnapshot,
@@ -15,6 +16,7 @@ import type {
     EvaluationRun,
     EvolutionApprovalAuthority,
     EvolutionAuditEvent,
+    EvolutionCanaryTestOverride,
     EvolutionCandidate,
     EvolutionExperience,
     EvolutionPageQuery,
@@ -105,6 +107,128 @@ export class AgentEvolutionGovernanceService {
 
     listDeployments(context: EvolutionCommandContext, query: EvolutionPageQuery) {
         return this.store.listDeployments(toTenantScope(context), query)
+    }
+
+    listCanaryTestOverrides(context: EvolutionCommandContext, releasePackageId: string) {
+        return this.store.listCanaryTestOverrides(toTenantScope(context), releasePackageId)
+    }
+
+    async createCanaryTestOverride(
+        context: EvolutionCommandContext,
+        releasePackageId: string,
+        request: CreateEvolutionCanaryTestOverrideRequest
+    ) {
+        requireHuman(context)
+        if (context.approvalAuthority !== 'administrator') {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideRequiresAdministrator', {
+                    defaultValue: 'Only SUPER_ADMIN or ADMIN can force a one-time Candidate assignment.'
+                })
+            )
+        }
+        const subjectKey = request.subjectKey?.trim()
+        const reason = request.reason?.trim()
+        if (!subjectKey || subjectKey.length > 200) {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideInvalidSubject', {
+                    defaultValue: 'The test subject is required and must not exceed 200 characters.'
+                })
+            )
+        }
+        if (!reason || reason.length > 500) {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideInvalidReason', {
+                    defaultValue: 'An audit reason is required and must not exceed 500 characters.'
+                })
+            )
+        }
+        const expiresInMinutes = request.expiresInMinutes ?? 30
+        if (!Number.isInteger(expiresInMinutes) || expiresInMinutes < 1 || expiresInMinutes > 120) {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideInvalidExpiry', {
+                    defaultValue: 'The one-time override expiry must be between 1 and 120 minutes.'
+                })
+            )
+        }
+
+        const tenant = toTenantScope(context)
+        const releaseEntity = await this.store.findRelease(tenant, releasePackageId)
+        if (!releaseEntity) throw new NotFoundException('Release Package was not found')
+        const release = releaseEntity.value
+        if (release.gatePolicy?.profile !== 'manual_test' || !this.releaseGatePolicy.manualTestProfileEnabled()) {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideRequiresManualTestProfile', {
+                    defaultValue: 'One-time Candidate assignment is available only for a manual-test release.'
+                })
+            )
+        }
+        if (release.status !== 'canary') {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideRequiresCanary', {
+                    defaultValue: 'One-time Candidate assignment requires an active Canary deployment.'
+                })
+            )
+        }
+        const deployments = await this.store.listDeploymentsForRelease(tenant, releasePackageId)
+        const deployment = deployments.find(
+            (item) => item.channel === 'canary' && item.status === 'canary' && !item.value.completedAt
+        )?.value
+        if (!deployment) {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideRequiresCanary', {
+                    defaultValue: 'One-time Candidate assignment requires an active Canary deployment.'
+                })
+            )
+        }
+        const overrides = await this.store.listCanaryTestOverrides(tenant, releasePackageId)
+        const pending = overrides.find(
+            (item) =>
+                item.deploymentId === deployment.deploymentId &&
+                item.subjectKey === subjectKey &&
+                item.status === 'pending'
+        )
+        if (pending) {
+            throw new BadRequestException(
+                t('server-ai:Error.AgentEvolutionCanaryTestOverrideAlreadyPending', {
+                    defaultValue: 'This subject already has a pending one-time Candidate assignment.'
+                })
+            )
+        }
+
+        const now = new Date()
+        const override: EvolutionCanaryTestOverride = {
+            overrideId: `CTO-${randomUUID()}`,
+            releasePackageId,
+            candidateId: release.candidateId,
+            deploymentId: deployment.deploymentId,
+            targetId: release.targetId,
+            scope: release.scope,
+            subjectKey,
+            status: 'pending',
+            reason,
+            createdBy: context.actorId,
+            createdByRole: context.actorRoleName ?? context.actorRole,
+            createdAt: now.toISOString(),
+            expiresAt: new Date(now.getTime() + expiresInMinutes * 60_000).toISOString()
+        }
+        const audit: EvolutionAuditEvent = {
+            auditId: `AUD-${override.overrideId}-created`,
+            releasePackageId,
+            candidateId: release.candidateId,
+            action: 'canary.manual_test_override_created',
+            actorId: context.actorId,
+            actorRole: context.actorRole,
+            summary: `Administrator created a one-time manual-test Candidate override for subject '${subjectKey}'. Reason: ${reason}`,
+            metadata: {
+                manualTestOverrideId: override.overrideId,
+                deploymentId: deployment.deploymentId,
+                subjectKey,
+                reason,
+                overrideStatus: 'pending'
+            },
+            occurredAt: override.createdAt
+        }
+        return this.store.createCanaryTestOverride(tenant, override, audit)
     }
 
     listRuntimeObservations(context: EvolutionCommandContext, query: EvolutionPageQuery) {

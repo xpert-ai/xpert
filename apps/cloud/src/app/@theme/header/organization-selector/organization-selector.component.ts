@@ -13,7 +13,7 @@ import {
   UsersService
 } from '@cloud/app/@core/state'
 import { nonNullable, OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { XpSearchComponent, XpHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
@@ -38,7 +38,7 @@ const ORGANIZATION_PAGE_SIZE = 10
     CdkMenuModule,
     ...ZardTooltipImports,
     ZardButtonComponent,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     OrgAvatarComponent,
     XpHighlightDirective
   ],

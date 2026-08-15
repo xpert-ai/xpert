@@ -371,31 +371,16 @@
               }}
             </div>
 
-            <div class="relative max-w-md">
-              <i
-                class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"
-              ></i>
-              <input
-                type="text"
-                class="xp-input w-full pl-9 pr-9 text-sm"
-                [ngModel]="middlewareSearch()"
-                (ngModelChange)="middlewareSearch.set($event)"
-                [placeholder]="
-                  'XP.Xpert.SearchMiddlewaresPlaceholder'
-                    | translate: { Default: 'Search middleware name or description' }
-                "
-              />
-              @if (middlewareSearch()) {
-                <button
-                  type="button"
-                  class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
-                  [attr.aria-label]="'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' }"
-                  (click)="middlewareSearch.set('')"
-                >
-                  <i class="ri-close-line"></i>
-                </button>
-              }
-            </div>
+            <z-search-input
+              class="max-w-md"
+              [value]="middlewareSearch()"
+              [placeholder]="
+                'XP.Xpert.SearchMiddlewaresPlaceholder'
+                  | translate: { Default: 'Search middleware name or description' }
+              "
+              [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+              (valueChange)="middlewareSearch.set($event)"
+            />
 
             <div class="grid gap-2 md:grid-cols-2">
               @for (middleware of filteredMiddlewareProviderOptions(); track middleware.meta.name) {

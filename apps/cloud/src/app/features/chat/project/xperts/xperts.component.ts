@@ -23,7 +23,7 @@ import { AIPermissionsEnum, getErrorMessage, injectProjectService, injectToastr,
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertCardComponent } from '@cloud/app/@shared/xpert'
 import { linkedModel, OverlayAnimations } from '@xpert-ai/headless-ui'
-import { XpSearchComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -46,7 +46,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     XpSpinComponent,
     EmojiAvatarComponent,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     XpertCardComponent
   ],
   selector: 'xp-chat-project-xperts',

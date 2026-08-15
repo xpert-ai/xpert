@@ -1,11 +1,11 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl } from '@angular/forms'
+import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, injectConfirmUnique, XpSearchComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, injectConfirmUnique, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
@@ -33,6 +33,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
   styleUrls: ['./home.component.scss'],
   imports: [
     RouterModule,
+    ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
@@ -43,7 +44,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     UserProfileInlineComponent,
     CardCreateComponent,
-    XpSearchComponent
+    ZardSearchInputComponent
   ],
   animations: [routeAnimations]
 })

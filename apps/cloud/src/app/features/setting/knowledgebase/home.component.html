@@ -1,7 +1,11 @@
 <h2 class="xp-page-title">{{ 'XP.Knowledgebase.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}</h2>
 
 <div class="w-full flex justify-start p-4">
-  <xp-search [formControl]="searchControl" />
+  <z-search-input
+    [formControl]="searchControl"
+    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+  />
 </div>
 
 <nav

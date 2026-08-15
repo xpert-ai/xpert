@@ -166,14 +166,11 @@
         [(ngModel)]="keywords"
       />
 
-      <div class="relative flex w-[200px] items-center rounded-lg">
-        <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
-        <input
-          class="xp-input w-full pl-[26px]"
-          [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-          [(ngModel)]="searchText"
-        />
-      </div>
+      <z-search-input
+        class="w-[200px]"
+        [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [(ngModel)]="searchText"
+      />
     </div>
   </div>
 

@@ -97,7 +97,7 @@ import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.compone
 import { FormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSearchInputComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { groupAgentMiddlewares } from './middleware-groups'
 
 @Component({
@@ -117,7 +117,8 @@ import { groupAgentMiddlewares } from './middleware-groups'
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
     XpertWorkflowIconComponent,
-    XpCommonModule
+    XpCommonModule,
+    ZardSearchInputComponent
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.css'

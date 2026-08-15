@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import type {
   CreateDatasetSnapshotRequest,
+  CreateEvolutionCanaryTestOverrideRequest,
   DatasetSnapshot,
   EvolutionCandidate,
   EvolutionJob,
@@ -396,6 +397,15 @@ export class AgentEvolutionFacade {
       await firstValueFrom(this.#api.pauseRelease(releasePackageId))
       await this.load({ silent: true })
       return true
+    })
+  }
+
+  async createCanaryTestOverride(releasePackageId: string, request: CreateEvolutionCanaryTestOverrideRequest) {
+    return this.withMutation(async () => {
+      const override = await firstValueFrom(this.#api.createCanaryTestOverride(releasePackageId, request))
+      await this.load({ silent: true })
+      this.#toastr.success('XP.AgentEvolution.CanaryTestOverrideCreated')
+      return override
     })
   }
 

@@ -64,6 +64,28 @@
       "ShadowGateSummary": "Shadow：{{hours}} 小時、{{samples}} 條觀測、嚴重錯誤為 0",
       "CanaryGateSummary": "每檔 Canary：{{hours}} 小時、{{samples}} 條觀測、嚴重錯誤為 0",
       "ManualTestGateWarning": "僅用於非生產環境的管理員手動驗證；生產環境會強制恢復標準門禁。",
+      "CanaryTestOverrideTitle": "一次性強制命中 Candidate",
+      "CanaryTestOverrideSubtitle": "僅限管理員的確定性測試覆蓋",
+      "AdministratorOnly": "僅限管理員",
+      "CanaryTestOverrideWarning": "指定主體的下一次執行會強制使用 Candidate 一次，隨後自動消費；不會切換 Active Pointer，也不會持續影響後續執行。",
+      "CanaryTestSubjectKey": "測試主體標識",
+      "CanaryTestSubjectKeyPlaceholder": "貼上準確的 caseId / subjectKey",
+      "CanaryTestReason": "審計原因",
+      "CanaryTestReasonPlaceholder": "說明為什麼需要進行本次強制 Candidate 測試",
+      "CanaryTestExpiryMinutes": "有效期分鐘數（1–120）",
+      "CreateCanaryTestOverride": "建立一次性覆蓋",
+      "CanaryTestOverrideCreated": "一次性 Candidate 覆蓋已建立並記錄審計",
+      "CanaryTestOverrideConfirmTitle": "強制下一次執行命中 Candidate？",
+      "CanaryTestOverrideConfirmDescription": "僅主體 {{subjectKey}} 的下一次執行使用 Candidate；覆蓋將被原子消費並完整記錄審計。",
+      "CanaryTestOverrideHistory": "覆蓋與審計狀態",
+      "CanaryTestOverrideStatus": {
+        "pending": "等待下一次執行",
+        "consumed": "已消費",
+        "expired": "已過期"
+      },
+      "ExpiresAt": "過期時間",
+      "CanaryTestOverrideCreatedAuditSummary": "管理員為 {{subjectKey}} 建立了一次性 Candidate 命中。原因：{{reason}}",
+      "CanaryTestOverrideConsumedAuditSummary": "{{subjectKey}} 的一次性 Candidate 命中已由執行 {{executionId}} 消費。",
       "ExpandCanary": "擴量到 Canary {{percent}}%",
       "ExpandCanaryDescription": "擴量需要上一階段執行至少 24 小時、30 個樣本且嚴重錯誤為 0。",
       "ActivateProduction": "啟用 Production",
@@ -521,6 +543,10 @@
           "shadow_started": "Shadow 已啟動",
           "canary_started": "Canary 已啟動",
           "paused": "部署已暫停"
+        },
+        "canary": {
+          "manual_test_override_created": "已建立一次性 Candidate 命中",
+          "manual_test_override_consumed": "已消費一次性 Candidate 命中"
         }
       }
     },

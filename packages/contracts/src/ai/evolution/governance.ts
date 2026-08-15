@@ -77,6 +77,13 @@ export interface StartDeploymentRequest {
   canaryPercent?: 5 | 25 | 50
 }
 
+export interface CreateEvolutionCanaryTestOverrideRequest {
+  subjectKey: string
+  reason: string
+  /** Defaults to 30 minutes and is capped by the server. */
+  expiresInMinutes?: number
+}
+
 export type EvolutionJobType = 'evaluation' | 'install' | 'shadow' | 'canary' | 'rollback'
 export type EvolutionJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 

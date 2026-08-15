@@ -8,6 +8,7 @@ import type {
   CapabilityVersion,
   CapabilityVersionBundle,
   CreateDatasetSnapshotRequest,
+  CreateEvolutionCanaryTestOverrideRequest,
   CreateImprovementProposalRequest,
   CreateReleasePackageRequest,
   DatasetSnapshot,
@@ -19,6 +20,7 @@ import type {
   EvolutionEventCluster,
   EvolutionExperience,
   EvolutionCandidate,
+  EvolutionCanaryTestOverride,
   EvolutionJob,
   EvolutionPage,
   EvolutionPageQuery,
@@ -174,6 +176,19 @@ export class AgentEvolutionApiService {
 
   startCanary(releasePackageId: string, request: StartDeploymentRequest) {
     return this.#http.post<EvolutionJob>(`${API_AGENT_EVOLUTION}/releases/${releasePackageId}/canary`, request)
+  }
+
+  listCanaryTestOverrides(releasePackageId: string) {
+    return this.#http.get<EvolutionCanaryTestOverride[]>(
+      `${API_AGENT_EVOLUTION}/releases/${releasePackageId}/canary-test-overrides`
+    )
+  }
+
+  createCanaryTestOverride(releasePackageId: string, request: CreateEvolutionCanaryTestOverrideRequest) {
+    return this.#http.post<EvolutionCanaryTestOverride>(
+      `${API_AGENT_EVOLUTION}/releases/${releasePackageId}/canary-test-overrides`,
+      request
+    )
   }
 
   pauseRelease(releasePackageId: string) {

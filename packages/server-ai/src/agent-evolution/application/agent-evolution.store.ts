@@ -7,6 +7,7 @@ import type {
     EvaluationRun,
     EvolutionChannel,
     EvolutionAuditEvent,
+    EvolutionCanaryTestOverride,
     EvolutionCandidate,
     EvolutionCandidateStatus,
     EvolutionPersistenceEvidence,
@@ -29,6 +30,7 @@ import type {
 } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
+import { createHash } from 'crypto'
 import { DataSource, In, IsNull, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm'
 import {
     ActiveCapabilityPointerEntity,
@@ -38,6 +40,7 @@ import {
     DatasetSnapshotEntity,
     EvaluationRunEntity,
     EvolutionAuditEventEntity,
+    EvolutionCanaryTestOverrideEntity,
     EvolutionCandidateEntity,
     EvolutionJobEntity,
     EvolutionRuntimeObservationEntity,
@@ -105,6 +108,8 @@ export class AgentEvolutionStore {
         private readonly releaseRepository: Repository<ReleasePackageEntity>,
         @InjectRepository(ReleaseDeploymentEntity)
         private readonly deploymentRepository: Repository<ReleaseDeploymentEntity>,
+        @InjectRepository(EvolutionCanaryTestOverrideEntity)
+        private readonly canaryTestOverrideRepository: Repository<EvolutionCanaryTestOverrideEntity>,
         @InjectRepository(EvolutionAuditEventEntity)
         private readonly auditRepository: Repository<EvolutionAuditEventEntity>,
         @InjectRepository(EvolutionRuntimeObservationEntity)
@@ -306,6 +311,163 @@ export class AgentEvolutionStore {
         return this.deploymentRepository.find({
             where: { ...tenantWhere(tenant), releasePackageId },
             order: { createdAt: 'DESC' }
+        })
+    }
+
+    async listCanaryTestOverrides(tenant: EvolutionTenantScope, releasePackageId: string) {
+        const entities = await this.canaryTestOverrideRepository.find({
+            where: { ...tenantWhere(tenant), releasePackageId },
+            order: { createdAt: 'DESC' }
+        })
+        const now = Date.now()
+        const expired = entities.filter((entity) => entity.status === 'pending' && entity.expiresAt.getTime() <= now)
+        if (expired.length) {
+            await this.canaryTestOverrideRepository.save(
+                expired.map((entity) => {
+                    entity.status = 'expired'
+                    entity.activeKey = null
+                    entity.value = { ...entity.value, status: 'expired' }
+                    return entity
+                })
+            )
+        }
+        return entities.map((entity) => entity.value)
+    }
+
+    async createCanaryTestOverride(
+        tenant: EvolutionTenantScope,
+        override: EvolutionCanaryTestOverride,
+        audit: EvolutionAuditEvent
+    ) {
+        return this.dataSource.transaction(async (manager) => {
+            const overrideRepository = manager.getRepository(EvolutionCanaryTestOverrideEntity)
+            const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
+            const activeKey = canaryTestOverrideActiveKey(tenant, override.deploymentId, override.subjectKey)
+            const existing = await overrideRepository.findOne({
+                where: { ...tenantWhere(tenant), activeKey }
+            })
+            if (existing && existing.expiresAt.getTime() > Date.now()) return existing.value
+            if (existing) {
+                existing.status = 'expired'
+                existing.activeKey = null
+                existing.value = { ...existing.value, status: 'expired' }
+                await overrideRepository.save(existing)
+            }
+            await overrideRepository.save(
+                overrideRepository.create({
+                    ...tenantValues(tenant),
+                    scopeType: override.scope.type,
+                    scopeKey: override.scope.key,
+                    overrideId: override.overrideId,
+                    releasePackageId: override.releasePackageId,
+                    candidateId: override.candidateId,
+                    deploymentId: override.deploymentId,
+                    targetId: override.targetId,
+                    subjectKey: override.subjectKey,
+                    activeKey,
+                    status: override.status,
+                    expiresAt: new Date(override.expiresAt),
+                    value: override
+                })
+            )
+            await auditRepository.save(
+                auditRepository.create({
+                    ...tenantValues(tenant),
+                    auditId: audit.auditId,
+                    releasePackageId: audit.releasePackageId ?? null,
+                    candidateId: audit.candidateId ?? null,
+                    action: audit.action,
+                    value: audit
+                })
+            )
+            return override
+        })
+    }
+
+    async consumeCanaryTestOverride(input: {
+        tenant: EvolutionTenantScope
+        releasePackageId: string
+        candidateId: string
+        deploymentId: string
+        targetId: string
+        subjectKey: string
+        executionId: string
+        consumedAt: string
+    }) {
+        return this.dataSource.transaction(async (manager) => {
+            const overrideRepository = manager.getRepository(EvolutionCanaryTestOverrideEntity)
+            const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
+            const retried = await overrideRepository.findOne({
+                where: {
+                    ...tenantWhere(input.tenant),
+                    releasePackageId: input.releasePackageId,
+                    deploymentId: input.deploymentId,
+                    targetId: input.targetId,
+                    subjectKey: input.subjectKey,
+                    status: 'consumed'
+                },
+                order: { createdAt: 'DESC' }
+            })
+            if (retried?.value.consumedByExecutionId === input.executionId) return retried.value
+
+            const entity = await overrideRepository.findOne({
+                where: {
+                    ...tenantWhere(input.tenant),
+                    releasePackageId: input.releasePackageId,
+                    deploymentId: input.deploymentId,
+                    targetId: input.targetId,
+                    subjectKey: input.subjectKey,
+                    status: 'pending'
+                },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!entity) return null
+            if (entity.expiresAt.getTime() <= Date.now()) {
+                entity.status = 'expired'
+                entity.activeKey = null
+                entity.value = { ...entity.value, status: 'expired' }
+                await overrideRepository.save(entity)
+                return null
+            }
+
+            const consumed: EvolutionCanaryTestOverride = {
+                ...entity.value,
+                status: 'consumed',
+                consumedAt: input.consumedAt,
+                consumedByExecutionId: input.executionId
+            }
+            entity.status = 'consumed'
+            entity.activeKey = null
+            entity.value = consumed
+            await overrideRepository.save(entity)
+            const audit: EvolutionAuditEvent = {
+                auditId: `AUD-${entity.overrideId}-consumed`,
+                releasePackageId: input.releasePackageId,
+                candidateId: input.candidateId,
+                action: 'canary.manual_test_override_consumed',
+                actorId: 'agent-evolution-runtime',
+                actorRole: 'system_runtime_resolver',
+                summary: `One-time manual-test Candidate override consumed for subject '${input.subjectKey}' during execution '${input.executionId}'.`,
+                metadata: {
+                    manualTestOverrideId: entity.overrideId,
+                    deploymentId: input.deploymentId,
+                    subjectKey: input.subjectKey,
+                    executionId: input.executionId,
+                    overrideStatus: 'consumed'
+                },
+                occurredAt: input.consumedAt
+            }
+            await auditRepository.save(
+                auditRepository.create({
+                    ...tenantValues(input.tenant),
+                    auditId: audit.auditId,
+                    releasePackageId: audit.releasePackageId ?? null,
+                    candidateId: audit.candidateId ?? null,
+                    action: audit.action,
+                    value: audit
+                })
+            )
+            return consumed
         })
     }
 
@@ -1019,7 +1181,8 @@ export class AgentEvolutionStore {
             releases,
             deployments,
             pointers,
-            audits
+            audits,
+            canaryTestOverrides
         ] = await Promise.all([
             this.targetRepository.find({ where: tenantWhere(tenant), order: { targetId: 'ASC' } }),
             this.versionRepository.find({ where: tenantWhere(tenant), order: { createdAt: 'DESC' }, take: 100 }),
@@ -1033,8 +1196,26 @@ export class AgentEvolutionStore {
             this.releaseRepository.find({ where: tenantWhere(tenant), order: { createdAt: 'DESC' }, take: 20 }),
             this.deploymentRepository.find({ where: tenantWhere(tenant), order: { createdAt: 'DESC' }, take: 30 }),
             this.pointerRepository.find({ where: tenantWhere(tenant), order: { updatedAt: 'DESC' } }),
-            this.auditRepository.find({ where: tenantWhere(tenant), order: { createdAt: 'DESC' }, take: 100 })
+            this.auditRepository.find({ where: tenantWhere(tenant), order: { createdAt: 'DESC' }, take: 100 }),
+            this.canaryTestOverrideRepository.find({
+                where: tenantWhere(tenant),
+                order: { createdAt: 'DESC' },
+                take: 50
+            })
         ])
+        const expiredCanaryTestOverrides = canaryTestOverrides.filter(
+            (entity) => entity.status === 'pending' && entity.expiresAt.getTime() <= Date.now()
+        )
+        if (expiredCanaryTestOverrides.length) {
+            await this.canaryTestOverrideRepository.save(
+                expiredCanaryTestOverrides.map((entity) => {
+                    entity.status = 'expired'
+                    entity.activeKey = null
+                    entity.value = { ...entity.value, status: 'expired' }
+                    return entity
+                })
+            )
+        }
         return {
             targets: targets.map((item) => item.descriptor),
             versions: versions.map((item) => item.value),
@@ -1048,7 +1229,8 @@ export class AgentEvolutionStore {
             releases: releases.map((item) => item.value),
             deployments: deployments.map((item) => item.value),
             pointers: pointers.map((item) => item.value),
-            audits: audits.map((item) => item.value)
+            audits: audits.map((item) => item.value),
+            canaryTestOverrides: canaryTestOverrides.map((item) => item.value)
         }
     }
 
@@ -1240,4 +1422,10 @@ function tenantWhere(tenant: EvolutionTenantScope) {
         tenantId: tenant.tenantId,
         organizationId: tenant.organizationId ?? IsNull()
     }
+}
+
+function canaryTestOverrideActiveKey(tenant: EvolutionTenantScope, deploymentId: string, subjectKey: string) {
+    return createHash('sha256')
+        .update(`${tenant.tenantId}:${tenant.organizationId ?? '_'}:${deploymentId}:${subjectKey}`)
+        .digest('hex')
 }

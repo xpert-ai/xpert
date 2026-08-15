@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'crypto'
 import type {
     CapabilityExecutionAssignment,
+    CapabilityExecutionManualTestOverride,
     CapabilityExecutionPlan,
     CapabilityVersionBundle,
     EvolutionRuntimeApi,
@@ -44,6 +45,7 @@ export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
 
         const productionAssignments: CapabilityExecutionAssignment[] = []
         const shadowAssignments: CapabilityExecutionAssignment[] = []
+        const manualTestOverrides: CapabilityExecutionManualTestOverride[] = []
         let canarySelected = false
 
         for (const targetId of [...new Set(request.targetIds)]) {
@@ -67,19 +69,43 @@ export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
                     })
                     break
                 }
-                if (
-                    deployment.channel === 'canary' &&
-                    release.status === 'canary' &&
-                    deterministicPercent(deployment.deploymentId, request.subjectKey) < deployment.canaryPercent
-                ) {
+                if (deployment.channel === 'canary' && release.status === 'canary' && !deployment.completedAt) {
+                    const consumedOverride = await this.store.consumeCanaryTestOverride({
+                        tenant,
+                        releasePackageId: release.releasePackageId,
+                        candidateId: release.candidateId,
+                        deploymentId: deployment.deploymentId,
+                        targetId,
+                        subjectKey: request.subjectKey,
+                        executionId: request.executionId,
+                        consumedAt: new Date().toISOString()
+                    })
+                    const deterministicSelection =
+                        deterministicPercent(deployment.deploymentId, request.subjectKey) < deployment.canaryPercent
+                    if (!consumedOverride && !deterministicSelection) continue
                     productionVersionId = release.targetVersionId
                     canarySelected = true
                     productionAssignments.push({
                         targetId,
                         channel: 'canary',
                         versionId: productionVersionId,
-                        deploymentId: deployment.deploymentId
+                        deploymentId: deployment.deploymentId,
+                        ...(consumedOverride
+                            ? {
+                                  selectionReason: 'manual_test_override' as const,
+                                  manualTestOverrideId: consumedOverride.overrideId
+                              }
+                            : {})
                     })
+                    if (consumedOverride) {
+                        manualTestOverrides.push({
+                            overrideId: consumedOverride.overrideId,
+                            releasePackageId: release.releasePackageId,
+                            deploymentId: deployment.deploymentId,
+                            targetId,
+                            consumedAt: consumedOverride.consumedAt ?? new Date().toISOString()
+                        })
+                    }
                     break
                 }
             }
@@ -116,6 +142,7 @@ export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
             subjectKey: request.subjectKey,
             bundle,
             assignments: productionAssignments,
+            ...(manualTestOverrides.length ? { manualTestOverrides } : {}),
             ...(shadowBundle ? { shadowBundle, shadowAssignments } : {}),
             resolvedAt
         }

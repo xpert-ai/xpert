@@ -47,6 +47,10 @@ export class AgentEvolutionReleaseGatePolicyService {
         if (release.gatePolicy) return release.gatePolicy
         return this.snapshot(release.shadowMinimumSamples)
     }
+
+    manualTestProfileEnabled() {
+        return this.snapshot().profile === 'manual_test'
+    }
 }
 
 export function resolveEvolutionReleaseGatePolicy(

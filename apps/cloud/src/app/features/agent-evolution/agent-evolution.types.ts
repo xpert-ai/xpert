@@ -7,6 +7,7 @@ import type {
   EvaluationRun,
   EvolutionAuditEvent,
   EvolutionCandidate,
+  EvolutionCanaryTestOverride,
   EvolutionDiagnosis,
   EvolutionEventCluster,
   EvolutionExperience,
@@ -37,6 +38,7 @@ export interface AgentEvolutionDashboard {
   deployments: ReleaseDeployment[]
   pointers: ActiveCapabilityPointer[]
   audits: EvolutionAuditEvent[]
+  canaryTestOverrides: EvolutionCanaryTestOverride[]
 }
 
 export type { EvolutionSimulationResult } from '@xpert-ai/contracts'
@@ -57,7 +59,8 @@ export const EMPTY_EVOLUTION_DASHBOARD: AgentEvolutionDashboard = {
   releases: [],
   deployments: [],
   pointers: [],
-  audits: []
+  audits: [],
+  canaryTestOverrides: []
 }
 
 export type EvolutionViewStatus = 'success' | 'warning' | 'neutral' | 'danger'

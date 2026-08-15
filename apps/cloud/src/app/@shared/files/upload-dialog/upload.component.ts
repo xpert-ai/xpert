@@ -2,7 +2,7 @@ import { HttpEventType } from '@angular/common/http'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { XpSearchComponent } from '@xpert-ai/headless-ui'
+import { ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { XpAppearanceDirective, XpButtonGroupDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
@@ -26,7 +26,7 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
     XpButtonGroupDirective,
     XpAppearanceDirective,
     DensityDirective,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     FilesUploadComponent
   ],
   animations: [listAnimation]

@@ -65,6 +65,28 @@
       "ShadowGateSummary": "Shadow: {{hours}} hours, {{samples}} observations, zero severe errors",
       "CanaryGateSummary": "Each Canary stage: {{hours}} hours, {{samples}} observations, zero severe errors",
       "ManualTestGateWarning": "For administrator-led validation in non-production only; production always restores standard gates.",
+      "CanaryTestOverrideTitle": "One-time Candidate hit",
+      "CanaryTestOverrideSubtitle": "Administrator-only deterministic test override",
+      "AdministratorOnly": "Administrator only",
+      "CanaryTestOverrideWarning": "The next execution for this exact subject is forced to Candidate once. The override is then consumed automatically and never changes the Active Pointer.",
+      "CanaryTestSubjectKey": "Test subject key",
+      "CanaryTestSubjectKeyPlaceholder": "Paste the exact caseId / subjectKey",
+      "CanaryTestReason": "Audit reason",
+      "CanaryTestReasonPlaceholder": "Explain why this forced Candidate test is required",
+      "CanaryTestExpiryMinutes": "Expires in minutes (1–120)",
+      "CreateCanaryTestOverride": "Create one-time override",
+      "CanaryTestOverrideCreated": "One-time Candidate override created and audited",
+      "CanaryTestOverrideConfirmTitle": "Force the next execution to Candidate?",
+      "CanaryTestOverrideConfirmDescription": "Only the next execution for subject {{subjectKey}} will use Candidate. The override is consumed atomically and fully audited.",
+      "CanaryTestOverrideHistory": "Override audit state",
+      "CanaryTestOverrideStatus": {
+        "pending": "Pending next execution",
+        "consumed": "Consumed",
+        "expired": "Expired"
+      },
+      "ExpiresAt": "Expires",
+      "CanaryTestOverrideCreatedAuditSummary": "Administrator created a one-time Candidate hit for {{subjectKey}}. Reason: {{reason}}",
+      "CanaryTestOverrideConsumedAuditSummary": "One-time Candidate hit for {{subjectKey}} was consumed by execution {{executionId}}.",
       "ExpandCanary": "Expand Canary to {{percent}}%",
       "ExpandCanaryDescription": "The prior stage must run for 24 hours with 30 samples and no severe errors.",
       "ActivateProduction": "Activate Production",
@@ -522,6 +544,10 @@
           "shadow_started": "Shadow started",
           "canary_started": "Canary started",
           "paused": "Deployment paused"
+        },
+        "canary": {
+          "manual_test_override_created": "One-time Candidate hit created",
+          "manual_test_override_consumed": "One-time Candidate hit consumed"
         }
       }
     },
