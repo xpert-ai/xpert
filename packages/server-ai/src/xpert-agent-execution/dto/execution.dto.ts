@@ -29,21 +29,6 @@ export class XpertAgentExecutionDTO {
     totalTokens?: number
 
     @Expose()
-    videoPromptTokens?: number
-
-    @Expose()
-    videoCompletionTokens?: number
-
-    @Expose()
-    videoTokens?: number
-
-    @Expose()
-    videoGenerations?: number
-
-    @Expose()
-    generatedSeconds?: number
-
-    @Expose()
     modelUsages?: IXpertAgentExecution['modelUsages']
 
     @Expose()

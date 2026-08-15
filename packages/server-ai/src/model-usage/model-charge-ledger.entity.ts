@@ -24,9 +24,6 @@ export class ModelChargeLedger extends TenantOrganizationBaseEntity implements I
     @JoinColumn({ name: 'usageLedgerId' })
     usageLedger?: ModelUsageLedger
 
-    @Column({ type: 'varchar', length: 191 })
-    requestId: string
-
     @Column({ type: 'varchar', length: 20 })
     pricingStatus: ModelUsagePricingStatus
 

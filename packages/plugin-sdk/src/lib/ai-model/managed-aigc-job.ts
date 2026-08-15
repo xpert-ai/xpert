@@ -29,7 +29,6 @@ export type AsyncAIGCManagedJobPayload<TInput, TResult> = {
   usageReported?: boolean
   result?: TResult
   errorCode?: string
-  updatedAt?: string
 }
 
 export type ProcessAsyncAIGCManagedJobOptions<TInput, TData, TResult> = {
@@ -65,7 +64,6 @@ export async function processAsyncAIGCManagedJob<TInput, TData, TResult>(
         })
       : {
           capturedAt: new Date().toISOString(),
-          status: 'unpriced' as const,
           rules: []
         }
     payload = await checkpoint(job, { ...payload, pricingSnapshot })
@@ -145,9 +143,8 @@ async function checkpoint<TInput, TResult>(
   job: ManagedQueueJob<AsyncAIGCManagedJobPayload<TInput, TResult>>,
   payload: AsyncAIGCManagedJobPayload<TInput, TResult>
 ) {
-  const next = { ...payload, updatedAt: new Date().toISOString() }
-  await job.updateData(next)
-  return next
+  await job.updateData(payload)
+  return payload
 }
 
 function toJobPhase(state: AIGCModelObservation['state']): AsyncAIGCManagedJobPhase {

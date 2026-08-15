@@ -1,5 +1,4 @@
-import type { IModelUsageDetails, IXpertAgentExecution, ModelUsageSummary } from '@xpert-ai/contracts'
-import { addModelUsageSummaries, emptyModelUsageSummary } from '../model-usage'
+import type { IModelUsageDetails, IXpertAgentExecution } from '@xpert-ai/contracts'
 
 export function collectExecutionIds(execution: IXpertAgentExecution): string[] {
     const ids = execution.id ? [execution.id] : []
@@ -7,24 +6,6 @@ export function collectExecutionIds(execution: IXpertAgentExecution): string[] {
         ids.push(...collectExecutionIds(child))
     }
     return ids
-}
-
-export function attachModelUsageSummary(
-    execution: IXpertAgentExecution,
-    directSummaries: Map<string, ModelUsageSummary>
-): IXpertAgentExecution {
-    const subExecutions = (execution.subExecutions ?? []).map((child) =>
-        attachModelUsageSummary(child, directSummaries)
-    )
-    let summary = execution.id
-        ? (directSummaries.get(execution.id) ?? emptyModelUsageSummary())
-        : emptyModelUsageSummary()
-
-    for (const child of subExecutions) {
-        summary = addModelUsageSummaries(summary, executionSummary(child))
-    }
-
-    return { ...execution, ...summary, subExecutions }
 }
 
 export function attachModelUsageDetails(
@@ -54,14 +35,4 @@ function modelUsageTokens(usages: IModelUsageDetails[]): number {
             ),
         0
     )
-}
-
-function executionSummary(execution: IXpertAgentExecution): ModelUsageSummary {
-    return {
-        videoPromptTokens: execution.videoPromptTokens ?? 0,
-        videoCompletionTokens: execution.videoCompletionTokens ?? 0,
-        videoTokens: execution.videoTokens ?? 0,
-        videoGenerations: execution.videoGenerations ?? 0,
-        generatedSeconds: execution.generatedSeconds ?? 0
-    }
 }

@@ -60,7 +60,6 @@ export type ModelUsagePricingContext = {
 
 export type ModelUsagePricingSnapshot = {
   capturedAt: string
-  status: 'rules' | 'unpriced'
   rules: ModelUsagePriceRule[]
 }
 
@@ -103,8 +102,6 @@ export type ModelUsageReportResult = {
   ledgerIds: string[]
 }
 
-export type ModelUsageLedgerStatus = 'recorded'
-
 export interface IModelUsageLedger extends IBasePerTenantAndOrganizationEntityModel {
   requestId: string
   revision: number
@@ -126,7 +123,6 @@ export interface IModelUsageLedger extends IBasePerTenantAndOrganizationEntityMo
   promptTokens?: number | null
   completionTokens?: number | null
   totalTokens?: number | null
-  status: ModelUsageLedgerStatus
   recordedAt: Date
   charge?: IModelChargeLedger | null
 }
@@ -147,7 +143,6 @@ export interface IModelUsageDetails {
 
 export interface IModelChargeLedger extends IBasePerTenantAndOrganizationEntityModel {
   usageLedgerId: string
-  requestId: string
   pricingStatus: ModelUsagePricingStatus
   pricingRuleId?: string | null
   pricingRuleVersion?: string | null
@@ -184,12 +179,4 @@ export type ModelUsageLedgerTotals = {
   totalTokens: number
   amount?: number | null
   records: number
-}
-
-export type ModelUsageSummary = {
-  videoPromptTokens: number
-  videoCompletionTokens: number
-  videoTokens: number
-  videoGenerations: number
-  generatedSeconds: number
 }

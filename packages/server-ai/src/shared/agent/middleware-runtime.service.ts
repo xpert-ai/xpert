@@ -366,7 +366,7 @@ export class AgentMiddlewareRuntimeService {
                               pricingDimensions: report.pricingDimensions,
                               startedAt: report.recordedAt
                           })
-                        : { capturedAt: new Date().toISOString(), status: 'unpriced' as const, rules: [] })
+                        : { capturedAt: new Date().toISOString(), rules: [] })
                 return this.modelUsageLedger.recordUsage(
                     {
                         tenantId,

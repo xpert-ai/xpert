@@ -1,6 +1,5 @@
 import type {
     IModelUsageLedger,
-    ModelUsageLedgerStatus,
     ModelUsageMetric,
     ModelUsageModality,
     ModelUsageOperation,
@@ -84,9 +83,6 @@ export class ModelUsageLedger extends TenantOrganizationBaseEntity implements IM
 
     @Column({ type: 'bigint', nullable: true, transformer: numberTransformer })
     totalTokens?: number | null
-
-    @Column({ type: 'varchar', length: 20, default: 'recorded' })
-    status: ModelUsageLedgerStatus
 
     @Column({ type: 'timestamptz' })
     recordedAt: Date

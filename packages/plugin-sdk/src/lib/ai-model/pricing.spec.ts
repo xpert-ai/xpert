@@ -103,7 +103,7 @@ describe('usage pricing', () => {
       startedAt: '2026-08-14T01:00:00Z'
     })
 
-    expect(snapshot).toMatchObject({ status: 'rules', rules: [{ id: 'video-1080p-audio' }] })
+    expect(snapshot).toMatchObject({ rules: [{ id: 'video-1080p-audio' }] })
     expect(calculateModelUsageCharge(snapshot, { unit: 'second', quantity: 8, authority: 'provider' })).toEqual(
       expect.objectContaining({ pricingStatus: 'priced', quantity: 8, amount: 9.6, currency: 'CNY' })
     )
@@ -138,7 +138,7 @@ describe('usage pricing', () => {
     )
     expect(
       calculateModelUsageCharge(
-        { capturedAt: '2026-08-14T01:00:00Z', status: 'unpriced', rules: [] },
+        { capturedAt: '2026-08-14T01:00:00Z', rules: [] },
         { unit: 'generation', quantity: 1, authority: 'contract' }
       )
     ).toEqual({ pricingStatus: 'unpriced', quantity: 1 })

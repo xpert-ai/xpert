@@ -8,6 +8,6 @@ import { ModelUsageLedgerService } from './model-usage-ledger.service'
 @Module({
     imports: [TypeOrmModule.forFeature([ModelUsageLedger, ModelChargeLedger])],
     providers: [ModelUsageLedgerService, ModelChargeLedgerService],
-    exports: [ModelUsageLedgerService, ModelChargeLedgerService]
+    exports: [ModelUsageLedgerService]
 })
 export class ModelUsageModule {}

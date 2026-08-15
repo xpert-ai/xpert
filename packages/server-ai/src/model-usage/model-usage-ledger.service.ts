@@ -8,17 +8,16 @@ import type {
     ModelUsagePricingSnapshot,
     ModelUsageReport,
     ModelUsageReportResult,
-    ModelUsageSummary
 } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
-import { In, type FindOptionsWhere, type Repository } from 'typeorm'
+import { In, type Repository } from 'typeorm'
 import { RequestContext } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { ModelChargeLedgerService } from './model-charge-ledger.service'
 import { ModelUsageLedger } from './model-usage-ledger.entity'
-import { normalizeModelUsageMetrics, summarizeModelUsages } from './model-usage.utils'
+import { normalizeModelUsageMetrics } from './model-usage.utils'
 
 export type ModelUsageRecordingScope = {
     tenantId: string
@@ -78,23 +77,8 @@ export class ModelUsageLedgerService {
         })
     }
 
-    async getUsageSummaries(executionIds: string[], tenantId: string): Promise<Map<string, ModelUsageSummary>> {
-        const entries = await this.findByExecutionIds(executionIds, tenantId)
-        const grouped = groupEntriesByExecution(entries)
-        return new Map(
-            [...grouped.entries()].map(([executionId, rows]) => [
-                executionId,
-                summarizeModelUsages(toUsageDetails(rows))
-            ])
-        )
-    }
-
     async getUsages(executionIds: string[], tenantId: string): Promise<IModelUsageDetails[]> {
         return toUsageDetails(await this.findByExecutionIds(executionIds, tenantId))
-    }
-
-    find(where: FindOptionsWhere<ModelUsageLedger>): Promise<IModelUsageLedger[]> {
-        return this.repository.find({ where, order: { recordedAt: 'DESC' } })
     }
 
     async findPage(
@@ -215,7 +199,6 @@ function toLedgerEntry(
         operation: report.operation,
         unit: metric.unit,
         authority: metric.authority,
-        status: 'recorded',
         recordedAt: report.recordedAt
     }
     if (metric.unit === 'token') {
@@ -234,17 +217,6 @@ function toLedgerEntry(
         completionTokens: null,
         totalTokens: null
     }
-}
-
-function groupEntriesByExecution(entries: ModelUsageLedger[]) {
-    const grouped = new Map<string, ModelUsageLedger[]>()
-    for (const entry of entries) {
-        if (!entry.originExecutionId) continue
-        const group = grouped.get(entry.originExecutionId) ?? []
-        group.push(entry)
-        grouped.set(entry.originExecutionId, group)
-    }
-    return grouped
 }
 
 function toUsageDetails(entries: ModelUsageLedger[]): IModelUsageDetails[] {

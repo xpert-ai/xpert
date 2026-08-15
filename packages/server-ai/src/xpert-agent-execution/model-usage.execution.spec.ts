@@ -1,26 +1,7 @@
-import type { AiModelTypeEnum, IModelUsageDetails, IXpertAgentExecution, ModelUsageSummary } from '@xpert-ai/contracts'
-import { attachModelUsageDetails, attachModelUsageSummary } from './model-usage.execution'
+import type { AiModelTypeEnum, IModelUsageDetails, IXpertAgentExecution } from '@xpert-ai/contracts'
+import { attachModelUsageDetails } from './model-usage.execution'
 
 describe('model usage execution projection', () => {
-    it('aggregates direct usage through the execution tree', () => {
-        const execution: IXpertAgentExecution = {
-            id: 'root',
-            tokens: 23,
-            subExecutions: [{ id: 'child', tokens: 11 }]
-        }
-        const summaries = new Map<string, ModelUsageSummary>([
-            ['root', summary({ videoGenerations: 1 })],
-            ['child', summary({ generatedSeconds: 8 })]
-        ])
-
-        const result = attachModelUsageSummary(execution, summaries)
-
-        expect(result).toEqual(expect.objectContaining({ tokens: 23, videoGenerations: 1, generatedSeconds: 8 }))
-        expect(result.subExecutions?.[0]).toEqual(
-            expect.objectContaining({ tokens: 11, videoGenerations: 0, generatedSeconds: 8 })
-        )
-    })
-
     it('adds ledger token usage to total tokens and keeps details on their execution', () => {
         const execution: IXpertAgentExecution = {
             id: 'root',
@@ -57,17 +38,6 @@ describe('model usage execution projection', () => {
         expect(result.subExecutions?.[0].modelUsages?.map(({ requestId }) => requestId)).toEqual(['child-tool-call'])
     })
 })
-
-function summary(overrides: Partial<ModelUsageSummary>): ModelUsageSummary {
-    return {
-        videoPromptTokens: 0,
-        videoCompletionTokens: 0,
-        videoTokens: 0,
-        videoGenerations: 0,
-        generatedSeconds: 0,
-        ...overrides
-    }
-}
 
 function usage(overrides: Partial<IModelUsageDetails>): IModelUsageDetails {
     return {

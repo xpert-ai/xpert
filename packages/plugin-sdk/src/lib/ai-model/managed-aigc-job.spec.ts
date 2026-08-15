@@ -49,7 +49,7 @@ describe('processAsyncAIGCManagedJob', () => {
       ...initialPayload,
       providerRequestId: 'provider-1',
       phase: 'submitted',
-      pricingSnapshot: { capturedAt: '2026-08-15T00:00:00.000Z', status: 'unpriced', rules: [] }
+      pricingSnapshot: { capturedAt: '2026-08-15T00:00:00.000Z', rules: [] }
     })
     const client = {
       submit: jest.fn(),
@@ -76,7 +76,7 @@ describe('processAsyncAIGCManagedJob', () => {
       ...initialPayload,
       providerRequestId: 'provider-1',
       phase: 'submitted',
-      pricingSnapshot: { capturedAt: '2026-08-15T00:00:00.000Z', status: 'unpriced', rules: [] }
+      pricingSnapshot: { capturedAt: '2026-08-15T00:00:00.000Z', rules: [] }
     })
     const provider = createProvider()
     const client = {
@@ -126,7 +126,6 @@ function createProvider(): AgentMiddlewareModelProviderConnection {
     authorization: 'Bearer token',
     resolvePricingSnapshot: jest.fn().mockResolvedValue({
       capturedAt: '2026-08-15T00:00:00.000Z',
-      status: 'unpriced',
       rules: []
     }),
     reportUsage: jest.fn().mockResolvedValue({ requestId: 'tool-call-1', recorded: true, ledgerIds: ['ledger-1'] })

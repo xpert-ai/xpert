@@ -26,7 +26,6 @@ export class ModelChargeLedgerService {
                 organizationId: scope.organizationId,
                 createdById: scope.userId ?? undefined,
                 usageLedgerId: usage.id,
-                requestId: report.requestId,
                 pricingStatus: calculation.pricingStatus,
                 pricingRuleId: rule?.id ?? null,
                 pricingRuleVersion: rule?.version ?? null,

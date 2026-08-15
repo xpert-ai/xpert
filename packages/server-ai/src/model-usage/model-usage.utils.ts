@@ -1,4 +1,4 @@
-import type { IModelUsageDetails, ModelUsageMetric, ModelUsageSummary } from '@xpert-ai/contracts'
+import type { ModelUsageMetric } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 
 export function normalizeModelUsageMetrics(metrics: ModelUsageMetric[]): ModelUsageMetric[] {
@@ -63,45 +63,6 @@ export function normalizeModelUsageMetrics(metrics: ModelUsageMetric[]): ModelUs
         }
     }
     return metrics
-}
-
-export function emptyModelUsageSummary(): ModelUsageSummary {
-    return {
-        videoPromptTokens: 0,
-        videoCompletionTokens: 0,
-        videoTokens: 0,
-        videoGenerations: 0,
-        generatedSeconds: 0
-    }
-}
-
-export function addModelUsageSummaries(left: ModelUsageSummary, right: ModelUsageSummary): ModelUsageSummary {
-    return {
-        videoPromptTokens: left.videoPromptTokens + right.videoPromptTokens,
-        videoCompletionTokens: left.videoCompletionTokens + right.videoCompletionTokens,
-        videoTokens: left.videoTokens + right.videoTokens,
-        videoGenerations: left.videoGenerations + right.videoGenerations,
-        generatedSeconds: left.generatedSeconds + right.generatedSeconds
-    }
-}
-
-export function summarizeModelUsages(usages: IModelUsageDetails[]): ModelUsageSummary {
-    const summary = emptyModelUsageSummary()
-    for (const usage of usages) {
-        if (usage.modality !== 'video') continue
-        for (const metric of usage.metrics) {
-            if (metric.unit === 'token') {
-                summary.videoPromptTokens += metric.promptTokens ?? 0
-                summary.videoCompletionTokens += metric.completionTokens ?? 0
-                summary.videoTokens += metric.totalTokens ?? 0
-            } else if (metric.unit === 'generation') {
-                summary.videoGenerations += metric.quantity
-            } else {
-                summary.generatedSeconds += metric.quantity
-            }
-        }
-    }
-    return summary
 }
 
 function isTokenCount(value: number) {

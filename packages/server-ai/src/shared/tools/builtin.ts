@@ -14,7 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { ManagedQueueService, TToolModelRuntime } from '@xpert-ai/plugin-sdk'
 import { _BaseToolset } from './toolset'
 
-export type { TToolModelRuntime, TToolModelUsage, TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
+export type { TToolModelRuntime, TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
 
 /**
  * The context params of creating toolset

@@ -269,7 +269,7 @@ flowchart TD
 - `packages/server-ai/src/shared/agent`：createModelClient / Provider scope；
 - `packages/server-ai/src/model-usage`：Usage/Charge ledger、价格计算和查询；
 - `packages/server-ai/src/xpert-toolset` 和 `xpert-tool`：Agent 与独立 Tool 的宿主 scope；
-- `packages/server-ai/src/xpert-agent-execution`：明细与汇总；
+- `packages/server-ai/src/xpert-agent-execution`：调用明细与总 token 汇总；
 - `packages/server-ai/src/copilot-usage`：账本查询入口；
 - `apps/cloud`：工具 usage tooltip、execution 汇总和用量中心。
 

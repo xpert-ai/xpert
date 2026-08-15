@@ -54,7 +54,7 @@ export function resolveModelUsagePricingSnapshot(
 ): ModelUsagePricingSnapshot {
   const capturedAt = normalizeDate(context.startedAt)?.toISOString() ?? new Date().toISOString()
   if (!isModelUsagePricingConfig(pricing)) {
-    return { capturedAt, status: 'unpriced', rules: [] }
+    return { capturedAt, rules: [] }
   }
 
   const at = new Date(capturedAt)
@@ -70,7 +70,6 @@ export function resolveModelUsagePricingSnapshot(
 
   return {
     capturedAt,
-    status: rules.length ? 'rules' : 'unpriced',
     rules
   }
 }
