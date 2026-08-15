@@ -9,6 +9,7 @@ import {
     MCPServerType,
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_MCP_TOOL_APPROVAL_MODE,
+    PLUGIN_RESOURCE_ERROR_CODE,
     PLUGIN_RESOURCE_INSTALLATION_STATUS,
     PLUGIN_RESOURCE_RUNTIME_TYPE,
     PluginComponentType,
@@ -30,11 +31,12 @@ import {
     normalizePluginName,
     PluginBundleComponentRegistration
 } from '@xpert-ai/server-core'
-import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
+import { BadRequestException, HttpStatus, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { mkdir } from 'node:fs/promises'
+import { t } from 'i18next'
 import { In, Repository } from 'typeorm'
 import { SkillPackage } from '../skill-package/skill-package.entity'
 import { SkillPackageService } from '../skill-package/skill-package.service'
@@ -80,6 +82,31 @@ export type RuntimeComponent = {
 type ParsedMcpServer = {
     server: TMCPServer
     policy?: XpertPluginMcpServerPolicy
+}
+
+export function selectPluginResourceComponents(
+    components: PluginBundleComponentRegistration[],
+    selectors: PluginResourceInstallComponent[],
+    defaultPluginName: string
+) {
+    const selected = components.filter((component) =>
+        selectors.some(
+            (selector) =>
+                normalizePluginName(selector.pluginName ?? defaultPluginName) === defaultPluginName &&
+                selector.componentKey === component.componentKey &&
+                (!selector.componentType || selector.componentType === component.componentType)
+        )
+    )
+    if (!selected.length) {
+        throw new NotFoundException({
+            statusCode: HttpStatus.NOT_FOUND,
+            errorCode: PLUGIN_RESOURCE_ERROR_CODE.NO_MATCHING_COMPONENTS,
+            message: t('server-ai:Error.NoMatchingPluginComponents', {
+                defaultValue: 'No matching plugin components were found.'
+            })
+        })
+    }
+    return selected
 }
 
 @Injectable()
@@ -200,7 +227,7 @@ export class PluginResourceInstallerService {
         const rootDir = resolveLoadedPluginResourceRoot(normalizedPluginName, this.loadedPlugins)
         const components = readPluginResourceComponents(normalizedPluginName, rootDir)
         const selected = selectors?.length
-            ? this.filterSelectedComponents(components, selectors, normalizedPluginName)
+            ? selectPluginResourceComponents(components, selectors, normalizedPluginName)
             : components
         const installable = selected.filter((component) =>
             isPluginResourceInstallableForTarget(component.componentType, target)
@@ -584,25 +611,6 @@ export class PluginResourceInstallerService {
             return draft.team.agent
         }
         return null
-    }
-
-    private filterSelectedComponents(
-        components: PluginBundleComponentRegistration[],
-        selectors: PluginResourceInstallComponent[],
-        defaultPluginName: string
-    ) {
-        const selected = components.filter((component) =>
-            selectors.some(
-                (selector) =>
-                    normalizePluginName(selector.pluginName ?? defaultPluginName) === defaultPluginName &&
-                    selector.componentKey === component.componentKey &&
-                    (!selector.componentType || selector.componentType === component.componentType)
-            )
-        )
-        if (!selected.length) {
-            throw new NotFoundException('No matching plugin components were found')
-        }
-        return selected
     }
 
     private resolveSkillRoot(runtimeComponent: RuntimeComponent) {

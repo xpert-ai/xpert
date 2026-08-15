@@ -1,5 +1,6 @@
 {
     "Error": {
+        "NoMatchingPluginComponents": "No matching plugin components were found.",
         "AgentEvolutionManualTestGateRequiresAdministrator": "The manual-test release gate profile requires SUPER_ADMIN or ADMIN.",
         "AgentEvolutionCanaryTestOverrideRequiresAdministrator": "Only SUPER_ADMIN or ADMIN can force a one-time Candidate assignment.",
         "AgentEvolutionCanaryTestOverrideInvalidSubject": "The test subject is required and must not exceed 200 characters.",

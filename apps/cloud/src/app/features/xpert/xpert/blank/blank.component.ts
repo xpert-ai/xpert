@@ -138,6 +138,7 @@ import {
   extractKnowledgeTemplateWizardState
 } from './blank-template.util'
 import { BlankTemplateChoice, BlankTemplateSelectionComponent } from './blank-template-selection.component'
+import { resolveTemplatePluginSkillInstallError } from './blank-plugin-resource-error.util'
 
 type BlankWorkflowNodeOption = {
   key: BlankWorkflowStarterNodeKey
@@ -2157,8 +2158,12 @@ export class XpertNewBlankComponent {
         ).filter((componentKey) => !installedComponentKeys.has(componentKey))
 
         if (missingComponentKeys.length) {
+          const components = `${group.pluginName}/${missingComponentKeys.join(', ')}`
           throw new Error(
-            `Failed to initialize template skills: ${group.pluginName}/${missingComponentKeys.join(', ')}`
+            this.#translate.instant('XP.Xpert.TemplatePluginSkillsMissingRuntimePackages', {
+              Default: `The required template skills could not be installed: ${components}.`,
+              components
+            }) as string
           )
         }
 
@@ -2174,7 +2179,13 @@ export class XpertNewBlankComponent {
       this.refreshSkills()
       return true
     } catch (error) {
-      const message = getErrorMessage(error) || 'Failed to initialize template skills.'
+      const localizedError = resolveTemplatePluginSkillInstallError(error)
+      const message = localizedError
+        ? (this.#translate.instant(localizedError.key, { Default: localizedError.defaultMessage }) as string)
+        : getErrorMessage(error) ||
+          (this.#translate.instant('XP.Xpert.TemplatePluginSkillsInstallFailedDetail', {
+            Default: 'Template skills could not be initialized. Try again.'
+          }) as string)
       this.templatePluginSkillInstallError.set(message)
       this.#toastr.error(message)
       return false

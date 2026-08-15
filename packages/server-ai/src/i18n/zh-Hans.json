@@ -1,5 +1,6 @@
 {
     "Error": {
+        "NoMatchingPluginComponents": "未找到匹配的插件组件。",
         "AgentEvolutionManualTestGateRequiresAdministrator": "手动测试发布门禁仅允许 SUPER_ADMIN 或 ADMIN 使用。",
         "AgentEvolutionCanaryTestOverrideRequiresAdministrator": "只有 SUPER_ADMIN 或 ADMIN 可以强制一次性命中 Candidate。",
         "AgentEvolutionCanaryTestOverrideInvalidSubject": "测试主体不能为空，且长度不能超过 200 个字符。",

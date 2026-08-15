@@ -1,7 +1,7 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { PluginAPIService, Store } from '@cloud/app/@core/state'
-import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AiProviderRole, PLUGIN_RESOURCE_ERROR_CODE } from '@xpert-ai/contracts'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, throwError } from 'rxjs'
 import { NgxPermissionsService } from 'ngx-permissions'
@@ -1409,6 +1409,36 @@ describe('XpertNewBlankComponent', () => {
     expect(xpertService.importDSL).not.toHaveBeenCalled()
   })
 
+  it('localizes a structured plugin component selection error', async () => {
+    const { component, toastr } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail(),
+        pluginSkillInstallError: {
+          error: { errorCode: PLUGIN_RESOURCE_ERROR_CODE.NO_MATCHING_COMPONENTS }
+        },
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    const message =
+      'The plugin components required by this template were not found. Verify that the required plugins are installed and try again.'
+    expect(component.templatePluginSkillInstallError()).toBe(message)
+    expect(toastr.error).toHaveBeenCalledWith(message)
+  })
+
   it('blocks template creation when installed plugin skills do not return runtime package ids', async () => {
     const { component, toastr, xpertService } = await createComponent(
       {
@@ -1435,10 +1465,10 @@ describe('XpertNewBlankComponent', () => {
     await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
 
     expect(component.templatePluginSkillInstallError()).toBe(
-      'Failed to initialize template skills: @xpert-ai/plugin-canvas/canvas-agent-skill'
+      'The required template skills could not be installed: @xpert-ai/plugin-canvas/canvas-agent-skill.'
     )
     expect(toastr.error).toHaveBeenCalledWith(
-      'Failed to initialize template skills: @xpert-ai/plugin-canvas/canvas-agent-skill'
+      'The required template skills could not be installed: @xpert-ai/plugin-canvas/canvas-agent-skill.'
     )
 
     await component.create()
