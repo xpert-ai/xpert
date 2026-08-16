@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { assign } from 'lodash'
 import { FindManyOptions, IsNull, Repository } from 'typeorm'
 import { XpertAgentExecution } from './agent-execution.entity'
+import type { TExecutionUsageRecord } from './types'
 
 @Injectable()
 export class XpertAgentExecutionService extends TenantOrganizationAwareCrudService<XpertAgentExecution> {
@@ -20,8 +21,29 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
 		return await this.repository.save(_entity)
 	}
 
-	async addTokens(id: string, tokens: number) {
-		await this.repository.increment({ id }, 'tokens', tokens)
+	async recordUsage(id: string, usage: TExecutionUsageRecord) {
+		await this.repository.manager.transaction(async (manager) => {
+			await manager.increment(XpertAgentExecution, { id }, 'tokens', usage.tokens)
+
+			if (usage.type !== 'estimated' && usage.details) {
+				const details = usage.details
+				await manager.update(
+					XpertAgentExecution,
+					{ id },
+					{
+						responseLatency: typeof details.latency === 'number' ? details.latency / 1000 : 0,
+						currency: details.currency,
+						totalPrice: details.totalPrice,
+						inputTokens: details.promptTokens,
+						inputUnitPrice: details.promptUnitPrice,
+						inputPriceUnit: details.promptPriceUnit,
+						outputTokens: details.completionTokens,
+						outputUnitPrice: details.completionUnitPrice,
+						outputPriceUnit: details.completionPriceUnit
+					}
+				)
+			}
+		})
 	}
 
 	async findAllByParentId(id: string, options?: Omit<FindManyOptions<XpertAgentExecution>, 'where'>) {

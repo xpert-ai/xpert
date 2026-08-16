@@ -81,9 +81,10 @@ import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { prepareMessagesForModel, setModelPreparesOwnMessages } from '../../../copilot-model/model-capabilities'
 import {
-    assignExecutionUsage,
     createExecutionModelUsageRecorder,
-    XpertAgentExecutionAddTokensCommand,
+    type TExecutionUsageRecord,
+    XpertAgentExecutionRecordUsageCommand,
+    XpertAgentExecutionService,
     XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -161,7 +162,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
         private readonly xpertTitleMiddlewareService: XpertTitleMiddlewareService,
-        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService
+        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService,
+        private readonly executionService: XpertAgentExecutionService
     ) {}
 
     public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
@@ -170,7 +172,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const {
             isStart,
             execution,
-            getExecution,
             leaderKey,
             channel: agentChannel,
             subscriber,
@@ -184,7 +185,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             tools: additionalTools,
             mute
         } = options
-        const resolveExecution = getExecution ?? (() => execution)
+        const resolveExecutionId = () => getCurrentExecutionId() ?? execution.id
+        const persistExecutionUsage = async (executionId: string, usage: TExecutionUsageRecord) => {
+            await this.commandBus.execute(new XpertAgentExecutionRecordUsageCommand(executionId, usage))
+        }
+        const modelUsageRecorder = createExecutionModelUsageRecorder(
+            resolveExecutionId,
+            persistExecutionUsage,
+            () => execution.metadata
+        )
 
         // Signal controller in this subgraph
         const abortController = new AbortController()
@@ -248,7 +257,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
                 new GetXpertChatModelQuery(agent.team, agent, {
                     abortController: rootController,
-                    usageCallback: assignExecutionUsage(resolveExecution),
+                    usageCallback: modelUsageRecorder.usageCallback,
                     threadId: thread_id
                 })
             )
@@ -281,8 +290,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 signal: abortController.signal,
                 env: toEnvState(environment),
                 store: options.store,
-                execution,
-                getExecution: resolveExecution
+                getExecutionId: resolveExecutionId
             })
         )
         const { closeToolsets, installGraphCloseHook } = createToolsetRuntimeCleanup({
@@ -744,11 +752,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const organizationId = RequestContext.getOrganizationId() ?? null
-        const usageRecorder = createExecutionModelUsageRecorder(resolveExecution, async (executionId, usage) => {
-            await this.commandBus.execute(
-                new XpertAgentExecutionAddTokensCommand(executionId, usage.tokens, usage.type)
-            )
-        })
+        const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
             tenantId: xpert.tenantId,
             organizationId,
@@ -931,7 +935,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         } = getModelHooks(middlewareEntries)
         const afterModelHooks = [
             ...userAfterModelHooks,
-            ...(!hiddenAgent ? [createThreadContextUsageEventHook(agent, thread_id, resolveExecution)] : [])
+            ...(!hiddenAgent
+                ? [
+                      createThreadContextUsageEventHook(agent, thread_id, async () => {
+                          const executionId = resolveExecutionId()
+                          return executionId ? await this.executionService.findOne(executionId) : null
+                      })
+                  ]
+                : [])
         ]
         const afterModelExecutionOrder = [...afterModelHooks].reverse()
 
@@ -1155,7 +1166,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     new GetXpertChatModelQuery(agent.team, null, {
                         copilotModel: agent.options.fallback.copilotModel,
                         abortController: rootController,
-                        usageCallback: assignExecutionUsage(resolveExecution),
+                        usageCallback: modelUsageRecorder.usageCallback,
                         threadId: thread_id
                     })
                 )
@@ -1235,18 +1246,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 if (isBaseMessage(response) && isAIMessage(response)) {
                     const invalidToolCalls = response.invalid_tool_calls
                     if (invalidToolCalls?.length) {
-                        const currentExecution = resolveExecution()
                         const diagnosticId = randomUUID()
                         this.#logger.error(
                             createInvalidToolCallDiagnostics({
                                 diagnosticId,
                                 invalidToolCalls,
                                 threadId: thread_id,
-                                executionId: currentExecution.id,
+                                executionId: resolveExecutionId(),
                                 xpertId: xpert.id,
                                 agentKey,
                                 agentChannel,
-                                model: currentExecution.metadata,
+                                model: execution.metadata,
                                 aiMessageId: response.id
                             })
                         )
@@ -1746,8 +1756,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
     ) {
         const { xpert, options, isTool, thread_id, rootController, signal, variables, partners } = config
         const { subscriber, leaderKey } = options
-        const executionScope = createInvocationScopedExecution()
-        const execution = executionScope.execution
+        const execution: IXpertAgentExecution = {}
 
         // Subgraph
         if (!agent.key) {
@@ -1768,7 +1777,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 isDraft: config.options.isDraft,
                 subscriber,
                 execution,
-                getExecution: executionScope.getExecution,
                 variables,
                 channel: channelName(agent.key),
                 partners,
@@ -1810,13 +1818,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         predecessor: configurable.agentKey
                     })
                 )
-                const invocationExecution = {
-                    ...execution,
-                    id: _execution.id
-                }
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, _execution))
-                const releaseExecution = executionScope.bind(invocationExecution)
 
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
@@ -1828,7 +1831,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     // Record End time
                     const newExecution = await this.commandBus.execute(
                         new XpertAgentExecutionUpsertCommand({
-                            ...invocationExecution,
                             id: _execution.id,
                             checkpointId: _state.config.configurable.checkpoint_id,
                             elapsedTime: timeEnd - timeStart,
@@ -1933,11 +1935,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     throw err
                 } finally {
                     // End agent execution event
-                    try {
-                        await finalize()
-                    } finally {
-                        releaseExecution()
-                    }
+                    await finalize()
                 }
             }
         )
@@ -1952,32 +1950,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
     }
 }
 
-function createInvocationScopedExecution() {
-    const baseExecution: IXpertAgentExecution = {}
-    const invocationExecutions = new Map<string, IXpertAgentExecution>()
-
-    return {
-        execution: baseExecution,
-        getExecution: () => {
-            const executionId = getCurrentExecutionId()
-            return (executionId && invocationExecutions.get(executionId)) ?? baseExecution
-        },
-        bind: (invocationExecution: IXpertAgentExecution) => {
-            if (!invocationExecution.id) {
-                throw new Error('Sub-agent execution id is required')
-            }
-            const executionId = invocationExecution.id
-            invocationExecutions.set(executionId, invocationExecution)
-            return () => {
-                if (invocationExecutions.get(executionId) === invocationExecution) {
-                    invocationExecutions.delete(executionId)
-                }
-            }
-        }
-    }
-}
-
-function getCurrentExecutionId() {
+export function getCurrentExecutionId() {
     const configurable = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable
     const executionId = configurable?.executionId
     return typeof executionId === 'string' && executionId ? executionId : undefined

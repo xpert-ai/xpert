@@ -34,10 +34,10 @@ import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { CreateNodeConsumePendingSteerFollowUpsHandler } from './create-node-consume-pending-steer-follow-ups.handler'
 import { CreateNodeStagePendingSteerFollowUpsHandler } from './create-node-stage-pending-steer-follow-ups.handler'
-import { XpertAgentSubgraphHandler } from './subgraph.handler'
+import { getCurrentExecutionId, XpertAgentSubgraphHandler } from './subgraph.handler'
 
-describe('XpertAgentSubgraphHandler invocation execution scope', () => {
-    it('keeps execution state isolated between concurrent sub-agent calls', async () => {
+describe('XpertAgentSubgraphHandler invocation execution id', () => {
+    it('resolves the current execution id between concurrent sub-agent calls', async () => {
         type ChildGraphConfig = {
             configurable?: {
                 executionId?: string
@@ -45,7 +45,6 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
         }
 
         const observedExecutions: Array<{ expected?: string; actual?: string }> = []
-        let getActiveExecution: (() => IXpertAgentExecution) | undefined
         let startedInvocations = 0
         let releaseInvocations: (() => void) | undefined
         const allInvocationsStarted = new Promise<void>((resolve) => {
@@ -68,7 +67,7 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
                     await allInvocationsStarted
                     observedExecutions.push({
                         expected: invokeConfig.configurable?.executionId,
-                        actual: getActiveExecution?.().id
+                        actual: getCurrentExecutionId()
                     })
                     return {
                         messages: [new AIMessage(`result-${invokeConfig.configurable?.executionId}`)]
@@ -80,7 +79,6 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
         const commandBus = {
             execute: jest.fn(async (command: unknown) => {
                 if (command instanceof XpertAgentSubgraphCommand) {
-                    getActiveExecution = command.options.getExecution
                     return {
                         graph: childGraph,
                         nextNodes: [],
@@ -116,7 +114,8 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         const subscriber = {
             next: jest.fn()
@@ -559,7 +558,8 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -786,7 +786,8 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -916,7 +917,8 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -1092,7 +1094,8 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -1281,7 +1284,8 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {

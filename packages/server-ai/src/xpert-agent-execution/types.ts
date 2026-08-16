@@ -2,30 +2,57 @@ import { IXpertAgentExecution } from '@xpert-ai/contracts'
 import type { TLLMUsage, TModelUsageType, TToolModelUsageReporter, TToolTokenUsage } from '@xpert-ai/plugin-sdk'
 import { applicationMetrics } from '../metrics'
 
-type TExecutionTokenWriter = (
-    executionId: string,
-    usage: { type?: TModelUsageType; tokens: number }
-) => void | Promise<void>
+export type TExecutionUsageRecord = {
+    type?: TModelUsageType
+    tokens: number
+    details?: TLLMUsage
+}
 
-export type TExecutionResolver = () => IXpertAgentExecution
-type TExecutionSource = IXpertAgentExecution | TExecutionResolver
+type TExecutionUsageWriter = (executionId: string, usage: TExecutionUsageRecord) => void | Promise<void>
 
-export function createExecutionModelUsageRecorder(executionSource: TExecutionSource, persist: TExecutionTokenWriter) {
+export type TExecutionIdResolver = () => string | undefined
+type TExecutionIdSource = string | TExecutionIdResolver
+type TExecutionMetricsContext = {
+    provider?: string
+    model?: string
+}
+
+export function createExecutionModelUsageRecorder(
+    executionIdSource: TExecutionIdSource,
+    persist: TExecutionUsageWriter,
+    getMetricsContext?: () => TExecutionMetricsContext | undefined
+) {
     const reportedToolRequests = new Set<string>()
 
-    const recordTokens = async (type: TModelUsageType | undefined, tokens: number) => {
-        if (!isPositiveTokenCount(tokens)) {
+    const persistUsage = async (usage: TExecutionUsageRecord) => {
+        if (!isPositiveTokenCount(usage.tokens)) {
             return
         }
-        const execution = resolveExecution(executionSource)
-        if (execution.id) {
-            await persist(execution.id, { ...(type ? { type } : {}), tokens })
+        const executionId = resolveExecutionId(executionIdSource)
+        if (executionId) {
+            await persist(executionId, usage)
         }
-        addExecutionTokens(execution, tokens)
     }
 
     const usageCallback = async (usage: TLLMUsage) => {
-        await recordTokens(usage.type, usage.totalTokens ?? 0)
+        await persistUsage({
+            ...(usage.type ? { type: usage.type } : {}),
+            tokens: usage.totalTokens ?? 0,
+            details: usage
+        })
+        if (usage.type !== 'estimated' && getMetricsContext) {
+            const context = getMetricsContext()
+            applicationMetrics.recordLlmUsage({
+                provider: context?.provider,
+                model: context?.model,
+                inputTokens: usage.promptTokens,
+                outputTokens: usage.completionTokens,
+                totalTokens: usage.totalTokens,
+                totalPrice: usage.totalPrice,
+                currency: usage.currency,
+                responseLatencySeconds: typeof usage.latency === 'number' ? usage.latency / 1000 : undefined
+            })
+        }
     }
 
     const reportUsage: TToolModelUsageReporter = async (usage) => {
@@ -39,7 +66,7 @@ export function createExecutionModelUsageRecorder(executionSource: TExecutionSou
         reportedToolRequests.add(key)
 
         try {
-            await recordTokens(usage.type, usage.totalTokens)
+            await persistUsage({ ...(usage.type ? { type: usage.type } : {}), tokens: usage.totalTokens })
             if (usage.type !== 'estimated') {
                 applicationMetrics.recordLlmUsage({
                     provider: usage.provider,
@@ -56,10 +83,6 @@ export function createExecutionModelUsageRecorder(executionSource: TExecutionSou
     }
 
     return { usageCallback, reportUsage }
-}
-
-function addExecutionTokens(execution: IXpertAgentExecution, tokens: number) {
-    execution.tokens = (execution.tokens ?? 0) + tokens
 }
 
 function isToolTokenUsage(usage: Parameters<TToolModelUsageReporter>[0]): usage is TToolTokenUsage {
@@ -85,11 +108,10 @@ function isTokenCount(value: number) {
     return Number.isFinite(value) && Number.isInteger(value) && value >= 0
 }
 
-export function assignExecutionUsage(executionSource: TExecutionSource) {
+export function assignExecutionUsage(execution: IXpertAgentExecution) {
     return (usage: TLLMUsage) => {
-        const execution = resolveExecution(executionSource)
         if (usage.type === 'estimated') {
-            addExecutionTokens(execution, usage.totalTokens ?? 0)
+            execution.tokens = (execution.tokens ?? 0) + (usage.totalTokens ?? 0)
             return
         }
         execution.responseLatency = typeof usage.latency === 'number' ? usage.latency / 1000 : 0
@@ -115,6 +137,6 @@ export function assignExecutionUsage(executionSource: TExecutionSource) {
     }
 }
 
-function resolveExecution(source: TExecutionSource) {
+function resolveExecutionId(source: TExecutionIdSource) {
     return typeof source === 'function' ? source() : source
 }

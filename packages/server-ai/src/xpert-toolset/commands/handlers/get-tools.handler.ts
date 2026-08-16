@@ -13,7 +13,10 @@ import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ToolsetGetToolsCommand } from '../get-tools.command'
 import { TBuiltinToolsetParams } from '../../../shared'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
-import { createExecutionModelUsageRecorder, XpertAgentExecutionAddTokensCommand } from '../../../xpert-agent-execution'
+import {
+    createExecutionModelUsageRecorder,
+    XpertAgentExecutionRecordUsageCommand
+} from '../../../xpert-agent-execution'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
@@ -35,15 +38,13 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             return []
         }
         const workspaceId = normalizeWorkspaceId(command.environment?.workspaceId)
-        const execution = command.environment?.execution
-        const getExecution = command.environment?.getExecution ?? (execution ? () => execution : undefined)
-        const originExecutionId = getExecution?.().id ?? command.environment?.executionId
+        const originExecutionId = command.environment?.executionId
+        const getExecutionId = command.environment?.getExecutionId
+        const executionIdSource = getExecutionId ?? originExecutionId
         const userId = RequestContext.currentUserId()
-        const usageRecorder = getExecution
-            ? createExecutionModelUsageRecorder(getExecution, async (executionId, usage) => {
-                  await this.commandBus.execute(
-                      new XpertAgentExecutionAddTokensCommand(executionId, usage.tokens, usage.type)
-                  )
+        const usageRecorder = executionIdSource
+            ? createExecutionModelUsageRecorder(executionIdSource, async (executionId, usage) => {
+                  await this.commandBus.execute(new XpertAgentExecutionRecordUsageCommand(executionId, usage))
               })
             : undefined
         const { items: toolsets } = await this.toolsetService.findAll({

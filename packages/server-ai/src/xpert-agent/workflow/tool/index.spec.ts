@@ -155,13 +155,7 @@ describe('workflow tool node cleanup', () => {
         const getToolsCommand = commandBus.execute.mock.calls.find(
             ([command]) => command instanceof ToolsetGetToolsCommand
         )?.[0] as ToolsetGetToolsCommand
-        expect(getToolsCommand.environment.execution).toEqual(
-            expect.objectContaining({
-                id: 'execution-1',
-                type: WorkflowNodeTypeEnum.TOOL,
-                parentId: 'parent-execution-1'
-            })
-        )
+        expect(getToolsCommand.environment.getExecutionId()).toBe('execution-1')
     })
 
     it('closes the toolset when tool errors are handled with a default value', async () => {

@@ -99,8 +99,7 @@ describe('ToolsetGetToolsHandler', () => {
     })
 
     it('binds one execution to the tool host usage callbacks', async () => {
-        const execution = { id: 'execution-1', tokens: 0 }
-        await handler.execute(new ToolsetGetToolsCommand(['1'], { execution }))
+        await handler.execute(new ToolsetGetToolsCommand(['1'], { executionId: 'execution-1' }))
 
         expect(createScopedApi).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -115,7 +114,32 @@ describe('ToolsetGetToolsHandler', () => {
         })
         await usageCallback({ totalTokens: 12 })
 
-        expect(executeCommand).toHaveBeenCalledWith(expect.objectContaining({ executionId: 'execution-1', tokens: 12 }))
+        expect(executeCommand).toHaveBeenCalledWith(
+            expect.objectContaining({
+                executionId: 'execution-1',
+                usage: expect.objectContaining({ tokens: 12 })
+            })
+        )
+    })
+
+    it('resolves the execution id when a reusable graph reports usage', async () => {
+        let executionId = 'execution-1'
+        await handler.execute(
+            new ToolsetGetToolsCommand(['1'], {
+                getExecutionId: () => executionId
+            })
+        )
+        executionId = 'execution-2'
+
+        const usageCallback = createScopedApi.mock.calls[0][0].usageCallback
+        await usageCallback({ totalTokens: 12 })
+
+        expect(executeCommand).toHaveBeenCalledWith(
+            expect.objectContaining({
+                executionId: 'execution-2',
+                usage: expect.objectContaining({ tokens: 12 })
+            })
+        )
     })
 
     it('shares the resolved model provider reporter with each Toolset', async () => {
@@ -126,9 +150,7 @@ describe('ToolsetGetToolsHandler', () => {
             ]
         })
         executeCommand.mockResolvedValue({})
-        const execution = { id: 'execution-1', tokens: 0 }
-
-        await handler.execute(new ToolsetGetToolsCommand(['toolset-1', 'toolset-2'], { execution }))
+        await handler.execute(new ToolsetGetToolsCommand(['toolset-1', 'toolset-2'], { executionId: 'execution-1' }))
 
         const createToolsets = executeCommand.mock.calls
             .map(([created]) => created)
@@ -144,9 +166,7 @@ describe('ToolsetGetToolsHandler', () => {
         })
         executeCommand.mockResolvedValue({})
 
-        await handler.execute(
-            new ToolsetGetToolsCommand(['toolset-1'], { execution: { id: 'execution-1', tokens: 0 } })
-        )
+        await handler.execute(new ToolsetGetToolsCommand(['toolset-1'], { executionId: 'execution-1' }))
 
         const createToolset = executeCommand.mock.calls
             .map(([command]) => command)

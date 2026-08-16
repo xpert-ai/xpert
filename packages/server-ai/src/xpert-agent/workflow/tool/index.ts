@@ -84,7 +84,7 @@ export function createToolNode(
                         executionId,
                         signal: config.signal,
                         env: toEnvState(environment),
-                        execution
+                        getExecutionId: () => execution.id ?? executionId
                     })
                 )
 
