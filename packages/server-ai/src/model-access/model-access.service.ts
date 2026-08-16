@@ -1330,6 +1330,17 @@ export class ModelAccessService {
             }
         }
 
+        // const membershipFeatureState = await this.resolveMembershipFeatureState(input.tenantId, runtimeOrganizationId)
+        // const canManageMembership =
+        //     !target.usesOrganizationCredentials || !membershipFeatureState.organizationEnabled
+        //         ? true
+        //         : await this.hasUserPermission(input.tenantId, billableUserId, AIPermissionsEnum.MEMBERSHIP_EDIT)
+        // const accessMode = this.resolveTargetAccessMode(
+        //     target,
+        //     runtimeOrganizationId,
+        //     membershipFeatureState,
+        //     canManageMembership
+        // )
         const membershipFeatureState = await context.membershipFeatureState()
         const canManageMembership =
             !target.usesOrganizationCredentials || !membershipFeatureState.organizationEnabled
