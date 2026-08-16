@@ -13,6 +13,7 @@ import {
 } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
+import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
     Annotation,
@@ -71,7 +72,6 @@ import {
     WrapModelCallHandler,
     WrapToolCallHook
 } from '@xpert-ai/plugin-sdk'
-import { AsyncLocalStorage } from 'node:async_hooks'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -1816,6 +1816,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, _execution))
+                const releaseExecution = executionScope.bind(invocationExecution)
 
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
@@ -1858,24 +1859,22 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                               }
                             : {})
                     }
-                    const output = await executionScope.run(invocationExecution, () =>
-                        graph.invoke(subState, {
-                            ...config,
-                            signal,
-                            configurable: {
-                                ...config.configurable,
-                                agentKey: agent.key,
-                                xpertName: agentLabel(agent),
-                                executionId: _execution.id
-                            },
-                            metadata: {
-                                agentKey: agent.key,
-                                xpertName: agentLabel(agent),
-                                executionId: _execution.id,
-                                parentExecutionId: executionId
-                            }
-                        })
-                    )
+                    const output = await graph.invoke(subState, {
+                        ...config,
+                        signal,
+                        configurable: {
+                            ...config.configurable,
+                            agentKey: agent.key,
+                            xpertName: agentLabel(agent),
+                            executionId: _execution.id
+                        },
+                        metadata: {
+                            agentKey: agent.key,
+                            xpertName: agentLabel(agent),
+                            executionId: _execution.id,
+                            parentExecutionId: executionId
+                        }
+                    })
 
                     const lastMessage = output.messages[output.messages.length - 1]
 
@@ -1934,7 +1933,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     throw err
                 } finally {
                     // End agent execution event
-                    await finalize()
+                    try {
+                        await finalize()
+                    } finally {
+                        releaseExecution()
+                    }
                 }
             }
         )
@@ -1951,14 +1954,33 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 function createInvocationScopedExecution() {
     const baseExecution: IXpertAgentExecution = {}
-    const invocationScope = new AsyncLocalStorage<IXpertAgentExecution>()
+    const invocationExecutions = new Map<string, IXpertAgentExecution>()
 
     return {
         execution: baseExecution,
-        getExecution: () => invocationScope.getStore() ?? baseExecution,
-        run: <T>(invocationExecution: IXpertAgentExecution, callback: () => Promise<T>) =>
-            invocationScope.run(invocationExecution, callback)
+        getExecution: () => {
+            const executionId = getCurrentExecutionId()
+            return (executionId && invocationExecutions.get(executionId)) ?? baseExecution
+        },
+        bind: (invocationExecution: IXpertAgentExecution) => {
+            if (!invocationExecution.id) {
+                throw new Error('Sub-agent execution id is required')
+            }
+            const executionId = invocationExecution.id
+            invocationExecutions.set(executionId, invocationExecution)
+            return () => {
+                if (invocationExecutions.get(executionId) === invocationExecution) {
+                    invocationExecutions.delete(executionId)
+                }
+            }
+        }
     }
+}
+
+function getCurrentExecutionId() {
+    const configurable = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable
+    const executionId = configurable?.executionId
+    return typeof executionId === 'string' && executionId ? executionId : undefined
 }
 
 function ensureSummarize(summarize?: TSummarize) {
