@@ -577,21 +577,6 @@
       "count": 4
     },
     {
-      "file": "packages/ui/src/lib/ui/compat/common/search/search.component.html",
-      "match": "text-gray-200",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/lib/ui/compat/common/search/search.component.html",
-      "match": "text-gray-400",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/lib/ui/compat/common/search/search.component.html",
-      "match": "text-gray-600",
-      "count": 1
-    },
-    {
       "file": "packages/ui/src/lib/ui/compat/common/stepper/stepper.component.html",
       "match": "bg-gray-50",
       "count": 1

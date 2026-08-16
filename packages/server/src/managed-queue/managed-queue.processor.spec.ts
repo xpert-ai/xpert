@@ -6,7 +6,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	}
 }))
 
-import { runWithRequestContext } from '@xpert-ai/plugin-sdk'
+import { runWithRequestContext, type ManagedQueueJob } from '@xpert-ai/plugin-sdk'
 import { runWithRequestContext as runWithLegacyRequestContext } from '../core/context/request-context.middleware'
 import { ManagedQueueHandlerRegistryService } from './managed-queue-handler-registry.service'
 import { ManagedQueueProcessor, managedQueuePoolAutorun } from './managed-queue.processor'
@@ -38,7 +38,7 @@ describe('ManagedQueueProcessor', () => {
 	})
 
 	it('restores tenant context and dispatches plugin payload to the registered handler', async () => {
-		const handler = jest.fn(async () => undefined)
+		const handler = jest.fn(async (_job: ManagedQueueJob<{ hello: string }>) => undefined)
 		const registry = {
 			resolve: jest.fn(() => handler)
 		} as unknown as ManagedQueueHandlerRegistryService
@@ -54,6 +54,7 @@ describe('ManagedQueueProcessor', () => {
 			id: 'job-1',
 			attemptsMade: 1,
 			opts: { attempts: 3 },
+			updateData: jest.fn().mockResolvedValue(undefined),
 			data: {
 				pluginName: 'plugin-a',
 				queueName: 'queue-a',
@@ -122,13 +123,14 @@ describe('ManagedQueueProcessor', () => {
 		})
 		expect(runWithLegacyRequestContext).toHaveBeenCalled()
 		expect(handler).toHaveBeenCalledWith(
-			{
+			expect.objectContaining({
 				id: 'job-1',
 				name: 'job-a',
 				data: { hello: 'world' },
 				attemptsMade: 1,
-				opts: { attempts: 3 }
-			},
+				opts: { attempts: 3 },
+				updateData: expect.any(Function)
+			}),
 			{
 				pluginName: 'plugin-a',
 				queueName: 'queue-a',
@@ -139,6 +141,14 @@ describe('ManagedQueueProcessor', () => {
 				userId: 'business-user-1'
 			}
 		)
+
+		const managedJob = handler.mock.calls[0][0]
+		await managedJob.updateData({ hello: 'checkpoint' })
+		expect(job.updateData).toHaveBeenCalledWith({
+			...job.data,
+			payload: { hello: 'checkpoint' }
+		})
+		expect(managedJob.data).toEqual({ hello: 'checkpoint' })
 	})
 
 	it('restores a logged-in actor without attaching an xpert API principal', async () => {

@@ -1,5 +1,6 @@
 import { I18nObject } from '@xpert-ai/contracts'
 import { XpI18nPipe, TSelectOption } from '@xpert-ai/headless-ui'
+import { FormlyFieldConfig } from '@ngx-formly/core'
 import { includes, upperFirst } from 'lodash-es'
 
 export function convertConfigurationSchema(schema: any, i18n?: any) {
@@ -124,6 +125,10 @@ export function toFormlyField(
       value: string | number
       label: I18nObject
     }[]
+    'x-ui'?: {
+      visibleWhen?: Record<string, unknown>
+      enabledWhen?: Record<string, unknown>
+    }
   },
   i18n?: XpI18nPipe
 ) {
@@ -190,11 +195,29 @@ export function toFormlyField(
       ...props
     },
     expressions: {}
-  } as any
+  } as FormlyFieldConfig
 
   if (property.depend) {
     formField.expressions.hide = `!model || !model.${property.depend}`
   }
 
+  const visibleWhen = property['x-ui']?.visibleWhen
+  if (visibleWhen) {
+    formField.expressions.hide = (field) => !matchesConditions(field.model, visibleWhen)
+    formField.resetOnHide = true
+  }
+
+  const enabledWhen = property['x-ui']?.enabledWhen
+  if (enabledWhen) {
+    formField.expressions['props.disabled'] = (field) => !matchesConditions(field.model, enabledWhen)
+  }
+
   return formField
+}
+
+function matchesConditions(model: unknown, conditions: Record<string, unknown>): boolean {
+  if (!model || typeof model !== 'object' || Array.isArray(model)) {
+    return false
+  }
+  return Object.entries(conditions).every(([name, expected]) => Object.is(Reflect.get(model, name), expected))
 }

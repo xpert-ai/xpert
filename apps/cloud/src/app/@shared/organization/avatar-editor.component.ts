@@ -1,7 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, inject, input } from '@angular/core'
-import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, StorageFileService, Store } from '../../@core'
@@ -12,7 +11,7 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
   selector: 'xp-org-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styles: [``],
-  imports: [ZardIconComponent, CdkMenuModule, TranslateModule, DensityDirective, XpAppearanceDirective]
+  imports: [ZardIconComponent, CdkMenuModule, TranslateModule]
 })
 export class OrgAvatarEditorComponent {
   private readonly storageFileService = inject(StorageFileService)

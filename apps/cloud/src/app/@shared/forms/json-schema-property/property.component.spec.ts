@@ -5,6 +5,7 @@
  */
 import { fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
+import { JsonSchemaFormOptions } from '../json-schema-form/form-options'
 import { JSONSchemaPropertyComponent } from './property.component'
 
 jest.mock('echarts/core', () => ({
@@ -22,7 +23,8 @@ describe('JSONSchemaPropertyComponent', () => {
     })
 
     await TestBed.configureTestingModule({
-      imports: [JSONSchemaPropertyComponent, TranslateModule.forRoot()]
+      imports: [JSONSchemaPropertyComponent, TranslateModule.forRoot()],
+      providers: [JsonSchemaFormOptions]
     }).compileComponents()
   })
 
@@ -113,6 +115,31 @@ describe('JSONSchemaPropertyComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.componentInstance.visible()).toBe(true)
+  })
+
+  it('merges generic form control defaults with field inputs taking precedence', () => {
+    TestBed.inject(JsonSchemaFormOptions).controlDefaults.set({
+      boolean: { displayDensity: 'compact' },
+      switch: { zSize: 'sm', disabled: true }
+    })
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+
+    fixture.componentRef.setInput('schema', {
+      type: 'boolean',
+      'x-ui': {
+        inputs: {
+          zSize: 'lg'
+        }
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.controlInputs()).toEqual({
+      displayDensity: 'compact',
+      zSize: 'lg',
+      disabled: true
+    })
+    expect(fixture.componentInstance.controlInput('missing', 'fallback')).toBe('fallback')
   })
 
   it('collapses complex object schema fields by default', () => {

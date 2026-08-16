@@ -8,19 +8,22 @@ import { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
+import { CopilotUsageModule } from '../copilot-usage'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-agent-execution', module: XpertAgentExecutionModule }]),
-		TypeOrmModule.forFeature([XpertAgentExecution]),
-		TenantModule,
-		CqrsModule,
-		SuperAdminOrganizationScopeModule
-	],
-	controllers: [XpertAgentExecutionController],
-	providers: [XpertAgentExecutionService, AgentMiddlewareRuntimeService, ...CommandHandlers, ...QueryHandlers],
-	exports: [XpertAgentExecutionService]
+    imports: [
+        RouterModule.register([{ path: '/xpert-agent-execution', module: XpertAgentExecutionModule }]),
+        TypeOrmModule.forFeature([XpertAgentExecution]),
+        TenantModule,
+        CqrsModule,
+        SuperAdminOrganizationScopeModule,
+        AgentMiddlewareRuntimeModule,
+        CopilotUsageModule
+    ],
+    controllers: [XpertAgentExecutionController],
+    providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
+    exports: [XpertAgentExecutionService]
 })
 export class XpertAgentExecutionModule {}

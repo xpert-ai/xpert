@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
+    AiModelTypeEnum,
+    AiProviderRole,
     ChatMessageEventTypeEnum,
     ICopilotModel,
     IChatConversation,
@@ -27,20 +29,27 @@ import {
     AgentMiddlewareFileReference,
     AgentMiddlewareResolvedFile,
     AgentMiddlewareCreateModelClientOptions,
-    KnowledgebaseDocument,
+    AgentMiddlewareRuntimeScope,
     KnowledgebaseDeleteChunksInput,
     KnowledgebaseDeleteChunksResult,
     KnowledgebaseCreateDocumentsInput,
     KnowledgebaseCreateDocumentsResult,
+    KnowledgebaseCreateFolderInput,
+    KnowledgebaseCreateFolderResult,
     KnowledgebaseDeleteDocumentsInput,
     KnowledgebaseDeleteDocumentsResult,
     KnowledgebaseDocumentStatusInput,
     KnowledgebaseDocumentStatusResult,
     KnowledgebaseImportArchiveInput,
     KnowledgebaseImportArchiveResult,
+    KnowledgebaseListDocumentsInput,
+    KnowledgebaseListDocumentsResult,
+    KnowledgebaseMoveDocumentInput,
+    KnowledgebaseMoveDocumentResult,
     KnowledgebaseListInput,
     KnowledgebaseListItem,
     KnowledgebaseSearchInput,
+    KnowledgebaseSearchResult,
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput,
     KnowledgebaseUploadedFile,
@@ -48,7 +57,9 @@ import {
     KnowledgebaseWriteChunkResult,
     AgentMiddlewareEvent,
     AgentMiddlewareModelClient,
+    AgentMiddlewareModelProviderConnection,
     AgentMiddlewareRuntimeApi,
+    TLLMUsage,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     ActorTokenRequest,
@@ -61,6 +72,11 @@ import {
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
+    KnowledgebaseProvisioningRuntimeCapability,
+    KnowledgebaseEnsureInput,
+    KnowledgebaseEnsureResult,
+    KnowledgebaseConnectAgentInput,
+    KnowledgebaseConnectAgentResult,
     RequestContext,
     ArtifactsRuntimeCapability,
     CancelConversationCommand,
@@ -76,53 +92,50 @@ import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limi
 import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-record.command'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
+import { CopilotService } from '../../copilot/copilot.service'
+import { CopilotUsageService } from '../../copilot-usage'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
 import {
+    CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
     DeleteAgentKnowledgeChunksCommand,
     DeleteKnowledgebaseDocumentsCommand,
     GetKnowledgebaseDocumentStatusCommand,
     ImportKnowledgebaseArchiveCommand,
+    ListKnowledgebaseDocumentsCommand,
+    MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
 } from '../../knowledgebase/commands'
+import { EnsureKnowledgebasesCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { applicationMetrics } from '../../metrics'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { CollaborationService } from '../../collaboration/collaboration.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
-/**
- * Scope values captured from the current Agent invocation and bound into
- * runtime capabilities exposed to middleware plugins.
- */
-export type AgentMiddlewareRuntimeScope = {
-    tenantId?: string | null
-    organizationId?: string | null
-    userId?: string | null
-    workspaceId?: string | null
-    projectId?: string | null
-    xpertId?: string | null
-    xpertName?: string | null
-    conversationId?: string | null
-    agentKey?: string | null
-    executionId?: string | null
-    workspaceRoot?: string | null
-    workspacePath?: string | null
-}
-
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
     skipTokenRecord?: boolean
+    purpose?: 'invoke' | 'observe'
 }
+
+const MODEL_PROVIDER_ROLE_PRIORITY = [
+    AiProviderRole.Primary,
+    AiProviderRole.Secondary,
+    AiProviderRole.Reasoning,
+    AiProviderRole.Embedding
+]
 
 @Injectable()
 export class AgentMiddlewareRuntimeService {
@@ -132,9 +145,16 @@ export class AgentMiddlewareRuntimeService {
     async createModelClient<T = AgentMiddlewareModelClient>(
         copilotModel: ICopilotModel,
         options: AgentMiddlewareRuntimeModelOptions,
-        scope: AgentMiddlewareRuntimeScope = {}
+        scope: AgentMiddlewareRuntimeScope = {},
+        recordApplicationMetrics = false
     ): Promise<T> {
-        const { abortController, usageCallback, modelAccessOverride, skipTokenRecord } = options ?? {}
+        const {
+            abortController,
+            usageCallback,
+            modelAccessOverride,
+            skipTokenRecord,
+            purpose = 'invoke'
+        } = options ?? {}
         const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
         const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
         const userId = scope.userId ?? RequestContext.currentUserId()
@@ -155,17 +175,19 @@ export class AgentMiddlewareRuntimeService {
 
         const modelAccess =
             modelAccessOverride ??
-            (await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
-                new CopilotCheckLimitCommand({
-                    tenantId,
-                    organizationId,
-                    userId,
-                    xpertId,
-                    copilot,
-                    model: modelName,
-                    modelType: copilotModel.modelType
-                })
-            ))
+            (purpose === 'observe'
+                ? undefined
+                : await this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
+                      new CopilotCheckLimitCommand({
+                          tenantId,
+                          organizationId,
+                          userId,
+                          xpertId,
+                          copilot,
+                          model: modelName,
+                          modelType: copilotModel.modelType
+                      })
+                  ))
 
         const customModels = await this.queryBus.execute(
             new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
@@ -181,7 +203,9 @@ export class AgentMiddlewareRuntimeService {
             )
         }
 
-        ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
+        if (copilotModel.modelType === AiModelTypeEnum.LLM) {
+            ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
+        }
 
         return modelProvider.getModelInstance(
             copilotModel.modelType,
@@ -193,11 +217,32 @@ export class AgentMiddlewareRuntimeService {
                 verbose: Logger.isLevelEnabled('verbose'),
                 modelProperties: customModels[0]?.modelProperties,
                 handleLLMTokens: async (input) => {
-                    if (usageCallback && input.usage) {
-                        usageCallback(input.usage)
+                    if (purpose === 'observe') {
+                        return
+                    }
+                    if (input.usage) {
+                        if (scope.usageCallback) {
+                            await scope.usageCallback(input.usage)
+                        }
+                        if (usageCallback && usageCallback !== scope.usageCallback) {
+                            await usageCallback(input.usage)
+                        }
+                        if (recordApplicationMetrics && input.usage.type !== 'estimated') {
+                            applicationMetrics.recordLlmUsage({
+                                provider: copilot.modelProvider.providerName,
+                                model: input.model ?? modelName,
+                                inputTokens: input.usage.promptTokens,
+                                outputTokens: input.usage.completionTokens,
+                                totalTokens: input.usage.totalTokens,
+                                totalPrice: input.usage.totalPrice,
+                                currency: input.usage.currency,
+                                responseLatencySeconds:
+                                    typeof input.usage.latency === 'number' ? input.usage.latency / 1000 : undefined
+                            })
+                        }
                     }
 
-                    if (skipTokenRecord) {
+                    if (skipTokenRecord || input.usage?.type === 'estimated') {
                         return
                     }
                     try {
@@ -205,6 +250,7 @@ export class AgentMiddlewareRuntimeService {
                             new CopilotTokenRecordCommand({
                                 ...omit(input, 'usage'),
                                 tenantId,
+                                requestId: input.requestId ?? randomUUID(),
                                 organizationId,
                                 userId,
                                 xpertId,
@@ -212,6 +258,8 @@ export class AgentMiddlewareRuntimeService {
                                 model: input.model,
                                 modelType: copilotModel.modelType,
                                 modelAccess,
+                                promptTokens: input.usage?.promptTokens,
+                                completionTokens: input.usage?.completionTokens,
                                 tokenUsed: input.usage?.totalTokens,
                                 priceUsed: input.usage?.totalPrice,
                                 currency: input.usage?.currency
@@ -233,6 +281,112 @@ export class AgentMiddlewareRuntimeService {
                 }
             }
         ) as T
+    }
+
+    async getModelProvider(
+        provider: string,
+        scope: AgentMiddlewareRuntimeScope = {}
+    ): Promise<AgentMiddlewareModelProviderConnection> {
+        const providerName = normalizeOptionalString(provider)
+        const tenantId = normalizeOptionalString(scope.tenantId) ?? RequestContext.currentTenantId()
+        const organizationId = normalizeOptionalString(scope.organizationId) ?? RequestContext.getOrganizationId()
+        const providerScopeId = normalizeOptionalString(scope.providerScopeId)
+        if (!providerName || !tenantId) {
+            throw new Error(
+                t('server-ai:Error.ToolModelProviderContextRequired', {
+                    defaultValue: 'A tenant-scoped model provider name is required.'
+                }) || 'A tenant-scoped model provider name is required.'
+            )
+        }
+
+        const copilots = await this.copilotService.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId)
+        const candidates = copilots
+            .filter(
+                (copilot) =>
+                    copilot.modelProvider?.providerName === providerName &&
+                    (!providerScopeId || copilot.modelProvider.id === providerScopeId) &&
+                    copilot.modelProvider.isValid !== false &&
+                    !!copilot.modelProvider.id &&
+                    !!copilot.modelProvider.credentials &&
+                    Object.keys(copilot.modelProvider.credentials).length > 0
+            )
+            .sort((left, right) => {
+                const leftOrganization = left.modelProvider?.organizationId === organizationId ? 0 : 1
+                const rightOrganization = right.modelProvider?.organizationId === organizationId ? 0 : 1
+                if (leftOrganization !== rightOrganization) return leftOrganization - rightOrganization
+
+                const leftRole = MODEL_PROVIDER_ROLE_PRIORITY.indexOf(left.role)
+                const rightRole = MODEL_PROVIDER_ROLE_PRIORITY.indexOf(right.role)
+                if (leftRole !== rightRole) return leftRole - rightRole
+                return String(left.modelProvider?.id).localeCompare(String(right.modelProvider?.id))
+            })
+        const connection = candidates[0]?.modelProvider
+        if (!connection) {
+            throw new Error(
+                t('server-ai:Error.ToolModelProviderNotConfigured', {
+                    name: providerName,
+                    defaultValue:
+                        "Model provider '{{name}}' is not configured or enabled. Configure it in Model Providers before using this tool."
+                }) ||
+                    `Model provider '${providerName}' is not configured or enabled. Configure it in Model Providers before using this tool.`
+            )
+        }
+
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+            new AIModelGetProviderQuery(providerName)
+        )
+        if (!modelProvider) {
+            throw new AIModelProviderNotFoundException(
+                t('server-ai:Error.AIModelProviderNotFound', { name: providerName })
+            )
+        }
+
+        const resolvePricingSnapshot: AgentMiddlewareModelProviderConnection['resolvePricingSnapshot'] = async (
+            context
+        ) => {
+            const modelType = context.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
+            return modelProvider
+                .getModelManager(modelType)
+                .getUsagePricingSnapshot(context.model, connection.credentials, context)
+        }
+
+        return {
+            providerScopeId: connection.id,
+            copilotId: candidates[0].id,
+            organizationId: candidates[0].organizationId ?? null,
+            provider: providerName,
+            baseURL: modelProvider.getBaseUrl(connection.credentials),
+            authorization: modelProvider.getAuthorization(connection.credentials),
+            resolvePricingSnapshot,
+            reportUsage: async (report) => {
+                const pricingSnapshot =
+                    report.pricingSnapshot ??
+                    (report.model
+                        ? await resolvePricingSnapshot({
+                              model: report.model,
+                              operation: report.operation,
+                              modality: report.modality,
+                              pricingDimensions: report.pricingDimensions,
+                              startedAt: report.recordedAt
+                          })
+                        : { capturedAt: new Date().toISOString(), rules: [] })
+                return this.copilotUsage.recordModelUsage(
+                    {
+                        tenantId,
+                        organizationId,
+                        copilotOrganizationId: candidates[0].organizationId ?? null,
+                        userId: normalizeOptionalString(scope.userId) ?? RequestContext.currentUserId(),
+                        originExecutionId: normalizeOptionalString(scope.executionId),
+                        xpertId: normalizeOptionalString(scope.xpertId),
+                        copilotId: candidates[0].id,
+                        providerScopeId: connection.id,
+                        provider: providerName
+                    },
+                    report,
+                    pricingSnapshot
+                )
+            }
+        }
     }
 
     async wrapWorkflowNodeExecution<T>(
@@ -281,7 +435,15 @@ export class AgentMiddlewareRuntimeService {
         )
     }
 
-    async searchKnowledgebase(input: KnowledgebaseSearchInput): Promise<KnowledgebaseDocument[]> {
+    async ensureKnowledgebases(input: KnowledgebaseEnsureInput): Promise<KnowledgebaseEnsureResult> {
+        return this.commandBus.execute(new EnsureKnowledgebasesCommand(input))
+    }
+
+    async connectAgentKnowledgebases(input: KnowledgebaseConnectAgentInput): Promise<KnowledgebaseConnectAgentResult> {
+        return this.commandBus.execute(new ConnectAgentKnowledgebasesCommand(input))
+    }
+
+    async searchKnowledgebase(input: KnowledgebaseSearchInput): Promise<KnowledgebaseSearchResult> {
         return this.queryBus.execute(
             new KnowledgeSearchQuery({
                 tenantId: input.tenantId ?? RequestContext.currentTenantId(),
@@ -290,7 +452,7 @@ export class AgentMiddlewareRuntimeService {
                 query: input.query,
                 k: input.k,
                 score: input.score,
-                filter: input.filter,
+                filters: { request: input.filter },
                 retrieval: input.retrieval,
                 source: input.source,
                 id: input.requestId
@@ -308,6 +470,20 @@ export class AgentMiddlewareRuntimeService {
 
     async uploadKnowledgebaseDocumentFile(input: KnowledgebaseUploadFileInput): Promise<KnowledgebaseUploadedFile> {
         return this.commandBus.execute(new UploadKnowledgebaseDocumentFileCommand(input))
+    }
+
+    async listKnowledgebaseDocuments(
+        input: KnowledgebaseListDocumentsInput
+    ): Promise<KnowledgebaseListDocumentsResult> {
+        return this.commandBus.execute(new ListKnowledgebaseDocumentsCommand(input))
+    }
+
+    async createKnowledgebaseFolder(input: KnowledgebaseCreateFolderInput): Promise<KnowledgebaseCreateFolderResult> {
+        return this.commandBus.execute(new CreateKnowledgebaseFolderCommand(input))
+    }
+
+    async moveKnowledgebaseDocument(input: KnowledgebaseMoveDocumentInput): Promise<KnowledgebaseMoveDocumentResult> {
+        return this.commandBus.execute(new MoveKnowledgebaseDocumentCommand(input))
     }
 
     async importKnowledgebaseArchive(
@@ -495,6 +671,7 @@ export class AgentMiddlewareRuntimeService {
             message: {
                 clientMessageId: normalizeOptionalString(input.clientMessageId) ?? `assistant-task:${taskId}`,
                 input: {
+                    ...(input.humanInput ?? {}),
                     input: prompt,
                     files: normalizeTaskFiles(input.files)
                 }
@@ -542,6 +719,8 @@ export class AgentMiddlewareRuntimeService {
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
         private readonly artifacts: ArtifactsService,
         private readonly collaboration: CollaborationService,
+        private readonly copilotService: CopilotService,
+        private readonly copilotUsage: CopilotUsageService,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
@@ -579,12 +758,22 @@ export class AgentMiddlewareRuntimeService {
             [
                 KnowledgebaseDocumentsRuntimeCapability,
                 {
+                    listDocuments: (input) => this.listKnowledgebaseDocuments(input),
+                    createFolder: (input) => this.createKnowledgebaseFolder(input),
+                    moveDocument: (input) => this.moveKnowledgebaseDocument(input),
                     uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
                     importArchive: (input) => this.importKnowledgebaseArchive(input),
                     createDocuments: (input) => this.createKnowledgebaseDocuments(input),
                     startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
                     getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
                     deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
+                }
+            ],
+            [
+                KnowledgebaseProvisioningRuntimeCapability,
+                {
+                    ensure: (input) => this.ensureKnowledgebases(input),
+                    connectAgent: (input) => this.connectAgentKnowledgebases(input)
                 }
             ],
             [
@@ -614,7 +803,8 @@ export class AgentMiddlewareRuntimeService {
         ])
 
         return {
-            createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope),
+            createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope, true),
+            getModelProvider: (provider) => this.getModelProvider(provider, scope),
             wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
             emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
             capabilities

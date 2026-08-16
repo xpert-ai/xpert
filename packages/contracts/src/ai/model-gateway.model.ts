@@ -108,6 +108,11 @@ export interface IModelGatewayCall extends IBasePerTenantAndOrganizationEntityMo
   inputTokens: number
   outputTokens: number
   totalTokens: number
+  priceAmount?: number | null
+  priceCurrency?: string | null
+  settlementAmount?: number | null
+  settlementCurrency?: string | null
+  exchangeRate?: number | null
   chargedPoints: number
   excessPoints: number
   usageSource: ModelGatewayUsageSourceEnum

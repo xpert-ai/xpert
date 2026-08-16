@@ -5,7 +5,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '../../../../../components'
-import { XpButtonGroupDirective } from '../../../core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
 
@@ -27,8 +26,7 @@ export type TConfirmUniqueInfo = {
     ZardButtonComponent,
     ...ZardFormImports,
     ZardInputDirective,
-    TranslateModule,
-    XpButtonGroupDirective
+    TranslateModule
   ],
   selector: 'cdk-confirm-unique',
   templateUrl: './confirm-unique.component.html',

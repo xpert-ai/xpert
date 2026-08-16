@@ -3,7 +3,6 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, computed, HostBinding, inject } from '@angular/core'
 
-import { XpButtonGroupDirective } from '../../../core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, isObservable, Observable, of, switchMap } from 'rxjs'
 import { ZardButtonComponent } from '../../../../../components'
@@ -19,7 +18,7 @@ export type TConfirmDeleteInfo = {
   selector: 'cdk-confirm-delete',
   templateUrl: './confirm-delete.component.html',
   styleUrls: ['./confirm-delete.component.scss'],
-  imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent, XpButtonGroupDirective],
+  imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent],
   host: {
     class: 'cdk-dialog-card'
   }

@@ -7,7 +7,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgebaseService, Store, ToastrService, getErrorMessage, routeAnimations } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
-import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 /**
@@ -18,7 +18,15 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   selector: 'xp-settings-knowledgebase-test',
   templateUrl: './test.component.html',
   styleUrls: ['./test.component.scss'],
-  imports: [RouterModule, FormsModule, TranslateModule, SharedUiModule, XpCommonModule, ZardLoaderComponent],
+  imports: [
+    RouterModule,
+    FormsModule,
+    TranslateModule,
+    SharedUiModule,
+    XpCommonModule,
+    ZardBadgeComponent,
+    ZardLoaderComponent
+  ],
   animations: [routeAnimations]
 })
 export class KnowledgeTestComponent extends TranslationBaseComponent {
@@ -31,7 +39,7 @@ export class KnowledgeTestComponent extends TranslationBaseComponent {
   readonly score = model<number>(null)
   readonly topK = model<number>(null)
   readonly query = model<string>('')
-  readonly results = signal<{ doc: DocumentInterface; score: number }[]>([])
+  readonly results = signal<DocumentInterface[]>([])
 
   readonly loading = signal<boolean>(false)
 
@@ -40,8 +48,8 @@ export class KnowledgeTestComponent extends TranslationBaseComponent {
     this.knowledgebaseService
       .test(this.knowledgebase().id, { query: this.query(), k: this.topK() ?? 10, score: this.score() })
       .subscribe({
-        next: (results) => {
-          this.results.set(results)
+        next: (result) => {
+          this.results.set(result.documents)
           this.loading.set(false)
         },
         error: (err) => {

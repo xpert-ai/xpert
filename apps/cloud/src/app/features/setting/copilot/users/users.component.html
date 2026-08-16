@@ -159,7 +159,7 @@
               [zTableStickyZIndex]="4"
               class="px-4 py-2 border-l border-solid border-divider-regular bg-components-card-bg"
             >
-              <div class="flex items-center gap-2" displayDensity="compact">
+              <div class="flex items-center gap-2">
                 @if (editId() === item.id) {
                   <input
                     z-input
@@ -175,7 +175,7 @@
                   <button
                     z-button
                     zType="ghost"
-                    zSize="icon"
+                    zSize="icon-xs"
                     zShape="circle"
                     class="text-text-quaternary"
                     [disabled]="loading()"
@@ -188,7 +188,7 @@
                   <button
                     z-button
                     zType="ghost"
-                    zSize="icon"
+                    zSize="icon-xs"
                     zShape="circle"
                     class="text-text-quaternary"
                     [disabled]="loading()"

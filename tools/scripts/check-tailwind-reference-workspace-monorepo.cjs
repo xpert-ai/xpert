@@ -10,7 +10,6 @@ const globalChainReferenceFiles = new Set([
   'libs/formly/_formly.scss',
   'libs/formly/table/_table-theme.scss',
   'packages/ui/src/lib/ui/compat/common/input/_input.component.scss',
-  'packages/ui/src/lib/ui/compat/common/search/_search.component.scss',
   'packages/ui/src/lib/ui/compat/common/select/_select.component.scss',
   'packages/ui/src/lib/ui/compat/common/table/_table-theme.scss',
   'packages/ui/src/lib/ui/compat/common/tree-select/_tree-select-theme.scss',

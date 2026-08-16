@@ -20,9 +20,9 @@ import {
   ZardDialogService,
   ZardEmptyComponent,
   ZardIconComponent,
-  ZardInputDirective,
   ZardLoaderComponent,
-  ZardMenuImports
+  ZardMenuImports,
+  ZardSearchInputComponent
 } from '@xpert-ai/headless-ui'
 
 const DATA_SOURCE_DIALOG_PANEL_CLASS = ['xp-overlay-pane-share-sheet', '!p-0']
@@ -40,8 +40,8 @@ const DATA_SOURCE_EDIT_DIALOG_WIDTH = 'min(560px, calc(100vw - 48px))'
     ZardButtonComponent,
     ZardEmptyComponent,
     ZardIconComponent,
-    ZardInputDirective,
     ZardLoaderComponent,
+    ZardSearchInputComponent,
     ...ZardCardImports,
     ...ZardMenuImports
   ],

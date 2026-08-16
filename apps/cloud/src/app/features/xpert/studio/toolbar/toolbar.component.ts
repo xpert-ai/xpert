@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { XpertStudioComponent } from '../studio.component'
@@ -11,15 +10,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-toolbar',
   standalone: true,
-  imports: [
-    CommonModule,
-    CdkMenuModule,
-    TranslateModule,
-    ...ZardTooltipImports,
-    XpAppearanceDirective,
-
-    XpertStudioContextMenuComponent
-  ],
+  imports: [CommonModule, CdkMenuModule, TranslateModule, ...ZardTooltipImports, XpertStudioContextMenuComponent],
   templateUrl: './toolbar.component.html',
   styleUrl: './toolbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

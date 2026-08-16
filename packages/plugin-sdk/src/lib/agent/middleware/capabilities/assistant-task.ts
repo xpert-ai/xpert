@@ -1,3 +1,4 @@
+import type { JSONValue } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../../core/runtime-capability'
 
 export type AgentMiddlewareAssistantTaskStatus =
@@ -31,6 +32,8 @@ export type AgentMiddlewareAssistantTaskInput = {
   clientMessageId?: string
   prompt: string
   files?: AgentMiddlewareAssistantTaskFile[]
+  /** Additional bounded human-input fields exposed to runtime-state fixed filters. */
+  humanInput?: Record<string, JSONValue>
   context?: Record<string, unknown>
 }
 

@@ -20,6 +20,7 @@ import {
   debouncedSignal,
   formatSelectOptionValue,
   hasSelectOptionValue,
+  ZardSearchInputComponent,
   XpI18nPipe,
   TSelectOption
 } from '@xpert-ai/headless-ui'
@@ -39,7 +40,8 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     CdkListboxModule,
     CdkMenuModule,
     XpHighlightDirective,
-    XpI18nPipe
+    XpI18nPipe,
+    ZardSearchInputComponent
   ],
   selector: 'xp-select-panel',
   templateUrl: 'panel.component.html',

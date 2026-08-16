@@ -1,4 +1,5 @@
-import { ICopilot, ILLMUsage, ParameterType } from '@xpert-ai/contracts'
+import { ICopilot, ParameterType } from '@xpert-ai/contracts'
+import type { TLLMUsage } from '@xpert-ai/plugin-sdk'
 
 export const PROVIDE_AI_MODEL_LLM = 'provide_ai_model_llm'
 export const PROVIDE_AI_MODEL_MODERATION = 'provide_ai_model_moderation'
@@ -12,12 +13,13 @@ export type TChatModelOptions = {
     handleLLMTokens: (input: {
         copilot: ICopilot
         model?: string
-        usage?: ILLMUsage
+        requestId?: string
+        usage?: TLLMUsage
         /**
          * @deprecated use usage
          */
         tokenUsed?: number
-    }) => void
+    }) => void | Promise<void>
     verbose: boolean
 }
 

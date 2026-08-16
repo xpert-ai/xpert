@@ -1,5 +1,5 @@
-<div class="flex h-full min-h-0 flex-col bg-components-card-bg">
-  <header class="shrink-0 border-b border-components-panel-border px-5 py-4">
+<div class="flex h-full min-h-0 min-w-0 flex-col bg-background-default-subtle">
+  <header class="shrink-0 border-b border-components-panel-border bg-components-card-bg px-5 py-3">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
@@ -10,23 +10,23 @@
             {{ statusLabel(status()?.status) | translate: { Default: 'Pending' } }}
           </z-badge>
         </div>
-        <p class="mt-1 text-sm text-text-tertiary">
+        <p class="mt-0.5 text-sm text-text-tertiary">
           {{
             'XP.Knowledgebase.GraphExplorerSubtitle'
-              | translate: { Default: 'Visualize and maintain extracted entities and relations.' }
+              | translate: { Default: 'Explore entities, relationships, and their source evidence.' }
           }}
         </p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center justify-end gap-2">
         <div
-          class="flex h-10 max-w-full items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-3 text-sm text-text-secondary"
+          class="flex h-9 max-w-72 items-center gap-2 rounded-lg border border-components-panel-border bg-background-default-subtle px-2.5 text-sm"
         >
           <z-icon zType="bot" class="shrink-0 text-text-tertiary" />
-          <span class="shrink-0 font-medium">
+          <span class="shrink-0 text-text-tertiary">
             {{ 'XP.Knowledgebase.GraphChatModel' | translate: { Default: 'Chat model' } }}
           </span>
-          <span class="max-w-48 truncate text-text-primary">
+          <span class="min-w-0 truncate font-medium text-text-primary">
             @if (chatModelName(); as modelName) {
               {{ modelName }}
             } @else {
@@ -36,46 +36,46 @@
           <a
             z-button
             zType="ghost"
-            zSize="sm"
-            class="ml-1"
+            zSize="icon-sm"
+            class="shrink-0"
             [routerLink]="['/xpert/knowledges', knowledgebase()?.id, 'configuration']"
+            [attr.aria-label]="'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' }"
+            [title]="'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' }"
           >
             <z-icon zType="settings" />
-            {{ 'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
           </a>
         </div>
-        <button z-button type="button" zType="outline" zSize="lg" [disabled]="loading()" (click)="loadGraph()">
-          <z-icon zType="refresh" />
-          {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+        <button z-button type="button" zType="outline" [disabled]="loading()" (click)="loadGraph()">
+          <z-icon zType="refresh" [class.animate-spin]="loading()" />
+          <span class="hidden 2xl:inline">{{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}</span>
         </button>
-        <button z-button type="button" zType="outline" zSize="lg" [disabled]="disabled()" (click)="openCreateEntity()">
-          <z-icon zType="hub" />
+        <button z-button type="button" zType="outline" [disabled]="disabled()" (click)="openCreateEntity()">
+          <z-icon zType="plus" />
           {{ 'XP.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
         </button>
         <button
           z-button
           type="button"
-          zSize="lg"
           [disabled]="disabled() || entityOptions().length < 2"
           (click)="openCreateRelation()"
         >
-          <z-icon zType="share" />
+          <z-icon zType="hub" />
           {{ 'XP.Knowledgebase.NewRelation' | translate: { Default: 'New relation' } }}
         </button>
       </div>
     </div>
+  </header>
 
-    <div class="mt-4 grid gap-2 md:grid-cols-[minmax(160px,1.4fr)_repeat(6,minmax(110px,1fr))_auto]">
-      <label class="flex h-9 items-center gap-2 text-sm">
-        <z-icon zType="search" class="text-text-tertiary" />
-        <input
-          z-input
-          class="min-w-0 flex-1"
-          [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
-          [placeholder]="'XP.Knowledgebase.SearchGraph' | translate: { Default: 'Search graph' }"
-        />
-      </label>
+  <section class="shrink-0 border-b border-components-panel-border bg-components-card-bg px-5 py-3">
+    <div class="grid gap-2 lg:grid-cols-[minmax(220px,1.6fr)_repeat(4,minmax(130px,1fr))_auto]">
+      <z-search-input
+        class="min-w-0"
+        [value]="search()"
+        [placeholder]="'XP.Knowledgebase.SearchGraph' | translate: { Default: 'Search graph' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        (valueChange)="search.set($event)"
+        (keyup.enter)="loadGraph()"
+      />
 
       <z-select
         [zValue]="selectFilterValue(entityType())"
@@ -128,13 +128,20 @@
         }
       </z-select>
 
+      <button z-button type="button" (click)="loadGraph()">
+        {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+      </button>
+    </div>
+
+    <div class="mt-2 flex flex-wrap items-center gap-2">
       <z-select
+        class="w-56"
         [zValue]="selectFilterValue(focusEntityId())"
         (zSelectionChange)="setFocusEntityFilter($event)"
-        [zPlaceholder]="'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus' }"
+        [zPlaceholder]="'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus entity' }"
       >
         <z-select-item [zValue]="allSelectValue">{{
-          'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus' }
+          'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus entity' }
         }}</z-select-item>
         @for (entity of entityOptions(); track entity.id) {
           <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
@@ -142,7 +149,7 @@
       </z-select>
 
       <label
-        class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2 text-sm text-text-secondary"
+        class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2.5 text-sm text-text-secondary"
       >
         <span>{{ 'XP.Knowledgebase.Depth' | translate: { Default: 'Depth' } }}</span>
         <input
@@ -150,14 +157,14 @@
           type="number"
           min="0"
           max="2"
-          class="w-16"
+          class="h-7 w-14 border-0 bg-transparent px-1 shadow-none"
           [ngModel]="depth()"
           (ngModelChange)="depth.set(+$event)"
         />
       </label>
 
       <label
-        class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2 text-sm text-text-secondary"
+        class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2.5 text-sm text-text-secondary"
       >
         <span>{{ 'XP.Knowledgebase.Take' | translate: { Default: 'Take' } }}</span>
         <input
@@ -165,22 +172,28 @@
           type="number"
           min="1"
           max="250"
-          class="w-20"
+          class="h-7 w-16 border-0 bg-transparent px-1 shadow-none"
           [ngModel]="take()"
           (ngModelChange)="take.set(+$event)"
         />
       </label>
 
-      <button z-button type="button" zSize="lg" (click)="loadGraph()">
-        {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
-      </button>
+      @if (activeFilterCount()) {
+        <button z-button type="button" zType="ghost" zSize="sm" (click)="clearFilters()">
+          <z-icon zType="clear_all" />
+          {{ 'XP.Knowledgebase.ClearGraphFilters' | translate: { Default: 'Clear filters' } }}
+          <z-badge zType="secondary">{{ activeFilterCount() }}</z-badge>
+        </button>
+      }
     </div>
-  </header>
+  </section>
 
-  <section class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px]">
-    <div class="relative min-h-0 border-r border-components-panel-border">
+  <section class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div
+      class="relative min-h-[480px] min-w-0 overflow-hidden border-r border-components-panel-border bg-components-card-bg"
+    >
       @if (loading()) {
-        <xp-spin class="absolute inset-0 z-10 flex items-center justify-center bg-background-default-subtle/60" />
+        <xp-spin class="absolute inset-0 z-30 flex items-center justify-center bg-background-default-subtle/60" />
       }
 
       @if (disabled()) {
@@ -208,206 +221,429 @@
         />
       } @else {
         <div
-          class="h-full min-h-[420px] w-full"
-          echarts
-          [options]="chartOptions()"
-          (chartClick)="selectChartItem($event)"
+          #graphCanvas
+          class="h-full min-h-[480px] w-full cursor-grab outline-none active:cursor-grabbing"
+          role="application"
+          tabindex="0"
+          [attr.aria-label]="'XP.Knowledgebase.GraphCanvas' | translate: { Default: 'Interactive knowledge graph' }"
         ></div>
+
+        <div
+          class="pointer-events-none absolute left-4 top-4 z-10 flex overflow-hidden rounded-xl border border-components-panel-border bg-components-panel-bg-blur shadow-sm backdrop-blur-md"
+        >
+          <div class="px-3.5 py-2.5">
+            <div class="text-lg font-semibold tabular-nums text-text-primary">{{ nodes().length }}</div>
+            <div class="text-xs text-text-tertiary">
+              {{ 'XP.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
+              @if (totalEntityCount() !== nodes().length) {
+                <span>/ {{ totalEntityCount() }}</span>
+              }
+            </div>
+          </div>
+          <div class="border-l border-components-panel-border px-3.5 py-2.5">
+            <div class="text-lg font-semibold tabular-nums text-text-primary">{{ edges().length }}</div>
+            <div class="text-xs text-text-tertiary">
+              {{ 'XP.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
+              @if (totalRelationCount() !== edges().length) {
+                <span>/ {{ totalRelationCount() }}</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-xl border border-components-panel-border bg-components-panel-bg-blur p-1 shadow-sm backdrop-blur-md"
+        >
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            (click)="zoomGraph(1.2)"
+            [attr.aria-label]="'XP.Knowledgebase.ZoomIn' | translate: { Default: 'Zoom in' }"
+            [title]="'XP.Knowledgebase.ZoomIn' | translate: { Default: 'Zoom in' }"
+          >
+            <z-icon zType="plus" />
+          </button>
+          <span class="w-12 text-center text-xs tabular-nums text-text-tertiary">{{ graphZoom() }}%</span>
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            (click)="zoomGraph(0.8)"
+            [attr.aria-label]="'XP.Knowledgebase.ZoomOut' | translate: { Default: 'Zoom out' }"
+            [title]="'XP.Knowledgebase.ZoomOut' | translate: { Default: 'Zoom out' }"
+          >
+            <z-icon zType="minus" />
+          </button>
+          <span class="mx-0.5 h-5 w-px bg-components-panel-border"></span>
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            (click)="fitGraph()"
+            [attr.aria-label]="'XP.Knowledgebase.FitGraph' | translate: { Default: 'Fit graph' }"
+            [title]="'XP.Knowledgebase.FitGraph' | translate: { Default: 'Fit graph' }"
+          >
+            <z-icon zType="fullscreen" />
+          </button>
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            (click)="runGraphLayout()"
+            [attr.aria-label]="'XP.Knowledgebase.ResetGraphLayout' | translate: { Default: 'Reset layout' }"
+            [title]="'XP.Knowledgebase.ResetGraphLayout' | translate: { Default: 'Reset layout' }"
+          >
+            <z-icon zType="hub" />
+          </button>
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            [disabled]="!selected()"
+            (click)="focusGraphElement()"
+            [attr.aria-label]="'XP.Knowledgebase.CenterSelection' | translate: { Default: 'Center selection' }"
+            [title]="'XP.Knowledgebase.CenterSelection' | translate: { Default: 'Center selection' }"
+          >
+            <z-icon zType="center_focus_strong" />
+          </button>
+        </div>
+
+        @if (legendItems().length) {
+          <div
+            class="absolute bottom-4 left-4 z-10 flex max-w-[calc(100%-2rem)] items-center gap-3 overflow-x-auto rounded-xl border border-components-panel-border bg-components-panel-bg-blur px-3 py-2 shadow-sm backdrop-blur-md"
+          >
+            <span class="shrink-0 text-xs font-medium text-text-secondary">
+              {{ 'XP.Knowledgebase.GraphLegend' | translate: { Default: 'Entity types' } }}
+            </span>
+            @for (item of legendItems(); track item.type) {
+              <button
+                type="button"
+                class="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                (click)="entityType.set(item.type); loadGraph()"
+              >
+                <span class="size-2.5 rounded-full" [style.background-color]="item.color"></span>
+                {{ item.type }}
+              </button>
+            }
+          </div>
+        }
       }
     </div>
 
     <aside class="flex min-h-0 flex-col bg-background-default-subtle">
-      <div class="grid grid-cols-2 border-b border-components-panel-border">
-        <div class="px-4 py-3">
-          <div class="text-lg font-semibold text-text-primary">{{ nodes().length }}</div>
-          <div class="text-xs uppercase text-text-tertiary">
-            {{ 'XP.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
+      <div class="shrink-0 border-b border-components-panel-border bg-components-card-bg px-3 py-3">
+        <div class="mb-3 flex items-center justify-between gap-2 px-1">
+          <div>
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ 'XP.Knowledgebase.GraphInspector' | translate: { Default: 'Graph inspector' } }}
+            </h3>
+            <p class="mt-0.5 text-xs text-text-tertiary">
+              {{
+                'XP.Knowledgebase.GraphNavigationHint' | translate: { Default: 'Select a node or edge to inspect it.' }
+              }}
+            </p>
           </div>
+          @if (selected()) {
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon-sm"
+              (click)="clearSelection()"
+              [attr.aria-label]="'XP.Knowledgebase.ClearSelection' | translate: { Default: 'Clear selection' }"
+              [title]="'XP.Knowledgebase.ClearSelection' | translate: { Default: 'Clear selection' }"
+            >
+              <z-icon zType="x" />
+            </button>
+          }
         </div>
-        <div class="border-l border-components-panel-border px-4 py-3">
-          <div class="text-lg font-semibold text-text-primary">{{ edges().length }}</div>
-          <div class="text-xs uppercase text-text-tertiary">
+
+        <div class="grid grid-cols-3 gap-1 rounded-lg bg-background-default-subtle p-1" role="tablist">
+          <button
+            z-button
+            type="button"
+            zSize="sm"
+            [zType]="inspectorTab() === 'overview' ? 'secondary' : 'ghost'"
+            role="tab"
+            [attr.aria-selected]="inspectorTab() === 'overview'"
+            (click)="setInspectorTab('overview')"
+          >
+            {{ 'XP.Knowledgebase.GraphOverview' | translate: { Default: 'Overview' } }}
+          </button>
+          <button
+            z-button
+            type="button"
+            zSize="sm"
+            [zType]="inspectorTab() === 'entities' ? 'secondary' : 'ghost'"
+            role="tab"
+            [attr.aria-selected]="inspectorTab() === 'entities'"
+            (click)="setInspectorTab('entities')"
+          >
+            {{ 'XP.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
+            <span class="text-xs text-text-tertiary">{{ nodes().length }}</span>
+          </button>
+          <button
+            z-button
+            type="button"
+            zSize="sm"
+            [zType]="inspectorTab() === 'relations' ? 'secondary' : 'ghost'"
+            role="tab"
+            [attr.aria-selected]="inspectorTab() === 'relations'"
+            (click)="setInspectorTab('relations')"
+          >
             {{ 'XP.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
-          </div>
+            <span class="text-xs text-text-tertiary">{{ edges().length }}</span>
+          </button>
         </div>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-auto p-3">
-        @if (selectedEntity(); as entity) {
-          <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
-            <z-card-content class="p-3">
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <h3 class="truncate text-base font-semibold text-text-primary">{{ entity.name }}</h3>
-                  <div class="mt-1 flex flex-wrap gap-1">
-                    <z-badge zType="outline">{{ entity.type }}</z-badge>
-                    <z-badge zType="secondary">
-                      {{
-                        'XP.Knowledgebase.GraphOrigin_' + (entity.origin ?? 'extracted')
-                          | translate: { Default: entity.origin ?? 'extracted' }
-                      }}
-                    </z-badge>
-                  </div>
-                </div>
-                <div class="flex shrink-0 gap-1">
-                  <button z-button type="button" zType="ghost" zSize="icon-sm" (click)="openEditEntity(entity)">
-                    <z-icon zType="edit" />
-                  </button>
-                  <button z-button type="button" zType="destructive" zSize="icon-sm" (click)="hideSelectedEntity()">
-                    <z-icon zType="ban" />
-                  </button>
-                </div>
-              </div>
-              @if (entity.description) {
-                <p class="mt-3 text-sm leading-6 text-text-secondary">{{ entity.description }}</p>
-              }
-              @if (entity.aliases?.length) {
-                <div class="mt-3 flex flex-wrap gap-1">
-                  @for (alias of entity.aliases; track alias) {
-                    <z-badge zType="outline">{{ alias }}</z-badge>
+      <div class="min-h-0 flex-1 overflow-y-auto p-3">
+        @switch (inspectorTab()) {
+          @case ('entities') {
+            <div class="space-y-1">
+              @for (node of nodes(); track node.id) {
+                <button
+                  type="button"
+                  class="group flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
+                  [class]="
+                    selected()?.kind === 'entity' && selected()?.id === node.id
+                      ? 'border-components-input-border-active bg-components-list-option-active-bg'
+                      : 'border-transparent bg-components-card-bg hover:border-components-panel-border hover:bg-hover-bg'
+                  "
+                  (click)="selectEntity(node.id); focusGraphElement(node.id)"
+                >
+                  <span
+                    class="size-3 shrink-0 rounded-full ring-2 ring-components-card-bg"
+                    [style.background-color]="entityColor(node.type)"
+                  ></span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium text-text-primary">{{ node.name }}</span>
+                    <span class="mt-0.5 block truncate text-xs text-text-tertiary">{{ node.type }}</span>
+                  </span>
+                  @if (node.mentionCount) {
+                    <z-badge zType="secondary">{{ node.mentionCount }}</z-badge>
                   }
-                </div>
+                </button>
+              } @empty {
+                <z-empty
+                  class="rounded-lg border-0 p-6 md:p-6"
+                  zIcon="hub"
+                  [zTitle]="'XP.Knowledgebase.NoEntities' | translate: { Default: 'No entities' }"
+                />
               }
-              @if (relatedRelations().length) {
-                <div class="mt-4 border-t border-components-panel-border pt-3">
-                  <div class="mb-2 text-xs font-medium uppercase text-text-tertiary">
-                    {{ 'XP.Knowledgebase.RelatedRelations' | translate: { Default: 'Related relations' } }}
-                  </div>
-                  <div class="space-y-1">
-                    @for (relation of relatedRelations(); track relation.id) {
+            </div>
+          }
+          @case ('relations') {
+            <div class="space-y-1">
+              @for (relation of relations(); track relation.id) {
+                <button
+                  type="button"
+                  class="w-full rounded-lg border px-3 py-2.5 text-left transition-colors"
+                  [class]="
+                    selected()?.kind === 'relation' && selected()?.id === relation.id
+                      ? 'border-components-input-border-active bg-components-list-option-active-bg'
+                      : 'border-transparent bg-components-card-bg hover:border-components-panel-border hover:bg-hover-bg'
+                  "
+                  (click)="selectRelation(relation.id); focusGraphElement(relation.id)"
+                >
+                  <span class="block truncate text-sm font-medium text-text-primary">{{ relation.type }}</span>
+                  <span class="mt-1 block truncate text-xs text-text-tertiary">{{ relationLabel(relation) }}</span>
+                  <span class="mt-2 block text-xs text-text-tertiary">
+                    {{ relation.evidenceCount ?? 0 }}
+                    {{ 'XP.Knowledgebase.Evidence' | translate: { Default: 'evidence' } }}
+                  </span>
+                </button>
+              } @empty {
+                <z-empty
+                  class="rounded-lg border-0 p-6 md:p-6"
+                  zIcon="share"
+                  [zTitle]="'XP.Knowledgebase.NoRelations' | translate: { Default: 'No relations' }"
+                />
+              }
+            </div>
+          }
+          @default {
+            @if (selectedEntity(); as entity) {
+              <z-card class="gap-0 rounded-xl border-components-panel-border bg-components-card-bg py-0 shadow-none">
+                <z-card-content class="p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="mb-3 size-3 rounded-full" [style.background-color]="entityColor(entity.type)"></div>
+                      <h3 class="break-words text-base font-semibold text-text-primary">{{ entity.name }}</h3>
+                      <div class="mt-2 flex flex-wrap gap-1.5">
+                        <z-badge zType="outline">{{ entity.type }}</z-badge>
+                        <z-badge zType="secondary">
+                          {{
+                            'XP.Knowledgebase.GraphOrigin_' + (entity.origin ?? 'extracted')
+                              | translate: { Default: entity.origin ?? 'extracted' }
+                          }}
+                        </z-badge>
+                      </div>
+                    </div>
+                    <div class="flex shrink-0 gap-1">
                       <button
                         z-button
                         type="button"
                         zType="ghost"
-                        zFull
-                        class="h-auto justify-start px-2 py-1.5 text-left text-sm"
-                        (click)="selectRelation(relation.id)"
+                        zSize="icon-sm"
+                        (click)="openEditEntity(entity)"
+                        [attr.aria-label]="'XP.Knowledgebase.EditEntity' | translate: { Default: 'Edit entity' }"
+                        [title]="'XP.Knowledgebase.EditEntity' | translate: { Default: 'Edit entity' }"
                       >
-                        <span class="truncate">{{ relationLabel(relation) }}</span>
+                        <z-icon zType="edit" />
+                      </button>
+                      <button
+                        z-button
+                        type="button"
+                        zType="destructive"
+                        zSize="icon-sm"
+                        (click)="hideSelectedEntity()"
+                        [attr.aria-label]="'XP.Knowledgebase.HideEntity' | translate: { Default: 'Hide entity' }"
+                        [title]="'XP.Knowledgebase.HideEntity' | translate: { Default: 'Hide entity' }"
+                      >
+                        <z-icon zType="ban" />
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (entity.description) {
+                    <p class="mt-4 text-sm leading-6 text-text-secondary">{{ entity.description }}</p>
+                  }
+                  @if (entity.aliases?.length) {
+                    <div class="mt-4 flex flex-wrap gap-1.5">
+                      @for (alias of entity.aliases; track alias) {
+                        <z-badge zType="outline">{{ alias }}</z-badge>
+                      }
+                    </div>
+                  }
+
+                  <button z-button type="button" zType="outline" zFull class="mt-4" (click)="exploreSelectedEntity()">
+                    <z-icon zType="center_focus_strong" />
+                    {{ 'XP.Knowledgebase.ExploreNeighborhood' | translate: { Default: 'Explore neighborhood' } }}
+                  </button>
+                </z-card-content>
+              </z-card>
+
+              @if (relatedRelations().length) {
+                <section class="mt-3 rounded-xl border border-components-panel-border bg-components-card-bg">
+                  <div class="border-b border-components-panel-border px-4 py-3 text-sm font-medium text-text-primary">
+                    {{ 'XP.Knowledgebase.RelatedRelations' | translate: { Default: 'Related relations' } }}
+                    <span class="ml-1 text-text-tertiary">{{ relatedRelations().length }}</span>
+                  </div>
+                  <div class="space-y-1 p-2">
+                    @for (relation of relatedRelations(); track relation.id) {
+                      <button
+                        type="button"
+                        class="w-full rounded-lg px-2.5 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                        (click)="selectRelation(relation.id); focusGraphElement(relation.id)"
+                      >
+                        <span class="block truncate">{{ relationLabel(relation) }}</span>
                       </button>
                     }
                   </div>
-                </div>
+                </section>
               }
-            </z-card-content>
-          </z-card>
-        } @else if (selectedRelation(); as relation) {
-          <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
-            <z-card-content class="p-3">
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <h3 class="truncate text-base font-semibold text-text-primary">{{ relation.type }}</h3>
-                  <p class="mt-1 truncate text-sm text-text-tertiary">{{ relationLabel(relation) }}</p>
+            } @else if (selectedRelation(); as relation) {
+              <z-card class="gap-0 rounded-xl border-components-panel-border bg-components-card-bg py-0 shadow-none">
+                <z-card-content class="p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <z-badge zType="secondary">
+                        {{ 'XP.Knowledgebase.Relation' | translate: { Default: 'Relation' } }}
+                      </z-badge>
+                      <h3 class="mt-3 break-words text-base font-semibold text-text-primary">{{ relation.type }}</h3>
+                    </div>
+                    <div class="flex shrink-0 gap-1">
+                      <button
+                        z-button
+                        type="button"
+                        zType="ghost"
+                        zSize="icon-sm"
+                        (click)="openEditRelation(relation)"
+                        [attr.aria-label]="'XP.Knowledgebase.EditRelation' | translate: { Default: 'Edit relation' }"
+                        [title]="'XP.Knowledgebase.EditRelation' | translate: { Default: 'Edit relation' }"
+                      >
+                        <z-icon zType="edit" />
+                      </button>
+                      <button
+                        z-button
+                        type="button"
+                        zType="destructive"
+                        zSize="icon-sm"
+                        (click)="hideSelectedRelation()"
+                        [attr.aria-label]="'XP.Knowledgebase.HideRelation' | translate: { Default: 'Hide relation' }"
+                        [title]="'XP.Knowledgebase.HideRelation' | translate: { Default: 'Hide relation' }"
+                      >
+                        <z-icon zType="ban" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 flex items-center gap-2 rounded-lg bg-background-default-subtle p-3 text-sm">
+                    <span class="min-w-0 flex-1 truncate font-medium text-text-primary">
+                      {{ entityName(relation.sourceEntityId) }}
+                    </span>
+                    <z-icon zType="arrow-right" class="shrink-0 text-text-tertiary" />
+                    <span class="min-w-0 flex-1 truncate text-right font-medium text-text-primary">
+                      {{ entityName(relation.targetEntityId) }}
+                    </span>
+                  </div>
+                  @if (relation.description) {
+                    <p class="mt-4 text-sm leading-6 text-text-secondary">{{ relation.description }}</p>
+                  }
+                </z-card-content>
+              </z-card>
+            } @else {
+              <z-empty
+                class="rounded-xl border-components-panel-border bg-components-card-bg px-5 py-10 md:px-5 md:py-10"
+                zIcon="center_focus_strong"
+                [zTitle]="'XP.Knowledgebase.SelectGraphItem' | translate: { Default: 'Select an entity or relation' }"
+                [zDescription]="
+                  'XP.Knowledgebase.GraphNavigationHint'
+                    | translate: { Default: 'Click the canvas or use the lists to inspect graph details and evidence.' }
+                "
+              />
+            }
+
+            @if (selected()) {
+              <section class="mt-3 rounded-xl border border-components-panel-border bg-components-card-bg">
+                <div class="flex items-center justify-between border-b border-components-panel-border px-4 py-3">
+                  <span class="text-sm font-medium text-text-primary">
+                    {{ 'XP.Knowledgebase.Evidence' | translate: { Default: 'Evidence' } }}
+                  </span>
+                  <z-badge zType="secondary">{{ mentions().length }}</z-badge>
                 </div>
-                <div class="flex shrink-0 gap-1">
-                  <button z-button type="button" zType="ghost" zSize="icon-sm" (click)="openEditRelation(relation)">
-                    <z-icon zType="edit" />
-                  </button>
-                  <button z-button type="button" zType="destructive" zSize="icon-sm" (click)="hideSelectedRelation()">
-                    <z-icon zType="ban" />
-                  </button>
+                <div class="space-y-2 p-3">
+                  @for (mention of mentions(); track mention.id) {
+                    <article class="rounded-lg border border-components-panel-border bg-background-default-subtle p-3">
+                      <div class="mb-1.5 flex items-center gap-1.5 text-xs text-text-tertiary">
+                        <z-icon zType="file-text" class="shrink-0" />
+                        <span class="truncate">{{
+                          mention.document?.name ?? mention.documentId ?? mention.chunkId
+                        }}</span>
+                      </div>
+                      <p class="line-clamp-5 text-sm leading-6 text-text-secondary">
+                        {{ mention.quote || mention.chunkId }}
+                      </p>
+                    </article>
+                  } @empty {
+                    <z-empty
+                      class="rounded-none border-0 p-5 md:p-5"
+                      zIcon="file-text"
+                      [zTitle]="'XP.Knowledgebase.NoEvidence' | translate: { Default: 'No evidence' }"
+                    />
+                  }
                 </div>
-              </div>
-              @if (relation.description) {
-                <p class="mt-3 text-sm leading-6 text-text-secondary">{{ relation.description }}</p>
-              }
-            </z-card-content>
-          </z-card>
-        } @else {
-          <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
-            <z-card-content class="p-3 text-sm text-text-tertiary">
-              {{
-                'XP.Knowledgebase.SelectGraphItem'
-                  | translate: { Default: 'Select an entity or relation to inspect it.' }
-              }}
-            </z-card-content>
-          </z-card>
+              </section>
+            }
+          }
         }
-
-        <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
-          <z-card-header class="border-b border-components-panel-border px-3 py-2">
-            <z-card-title class="text-sm font-medium text-text-primary">
-              {{ 'XP.Knowledgebase.Entities' | translate: { Default: 'Entities' } }}
-            </z-card-title>
-          </z-card-header>
-          <z-card-content class="max-h-56 overflow-auto p-2">
-            @for (node of nodes(); track node.id) {
-              <button
-                z-button
-                type="button"
-                [zType]="selected()?.kind === 'entity' && selected()?.id === node.id ? 'secondary' : 'ghost'"
-                zFull
-                class="mb-1 h-auto justify-between px-2 py-2 text-left"
-                (click)="selectEntity(node.id)"
-              >
-                <span class="min-w-0 truncate">{{ node.name }}</span>
-                <span class="ml-2 shrink-0 text-xs text-text-tertiary">{{ node.type }}</span>
-              </button>
-            } @empty {
-              <z-empty
-                class="rounded-none border-0 p-4 md:p-4"
-                zIcon="hub"
-                [zTitle]="'XP.Knowledgebase.NoEntities' | translate: { Default: 'No entities' }"
-              />
-            }
-          </z-card-content>
-        </z-card>
-
-        <z-card class="mb-3 gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
-          <z-card-header class="border-b border-components-panel-border px-3 py-2">
-            <z-card-title class="text-sm font-medium text-text-primary">
-              {{ 'XP.Knowledgebase.Relations' | translate: { Default: 'Relations' } }}
-            </z-card-title>
-          </z-card-header>
-          <z-card-content class="max-h-56 overflow-auto p-2">
-            @for (relation of relations(); track relation.id) {
-              <button
-                z-button
-                type="button"
-                [zType]="selected()?.kind === 'relation' && selected()?.id === relation.id ? 'secondary' : 'ghost'"
-                zFull
-                class="mb-1 h-auto flex-col items-start px-2 py-2 text-left"
-                (click)="selectRelation(relation.id)"
-              >
-                <span class="block max-w-full truncate">{{ relationLabel(relation) }}</span>
-                <span class="mt-1 block text-xs text-text-tertiary">
-                  {{ relation.evidenceCount ?? 0 }}
-                  {{ 'XP.Knowledgebase.Evidence' | translate: { Default: 'evidence' } }}
-                </span>
-              </button>
-            } @empty {
-              <z-empty
-                class="rounded-none border-0 p-4 md:p-4"
-                zIcon="share"
-                [zTitle]="'XP.Knowledgebase.NoRelations' | translate: { Default: 'No relations' }"
-              />
-            }
-          </z-card-content>
-        </z-card>
-
-        <z-card class="gap-0 rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-none">
-          <z-card-header class="border-b border-components-panel-border px-3 py-2">
-            <z-card-title class="text-sm font-medium text-text-primary">
-              {{ 'XP.Knowledgebase.Evidence' | translate: { Default: 'Evidence' } }}
-            </z-card-title>
-          </z-card-header>
-          <z-card-content class="max-h-72 overflow-auto p-3">
-            @for (mention of mentions(); track mention.id) {
-              <div class="mb-3 rounded-md border border-components-panel-border p-2">
-                <div class="mb-1 text-xs text-text-tertiary">
-                  {{ mention.document?.name ?? mention.documentId ?? mention.chunkId }}
-                </div>
-                <p class="text-sm leading-6 text-text-secondary">{{ mention.quote || mention.chunkId }}</p>
-              </div>
-            } @empty {
-              <z-empty
-                class="rounded-none border-0 p-4 md:p-4"
-                zIcon="file-text"
-                [zTitle]="'XP.Knowledgebase.NoEvidence' | translate: { Default: 'No evidence' }"
-              />
-            }
-          </z-card-content>
-        </z-card>
       </div>
     </aside>
   </section>

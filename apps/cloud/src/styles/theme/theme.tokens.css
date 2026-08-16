@@ -27,7 +27,7 @@
   --sys-surface-subtle: var(--secondary);
   --sys-surface-field: var(--background);
   --sys-text-primary: var(--foreground);
-  --sys-text-secondary: var(--muted-foreground);
+  --sys-text-secondary: color-mix(in oklab, var(--foreground) 30%, var(--muted-foreground) 70%);
   --sys-border: var(--border);
   --sys-border-strong: color-mix(in oklab, var(--sys-border) 64%, var(--sys-text-secondary));
   --sys-border-control: var(--input);
@@ -134,7 +134,7 @@
   --sys-surface-subtle: var(--secondary);
   --sys-surface-field: var(--secondary);
   --sys-text-primary: var(--foreground);
-  --sys-text-secondary: var(--muted-foreground);
+  --sys-text-secondary: color-mix(in oklab, var(--foreground) 30%, var(--muted-foreground) 70%);
   --sys-border: var(--border);
   --sys-border-strong: color-mix(in oklab, var(--sys-border) 64%, var(--sys-text-secondary));
   --sys-border-control: var(--input);

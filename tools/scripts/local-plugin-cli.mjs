@@ -4,7 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { spawnSync } from 'node:child_process'
 
-export const DEFAULT_API_URL = 'http://localhost:3333'
+export const DEFAULT_API_URL = 'http://localhost:3000'
 export const DEFAULT_KEYCHAIN_SERVICE = 'xpert-local-plugin-token'
 export const DEFAULT_USERNAME_KEYCHAIN_SERVICE = 'xpert-local-plugin-username'
 export const DEFAULT_PASSWORD_KEYCHAIN_SERVICE = 'xpert-local-plugin-password'

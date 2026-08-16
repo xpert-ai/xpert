@@ -72,6 +72,10 @@ export const PLUGIN_RESOURCE_INSTALLATION_STATUS = {
   FAILED: 'failed'
 } as const
 
+export const PLUGIN_RESOURCE_ERROR_CODE = {
+  NO_MATCHING_COMPONENTS: 'PLUGIN_RESOURCE_NO_MATCHING_COMPONENTS'
+} as const
+
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
@@ -92,6 +96,7 @@ export type PluginMcpToolApprovalMode =
 export type PluginResourceRuntimeType = (typeof PLUGIN_RESOURCE_RUNTIME_TYPE)[keyof typeof PLUGIN_RESOURCE_RUNTIME_TYPE]
 export type PluginResourceInstallationStatus =
   (typeof PLUGIN_RESOURCE_INSTALLATION_STATUS)[keyof typeof PLUGIN_RESOURCE_INSTALLATION_STATUS]
+export type PluginResourceErrorCode = (typeof PLUGIN_RESOURCE_ERROR_CODE)[keyof typeof PLUGIN_RESOURCE_ERROR_CODE]
 export type PluginScopeRelation = 'none' | 'overrides-global' | 'shadowed-by-organization'
 export type PluginTargetApp = 'xpert' | 'data-xpert' | (string & {})
 export type PluginSdkCompatibilityWarningCode =

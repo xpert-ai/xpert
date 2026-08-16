@@ -1,8 +1,8 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { IChatConversation } from './chat.model';
-import { IKnowledgeDocument } from './knowledge-doc.model';
+import { IChatConversation } from './chat.model'
+import { IKnowledgeDocument, KnowledgeDocumentProcessingMode } from './knowledge-doc.model'
 import { IKnowledgebase } from './knowledgebase.model'
-import { IXpertAgentExecution } from './xpert-agent-execution.model';
+import { IXpertAgentExecution } from './xpert-agent-execution.model'
 
 /**
  * Task executions of a knowledgebase
@@ -11,23 +11,25 @@ export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityM
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
 
-  conversationId?: string;
+  conversationId?: string
   conversation?: IChatConversation
 
-  executionId?: string;
-  execution?: IXpertAgentExecution;
+  executionId?: string
+  execution?: IXpertAgentExecution
 
-  taskType: string; // preprocess / re-embed / cleanup ...
-  status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
-  steps: TaskStep[];
-  error?: string;
+  taskType: string // preprocess / re-embed / cleanup ...
+  status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
+  steps: TaskStep[]
+  error?: string
 
   /**
    * Temporary content: Documents not actually processed in the task yet
    */
   context?: {
-		documents?: Partial<IKnowledgeDocument>[]
-	}
+    documents?: Partial<IKnowledgeDocument>[]
+    /** Propagates full conversion vs. snapshot-only rechunking through the background task. */
+    processingMode?: KnowledgeDocumentProcessingMode
+  }
 
   /**
    * Many to Many of documents in task
@@ -36,11 +38,11 @@ export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityM
 }
 
 export interface TaskStep {
-  name: string;               // step name: load, preprocess, split, embed, store
-  status: 'pending' | 'running' | 'success' | 'failed';
-  progress: number;           // 0 - 100
-  log?: string;               // optional logs
-  error_message?: string;     // optional error
-  started_at?: Date;
-  finished_at?: Date;
+  name: string // step name: load, preprocess, split, embed, store
+  status: 'pending' | 'running' | 'success' | 'failed'
+  progress: number // 0 - 100
+  log?: string // optional logs
+  error_message?: string // optional error
+  started_at?: Date
+  finished_at?: Date
 }

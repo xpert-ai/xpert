@@ -76,7 +76,7 @@
           <td
             class="px-4 py-2 sticky right-0 border-l border-solid border-divider-regular bg-background-default-subtle"
           >
-            <div class="flex items-center gap-2" displayDensity="compact">
+            <div class="xp-density__compact flex items-center gap-2">
               @if (editId() === item.id) {
                 <xp-input
                   type="number"
@@ -95,7 +95,7 @@
                 <button
                   z-button
                   zType="ghost"
-                  zSize="icon"
+                  zSize="icon-xs"
                   zShape="circle"
                   class="text-text-quaternary"
                   [disabled]="loading()"
@@ -108,7 +108,7 @@
                 <button
                   z-button
                   zType="ghost"
-                  zSize="icon"
+                  zSize="icon-xs"
                   zShape="circle"
                   class="text-text-quaternary"
                   [disabled]="loading()"

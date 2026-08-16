@@ -12,6 +12,7 @@ jest.mock('@xpert-ai/server-config', () => ({
 
 import { normalizeFileName, resolveVolumeTarget } from './utils'
 import { IUploadFileVolumeTarget } from '@xpert-ai/contracts'
+import { createRuntimeVolumeClient } from '../volume'
 
 describe('resolveVolumeTarget', () => {
     const originalHome = process.env.HOME
@@ -33,6 +34,7 @@ describe('resolveVolumeTarget', () => {
 
     it('writes to the flattened local root when sandbox volume is not configured', () => {
         const volume = resolveVolumeTarget(
+            createRuntimeVolumeClient(),
             {
                 kind: 'volume',
                 catalog: 'projects',
@@ -42,13 +44,16 @@ describe('resolveVolumeTarget', () => {
         )
 
         expect(volume.serverRoot).toBe('/Users/tester/data')
-        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000')
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
+        )
     })
 
     it('keeps the logical project subpath when sandbox volume is configured in development', () => {
         mockEnvironment.sandboxConfig.volume = '/tmp/sandbox'
 
         const volume = resolveVolumeTarget(
+            createRuntimeVolumeClient(),
             {
                 kind: 'volume',
                 catalog: 'projects',
@@ -64,6 +69,7 @@ describe('resolveVolumeTarget', () => {
         delete mockEnvironment.sandboxConfig
 
         const volume = resolveVolumeTarget(
+            createRuntimeVolumeClient(),
             {
                 kind: 'volume',
                 catalog: 'projects',
@@ -73,11 +79,14 @@ describe('resolveVolumeTarget', () => {
         )
 
         expect(volume.serverRoot).toBe('/Users/tester/data')
-        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000')
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
+        )
     })
 
     it('resolves user-isolated xpert volumes under the shared xpert workspace root', () => {
         const volume = resolveVolumeTarget(
+            createRuntimeVolumeClient(),
             {
                 kind: 'volume',
                 catalog: 'xperts',
@@ -96,6 +105,7 @@ describe('resolveVolumeTarget', () => {
         mockEnvironment.sandboxConfig.volume = '/tmp/sandbox'
 
         const volume = resolveVolumeTarget(
+            createRuntimeVolumeClient(),
             {
                 kind: 'volume',
                 catalog: 'xperts',
@@ -106,7 +116,9 @@ describe('resolveVolumeTarget', () => {
         )
 
         expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/xpert/123e4567-e89b-12d3-a456-426614174001')
-        expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/xpert/123e4567-e89b-12d3-a456-426614174001')
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/xpert/123e4567-e89b-12d3-a456-426614174001'
+        )
     })
 
     it('normalizes multipart mojibake file names to utf8', () => {

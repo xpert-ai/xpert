@@ -39,5 +39,4 @@ allowBuilds:
   nx: true
   protobufjs: true
   sharp: true
-  swiper: true
   unrs-resolver: true

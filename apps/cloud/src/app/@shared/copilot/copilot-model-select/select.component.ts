@@ -34,7 +34,7 @@ import { injectCopilotProviderService } from '../../../@core/services/copilot-pr
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui'
+import { ZardAlertComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { ModelFilterTag, providerModelDisplayTags, providerModelFilterTags } from '../model-tags'
 
 type ModelParameterRulesResourceValue = {
@@ -63,7 +63,8 @@ const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
     XpI18nPipe,
     XpHighlightDirective,
     ModelParameterInputComponent,
-    ZardAlertComponent
+    ZardAlertComponent,
+    ZardSearchInputComponent
   ],
   selector: 'copilot-model-select',
   templateUrl: 'select.component.html',

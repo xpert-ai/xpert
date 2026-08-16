@@ -1,9 +1,8 @@
 <button
   z-button
-  zType="ghost"
+  zType="outline"
   type="button"
-  xpAppearance="dashed"
-  [class]="field.formControl.value ? 'text-text-accent hover:text-text-accent' : ''"
+  [class]="field.formControl.value ? 'border-dashed text-text-accent hover:text-text-accent' : 'border-dashed'"
   (click)="openCodeEditorDialog()"
 >
   <z-icon zType="code"></z-icon> {{ to?.label || 'Open Editor' }}

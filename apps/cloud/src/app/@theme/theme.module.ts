@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { SharedUiModule } from '../@shared/ui.module'
 import { SidenavNavigatorComponent } from './header'
@@ -10,14 +9,7 @@ import { OrganizationSelectorComponent } from './header/organization-selector/or
  * @deprecated use components dep
  */
 @NgModule({
-  imports: [
-    CommonModule,
-    SharedUiModule,
-    TranslateModule,
-    DensityDirective,
-    SidenavNavigatorComponent,
-    OrganizationSelectorComponent
-  ],
+  imports: [CommonModule, SharedUiModule, TranslateModule, SidenavNavigatorComponent, OrganizationSelectorComponent],
   exports: [OrganizationSelectorComponent, SidenavNavigatorComponent],
   declarations: [],
   providers: []

@@ -23,6 +23,7 @@ import { TestBed } from '@angular/core/testing'
 import { Subject, of } from 'rxjs'
 import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
+import { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import { AssistantBindingService, ChatConversationService, IChatConversation, Store } from '../../../@core'
 import { XpertWorkbenchFacade } from './xpert-workbench.facade'
 
@@ -65,7 +66,13 @@ describe('XpertWorkbenchFacade', () => {
             id: 'xpert-1',
             slug: 'sales',
             title: 'Sales Xpert',
-            latest: true
+            latest: true,
+            options: {
+              workbench: {
+                initialLayout: XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized,
+                defaultViewKey: 'provider__metrics'
+              }
+            }
           }
         ])
       )
@@ -120,6 +127,8 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.xpertId()).toBe('xpert-1')
     expect(facade.assistantId()).toBe('xpert-1')
     expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1')
+    expect(facade.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    expect(facade.defaultViewKey()).toBe('provider__metrics')
   })
 
   it('shows an error when the slug is not accessible', async () => {

@@ -3,10 +3,10 @@ import {
     DocumentMetadata,
     GraphRagConfig,
     IKnowledgebase,
-    KnowledgeDocumentMetadata,
-    TKBRetrievalSettings,
-    TWFCase
+    KnowledgeFilterDiagnostics,
+    TKBRetrievalSettings
 } from '@xpert-ai/contracts'
+import type { KnowledgeGraphFilterScope } from '../knowledgebase/filter'
 
 export const JOB_KNOWLEDGE_GRAPH_INDEX = 'knowledge-graph-index'
 
@@ -33,16 +33,16 @@ export type TKnowledgeGraphSearchInput = {
     knowledgebase: IKnowledgebase
     query: string
     k?: number
-    filter?: KnowledgeDocumentMetadata
-    filtering_conditions?: TWFCase
     retrieval?: TKBRetrievalSettings
     graphRag?: GraphRagConfig | null
+    filterScope?: KnowledgeGraphFilterScope
 }
 
 export type TKnowledgeGraphSearchResult = {
     docs: DocumentInterface<DocumentMetadata>[]
     failed?: boolean
     error?: string
+    diagnostics?: Partial<KnowledgeFilterDiagnostics>
 }
 
 export type TKnowledgeGraphExtractionEntity = {

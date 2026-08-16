@@ -13,6 +13,160 @@ export type TDocumentAsset = {
   altText?: string
 }
 
+/** Stable, provider-neutral layout categories understood by the preview UI. */
+export type DocumentAnalysisBlockType =
+  | 'text'
+  | 'title'
+  | 'table'
+  | 'image'
+  | 'formula'
+  | 'header'
+  | 'footer'
+  | 'footnote'
+  | 'page-number'
+  | 'seal'
+  | 'other'
+
+/** Rectangle in the transformer-reported page coordinate system; values are not normalized to 0..1. */
+export type DocumentAnalysisBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Polygon vertex in the transformer-reported page coordinate system. */
+export type DocumentAnalysisPoint = {
+  x: number
+  y: number
+}
+
+/**
+ * Provider-neutral page-layout metadata emitted by a document transformer before text splitting.
+ * Coordinates use the top-left of the recognized page as their origin.
+ */
+export type DocumentLayoutMetadata = {
+  schemaVersion: 1
+  /** Global, 1-based source-document page number, including documents converted in batches. */
+  page: number
+  /** Provider-reported page dimensions used to project bounds over the rendered source page. */
+  pageWidth: number
+  pageHeight: number
+  /** Stable identifier and reading order before downstream text splitting. */
+  blockId: string
+  order: number
+  type: DocumentAnalysisBlockType
+  providerType?: string
+  providerSubType?: string
+  bounds?: DocumentAnalysisBounds
+  polygon?: DocumentAnalysisPoint[]
+  /** Optional archived image/table asset associated with this exact layout block. */
+  asset?: TDocumentAsset
+  /** Lossless provider payload retained for inspection; consumers must not assume its schema. */
+  raw?: Record<string, unknown>
+}
+
+/** Provider-neutral description of the structured document produced by a transformer. */
+export type DocumentAnalysisMetadata = {
+  schemaVersion: 1
+  provider: string
+  engine?: string
+  pageCount?: number
+  coordinateSystem: 'page-top-left'
+  markdownAsset?: TDocumentAsset
+  /** Provider-neutral page/block payload used to materialize the protected analysis preview. */
+  analysisAsset?: TDocumentAsset
+  /** Durable offset map from the merged Markdown back to source pages and layout blocks. */
+  sourceMapAsset?: TDocumentAsset
+  rawAssets?: TDocumentAsset[]
+}
+
+/** One source block archived before the converter merges layout fragments into Markdown. */
+export type DocumentAnalysisSourceBlock = {
+  id: string
+  order: number
+  type: DocumentAnalysisBlockType
+  providerType?: string
+  providerSubType?: string
+  markdown: string
+  bounds?: DocumentAnalysisBounds
+  polygon?: DocumentAnalysisPoint[]
+  asset?: TDocumentAsset
+  raw?: Record<string, unknown>
+}
+
+/** Provider-neutral page record stored by a document converter for later preview materialization. */
+export type DocumentAnalysisSourcePage = {
+  schemaVersion: 1
+  page: number
+  width: number
+  height: number
+  blocks: DocumentAnalysisSourceBlock[]
+}
+
+/** File payload referenced by `DocumentAnalysisMetadata.analysisAsset`. */
+export type DocumentAnalysisSource = {
+  schemaVersion: 1
+  pages: DocumentAnalysisSourcePage[]
+}
+
+/** A character interval in merged Markdown and its corresponding source-document range. */
+export type DocumentMarkdownSourceMapEntry = {
+  startOffset: number
+  endOffset: number
+  pageStart: number
+  pageEnd: number
+  blockIds?: string[]
+  assets?: TDocumentAsset[]
+}
+
+/** Ephemeral/durable source map consumed by splitters to restore page and asset provenance. */
+export type DocumentMarkdownSourceMap = {
+  schemaVersion: 1
+  entries: DocumentMarkdownSourceMapEntry[]
+}
+
+/** Read model returned for one block in the paged analysis-preview API. */
+export type KnowledgeDocumentAnalysisBlock = {
+  id: string
+  order: number
+  type: DocumentAnalysisBlockType
+  providerType?: string
+  providerSubType?: string
+  markdown: string
+  bounds?: DocumentAnalysisBounds
+  polygon?: DocumentAnalysisPoint[]
+  assetId?: string
+}
+
+/** Self-contained page record loaded independently for large documents. */
+export type KnowledgeDocumentAnalysisPage = {
+  schemaVersion: 1
+  page: number
+  width: number
+  height: number
+  markdown: string
+  blocks: KnowledgeDocumentAnalysisBlock[]
+}
+
+/** Capability response; unavailable snapshots expose a reason instead of throwing during page setup. */
+export type KnowledgeDocumentAnalysisPreview =
+  | {
+      available: false
+      reason: 'missing' | 'stale' | 'corrupt' | 'unsupported'
+    }
+  | {
+      available: true
+      schemaVersion: 1
+      provider: string
+      engine?: string
+      pageCount: number
+      pages: number[]
+      sourceType?: string
+      sourceMimeType?: string
+      views: Array<'markdown' | 'structure' | 'tables' | 'images' | 'json'>
+    }
+
 export interface IDocChunkMetadata {
   chunkId: string
   parentId?: string | null
@@ -31,6 +185,21 @@ export interface IDocChunkMetadata {
    * Associated assets like images, videos, etc.
    */
   assets?: TDocumentAsset[]
+  /** Explicit content discriminator so generic preprocessing does not flatten Markdown syntax. */
+  contentFormat?: 'text' | 'markdown'
+  /** Global source page for a chunk contained entirely within one page. */
+  page?: number
+  /** Inclusive global source-page interval when a chunk spans multiple pages. */
+  pageStart?: number
+  pageEnd?: number
+  /** Stable pre-merge layout identifiers contributing content to this chunk. */
+  sourceBlockIds?: string[]
+  /** Pre-split offset map; splitters must consume it instead of copying it to every final chunk. */
+  markdownSourceMap?: DocumentMarkdownSourceMap
+  /** Durable source-map asset retained after the inline pre-split map is consumed. */
+  sourceMapAsset?: TDocumentAsset
+  /** Original structured layout before text splitting. */
+  documentLayout?: DocumentLayoutMetadata
   /**
    * Whether the chunk is represented as a vector in the vector store
    */

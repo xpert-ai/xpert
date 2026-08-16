@@ -56,7 +56,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
             <button
               z-button
               zType="default"
-              displayDensity="cosy"
+              zSize="sm"
               type="button"
               [disabled]="creatingXpert()"
               (click)="openCreateWizard()"
@@ -102,14 +102,14 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
               <button
                 z-button
                 zType="default"
-                displayDensity="cosy"
+                zSize="sm"
                 type="button"
                 [disabled]="creatingXpert()"
                 (click)="openCreateWizard()"
               >
                 {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
               </button>
-              <button z-button zType="outline" displayDensity="cosy" type="button" routerLink="/xpert/w">
+              <button z-button zType="outline" zSize="sm" type="button" routerLink="/xpert/w">
                 {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
               </button>
             </div>
@@ -183,7 +183,7 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
               <button
                 z-button
                 zType="outline"
-                displayDensity="cosy"
+                zSize="sm"
                 type="button"
                 [disabled]="creatingXpert()"
                 (click)="openCreateWizard()"
@@ -191,14 +191,14 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
                 {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
               </button>
               @if (facade.resolvedPreference()) {
-                <button z-button zType="outline" displayDensity="cosy" type="button" (click)="cancelWizard()">
+                <button z-button zType="outline" zSize="sm" type="button" (click)="cancelWizard()">
                   {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
                 </button>
               }
               <button
                 z-button
                 zType="default"
-                displayDensity="cosy"
+                zSize="sm"
                 type="button"
                 [disabled]="form.invalid || facade.saving()"
                 (click)="savePreference()"

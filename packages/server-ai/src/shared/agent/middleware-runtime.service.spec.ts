@@ -6,6 +6,12 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({
     dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
 }))
 
+jest.mock('../../metrics', () => ({
+    applicationMetrics: {
+        recordLlmUsage: jest.fn()
+    }
+}))
+
 jest.mock('./execution', () => {
     const { XpertAgentExecutionStatusEnum } = require('@xpert-ai/contracts')
     const { XpertAgentExecutionUpsertCommand } = require('../../xpert-agent-execution/commands/upsert.command')
@@ -58,7 +64,13 @@ jest.mock('./execution', () => {
     }
 })
 
-import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    AiProviderRole,
+    ChatMessageEventTypeEnum,
+    ICopilotModel,
+    XpertAgentExecutionStatusEnum
+} from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
@@ -69,6 +81,7 @@ import {
     CancelConversationCommand,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
+    KnowledgebaseProvisioningRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
     ArtifactsRuntimeCapability,
@@ -87,18 +100,25 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { CreateWorkspaceFileAssetCommand, GetFileAssetQuery } from '../../file-understanding'
 import {
+    CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
     DeleteAgentKnowledgeChunksCommand,
     DeleteKnowledgebaseDocumentsCommand,
     ImportKnowledgebaseArchiveCommand,
+    ListKnowledgebaseDocumentsCommand,
+    MoveKnowledgebaseDocumentCommand,
+    EnsureKnowledgebasesCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
 } from '../../knowledgebase/commands'
+import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { CollaborationService } from '../../collaboration'
+import { CopilotService } from '../../copilot/copilot.service'
+import { applicationMetrics } from '../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
@@ -110,10 +130,14 @@ describe('AgentMiddlewareRuntimeService', () => {
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     let artifacts: { createScopedApi: jest.Mock }
     let collaboration: CollaborationService
+    let copilotService: CopilotService
+    let findAllEnabledCopilotsWithoutMembership: jest.Mock
+    let copilotUsage: { recordModelUsage: jest.Mock }
     let actorTokenProvider: { mint: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
+        ;(applicationMetrics.recordLlmUsage as jest.Mock).mockClear()
         volumeRoot = mkdtempSync(join(tmpdir(), 'xpert-workspace-files-'))
         commandBus = {
             execute: jest.fn()
@@ -143,6 +167,12 @@ describe('AgentMiddlewareRuntimeService', () => {
             }))
         }
         collaboration = new CollaborationService(null!, null!, null!)
+        findAllEnabledCopilotsWithoutMembership = jest.fn().mockResolvedValue([])
+        copilotService = Object.create(CopilotService.prototype)
+        copilotService.findAllEnabledCopilotsWithoutMembership = findAllEnabledCopilotsWithoutMembership
+        copilotUsage = {
+            recordModelUsage: jest.fn().mockResolvedValue({ requestId: 'request-1', recorded: true, ledgerIds: [] })
+        }
         actorTokenProvider = {
             mint: jest.fn((input) => ({
                 token: 'actor-token-1',
@@ -163,6 +193,8 @@ describe('AgentMiddlewareRuntimeService', () => {
             workspaceFiles,
             artifacts as any,
             collaboration,
+            copilotService,
+            copilotUsage as never,
             actorTokenProvider as any
         )
 
@@ -224,6 +256,121 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('resolves the organization model provider connection before the tenant provider', async () => {
+        findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
+            {
+                id: 'tenant-copilot',
+                role: AiProviderRole.Primary,
+                organizationId: null,
+                modelProvider: {
+                    id: 'tenant-provider',
+                    organizationId: null,
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'tenant-key' },
+                    isValid: true
+                }
+            },
+            {
+                id: 'organization-copilot',
+                role: AiProviderRole.Secondary,
+                organizationId: 'org-1',
+                modelProvider: {
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'organization-key' },
+                    isValid: true
+                }
+            }
+        ])
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof AIModelGetProviderQuery) {
+                return {
+                    getBaseUrl: (credentials: { api_key: string }) =>
+                        `https://${credentials.api_key}.example/api/paas/v4`,
+                    getAuthorization: (credentials: { api_key: string }) => `Bearer ${credentials.api_key}`
+                }
+            }
+            return undefined
+        })
+
+        const runtime = service.createScopedApi({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        expect(runtime.getModelProvider).toBeDefined()
+        const connection = await runtime.getModelProvider?.('zhipuai')
+
+        expect(findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
+        expect(connection).toEqual({
+            providerScopeId: 'organization-provider',
+            copilotId: 'organization-copilot',
+            organizationId: 'org-1',
+            provider: 'zhipuai',
+            baseURL: 'https://organization-key.example/api/paas/v4',
+            authorization: 'Bearer organization-key',
+            resolvePricingSnapshot: expect.any(Function),
+            reportUsage: expect.any(Function)
+        })
+    })
+
+    it('resolves the exact model provider connection captured by the runtime scope', async () => {
+        findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                role: AiProviderRole.Primary,
+                organizationId: 'org-1',
+                modelProvider: {
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'organization-key' },
+                    isValid: true
+                }
+            },
+            {
+                id: 'tenant-copilot',
+                role: AiProviderRole.Secondary,
+                organizationId: null,
+                modelProvider: {
+                    id: 'captured-provider',
+                    organizationId: null,
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'captured-key' },
+                    isValid: true
+                }
+            }
+        ])
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof AIModelGetProviderQuery) {
+                return {
+                    getBaseUrl: (credentials: { api_key: string }) => `https://${credentials.api_key}.example`,
+                    getAuthorization: (credentials: { api_key: string }) => `Bearer ${credentials.api_key}`
+                }
+            }
+            return undefined
+        })
+
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            providerScopeId: 'captured-provider'
+        })
+        const connection = await runtime.getModelProvider?.('zhipuai')
+
+        expect(connection).toEqual(
+            expect.objectContaining({
+                providerScopeId: 'captured-provider',
+                authorization: 'Bearer captured-key'
+            })
+        )
+    })
+
+    it('requires a configured model provider for provider-backed tools', async () => {
+        const runtime = service.createScopedApi({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        if (!runtime.getModelProvider) {
+            throw new Error('Expected the host runtime to expose model provider resolution.')
+        }
+        await expect(runtime.getModelProvider('zhipuai')).rejects.toThrow(/zhipuai/)
     })
 
     it('registers the actor token runtime capability with scoped act context', async () => {
@@ -368,8 +515,10 @@ describe('AgentMiddlewareRuntimeService', () => {
     it('creates a model client and records token usage through the runtime facade', async () => {
         const { getModelInstance, modelInstance } = mockCreateModelClientDependencies()
         const usageCallback = jest.fn()
+        const executionUsageCallback = jest.fn()
+        const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
 
-        const client = await service.createModelClient(
+        const client = await runtime.createModelClient(
             {
                 copilotId: 'copilot-1',
                 model: 'gpt-4o-mini',
@@ -399,17 +548,32 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         const modelOptions = getModelInstance.mock.calls[0][2]
         const usage = {
+            promptTokens: 40,
+            completionTokens: 2,
             totalTokens: 42,
             totalPrice: 1.25,
-            currency: 'USD'
+            currency: 'USD',
+            latency: 1200
         }
 
         await modelOptions.handleLLMTokens({
             model: 'gpt-4o-mini',
+            requestId: 'llm-run-1',
             usage
         })
 
         expect(usageCallback).toHaveBeenCalledWith(usage)
+        expect(executionUsageCallback).toHaveBeenCalledWith(usage)
+        expect(applicationMetrics.recordLlmUsage).toHaveBeenCalledWith({
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            inputTokens: 40,
+            outputTokens: 2,
+            totalTokens: 42,
+            totalPrice: 1.25,
+            currency: 'USD',
+            responseLatencySeconds: 1.2
+        })
 
         const tokenRecordCommand = commandBus.execute.mock.calls.find(
             ([command]) => command instanceof CopilotTokenRecordCommand
@@ -420,12 +584,100 @@ describe('AgentMiddlewareRuntimeService', () => {
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 userId: 'user-1',
+                requestId: 'llm-run-1',
                 model: 'gpt-4o-mini',
                 tokenUsed: 42,
                 priceUsed: 1.25,
                 currency: 'USD'
             })
         )
+    })
+
+    it('creates observation clients without checking or recording generation usage', async () => {
+        const { getModelInstance } = mockCreateModelClientDependencies()
+        const usageCallback = jest.fn()
+        const executionUsageCallback = jest.fn()
+        const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
+
+        await runtime.createModelClient(
+            {
+                copilotId: 'copilot-1',
+                model: 'video-model',
+                modelType: AiModelTypeEnum.VIDEO
+            } as ICopilotModel,
+            { purpose: 'observe', usageCallback }
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleLLMTokens({
+            model: 'video-model',
+            usage: { promptTokens: 5, completionTokens: 1, totalTokens: 6 }
+        })
+
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotCheckLimitCommand)).toBe(
+            false
+        )
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            false
+        )
+        expect(usageCallback).not.toHaveBeenCalled()
+        expect(executionUsageCallback).not.toHaveBeenCalled()
+        expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
+    })
+
+    it('forwards estimated usage to execution without recording provider billing', async () => {
+        const { getModelInstance } = mockCreateModelClientDependencies()
+        const executionUsageCallback = jest.fn()
+        const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
+
+        await runtime.createModelClient(
+            {
+                copilotId: 'copilot-1',
+                model: 'gpt-4o-mini',
+                modelType: AiModelTypeEnum.LLM
+            } as ICopilotModel,
+            {}
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        const usage = {
+            totalTokens: 42,
+            totalPrice: 0,
+            currency: 'USD',
+            type: 'estimated'
+        }
+        await modelOptions.handleLLMTokens({ model: 'gpt-4o-mini', usage })
+
+        expect(executionUsageCallback).toHaveBeenCalledWith(usage)
+        expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            false
+        )
+    })
+
+    it('leaves application metrics to the callback for legacy direct model clients', async () => {
+        const { getModelInstance } = mockCreateModelClientDependencies()
+        const usageCallback = jest.fn()
+
+        await service.createModelClient(
+            {
+                copilotId: 'copilot-1',
+                model: 'gpt-4o-mini',
+                modelType: AiModelTypeEnum.LLM
+            } as ICopilotModel,
+            { usageCallback }
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        const usage = {
+            promptTokens: 40,
+            completionTokens: 2,
+            totalTokens: 42
+        }
+        await modelOptions.handleLLMTokens({ model: 'gpt-4o-mini', usage })
+
+        expect(usageCallback).toHaveBeenCalledWith(usage)
+        expect(applicationMetrics.recordLlmUsage).not.toHaveBeenCalled()
     })
 
     it('aborts the active model request when token recording hits an exceeding-limit error', async () => {
@@ -598,7 +850,13 @@ describe('AgentMiddlewareRuntimeService', () => {
             query: 'YBX4 180M',
             k: 5,
             filter: {
-                documentType: 'bom-product-profile'
+                kind: 'condition',
+                field: 'documentType',
+                operator: 'eq',
+                value: {
+                    kind: 'literal',
+                    value: 'bom-product-profile'
+                }
             },
             retrieval: {
                 mode: 'hybrid'
@@ -661,6 +919,69 @@ describe('AgentMiddlewareRuntimeService', () => {
             published: undefined,
             limit: 20
         })
+    })
+
+    it('exposes managed knowledgebase provisioning and Agent binding through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof EnsureKnowledgebasesCommand) {
+                return {
+                    namespace: command.input.namespace,
+                    workspaceId: command.input.workspaceId,
+                    knowledgebases: command.input.knowledgebases.map((item, index) => ({
+                        id: `kb-${index + 1}`,
+                        key: item.key,
+                        name: item.name,
+                        operation: 'created'
+                    }))
+                }
+            }
+            if (command instanceof ConnectAgentKnowledgebasesCommand) {
+                return {
+                    xpertId: command.input.xpertId,
+                    agentKey: command.input.agentKey,
+                    knowledgebaseIds: command.input.knowledgebaseIds,
+                    addedKnowledgebaseIds: command.input.knowledgebaseIds
+                }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const capability = service.api.capabilities?.require(KnowledgebaseProvisioningRuntimeCapability)
+        const ensured = await capability?.ensure({
+            workspaceId: 'workspace-1',
+            namespace: 'bom_lifecycle_four_layer',
+            inheritEmbeddingModel: true,
+            knowledgebases: [
+                {
+                    key: 'source',
+                    name: 'BOM Source',
+                    description: 'Managed source documents',
+                    permission: 'private'
+                }
+            ]
+        })
+        const connected = await capability?.connectAgent({
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1',
+            agentKey: 'Agent_Main',
+            knowledgebaseIds: ensured?.knowledgebases.map((item) => item.id) ?? []
+        })
+
+        expect(ensured?.knowledgebases).toEqual([
+            expect.objectContaining({ id: 'kb-1', key: 'source', operation: 'created' })
+        ])
+        expect((commandBus.execute.mock.calls[0][0] as EnsureKnowledgebasesCommand).input.inheritEmbeddingModel).toBe(
+            true
+        )
+        expect(connected).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                agentKey: 'Agent_Main',
+                knowledgebaseIds: ['kb-1']
+            })
+        )
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(EnsureKnowledgebasesCommand)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(ConnectAgentKnowledgebasesCommand)
     })
 
     it('exposes knowledgebase chunk write through the runtime facade', async () => {
@@ -730,6 +1051,60 @@ describe('AgentMiddlewareRuntimeService', () => {
                 writeKeyPrefix: 'bom-product-profile:v2:root-1:'
             })
         )
+    })
+
+    it('exposes the knowledgebase document catalog through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ListKnowledgebaseDocumentsCommand) {
+                return { documents: [{ id: 'doc-1', name: 'agreement.pdf' }], total: 1, page: 1, pageSize: 20 }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(KnowledgebaseDocumentsRuntimeCapability).listDocuments({
+            knowledgebaseId: 'kb-1',
+            page: 1,
+            pageSize: 20,
+            search: 'agreement'
+        })
+
+        expect(result?.documents[0]?.id).toBe('doc-1')
+        const command = commandBus.execute.mock.calls[0][0] as ListKnowledgebaseDocumentsCommand
+        expect(command.input).toEqual({ knowledgebaseId: 'kb-1', page: 1, pageSize: 20, search: 'agreement' })
+    })
+
+    it('exposes idempotent folder creation and governed document moves through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateKnowledgebaseFolderCommand) {
+                return { knowledgebaseId: 'kb-1', folder: { id: 'folder-case', name: '26B31301' } }
+            }
+            if (command instanceof MoveKnowledgebaseDocumentCommand) {
+                return {
+                    knowledgebaseId: 'kb-1',
+                    document: { id: 'doc-1', parentId: 'folder-case' },
+                    affectedDocumentIds: ['doc-1']
+                }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const api = service.api.capabilities?.require(KnowledgebaseDocumentsRuntimeCapability)
+        const folder = await api?.createFolder({ knowledgebaseId: 'kb-1', parentId: 'folder-cases', name: '26B31301' })
+        const moved = await api?.moveDocument({
+            knowledgebaseId: 'kb-1',
+            documentId: 'doc-1',
+            parentId: 'folder-case',
+            expectedVersion: 2
+        })
+
+        expect(folder?.folder.id).toBe('folder-case')
+        expect(moved?.document.parentId).toBe('folder-case')
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CreateKnowledgebaseFolderCommand)
+        ).toBe(true)
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof MoveKnowledgebaseDocumentCommand)
+        ).toBe(true)
     })
 
     it('exposes knowledgebase document upload through the runtime facade', async () => {
@@ -1258,6 +1633,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             ],
             context: {
                 source: 'test'
+            },
+            humanInput: {
+                caseKnowledgeFolders: { source: 'customers/JNGL/cases/26B31301' }
             }
         })
 
@@ -1276,6 +1654,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 message: expect.objectContaining({
                     input: expect.objectContaining({
                         input: '重新解析合同',
+                        caseKnowledgeFolders: { source: 'customers/JNGL/cases/26B31301' },
                         files: [
                             expect.objectContaining({
                                 fileId: 'file-asset-1',

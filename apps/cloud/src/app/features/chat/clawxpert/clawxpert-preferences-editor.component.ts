@@ -120,7 +120,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                       z-button
                       zType="outline"
                       type="button"
-                      displayDensity="cosy"
+                      zSize="sm"
                       [disabled]="facade.savingUserPreference()"
                       (click)="cancelEdit()"
                     >
@@ -130,7 +130,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                       z-button
                       zType="default"
                       type="button"
-                      displayDensity="cosy"
+                      zSize="sm"
                       [disabled]="facade.savingUserPreference() || !form.dirty"
                       (click)="save()"
                     >
@@ -141,7 +141,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                       z-button
                       zType="outline"
                       type="button"
-                      displayDensity="cosy"
+                      zSize="sm"
                       [disabled]="facade.savingUserPreference()"
                       (click)="startEdit()"
                     >

@@ -86,7 +86,7 @@ jobs:
           build-args: |
             NODE_OPTIONS=${{ matrix.service.node_options }}
           platforms: linux/amd64
-          push: true
+          outputs: type=image,push=true,oci-artifact=false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-to: type=inline

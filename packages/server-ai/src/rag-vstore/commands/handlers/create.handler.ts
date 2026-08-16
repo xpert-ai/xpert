@@ -1,4 +1,3 @@
-import { PGVectorStore } from '@langchain/community/vectorstores/pgvector'
 import { EmbeddingsInterface } from '@langchain/core/embeddings'
 import { mapTranslationLanguage, VectorTypeEnum } from '@xpert-ai/contracts'
 import { IPGVectorConfig } from '@xpert-ai/server-common'
@@ -11,61 +10,62 @@ import { VectorStoreRegistry } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
 import { Pool } from 'pg'
 import { RagCreateVStoreCommand } from '../create.command'
+import { KnowledgePGVectorStore } from '../../knowledge-pg-vector.store'
 
 @CommandHandler(RagCreateVStoreCommand)
 export class RagCreateVStoreHandler implements ICommandHandler<RagCreateVStoreCommand> {
-	constructor(
-		private readonly i18nService: I18nService,
-		private readonly configService: ConfigService,
-		private readonly vectorStoreRegistry: VectorStoreRegistry,
-		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
-	) {}
+    constructor(
+        private readonly i18nService: I18nService,
+        private readonly configService: ConfigService,
+        private readonly vectorStoreRegistry: VectorStoreRegistry,
+        @Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
+    ) {}
 
-	public async execute(command: RagCreateVStoreCommand) {
-		const vectorStore = environment.vectorStore
-		switch (vectorStore) {
-			case VectorTypeEnum.PGVECTOR:
-				return this.createPgVectorStore(command.embeddings, command.config)
-			default: {
-				const strategy = this.vectorStoreRegistry.get(vectorStore)
-				if (strategy) {
-					return strategy.createStore(command.embeddings, command.config)
-				}
+    public async execute(command: RagCreateVStoreCommand) {
+        const vectorStore = environment.vectorStore
+        switch (vectorStore) {
+            case VectorTypeEnum.PGVECTOR:
+                return this.createPgVectorStore(command.embeddings, command.config)
+            default: {
+                const strategy = this.vectorStoreRegistry.get(vectorStore)
+                if (strategy) {
+                    return strategy.createStore(command.embeddings, command.config)
+                }
 
-				throw new InternalServerErrorException(
-					await this.i18nService.t('xpert.Error.UnsupportedVectorStore', {
-						lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-						args: { vectorStore: vectorStore }
-					})
-				)
-			}
-		}
-	}
+                throw new InternalServerErrorException(
+                    await this.i18nService.t('xpert.Error.UnsupportedVectorStore', {
+                        lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+                        args: { vectorStore: vectorStore }
+                    })
+                )
+            }
+        }
+    }
 
-	async createPgVectorStore(embeddings: EmbeddingsInterface, config: { collectionName?: string }) {
-		const _config = this.configService.get<IPGVectorConfig>('pgvector')
+    async createPgVectorStore(embeddings: EmbeddingsInterface, config: { collectionName?: string }) {
+        const _config = this.configService.get<IPGVectorConfig>('pgvector')
 
-		const pgvstore = new PGVectorStore(embeddings, {
-			pool: this.pgPool,
-			tableName: 'knowledge_document_vector',
-			collectionTableName: 'knowledge_document_collection',
-			collectionName: config.collectionName,
-			columns: {
-				idColumnName: 'id',
-				vectorColumnName: 'vector',
-				contentColumnName: 'content',
-				metadataColumnName: 'metadata'
-			}
-		})
+        const pgvstore = new KnowledgePGVectorStore(embeddings, {
+            pool: this.pgPool,
+            tableName: 'knowledge_document_vector',
+            collectionTableName: 'knowledge_document_collection',
+            collectionName: config.collectionName,
+            columns: {
+                idColumnName: 'id',
+                vectorColumnName: 'vector',
+                contentColumnName: 'content',
+                metadataColumnName: 'metadata'
+            }
+        })
 
-		/**
-		 * Create table for vector store if not exist
-		 */
-		await pgvstore.ensureTableInDatabase()
-		await pgvstore.ensureCollectionTableInDatabase()
-		return pgvstore
-	}
+        /**
+         * Create table for vector store if not exist
+         */
+        await pgvstore.ensureTableInDatabase()
+        await pgvstore.ensureCollectionTableInDatabase()
+        return pgvstore
+    }
 
-	// async createMilvusVectorStore(embeddings: EmbeddingsInterface, config: {collectionName?: string}) {
-	// }
+    // async createMilvusVectorStore(embeddings: EmbeddingsInterface, config: {collectionName?: string}) {
+    // }
 }

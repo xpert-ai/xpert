@@ -216,6 +216,7 @@ import { TestBed } from '@angular/core/testing'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
+import { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type { IAssistantBinding, IChatConversation, ICopilotModel, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
 import {
@@ -838,7 +839,18 @@ describe('ClawXpertFacade', () => {
 
   it('loads the bound xpert draft for trigger editing once the binding is ready', async () => {
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-ready')))
-    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-ready', 'Ready Xpert')]))
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        createXpert('xpert-ready', 'Ready Xpert', {
+          options: {
+            workbench: {
+              initialLayout: XpertWorkbenchInitialLayoutEnum.ChatkitMaximized,
+              defaultViewKey: 'provider__review'
+            }
+          }
+        })
+      ])
+    )
 
     const facade = TestBed.inject(ClawXpertFacade)
     await flushPromises()
@@ -857,6 +869,8 @@ describe('ClawXpertFacade', () => {
       ]
     })
     expect(facade.triggerDraft()?.team?.id).toBe('xpert-ready')
+    expect(facade.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
+    expect(facade.defaultViewKey()).toBe('provider__review')
     expect(facade.loadingTriggerDraft()).toBe(false)
   })
 

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSearchInputComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { injectWorkspace } from '@cloud/app/@core/state'
@@ -26,7 +26,8 @@ import { JSON_SCHEMA_WIDGET_CONTEXT, JsonSchemaWidgetContext } from '../../forms
     XpI18nPipe,
     XpCommonModule,
     ...ZardTooltipImports,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardSearchInputComponent
   ]
 })
 export class XpertSkillSelectComponent implements ControlValueAccessor {

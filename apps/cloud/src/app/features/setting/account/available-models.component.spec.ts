@@ -10,7 +10,7 @@ import {
   UserModelGrantStatusEnum
 } from '@xpert-ai/contracts'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
-import { of } from 'rxjs'
+import { defer, of } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
 import { XpAccountAvailableModelsComponent } from './available-models.component'
@@ -61,7 +61,7 @@ describe('XpAccountAvailableModelsComponent', () => {
     TestBed.resetTestingModule()
   })
 
-  it('groups available models and searches plan and direct models by model and provider labels', () => {
+  it('loads the catalog only after the available models section is opened', () => {
     const packageModel = catalogItem('package', {
       planIncluded: true,
       allowed: true,
@@ -70,6 +70,7 @@ describe('XpAccountAvailableModelsComponent', () => {
     })
     const grantedModel = catalogItem('granted', {
       allowed: true,
+      planIncluded: true,
       accessSource: ModelAccessSourceEnum.Grant,
       grant: activeGrant('granted')
     })
@@ -81,16 +82,20 @@ describe('XpAccountAvailableModelsComponent', () => {
     })
     const requestableModel = catalogItem('requestable', { requestable: true })
 
+    let catalogSubscriptions = 0
     TestBed.configureTestingModule({
       providers: [
         {
           provide: ModelAccessService,
           useValue: {
-            catalog$: of({
-              items: [packageModel, grantedModel, directModel, requestableModel],
-              canRequest: true,
-              tenantFeatureEnabled: true,
-              organizationFeatureEnabled: false
+            catalog$: defer(() => {
+              catalogSubscriptions++
+              return of({
+                items: [packageModel, grantedModel, directModel, requestableModel],
+                canRequest: true,
+                tenantFeatureEnabled: true,
+                organizationFeatureEnabled: false
+              })
             }),
             myRequests$: of([]),
             myGrants$: of([grantedModel.grant]),
@@ -104,9 +109,21 @@ describe('XpAccountAvailableModelsComponent', () => {
     })
     const component = TestBed.runInInjectionContext(() => new XpAccountAvailableModelsComponent())
 
-    expect(component.availableModels()).toEqual([packageModel, directModel])
-    expect(component.grantModels()).toEqual([grantedModel])
+    expect(catalogSubscriptions).toBe(0)
+    expect(component.requestAvailability()).toBeNull()
+    expect(component.availableModels()).toEqual([])
+    expect(component.grantModels()).toEqual([grantedModel.grant])
+
+    component.loadAvailableModels()
+
+    expect(catalogSubscriptions).toBe(1)
+    expect(component.requestAvailability()).toBe(true)
+    expect(component.availableModels()).toEqual([packageModel, grantedModel, directModel])
+    expect(component.grantModels()).toEqual([grantedModel.grant])
     expect(component.requestableModels()).toEqual([requestableModel])
+
+    component.loadAvailableModels()
+    expect(catalogSubscriptions).toBe(1)
 
     component.availableModelSearchControl.setValue('alpha')
     expect(component.filteredAvailableModels()).toEqual([packageModel])
@@ -116,5 +133,13 @@ describe('XpAccountAvailableModelsComponent', () => {
 
     component.availableModelSearchControl.setValue('missing')
     expect(component.filteredAvailableModels()).toEqual([])
+
+    component.catalog.set({
+      items: [],
+      canRequest: false,
+      tenantFeatureEnabled: true,
+      organizationFeatureEnabled: false
+    })
+    expect(component.requestAvailability()).toBe(false)
   })
 })

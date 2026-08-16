@@ -1,7 +1,6 @@
 import { Component, booleanAttribute, input, output } from '@angular/core'
 
 import { XpDndDirective } from '@xpert-ai/headless-ui'
-import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
@@ -13,15 +12,7 @@ export type UploadFile = {
 
 @Component({
   standalone: true,
-  imports: [
-    TranslateModule,
-    ZardButtonComponent,
-    ZardIconComponent,
-    ZardProgressBarComponent,
-    XpAppearanceDirective,
-    DensityDirective,
-    XpDndDirective
-  ],
+  imports: [TranslateModule, ZardButtonComponent, ZardIconComponent, ZardProgressBarComponent, XpDndDirective],
   selector: 'xp-upload',
   templateUrl: './upload.component.html',
   styleUrls: ['./upload.component.scss']

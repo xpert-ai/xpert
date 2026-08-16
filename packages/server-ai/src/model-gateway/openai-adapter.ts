@@ -149,11 +149,7 @@ export function assertRequestCapabilities(request: OpenAIChatRequest, capabiliti
             'This model publication does not support parallel tool calls.'
         )
     }
-    if (
-        request.stream &&
-        request.tools?.length &&
-        !supported.has(ModelFeature.STREAM_TOOL_CALL)
-    ) {
+    if (request.stream && request.tools?.length && !supported.has(ModelFeature.STREAM_TOOL_CALL)) {
         throw badRequest(
             'ModelGatewayOpenAIStreamToolsUnsupported',
             'This model publication does not support streaming tool calls.'
@@ -183,10 +179,7 @@ export function toLangChainMessages(messages: OpenAIInputMessage[]): BaseMessage
                 })
             case 'tool':
                 if (!message.toolCallId) {
-                    throw badRequest(
-                        'ModelGatewayOpenAIToolMessageIdRequired',
-                        'tool messages require tool_call_id.'
-                    )
+                    throw badRequest('ModelGatewayOpenAIToolMessageIdRequired', 'tool messages require tool_call_id.')
                 }
                 return new ToolMessage({
                     content: parseMessageContent(message.content, true),
@@ -202,16 +195,12 @@ export function bindOpenAIRequest(model: BaseChatModel, request: OpenAIChatReque
     if (request.tools?.length) {
         const bound = model.bindTools(request.tools, {
             ...(request.toolChoice !== undefined ? { tool_choice: request.toolChoice } : {}),
-            ...(request.parallelToolCalls !== undefined
-                ? { parallel_tool_calls: request.parallelToolCalls }
-                : {})
+            ...(request.parallelToolCalls !== undefined ? { parallel_tool_calls: request.parallelToolCalls } : {})
         })
         runnable = bound as Runnable<BaseMessage[], AIMessage | AIMessageChunk>
     }
     const options = compactObject(request.options)
-    return Object.keys(options).length
-        ? runnable.bind(options)
-        : runnable
+    return Object.keys(options).length ? runnable.bind(options) : runnable
 }
 
 export function messageText(message: AIMessage | AIMessageChunk) {
@@ -249,6 +238,8 @@ export function responseUsage(
         promptTokens: number
         completionTokens: number
         totalTokens: number
+        totalPrice: number
+        currency: string
     }> | null,
     response?: AIMessage | AIMessageChunk
 ): ModelGatewayUsage {
@@ -261,9 +252,7 @@ export function responseUsage(
         nonNegativeInteger(providerUsage?.completionTokens) ??
         nonNegativeInteger(metadata?.output_tokens) ??
         estimateTextTokens(outputText)
-    const providerTotal =
-        nonNegativeInteger(providerUsage?.totalTokens) ??
-        nonNegativeInteger(metadata?.total_tokens)
+    const providerTotal = nonNegativeInteger(providerUsage?.totalTokens) ?? nonNegativeInteger(metadata?.total_tokens)
     const hasProviderUsage =
         nonNegativeInteger(providerUsage?.promptTokens) !== undefined ||
         nonNegativeInteger(providerUsage?.completionTokens) !== undefined ||
@@ -275,7 +264,9 @@ export function responseUsage(
         inputTokens,
         outputTokens,
         totalTokens: providerTotal ?? inputTokens + outputTokens,
-        source: hasProviderUsage ? ModelGatewayUsageSourceEnum.Provider : ModelGatewayUsageSourceEnum.Estimated
+        source: hasProviderUsage ? ModelGatewayUsageSourceEnum.Provider : ModelGatewayUsageSourceEnum.Estimated,
+        priceAmount: providerUsage?.totalPrice,
+        priceCurrency: providerUsage?.currency
     }
 }
 
@@ -287,11 +278,9 @@ function parseMessage(value: unknown): OpenAIInputMessage {
     }
     const content = readProperty(value, 'content')
     if (content === undefined && role !== 'assistant') {
-        throw badRequest(
-            'ModelGatewayOpenAIContentRequired',
-            "Message content is required for role '{{role}}'.",
-            { role }
-        )
+        throw badRequest('ModelGatewayOpenAIContentRequired', "Message content is required for role '{{role}}'.", {
+            role
+        })
     }
     const rawToolCalls = readProperty(value, 'tool_calls')
     return {
@@ -350,10 +339,7 @@ function parseAssistantToolCalls(value?: unknown[]) {
             if (error instanceof BadRequestException) {
                 throw error
             }
-            throw badRequest(
-                'ModelGatewayOpenAIToolArgumentsJson',
-                'assistant tool call arguments must be valid JSON.'
-            )
+            throw badRequest('ModelGatewayOpenAIToolArgumentsJson', 'assistant tool call arguments must be valid JSON.')
         }
         return {
             id: optionalString(readProperty(call, 'id'), 'assistant tool_call.id'),
@@ -372,10 +358,7 @@ function parseMessageContent(content: unknown, allowEmpty = false) {
         return content
     }
     if (!Array.isArray(content)) {
-        throw badRequest(
-            'ModelGatewayOpenAIContentShape',
-            'Message content must be a string or an array.'
-        )
+        throw badRequest('ModelGatewayOpenAIContentShape', 'Message content must be a string or an array.')
     }
     return content.map((part) => {
         assertObject(part, 'message content part')
@@ -396,11 +379,9 @@ function parseMessageContent(content: unknown, allowEmpty = false) {
                 }
             }
         }
-        throw badRequest(
-            'ModelGatewayOpenAIContentTypeUnsupported',
-            'Unsupported message content type: {{type}}',
-            { type }
-        )
+        throw badRequest('ModelGatewayOpenAIContentTypeUnsupported', 'Unsupported message content type: {{type}}', {
+            type
+        })
     })
 }
 
@@ -408,10 +389,7 @@ function messageContainsImage(message: OpenAIInputMessage) {
     return (
         Array.isArray(message.content) &&
         message.content.some(
-            (part) =>
-                typeof part === 'object' &&
-                part !== null &&
-                readProperty(part, 'type') === 'image_url'
+            (part) => typeof part === 'object' && part !== null && readProperty(part, 'type') === 'image_url'
         )
     )
 }
@@ -449,10 +427,7 @@ function parseStop(value: unknown) {
     if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
         return value
     }
-    throw badRequest(
-        'ModelGatewayOpenAIStopShape',
-        'stop must be a string or an array of strings.'
-    )
+    throw badRequest('ModelGatewayOpenAIStopShape', 'stop must be a string or an array of strings.')
 }
 
 function compactObject<T extends object>(value: T) {
@@ -461,11 +436,7 @@ function compactObject<T extends object>(value: T) {
 
 function assertObject(value: unknown, field: string): asserts value is object {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw badRequest(
-            'ModelGatewayOpenAIObjectRequired',
-            '{{field}} must be an object.',
-            { field }
-        )
+        throw badRequest('ModelGatewayOpenAIObjectRequired', '{{field}} must be an object.', { field })
     }
 }
 
@@ -475,11 +446,7 @@ function readProperty(value: object, property: string): unknown {
 
 function requiredString(value: unknown, field: string) {
     if (typeof value !== 'string' || !value.trim()) {
-        throw badRequest(
-            'ModelGatewayOpenAIFieldNonEmptyString',
-            '{{field}} must be a non-empty string.',
-            { field }
-        )
+        throw badRequest('ModelGatewayOpenAIFieldNonEmptyString', '{{field}} must be a non-empty string.', { field })
     }
     return value.trim()
 }
@@ -499,11 +466,7 @@ function optionalNumber(value: unknown, field: string) {
         return undefined
     }
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw badRequest(
-            'ModelGatewayOpenAIFieldNumber',
-            '{{field}} must be a finite number.',
-            { field }
-        )
+        throw badRequest('ModelGatewayOpenAIFieldNumber', '{{field}} must be a finite number.', { field })
     }
     return value
 }
@@ -529,10 +492,6 @@ function nonNegativeInteger(value?: number | null) {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.trunc(value) : undefined
 }
 
-function badRequest(
-    key: string,
-    defaultValue: string,
-    values?: { [name: string]: string | number }
-) {
+function badRequest(key: string, defaultValue: string, values?: { [name: string]: string | number }) {
     return new BadRequestException(modelGatewayMessage(key, defaultValue, values))
 }

@@ -104,6 +104,8 @@ export type TAgentRunnableConfigurable = {
   context?: Record<string, unknown> & {
     env?: Record<string, unknown>
   }
+  /** Current graph state exposed to tools for resolving server-owned configuration variables. */
+  runtimeState?: Record<string, unknown>
 
   copilotModel?: ICopilotModel
 

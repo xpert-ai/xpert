@@ -6,6 +6,7 @@ import {
     IKnowledgeDocument,
     IModelAccessResolution,
     KBDocumentStatusEnum,
+    ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum
 } from '@xpert-ai/contracts'
@@ -152,9 +153,10 @@ describe('KnowledgeDocumentConsumer', () => {
             id: 'job-1',
             data: {
                 userId: 'user-id',
-                docs
+                docs,
+                mode: 'rechunk'
             }
-        } as Job<{ userId: string; docs: IKnowledgeDocument[] }>
+        } as unknown as Job<{ userId: string; docs: IKnowledgeDocument[]; mode?: 'full' | 'rechunk' }>
 
         await expect(
             consumer._processJob(
@@ -172,6 +174,12 @@ describe('KnowledgeDocumentConsumer', () => {
         expect(
             commandBus.execute.mock.calls.filter(([command]) => command instanceof KnowledgeDocLoadCommand)
         ).toHaveLength(2)
+        expect(
+            commandBus.execute.mock.calls
+                .map(([command]) => command)
+                .filter((command): command is KnowledgeDocLoadCommand => command instanceof KnowledgeDocLoadCommand)
+                .every((command) => command.input.mode === 'rechunk')
+        ).toBe(true)
         expect(documentService.update).toHaveBeenCalledWith(
             'doc-1',
             expect.objectContaining({
@@ -380,6 +388,7 @@ describe('KnowledgeDocumentConsumer', () => {
             provider: 'embedding-provider',
             modelType: AiModelTypeEnum.TEXT_EMBEDDING,
             model: 'embedding-model',
+            channel: ModelAccessChannelEnum.Xpert,
             accessSource: ModelAccessSourceEnum.Grant,
             grantId: 'grant-id',
             multiplier: 1,

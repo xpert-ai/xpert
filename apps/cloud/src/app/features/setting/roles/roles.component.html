@@ -10,7 +10,7 @@
           z-button
           zType="secondary"
           type="button"
-          displayDensity="cosy"
+          zSize="sm"
           class="self-start"
           [disabled]="syncingDefaults"
           (click)="syncDefaultPermissions()"
@@ -20,7 +20,7 @@
         </button>
       }
 
-      <button z-button zType="default" type="button" displayDensity="cosy" class="self-start" (click)="create()">
+      <button z-button zType="default" type="button" zSize="sm" class="self-start" (click)="create()">
         <z-icon zType="add"></z-icon>
         {{ 'XP.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
       </button>
@@ -65,9 +65,8 @@
                     <button
                       z-button
                       zType="ghost"
-                      zSize="icon-sm"
+                      zSize="icon-xs"
                       zShape="circle"
-                      displayDensity="compact"
                       type="button"
                       class="opacity-0 transition-opacity group-hover:opacity-100"
                       [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
@@ -99,7 +98,7 @@
                         : { Default: 'Create a role to start configuring role-based access for your organization.' }
                   }}
                 </div>
-                <button z-button zType="default" type="button" displayDensity="cosy" (click)="create()">
+                <button z-button zType="default" type="button" zSize="sm" (click)="create()">
                   <z-icon zType="add"></z-icon>
                   {{ 'XP.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
                 </button>
@@ -130,9 +129,8 @@
                   <button
                     z-button
                     zType="ghost"
-                    zSize="icon"
+                    zSize="icon-sm"
                     zShape="circle"
-                    displayDensity="cosy"
                     type="button"
                     [zTooltip]="'XP.ACTIONS.Rename' | translate: { Default: 'Rename' }"
                     [disabled]="role.isSystem"
@@ -146,9 +144,8 @@
                   <button
                     z-button
                     zType="destructive"
-                    zSize="icon"
+                    zSize="icon-sm"
                     zShape="circle"
-                    displayDensity="cosy"
                     type="button"
                     [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                     [disabled]="role.isSystem"

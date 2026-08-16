@@ -16,6 +16,8 @@ import { KnowledgeGraphRelation } from './knowledge-graph-relation.entity'
 @Entity('knowledge_graph_mention')
 @Index(['knowledgebaseId', 'documentId'])
 @Index(['knowledgebaseId', 'chunkId'])
+@Index('IDX_graph_mention_kb_entity_doc_chunk', ['knowledgebaseId', 'entityId', 'documentId', 'chunkId'])
+@Index('IDX_graph_mention_kb_relation_doc_chunk', ['knowledgebaseId', 'relationId', 'documentId', 'chunkId'])
 export class KnowledgeGraphMention extends TenantOrganizationBaseEntity implements IKnowledgeGraphMention {
     @ApiProperty({ type: () => Knowledgebase, readOnly: true })
     @ManyToOne(() => Knowledgebase, {

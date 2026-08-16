@@ -9,12 +9,12 @@
 </formly-form>
 
 <div class="flex justify-start">
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button
       class="text-text-accent hover:text-text-accent"
       z-button
       zType="outline"
-      displayDensity="cosy"
+      zSize="sm"
       [disabled]="isValidated()"
       (click)="validateSmtp()"
     >
@@ -24,7 +24,7 @@
     <button
       z-button
       zType="default"
-      displayDensity="cosy"
+      zSize="sm"
       [disabled]="!isValidated() || form.invalid || form.pristine"
       (click)="onSubmit()"
     >

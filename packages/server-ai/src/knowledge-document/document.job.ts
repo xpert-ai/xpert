@@ -3,6 +3,7 @@ import {
     AiModelTypeEnum,
     IKnowledgebase,
     IKnowledgeDocument,
+    KnowledgeDocumentProcessingMode,
     KnowledgeDocumentLastIncrementalSync,
     KBDocumentStatusEnum,
     KnowledgeDocumentMetadata
@@ -23,6 +24,13 @@ import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceH
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 
+/** Queue payload keeps processing mode durable across the HTTP/background-worker boundary. */
+type KnowledgeDocumentJobData = {
+    userId: string
+    docs: IKnowledgeDocument[]
+    mode?: KnowledgeDocumentProcessingMode
+}
+
 @Processor({
     name: JOB_EMBEDDING_DOCUMENT
     // scope: Scope.REQUEST
@@ -39,7 +47,7 @@ export class KnowledgeDocumentConsumer {
     ) {}
 
     @Process({ concurrency: 5 })
-    async process(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
+    async process(job: Job<KnowledgeDocumentJobData>) {
         const user = await this.userService.findOne(job.data.userId, { relations: ['role'] })
         const firstDoc = job.data.docs[0]
         if (!firstDoc) {
@@ -63,7 +71,7 @@ export class KnowledgeDocumentConsumer {
         }
     }
 
-    private async processInRequestContext(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
+    private async processInRequestContext(job: Job<KnowledgeDocumentJobData>) {
         const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
         const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, {
             relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
@@ -72,7 +80,7 @@ export class KnowledgeDocumentConsumer {
         return this._processJob(knowledgebase, job.data.docs, job)
     }
 
-    private async markQueuedDocsFailed(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>, err: unknown) {
+    private async markQueuedDocsFailed(job: Job<KnowledgeDocumentJobData>, err: unknown) {
         const processBeginAt = new Date()
         await Promise.all(
             job.data.docs.map((doc) =>
@@ -152,7 +160,13 @@ export class KnowledgeDocumentConsumer {
                 const data = await this.commandBus.execute<
                     KnowledgeDocLoadCommand,
                     { chunks: Document<ChunkMetadata>[] }
-                >(new KnowledgeDocLoadCommand({ doc: document, stage: 'prod' }))
+                >(
+                    new KnowledgeDocLoadCommand({
+                        doc: document,
+                        stage: 'prod',
+                        mode: job.data.mode ?? 'full'
+                    })
+                )
 
                 let chunks = data?.chunks // .map(transformDocument2Chunk)
                 let totalTokenUsed = 0
@@ -202,6 +216,7 @@ export class KnowledgeDocumentConsumer {
                         await this.commandBus.execute(
                             new CopilotTokenRecordCommand({
                                 tenantId: knowledgebase.tenantId,
+                                requestId: `knowledge-document:${job.id}:${document.id}:${count}`,
                                 organizationId: knowledgebase.organizationId,
                                 userId: job.data.userId,
                                 copilotId: copilot.id,

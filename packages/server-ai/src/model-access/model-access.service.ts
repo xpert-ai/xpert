@@ -38,7 +38,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { FeatureOrganization, Organization, RequestContext, User } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { createHash } from 'node:crypto'
-import { Brackets, DataSource, EntityManager, Repository } from 'typeorm'
+import { Brackets, DataSource, EntityManager, In, Repository } from 'typeorm'
 import { AIProvidersService } from '../ai-model'
 import { Copilot } from '../copilot/copilot.entity'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot/queries/copilot-model-find.query'
@@ -110,6 +110,24 @@ type ResolveModelInput = {
     copilotId: string
     copilotModelId: string
     modelType: AiModelTypeEnum
+}
+
+export type CatalogModelAccessBatchInput = Pick<
+    ResolveModelInput,
+    'tenantId' | 'organizationId' | 'userId' | 'xpertId'
+> & {
+    models: Array<Pick<ResolveModelInput, 'copilotId' | 'copilotModelId' | 'modelType'>>
+}
+
+type ModelAccessResolutionContext = {
+    billableUserId: string
+    runtimeOrganizationId: string | null
+    membershipFeatureState: () => Promise<MembershipFeatureState>
+    canManageMembership: () => Promise<boolean>
+    membershipAccess: () => Promise<MembershipModelAccess | null>
+    technicalUser: () => Promise<boolean>
+    modelAccessFeatureEnabled: (organizationId: string | null) => Promise<boolean>
+    quotaReason: (access: MembershipModelAccess | null) => Promise<ModelAccessUnavailableReasonEnum | null>
 }
 
 type EventInput = {
@@ -1166,7 +1184,6 @@ export class ModelAccessService {
             xpertId: input.xpertId
         })
         const runtimeOrganizationId = input.organizationId ?? null
-        const fallbackScope = ModelAccessOwnershipScopeEnum.Tenant
 
         await this.processDueGrants({
             tenantId: input.tenantId,
@@ -1177,6 +1194,122 @@ export class ModelAccessService {
         })
         const target = await this.loadTarget(input, runtimeOrganizationId)
         const grant = await this.findActiveGrantByInput(input, billableUserId)
+
+        return this.resolveModelAccessWithContext(input, target, grant, {
+            billableUserId,
+            runtimeOrganizationId,
+            membershipFeatureState: () => this.resolveMembershipFeatureState(input.tenantId, runtimeOrganizationId),
+            canManageMembership: () =>
+                this.hasUserPermission(input.tenantId, billableUserId, AIPermissionsEnum.MEMBERSHIP_EDIT),
+            membershipAccess: () =>
+                this.membershipService.findModelAccess({
+                    tenantId: input.tenantId,
+                    organizationId: runtimeOrganizationId,
+                    userId: billableUserId
+                }),
+            technicalUser: () => this.isTechnicalUser(input.tenantId, billableUserId),
+            modelAccessFeatureEnabled: (organizationId) =>
+                this.isModelAccessFeatureEnabled({ tenantId: input.tenantId, organizationId }),
+            quotaReason: (access) => this.resolveQuotaReason(access)
+        })
+    }
+
+    async canUseCatalogModels(input: CatalogModelAccessBatchInput): Promise<boolean[]> {
+        if (!input.models.length) {
+            return []
+        }
+        const billableUserId = await this.membershipService.resolveBillableUserId({
+            tenantId: input.tenantId,
+            userId: input.userId,
+            xpertId: input.xpertId
+        })
+        const runtimeOrganizationId = input.organizationId ?? null
+        const modelTypes = new Set(input.models.map((model) => model.modelType))
+        await this.processDueGrants({
+            tenantId: input.tenantId,
+            userId: billableUserId,
+            ...(modelTypes.size === 1 ? { modelType: input.models[0].modelType } : {})
+        })
+
+        const resolveInputs: ResolveModelInput[] = input.models.map((model) => ({
+            tenantId: input.tenantId,
+            organizationId: runtimeOrganizationId,
+            userId: input.userId,
+            xpertId: input.xpertId,
+            ...model
+        }))
+        const [targets, grants] = await Promise.all([
+            this.loadTargets(resolveInputs, runtimeOrganizationId),
+            this.findUserGrantsForCurrentContext(input.tenantId, billableUserId, runtimeOrganizationId)
+        ])
+        const activeGrants = grants.filter((grant) => grant.status === UserModelGrantStatusEnum.Active)
+
+        let membershipFeatureStatePromise: Promise<MembershipFeatureState> | null = null
+        let membershipAccessPromise: Promise<MembershipModelAccess | null> | null = null
+        let quotaReasonPromise: Promise<ModelAccessUnavailableReasonEnum | null> | null = null
+        let userStatePromise: Promise<{ canManageMembership: boolean; technicalUser: boolean }> | null = null
+        const featureEnabledByScope = new Map<string | null, Promise<boolean>>()
+        const userState = () =>
+            (userStatePromise ??= this.userRepository
+                .findOne({
+                    where: { tenantId: input.tenantId, id: billableUserId },
+                    relations: ['role', 'role.rolePermissions']
+                })
+                .then((user) => ({
+                    canManageMembership:
+                        !!user && this.userHasPermission(user, AIPermissionsEnum.MEMBERSHIP_EDIT) === true,
+                    technicalUser: user?.type === UserType.COMMUNICATION
+                })))
+        const context: ModelAccessResolutionContext = {
+            billableUserId,
+            runtimeOrganizationId,
+            membershipFeatureState: () =>
+                (membershipFeatureStatePromise ??= this.resolveMembershipFeatureState(
+                    input.tenantId,
+                    runtimeOrganizationId
+                )),
+            canManageMembership: async () => (await userState()).canManageMembership,
+            membershipAccess: () =>
+                (membershipAccessPromise ??= this.membershipService.findModelAccess({
+                    tenantId: input.tenantId,
+                    organizationId: runtimeOrganizationId,
+                    userId: billableUserId
+                })),
+            technicalUser: async () => (await userState()).technicalUser,
+            modelAccessFeatureEnabled: (organizationId) => {
+                let enabled = featureEnabledByScope.get(organizationId)
+                if (!enabled) {
+                    enabled = this.isModelAccessFeatureEnabled({ tenantId: input.tenantId, organizationId })
+                    featureEnabledByScope.set(organizationId, enabled)
+                }
+                return enabled
+            },
+            quotaReason: (access) => (quotaReasonPromise ??= this.resolveQuotaReason(access))
+        }
+
+        const availability: boolean[] = []
+        for (let index = 0; index < resolveInputs.length; index++) {
+            const resolveInput = resolveInputs[index]
+            const target = targets[index]
+            const grant = activeGrants.find(
+                (item) =>
+                    item.copilotId === resolveInput.copilotId &&
+                    item.copilotModelId === resolveInput.copilotModelId &&
+                    item.modelType === resolveInput.modelType
+            )
+            const resolution = await this.resolveModelAccessWithContext(resolveInput, target, grant, context)
+            availability.push(resolution.allowed)
+        }
+        return availability
+    }
+
+    private async resolveModelAccessWithContext(
+        input: ResolveModelInput,
+        target: ModelTarget | null,
+        grant: UserModelGrant | null | undefined,
+        context: ModelAccessResolutionContext
+    ): Promise<IModelAccessResolution> {
+        const fallbackScope = ModelAccessOwnershipScopeEnum.Tenant
         if (!target) {
             if (grant) {
                 await this.revokeGrantForDeletedModel(grant)
@@ -1184,7 +1317,7 @@ export class ModelAccessService {
             return {
                 allowed: false,
                 channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
+                billableUserId: context.billableUserId,
                 copilotId: input.copilotId,
                 copilotModelId: input.copilotModelId,
                 modelType: input.modelType,
@@ -1197,14 +1330,25 @@ export class ModelAccessService {
             }
         }
 
-        const membershipFeatureState = await this.resolveMembershipFeatureState(input.tenantId, runtimeOrganizationId)
+        // const membershipFeatureState = await this.resolveMembershipFeatureState(input.tenantId, runtimeOrganizationId)
+        // const canManageMembership =
+        //     !target.usesOrganizationCredentials || !membershipFeatureState.organizationEnabled
+        //         ? true
+        //         : await this.hasUserPermission(input.tenantId, billableUserId, AIPermissionsEnum.MEMBERSHIP_EDIT)
+        // const accessMode = this.resolveTargetAccessMode(
+        //     target,
+        //     runtimeOrganizationId,
+        //     membershipFeatureState,
+        //     canManageMembership
+        // )
+        const membershipFeatureState = await context.membershipFeatureState()
         const canManageMembership =
             !target.usesOrganizationCredentials || !membershipFeatureState.organizationEnabled
                 ? true
-                : await this.hasUserPermission(input.tenantId, billableUserId, AIPermissionsEnum.MEMBERSHIP_EDIT)
+                : await context.canManageMembership()
         const accessMode = this.resolveTargetAccessMode(
             target,
-            runtimeOrganizationId,
+            context.runtimeOrganizationId,
             membershipFeatureState,
             canManageMembership
         )
@@ -1212,7 +1356,7 @@ export class ModelAccessService {
             return {
                 allowed: target.enabled,
                 channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
+                billableUserId: context.billableUserId,
                 copilotId: target.copilotId,
                 copilotModelId: target.copilotModelId,
                 provider: target.provider,
@@ -1232,7 +1376,7 @@ export class ModelAccessService {
             return {
                 allowed: false,
                 channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
+                billableUserId: context.billableUserId,
                 copilotId: target.copilotId,
                 copilotModelId: target.copilotModelId,
                 provider: target.provider,
@@ -1247,19 +1391,15 @@ export class ModelAccessService {
             }
         }
 
-        const membershipAccess = await this.membershipService.findModelAccess({
-            tenantId: input.tenantId,
-            organizationId: runtimeOrganizationId,
-            userId: billableUserId
-        })
+        const membershipAccess = await context.membershipAccess()
         if (this.isPlanIncluded(target, membershipAccess)) {
             const unavailableReason = target.enabled
-                ? await this.resolveQuotaReason(membershipAccess)
+                ? await context.quotaReason(membershipAccess)
                 : ModelAccessUnavailableReasonEnum.ModelDisabled
             return {
                 allowed: target.enabled,
                 channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
+                billableUserId: context.billableUserId,
                 copilotId: target.copilotId,
                 copilotModelId: target.copilotModelId,
                 provider: target.provider,
@@ -1282,7 +1422,7 @@ export class ModelAccessService {
             return {
                 allowed: false,
                 channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
+                billableUserId: context.billableUserId,
                 copilotId: target.copilotId,
                 copilotModelId: target.copilotModelId,
                 provider: target.provider,
@@ -1295,12 +1435,12 @@ export class ModelAccessService {
             }
         }
 
-        if (await this.isTechnicalUser(input.tenantId, billableUserId)) {
+        if (await context.technicalUser()) {
             await this.recordGrantAvailability(grant, ModelAccessUnavailableReasonEnum.TechnicalUser)
             return {
                 allowed: false,
                 channel: ModelAccessChannelEnum.Xpert,
-                billableUserId,
+                billableUserId: context.billableUserId,
                 copilotId: target.copilotId,
                 copilotModelId: target.copilotModelId,
                 provider: target.provider,
@@ -1316,15 +1456,12 @@ export class ModelAccessService {
             }
         }
 
-        const featureEnabled = await this.isModelAccessFeatureEnabled({
-            tenantId: target.tenantId,
-            organizationId: target.organizationId
-        })
+        const featureEnabled = await context.modelAccessFeatureEnabled(target.organizationId)
         const unavailableReason = !featureEnabled
             ? ModelAccessUnavailableReasonEnum.FeatureDisabled
             : !target.enabled
               ? ModelAccessUnavailableReasonEnum.ModelDisabled
-              : await this.resolveQuotaReason(membershipAccess)
+              : await context.quotaReason(membershipAccess)
         await this.recordGrantAvailability(grant, unavailableReason)
         return {
             allowed:
@@ -1332,7 +1469,7 @@ export class ModelAccessService {
                 unavailableReason === ModelAccessUnavailableReasonEnum.QuotaExhausted ||
                 unavailableReason === ModelAccessUnavailableReasonEnum.MembershipRequired,
             channel: ModelAccessChannelEnum.Xpert,
-            billableUserId,
+            billableUserId: context.billableUserId,
             copilotId: target.copilotId,
             copilotModelId: target.copilotModelId,
             provider: target.provider,
@@ -1773,6 +1910,55 @@ export class ModelAccessService {
         return Array.from(targets.values())
     }
 
+    private async loadTargets(
+        inputs: Array<Pick<ResolveModelInput, 'tenantId' | 'copilotId' | 'copilotModelId' | 'modelType'>>,
+        visibleOrganizationId: string | null
+    ): Promise<Array<ModelTarget | null>> {
+        if (!inputs.length) {
+            return []
+        }
+        const tenantId = inputs[0].tenantId
+        const copilots = await this.copilotRepository.find({
+            where: {
+                tenantId,
+                id: In(Array.from(new Set(inputs.map((input) => input.copilotId))))
+            },
+            relations: ['modelProvider']
+        })
+        const copilotById = new Map(copilots.map((copilot) => [copilot.id, copilot]))
+        const providerIds = Array.from(
+            new Set(copilots.map((copilot) => copilot.modelProvider?.id).filter((id): id is string => !!id))
+        )
+        const customModels = providerIds.length
+            ? await this.providerModelRepository.find({
+                  where: {
+                      tenantId,
+                      providerId: In(providerIds),
+                      modelType: In(Array.from(new Set(inputs.map((input) => input.modelType)))),
+                      modelName: In(Array.from(new Set(inputs.map((input) => input.copilotModelId))))
+                  }
+              })
+            : []
+        const customByModel = new Map(
+            customModels.map((model) => [`${model.providerId}:${model.modelType}:${model.modelName}`, model])
+        )
+
+        return inputs.map((input) => {
+            const copilot = copilotById.get(input.copilotId)
+            if (!copilot?.modelProvider?.providerName) {
+                return null
+            }
+            const organizationId = copilot.organizationId ?? null
+            const provider = this.providersService.getProvider(
+                copilot.modelProvider.providerName,
+                false,
+                organizationId ?? undefined
+            )
+            const custom = customByModel.get(`${copilot.modelProvider.id}:${input.modelType}:${input.copilotModelId}`)
+            return this.createModelTarget(input, copilot, provider, custom, visibleOrganizationId)
+        })
+    }
+
     private async loadTarget(
         input: Pick<ResolveModelInput, 'tenantId' | 'copilotId' | 'copilotModelId' | 'modelType'>,
         visibleOrganizationId?: string | null
@@ -1788,17 +1974,14 @@ export class ModelAccessService {
             return null
         }
         const organizationId = copilot.organizationId ?? null
-        if (organizationId && organizationId !== (visibleOrganizationId ?? null)) {
-            return null
-        }
-        const providerName = copilot.modelProvider.providerName
-        const provider = this.providersService.getProvider(providerName, false, organizationId ?? undefined)
+        const provider = this.providersService.getProvider(
+            copilot.modelProvider.providerName,
+            false,
+            organizationId ?? undefined
+        )
         if (!provider) {
             return null
         }
-        const predefined = provider
-            .getProviderModels(input.modelType)
-            ?.find((model) => model.model === input.copilotModelId)
         const custom = await this.providerModelRepository.findOne({
             where: {
                 tenantId: input.tenantId,
@@ -1807,6 +1990,27 @@ export class ModelAccessService {
                 modelName: input.copilotModelId
             }
         })
+        return this.createModelTarget(input, copilot, provider, custom, visibleOrganizationId ?? null)
+    }
+
+    private createModelTarget(
+        input: Pick<ResolveModelInput, 'tenantId' | 'copilotId' | 'copilotModelId' | 'modelType'>,
+        copilot: Copilot,
+        provider: ReturnType<AIProvidersService['getProvider']>,
+        custom: CopilotProviderModel | null | undefined,
+        visibleOrganizationId: string | null
+    ): ModelTarget | null {
+        if (!provider || !copilot.modelProvider?.providerName) {
+            return null
+        }
+        const organizationId = copilot.organizationId ?? null
+        if (organizationId && organizationId !== visibleOrganizationId) {
+            return null
+        }
+        const providerName = copilot.modelProvider.providerName
+        const predefined = provider
+            .getProviderModels(input.modelType)
+            ?.find((model) => model.model === input.copilotModelId)
         const selectedMatches =
             copilot.copilotModel?.modelType === input.modelType && copilot.copilotModel?.model === input.copilotModelId
         if (!predefined && !custom && !selectedMatches) {

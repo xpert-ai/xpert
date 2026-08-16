@@ -47,6 +47,7 @@ export class KnowledgeDocumentPreviewComponent {
     request: () =>
       this.category() === KBDocumentCategoryEnum.Sheet
         ? {
+            id: this.document()?.id,
             type: this.document()?.type,
             category: this.category(),
             parserConfig: this._documentParserConfig(),
@@ -56,6 +57,7 @@ export class KnowledgeDocumentPreviewComponent {
             knowledgebaseId: this.knowledgebase().id
           }
         : {
+            id: this.document()?.id,
             type: this.document()?.type,
             category: this.category(),
             parserConfig: this._parserConfig(),
@@ -67,7 +69,8 @@ export class KnowledgeDocumentPreviewComponent {
     options: {
       equal: isEqual
     },
-    loader: ({ request }) => (request.fileUrl ? this.knowledgeDocumentService.estimate(request) : of(null))
+    loader: ({ request }) =>
+      request.fileUrl || request.filePath ? this.knowledgeDocumentService.estimate(request) : of(null)
   })
 
   readonly loading = computed(() => this.estimateFile.status() === 'loading')

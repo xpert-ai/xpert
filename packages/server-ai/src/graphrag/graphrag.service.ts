@@ -9,7 +9,6 @@ import {
     IKnowledgebase,
     IKnowledgeDocumentChunk,
     KDocumentSourceType,
-    KnowledgeDocumentMetadata,
     KnowledgeGraphEntityChunksQuery,
     KnowledgeGraphEntityChunksResponse,
     KnowledgeGraphEntityCreateInput,
@@ -23,8 +22,7 @@ import {
     KnowledgeGraphStatusResponse,
     KnowledgeGraphViewResponse,
     KnowledgeGraphVisibility,
-    KnowledgeGraphVisualizationQuery,
-    TWFCase
+    KnowledgeGraphVisualizationQuery
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { PaginationParams, RequestContext } from '@xpert-ai/server-core'
@@ -43,7 +41,6 @@ import { KnowledgeDocumentService } from '../knowledge-document/document.service
 import { TDocChunkMetadata } from '../knowledge-document/types'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
-import { buildMetadataCondition } from '../knowledgebase/types'
 import {
     KnowledgeGraphCommunity,
     KnowledgeGraphEntity,
@@ -57,9 +54,7 @@ import {
     TKnowledgeGraphExtraction,
     TKnowledgeGraphExtractionEntity,
     TKnowledgeGraphExtractionRelation,
-    TKnowledgeGraphIndexQueueJob,
-    TKnowledgeGraphSearchInput,
-    TKnowledgeGraphSearchResult
+    TKnowledgeGraphIndexQueueJob
 } from './types'
 
 const DEFAULT_GRAPH_RAG_CONFIG: Required<GraphRagConfig> = {
@@ -1006,56 +1001,6 @@ export class GraphragService {
         }
     }
 
-    async search(input: TKnowledgeGraphSearchInput): Promise<TKnowledgeGraphSearchResult> {
-        const graphConfig = resolveGraphConfig({
-            ...(input.graphRag ?? {}),
-            ...(input.retrieval ?? {})
-        })
-        if (!this.isEnabled(input.knowledgebase) || input.knowledgebase.graphStatus === KnowledgeGraphStatus.DISABLED) {
-            return { docs: [] }
-        }
-
-        try {
-            const allowedDocumentIds = await this.resolveFilteredDocumentIds(
-                input.knowledgebase.id,
-                input.filter,
-                input.filtering_conditions
-            )
-            if (allowedDocumentIds && !allowedDocumentIds.length) {
-                return { docs: [] }
-            }
-
-            const entityScores = await this.searchEntities(input.knowledgebase, input.query, graphConfig.entityTopK)
-            if (!entityScores.length) {
-                return { docs: [] }
-            }
-
-            const expanded = await this.expandEntities(
-                input.knowledgebase.id,
-                entityScores.map((item) => item.entityId),
-                graphConfig.neighborHops
-            )
-            const docs = await this.resolveGraphChunks({
-                knowledgebaseId: input.knowledgebase.id,
-                entityScores,
-                entityIds: expanded.entityIds,
-                relations: expanded.relations,
-                allowedDocumentIds,
-                topK: input.k
-            })
-            return { docs }
-        } catch (error) {
-            this.logger.warn(
-                `GraphRAG search failed for knowledgebase '${input.knowledgebase.id}': ${getErrorMessage(error)}`
-            )
-            return {
-                docs: [],
-                failed: true,
-                error: getErrorMessage(error)
-            }
-        }
-    }
-
     private async ensureGraphEnabled(knowledgebaseId: string) {
         const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId)
         if (!this.isEnabled(knowledgebase)) {
@@ -1675,67 +1620,6 @@ export class GraphragService {
             graphStatus: KnowledgeGraphStatus.READY,
             graphIndexError: null
         })
-    }
-
-    private async resolveFilteredDocumentIds(
-        knowledgebaseId: string,
-        filter?: KnowledgeDocumentMetadata,
-        filteringConditions?: TWFCase
-    ) {
-        const hasSimpleFilter = filter && Object.keys(filter).length > 0
-        if (!hasSimpleFilter && !filteringConditions) {
-            return null
-        }
-        const where = filteringConditions
-            ? {
-                  knowledgebaseId,
-                  metadata: buildMetadataCondition(filteringConditions)
-              }
-            : {
-                  knowledgebaseId,
-                  metadata: Raw((alias) => {
-                      const conditions = Object.entries(filter ?? {}).map(([key, value]) => {
-                          const rawValue = `${value}`.replace(/'/g, "''")
-                          return `${alias} ->> '${key}' = '${rawValue}'`
-                      })
-                      return conditions.join(' AND ')
-                  })
-              }
-        const documents = await this.documentService.findAll({
-            where,
-            select: {
-                id: true
-            }
-        })
-        return documents.items.map((document) => document.id)
-    }
-
-    private async searchEntities(knowledgebase: IKnowledgebase, query: string, entityTopK: number) {
-        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true)
-        const results = await vectorStore.similaritySearchWithScore(query, entityTopK, {
-            kind: 'knowledge_graph_entity',
-            knowledgebaseId: knowledgebase.id
-        })
-        const scored = results
-            .map(([doc, score]) => ({
-                entityId: typeof doc.metadata?.graphEntityId === 'string' ? doc.metadata.graphEntityId : null,
-                score: 1 - score
-            }))
-            .filter((item): item is { entityId: string; score: number } => !!item.entityId)
-        if (!scored.length) {
-            return []
-        }
-        const activeEntities = await this.entityRepository
-            .createQueryBuilder('entity')
-            .select('entity.id')
-            .where('entity.knowledgebaseId = :knowledgebaseId', { knowledgebaseId: knowledgebase.id })
-            .andWhere('entity.id IN (:...entityIds)', { entityIds: scored.map((item) => item.entityId) })
-            .andWhere('(entity.visibility = :visibility OR entity.visibility IS NULL)', {
-                visibility: GRAPH_VISIBILITY_ACTIVE
-            })
-            .getMany()
-        const activeIds = new Set(activeEntities.map((entity) => entity.id))
-        return scored.filter((item) => activeIds.has(item.entityId))
     }
 
     private async expandEntities(knowledgebaseId: string, seedEntityIds: string[], hops: number) {

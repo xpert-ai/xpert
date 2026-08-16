@@ -11,7 +11,6 @@ import {
   ZardFormImports,
   ZardIconComponent
 } from '../../../../../components'
-import { DensityDirective } from '../../../core'
 
 const colorsEnterAnimation = trigger('colorsEnterAnimation', [
   transition('* <=> *', [
@@ -36,8 +35,7 @@ export interface ColorPaletteGroup {
     ZardComboboxDeprecatedOptionTemplateDirective,
     ...ZardFormImports,
     ZardIconComponent,
-    ZardButtonComponent,
-    DensityDirective
+    ZardButtonComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'xp-colors',

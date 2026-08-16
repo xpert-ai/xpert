@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { IconDefinition, TAvatar } from '../../../../@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar/emoji-avatar/avatar.component'
 import { IconComponent } from 'apps/cloud/src/app/@shared/avatar/icon/icon.component'
@@ -24,7 +25,7 @@ export type BlankTemplateChoice = {
 @Component({
   selector: 'xpert-blank-template-selection',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, EmojiAvatarComponent, IconComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, EmojiAvatarComponent, IconComponent, ZardSearchInputComponent],
   template: `
     <div class="space-y-3">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -60,26 +61,12 @@ export type BlankTemplateChoice = {
           </div>
         }
 
-        <label class="relative block w-full lg:max-w-64">
-          <i
-            class="ri-search-2-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-          ></i>
-          <input
-            [(ngModel)]="search"
-            class="xp-input w-full border-input-border pl-9 pr-9 text-sm transition-colors"
-            [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search templates' }"
-          />
-
-          @if (search()) {
-            <button
-              type="button"
-              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-tertiary transition-opacity hover:opacity-100"
-              (click)="search.set('')"
-            >
-              <i class="ri-close-circle-fill"></i>
-            </button>
-          }
-        </label>
+        <z-search-input
+          class="w-full lg:max-w-64"
+          [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search templates' }"
+          [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+          [(ngModel)]="search"
+        />
       </div>
 
       @if (error()) {

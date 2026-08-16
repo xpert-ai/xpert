@@ -26,7 +26,7 @@ import {
   ZardTooltipImports,
   type ZardTableSortDirection
 } from '../../../../../components'
-import { DisplayDensity, OcapCoreModule } from '../../../core'
+import { DisplayDensity } from '../../../core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { TableColumn } from '../types'
@@ -72,10 +72,7 @@ interface ColumnResizeState {
     ZardButtonComponent,
     ...ZardTooltipImports,
     ZardInputDirective,
-    TranslateModule,
-
-    //OCAP Modules
-    OcapCoreModule
+    TranslateModule
   ]
 })
 export class XpTableComponent {

@@ -20,10 +20,10 @@ import { RouterModule } from '@angular/router'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import {
   CdkConfirmDeleteComponent,
-  XpSearchComponent,
   XpSpinComponent,
   XpTableComponent,
-  TableColumn
+  TableColumn,
+  ZardSearchInputComponent
 } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -59,7 +59,7 @@ import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.compo
     XpSelectComponent,
     XpTableComponent,
     XpSpinComponent,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     UserProfileInlineComponent,
     DateRelativePipe
   ],

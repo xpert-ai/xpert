@@ -6,13 +6,7 @@ import { FieldType } from '@ngx-formly/core'
   selector: 'xp-formly-button-toggle',
   standalone: false,
   template: ` <label class="text-sm">{{ to.label }}</label>
-    <z-toggle-group
-      [formControl]="_formControl"
-      [multiple]="to?.multiple"
-      xpAppearance="outline"
-      color="accent"
-      displayDensity="compact"
-    >
+    <z-toggle-group [formControl]="_formControl" [multiple]="to?.multiple" zType="outline" color="accent" zSize="sm">
       @for (option of $any(to?.options); track option) {
         <z-toggle-group-item [value]="option.value">{{ option.label }}</z-toggle-group-item>
       }

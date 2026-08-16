@@ -51,10 +51,9 @@ import { FieldArrayType } from '@ngx-formly/core'
             <button
               z-button
               zType="ghost"
-              zSize="icon"
+              zSize="icon-xs"
               zShape="circle"
               class="xp-formly__remove text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
-              displayDensity="compact"
               (click)="remove(i)"
             >
               <z-icon zType="clear"></z-icon>

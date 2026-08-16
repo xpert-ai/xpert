@@ -256,22 +256,10 @@
     font-weight: 600;
   }
 
-  .cdk-menu {
-    .cdk-menu-item {
-      &.xp-appearance-danger:hover {
-        @apply bg-red-400 text-white;
-      }
-    }
-  }
-
   .cdk-menu,
   [z-menu-content] {
     .cdk-menu-item,
     [z-menu-item] {
-      &.xp-appearance-danger:hover {
-        @apply bg-red-400 text-white;
-      }
-
       z-checkbox {
         width: 100%;
 

@@ -103,6 +103,8 @@ export type ManagedQueueJob<TPayload = unknown> = {
   data: TPayload
   attemptsMade: number
   opts?: Record<string, unknown>
+  /** Persist a processor checkpoint without changing queue ownership metadata. */
+  updateData(data: TPayload): Promise<void>
 }
 
 export type ManagedQueueJobContext = {
@@ -117,7 +119,7 @@ export type ManagedQueueJobContext = {
   userId?: string | null
 }
 
-export type ManagedQueueJobSnapshot<TPayload = unknown> = ManagedQueueJob<TPayload> & {
+export type ManagedQueueJobSnapshot<TPayload = unknown> = Omit<ManagedQueueJob<TPayload>, 'updateData'> & {
   state?: string
   /** BullMQ terminal failure text, when the physical job is in the failed state. */
   failedReason?: string

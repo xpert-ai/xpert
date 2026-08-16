@@ -1,13 +1,18 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
-import { IKnowledgeDocumentChunk, OrganizationBaseCrudService } from '@cloud/app/@core/state'
+import { IKnowledgeDocumentChunk, OrganizationBaseCrudService, Store } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
 import {
   IIntegration,
   IKnowledgeDocument,
   IKnowledgeDocumentPage,
+  KnowledgeDocumentProcessingMode,
+  KnowledgeDocumentAnalysisPage,
+  KnowledgeDocumentAnalysisPreview,
+  RequestScopeLevel,
+  KnowledgeDocumentReprocessCapabilities,
   TKDocumentWebSchema,
   TRagWebOptions,
   TRagWebResult
@@ -16,6 +21,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowledgeDocument> {
   readonly #logger = inject(NGXLogger)
+  readonly #store = inject(Store)
 
   constructor() {
     super(API_KNOWLEDGE_DOCUMENT)
@@ -45,10 +51,31 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     })
   }
 
-  startParsing(id: string | string[]) {
+  move(id: string, input: { knowledgebaseId: string; parentId: string | null; version: number }) {
+    return this.httpClient.post<{ document: IKnowledgeDocument; affectedDocumentIds: string[] }>(
+      this.apiBaseUrl + `/${id}/move`,
+      input
+    )
+  }
+
+  getFolderChildCounts(knowledgebaseId: string, folderIds: string[]) {
+    return this.httpClient.post<Array<{ folderId: string; documentCount: number; folderCount: number }>>(
+      this.apiBaseUrl + '/folder-child-counts',
+      { knowledgebaseId, folderIds }
+    )
+  }
+
+  startParsing(id: string | string[], mode: KnowledgeDocumentProcessingMode = 'full') {
     return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/process', {
-      ids: Array.isArray(id) ? id : id ? [id] : []
+      ids: Array.isArray(id) ? id : id ? [id] : [],
+      mode
     })
+  }
+
+  getReprocessCapabilities(id: string) {
+    return this.httpClient.get<KnowledgeDocumentReprocessCapabilities>(
+      this.apiBaseUrl + `/${id}/reprocess-capabilities`
+    )
   }
 
   stopParsing(id: string) {
@@ -73,6 +100,46 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
         responseType: 'blob'
       }
     )
+  }
+
+  getAnalysisPreview(id: string) {
+    return this.httpClient.get<KnowledgeDocumentAnalysisPreview>(this.apiBaseUrl + `/${id}/analysis-preview`)
+  }
+
+  getAnalysisPreviewPage(id: string, page: number) {
+    return this.httpClient.get<KnowledgeDocumentAnalysisPage>(this.apiBaseUrl + `/${id}/analysis-preview/pages/${page}`)
+  }
+
+  getAnalysisPreviewRawPage(id: string, page: number) {
+    return this.httpClient.get<Array<Record<string, unknown>>>(
+      this.apiBaseUrl + `/${id}/analysis-preview/pages/${page}/raw`
+    )
+  }
+
+  getAnalysisPreviewAsset(id: string, assetId: string) {
+    return this.httpClient.get(this.analysisPreviewAssetUrl(id, assetId), { responseType: 'blob' })
+  }
+
+  analysisPreviewAssetUrl(id: string, assetId: string) {
+    return this.apiBaseUrl + `/${id}/analysis-preview/assets/${encodeURIComponent(assetId)}`
+  }
+
+  /** Builds the authenticated PDF.js source; range requests must carry the same tenant/scope headers. */
+  originalFilePreviewSource(id: string) {
+    const activeScope = this.#store.activeScope
+    const tenantId = this.#store.user?.tenantId
+    return {
+      url: this.apiBaseUrl + `/${id}/original-file/preview`,
+      httpHeaders: {
+        ...(this.#store.token ? { Authorization: `Bearer ${this.#store.token}` } : {}),
+        ...(tenantId ? { 'Tenant-Id': `${tenantId}` } : {}),
+        'X-Scope-Level': activeScope.level,
+        ...(activeScope.level === RequestScopeLevel.ORGANIZATION
+          ? { 'Organization-Id': `${activeScope.organizationId}` }
+          : {})
+      },
+      withCredentials: true
+    }
   }
 
   estimate(doc: Partial<IKnowledgeDocument>) {

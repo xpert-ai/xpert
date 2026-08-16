@@ -9,11 +9,11 @@ import {
     isBaseMessageChunk,
     isToolMessage,
     RemoveMessage,
-    ToolMessage,
-    type InvalidToolCall
+    ToolMessage
 } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
+import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
     Annotation,
@@ -49,7 +49,6 @@ import {
     TAgentRunnableConfigurable,
     TStateVariable,
     TSummarize,
-    TAgentExecutionMetadata,
     TXpertGraph,
     TXpertParameter,
     TXpertTeamNode,
@@ -67,6 +66,7 @@ import {
     BeforeModelHandler,
     IAgentMiddlewareContext,
     JumpToTarget,
+    ModelOutputValidationError,
     ModelRequest,
     RequestContext,
     WrapModelCallHandler,
@@ -80,7 +80,13 @@ import z from 'zod'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { prepareMessagesForModel, setModelPreparesOwnMessages } from '../../../copilot-model/model-capabilities'
-import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import {
+    createExecutionModelUsageRecorder,
+    type TExecutionUsageRecord,
+    XpertAgentExecutionRecordUsageCommand,
+    XpertAgentExecutionService,
+    XpertAgentExecutionUpsertCommand
+} from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
@@ -133,12 +139,15 @@ import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import { buildAgentDecisionPathMap, getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
+import {
+    createInvalidToolCallDiagnostics,
+    createInvalidToolCallErrorMessage,
+    createInvalidToolCallRepairContext
+} from './invalid-tool-call-diagnostics'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
 const GRAPH_JUMP_TO_STATE_KEY = '__xpertJumpTo'
-const INVALID_TOOL_CALL_LOG_EVENT = 'xpert.invalid_tool_calls'
-const MAX_INVALID_TOOL_CALL_ARGS_LOG_CHARS = 20000
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -153,7 +162,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
         private readonly xpertTitleMiddlewareService: XpertTitleMiddlewareService,
-        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService
+        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService,
+        private readonly executionService: XpertAgentExecutionService
     ) {}
 
     public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
@@ -175,6 +185,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             tools: additionalTools,
             mute
         } = options
+        const resolveExecutionId = () => getCurrentExecutionId() ?? execution.id
+        const persistExecutionUsage = async (executionId: string, usage: TExecutionUsageRecord) => {
+            await this.commandBus.execute(new XpertAgentExecutionRecordUsageCommand(executionId, usage))
+        }
+        const modelUsageRecorder = createExecutionModelUsageRecorder(
+            resolveExecutionId,
+            persistExecutionUsage,
+            () => execution.metadata
+        )
 
         // Signal controller in this subgraph
         const abortController = new AbortController()
@@ -238,7 +257,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
                 new GetXpertChatModelQuery(agent.team, agent, {
                     abortController: rootController,
-                    usageCallback: assignExecutionUsage(execution),
+                    usageCallback: modelUsageRecorder.usageCallback,
                     threadId: thread_id
                 })
             )
@@ -270,7 +289,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 executionId: execution.id,
                 signal: abortController.signal,
                 env: toEnvState(environment),
-                store: options.store
+                store: options.store,
+                getExecutionId: resolveExecutionId
             })
         )
         const { closeToolsets, installGraphCloseHook } = createToolsetRuntimeCleanup({
@@ -376,30 +396,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             `\nUse tools:\n${tools.length ? tools.map((_, i) => `${i + 1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`
         )
 
-        // Knowledgebases
-        const knowledgebaseIds = agent.knowledgebaseIds
-        if (knowledgebaseIds?.length) {
-            const recalls = team.agentConfig?.recalls
-            const retrievals = team.agentConfig?.retrievals
-            const recall = agent.options?.recall
-            for (const id of knowledgebaseIds) {
-                const retriever = createKnowledgeRetriever(this.queryBus, id, {
-                    recall: { ...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {}) },
-                    retrieval: retrievals?.[id]
-                })
-                tools.push({
-                    toolset: {
-                        id: knowledgebaseIds.join(','),
-                        provider: 'knowledgebase',
-                        title: translate({ en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
-                    },
-                    caller: agent.key,
-                    tool: await retriever.toTool({
-                        name: 'retriever-' + id
-                    })
-                })
-            }
-        }
+        await this.appendKnowledgebaseTools(tools, agent)
 
         /**
          * Sub agents: include followers (agents in one xpert team) and collaborators (external xperts: primary agent is entry)
@@ -755,6 +752,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const organizationId = RequestContext.getOrganizationId() ?? null
+        const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
             tenantId: xpert.tenantId,
             organizationId,
@@ -765,6 +763,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             xpertName: xpert.name,
             conversationId: options.conversationId,
             agentKey,
+            executionId: isRootExecution ? execution.id : undefined,
+            usageCallback: usageRecorder.usageCallback,
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath
         })
@@ -935,7 +935,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         } = getModelHooks(middlewareEntries)
         const afterModelHooks = [
             ...userAfterModelHooks,
-            ...(!hiddenAgent ? [createThreadContextUsageEventHook(agent, thread_id, execution)] : [])
+            ...(!hiddenAgent
+                ? [
+                      createThreadContextUsageEventHook(agent, thread_id, async () => {
+                          const executionId = resolveExecutionId()
+                          return executionId ? await this.executionService.findOne(executionId) : null
+                      })
+                  ]
+                : [])
         ]
         const afterModelExecutionOrder = [...afterModelHooks].reverse()
 
@@ -1159,7 +1166,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     new GetXpertChatModelQuery(agent.team, null, {
                         copilotModel: agent.options.fallback.copilotModel,
                         abortController: rootController,
-                        usageCallback: assignExecutionUsage(execution),
+                        usageCallback: modelUsageRecorder.usageCallback,
                         threadId: thread_id
                     })
                 )
@@ -1245,7 +1252,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                                 diagnosticId,
                                 invalidToolCalls,
                                 threadId: thread_id,
-                                executionId: execution.id,
+                                executionId: resolveExecutionId(),
                                 xpertId: xpert.id,
                                 agentKey,
                                 agentChannel,
@@ -1253,8 +1260,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                                 aiMessageId: response.id
                             })
                         )
-                        throw new InternalServerErrorException(
-                            createInvalidToolCallErrorMessage(invalidToolCalls, diagnosticId)
+                        throw new ModelOutputValidationError(
+                            createInvalidToolCallErrorMessage(invalidToolCalls, diagnosticId),
+                            createInvalidToolCallRepairContext(invalidToolCalls)
                         )
                     }
                 }
@@ -1652,15 +1660,53 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
     }
 
-    /**
-     * Create two types of sub-agent graphs (isTool):
-     * - Tool: Sub graph as a tool
-     * - Node: Sub graph as subsequent node
-     *
-     * @param agent
-     * @param config
-     * @returns
-     */
+    private async appendKnowledgebaseTools(tools: TGraphTool[], agent: IXpertAgent) {
+        const knowledgebaseIds = agent.knowledgebaseIds
+        if (!knowledgebaseIds?.length) return
+
+        const recalls = agent.team.agentConfig?.recalls
+        const retrievals = agent.team.agentConfig?.retrievals
+        const recall = agent.options?.recall
+        for (const id of knowledgebaseIds) {
+            const retrieval = retrievals?.[id]
+            const retriever = createKnowledgeRetriever(this.queryBus, id, {
+                recall: { ...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {}) },
+                retrieval
+            })
+            const knowledgeToolset = {
+                id: knowledgebaseIds.join(','),
+                provider: 'knowledgebase',
+                title: translate({ en_US: 'Knowledge Tools', zh_Hans: '知识库工具' })
+            }
+            tools.push({
+                toolset: knowledgeToolset,
+                caller: agent.key,
+                tool: await retriever.toTool({
+                    name: 'retriever-' + id
+                })
+            })
+            if (retrieval?.filtering?.agent?.enabled) {
+                tools.push({
+                    toolset: knowledgeToolset,
+                    caller: agent.key,
+                    tool: await retriever.toFilterOptionsTool({
+                        name: 'knowledge-filter-options-' + id
+                    })
+                })
+            }
+            const graphExplorerTool = await retriever.toGraphExplorerTool({
+                name: 'knowledge-graph-explorer-' + id
+            })
+            if (graphExplorerTool) {
+                tools.push({
+                    toolset: knowledgeToolset,
+                    caller: agent.key,
+                    tool: graphExplorerTool
+                })
+            }
+        }
+    }
+
     private getAgentWorkflowEdges(graph: TXpertGraph, agentKey: string) {
         const nodeMap = new Map(graph.nodes.map((node) => [node.key, node]))
         const nextNodes = graph.connections
@@ -1683,6 +1729,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
     }
 
+    /**
+     * Create two types of sub-agent graphs (isTool):
+     * - Tool: Sub graph as a tool
+     * - Node: Sub graph as subsequent node
+     */
     async createAgentSubgraph(
         agent: IXpertAgent,
         config: TAgentSubgraphParams & {
@@ -1767,7 +1818,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         predecessor: configurable.agentKey
                     })
                 )
-
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, _execution))
 
@@ -1781,7 +1831,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     // Record End time
                     const newExecution = await this.commandBus.execute(
                         new XpertAgentExecutionUpsertCommand({
-                            ...execution,
                             id: _execution.id,
                             checkpointId: _state.config.configurable.checkpoint_id,
                             elapsedTime: timeEnd - timeStart,
@@ -1899,6 +1948,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             stateGraph: stateGraph.withConfig({ tags: [xpert.id] })
         } as TSubAgent
     }
+}
+
+export function getCurrentExecutionId() {
+    const configurable = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable
+    const executionId = configurable?.executionId
+    return typeof executionId === 'string' && executionId ? executionId : undefined
 }
 
 function ensureSummarize(summarize?: TSummarize) {
@@ -2155,88 +2210,6 @@ function stringifyStructuredResponse(response: unknown) {
     } catch {
         return String(response)
     }
-}
-
-type InvalidToolCallDiagnosticsInput = {
-    diagnosticId: string
-    invalidToolCalls: InvalidToolCall[]
-    threadId?: string
-    executionId?: string
-    xpertId?: string
-    agentKey: string
-    agentChannel: string
-    model?: TAgentExecutionMetadata | null
-    aiMessageId?: string
-}
-
-type InvalidToolCallDiagnostics = {
-    event: typeof INVALID_TOOL_CALL_LOG_EVENT
-    diagnosticId: string
-    threadId?: string
-    executionId?: string
-    xpertId?: string
-    agentKey: string
-    agentChannel: string
-    model?: TAgentExecutionMetadata | null
-    aiMessageId?: string
-    invalidToolCalls: Array<{
-        id?: string
-        name?: string
-        error: string
-        argsPreview: string
-        rawArgsLength: number
-        truncated: boolean
-    }>
-}
-
-function createInvalidToolCallDiagnostics(input: InvalidToolCallDiagnosticsInput): InvalidToolCallDiagnostics {
-    return {
-        event: INVALID_TOOL_CALL_LOG_EVENT,
-        diagnosticId: input.diagnosticId,
-        threadId: input.threadId,
-        executionId: input.executionId,
-        xpertId: input.xpertId,
-        agentKey: input.agentKey,
-        agentChannel: input.agentChannel,
-        model: input.model,
-        aiMessageId: input.aiMessageId,
-        invalidToolCalls: input.invalidToolCalls.map((call) => {
-            const rawArgs = call.args ?? ''
-            const redactedArgs = redactInvalidToolCallArgs(rawArgs)
-            const truncated = redactedArgs.length > MAX_INVALID_TOOL_CALL_ARGS_LOG_CHARS
-
-            return {
-                id: call.id,
-                name: call.name,
-                error: call.error ?? 'Invalid tool call',
-                argsPreview: truncated ? redactedArgs.slice(0, MAX_INVALID_TOOL_CALL_ARGS_LOG_CHARS) : redactedArgs,
-                rawArgsLength: rawArgs.length,
-                truncated
-            }
-        })
-    }
-}
-
-function createInvalidToolCallErrorMessage(invalidToolCalls: InvalidToolCall[], diagnosticId: string) {
-    const detail = invalidToolCalls
-        .map((call) => `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}`)
-        .join('; ')
-    const prefix = t('server-ai:Error.InvalidToolCalls') || 'Model returned invalid tool calls:'
-
-    return `${prefix}${detail ? `${detail} ` : ''}(diagnosticId: ${diagnosticId})`
-}
-
-function redactInvalidToolCallArgs(args: string) {
-    return args
-        .replace(
-            /("(?:api[_-]?key|authorization|password|secret|token|access[_-]?token|refresh[_-]?token|client[_-]?secret)"\s*:\s*)"([^"\\]*(?:\\.[^"\\]*)*)"/gi,
-            '$1"[REDACTED]"'
-        )
-        .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]')
-        .replace(
-            /\b(api[_-]?key|authorization|password|secret|token|access[_-]?token|refresh[_-]?token|client[_-]?secret)(\s*[=:]\s*)([^\s,;}"']+)/gi,
-            '$1$2[REDACTED]'
-        )
 }
 
 function getModelHooks(middlewareWithKeys: Array<{ key: string; middleware: AgentMiddleware }>) {

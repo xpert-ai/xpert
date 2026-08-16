@@ -8,18 +8,22 @@
     </span>
   </div>
 
-  <xp-search class="my-2" [formControl]="searchControl"></xp-search>
+  <z-search-input
+    class="my-2"
+    [formControl]="searchControl"
+    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+  />
 
   <ul class="xp-nav-list flex-1 overflow-auto"></ul>
 
   <div class="flex justify-end items-center">
-    <div xpButtonGroup>
+    <div class="flex items-center gap-1">
       <button
-        class="text-text-accent hover:text-text-accent"
+        class="border-dashed text-text-accent hover:text-text-accent"
         z-button
         zType="outline"
-        xpAppearance="dashed"
-        displayDensity="cosy"
+        zSize="sm"
         (click)="upload()"
       >
         <div class="flex justify-start items-center">

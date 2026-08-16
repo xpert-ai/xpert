@@ -3,7 +3,6 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { ToastrService } from '@cloud/app/@core/state'
 import { XpInputComponent } from '@xpert-ai/headless-ui'
-import { XpButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
 import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef } from '@xpert-ai/headless-ui'
@@ -16,8 +15,6 @@ import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef 
     ZardButtonComponent,
     ZardCheckboxComponent,
     TranslateModule,
-    XpButtonGroupDirective,
-    OcapCoreModule,
     XpInputComponent
   ],
   selector: 'bottom-sheet-basic',

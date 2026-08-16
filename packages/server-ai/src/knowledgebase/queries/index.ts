@@ -1,4 +1,7 @@
 export * from './knowledge-search.query'
+export * from './knowledge-folder-options.query'
+export * from './knowledge-filter-options.query'
+export * from './knowledge-graph-explore.query'
 export * from './list-workspace-knowledgebases.query'
 export * from './statistics-knowledgebases.query'
 export * from './get-one.query'

@@ -41,6 +41,7 @@ import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
+import { XpertWorkbenchInitialLayoutSettingsComponent } from './workbench-initial-layout-settings.component'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -53,7 +54,8 @@ import { OverlayAnimations } from '@xpert-ai/headless-ui'
     ZardSliderComponent,
     TranslateModule,
     XpSpinComponent,
-    ChecklistComponent
+    ChecklistComponent,
+    XpertWorkbenchInitialLayoutSettingsComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',

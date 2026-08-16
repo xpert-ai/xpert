@@ -7,7 +7,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpDynamicGridDirective, uploadYamlFile } from '@xpert-ai/headless-ui'
 import { CdkConfirmDeleteComponent, injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
-import { XpAppearanceDirective, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -43,7 +43,6 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     TranslateModule,
     XpDynamicGridDirective,
     XpCommonModule,
-    XpAppearanceDirective,
     XpertCardComponent
   ],
   selector: 'xpert-workspace-xperts',

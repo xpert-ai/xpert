@@ -36,7 +36,7 @@ import { CardCreateComponent } from '@cloud/app/@shared/card'
 import { debouncedSignal, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpHighlightDirective } from '@xpert-ai/headless-ui'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSearchInputComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -57,7 +57,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CardCreateComponent,
     XpI18nPipe,
     EmojiAvatarComponent,
-    XpHighlightDirective
+    XpHighlightDirective,
+    ZardSearchInputComponent
   ],
   selector: 'chat-project-tools',
   templateUrl: './tools.component.html',

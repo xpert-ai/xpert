@@ -3,11 +3,3 @@
   border-top-left-radius: var(--layout-shell-top-left-radius);
   @apply relative flex justify-start w-full h-full overflow-hidden;
 }
-
-.router-menu-item {
-  @apply hover:bg-hover-bg flex items-center h-9 rounded-md py-2 font-normal px-3 text-text-secondary hover:text-text-primary;
-}
-
-.router-menu-item.active {
-  @apply bg-primary-100/50 text-primary-500 dark:bg-neutral-700;
-}

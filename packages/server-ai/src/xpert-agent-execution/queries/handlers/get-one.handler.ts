@@ -6,12 +6,15 @@ import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/quer
 import { XpertAgentExecutionService } from '../../agent-execution.service'
 import { XpertAgentExecutionDTO } from '../../dto'
 import { XpertAgentExecutionOneQuery } from '../get-one.query'
+import { CopilotUsageService } from '../../../copilot-usage'
+import { attachModelUsageDetails, collectExecutionIds } from '../../model-usage.execution'
 
 @QueryHandler(XpertAgentExecutionOneQuery)
 export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentExecutionOneQuery> {
 	constructor(
 		private readonly service: XpertAgentExecutionService,
-		private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly copilotUsage: CopilotUsageService
 	) {}
 
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
@@ -22,7 +25,10 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			...execution,
 			agent: execution.agentKey ? agents.find((agent) => agent.key === execution.agentKey) : null
 		})
-		return await this.expandExecutionTree(expandedExecution, agents)
+        const executionTree = await this.expandExecutionTree(expandedExecution, agents)
+        const executionIds = collectExecutionIds(executionTree)
+        const details = await this.copilotUsage.getModelUsages(executionIds, execution.tenantId)
+        return attachModelUsageDetails(executionTree, details)
 	}
 
 	private async expandExecutionTree(
@@ -90,7 +96,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			...execution,
 			messages: _messages ? mapChatMessagesToStoredMessages(_messages) : execution.messages,
 			totalTokens: execution.totalTokens,
-			summary: channel?.summary,
+            summary: channel?.summary
 			// agent
 		})
 	}

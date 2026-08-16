@@ -5,13 +5,236 @@ import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { crc32 } from 'node:zlib'
 import {
+    CreateKnowledgebaseFolderCommand,
     DeleteKnowledgebaseDocumentsCommand,
-    ImportKnowledgebaseArchiveCommand
+    ImportKnowledgebaseArchiveCommand,
+    ListKnowledgebaseDocumentsCommand,
+    MoveKnowledgebaseDocumentCommand,
+    UploadKnowledgebaseDocumentFileCommand
 } from '../knowledgebase-documents.command'
 import {
+    CreateKnowledgebaseFolderHandler,
     DeleteKnowledgebaseDocumentsHandler,
-    ImportKnowledgebaseArchiveHandler
+    ImportKnowledgebaseArchiveHandler,
+    ListKnowledgebaseDocumentsHandler,
+    MoveKnowledgebaseDocumentHandler,
+    UploadKnowledgebaseDocumentFileHandler
 } from './knowledgebase-documents.handler'
+import { DocumentTypeEnum } from '@xpert-ai/contracts'
+
+describe('ListKnowledgebaseDocumentsHandler', () => {
+    it('returns a bounded document catalog without exposing folders by default', async () => {
+        const knowledgebaseService = { findOne: jest.fn(async () => ({ id: 'kb-1' })) }
+        const documentService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'doc-1',
+                        name: 'agreement.pdf',
+                        type: 'pdf',
+                        knowledgebaseId: 'kb-1',
+                        status: 'finish',
+                        progress: 100,
+                        tokenNum: 1200,
+                        chunkNum: 18,
+                        sourceHash: 'source-hash',
+                        contentHash: 'content-hash',
+                        disabled: false,
+                        createdAt: new Date('2026-08-01T00:00:00.000Z'),
+                        updatedAt: new Date('2026-08-02T00:00:00.000Z'),
+                        metadata: {}
+                    }
+                ],
+                total: 1
+            }))
+        }
+        const handler = new ListKnowledgebaseDocumentsHandler(knowledgebaseService as any, documentService as any)
+
+        const result = await handler.execute(
+            new ListKnowledgebaseDocumentsCommand({
+                knowledgebaseId: 'kb-1',
+                page: 2,
+                pageSize: 10,
+                search: 'agreement'
+            })
+        )
+
+        expect(knowledgebaseService.findOne).toHaveBeenCalledWith('kb-1')
+        expect(documentService.findAll).toHaveBeenCalledWith(expect.objectContaining({ skip: 10, take: 10 }))
+        expect(result).toEqual(
+            expect.objectContaining({
+                total: 1,
+                page: 2,
+                pageSize: 10,
+                documents: [
+                    expect.objectContaining({
+                        id: 'doc-1',
+                        chunkNum: 18,
+                        tokenNum: 1200,
+                        sourceHash: 'source-hash',
+                        contentHash: 'content-hash',
+                        updatedAt: '2026-08-02T00:00:00.000Z'
+                    })
+                ]
+            })
+        )
+    })
+
+    it('applies a Case folder descendant boundary before returning documents', async () => {
+        const folder = {
+            id: 'folder-case',
+            name: '26B31301',
+            knowledgebaseId: 'kb-1',
+            sourceType: DocumentTypeEnum.FOLDER
+        }
+        const knowledgebaseService = { findOne: jest.fn(async () => ({ id: 'kb-1' })) }
+        const documentService = {
+            findOne: jest.fn(async () => folder),
+            findAll: jest.fn(async () => ({ items: [], total: 0 }))
+        }
+        const handler = new ListKnowledgebaseDocumentsHandler(knowledgebaseService as any, documentService as any)
+
+        await handler.execute(
+            new ListKnowledgebaseDocumentsCommand({
+                knowledgebaseId: 'kb-1',
+                parentId: 'folder-case',
+                folderPath: 'customers/JNGL/cases/26B31301',
+                folderMode: 'descendants'
+            })
+        )
+
+        expect(documentService.findOne).toHaveBeenCalledWith('folder-case', { relations: ['parent'] })
+        expect(documentService.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({ knowledgebaseId: 'kb-1', parent: { id: 'folder-case' } })
+            })
+        )
+    })
+})
+
+describe('CreateKnowledgebaseFolderHandler', () => {
+    it('creates one idempotent folder under the selected parent', async () => {
+        const parent = {
+            id: 'folder-cases',
+            name: 'cases',
+            knowledgebaseId: 'kb-1',
+            sourceType: DocumentTypeEnum.FOLDER
+        }
+        const created = {
+            id: 'folder-case',
+            name: '26B31301',
+            folder: 'customers/JNGL/cases',
+            knowledgebaseId: 'kb-1',
+            sourceType: DocumentTypeEnum.FOLDER
+        }
+        const documentService = {
+            findOne: jest.fn(async () => parent),
+            findAll: jest.fn(async () => ({ items: [], total: 0 })),
+            createDocument: jest.fn(async () => created)
+        }
+        const handler = new CreateKnowledgebaseFolderHandler(
+            { assertNotRebuilding: jest.fn() } as any,
+            documentService as any
+        )
+
+        const result = await handler.execute(
+            new CreateKnowledgebaseFolderCommand({
+                knowledgebaseId: 'kb-1',
+                parentId: 'folder-cases',
+                name: '26B31301'
+            })
+        )
+
+        expect(documentService.createDocument).toHaveBeenCalledWith(
+            expect.objectContaining({
+                knowledgebaseId: 'kb-1',
+                parent: { id: 'folder-cases' },
+                name: '26B31301'
+            })
+        )
+        expect(result.folder).toMatchObject({ id: 'folder-case', folderPath: 'customers/JNGL/cases' })
+    })
+})
+
+describe('MoveKnowledgebaseDocumentHandler', () => {
+    it('delegates the governed move and returns affected descendants', async () => {
+        const documentService = {
+            moveDocument: jest.fn(async () => ({
+                document: {
+                    id: 'doc-1',
+                    name: 'agreement.pdf',
+                    folder: 'customers/JNGL/cases/26B31301/02-技术协议',
+                    knowledgebaseId: 'kb-1'
+                },
+                affectedDocumentIds: ['doc-1']
+            }))
+        }
+        const handler = new MoveKnowledgebaseDocumentHandler(documentService as any)
+        const result = await handler.execute(
+            new MoveKnowledgebaseDocumentCommand({
+                knowledgebaseId: 'kb-1',
+                documentId: 'doc-1',
+                parentId: 'folder-agreement',
+                expectedVersion: 3
+            })
+        )
+        expect(documentService.moveDocument).toHaveBeenCalledWith({
+            knowledgebaseId: 'kb-1',
+            documentId: 'doc-1',
+            parentId: 'folder-agreement',
+            expectedVersion: 3
+        })
+        expect(result.affectedDocumentIds).toEqual(['doc-1'])
+    })
+})
+
+describe('UploadKnowledgebaseDocumentFileHandler', () => {
+    it('stores nested uploads using the root-to-child logical folder order', async () => {
+        const knowledgebaseService = { assertNotRebuilding: jest.fn() }
+        const documentService = {
+            findAncestors: jest.fn(async () => [
+                { id: 'folder-water', name: '水利', sourceType: DocumentTypeEnum.FOLDER },
+                { id: 'folder-east', name: '华东', sourceType: DocumentTypeEnum.FOLDER }
+            ])
+        }
+        const knowledgeWorkAreaResolver = {
+            getFilesPath: jest.fn((folder: string) => path.posix.join('files', folder || ''))
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: any) => {
+                const target = command.input.targets[0]
+                const filePath = path.posix.join(target.folder, target.fileName)
+                return {
+                    status: 'success',
+                    destinations: [{ kind: 'volume', status: 'success', path: filePath, url: `file://${filePath}` }]
+                }
+            })
+        }
+        const handler = new UploadKnowledgebaseDocumentFileHandler(
+            knowledgebaseService as any,
+            documentService as any,
+            knowledgeWorkAreaResolver as any,
+            commandBus as any
+        )
+
+        const result = await handler.execute(
+            new UploadKnowledgebaseDocumentFileCommand({
+                knowledgebaseId: 'kb-1',
+                parentId: 'folder-east',
+                file: {
+                    originalname: 'pricing.pdf',
+                    mimetype: 'application/pdf',
+                    size: 3,
+                    buffer: Buffer.from('pdf')
+                }
+            } as any)
+        )
+
+        expect(documentService.findAncestors).toHaveBeenCalledWith('folder-east')
+        expect(knowledgeWorkAreaResolver.getFilesPath).toHaveBeenCalledWith('水利/华东')
+        expect(result.filePath).toMatch(/^files\/水利\/华东\/pricing-/)
+    })
+})
 
 describe('ImportKnowledgebaseArchiveHandler', () => {
     const tempDirs: string[] = []

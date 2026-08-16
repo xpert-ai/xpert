@@ -87,19 +87,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 						models.push(selectedModel)
 					}
 
-                    const visibleModels =
-						command.catalogMode === CopilotModelCatalogMode.Available
-							? await this.filterAvailableModels(
-									models,
-										tenantId,
-										organizationId,
-										copilot.id,
-										command.type,
-										command.accessUserId
-									)
-							: models
-
-					if (visibleModels.length) {
+					if (models.length) {
 						const providerSchema = provider.getProviderSchema()
 						const baseUrl = this.configService.get('baseUrl') as string
 						copilotSchemas.push(
@@ -109,7 +97,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 								providerWithModels: new ProviderWithModelsDto(
 									{
 										...providerSchema,
-										models: visibleModels
+										models
 									},
 									baseUrl
 								)
@@ -125,34 +113,51 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 			// }
 		}
 
-		return copilotSchemas
+		return command.catalogMode === CopilotModelCatalogMode.Available
+			? this.filterAvailableCopilots(
+					copilotSchemas,
+					tenantId,
+					organizationId,
+					command.type,
+					command.accessUserId
+				)
+			: copilotSchemas
 	}
 
-	private async filterAvailableModels(
-		models: ProviderModel[],
+	private async filterAvailableCopilots(
+		copilots: CopilotWithProviderDto[],
 		tenantId: string,
-			organizationId: string | null,
-			copilotId: string,
-			modelType: AiModelTypeEnum,
-			accessUserId?: string | null
-		) {
-			const userId = accessUserId ?? RequestContext.currentUserId()
+		organizationId: string | null,
+		modelType: AiModelTypeEnum,
+		accessUserId?: string | null
+	) {
+		const userId = accessUserId ?? RequestContext.currentUserId()
 		if (!userId) {
 			return []
 		}
-		const availability = await Promise.all(
-			models.map((model) =>
-				this.modelAccessService.canUseCatalogModel({
-					tenantId,
-					organizationId,
-					userId,
-					copilotId,
-					copilotModelId: model.model,
-					modelType
-				})
-			)
+		const models = copilots.flatMap((copilot) =>
+			copilot.providerWithModels.models.map((model) => ({
+				copilotId: copilot.id,
+				copilotModelId: model.model,
+				modelType
+			}))
 		)
-		return models.filter((_, index) => availability[index])
+		if (!models.length) {
+			return []
+		}
+		const availability = await this.modelAccessService.canUseCatalogModels({
+			tenantId,
+			organizationId,
+			userId,
+			models
+		})
+		let index = 0
+		for (const copilot of copilots) {
+			copilot.providerWithModels.models = copilot.providerWithModels.models.filter(
+				() => availability[index++] === true
+			)
+		}
+		return copilots.filter((copilot) => copilot.providerWithModels.models.length)
 	}
 }
 

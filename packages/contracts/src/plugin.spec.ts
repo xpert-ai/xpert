@@ -1,10 +1,17 @@
 import {
+  PLUGIN_RESOURCE_ERROR_CODE,
   PluginMarketplaceItem,
   PluginMarketplaceRegistryItem,
   PluginMarketplaceRegistryItemInput,
   PluginMeta,
   XpertPluginBundleManifest
 } from './plugin'
+
+describe('plugin resource error contracts', () => {
+  it('exposes a stable code for missing component matches', () => {
+    expect(PLUGIN_RESOURCE_ERROR_CODE.NO_MATCHING_COMPONENTS).toBe('PLUGIN_RESOURCE_NO_MATCHING_COMPONENTS')
+  })
+})
 
 describe('plugin artifact namespace contracts', () => {
   it('accepts artifactNamespace on public plugin contracts', () => {

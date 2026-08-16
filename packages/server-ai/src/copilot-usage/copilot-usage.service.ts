@@ -3,8 +3,15 @@ import {
     ICopilotUsageQuery,
     ICopilotUsageSummary,
     ICopilotUsageTotals,
+    IModelUsageDetails,
+    IModelUsageLedger,
     IPagination,
     MembershipLedgerSourceEnum,
+    ModelUsageLedgerQuery,
+    ModelUsageLedgerTotals,
+    ModelUsagePricingSnapshot,
+    ModelUsageReport,
+    ModelUsageReportResult,
     OrderTypeEnum,
     RolesEnum,
     TCopilotQuotaAdjustInput,
@@ -20,6 +27,12 @@ import { CopilotOrganization } from '../copilot-organization/copilot-organizatio
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { formatInUTC0 } from '../shared/utils'
+import type {
+    CopilotModelUsageRecordingScope,
+    CopilotTokenUsageRecordingScope,
+    CopilotTokenUsageReport
+} from './copilot-usage.types'
+import { ModelUsageLedgerService } from './model-usage/model-usage-ledger.service'
 
 type ScopeFilter = {
     tenantId: string
@@ -96,8 +109,36 @@ export class CopilotUsageService {
         @InjectRepository(CopilotOrganization)
         private readonly organizationRepository: Repository<CopilotOrganization>,
         @InjectRepository(MembershipPointLedger)
-        private readonly membershipPointLedgerRepository: Repository<MembershipPointLedger>
+        private readonly membershipPointLedgerRepository: Repository<MembershipPointLedger>,
+        private readonly modelUsageLedger: ModelUsageLedgerService
     ) {}
+
+    recordModelUsage(
+        scope: CopilotModelUsageRecordingScope,
+        report: ModelUsageReport,
+        pricingSnapshot: ModelUsagePricingSnapshot
+    ): Promise<ModelUsageReportResult> {
+        return this.modelUsageLedger.recordUsage(scope, report, pricingSnapshot)
+    }
+
+    recordTokenUsage(scope: CopilotTokenUsageRecordingScope, report: CopilotTokenUsageReport) {
+        return this.modelUsageLedger.recordTokenUsage(scope, report)
+    }
+
+    getModelUsages(executionIds: string[], tenantId: string): Promise<IModelUsageDetails[]> {
+        return this.modelUsageLedger.getUsages(executionIds, tenantId)
+    }
+
+    findModelUsagePage(
+        query: ModelUsageLedgerQuery,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<IModelUsageLedger>> {
+        return this.modelUsageLedger.findPage(query, options)
+    }
+
+    findModelUsageTotals(query: ModelUsageLedgerQuery): Promise<ModelUsageLedgerTotals[]> {
+        return this.modelUsageLedger.totals(query)
+    }
 
     async findSummaries(
         query: ICopilotUsageQuery,

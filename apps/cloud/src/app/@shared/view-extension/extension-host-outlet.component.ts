@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, effect, input, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
-import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import { XpertExtensionViewManifest, XpertViewQuery } from '@xpert-ai/contracts'
 import { injectViewExtensionApi } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
@@ -30,6 +30,7 @@ import { getErrorMessage } from '@cloud/app/@core/types'
           [hostType]="hostType()"
           [hostId]="hostId()"
           [manifest]="view"
+          [initialQuery]="query() ?? emptyQuery"
           [active]="true"
           [fillAvailableHeight]="fillAvailableHeight()"
         />
@@ -65,7 +66,13 @@ import { getErrorMessage } from '@cloud/app/@core/types'
             </div>
 
             @defer (on viewport) {
-              <xp-view-renderer [hostType]="hostType()" [hostId]="hostId()" [manifest]="view" [active]="true" />
+              <xp-view-renderer
+                [hostType]="hostType()"
+                [hostId]="hostId()"
+                [manifest]="view"
+                [initialQuery]="emptyQuery"
+                [active]="true"
+              />
             } @placeholder {
               <div class="rounded-2xl border border-divider-subtle px-4 py-5 text-sm text-text-tertiary">
                 {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
@@ -83,7 +90,9 @@ export class ExtensionHostOutletComponent {
   readonly hostId = input.required<string>()
   readonly slot = input.required<string>()
   readonly viewKey = input<string | null>(null)
+  readonly query = input<XpertViewQuery | null>(null)
   readonly fillAvailableHeight = input(false)
+  readonly emptyQuery: XpertViewQuery = {}
 
   readonly #api = injectViewExtensionApi()
 

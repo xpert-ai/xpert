@@ -14,7 +14,7 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertBasicDialogComponent } from '@cloud/app/@shared/xpert'
-import { XpSearchComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -31,7 +31,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     XpSpinComponent,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     EmojiAvatarComponent
   ],
   selector: 'project-install-xpert',

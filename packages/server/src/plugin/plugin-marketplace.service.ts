@@ -1,4 +1,12 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+	BadRequestException,
+	ForbiddenException,
+	Inject,
+	Injectable,
+	Logger,
+	NotFoundException,
+	type OnModuleDestroy
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
 	type I18nObject,
@@ -33,6 +41,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { IsNull, Repository } from 'typeorm'
+import { ProxyAgent, type Dispatcher } from 'undici'
 import { PluginInstanceService } from './plugin-instance.service'
 import {
 	PLUGIN_MARKETPLACE_REGISTRY_SECTIONS,
@@ -127,7 +136,7 @@ export interface PluginMarketplaceDetailQuery extends PluginMarketplaceListQuery
 }
 
 @Injectable()
-export class PluginMarketplaceService {
+export class PluginMarketplaceService implements OnModuleDestroy {
 	private readonly logger = new Logger(PluginMarketplaceService.name)
 	private readonly refreshJobs = new Map<string, Promise<void>>()
 	private readonly npmMetadataCache = new Map<string, { level?: PluginLevel } | null>()
@@ -135,6 +144,8 @@ export class PluginMarketplaceService {
 	private readonly npmBundleManifestCache = new Map<string, XpertPluginBundleManifest | null>()
 	private readonly publicBuiltinSource = this.createBuiltinSourceRecord()
 	private publicBuiltinRefreshJob: Promise<NormalizedMarketplaceCatalog> | null = null
+	private marketplaceProxyAgent: ProxyAgent | null = null
+	private marketplaceProxyConfigurationError: Error | null = null
 
 	constructor(
 		@InjectRepository(PluginMarketplaceSource)
@@ -144,7 +155,13 @@ export class PluginMarketplaceService {
 		@Inject(LOADED_PLUGINS)
 		private readonly loadedPlugins: Array<LoadedPluginRecord>,
 		private readonly pluginInstanceService: PluginInstanceService
-	) {}
+	) {
+		this.configureMarketplaceProxy()
+	}
+
+	async onModuleDestroy() {
+		await this.marketplaceProxyAgent?.close()
+	}
 
 	async listMarketplace(query: PluginMarketplaceListQuery = {}): Promise<PluginMarketplaceResponse> {
 		const sources = await this.getSourceRecords()
@@ -487,7 +504,7 @@ export class PluginMarketplaceService {
 				return null
 			}
 
-			const tarballResponse = await fetch(archive.tarball)
+			const tarballResponse = await this.fetchMarketplaceRequest(archive.tarball)
 			if (!tarballResponse.ok) {
 				throw new Error(`npm tarball returned ${tarballResponse.status}`)
 			}
@@ -512,7 +529,7 @@ export class PluginMarketplaceService {
 		version: string | null
 	): Promise<NpmPackageArchive | null> {
 		const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
-		const metadataResponse = await fetch(url)
+		const metadataResponse = await this.fetchMarketplaceRequest(url)
 		if (!metadataResponse.ok) {
 			throw new Error(`npm registry returned ${metadataResponse.status}`)
 		}
@@ -1877,7 +1894,7 @@ export class PluginMarketplaceService {
 				return null
 			}
 
-			const tarballResponse = await fetch(archive.tarball)
+			const tarballResponse = await this.fetchMarketplaceRequest(archive.tarball)
 			if (!tarballResponse.ok) {
 				throw new Error(`npm tarball returned ${tarballResponse.status}`)
 			}
@@ -2072,7 +2089,7 @@ export class PluginMarketplaceService {
 	private async fetchNpmPackageMetadata(packageName: string): Promise<{ level?: PluginLevel } | null> {
 		const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
 		try {
-			const response = await fetch(url)
+			const response = await this.fetchMarketplaceRequest(url)
 			if (!response.ok) {
 				throw new Error(`npm registry returned ${response.status}`)
 			}
@@ -2119,7 +2136,7 @@ export class PluginMarketplaceService {
 	private async fetchNpmDownloadCount(packageName: string) {
 		const url = `https://api.npmjs.org/downloads/point/last-month/${encodeURIComponent(packageName)}`
 		try {
-			const response = await fetch(url)
+			const response = await this.fetchMarketplaceRequest(url)
 			if (!response.ok) {
 				throw new Error(`npm downloads API returned ${response.status}`)
 			}
@@ -2707,7 +2724,7 @@ export class PluginMarketplaceService {
 	}
 
 	private async fetchJson(url: string) {
-		const response = await fetch(url)
+		const response = await this.fetchMarketplaceRequest(url)
 		if (!response.ok) {
 			throw new BadRequestException(`Failed to fetch marketplace index (${response.status})`)
 		}
@@ -2715,7 +2732,7 @@ export class PluginMarketplaceService {
 	}
 
 	private async tryFetchJson(url: string) {
-		const response = await fetch(url)
+		const response = await this.fetchMarketplaceRequest(url)
 		if (response.status === 404) {
 			return null
 		}
@@ -2723,6 +2740,39 @@ export class PluginMarketplaceService {
 			throw new BadRequestException(`Failed to fetch marketplace index (${response.status})`)
 		}
 		return response.json()
+	}
+
+	private configureMarketplaceProxy() {
+		const configuredUrl = process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL?.trim()
+		if (!configuredUrl) {
+			return
+		}
+
+		try {
+			const proxyUrl = new URL(configuredUrl)
+			if (proxyUrl.protocol !== 'http:' && proxyUrl.protocol !== 'https:') {
+				throw new Error('Unsupported proxy protocol')
+			}
+			this.marketplaceProxyAgent = new ProxyAgent(proxyUrl.toString())
+		} catch {
+			this.marketplaceProxyConfigurationError = new Error(
+				'XPERT_PLUGIN_MARKETPLACE_PROXY_URL must be a valid HTTP or HTTPS URL'
+			)
+		}
+	}
+
+	private fetchMarketplaceRequest(input: string | URL | Request, init?: RequestInit) {
+		if (this.marketplaceProxyConfigurationError) {
+			throw this.marketplaceProxyConfigurationError
+		}
+		if (!this.marketplaceProxyAgent) {
+			return init ? fetch(input, init) : fetch(input)
+		}
+
+		return fetch(input, {
+			...(init ?? {}),
+			dispatcher: this.marketplaceProxyAgent
+		} as RequestInit & { dispatcher: Dispatcher })
 	}
 
 	private getLatestCatalogDate(catalogs: NormalizedMarketplaceCatalog[]) {

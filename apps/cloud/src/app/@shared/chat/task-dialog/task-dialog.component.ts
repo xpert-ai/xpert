@@ -22,7 +22,7 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { XpProgressSpinnerComponent, XpSearchComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpProgressSpinnerComponent, XpSpinComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { attrModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -42,7 +42,7 @@ import { buildJsonSchemaDefaults, hasJsonSchemaRequiredErrors } from '../../work
     CdkMenuModule,
     XpSpinComponent,
     EmojiAvatarComponent,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     XpProgressSpinnerComponent,
     ScheduleFormComponent,
     JSONSchemaFormComponent,

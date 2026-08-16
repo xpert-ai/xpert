@@ -49,7 +49,12 @@
 <ng-template #menu>
   <div cdkMenu class="cloud-sidebar-identity__menu cdk-menu__large" @overlayAnimation1>
     <div class="cloud-sidebar-identity__menu-search">
-      <xp-search class="w-full rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
+      <z-search-input
+        class="w-full"
+        [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        [(ngModel)]="searchTerm"
+      />
     </div>
 
     @if (organizationsLoading()) {

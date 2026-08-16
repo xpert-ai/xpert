@@ -157,13 +157,14 @@ export abstract class LargeLanguageModel extends AIModel {
                 handleLLMStart: () => {
                     this.startedAt = performance.now()
                 },
-                handleLLMEnd: (output) => {
+                handleLLMEnd: (output, runId) => {
                     const tokenUsage: TTokenUsage =
                         output.llmOutput?.tokenUsage ?? output.llmOutput?.estimatedTokenUsage ?? calcTokenUsage(output)
                     if (handleLLMTokens) {
                         handleLLMTokens({
                             copilot,
                             model,
+                            requestId: runId,
                             usage: this.calcResponseUsage(
                                 model,
                                 credentials,

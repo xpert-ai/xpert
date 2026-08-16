@@ -3,7 +3,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { injectXpertTableAPI } from '@cloud/app/@core'
 import { IXpertTable } from '@xpert-ai/contracts'
-import { myRxResource } from '@xpert-ai/headless-ui'
+import { myRxResource, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type SelectDatabaseOrder = 'createdAt' | 'updatedAt' | 'name'
@@ -70,7 +70,7 @@ const DEFAULT_ORDER_OPTIONS: SelectDatabaseFilterOption<SelectDatabaseOrder>[] =
 @Component({
   selector: 'xp-workspace-select-database',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, ZardSearchInputComponent],
   templateUrl: './select-database.component.html',
   styleUrls: ['./select-database.component.scss']
 })

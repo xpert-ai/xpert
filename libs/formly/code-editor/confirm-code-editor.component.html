@@ -14,7 +14,7 @@
 </div>
 
 <div class="flex justify-between items-center">
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button z-button zType="ghost" (click)="onReset()">
       {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}
     </button>
@@ -23,7 +23,7 @@
     </button>
   </div>
 
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button z-button zType="ghost" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>

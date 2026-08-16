@@ -4,7 +4,6 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpDynamicGridDirective, nonBlank } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/headless-ui'
-import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { BehaviorSubject, filter, map, switchMap } from 'rxjs'
@@ -34,7 +33,6 @@ import { XpertNewKnowledgeComponent } from '../../knowledge'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    XpAppearanceDirective,
     XpDynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent

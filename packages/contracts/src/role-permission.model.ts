@@ -94,6 +94,8 @@ export const PermissionGroups = {
     AIPermissionsEnum.PAYMENT_PROVIDER_EDIT,
     AIPermissionsEnum.XPERT_EDIT,
     AIPermissionsEnum.CHAT_VIEW,
+    AIPermissionsEnum.EVOLUTION_VIEW,
+    AIPermissionsEnum.EVOLUTION_MANAGE,
 
     // DataSource
     PermissionsEnum.DATA_SOURCE_VIEW,

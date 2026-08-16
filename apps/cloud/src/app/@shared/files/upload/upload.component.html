@@ -44,15 +44,7 @@
       @for (item of files(); track i; let i = $index) {
         <div class="flex justify-between items-center px-2 hover:bg-hover-bg">
           {{ item.file.name }}
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            xpAppearance="danger"
-            displayDensity="cosy"
-            (click)="removeFile(item)"
-          >
+          <button z-button zType="destructive" zSize="icon-sm" zShape="circle" (click)="removeFile(item)">
             <z-icon zType="close"></z-icon>
           </button>
         </div>
