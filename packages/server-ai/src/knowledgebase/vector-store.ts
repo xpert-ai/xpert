@@ -22,6 +22,8 @@ export type TVectorSearchParams = {
     skip?: number
     search?: string
     filter?: Record<string, unknown>
+    /** Return the exact stored/vector chunk used by an evidence reference. */
+    targetChunkId?: string
 }
 
 type TEnabledVectorFilter = VectorStore['FilterType'] & {

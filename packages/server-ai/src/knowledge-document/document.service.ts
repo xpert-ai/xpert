@@ -38,7 +38,7 @@ import {
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash'
-import { DataSource, DeepPartial, FindOptionsWhere, In, Repository } from 'typeorm'
+import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
@@ -60,6 +60,10 @@ type OriginalFileDownloadTarget = {
     absolutePath: string
     fileName: string
     mimeType: string
+}
+
+function includesChunk(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[], targetChunkId: string) {
+    return chunks.some((chunk) => chunk.id === targetChunkId || String(chunk.metadata?.chunkId ?? '') === targetChunkId)
 }
 
 type IncrementalChunkOperation = 'unchanged' | 'changed' | 'added'
@@ -1086,6 +1090,57 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async getChunks(id: string, params: TVectorSearchParams) {
+        const targetChunkId = params.targetChunkId?.trim()
+        if (targetChunkId) {
+            const page = await this.getChunks(id, { ...params, targetChunkId: undefined })
+            const stored = await this.chunkService.findAll({
+                where: [
+                    { documentId: id, id: targetChunkId },
+                    {
+                        documentId: id,
+                        metadata: Raw((alias) => `${alias} ->> 'chunkId' = :targetChunkId`, { targetChunkId })
+                    }
+                ] as FindOptionsWhere<IKnowledgeDocumentChunk<TDocChunkMetadata>>[],
+                relations: ['document'],
+                select: {
+                    document: {
+                        id: true,
+                        name: true,
+                        sourceType: true,
+                        type: true,
+                        category: true,
+                        fileUrl: true
+                    }
+                },
+                take: 1,
+                skip: 0
+            })
+            if (stored.items.length) {
+                const target = stored.items[0] as IKnowledgeDocumentChunk<TDocChunkMetadata>
+                return {
+                    ...page,
+                    items: includesChunk(page.items, targetChunkId) ? page.items : [target, ...page.items]
+                }
+            }
+
+            const document = await this.findOne(id, {
+                relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+            })
+            const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, true)
+            const vectorResult = await vectorStore.getChunks(id, {
+                take: 1,
+                skip: 0,
+                filter: { chunkId: targetChunkId }
+            })
+            const items = await this.attachStoredChunkState(
+                vectorResult.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+            )
+            return {
+                ...page,
+                items: items[0] && !includesChunk(page.items, targetChunkId) ? [items[0], ...page.items] : page.items
+            }
+        }
+
         if (!params.search) {
             const chunks = await this.chunkService.findAll({
                 where: {

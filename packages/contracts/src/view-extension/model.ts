@@ -369,6 +369,14 @@ export interface WorkbenchNavigationOpenPayload {
   knowledgebaseId?: string
   documentId?: string
   parentId?: string
+  /** Exact KnowledgeDocument chunk anchor for evidence navigation. */
+  chunkId?: string
+  /** One-based source page anchor when the document has an analysis preview. */
+  page?: number
+  /** Parser/OCR block anchors within the source page. */
+  sourceBlockIds?: string[]
+  /** Transient source excerpt used for context/highlighting; the host must not place it in the URL. */
+  evidenceText?: string
   conversationId?: string
   threadId?: string
   executionId?: string

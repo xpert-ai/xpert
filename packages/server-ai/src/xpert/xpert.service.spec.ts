@@ -306,6 +306,54 @@ describe('XpertService command facade', () => {
         currentUserIdSpy.mockRestore()
     })
 
+    it('persists template lineage with the draft in the same save', async () => {
+        const { repository, service } = createService()
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const xpert = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            options: {
+                workbench: {
+                    defaultViewKey: 'example'
+                }
+            }
+        } as Xpert
+        jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+        repository.save.mockImplementation(async (entity) => entity)
+        const templateSource = {
+            templateId: '@xpert-ai/plugin-example:assistant',
+            templateKey: 'assistant',
+            pluginName: '@xpert-ai/plugin-example',
+            source: 'plugin' as const,
+            lastSyncedAt: '2026-08-16T00:00:00.000Z'
+        }
+
+        await service.saveDraft('xpert-1', {
+            team: {
+                name: 'Example',
+                options: { templateSource }
+            },
+            nodes: [],
+            connections: []
+        } as any)
+
+        expect(repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: {
+                    workbench: { defaultViewKey: 'example' },
+                    templateSource
+                },
+                draft: expect.objectContaining({
+                    team: expect.objectContaining({
+                        options: { templateSource }
+                    })
+                })
+            })
+        )
+    })
+
     it('hides tenant-scope workspace xperts from organization account lists', async () => {
         const { repository, queryBus, service, workspaceAccessService } = createService()
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')

@@ -319,6 +319,13 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async saveDraft(id: string, draft: TXpertTeamDraft) {
         const xpert = await this.findOne(id)
+        const templateSource = draft.team?.options?.templateSource
+        if (templateSource) {
+            xpert.options = {
+                ...(xpert.options ?? {}),
+                templateSource
+            }
+        }
         xpert.draft = {
             ...draft,
             nodes: normalizeMiddlewareNodes(draft.nodes),

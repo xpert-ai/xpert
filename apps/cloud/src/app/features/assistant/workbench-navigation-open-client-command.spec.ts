@@ -62,6 +62,53 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     expect(result).toEqual(expect.objectContaining({ documentId: 'doc-1', parentId: 'folder-1' }))
   })
 
+  it('opens exact knowledge evidence without exposing the source excerpt in the URL', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
+        knowledgebaseId: 'kb-1',
+        documentId: 'doc-1',
+        chunkId: 'chunk-17',
+        page: 8,
+        sourceBlockIds: ['block-3', 'block-4'],
+        evidenceText: 'Motor power factor shall be at least 0.85.'
+      },
+      context
+    )
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-1', 'documents', 'doc-1'], {
+      queryParams: {
+        chunkId: 'chunk-17',
+        view: 'analysis',
+        page: '8',
+        block: 'block-3'
+      },
+      state: {
+        knowledgeEvidence: {
+          text: 'Motor power factor shall be at least 0.85.',
+          chunkId: 'chunk-17',
+          page: 8,
+          sourceBlockIds: ['block-3', 'block-4']
+        }
+      }
+    })
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        documentId: 'doc-1',
+        chunkId: 'chunk-17',
+        page: 8,
+        sourceBlockIds: ['block-3', 'block-4']
+      })
+    )
+    expect(JSON.stringify((navigate.mock.calls[0]?.[1] as any)?.queryParams)).not.toContain('power factor')
+  })
+
   it('opens a fixed workbench view with a selected business record', async () => {
     const registry = new ViewClientCommandRegistry()
     const openWorkbenchView = jest.fn(async () => true)

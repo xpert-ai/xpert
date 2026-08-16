@@ -2863,6 +2863,12 @@
     },
     "Xpert": {
       "Xpert": "数字专家",
+      "SyncFromTemplate": "从模版更新",
+      "SyncFromTemplateHint": "使用来源模版的最新版本覆盖当前草稿",
+      "SyncFromTemplateUnavailable": "当前数字专家未关联来源模版",
+      "SyncFromTemplateConfirm": "确定使用最新的“{{template}}”模版覆盖当前草稿吗？草稿 DSL 将被替换，已发布版本不受影响。",
+      "SyncFromTemplateSuccess": "已从“{{template}}”更新草稿，正式生效仍需发布。",
+      "SyncFromTemplateError": "从模版更新失败",
       "FixedKnowledgeFilter": "固定过滤边界",
       "FixedKnowledgeFilterHint": "始终由服务端强制执行，智能体无法查看、修改或取消。",
       "AllowAgentKnowledgeFilter": "允许智能体自动过滤",
