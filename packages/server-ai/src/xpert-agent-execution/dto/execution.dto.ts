@@ -29,6 +29,9 @@ export class XpertAgentExecutionDTO {
     totalTokens?: number
 
     @Expose()
+    modelUsages?: IXpertAgentExecution['modelUsages']
+
+    @Expose()
     summary?: string
 
     @Transform(({ value }) => (value ? new XpertAgentIdentiDto(value) : null))

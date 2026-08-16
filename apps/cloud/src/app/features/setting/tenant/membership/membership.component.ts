@@ -1,13 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import {
-  DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
-  MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
-  MEMBERSHIP_TOKENS_PER_POINT_SETTING
-} from '@xpert-ai/contracts'
+import { DEFAULT_MEMBERSHIP_CNY_PER_POINT, MEMBERSHIP_CNY_PER_POINT_SETTING } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardFormImports, ZardSelectImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TenantService, ToastrService, getErrorMessage } from '../../../../@core'
 
 @Component({
@@ -27,7 +23,7 @@ import { TenantService, ToastrService, getErrorMessage } from '../../../../@core
     TranslateModule,
     ReactiveFormsModule,
     ...ZardFormImports,
-    ...ZardSelectImports,
+    ZardInputDirective,
     ZardButtonComponent
   ]
 })
@@ -35,17 +31,16 @@ export class TenantMembershipComponent implements OnInit {
   readonly #tenantService = inject(TenantService)
   readonly #toastr = inject(ToastrService)
 
-  readonly tokensPerPointOptions = MEMBERSHIP_TOKENS_PER_POINT_OPTIONS
   readonly loading = signal(false)
   readonly form = new FormGroup({
-    tokensPerPoint: new FormControl<number>(DEFAULT_MEMBERSHIP_TOKENS_PER_POINT, {
+    cnyPerPoint: new FormControl<number>(DEFAULT_MEMBERSHIP_CNY_PER_POINT, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required, Validators.min(0.000001)]
     })
   })
 
-  get tokensPerPointCtrl() {
-    return this.form.controls.tokensPerPoint
+  get cnyPerPointCtrl() {
+    return this.form.controls.cnyPerPoint
   }
 
   async ngOnInit() {
@@ -53,7 +48,7 @@ export class TenantMembershipComponent implements OnInit {
     try {
       const settings = await this.#tenantService.getSettings()
       this.form.patchValue({
-        tokensPerPoint: parseTokensPerPoint(settings?.[MEMBERSHIP_TOKENS_PER_POINT_SETTING])
+        cnyPerPoint: parseCnyPerPoint(settings?.[MEMBERSHIP_CNY_PER_POINT_SETTING])
       })
       this.form.markAsPristine()
     } catch (error) {
@@ -72,7 +67,7 @@ export class TenantMembershipComponent implements OnInit {
     this.loading.set(true)
     try {
       await this.#tenantService.saveSettings({
-        [MEMBERSHIP_TOKENS_PER_POINT_SETTING]: String(this.tokensPerPointCtrl.value)
+        [MEMBERSHIP_CNY_PER_POINT_SETTING]: String(this.cnyPerPointCtrl.value)
       })
       this.form.markAsPristine()
       this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
@@ -84,9 +79,7 @@ export class TenantMembershipComponent implements OnInit {
   }
 }
 
-function parseTokensPerPoint(value: unknown): number {
+function parseCnyPerPoint(value: unknown): number {
   const parsed = Number(value)
-  return MEMBERSHIP_TOKENS_PER_POINT_OPTIONS.some((option) => option === parsed)
-    ? parsed
-    : DEFAULT_MEMBERSHIP_TOKENS_PER_POINT
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MEMBERSHIP_CNY_PER_POINT
 }

@@ -118,7 +118,7 @@ describe('MembershipAdminComponent', () => {
     expect(
       template.match(/overflow-hidden border border-divider-subtle bg-components-card-bg shadow-none/g)
     ).toHaveLength(2)
-    expect(template.match(/rounded-lg border border-divider-subtle bg-components-panel-bg px-4 py-3/g)).toHaveLength(8)
+    expect(template.match(/rounded-lg border border-divider-subtle bg-components-panel-bg px-4 py-3/g)).toHaveLength(7)
   })
 
   it('round-trips the explicit plan level in the edit form', () => {
@@ -129,17 +129,6 @@ describe('MembershipAdminComponent', () => {
     expect(component.planForm.controls.level.valid).toBe(false)
     component.planForm.controls.level.setValue(3)
     expect(component.planForm.controls.level.valid).toBe(true)
-  })
-
-  it('rejects an empty or oversized price currency code', () => {
-    component.planForm.controls.priceCurrency.setValue('   ')
-    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
-
-    component.planForm.controls.priceCurrency.setValue('TOO-LONG-CURRENCY')
-    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
-
-    component.planForm.controls.priceCurrency.setValue('USD')
-    expect(component.planForm.controls.priceCurrency.valid).toBe(true)
   })
 
   it('hides purchase-managed organization plan clones from editable plan management', () => {

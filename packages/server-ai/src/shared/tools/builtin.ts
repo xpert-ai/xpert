@@ -11,7 +11,10 @@ import {
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import type { ManagedQueueService, TToolModelRuntime } from '@xpert-ai/plugin-sdk'
 import { _BaseToolset } from './toolset'
+
+export type { TToolModelRuntime, TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
 
 /**
  * The context params of creating toolset
@@ -20,6 +23,9 @@ export type TBuiltinToolsetParams = TToolsetParams & {
 	commandBus: CommandBus
 	queryBus: QueryBus
 	store?: BaseStore
+	modelRuntime?: TToolModelRuntime
+	managedQueue?: ManagedQueueService
+	pluginScopeKey?: string
 }
 
 export interface IBuiltinToolset {
@@ -52,6 +58,15 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
 
 	get xpertId() {
 		return this.params?.xpertId
+	}
+	get modelRuntime() {
+		return this.params?.modelRuntime
+	}
+	get managedQueue() {
+		return this.params?.managedQueue
+	}
+	get pluginScopeKey() {
+		return this.params?.pluginScopeKey
 	}
 
 	constructor(

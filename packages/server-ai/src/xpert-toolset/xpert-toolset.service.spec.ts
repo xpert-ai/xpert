@@ -1,12 +1,19 @@
+jest.mock('./provider/builtin', () => ({
+    createBuiltinToolset: jest.fn()
+}))
+
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Test } from '@nestjs/testing'
 import { I18nService } from 'nestjs-i18n'
 import { IBuiltinTool, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
+import { RequestContext } from '@xpert-ai/server-core'
 import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 import { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { XpertTool } from '../xpert-tool/xpert-tool.entity'
+import { createBuiltinToolset } from './provider/builtin'
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 
@@ -84,6 +91,10 @@ describe('XpertToolsetService', () => {
                 {
                     provide: QueryBus,
                     useValue: queryBus
+                },
+                {
+                    provide: AgentMiddlewareRuntimeService,
+                    useValue: { createScopedApi: jest.fn() }
                 }
             ]
         }).compile()
@@ -118,5 +129,65 @@ describe('XpertToolsetService', () => {
                 schema: latestSchema
             })
         )
+    })
+
+    it('validates a builtin toolset with the current model provider runtime', async () => {
+        const getModelProvider = jest.fn()
+        const createModelClient = jest.fn()
+        const createScopedApi = jest.fn().mockReturnValue({ createModelClient, getModelProvider })
+        const validateCredentials = jest.fn().mockResolvedValue(undefined)
+        jest.mocked(createBuiltinToolset).mockResolvedValue({ validateCredentials } as never)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
+
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'ListBuiltinToolProvidersQuery') {
+                    return [
+                        {
+                            identity: {
+                                name: 'zhipu_cogvideo',
+                                author: 'XpertAI Team',
+                                description: { en_US: 'Zhipu CogVideo' },
+                                icon: 'icon.svg',
+                                label: { en_US: 'Zhipu CogVideo' },
+                                tags: []
+                            }
+                        }
+                    ]
+                }
+                return {}
+            })
+        }
+        const testingModule = await Test.createTestingModule({
+            providers: [
+                XpertToolsetService,
+                { provide: getRepositoryToken(XpertToolset), useValue: {} },
+                { provide: XpertWorkspaceAccessService, useValue: {} },
+                { provide: I18nService, useValue: {} },
+                { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('http://localhost/') } },
+                { provide: ToolsetRegistry, useValue: {} },
+                { provide: CommandBus, useValue: {} },
+                { provide: QueryBus, useValue: queryBus },
+                { provide: AgentMiddlewareRuntimeService, useValue: { createScopedApi } }
+            ]
+        }).compile()
+        const service = testingModule.get(XpertToolsetService)
+        jest.spyOn(service, 'create').mockResolvedValue({ id: 'toolset-1' } as XpertToolset)
+
+        await service.createBuiltinToolset('zhipu_cogvideo', { credentials: {} })
+
+        expect(createScopedApi).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1'
+        })
+        expect(createBuiltinToolset).toHaveBeenCalledWith(
+            'zhipu_cogvideo',
+            null,
+            expect.objectContaining({
+                modelRuntime: { createModelClient, getModelProvider }
+            })
+        )
+        expect(validateCredentials).toHaveBeenCalledWith({})
     })
 })

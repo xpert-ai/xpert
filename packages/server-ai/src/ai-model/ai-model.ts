@@ -1,8 +1,25 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ModelFeature, ParameterRule, PriceInfo, PriceType, } from '@xpert-ai/contracts'
+import {
+    AIModelEntity,
+    AiModelTypeEnum,
+    FetchFrom,
+    ICopilotModel,
+    ModelFeature,
+    ModelUsagePricingContext,
+    ModelUsagePricingSnapshot,
+    ParameterRule,
+    PriceInfo,
+    PriceType
+} from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
-import { yaml } from '@xpert-ai/server-common';
-import { calculateModelPrice, IAIModel, ModelProfile } from '@xpert-ai/plugin-sdk';
+import { yaml } from '@xpert-ai/server-common'
+import {
+    calculateModelPrice,
+    IAIModel,
+    isModelUsagePricingConfig,
+    ModelProfile,
+    resolveModelUsagePricingSnapshot
+} from '@xpert-ai/plugin-sdk'
 import * as fs from 'fs'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
@@ -12,207 +29,216 @@ import { getPositionMap } from '../core/utils'
 
 @Injectable()
 export abstract class AIModel implements IAIModel {
-	protected logger = new Logger(AIModel.name)
+    protected logger = new Logger(AIModel.name)
 
-	protected modelSchemas: AIModelEntity[] | null = null
+    protected modelSchemas: AIModelEntity[] | null = null
 
-	private positions: Record<string, number> = null
+    private positions: Record<string, number> = null
 
-	constructor(
-		protected readonly modelProvider: ModelProvider,
-		public modelType: AiModelTypeEnum
-	) {
-		this.modelProvider.registerAIModelInstance(this.modelType, this)
-	}
+    constructor(
+        protected readonly modelProvider: ModelProvider,
+        public modelType: AiModelTypeEnum
+    ) {
+        this.modelProvider.registerAIModelInstance(this.modelType, this)
+    }
 
-	abstract validateCredentials(model: string, credentials: Record<string, any>): Promise<void>
+    abstract validateCredentials(model: string, credentials: Record<string, any>): Promise<void>
 
-	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel {
-		throw new Error(`Unsupport chat model!`)
-	}
+    getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel {
+        throw new Error(`Unsupport chat model!`)
+    }
 
-	getPrice(
-		model: string,
-		credentials: Record<string, any>,
-		priceType: PriceType,
-		tokens: number,
-		inputTokens = tokens
-	): PriceInfo {
-		const modelSchema = this.getModelSchema(model, credentials)
-		if (!modelSchema || !modelSchema.pricing) {
-			return {
-				unitPrice: 0,
-				unit: 0,
-				totalAmount: 0,
-				currency: 'USD'
-			}
-		}
+    getPrice(
+        model: string,
+        credentials: Record<string, any>,
+        priceType: PriceType,
+        tokens: number,
+        inputTokens = tokens
+    ): PriceInfo {
+        const modelSchema = this.getModelSchema(model, credentials)
+        if (!modelSchema || !modelSchema.pricing || isModelUsagePricingConfig(modelSchema.pricing)) {
+            return {
+                unitPrice: 0,
+                unit: 0,
+                totalAmount: 0,
+                currency: 'USD'
+            }
+        }
 
-		return calculateModelPrice(modelSchema.pricing, priceType, tokens, inputTokens)
-	}
+        return calculateModelPrice(modelSchema.pricing, priceType, tokens, inputTokens)
+    }
 
-	protected getModelPath() {
-		const modelType = this.modelType.toLowerCase()
-		return path.join(this.modelProvider.getProviderServerPath(), modelType)
-	}
+    getUsagePricingSnapshot(
+        model: string,
+        credentials: Record<string, any>,
+        context: ModelUsagePricingContext
+    ): ModelUsagePricingSnapshot {
+        return resolveModelUsagePricingSnapshot(this.getModelSchema(model, credentials)?.pricing, context)
+    }
 
-	predefinedModels(): AIModelEntity[] {
-		if (this.modelSchemas) {
-			return this.modelSchemas
-		}
+    protected getModelPath() {
+        const modelType = this.modelType.toLowerCase()
+        return path.join(this.modelProvider.getProviderServerPath(), modelType)
+    }
 
-		const providerName = this.modelProvider.name.toLowerCase()
-		const modelType = this.modelType.toLowerCase()
-		const providerModelTypePath = this.getModelPath()
+    predefinedModels(): AIModelEntity[] {
+        if (this.modelSchemas) {
+            return this.modelSchemas
+        }
 
-		const modelSchemaFiles = fs
-			.readdirSync(providerModelTypePath)
-			.filter((file) => !file.startsWith('_') && file.endsWith('.yaml'))
+        const providerName = this.modelProvider.name.toLowerCase()
+        const modelType = this.modelType.toLowerCase()
+        const providerModelTypePath = this.getModelPath()
 
-		const modelSchemas: AIModelEntity[] = []
+        const modelSchemaFiles = fs
+            .readdirSync(providerModelTypePath)
+            .filter((file) => !file.startsWith('_') && file.endsWith('.yaml'))
 
-		for (const file of modelSchemaFiles) {
-			const filePath = path.join(providerModelTypePath, file)
+        const modelSchemas: AIModelEntity[] = []
 
-			const yamlContent = fs.readFileSync(filePath, 'utf8')
-			const yamlData = yaml.parse(yamlContent)
+        for (const file of modelSchemaFiles) {
+            const filePath = path.join(providerModelTypePath, file)
 
-			// Processing parameter rules and tags
-			this.processParameterRules(yamlData)
-			this.processLabel(yamlData)
+            const yamlContent = fs.readFileSync(filePath, 'utf8')
+            const yamlData = yaml.parse(yamlContent)
 
-			try {
-				const modelSchema = yamlData as AIModelEntity
-				modelSchemas.push(modelSchema)
-			} catch (error) {
-				throw new Error(`Invalid model schema for ${providerName}.${modelType}.${file}: ${error.message}`)
-			}
-		}
+            // Processing parameter rules and tags
+            this.processParameterRules(yamlData)
+            this.processLabel(yamlData)
 
-		// Sorting model architecture by position
-		this.modelSchemas = this.sortModelSchemas(modelSchemas, providerModelTypePath)
-		return this.modelSchemas
-	}
+            try {
+                const modelSchema = yamlData as AIModelEntity
+                modelSchemas.push(modelSchema)
+            } catch (error) {
+                throw new Error(`Invalid model schema for ${providerName}.${modelType}.${file}: ${error.message}`)
+            }
+        }
 
-	getModelSchema(model: string, credentials?: Record<string, any>): AIModelEntity | null {
-		const models = this.predefinedModels()
-		const schema = models.find((_) => _.model === model)
+        // Sorting model architecture by position
+        this.modelSchemas = this.sortModelSchemas(modelSchemas, providerModelTypePath)
+        return this.modelSchemas
+    }
 
-		if (schema) {
-			return schema
-		}
+    getModelSchema(model: string, credentials?: Record<string, any>): AIModelEntity | null {
+        const models = this.predefinedModels()
+        const schema = models.find((_) => _.model === model)
 
-		if (credentials) {
-			return this.getCustomizableModelSchemaFromCredentials(model, credentials)
-		}
+        if (schema) {
+            return schema
+        }
 
-		return null
-	}
+        if (credentials) {
+            return this.getCustomizableModelSchemaFromCredentials(model, credentials)
+        }
 
-	/**
-	 * Get customizable model schema.
-	 * Implement this method in ai model sub class that can customize model
-	 * 
-	 * @param model model name
-	 * @param credentials model credentials
-	 * @returns model schema
-	 */
-	protected getCustomizableModelSchemaFromCredentials(
-		model: string,
-		credentials: Record<string, any>
-	): AIModelEntity | null {
-		return null
-	}
+        return null
+    }
 
-	private processParameterRules(yamlData: Record<string, any>): void {
-		const newParameterRules: any[] = []
-		const parameterRules = yamlData.parameter_rules || []
+    /**
+     * Get customizable model schema.
+     * Implement this method in ai model sub class that can customize model
+     *
+     * @param model model name
+     * @param credentials model credentials
+     * @returns model schema
+     */
+    protected getCustomizableModelSchemaFromCredentials(
+        model: string,
+        credentials: Record<string, any>
+    ): AIModelEntity | null {
+        return null
+    }
 
-		for (let parameterRule of parameterRules) {
-			if (parameterRule.use_template) {
-				try {
-					const defaultParameterName = valueOf(DefaultParameterName, parameterRule.use_template)
-					const defaultParameterRule = getDefaultParameterRuleVariableMap(defaultParameterName)
-					const copyDefaultParameterRule = { ...defaultParameterRule, ...parameterRule }
-					parameterRule = copyDefaultParameterRule
-				} catch (error) {
-					// Handle error if necessary
-				}
-			}
+    private processParameterRules(yamlData: Record<string, any>): void {
+        const newParameterRules: any[] = []
+        const parameterRules = yamlData.parameter_rules || []
 
-			if (!parameterRule.label) {
-				parameterRule.label = { zh_Hans: parameterRule.name, en_US: parameterRule.name }
-			}
+        for (let parameterRule of parameterRules) {
+            if (parameterRule.use_template) {
+                try {
+                    const defaultParameterName = valueOf(DefaultParameterName, parameterRule.use_template)
+                    const defaultParameterRule = getDefaultParameterRuleVariableMap(defaultParameterName)
+                    const copyDefaultParameterRule = { ...defaultParameterRule, ...parameterRule }
+                    parameterRule = copyDefaultParameterRule
+                } catch (error) {
+                    // Handle error if necessary
+                }
+            }
 
-			newParameterRules.push(parameterRule)
-		}
+            if (!parameterRule.label) {
+                parameterRule.label = { zh_Hans: parameterRule.name, en_US: parameterRule.name }
+            }
 
-		yamlData.parameter_rules = newParameterRules
-	}
+            newParameterRules.push(parameterRule)
+        }
 
-	private processLabel(yamlData: Record<string, any>): void {
-		if (!yamlData.label) {
-			yamlData.label = { zh_Hans: yamlData.model, en_US: yamlData.model }
-		}
-		yamlData.fetch_from = FetchFrom.PREDEFINED_MODEL
-	}
+        yamlData.parameter_rules = newParameterRules
+    }
 
-	private sortModelSchemas(modelSchemas: AIModelEntity[], providerModelTypePath: string) {
-		// Implementing model architecture sorting logic
-		if (!this.positions) {
-			this.positions = getPositionMap(providerModelTypePath)
-		}
+    private processLabel(yamlData: Record<string, any>): void {
+        if (!yamlData.label) {
+            yamlData.label = { zh_Hans: yamlData.model, en_US: yamlData.model }
+        }
+        yamlData.fetch_from = FetchFrom.PREDEFINED_MODEL
+    }
 
-		return modelSchemas.sort((a, b) => {
-			const positionA = this.positions[a.model] ?? Number.MAX_SAFE_INTEGER;
-			const positionB = this.positions[b.model] ?? Number.MAX_SAFE_INTEGER;
-			return positionA - positionB;
-		})
-	}
+    private sortModelSchemas(modelSchemas: AIModelEntity[], providerModelTypePath: string) {
+        // Implementing model architecture sorting logic
+        if (!this.positions) {
+            this.positions = getPositionMap(providerModelTypePath)
+        }
 
-	protected _commonParameterRules(model: string,): ParameterRule[] {
-		return null
-	}
+        return modelSchemas.sort((a, b) => {
+            const positionA = this.positions[a.model] ?? Number.MAX_SAFE_INTEGER
+            const positionB = this.positions[b.model] ?? Number.MAX_SAFE_INTEGER
+            return positionA - positionB
+        })
+    }
 
-	public getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[] {
-		const modelSchema = this.getModelSchema(model, credentials)
-		const parameterRules: ParameterRule[] = modelSchema?.parameter_rules ?? []
-		return [
-			...(this._commonParameterRules(model) ?? []),
-			...parameterRules.filter((_) => !CommonParameterRules.some((r) => r.name === _.name))
-		]
-	}
+    protected _commonParameterRules(model: string): ParameterRule[] {
+        return null
+    }
 
-	getModelProfile(model: string, credentials: unknown): ModelProfile {
-		const modelSchema = this.getModelSchema(model, credentials)
-		if (!modelSchema) return null
-		const profile: ModelProfile = {
-			maxInputTokens: modelSchema.model_properties?.context_size,
-			toolCalling: modelSchema.features?.includes(ModelFeature.TOOL_CALL) ||
-				modelSchema.features?.includes(ModelFeature.MULTI_TOOL_CALL) ||
-				  modelSchema.features?.includes(ModelFeature.STREAM_TOOL_CALL),
-			structuredOutput: modelSchema.features?.includes(ModelFeature.STRUCTURED_OUTPUT),
-		}
-		const maxTokensRule = modelSchema.parameter_rules?.find((rule) => rule.name === 'max_tokens')
-		if (maxTokensRule) {
-			profile.maxOutputTokens = maxTokensRule.max
-		}
-		return profile
-	}
+    public getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[] {
+        const modelSchema = this.getModelSchema(model, credentials)
+        const parameterRules: ParameterRule[] = modelSchema?.parameter_rules ?? []
+        return [
+            ...(this._commonParameterRules(model) ?? []),
+            ...parameterRules.filter((_) => !CommonParameterRules.some((r) => r.name === _.name))
+        ]
+    }
+
+    getModelProfile(model: string, credentials: unknown): ModelProfile {
+        const modelSchema = this.getModelSchema(model, credentials)
+        if (!modelSchema) return null
+        const profile: ModelProfile = {
+            maxInputTokens: modelSchema.model_properties?.context_size,
+            toolCalling:
+                modelSchema.features?.includes(ModelFeature.TOOL_CALL) ||
+                modelSchema.features?.includes(ModelFeature.MULTI_TOOL_CALL) ||
+                modelSchema.features?.includes(ModelFeature.STREAM_TOOL_CALL),
+            structuredOutput: modelSchema.features?.includes(ModelFeature.STRUCTURED_OUTPUT)
+        }
+        const maxTokensRule = modelSchema.parameter_rules?.find((rule) => rule.name === 'max_tokens')
+        if (maxTokensRule) {
+            profile.maxOutputTokens = maxTokensRule.max
+        }
+        return profile
+    }
 }
 
 function getDefaultParameterRuleVariableMap(name: DefaultParameterName): ParameterRule {
-	/**
-	 * Get default parameter rule for given name
-	 *
-	 * @param name - parameter name
-	 * @return parameter rule
-	 */
-	const defaultParameterRule = PARAMETER_RULE_TEMPLATE[name]
+    /**
+     * Get default parameter rule for given name
+     *
+     * @param name - parameter name
+     * @return parameter rule
+     */
+    const defaultParameterRule = PARAMETER_RULE_TEMPLATE[name]
 
-	if (!defaultParameterRule) {
-		throw new Error(`Invalid model parameter rule name ${name}`)
-	}
+    if (!defaultParameterRule) {
+        throw new Error(`Invalid model parameter rule name ${name}`)
+    }
 
-	return defaultParameterRule
+    return defaultParameterRule
 }

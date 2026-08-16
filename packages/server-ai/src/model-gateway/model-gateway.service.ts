@@ -55,6 +55,7 @@ import {
 } from 'typeorm'
 import { MembershipService } from '../membership/membership.service'
 import { ModelAccessService } from '../model-access/model-access.service'
+import { settleChargeToCny } from '../membership/model-billing'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
@@ -93,6 +94,11 @@ export type ModelGatewayUsage = {
     outputTokens: number
     totalTokens: number
     source: ModelGatewayUsageSourceEnum
+    priceAmount?: number | null
+    priceCurrency?: string | null
+    settlementAmount?: number | null
+    settlementCurrency?: string | null
+    exchangeRate?: number | null
 }
 
 @Injectable()
@@ -529,7 +535,27 @@ export class ModelGatewayService {
             return current
         }
         const retryingSettlement = current.status === ModelGatewayCallStatusEnum.SettlementPending
-        const settlement = await this.membershipService.recordGatewayUsage({
+        const cnySettlement =
+            input.usage.settlementAmount === undefined || input.usage.settlementAmount === null
+                ? settleChargeToCny({
+                      pricingStatus:
+                          input.usage.priceAmount === undefined
+                              ? 'unpriced'
+                              : input.usage.priceAmount === 0
+                                ? 'free'
+                                : 'priced',
+                      amount: input.usage.priceAmount,
+                      currency: input.usage.priceCurrency
+                  })
+                : {
+                      amount: input.usage.settlementAmount,
+                      currency: 'CNY' as const,
+                      exchangeRate: input.usage.exchangeRate ?? null
+                  }
+        input.usage.settlementAmount = cnySettlement?.amount ?? null
+        input.usage.settlementCurrency = cnySettlement?.currency ?? null
+        input.usage.exchangeRate = cnySettlement?.exchangeRate ?? null
+        const settlementResult = await this.membershipService.recordGatewayUsage({
             tenantId: current.tenantId,
             organizationId: current.organizationId ?? null,
             copilotOrganizationId: input.resolution.organizationId ?? null,
@@ -537,6 +563,11 @@ export class ModelGatewayService {
             provider: current.provider,
             model: current.model,
             tokenUsed: input.usage.totalTokens,
+            priceAmount: input.usage.priceAmount,
+            priceCurrency: input.usage.priceCurrency,
+            settlementAmount: cnySettlement?.amount,
+            settlementCurrency: cnySettlement?.currency,
+            exchangeRate: cnySettlement?.exchangeRate,
             copilotId: input.resolution.copilotId,
             modelAccess: input.resolution,
             gatewayRequestId: current.requestId,
@@ -555,8 +586,13 @@ export class ModelGatewayService {
         current.inputTokens = input.usage.inputTokens
         current.outputTokens = input.usage.outputTokens
         current.totalTokens = input.usage.totalTokens
-        current.chargedPoints = settlement.chargedPoints
-        current.excessPoints = settlement.excessPoints
+        current.priceAmount = input.usage.priceAmount ?? null
+        current.priceCurrency = input.usage.priceCurrency ?? null
+        current.settlementAmount = cnySettlement?.amount ?? null
+        current.settlementCurrency = cnySettlement?.currency ?? null
+        current.exchangeRate = cnySettlement?.exchangeRate ?? null
+        current.chargedPoints = settlementResult.chargedPoints
+        current.excessPoints = settlementResult.excessPoints
         current.usageSource = input.usage.source
         current.settlementContext = null
         if (!retryingSettlement) {
@@ -592,6 +628,11 @@ export class ModelGatewayService {
             current.inputTokens = usage.inputTokens
             current.outputTokens = usage.outputTokens
             current.totalTokens = usage.totalTokens
+            current.priceAmount = usage.priceAmount ?? null
+            current.priceCurrency = usage.priceCurrency ?? null
+            current.settlementAmount = usage.settlementAmount ?? null
+            current.settlementCurrency = usage.settlementCurrency ?? null
+            current.exchangeRate = usage.exchangeRate ?? null
             current.usageSource = usage.source
             current.errorCode = outcome?.error ? this.errorCode(outcome.error) : null
             current.errorMessage = outcome?.error ? getErrorMessage(outcome.error).slice(0, 4000) : null
@@ -634,7 +675,12 @@ export class ModelGatewayService {
                         inputTokens: call.inputTokens,
                         outputTokens: call.outputTokens,
                         totalTokens: call.totalTokens,
-                        source: call.usageSource
+                        source: call.usageSource,
+                        priceAmount: call.priceAmount,
+                        priceCurrency: call.priceCurrency,
+                        settlementAmount: call.settlementAmount,
+                        settlementCurrency: call.settlementCurrency,
+                        exchangeRate: call.exchangeRate
                     }
                 })
                 if (result?.status !== ModelGatewayCallStatusEnum.SettlementPending) {

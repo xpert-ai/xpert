@@ -1,4 +1,5 @@
-import { TCopilotModel, ILLMUsage, IXpert, IXpertAgent } from '@xpert-ai/contracts'
+import { TCopilotModel, IXpert, IXpertAgent } from '@xpert-ai/contracts'
+import type { TLLMUsage } from '@xpert-ai/plugin-sdk'
 import { IQuery } from '@nestjs/cqrs'
 
 /**
@@ -20,7 +21,7 @@ export class GetXpertChatModelQuery implements IQuery {
 			copilotModel?: TCopilotModel
 			abortController?: AbortController;
 			// tokenCallback?: (tokens: number) => void
-			usageCallback: (tokens: ILLMUsage) => void
+			usageCallback: (tokens: TLLMUsage) => void | Promise<void>
 			threadId: string
 		}
 	) {}

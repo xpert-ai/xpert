@@ -4,6 +4,7 @@ import { IXpert, TXpertTeamNodeType } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import type { IModelUsageDetails } from './model-usage.model'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
@@ -83,6 +84,7 @@ export type TXpertAgentExecution = TXpertExecution & {
   // Temporary properties
   agent?: IXpertAgent
   totalTokens?: number
+  modelUsages?: IModelUsageDetails[]
   /**
    * Summary of conversation
    */

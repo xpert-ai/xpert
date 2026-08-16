@@ -1,13 +1,17 @@
 import { I18nObject, isEnableTool, IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { BaseToolset } from '../../toolset'
 import { OpenAPITool } from './tools/openapi-tool'
+import type { TToolModelUsageReporter } from '../../../shared'
 
 export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 	providerName = 'openapi'
 	providerType = XpertToolsetCategoryEnum.API
 	provider_id: string
 
-	constructor(protected toolset?: IXpertToolset) {
+	constructor(
+		protected toolset?: IXpertToolset,
+		private readonly reportUsage?: TToolModelUsageReporter
+	) {
 		super(toolset)
 
 		const tools: OpenAPITool[] = []
@@ -17,8 +21,8 @@ export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 				static lc_name(): string {
 					return item.name
 				} 
-				constructor(tool: IXpertTool,) {
-					super(tool)
+				constructor(tool: IXpertTool) {
+					super(tool, undefined, reportUsage)
 				}
 			}
 

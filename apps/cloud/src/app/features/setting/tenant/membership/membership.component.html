@@ -19,15 +19,14 @@
     <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
       <div class="border-b border-divider-regular px-4 py-3">
         <div class="font-medium text-text-primary">
-          {{ 'XP.MENU.TENANT.POINT_CONVERSION' | translate: { Default: 'Point conversion' } }}
+          {{ 'XP.MENU.TENANT.POINT_CONVERSION' | translate: { Default: 'Point value' } }}
         </div>
         <div class="mt-1 text-xs text-text-tertiary">
           {{
             'XP.MENU.TENANT.POINT_CONVERSION_HINT'
               | translate
                 : {
-                    Default:
-                      'Defines how many model tokens consume one point. Model multipliers configured on a plan are applied afterward.'
+                    Default: 'Define the RMB settlement amount represented by one membership point.'
                   }
           }}
         </div>
@@ -36,18 +35,15 @@
       <div class="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,20rem)_auto] md:items-start">
         <z-form-field appearance="fill" class="w-full">
           <z-form-label [zRequired]="true">
-            {{ 'XP.MENU.TENANT.TOKENS_PER_POINT' | translate: { Default: 'Tokens per point' } }}
+            {{ 'XP.MENU.TENANT.CNY_PER_POINT' | translate: { Default: 'RMB per point' } }}
           </z-form-label>
-          <z-select class="w-full" formControlName="tokensPerPoint">
-            @for (option of tokensPerPointOptions; track option) {
-              <z-select-item [zValue]="option">
-                {{
-                  'XP.MENU.TENANT.TOKENS_PER_POINT_OPTION'
-                    | translate: { Default: '1 point = {{tokens}}
-                tokens', tokens: (option | number) } }}
-              </z-select-item>
-            }
-          </z-select>
+          <input z-input class="w-full" type="number" min="0.000001" step="0.01" formControlName="cnyPerPoint" />
+          <z-form-message>
+            {{
+              'XP.MENU.TENANT.CNY_PER_POINT_HINT'
+                | translate: { Default: '1 point = ¥{{amount
+            }}', amount: (cnyPerPointCtrl.value | number: '1.0-6') } }}
+          </z-form-message>
         </z-form-field>
 
         <button

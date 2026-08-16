@@ -1,9 +1,12 @@
+import type { Type } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
+import { CopilotModelModule } from '../../copilot-model/copilot-model.module'
 import { XpertAgentModule } from '../../xpert-agent/xpert-agent.module'
+import { XpertAgentExecutionModule } from '../../xpert-agent-execution/agent-execution.module'
 import { AgentMiddlewareRuntimeModule } from './middleware-runtime.module'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
-const modulesThatConsumeRuntime = [XpertAgentModule]
+const modulesThatConsumeRuntime: Type<unknown>[] = [CopilotModelModule, XpertAgentExecutionModule, XpertAgentModule]
 
 describe('AgentMiddlewareRuntime provider boundary', () => {
     it('uses the runtime module instead of recreating the runtime service in feature modules', () => {
@@ -17,6 +20,7 @@ describe('AgentMiddlewareRuntime provider boundary', () => {
     })
 })
 
-function getModuleMetadata(moduleType: unknown, key: string) {
-    return ((Reflect as any).getMetadata(key, moduleType) ?? []) as unknown[]
+function getModuleMetadata(moduleType: Type<unknown>, key: string): unknown[] {
+    const metadata: unknown = Reflect.getMetadata(key, moduleType)
+    return Array.isArray(metadata) ? metadata : []
 }

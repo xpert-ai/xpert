@@ -120,17 +120,6 @@ export class CreateMembershipPlanDto {
     includedPoints?: number | null
 
     @IsOptional()
-    @Type(() => Number)
-    @IsNumber({ allowInfinity: false, allowNaN: false })
-    @Min(0)
-    priceAmount?: number | null
-
-    @IsOptional()
-    @IsString()
-    @MaxLength(12)
-    priceCurrency?: string | null
-
-    @IsOptional()
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => MembershipAllowedModelDto)

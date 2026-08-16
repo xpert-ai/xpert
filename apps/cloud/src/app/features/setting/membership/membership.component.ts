@@ -147,12 +147,6 @@ export class MembershipAdminComponent implements OnInit {
     isDefault: this.#formBuilder.nonNullable.control(false),
     includedPoints: new FormControl<number | null>(1000, Validators.min(0)),
     unlimited: this.#formBuilder.nonNullable.control(false),
-    priceAmount: new FormControl<number | null>(null, Validators.min(0)),
-    priceCurrency: this.#formBuilder.nonNullable.control('CNY', [
-      Validators.required,
-      Validators.maxLength(12),
-      Validators.pattern(/\S/)
-    ]),
     description: this.#formBuilder.nonNullable.control(''),
     allowAllModels: this.#formBuilder.nonNullable.control(true)
   })
@@ -249,8 +243,6 @@ export class MembershipAdminComponent implements OnInit {
       isDefault: !!plan.isDefault,
       includedPoints: plan.includedPoints ?? 1000,
       unlimited: plan.includedPoints === null,
-      priceAmount: plan.priceAmount ?? null,
-      priceCurrency: plan.priceCurrency ?? 'CNY',
       description: plan.description ?? '',
       allowAllModels: !(plan.allowedModels ?? []).length
     })
@@ -836,7 +828,7 @@ export class MembershipAdminComponent implements OnInit {
     ) {
       this.#toastr.error(
         this.#translate.instant('XP.Membership.InvalidMultiplier', {
-          Default: 'Model multipliers must be zero or greater.'
+          Default: 'Settlement amount multipliers must be zero or greater.'
         })
       )
       return null
@@ -859,8 +851,6 @@ export class MembershipAdminComponent implements OnInit {
       isDefault: form.isDefault,
       period: MembershipPeriodEnum.Monthly,
       includedPoints: form.unlimited ? null : Number(form.includedPoints ?? 0),
-      priceAmount: form.priceAmount === null ? null : Number(form.priceAmount),
-      priceCurrency: form.priceCurrency.trim().toUpperCase(),
       description: form.description,
       allowedModels: allowAllModels ? [] : this.allowedModels.map((item) => ({ ...item })),
       modelMultipliers: [...this.modelMultipliers]
@@ -879,8 +869,6 @@ export class MembershipAdminComponent implements OnInit {
       isDefault: false,
       includedPoints: 1000,
       unlimited: false,
-      priceAmount: null,
-      priceCurrency: 'CNY',
       description: '',
       allowAllModels: true
     })

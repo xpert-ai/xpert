@@ -4,9 +4,18 @@ import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { Runtime as LangGraphRuntime, PregelOptions, StreamMode } from '@langchain/langgraph'
 import type { BaseMessage } from '@langchain/core/messages'
-import { ICopilotModel, ILLMUsage, IXpertAgentExecution, JSONValue, TSandboxConfigurable } from '@xpert-ai/contracts'
+import {
+  ICopilotModel,
+  IXpertAgentExecution,
+  JSONValue,
+  ModelUsagePricingSnapshot,
+  ModelUsageReport,
+  ModelUsageReportResult,
+  ModelUsagePricingContext,
+  TSandboxConfigurable
+} from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
-import { IRerank } from '../../ai-model/types'
+import { AIGCModelClient, AsyncAIGCModelClient, IRerank, TLLMUsage } from '../../ai-model/types'
 import type { RuntimeCapabilityRegistry } from '../../core'
 
 export * from './runtime-capability'
@@ -70,12 +79,59 @@ export type Runtime<TContext = unknown> = Partial<Omit<LangGraphRuntime<TContext
     }
   }
 
-export type AgentMiddlewareModelClient = BaseLanguageModel | BaseChatModel | Embeddings | IRerank
+export type AgentMiddlewareModelClient =
+  | BaseLanguageModel
+  | BaseChatModel
+  | Embeddings
+  | IRerank
+  | AIGCModelClient
+  | AsyncAIGCModelClient
 
 export type AgentMiddlewareCreateModelClientOptions = {
   abortController?: AbortController
-  usageCallback: (tokens: ILLMUsage) => void
+  usageCallback?: (tokens: TLLMUsage) => void | Promise<void>
+  /** `observe` reads an existing asynchronous task and must not consume generation quota. */
+  purpose?: 'invoke' | 'observe'
 }
+
+export type AgentMiddlewareModelProviderConnection = {
+  /** Stable host-owned model provider configuration boundary. */
+  providerScopeId: string
+  /** Host-owned Copilot identity used for usage accounting. */
+  copilotId?: string
+  /** Ownership scope of the resolved Provider configuration. */
+  organizationId?: string | null
+  provider: string
+  baseURL: string
+  authorization: string
+  /** Resolve the model YAML price rule and freeze it for one invocation. */
+  resolvePricingSnapshot?: (context: ModelUsagePricingContext) => Promise<ModelUsagePricingSnapshot>
+  /** Persist final authoritative usage and calculate its charge exactly once. */
+  reportUsage(report: ModelUsageReport): Promise<ModelUsageReportResult>
+}
+
+export type AgentMiddlewareRuntimeScope = {
+  tenantId?: string | null
+  organizationId?: string | null
+  providerScopeId?: string | null
+  userId?: string | null
+  workspaceId?: string | null
+  projectId?: string | null
+  xpertId?: string | null
+  xpertName?: string | null
+  conversationId?: string | null
+  agentKey?: string | null
+  executionId?: string | null
+  usageCallback?: (usage: TLLMUsage) => void | Promise<void>
+  workspaceRoot?: string | null
+  workspacePath?: string | null
+}
+
+export interface AgentMiddlewareRuntimeServiceApi {
+  createScopedApi(scope?: AgentMiddlewareRuntimeScope): AgentMiddlewareRuntimeApi
+}
+
+export const XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN = 'XPERT_AGENT_MIDDLEWARE_RUNTIME'
 
 export type AgentMiddlewareWrapWorkflowNodeExecutionResult<T> = {
   output?: string | JSONValue
@@ -112,6 +168,9 @@ export interface AgentMiddlewareRuntimeApi {
     copilotModel: ICopilotModel,
     options: AgentMiddlewareCreateModelClientOptions
   ): Promise<T>
+
+  /** Resolve an enabled model provider connection in the current tenant and organization scope. */
+  getModelProvider?(provider: string): Promise<AgentMiddlewareModelProviderConnection>
 
   wrapWorkflowNodeExecution<T>(
     run: (execution: Partial<IXpertAgentExecution>) => Promise<AgentMiddlewareWrapWorkflowNodeExecutionResult<T>>,
