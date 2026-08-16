@@ -3,6 +3,8 @@ import type { AiModelTypeEnum } from '../agent'
 
 export type ModelUsageModality = 'image' | 'video'
 
+export type ModelUsageLedgerModality = 'text' | ModelUsageModality
+
 export type ImageGenerationOperation = 'text_to_image' | 'image_to_image' | 'multi_image_to_image'
 
 export type VideoGenerationOperation =
@@ -13,7 +15,9 @@ export type VideoGenerationOperation =
 
 export type ModelUsageOperation = ImageGenerationOperation | VideoGenerationOperation
 
-export type ModelUsageOriginType = 'execution' | 'tool'
+export type ModelUsageLedgerOperation = AiModelTypeEnum | ModelUsageOperation
+
+export type ModelUsageOriginType = 'execution' | 'tool' | 'model'
 
 export type ModelUsagePricingDimensions = {
   resolution?: string
@@ -106,6 +110,7 @@ export interface IModelUsageLedger extends IBasePerTenantAndOrganizationEntityMo
   requestId: string
   revision: number
   userId?: string | null
+  userName?: string | null
   originType: ModelUsageOriginType
   originId: string
   originExecutionId?: string | null
@@ -115,8 +120,8 @@ export interface IModelUsageLedger extends IBasePerTenantAndOrganizationEntityMo
   model?: string | null
   modelType: AiModelTypeEnum
   toolName?: string | null
-  modality: ModelUsageModality
-  operation: ModelUsageOperation
+  modality: ModelUsageLedgerModality
+  operation: ModelUsageLedgerOperation
   unit: ModelUsageMetric['unit']
   authority: ModelUsageMetric['authority']
   quantity?: number | null
@@ -154,6 +159,9 @@ export interface IModelChargeLedger extends IBasePerTenantAndOrganizationEntityM
   amount?: number | null
   pricingRule?: ModelUsagePriceRule | null
   chargedAt: Date
+  settlementCurrency?: string | null
+  settlementAmount?: number | null
+  exchangeRate?: number | null
 }
 
 export type ModelUsageLedgerQuery = {
@@ -164,12 +172,13 @@ export type ModelUsageLedgerQuery = {
   userId?: string
   organizationId?: string
   unit?: ModelUsageMetric['unit']
-  modality?: ModelUsageModality
+  modality?: ModelUsageLedgerModality
   currency?: string
   pricingStatus?: ModelUsagePricingStatus
 }
 
 export type ModelUsageLedgerTotals = {
+  modality: ModelUsageLedgerModality
   unit: ModelUsageMetric['unit']
   currency?: string | null
   pricingStatus: ModelUsagePricingStatus
@@ -178,5 +187,7 @@ export type ModelUsageLedgerTotals = {
   completionTokens: number
   totalTokens: number
   amount?: number | null
+  settlementCurrency?: string | null
+  settlementAmount?: number | null
   records: number
 }

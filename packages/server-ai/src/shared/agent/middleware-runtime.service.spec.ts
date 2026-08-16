@@ -558,6 +558,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         await modelOptions.handleLLMTokens({
             model: 'gpt-4o-mini',
+            requestId: 'llm-run-1',
             usage
         })
 
@@ -583,6 +584,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 userId: 'user-1',
+                requestId: 'llm-run-1',
                 model: 'gpt-4o-mini',
                 tokenUsed: 42,
                 priceUsed: 1.25,

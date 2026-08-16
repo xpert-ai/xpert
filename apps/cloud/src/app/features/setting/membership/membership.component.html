@@ -240,14 +240,6 @@
                       }
                     </div>
                   </div>
-                  <div class="min-w-0 truncate text-sm text-text-tertiary">
-                    @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
-                      {{ plan.priceAmount | currency: plan.priceCurrency || 'CNY' : 'symbol-narrow' }}
-                    } @else {
-                      {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
-                    }
-                  </div>
-
                   <div class="flex shrink-0 items-center gap-1">
                     <button
                       z-button
@@ -324,7 +316,7 @@
                     <z-card-subtitle class="mt-1">
                       {{
                         'XP.Membership.PlanFormHint'
-                          | translate: { Default: 'Define the allowance, exchange rate, and optional model rules.' }
+                          | translate: { Default: 'Define the point allowance, model access rules, and usage limits.' }
                       }}
                     </z-card-subtitle>
                   </div>
@@ -432,37 +424,6 @@
                         {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                       </z-checkbox>
                     </z-form-field>
-
-                    <z-form-field class="w-full">
-                      <z-form-label>
-                        {{ 'XP.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
-                      </z-form-label>
-                      <input z-input type="number" min="0" formControlName="priceAmount" />
-                    </z-form-field>
-
-                    <z-form-field class="w-full">
-                      <z-form-label [zRequired]="true">
-                        {{ 'XP.Membership.PriceCurrency' | translate: { Default: 'Currency' } }}
-                      </z-form-label>
-                      <input
-                        z-input
-                        maxlength="12"
-                        formControlName="priceCurrency"
-                        [zStatus]="
-                          planForm.controls.priceCurrency.invalid && planForm.controls.priceCurrency.touched
-                            ? 'error'
-                            : undefined
-                        "
-                      />
-                      @if (planForm.controls.priceCurrency.invalid && planForm.controls.priceCurrency.touched) {
-                        <z-form-message zType="error">
-                          {{
-                            'XP.Membership.PriceCurrencyValidation'
-                              | translate: { Default: 'Enter a currency code of up to 12 characters.' }
-                          }}
-                        </z-form-message>
-                      }
-                    </z-form-field>
                   </div>
                 </section>
 
@@ -485,7 +446,7 @@
                         | translate
                           : {
                               Default:
-                                'Choose available models and optionally customize point multipliers and usage limits.'
+                                'Choose available models and optionally customize settlement amount multipliers and usage limits.'
                             }
                     }}
                   </div>
@@ -546,7 +507,9 @@
                       <div class="flex items-start justify-between gap-3">
                         <div>
                           <div class="text-sm font-medium text-text-primary">
-                            {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                            {{
+                              'XP.Membership.ModelMultipliers' | translate: { Default: 'Settlement amount multipliers' }
+                            }}
                           </div>
                           <div class="mt-1 text-xs text-text-tertiary">
                             {{
@@ -554,7 +517,7 @@
                                 | translate
                                   : {
                                       Default:
-                                        'Adjust how many points selected models consume. The default multiplier is 1.'
+                                        'Multiply the settled model amount before converting it to points. The default multiplier is 1.'
                                     }
                             }}
                           </div>
@@ -593,7 +556,9 @@
 
                               <label class="flex flex-col gap-1">
                                 <span class="text-xs text-text-tertiary">
-                                  {{ 'XP.Membership.Multiplier' | translate: { Default: 'Multiplier' } }}
+                                  {{
+                                    'XP.Membership.Multiplier' | translate: { Default: 'Settlement amount multiplier' }
+                                  }}
                                 </span>
                                 <input
                                   z-input
@@ -813,21 +778,6 @@
                     }
                   </div>
                 </div>
-
-                <div class="rounded-lg border border-divider-subtle bg-components-panel-bg px-4 py-3">
-                  <div class="text-xs font-medium text-text-tertiary">
-                    {{ 'XP.Membership.Price' | translate: { Default: 'Price' } }}
-                  </div>
-                  <div class="mt-1 text-xl font-semibold text-text-primary">
-                    @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
-                      {{ plan.priceAmount | currency: plan.priceCurrency || 'CNY' : 'symbol-narrow' }}
-                    } @else {
-                      <span class="text-base font-medium text-text-tertiary">
-                        {{ 'XP.KEY_WORDS.None' | translate: { Default: 'None' } }}
-                      </span>
-                    }
-                  </div>
-                </div>
               </div>
 
               @if (plan.description) {
@@ -863,7 +813,7 @@
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
                       <div class="text-sm font-semibold text-text-primary">
-                        {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                        {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Settlement amount multipliers' } }}
                       </div>
                       <div class="mt-1 text-sm text-text-tertiary">
                         {{ modelMultiplierCount(plan) | number }}

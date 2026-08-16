@@ -277,7 +277,9 @@ export class ModelGatewayOpenAIController {
             inputTokens: providerUsage?.promptTokens ?? 0,
             outputTokens: providerUsage?.completionTokens ?? 0,
             totalTokens: providerUsage?.totalTokens ?? 0,
-            source: providerUsage ? ModelGatewayUsageSourceEnum.Provider : ModelGatewayUsageSourceEnum.None
+            source: providerUsage ? ModelGatewayUsageSourceEnum.Provider : ModelGatewayUsageSourceEnum.None,
+            priceAmount: providerUsage?.totalPrice,
+            priceCurrency: providerUsage?.currency
         }
         await this.settleCall({ call, resolution, usage, error })
     }

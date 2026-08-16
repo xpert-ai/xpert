@@ -27,7 +27,11 @@ import { CopilotOrganization } from '../copilot-organization/copilot-organizatio
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { formatInUTC0 } from '../shared/utils'
-import type { CopilotModelUsageRecordingScope } from './copilot-usage.types'
+import type {
+    CopilotModelUsageRecordingScope,
+    CopilotTokenUsageRecordingScope,
+    CopilotTokenUsageReport
+} from './copilot-usage.types'
 import { ModelUsageLedgerService } from './model-usage/model-usage-ledger.service'
 
 type ScopeFilter = {
@@ -115,6 +119,10 @@ export class CopilotUsageService {
         pricingSnapshot: ModelUsagePricingSnapshot
     ): Promise<ModelUsageReportResult> {
         return this.modelUsageLedger.recordUsage(scope, report, pricingSnapshot)
+    }
+
+    recordTokenUsage(scope: CopilotTokenUsageRecordingScope, report: CopilotTokenUsageReport) {
+        return this.modelUsageLedger.recordTokenUsage(scope, report)
     }
 
     getModelUsages(executionIds: string[], tenantId: string): Promise<IModelUsageDetails[]> {

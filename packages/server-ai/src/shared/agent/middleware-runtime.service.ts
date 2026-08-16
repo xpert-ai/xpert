@@ -250,6 +250,7 @@ export class AgentMiddlewareRuntimeService {
                             new CopilotTokenRecordCommand({
                                 ...omit(input, 'usage'),
                                 tenantId,
+                                requestId: input.requestId ?? randomUUID(),
                                 organizationId,
                                 userId,
                                 xpertId,
@@ -257,6 +258,8 @@ export class AgentMiddlewareRuntimeService {
                                 model: input.model,
                                 modelType: copilotModel.modelType,
                                 modelAccess,
+                                promptTokens: input.usage?.promptTokens,
+                                completionTokens: input.usage?.completionTokens,
                                 tokenUsed: input.usage?.totalTokens,
                                 priceUsed: input.usage?.totalPrice,
                                 currency: input.usage?.currency
@@ -371,8 +374,10 @@ export class AgentMiddlewareRuntimeService {
                     {
                         tenantId,
                         organizationId,
+                        copilotOrganizationId: candidates[0].organizationId ?? null,
                         userId: normalizeOptionalString(scope.userId) ?? RequestContext.currentUserId(),
                         originExecutionId: normalizeOptionalString(scope.executionId),
+                        xpertId: normalizeOptionalString(scope.xpertId),
                         copilotId: candidates[0].id,
                         providerScopeId: connection.id,
                         provider: providerName

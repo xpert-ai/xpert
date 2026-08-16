@@ -13,6 +13,7 @@ export type TChatModelOptions = {
     handleLLMTokens: (input: {
         copilot: ICopilot
         model?: string
+        requestId?: string
         usage?: TLLMUsage
         /**
          * @deprecated use usage

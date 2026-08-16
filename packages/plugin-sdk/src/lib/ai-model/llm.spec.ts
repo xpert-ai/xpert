@@ -158,7 +158,7 @@ describe('resolveTokenUsage', () => {
     })
   })
 
-  it('reports the same resolved usage to execution and pricing callbacks', () => {
+  it('reports the LangChain run ID with resolved usage', async () => {
     const copilot: ICopilot = { role: AiProviderRole.Primary }
     const handleLLMTokens = jest.fn()
     const output = resultWithUsage(7264, 174, 7438)
@@ -172,11 +172,12 @@ describe('resolveTokenUsage', () => {
       {},
       handleLLMTokens
     )
-    callbacks.handleLLMEnd(output)
+    await callbacks.handleLLMEnd(output, 'run-usage-1')
 
     expect(handleLLMTokens).toHaveBeenCalledWith({
       copilot,
       model: 'provider-independent-model',
+      requestId: 'run-usage-1',
       usage: expect.objectContaining({
         promptTokens: 7264,
         completionTokens: 174,
@@ -209,6 +210,7 @@ describe('resolveTokenUsage', () => {
     expect(handleLLMTokens).toHaveBeenCalledWith({
       copilot,
       model: 'provider-independent-model',
+      requestId: 'run-1',
       usage: expect.objectContaining({
         type: 'estimated',
         promptTokens: expect.any(Number),

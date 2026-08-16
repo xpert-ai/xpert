@@ -1,7 +1,7 @@
 # 图片 / 视频生成用量记账实施计划
 
-状态：实现完成，自动化验证通过，待手工验收；主仓提交至 PR #874，插件改动仍保留在本地
-范围：`xpert-develop`、`xpert-plugins`
+状态：宿主实现与自动化验证完成，待手工验收和提交；插件改动仍保留在本地
+范围：`xpert-develop`、`xpert-plugins`、`xpert-pro`
 插件：智谱 CogVideo、SiliconFlow Video、Kling、Google Veo、Volcengine Seedream / Seedance
 
 ## 1. 结论
@@ -13,7 +13,7 @@
 1. 插件 Provider adapter 负责第三方请求、响应解析和权威 usage 归一化；
 2. Plugin SDK 统一 IMAGE / VIDEO client、异步 submit / query 协议、Managed Queue Job checkpoint 与终态上报；
 3. 宿主 `createModelClient` 负责模型提供商解析、权限检查、身份绑定和 client 创建；
-4. Managed Queue Job 保存异步任务的可恢复状态，`ModelUsageLedger` 保存终态用量事实，`ModelChargeLedger` 保存冻结价格产生的金额。
+4. Managed Queue Job 保存异步任务的可恢复状态；Copilot Usage 在原有 `membership_point_ledger` 中统一保存终态用量、冻结价格、人民币结算和会员扣点，不新增用量表。
 
 不再保留独立的 `ModelInvocation` 状态机、调度器或 reconciliation 表。插件 Job 通过 SDK 的
 `processAsyncAIGCManagedJob` 复用 checkpoint、轮询、终态 `reportUsage` 和防重复上报逻辑；Provider、下载和文件交付仍由插件实现。
@@ -85,8 +85,9 @@ Job Processor 中的 Provider-specific 创建 client、结果下载和工作区�
 
 - 校验并归一化 token / generation / second；
 - 从宿主 scope 绑定 tenant、organization、user、copilot、provider scope 和 execution；
-- 以 `providerScopeId + requestId + unit + revision` 幂等写入 `ModelUsageLedger`；
-- 按调用开始时冻结的 `pricingSnapshot` 计算并幂等写入 `ModelChargeLedger`；
+- 以 `providerScopeId + requestId + unit + revision` 幂等写入原有 `membership_point_ledger`；
+- 在同一条用量事实中保存调用开始时冻结的 `pricingSnapshot`、原币金额和人民币结算快照；
+- 有人民币结算金额时，按租户配置的“1 点 = N RMB”生成原有会员/个人积点扣减流水；缺省为 `1 RMB = 10 点`；
 - 返回 ledger IDs。
 
 它不负责 Provider HTTP、异步状态、轮询、重试或产物下载。
@@ -148,9 +149,14 @@ Job payload 不保存 API Key。Provider 凭证始终由宿主模型提供商连
 
 ## 5. 持久化与计价
 
-### 5.1 ModelUsageLedger
+### 5.1 原有 MembershipPointLedger 的用量扩展
 
-账本是一组终态用量事实，每个 request 的一个 metric unit 只写一条当前版本：
+不创建 `model_usage_ledger` 或 `model_charge_ledger`。`membership_point_ledger` 同时承载两种行：
+
+- `source = model_usage`：终态用量事实，`pointsDelta = 0`；
+- `source = usage | personal_usage`：按人民币结算金额产生的会员/个人积点扣减。
+
+每个 request 的一个 metric unit 只写一条当前版本：
 
 - 唯一键：`tenantId + providerScopeId + requestId + unit + revision`；
 - 保存 provider、model、modelType、modality、operation、quantity / token fields、authority；
@@ -158,7 +164,9 @@ Job payload 不保存 API Key。Provider 凭证始终由宿主模型提供商连
 - execution 路径保存 `originExecutionId`，独立工具路径以 requestId 为 originId；
 - 重复 query、Job retry 和并发写入通过数据库唯一约束幂等。
 
-### 5.2 PricingRule 与 ModelChargeLedger
+原有 `includedPoints`、`pointsGranted`、`pointsUsed` 和个人永久积点不改存量数值。旧租户缺少新配置时按默认值解释为 `10 点 = 1 RMB`，例如历史 1000 点等价于 100 RMB 额度；不做破坏性的余额重写。
+
+### 5.2 PricingRule、人民币结算与会员扣点
 
 `pricing.type = usage` 的模型 YAML 规则保存：
 
@@ -169,7 +177,7 @@ Job payload 不保存 API Key。Provider 凭证始终由宿主模型提供商连
 - token 规则可选择 `prompt | completion | total`；
 - `source_url` 保存公开价格来源。
 
-价格在调用开始时解析并冻结到 Job payload；同步 IMAGE 在 invoke 前冻结。`ModelChargeLedger` 与 usage ledger 一对一，保存规则 ID/版本、结算 quantity、单价、币种、金额和规则快照。
+价格在调用开始时解析并冻结到 Job payload；同步 IMAGE 在 invoke 前冻结。终态用量行保存规则 ID/版本、结算 quantity、单价、原币币种、原币金额和规则快照。
 
 公式统一为：
 
@@ -178,6 +186,23 @@ amount = quantity / unit_size * unit_price
 ```
 
 明确的 free 规则保存金额 0；没有匹配规则时保存 unpriced，金额为空。历史金额不随 YAML 后续改价重算。
+
+会员统一按人民币金额扣减：
+
+```text
+settlementAmountCny = originalAmount * exchangeRate
+billableSettlementAmountCny = settlementAmountCny * settlementAmountMultiplier
+cnyPerPoint = tenant setting membershipCnyPerPoint, default 0.1
+chargedPoints = billableSettlementAmountCny / cnyPerPoint
+```
+
+- CNY/RMB 的 `exchangeRate = 1`；
+- USD 使用环境变量 `MODEL_BILLING_USD_TO_CNY_RATE`，并把实际汇率冻结到账本；
+- 缺少 USD 汇率或遇到其他币种时保留原币用量和金额，但人民币结算为空且不扣点；
+- free 保存人民币结算金额 0，不扣点；unpriced 的人民币结算和扣点都为空；
+- 套餐原有 `modelMultipliers` 字段重新定义为“结算金额倍率”，默认值为 1；供应商原币金额不变，倍率只作用于会员最终结算金额；
+- 租户管理员通过 `membershipCnyPerPoint` 配置“1 点 = N RMB”；旧租户缺少该设置时按 `0.1 RMB/点` 结算，即 `1 RMB = 10 点`；
+- 删除套餐和周期快照中的 `tokensPerPoint`，会员扣点不再依赖 Token 换算参数。
 
 ## 6. 异步生命周期
 
@@ -213,7 +238,7 @@ flowchart TD
 
 ## 7. 五个 Provider 的用量与价格规则
 
-规则版本和默认生效时间为 `2026-08-14`；每条规则在对应模型 YAML 中保存公开来源 URL。价格不做币种换算。
+规则版本和默认生效时间为 `2026-08-14`；每条规则在对应模型 YAML 中保存公开来源 URL。原币价格保留，会员扣费按冻结的 USD/CNY 汇率结算成人民币。
 
 | Provider            | 成功用量                                                                  | 当前计价方式                                                                                     |
 | ------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -227,10 +252,10 @@ flowchart TD
 ## 8. 实施顺序
 
 1. 更新 contracts 和 SDK：IMAGE/VIDEO、operation、标准 submit/query、Managed Queue checkpoint helper 和测试。
-2. 更新宿主：Provider scope、`purpose=observe`、`reportUsage`、Usage/Charge ledger、Managed Queue payload 更新能力。
+2. 更新宿主：Provider scope、`purpose=observe`、`reportUsage`、原有 membership ledger 扩展、Managed Queue payload 更新能力。
 3. 更新五个插件：注册 IMAGE/VIDEO model manager、Provider YAML/model metadata、Toolset 改走 `createModelClient`、异步任务移入 Job Processor。
-4. 接入 PricingRule 快照、免费/未计价语义和幂等价格计算。
-5. 接入 execution 明细/总 token 和用量中心 token/generation/second/金额查询及筛选 UI。
+4. 接入 PricingRule 快照、免费/未计价语义、USD/CNY 汇率快照、人民币结算和租户可配置的“1 点 = N RMB”扣减。
+5. 接入 execution 明细/总 token，并让 LLM、图片、视频的新调用统一写入用量事实；用量中心用一张表查询 token/generation/second 和金额。
 6. 跑聚焦测试、五个插件 typecheck/build、`git diff --check`，审计提交文件列表。
 
 ## 9. 验收标准
@@ -241,12 +266,12 @@ flowchart TD
 - Provider client 的 submit 不轮询；整个异步任务由 Managed Queue Job Processor 执行。
 - Job checkpoint 有 `providerRequestId` 时 retry 不再次 submit。
 - `reportUsage` 支持 token、generation、second，并与异步状态和文件交付解耦。
-- 终态 usage 和 charge 均数据库幂等；不同单位不相加。
+- 终态用量事实和会员扣减均在原有账本中数据库幂等；不同单位不相加。
 - execution 返回调用明细，并把图片/视频 token 计入总 token。
 - Tool 消息上显示 usage 图标，tooltip 展示 Provider、模型、operation 和 metrics。
 - 独立 Tool invoke 即使没有 execution 也能记账。
 - 免费用量显示 0 金额；未计价用量显示未计价且金额为空。
-- 用量中心分别查看 LLM Token、图片/视频 Token、Generation、Second，并按 Provider、模型、用户、组织、模态、币种和计价状态筛选。
+- 用量中心用同一张表展示 LLM、图片和视频的 token、generation、second，按计量单位、Provider、模型、用户、组织、模态、币种和计价状态筛选，并在同一行展示原币金额和人民币结算金额。
 - Managed Queue Processor 按插件声明的 concurrency 限制并发。
 
 ### 五个插件
@@ -269,7 +294,8 @@ flowchart TD
 - `packages/server-ai/src/shared/agent`：createModelClient / Provider scope；
 - `packages/server-ai/src/xpert-toolset` 和 `xpert-tool`：Agent 与独立 Tool 的宿主 scope；
 - `packages/server-ai/src/xpert-agent-execution`：调用明细与总 token 汇总；
-- `packages/server-ai/src/copilot-usage`：Copilot usage 对外能力，以及内部 Usage/Charge ledger、价格计算和查询；
+- `packages/server-ai/src/copilot-usage`：Copilot usage 对外能力，以及基于原有 membership ledger 的用量、价格、人民币结算和查询；
+- `packages/server-ai/src/membership`：原有账本字段扩展，以及按人民币金额扣减会员/个人积点；
 - `apps/cloud`：工具 usage tooltip、execution 汇总和用量中心。
 
 ### xpert-plugins
@@ -281,6 +307,15 @@ flowchart TD
 - `xpertai/models/volcengine/src/seedream-aigc`；
 - 对应 Provider YAML、model metadata、module 注册、聚焦测试和 changeset。
 
+### xpert-pro
+
+- `packages/contracts/src/billing`：会员销售商品的价格合同；
+- `packages/server-ai/src/billing`：商品售价、报价、订单、支付、退款，以及支付成功后的点数或会员周期发放；
+- `apps/cloud/src/app/features/setting/billing-products`：租户管理员维护销售商品及价格；
+- 旧会员计划价格只作为 Pro 商品价格的迁移输入；迁移必须全租户批量执行并输出未迁移数量，不能只依赖商品页面访问。
+
+会员消费规则、人民币结算、点值、扣点和统一用量账本只在 `xpert-develop` 维护；Pro 不重复实现消费规则。
+
 以下不在本次范围：钉钉、MiniMax、remote-components 生成产物、浏览器手工验收。
 
 ## 11. 产品决策状态
@@ -289,9 +324,13 @@ flowchart TD
 
 1. 默认公开价格写入模型 YAML，并保留币种、规则版本、生效时间和来源；
 2. 免费模型显示用量和 0 金额；没有可匹配价格的模型显示“未计价”，金额为空；
-3. 用量中心增加 LLM Token、图片/视频 Token、Generation、Second 四种视图，并展示金额和筛选。
+3. 用量中心把 LLM、图片和视频的 token、generation、second 合并为一张用量表，并展示原币金额、人民币结算金额和筛选。
+4. 原有积点不重写；缺少租户点值配置时按 `1 RMB = 10 点` 解释，新模型调用先结算人民币金额，再按租户点值扣点。
+5. USD/CNY 汇率暂由 `MODEL_BILLING_USD_TO_CNY_RATE` 配置并随调用冻结；其他币种暂不结算。
+6. 用量、价格和会员扣减统一使用原有 `membership_point_ledger`，不新增模型用量表。
+7. 会员销售价格、订单、支付和支付后发放由 Pro 维护；开源会员计划中的旧价格列仅临时用于迁移，不作为运行时售价来源。
 
 以下继续保留为后续产品设计：
 
 1. 异步完成通知、对话卡片和文件交付 UX；
-2. 人民币金额与平台积点的兑换、扣减和额度关系。
+2. 动态汇率来源、版本管理和多币种结算。

@@ -154,7 +154,12 @@ export abstract class LargeLanguageModel extends AIModel {
     handleLLMTokens: TChatModelOptions['handleLLMTokens']
   ) {
     const runs = new Map<string, { startedAt: DOMHighResTimeStamp; prompts: string[]; completion: string }>()
-    const reportUsage = async (tokenUsage: TTokenUsage, startedAt: DOMHighResTimeStamp, type?: TModelUsageType) => {
+    const reportUsage = async (
+      requestId: string,
+      tokenUsage: TTokenUsage,
+      startedAt: DOMHighResTimeStamp,
+      type?: TModelUsageType
+    ) => {
       if (!handleLLMTokens || tokenUsage.totalTokens <= 0) {
         return
       }
@@ -167,6 +172,7 @@ export abstract class LargeLanguageModel extends AIModel {
       await handleLLMTokens({
         copilot,
         model,
+        requestId,
         usage,
         tokenUsed: tokenUsage.totalTokens
       })
@@ -190,9 +196,10 @@ export abstract class LargeLanguageModel extends AIModel {
         runs.delete(runId)
         const resolved = resolveTokenUsageWithAuthority(output)
         if (resolved.usage.totalTokens > 0) {
-          await reportUsage(resolved.usage, run?.startedAt ?? performance.now(), resolved.type)
+          await reportUsage(runId, resolved.usage, run?.startedAt ?? performance.now(), resolved.type)
         } else {
           await reportUsage(
+            runId,
             estimateFallbackUsage(run?.prompts, run?.completion || readCompletionText(output)),
             run?.startedAt ?? performance.now(),
             'estimated'
@@ -206,6 +213,7 @@ export abstract class LargeLanguageModel extends AIModel {
           return
         }
         await reportUsage(
+          runId,
           estimateFallbackUsage(run?.prompts, run?.completion),
           run?.startedAt ?? performance.now(),
           'estimated'

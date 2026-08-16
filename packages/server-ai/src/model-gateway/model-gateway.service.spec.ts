@@ -566,7 +566,9 @@ describe('ModelGatewayService', () => {
                 inputTokens: 100,
                 outputTokens: 50,
                 totalTokens: 150,
-                source: ModelGatewayUsageSourceEnum.Provider
+                source: ModelGatewayUsageSourceEnum.Provider,
+                priceAmount: 0.2,
+                priceCurrency: 'CNY'
             }
         })
 
@@ -575,6 +577,11 @@ describe('ModelGatewayService', () => {
                 gatewayRequestId: 'request-1',
                 gatewayApiKeyId: 'key-1',
                 tokenUsed: 150,
+                priceAmount: 0.2,
+                priceCurrency: 'CNY',
+                settlementAmount: 0.2,
+                settlementCurrency: 'CNY',
+                exchangeRate: 1,
                 userId: 'user-1',
                 organizationId: 'org-1',
                 copilotOrganizationId: 'org-1'
