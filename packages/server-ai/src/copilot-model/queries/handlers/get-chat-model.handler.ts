@@ -13,6 +13,7 @@ import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ensureCopilotModelContextSize } from '../../utils/context-size'
 import { resolveModelVisionSupport, setModelVisionSupport } from '../../model-capabilities'
+import { randomUUID } from 'node:crypto'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -25,13 +26,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
     ) {}
 
     public async execute(command: CopilotModelGetChatModelQuery) {
-        const {
-            abortController,
-            usageCallback,
-            modelAccessCallback,
-            xpertId,
-            threadId
-        } = command.options ?? {}
+        const { abortController, usageCallback, modelAccessCallback, xpertId, threadId } = command.options ?? {}
         let copilot = command.copilot
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
@@ -95,7 +90,11 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                 modelProperties: customModels[0]?.modelProperties,
                 handleLLMTokens: async (input) => {
                     if (usageCallback && input.usage) {
-                        usageCallback(input.usage)
+                        await usageCallback(input.usage)
+                    }
+
+                    if (input.usage?.type === 'estimated') {
+                        return
                     }
 
                     if (!input.model) {
@@ -107,6 +106,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                     await this.recordUsage({
                         ...omit(input, 'usage'),
                         tenantId,
+                        requestId: input.requestId ?? randomUUID(),
                         organizationId,
                         userId,
                         xpertId,
@@ -115,6 +115,8 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                         model: input.model,
                         modelType: copilotModel.modelType,
                         modelAccess,
+                        promptTokens: input.usage?.promptTokens,
+                        completionTokens: input.usage?.completionTokens,
                         tokenUsed: input.usage?.totalTokens,
                         priceUsed: input.usage?.totalPrice,
                         currency: input.usage?.currency,

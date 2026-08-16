@@ -265,6 +265,15 @@ export interface WorkspaceFilesApi {
   ): Promise<WorkspaceFile & { reference: WorkspacePortableFileReference }>
 }
 
+/** Workspace file operations used by media generation tools. */
+export type WorkspaceMediaFilesApi<TLocator extends WorkspaceFileLocator = WorkspaceFileLocator> = Pick<
+  WorkspaceFilesApi,
+  'uploadBuffer' | 'readBuffer'
+> & {
+  readRuntimeBuffer?: (input: TLocator) => Promise<WorkspaceFileBuffer>
+  deleteFile?: WorkspaceFilesApi['deleteFile']
+}
+
 export const WorkspaceFilesRuntimeCapability = createRuntimeCapability<WorkspaceFilesApi>('platform.workspace.files', {
   description: 'Upload, understand, resolve, read, and delete raw files in Xpert workspace volumes.'
 })

@@ -76,6 +76,26 @@ export class ModelGatewayCall extends TenantOrganizationBaseEntity implements IM
     @Column({ type: 'bigint', default: 0, transformer: numericNumberTransformer })
     totalTokens: number
 
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'numeric', precision: 24, scale: 10, nullable: true, transformer: numericNumberTransformer })
+    priceAmount?: number | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    priceCurrency?: string | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'numeric', precision: 24, scale: 10, nullable: true, transformer: numericNumberTransformer })
+    settlementAmount?: number | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    settlementCurrency?: string | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'numeric', precision: 24, scale: 10, nullable: true, transformer: numericNumberTransformer })
+    exchangeRate?: number | null
+
     @ApiProperty({ type: () => Number })
     @Column({ type: 'numeric', precision: 28, scale: 10, default: 0, transformer: numericNumberTransformer })
     chargedPoints: number

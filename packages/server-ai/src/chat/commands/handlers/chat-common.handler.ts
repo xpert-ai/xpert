@@ -865,7 +865,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         xpertId: null,
                         signal: abortController.signal,
                         env: toEnvState(environment),
-                        store: memoryStore
+                        store: memoryStore,
+                        executionId: execution.id,
+                        getExecutionId: () => execution.id
                     }
                 )
             )

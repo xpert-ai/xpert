@@ -5,5 +5,8 @@ export enum AiModelTypeEnum {
     SPEECH2TEXT = "speech2text",
     MODERATION = "moderation",
     TTS = "tts",
-    TEXT2IMG = "text2img"
+    IMAGE = "image",
+    /** @deprecated Use IMAGE for new image-generation model providers. */
+    TEXT2IMG = "text2img",
+    VIDEO = "video"
 }

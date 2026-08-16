@@ -232,6 +232,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                         await this.commandBus.execute(
                                             new CopilotTokenRecordCommand({
                                                 tenantId: knowledgebase.tenantId,
+                                                requestId: `knowledge-workflow:${executionId ?? thread_id}:${document.id}:${count}`,
                                                 organizationId: knowledgebase.organizationId,
                                                 userId,
                                                 xpertId,

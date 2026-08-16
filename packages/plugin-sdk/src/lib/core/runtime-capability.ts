@@ -24,6 +24,9 @@ export interface RuntimeCapabilityRegistry {
   require<T>(key: RuntimeCapabilityKey<T> | string): T
 }
 
+/** Read-only capability view accepted by plugin-side consumers. */
+export type RuntimeCapabilityResolver = Pick<RuntimeCapabilityRegistry, 'get'>
+
 export const XPERT_RUNTIME_CAPABILITIES_TOKEN = 'XPERT_RUNTIME_CAPABILITIES'
 
 export class DefaultRuntimeCapabilityRegistry implements RuntimeCapabilityRegistry {

@@ -1,8 +1,10 @@
 import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
+import { MANAGED_QUEUE_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import * as dotenv from 'dotenv'
-import { ToolNotSupportedError } from '../../../xpert-toolset'
+import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import { ToolNotSupportedError, XpertToolsetService } from '../../../xpert-toolset'
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { ToolInvokeHandler } from './tool-invoke.handler'
 
@@ -22,7 +24,14 @@ describe('ToolInvokeHandler', () => {
 					useValue: {
 						execute: jest.fn()
 					}
-				}
+				},
+				{ provide: QueryBus, useValue: { execute: jest.fn() } },
+				{ provide: XpertToolsetService, useValue: {} },
+				{
+					provide: AgentMiddlewareRuntimeService,
+					useValue: { createScopedApi: jest.fn().mockReturnValue({ createModelClient: jest.fn() }) }
+				},
+				{ provide: MANAGED_QUEUE_SERVICE_TOKEN, useValue: { enqueue: jest.fn() } }
 			]
 		}).compile()
 
@@ -97,7 +106,14 @@ describe('ToolInvokeHandler OData', () => {
 					useValue: {
 						execute: jest.fn()
 					}
-				}
+				},
+				{ provide: QueryBus, useValue: { execute: jest.fn() } },
+				{ provide: XpertToolsetService, useValue: {} },
+				{
+					provide: AgentMiddlewareRuntimeService,
+					useValue: { createScopedApi: jest.fn().mockReturnValue({ createModelClient: jest.fn() }) }
+				},
+				{ provide: MANAGED_QUEUE_SERVICE_TOKEN, useValue: { enqueue: jest.fn() } }
 			]
 		}).compile()
 

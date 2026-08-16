@@ -11,10 +11,11 @@ import {
   TTokenUsage
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
-import { AIMessage } from '@langchain/core/messages'
+import { AIMessage, isAIMessageChunk } from '@langchain/core/messages'
 import { AIModel } from './ai-model'
-import { CommonParameterRules, TChatModelOptions } from './types/'
+import { CommonParameterRules, TChatModelOptions, TLLMUsage, TModelUsageType } from './types/'
 
 export type CommonChatModelParameters = {
   temperature: number
@@ -120,7 +121,8 @@ export abstract class LargeLanguageModel extends AIModel {
     model: string,
     credentials: Record<string, any>,
     promptTokens: number,
-    completionTokens: number
+    completionTokens: number,
+    startedAt = this.startedAt
   ): ILLMUsage {
     const promptPriceInfo = this.getPrice(model, credentials, PriceType.INPUT, promptTokens, promptTokens)
     const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens, promptTokens)
@@ -139,7 +141,7 @@ export abstract class LargeLanguageModel extends AIModel {
       totalTokens: promptTokens + completionTokens,
       totalPrice,
       currency: promptPriceInfo.currency,
-      latency: performance.now() - this.startedAt
+      latency: performance.now() - startedAt
     }
 
     return usage
@@ -151,31 +153,76 @@ export abstract class LargeLanguageModel extends AIModel {
     credentials: any,
     handleLLMTokens: TChatModelOptions['handleLLMTokens']
   ) {
-    return [
-      {
-        handleLLMStart: () => {
-          this.startedAt = performance.now()
-        },
-        handleLLMEnd: (output) => {
-          const tokenUsage = resolveTokenUsage(output)
-          if (handleLLMTokens) {
-            const usage = this.calcResponseUsage(
-              model,
-              credentials,
-              tokenUsage.promptTokens,
-              tokenUsage.completionTokens
-            )
-            usage.totalTokens = tokenUsage.totalTokens
-            handleLLMTokens({
-              copilot,
-              model,
-              usage,
-              tokenUsed: tokenUsage.totalTokens
-            })
-          }
-        }
+    const runs = new Map<string, { startedAt: DOMHighResTimeStamp; prompts: string[]; completion: string }>()
+    const reportUsage = async (
+      requestId: string,
+      tokenUsage: TTokenUsage,
+      startedAt: DOMHighResTimeStamp,
+      type?: TModelUsageType
+    ) => {
+      if (!handleLLMTokens || tokenUsage.totalTokens <= 0) {
+        return
       }
-    ]
+
+      const usage: TLLMUsage = {
+        ...this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens, startedAt),
+        ...(type ? { type } : {})
+      }
+      usage.totalTokens = tokenUsage.totalTokens
+      await handleLLMTokens({
+        copilot,
+        model,
+        requestId,
+        usage,
+        tokenUsed: tokenUsage.totalTokens
+      })
+    }
+    const callback = BaseCallbackHandler.fromMethods({
+      handleLLMStart: (_llm, prompts, runId) => {
+        runs.set(runId, {
+          startedAt: performance.now(),
+          prompts,
+          completion: ''
+        })
+      },
+      handleLLMNewToken: (token, _idx, runId, _parentRunId, _tags, fields) => {
+        const run = runs.get(runId)
+        if (run) {
+          run.completion += token + readToolCallChunkText(fields?.chunk)
+        }
+      },
+      handleLLMEnd: async (output, runId) => {
+        const run = runs.get(runId)
+        runs.delete(runId)
+        const resolved = resolveTokenUsageWithAuthority(output)
+        if (resolved.usage.totalTokens > 0) {
+          await reportUsage(runId, resolved.usage, run?.startedAt ?? performance.now(), resolved.type)
+        } else {
+          await reportUsage(
+            runId,
+            estimateFallbackUsage(run?.prompts, run?.completion || readCompletionText(output)),
+            run?.startedAt ?? performance.now(),
+            'estimated'
+          )
+        }
+      },
+      handleLLMError: async (error, runId) => {
+        const run = runs.get(runId)
+        runs.delete(runId)
+        if (!run?.completion && !isAbortError(error)) {
+          return
+        }
+        await reportUsage(
+          runId,
+          estimateFallbackUsage(run?.prompts, run?.completion),
+          run?.startedAt ?? performance.now(),
+          'estimated'
+        )
+      }
+    })
+    callback.awaitHandlers = true
+    callback.raiseError = true
+    return [callback]
   }
 
   createHandleLLMErrorCallbacks(fields, logger?: Logger) {
@@ -324,6 +371,58 @@ export abstract class LargeLanguageModel extends AIModel {
   }
 }
 
+function estimateFallbackUsage(prompts?: string[], completion?: string): TTokenUsage {
+  if (!prompts) {
+    return { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  }
+
+  const promptTokens = estimateTokens(prompts.join('\n'))
+  const completionTokens = estimateTokens(completion ?? '')
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens
+  }
+}
+
+function readCompletionText(output: LLMResult) {
+  return output.generations
+    ?.flat()
+    .map((generation) => generation.text)
+    .filter(Boolean)
+    .join('\n')
+}
+
+function estimateTokens(text: string) {
+  const estimatedText = text.replace(/data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/_=-]+/g, '[image]')
+  let cjkCharacters = 0
+  let otherCharacters = 0
+  for (const character of estimatedText) {
+    if (/\p{Script=Han}/u.test(character)) {
+      cjkCharacters++
+    } else {
+      otherCharacters++
+    }
+  }
+  return Math.ceil(cjkCharacters / 1.5 + otherCharacters / 4)
+}
+
+function readToolCallChunkText(chunk?: unknown) {
+  if (!(chunk instanceof ChatGenerationChunk) || !isAIMessageChunk(chunk.message)) {
+    return ''
+  }
+  return (chunk.message.tool_call_chunks ?? [])
+    .map((toolCall) => `${toolCall.name ?? ''}${toolCall.args ?? ''}`)
+    .join('')
+}
+
+function isAbortError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  return error.name === 'AbortError' || /\babort(?:ed)?\b/i.test(error.message)
+}
+
 export function calcTokenUsage(output: LLMResult) {
   const tokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 } as TTokenUsage
   output.generations?.forEach((generation) => {
@@ -340,16 +439,26 @@ export function calcTokenUsage(output: LLMResult) {
 }
 
 export function resolveTokenUsage(output: LLMResult): TTokenUsage {
-  return (
+  return resolveTokenUsageWithAuthority(output).usage
+}
+
+function resolveTokenUsageWithAuthority(output: LLMResult): { usage: TTokenUsage; type?: TModelUsageType } {
+  const actualUsage =
     normalizeTokenUsage(calcTokenUsage(output)) ??
     normalizeTokenUsage(output.llmOutput?.['tokenUsage']) ??
-    normalizeTokenUsage(output.llmOutput?.['estimatedTokenUsage']) ??
-    normalizeTokenUsage({ totalTokens: output.llmOutput?.['totalTokens'] }) ?? {
-      promptTokens: 0,
-      completionTokens: 0,
-      totalTokens: 0
-    }
-  )
+    normalizeTokenUsage({ totalTokens: output.llmOutput?.['totalTokens'] })
+  if (actualUsage) {
+    return { usage: actualUsage }
+  }
+
+  const estimatedUsage = normalizeTokenUsage(output.llmOutput?.['estimatedTokenUsage'])
+  if (estimatedUsage) {
+    return { usage: estimatedUsage, type: 'estimated' }
+  }
+
+  return {
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  }
 }
 
 function normalizeTokenUsage(candidate?: Partial<TTokenUsage> | null): TTokenUsage | null {

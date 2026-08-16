@@ -6,7 +6,7 @@ import axios, { AxiosResponse } from 'axios'
 import type { OperationObject, ParameterObject } from "openapi-typescript/src/types";
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
 import { ApiBasedToolSchemaParser } from '../../../utils/parser'
-import { BaseTool } from '../../../../shared'
+import { BaseTool, type TToolModelUsageReporter } from '../../../../shared'
 
 const API_TOOL_DEFAULT_TIMEOUT = [
 	parseInt(process.env.API_TOOL_DEFAULT_CONNECT_TIMEOUT || '10'),
@@ -23,7 +23,8 @@ export class OpenAPITool extends BaseTool {
 
 	constructor(
 		protected xpertTool: IXpertTool,
-		fields?: ToolParams
+		fields?: ToolParams,
+		private readonly reportUsage?: TToolModelUsageReporter
 	) {
 		super(fields)
 
@@ -261,6 +262,7 @@ export class OpenAPITool extends BaseTool {
 			headers,
 			toolParameters
 		)
+		await this.reportModelUsage(response)
 
 		// validate response
 		const validatedResponse = this.validate_and_parse_response(response)
@@ -268,4 +270,60 @@ export class OpenAPITool extends BaseTool {
 		// assemble invoke message
 		return validatedResponse
 	}
+
+	private async reportModelUsage(response: AxiosResponse) {
+		const usage = readOpenApiModelUsage(response.data)
+		const requestId = readRequestId(response)
+		if (!this.reportUsage || !usage || !requestId) {
+			return
+		}
+
+		await this.reportUsage({
+			requestId,
+			provider: this.xpertTool.toolset?.name?.trim() || 'openapi',
+			model: readStringProperty(response.data, 'model'),
+			...usage
+		})
+	}
+}
+
+function readOpenApiModelUsage(value: unknown) {
+	const usage = readObjectProperty(value, 'usage')
+	if (!usage) {
+		return null
+	}
+	const promptTokens = readTokenCount(usage, 'prompt_tokens') ?? readTokenCount(usage, 'promptTokens')
+	const completionTokens = readTokenCount(usage, 'completion_tokens') ?? readTokenCount(usage, 'completionTokens')
+	const totalTokens = readTokenCount(usage, 'total_tokens') ?? readTokenCount(usage, 'totalTokens')
+	return promptTokens !== undefined && completionTokens !== undefined && totalTokens !== undefined
+		? { promptTokens, completionTokens, totalTokens }
+		: null
+}
+
+function readRequestId(response: AxiosResponse) {
+	return (
+		readStringProperty(response.data, 'id') ??
+		readStringProperty(response.data, 'request_id') ??
+		readStringProperty(response.headers, 'x-request-id') ??
+		readStringProperty(response.headers, 'request-id')
+	)
+}
+
+function readTokenCount(value: unknown, key: string) {
+	const property = readProperty(value, key)
+	return typeof property === 'number' && Number.isInteger(property) && property >= 0 ? property : undefined
+}
+
+function readObjectProperty(value: unknown, key: string) {
+	const property = readProperty(value, key)
+	return property && typeof property === 'object' && !Array.isArray(property) ? property : null
+}
+
+function readStringProperty(value: unknown, key: string) {
+	const property = readProperty(value, key)
+	return typeof property === 'string' && property.trim() ? property.trim() : undefined
+}
+
+function readProperty(value: unknown, key: string): unknown {
+	return value && typeof value === 'object' && !Array.isArray(value) ? Reflect.get(value, key) : undefined
 }

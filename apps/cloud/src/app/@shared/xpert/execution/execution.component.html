@@ -88,7 +88,10 @@
         {{ 'XP.Xpert.TotalTokens' | translate: { Default: 'Total Tokens' } }}
       </div>
       <div class="grow px-2 py-[5px] text-text-primary text-sm leading-[18px]">
-        <span>{{ execution().tokens }} {{ 'XP.Xpert.Tokens' | translate: { Default: 'Tokens' } }}</span>
+        <span
+          >{{ execution().totalTokens ?? execution().tokens ?? 0 }}
+          {{ 'XP.Xpert.Tokens' | translate: { Default: 'Tokens' } }}</span
+        >
       </div>
     </div>
     <div class="flex">

@@ -43,7 +43,7 @@ export interface ITenantSetting extends S3FileStorageProviderConfig {
   copilotCheckpointRetentionDays?: string | null
   modelGatewayCallRetentionEnabled?: string | null
   modelGatewayCallRetentionDays?: string | null
-  membershipTokensPerPoint?: string | null
+  membershipCnyPerPoint?: string | null
   modelGatewayRequestsPerMinute?: string | null
   modelGatewayMaxConcurrentRequests?: string | null
   tenant_title?: string

@@ -1,14 +1,8 @@
-import {
-  AiModelTypeEnum,
-  IAiProviderEntity,
-  ICopilotModel,
-  ProviderModel,
-  AIModelEntity
-} from '@xpert-ai/contracts'
+import { AiModelTypeEnum, IAiProviderEntity, ICopilotModel, ProviderModel, AIModelEntity } from '@xpert-ai/contracts'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { IRerank } from './types'
+import { AIGCModelClient, AsyncAIGCModelClient, IRerank } from './types'
 import { AIModel } from './ai-model'
 
 export interface IAIModelProviderStrategy {
@@ -42,13 +36,13 @@ export interface IAIModelProviderStrategy {
   getModels(modelType: AiModelTypeEnum): Promise<AIModelEntity[]>
 
   /**
-   * Return a directly usable model instance (LLM / Embedding / TTS / Rerank)
+   * Return a directly usable model instance (LLM / Embedding / TTS / Rerank / AIGC)
    */
   getModelInstance(
     type: AiModelTypeEnum,
     copilotModel: ICopilotModel,
     options?: Record<string, any>
-  ): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank>
+  ): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank | AIGCModelClient | AsyncAIGCModelClient>
 
   /**
    * Return the defined provider models (metadata)
