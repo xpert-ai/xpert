@@ -104,7 +104,23 @@ function sanitizeParserConfigForDocument(
         return {} satisfies DocumentParserConfig
     }
     if (category === KBDocumentCategoryEnum.Sheet) {
-        return pickDefined(parserConfig, ['fields', 'indexedFields']) as ResolvedKnowledgeDocumentParserConfig
+        const sheetConfig = pickDefined(parserConfig, [
+            'fields',
+            'indexedFields',
+            'spreadsheet',
+            'transformerType',
+            'transformerIntegration',
+            'transformer',
+            'textSplitterType',
+            'textSplitter'
+        ]) as ResolvedKnowledgeDocumentParserConfig
+        const transformerType = normalizeString(sheetConfig.transformerType)
+        if (!transformerType) {
+            delete sheetConfig.transformerType
+            delete sheetConfig.transformerIntegration
+            delete sheetConfig.transformer
+        }
+        return sheetConfig
     }
 
     const common = pickDefined(parserConfig, [
@@ -151,6 +167,7 @@ function mergeParserConfig(
         transformer: transformerTypeChanged
             ? explicit.transformer
             : mergeOptionalObject(defaults.transformer, explicit.transformer),
+        spreadsheet: mergeOptionalObject(defaults.spreadsheet, explicit.spreadsheet),
         imageUnderstanding: mergeOptionalObject(defaults.imageUnderstanding, explicit.imageUnderstanding)
     } satisfies ResolvedKnowledgeDocumentParserConfig
     return dropUndefinedNested(merged)

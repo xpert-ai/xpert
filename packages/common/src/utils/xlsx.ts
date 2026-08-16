@@ -144,3 +144,76 @@ export async function loadExcel(filePath: string) {
 
   return jsonData
 }
+
+export interface LoadedSpreadsheetCell {
+  address: string
+  row: number
+  column: number
+  value: string
+}
+
+export interface LoadedSpreadsheetSheet {
+  name: string
+  range?: string
+  hidden: boolean
+  merges: string[]
+  cells: LoadedSpreadsheetCell[]
+  records: Record<string, unknown>[]
+}
+
+export interface LoadedSpreadsheetWorkbook {
+  sheets: LoadedSpreadsheetSheet[]
+}
+
+/**
+ * Loads every worksheet while retaining cell coordinates. This representation is
+ * intended for form-like workbooks where values in nearby cells form one document,
+ * rather than independent database records.
+ */
+export async function loadExcelWorkbook(filePath: string): Promise<LoadedSpreadsheetWorkbook> {
+  const workbook = XLSX.readFile(filePath, {
+    type: 'file',
+    cellDates: true,
+    cellNF: false
+  })
+
+  return {
+    sheets: workbook.SheetNames.map((name, index) => {
+      const sheet = workbook.Sheets[name]
+      const visibility = workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0
+      const cells = Object.entries(sheet)
+        .filter(([address]) => !address.startsWith('!'))
+        .map(([address, cell]) => {
+          const decoded = XLSX.utils.decode_cell(address)
+          const typedCell = cell as XLSX.CellObject
+          const value = typedCell.w ?? formatSpreadsheetValue(typedCell.v)
+          return {
+            address,
+            row: decoded.r + 1,
+            column: decoded.c + 1,
+            value
+          }
+        })
+        .filter((cell) => cell.value.trim().length > 0)
+        .sort((left, right) => left.row - right.row || left.column - right.column)
+
+      return {
+        name,
+        range: sheet['!ref'],
+        hidden: visibility !== 0,
+        merges: (sheet['!merges'] ?? []).map((merge) => XLSX.utils.encode_range(merge)),
+        cells,
+        records: XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+          defval: null,
+          raw: false
+        })
+      }
+    })
+  }
+}
+
+function formatSpreadsheetValue(value: unknown): string {
+  if (value == null) return ''
+  if (value instanceof Date) return value.toISOString()
+  return String(value)
+}

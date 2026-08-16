@@ -93,6 +93,11 @@ export class KnowledgeDocumentPreviewComponent {
 
   readonly fileType = computed(() => this.document()?.type)
   readonly category = computed(() => this.document()?.category)
+  readonly isRecordSpreadsheet = computed(
+    () =>
+      this.category() === KBDocumentCategoryEnum.Sheet &&
+      this.sheetParserConfig()?.spreadsheet?.interpretation !== 'form_document'
+  )
 
   readonly fields = computed(() => {
     if (this.category() === KBDocumentCategoryEnum.Sheet) {

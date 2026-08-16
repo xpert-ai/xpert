@@ -6,6 +6,7 @@ import {
     IKnowledgeDocumentPage,
     IStorageFile,
     KBDocumentCategoryEnum,
+    DocumentSheetParserConfig,
     DocumentTextParserConfig,
     KBDocumentStatusEnum,
     IKnowledgebaseTask,
@@ -175,7 +176,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @IsJSON()
     @IsOptional()
     @Column({ type: 'json', nullable: true })
-    parserConfig: DocumentTextParserConfig
+    parserConfig: DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
 
     @ApiPropertyOptional({ type: () => String })
     @IsString()
