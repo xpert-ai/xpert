@@ -3,6 +3,7 @@ import { IXpert, IXpertAgentExecution, TChatOptions, TXpertGraph, TXpertParamete
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'
+import type { TExecutionResolver } from '../../xpert-agent-execution'
 
 /**
  * Create ReAct graph for agent
@@ -32,6 +33,8 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 */
 			rootExecutionId?: string
 			execution: IXpertAgentExecution
+			/** Resolve the execution of the current invocation when this graph is reused concurrently. */
+			getExecution?: TExecutionResolver
 			// Langgraph thread id
 			thread_id?: string
 			// Use xpert's draft

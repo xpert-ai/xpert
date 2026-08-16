@@ -45,7 +45,7 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
         }
 
         const observedExecutions: Array<{ expected?: string; actual?: string }> = []
-        let activeExecution: IXpertAgentExecution | undefined
+        let getActiveExecution: (() => IXpertAgentExecution) | undefined
         let startedInvocations = 0
         let releaseInvocations: (() => void) | undefined
         const allInvocationsStarted = new Promise<void>((resolve) => {
@@ -68,7 +68,7 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
                     await allInvocationsStarted
                     observedExecutions.push({
                         expected: invokeConfig.configurable?.executionId,
-                        actual: activeExecution?.id
+                        actual: getActiveExecution?.().id
                     })
                     return {
                         messages: [new AIMessage(`result-${invokeConfig.configurable?.executionId}`)]
@@ -80,7 +80,7 @@ describe('XpertAgentSubgraphHandler invocation execution scope', () => {
         const commandBus = {
             execute: jest.fn(async (command: unknown) => {
                 if (command instanceof XpertAgentSubgraphCommand) {
-                    activeExecution = command.options.execution
+                    getActiveExecution = command.options.getExecution
                     return {
                         graph: childGraph,
                         nextNodes: [],

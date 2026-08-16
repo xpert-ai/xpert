@@ -7,13 +7,17 @@ type TExecutionTokenWriter = (
     usage: { type?: TModelUsageType; tokens: number }
 ) => void | Promise<void>
 
-export function createExecutionModelUsageRecorder(execution: IXpertAgentExecution, persist: TExecutionTokenWriter) {
+export type TExecutionResolver = () => IXpertAgentExecution
+type TExecutionSource = IXpertAgentExecution | TExecutionResolver
+
+export function createExecutionModelUsageRecorder(executionSource: TExecutionSource, persist: TExecutionTokenWriter) {
     const reportedToolRequests = new Set<string>()
 
     const recordTokens = async (type: TModelUsageType | undefined, tokens: number) => {
         if (!isPositiveTokenCount(tokens)) {
             return
         }
+        const execution = resolveExecution(executionSource)
         if (execution.id) {
             await persist(execution.id, { ...(type ? { type } : {}), tokens })
         }
@@ -81,8 +85,9 @@ function isTokenCount(value: number) {
     return Number.isFinite(value) && Number.isInteger(value) && value >= 0
 }
 
-export function assignExecutionUsage(execution: IXpertAgentExecution) {
+export function assignExecutionUsage(executionSource: TExecutionSource) {
     return (usage: TLLMUsage) => {
+        const execution = resolveExecution(executionSource)
         if (usage.type === 'estimated') {
             addExecutionTokens(execution, usage.totalTokens ?? 0)
             return
@@ -108,4 +113,8 @@ export function assignExecutionUsage(execution: IXpertAgentExecution) {
             responseLatencySeconds: execution.responseLatency
         })
     }
+}
+
+function resolveExecution(source: TExecutionSource) {
+    return typeof source === 'function' ? source() : source
 }

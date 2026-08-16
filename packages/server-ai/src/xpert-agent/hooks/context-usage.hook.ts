@@ -10,16 +10,18 @@ import {
 } from '@xpert-ai/contracts'
 import { AfterModelHandler } from '@xpert-ai/plugin-sdk'
 import { AIMessage, BaseMessage, isAIMessage } from '@langchain/core/messages'
+import type { TExecutionResolver } from '../../xpert-agent-execution'
 
 export function createThreadContextUsageEventHook(
 	agent: IXpertAgent,
 	thread_id: string,
-	execution: Partial<IXpertAgentExecution>
+	getExecution: TExecutionResolver
 ) {
 	const agentKey = agent.key
 	return {
 		key: `${agent.key}_thread_context_usage_after_model`,
 		hook: (async (state) => {
+			const execution = getExecution()
 			const lastMessage = state.messages?.[state.messages.length - 1]
 			const payload = createThreadContextUsageEvent({
 				threadId: thread_id,

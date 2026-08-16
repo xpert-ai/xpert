@@ -36,10 +36,11 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
         }
         const workspaceId = normalizeWorkspaceId(command.environment?.workspaceId)
         const execution = command.environment?.execution
-        const originExecutionId = execution?.id ?? command.environment?.executionId
+        const getExecution = command.environment?.getExecution ?? (execution ? () => execution : undefined)
+        const originExecutionId = getExecution?.().id ?? command.environment?.executionId
         const userId = RequestContext.currentUserId()
-        const usageRecorder = execution
-            ? createExecutionModelUsageRecorder(execution, async (executionId, usage) => {
+        const usageRecorder = getExecution
+            ? createExecutionModelUsageRecorder(getExecution, async (executionId, usage) => {
                   await this.commandBus.execute(
                       new XpertAgentExecutionAddTokensCommand(executionId, usage.tokens, usage.type)
                   )

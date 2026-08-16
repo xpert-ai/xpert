@@ -58,6 +58,34 @@ describe('createExecutionModelUsageRecorder', () => {
         expect(execution.totalPrice).toBe(1)
     })
 
+    it('resolves the current invocation execution when usage is reported', async () => {
+        const firstExecution = { id: 'execution-1', tokens: 0 }
+        const secondExecution = { id: 'execution-2', tokens: 0 }
+        let currentExecution = firstExecution
+        const persist = jest.fn(async () => undefined)
+        const recorder = createExecutionModelUsageRecorder(() => currentExecution, persist)
+        currentExecution = secondExecution
+
+        await recorder.usageCallback({
+            promptTokens: 10,
+            completionTokens: 2,
+            totalTokens: 12,
+            promptUnitPrice: 0,
+            promptPriceUnit: 0,
+            promptPrice: 0,
+            completionUnitPrice: 0,
+            completionPriceUnit: 0,
+            completionPrice: 0,
+            totalPrice: 0,
+            currency: 'USD',
+            latency: 20
+        })
+
+        expect(persist).toHaveBeenCalledWith('execution-2', { tokens: 12 })
+        expect(firstExecution.tokens).toBe(0)
+        expect(secondExecution.tokens).toBe(12)
+    })
+
     it('persists and mirrors estimated usage in tokens with its type', async () => {
         const execution = { id: 'execution-1', tokens: 5 }
         const persist = jest.fn(async () => undefined)

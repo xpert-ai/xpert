@@ -14,7 +14,6 @@ import {
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import {
     Annotation,
     END,
@@ -72,6 +71,7 @@ import {
     WrapModelCallHandler,
     WrapToolCallHook
 } from '@xpert-ai/plugin-sdk'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -170,6 +170,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const {
             isStart,
             execution,
+            getExecution,
             leaderKey,
             channel: agentChannel,
             subscriber,
@@ -183,6 +184,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             tools: additionalTools,
             mute
         } = options
+        const resolveExecution = getExecution ?? (() => execution)
 
         // Signal controller in this subgraph
         const abortController = new AbortController()
@@ -246,7 +248,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
                 new GetXpertChatModelQuery(agent.team, agent, {
                     abortController: rootController,
-                    usageCallback: assignExecutionUsage(execution),
+                    usageCallback: assignExecutionUsage(resolveExecution),
                     threadId: thread_id
                 })
             )
@@ -279,7 +281,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 signal: abortController.signal,
                 env: toEnvState(environment),
                 store: options.store,
-                execution
+                execution,
+                getExecution: resolveExecution
             })
         )
         const { closeToolsets, installGraphCloseHook } = createToolsetRuntimeCleanup({
@@ -741,7 +744,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const organizationId = RequestContext.getOrganizationId() ?? null
-        const usageRecorder = createExecutionModelUsageRecorder(execution, async (executionId, usage) => {
+        const usageRecorder = createExecutionModelUsageRecorder(resolveExecution, async (executionId, usage) => {
             await this.commandBus.execute(
                 new XpertAgentExecutionAddTokensCommand(executionId, usage.tokens, usage.type)
             )
@@ -928,7 +931,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         } = getModelHooks(middlewareEntries)
         const afterModelHooks = [
             ...userAfterModelHooks,
-            ...(!hiddenAgent ? [createThreadContextUsageEventHook(agent, thread_id, execution)] : [])
+            ...(!hiddenAgent ? [createThreadContextUsageEventHook(agent, thread_id, resolveExecution)] : [])
         ]
         const afterModelExecutionOrder = [...afterModelHooks].reverse()
 
@@ -1152,7 +1155,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     new GetXpertChatModelQuery(agent.team, null, {
                         copilotModel: agent.options.fallback.copilotModel,
                         abortController: rootController,
-                        usageCallback: assignExecutionUsage(execution),
+                        usageCallback: assignExecutionUsage(resolveExecution),
                         threadId: thread_id
                     })
                 )
@@ -1232,17 +1235,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 if (isBaseMessage(response) && isAIMessage(response)) {
                     const invalidToolCalls = response.invalid_tool_calls
                     if (invalidToolCalls?.length) {
+                        const currentExecution = resolveExecution()
                         const diagnosticId = randomUUID()
                         this.#logger.error(
                             createInvalidToolCallDiagnostics({
                                 diagnosticId,
                                 invalidToolCalls,
                                 threadId: thread_id,
-                                executionId: execution.id,
+                                executionId: currentExecution.id,
                                 xpertId: xpert.id,
                                 agentKey,
                                 agentChannel,
-                                model: execution.metadata,
+                                model: currentExecution.metadata,
                                 aiMessageId: response.id
                             })
                         )
@@ -1764,6 +1768,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 isDraft: config.options.isDraft,
                 subscriber,
                 execution,
+                getExecution: executionScope.getExecution,
                 variables,
                 channel: channelName(agent.key),
                 partners,
@@ -1811,7 +1816,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, _execution))
-                const releaseExecution = executionScope.bind(invocationExecution)
 
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
@@ -1854,22 +1858,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                               }
                             : {})
                     }
-                    const output = await graph.invoke(subState, {
-                        ...config,
-                        signal,
-                        configurable: {
-                            ...config.configurable,
-                            agentKey: agent.key,
-                            xpertName: agentLabel(agent),
-                            executionId: _execution.id
-                        },
-                        metadata: {
-                            agentKey: agent.key,
-                            xpertName: agentLabel(agent),
-                            executionId: _execution.id,
-                            parentExecutionId: executionId
-                        }
-                    })
+                    const output = await executionScope.run(invocationExecution, () =>
+                        graph.invoke(subState, {
+                            ...config,
+                            signal,
+                            configurable: {
+                                ...config.configurable,
+                                agentKey: agent.key,
+                                xpertName: agentLabel(agent),
+                                executionId: _execution.id
+                            },
+                            metadata: {
+                                agentKey: agent.key,
+                                xpertName: agentLabel(agent),
+                                executionId: _execution.id,
+                                parentExecutionId: executionId
+                            }
+                        })
+                    )
 
                     const lastMessage = output.messages[output.messages.length - 1]
 
@@ -1928,11 +1934,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     throw err
                 } finally {
                     // End agent execution event
-                    try {
-                        await finalize()
-                    } finally {
-                        releaseExecution()
-                    }
+                    await finalize()
                 }
             }
         )
@@ -1949,51 +1951,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 function createInvocationScopedExecution() {
     const baseExecution: IXpertAgentExecution = {}
-    const invocationExecutions = new Map<string, IXpertAgentExecution>()
-    const currentExecution = () => {
-        const executionId = getCurrentExecutionId()
-        return (executionId && invocationExecutions.get(executionId)) ?? baseExecution
-    }
-    const execution = new Proxy(baseExecution, {
-        get: (_target, property) => Reflect.get(currentExecution(), property),
-        set: (_target, property, value) => Reflect.set(currentExecution(), property, value),
-        has: (_target, property) => Reflect.has(currentExecution(), property),
-        ownKeys: () => Reflect.ownKeys(currentExecution()),
-        getOwnPropertyDescriptor: (_target, property) => {
-            const descriptor = Reflect.getOwnPropertyDescriptor(currentExecution(), property)
-            return descriptor ? { ...descriptor, configurable: true } : undefined
-        },
-        deleteProperty: (_target, property) => Reflect.deleteProperty(currentExecution(), property)
-    })
+    const invocationScope = new AsyncLocalStorage<IXpertAgentExecution>()
 
     return {
-        execution,
-        bind: (invocationExecution: IXpertAgentExecution) => {
-            if (!invocationExecution.id) {
-                throw new Error('Sub-agent execution id is required')
-            }
-            const executionId = invocationExecution.id
-            invocationExecutions.set(executionId, invocationExecution)
-            return () => {
-                if (invocationExecutions.get(executionId) === invocationExecution) {
-                    invocationExecutions.delete(executionId)
-                }
-            }
-        }
+        execution: baseExecution,
+        getExecution: () => invocationScope.getStore() ?? baseExecution,
+        run: <T>(invocationExecution: IXpertAgentExecution, callback: () => Promise<T>) =>
+            invocationScope.run(invocationExecution, callback)
     }
-}
-
-function getCurrentExecutionId() {
-    const config: unknown = AsyncLocalStorageProviderSingleton.getRunnableConfig()
-    if (!config || typeof config !== 'object') {
-        return undefined
-    }
-    const configurable = Reflect.get(config, 'configurable')
-    if (!configurable || typeof configurable !== 'object') {
-        return undefined
-    }
-    const executionId = Reflect.get(configurable, 'executionId')
-    return typeof executionId === 'string' && executionId ? executionId : undefined
 }
 
 function ensureSummarize(summarize?: TSummarize) {
