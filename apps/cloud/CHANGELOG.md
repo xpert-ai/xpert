@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.17.0
+
+### Minor Changes
+
+- 747732e: v3.17
+
 ## 3.16.0
 
 ### Minor Changes
