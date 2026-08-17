@@ -4,8 +4,9 @@ import {
   ICopilot,
   ICopilotModel,
   ILLMUsage,
-  ModelUsagePricingSnapshot,
   ModelUsagePricingContext,
+  ModelUsagePricingSnapshot,
+  ParameterRule,
   ParameterType,
   PriceInfo,
   PriceType
@@ -36,6 +37,7 @@ export interface IAIModel {
   validateCredentials(model: string, credentials: Record<string, any>): Promise<void>
   getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel
   predefinedModels(): AIModelEntity[]
+  getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[]
   getUsagePricingSnapshot(
     model: string,
     credentials: Record<string, any>,
