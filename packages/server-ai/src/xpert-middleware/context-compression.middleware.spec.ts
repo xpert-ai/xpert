@@ -181,8 +181,8 @@ describe('ContextCompressionMiddleware', () => {
 
         const beforeResult = (await beforeModel({ messages } as any, createRuntimeConfig(subscriber))) as any
 
-        expect(runtime.createModelClient).toHaveBeenCalledTimes(1)
-        expect(model.invoke).toHaveBeenCalledTimes(1)
+        expect(runtime.createModelClient).not.toHaveBeenCalled()
+        expect(model.invoke).not.toHaveBeenCalled()
         expect(beforeResult?.[MANUAL_RESULT_KEY]).toEqual({
             status: 'compressed',
             message: 'Context compressed.'
@@ -193,12 +193,12 @@ describe('ContextCompressionMiddleware', () => {
         expect(beforeResult.messages[beforeResult.messages.length - 1].content).toBe('Second protected answer.')
 
         const successEvent = subscriber.next.mock.calls.find((call) =>
-            call[0]?.data?.data?.data?.summary?.includes('Protected user turns exceeded the compression budget.')
+            call[0]?.data?.data?.data?.summary?.includes('Earlier non-protected history was intentionally omitted')
         )
         expect(successEvent?.[0]?.data?.data?.data).toEqual(
             expect.objectContaining({
                 status: 'success',
-                summary: expect.stringContaining('Protected user turns exceeded the compression budget.')
+                summary: expect.stringContaining('Earlier non-protected history was intentionally omitted')
             })
         )
         expect(
@@ -236,16 +236,68 @@ describe('ContextCompressionMiddleware', () => {
             ]
         }
 
-        await beforeModel(state as any, createRuntimeConfig(subscriber, 'Next request.', { max_tokens: 1000 }))
+        const beforeResult = (await beforeModel(
+            state as any,
+            createRuntimeConfig(subscriber, 'Next request.', { max_tokens: 1000 })
+        )) as any
 
         expect(runtime.createModelClient).toHaveBeenCalledTimes(1)
         expect(model.invoke).toHaveBeenCalledTimes(1)
-        expect(state.messages[0]).toBeInstanceOf(HumanMessage)
-        expect(state.messages[0].additional_kwargs?.compressed).toBe(true)
-        expect(state.messages[state.messages.length - 1].content).toBe('Next request.')
+        expect(beforeResult.messages[0]).toBeInstanceOf(RemoveMessage)
+        expect(beforeResult.messages[0].id).toBe(REMOVE_ALL_MESSAGES)
+        expect(beforeResult.messages[1]).toBeInstanceOf(HumanMessage)
+        expect(beforeResult.messages[1].additional_kwargs?.compressed).toBe(true)
+        expect(beforeResult.messages[beforeResult.messages.length - 1].content).toBe('Next request.')
+        expect(state.messages[0].content).toContain('Earlier request.')
     })
 
-    it('reports a no-op success when a manual summary would increase context size', async () => {
+    it('rejects an automatic summary that is only marginally smaller', async () => {
+        const strategy = new ContextCompressionMiddleware()
+        const { context, model, subscriber } = createContext({
+            modelResponse: 'y'.repeat(22_000)
+        })
+        const middleware = (await strategy.createMiddleware(
+            {
+                enableTwoPhaseCompression: false,
+                threshold: 0.01,
+                protectedUserTurns: 1,
+                preserveFraction: 0.1
+            },
+            context
+        )) as AgentMiddleware
+        const beforeModel = getBeforeModel(middleware)
+        const state = {
+            messages: [
+                new HumanMessage('x'.repeat(12_000)),
+                new AIMessage('x'.repeat(12_000)),
+                new HumanMessage('Latest request.'),
+                new AIMessage('Latest answer.')
+            ]
+        }
+
+        const beforeResult = await beforeModel(
+            state as any,
+            createRuntimeConfig(subscriber, 'Latest request.', { max_tokens: 1000 })
+        )
+
+        expect(model.invoke).toHaveBeenCalledTimes(1)
+        expect(beforeResult).toBeUndefined()
+        expect(state.messages[0].content).toHaveLength(12_000)
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    data: expect.objectContaining({
+                        data: expect.objectContaining({
+                            status: 'fail',
+                            error: expect.stringContaining('failed to achieve meaningful reduction')
+                        })
+                    })
+                })
+            })
+        )
+    })
+
+    it('uses a deterministic state-free snapshot for manual compression', async () => {
         const strategy = new ContextCompressionMiddleware()
         const { context, model, runtime, subscriber } = createContext({
             modelResponse: 'Generated summary that is longer than the compacted source. '.repeat(80)
@@ -271,21 +323,24 @@ describe('ContextCompressionMiddleware', () => {
 
         const beforeResult = (await beforeModel({ messages } as any, createRuntimeConfig(subscriber))) as any
 
-        expect(runtime.createModelClient).toHaveBeenCalledTimes(1)
-        expect(model.invoke).toHaveBeenCalledTimes(1)
-        expect(beforeResult?.messages).toBeUndefined()
+        expect(runtime.createModelClient).not.toHaveBeenCalled()
+        expect(model.invoke).not.toHaveBeenCalled()
+        expect(beforeResult?.messages?.[0]).toBeInstanceOf(RemoveMessage)
+        expect(beforeResult.messages[0].id).toBe(REMOVE_ALL_MESSAGES)
+        expect(beforeResult.messages[1].content).toContain(
+            'Earlier non-protected history was intentionally omitted by manual context compression.'
+        )
         expect(beforeResult?.[MANUAL_RESULT_KEY]).toEqual({
-            status: 'skipped',
-            message: 'No old context was available to compress, so compression was skipped.'
+            status: 'compressed',
+            message: 'Context compressed.'
         })
 
-        const noGainEvent = subscriber.next.mock.calls.find(
-            (call) => call[0]?.data?.data?.data?.reason === 'no_token_gain'
+        const fallbackEvent = subscriber.next.mock.calls.find((call) =>
+            call[0]?.data?.data?.data?.summary?.includes('Earlier non-protected history was intentionally omitted')
         )
-        expect(noGainEvent?.[0]?.data?.data?.data).toEqual(
+        expect(fallbackEvent?.[0]?.data?.data?.data).toEqual(
             expect.objectContaining({
-                status: 'success',
-                reason: 'no_token_gain'
+                status: 'success'
             })
         )
         expect(subscriber.next.mock.calls.some((call) => call[0]?.data?.data?.data?.status === 'fail')).toBe(false)
@@ -303,7 +358,37 @@ describe('ContextCompressionMiddleware', () => {
 
         expect(handler).not.toHaveBeenCalled()
         expect(response).toBeInstanceOf(AIMessage)
-        expect(response.content).toBe('No old context was available to compress, so compression was skipped.')
+        expect(response.content).toBe('Context compressed.')
+    })
+
+    it('preserves recent messages when manually replacing large old context', async () => {
+        const oldText = 'Old context with stale tool state. '.repeat(800)
+        const strategy = new ContextCompressionMiddleware()
+        const { context, model, subscriber } = createContext()
+        const middleware = (await strategy.createMiddleware(
+            {
+                enableTwoPhaseCompression: false,
+                protectedUserTurns: 1,
+                preserveFraction: 0.1
+            },
+            context
+        )) as AgentMiddleware
+        const beforeModel = getBeforeModel(middleware)
+        const messages = [
+            new HumanMessage(oldText),
+            new AIMessage(oldText),
+            new HumanMessage('Latest request.'),
+            new AIMessage('Latest answer.')
+        ]
+
+        const beforeResult = (await beforeModel({ messages } as any, createRuntimeConfig(subscriber))) as any
+
+        expect(model.invoke).not.toHaveBeenCalled()
+        expect(beforeResult.messages[1].content).toContain(
+            'Earlier non-protected history was intentionally omitted by manual context compression.'
+        )
+        expect(beforeResult.messages[beforeResult.messages.length - 2].content).toBe('Latest request.')
+        expect(beforeResult.messages[beforeResult.messages.length - 1].content).toBe('Latest answer.')
     })
 
     it('forces compression for manual commands and skips the ordinary model response', async () => {
@@ -331,8 +416,8 @@ describe('ContextCompressionMiddleware', () => {
 
         const beforeResult = (await beforeModel({ messages } as any, createRuntimeConfig(subscriber))) as any
 
-        expect(runtime.createModelClient).toHaveBeenCalledTimes(1)
-        expect(model.invoke).toHaveBeenCalledTimes(1)
+        expect(runtime.createModelClient).not.toHaveBeenCalled()
+        expect(model.invoke).not.toHaveBeenCalled()
         expect(beforeResult?.[MANUAL_RESULT_KEY]).toEqual({
             status: 'compressed',
             message: 'Context compressed.'
@@ -341,15 +426,16 @@ describe('ContextCompressionMiddleware', () => {
         expect(beforeResult.messages[0].id).toBe(REMOVE_ALL_MESSAGES)
         expect(beforeResult.messages[1].additional_kwargs?.compressed).toBe(true)
         const successEvent = subscriber.next.mock.calls.find((call) => call[0]?.data?.data?.data?.status === 'success')
-        expect(successEvent?.[0]?.data?.data?.data?.summary).toBe(
-            '<state_snapshot>Compressed history.</state_snapshot>'
+        expect(successEvent?.[0]?.data?.data?.data?.summary).toContain(
+            'Earlier non-protected history was intentionally omitted by manual context compression.'
         )
 
         const handler = jest.fn()
         const response = await wrapModelCall(
             {
-                messages: [...messages, new HumanMessage('/compress')],
+                messages: beforeResult.messages.slice(1),
                 state: {
+                    human: { input: '/compress' },
                     agent_1_channel: beforeResult
                 }
             } as any,

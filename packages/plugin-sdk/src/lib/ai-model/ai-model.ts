@@ -215,6 +215,8 @@ export abstract class AIModel implements IAIModel {
     return (
       modelSchema && {
         maxInputTokens: modelSchema.model_properties?.context_size,
+        imageInputs: modelSchema.features?.includes(ModelFeature.VISION),
+        videoInputs: modelSchema.features?.includes(ModelFeature.VIDEO),
         toolCalling:
           modelSchema.features?.includes(ModelFeature.TOOL_CALL) ||
           modelSchema.features?.includes(ModelFeature.MULTI_TOOL_CALL) ||
