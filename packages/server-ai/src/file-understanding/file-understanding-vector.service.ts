@@ -328,6 +328,8 @@ export class FileUnderstandingVectorService {
 
         const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, EmbeddingsInterface>(
             new CopilotModelGetEmbeddingsQuery(copilot, copilot.copilotModel, {
+                xpertId: asset.xpertId,
+                threadId: asset.threadId,
                 tokenCallback: () => {
                     //
                 }

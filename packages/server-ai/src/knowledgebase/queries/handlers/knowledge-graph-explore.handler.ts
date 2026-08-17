@@ -56,6 +56,8 @@ export class KnowledgeGraphExploreHandler implements IQueryHandler<KnowledgeGrap
             knowledgebase,
             tenantId,
             organizationId,
+            xpertId: input.xpertId,
+            threadId: input.threadId,
             scope,
             fixed: !!prepared.sources.fixed,
             filterStatus: prepared.diagnostics.filterStatus,
@@ -80,7 +82,9 @@ export class KnowledgeGraphExploreHandler implements IQueryHandler<KnowledgeGrap
             new KnowledgeGraphEntitySearchQuery({
                 knowledgebase: context.knowledgebase,
                 query: search.trim(),
-                take: candidateTake
+                take: candidateTake,
+                xpertId: context.xpertId,
+                threadId: context.threadId
             })
         )
         const eligibleIds = new Set(
@@ -253,6 +257,8 @@ type ExplorationContext = {
     knowledgebase: IKnowledgebase
     tenantId: string
     organizationId: string
+    xpertId?: string
+    threadId?: string
     scope: KnowledgeGraphFilterScope
     fixed: boolean
     filterStatus: 'not_applied' | 'applied' | 'dynamic_fallback' | 'failed'

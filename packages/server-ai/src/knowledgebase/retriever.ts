@@ -36,6 +36,8 @@ type KnowledgeRetrieverConfigurable = {
     dynamicFilter?: KnowledgeFilterNode
     variables?: Record<string, unknown>
     runtimeState?: Record<string, unknown>
+    xpertId?: string
+    thread_id?: string
 }
 
 type KnowledgebaseToolContext = Pick<
@@ -103,7 +105,8 @@ export class KnowledgeRetriever extends BaseRetriever {
                     request: config?.configurable?.requestFilter,
                     dynamic: config?.configurable?.dynamicFilter
                 },
-                config?.configurable?.variables ?? config?.configurable?.runtimeState
+                config?.configurable?.variables ?? config?.configurable?.runtimeState,
+                this.readModelContext(config?.configurable)
             )
             const results = result.documents
 
@@ -126,7 +129,11 @@ export class KnowledgeRetriever extends BaseRetriever {
     async retrieveDetailed(
         query: string,
         filters?: KnowledgeFilterSources,
-        variables?: Record<string, unknown>
+        variables?: Record<string, unknown>,
+        modelContext?: {
+            xpertId?: string
+            threadId?: string
+        }
     ): Promise<KnowledgeSearchResult> {
         this.metadata = { ...(this.metadata ?? {}), knowledgebaseId: this.knowledgebaseId }
 
@@ -146,7 +153,9 @@ export class KnowledgeRetriever extends BaseRetriever {
                         dynamic: filters?.dynamic
                     },
                     variables,
-                    retrieval: this.options?.retrieval
+                    retrieval: this.options?.retrieval,
+                    xpertId: modelContext?.xpertId,
+                    threadId: modelContext?.threadId
                 })
             )
             return {
@@ -208,7 +217,8 @@ export class KnowledgeRetriever extends BaseRetriever {
                         fixed: retrieval?.filtering?.fixed,
                         dynamic: allowsAgentFilter ? normalizeDynamicFilterToolInput(params.dynamicFilter) : undefined
                     },
-                    config?.configurable?.runtimeState as Record<string, unknown> | undefined
+                    config?.configurable?.runtimeState as Record<string, unknown> | undefined,
+                    this.readModelContext(config?.configurable)
                 )
 
                 return formatKnowledgebaseRetrievalToolOutput(
@@ -239,6 +249,21 @@ export class KnowledgeRetriever extends BaseRetriever {
                 schema
             }
         )
+    }
+
+    private readModelContext(configurable: unknown) {
+        if (!configurable || typeof configurable !== 'object') {
+            return {}
+        }
+
+        const xpertId =
+            'xpertId' in configurable && typeof configurable.xpertId === 'string' ? configurable.xpertId : undefined
+        const threadId =
+            'thread_id' in configurable && typeof configurable.thread_id === 'string'
+                ? configurable.thread_id
+                : undefined
+
+        return { xpertId, threadId }
     }
 
     /**
@@ -457,7 +482,8 @@ export class KnowledgeRetriever extends BaseRetriever {
                                 ? normalizeDynamicFilterToolInput(params.dynamicFilter)
                                 : undefined
                         },
-                        variables: config?.configurable?.runtimeState as Record<string, unknown> | undefined
+                        variables: config?.configurable?.runtimeState as Record<string, unknown> | undefined,
+                        ...this.readModelContext(config?.configurable)
                     })
                 )
                 return JSON.stringify({

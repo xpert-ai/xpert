@@ -2016,6 +2016,7 @@ export class ModelAccessService {
         if (!predefined && !custom && !selectedMatches) {
             return null
         }
+        const catalogModelExists = Boolean(predefined || custom)
         const providerSchema = provider.getProviderSchema()
         return {
             tenantId: input.tenantId,
@@ -2037,6 +2038,7 @@ export class ModelAccessService {
             capabilities: predefined?.features ?? this.customCapabilities(custom?.modelProperties),
             deprecated: predefined?.deprecated === true,
             enabled:
+                catalogModelExists &&
                 copilot.enabled === true &&
                 copilot.modelProvider.isValid !== false &&
                 custom?.isValid !== false &&

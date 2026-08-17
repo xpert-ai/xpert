@@ -1,7 +1,7 @@
 import { CallbackManager } from '@langchain/core/callbacks/manager'
 import { AIMessageChunk } from '@langchain/core/messages'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
-import { AiModelTypeEnum, AiProviderRole, ICopilot, ILLMUsage } from '@xpert-ai/contracts'
+import { AIModelEntity, AiModelTypeEnum, AiProviderRole, FetchFrom, ICopilot, ILLMUsage } from '@xpert-ai/contracts'
 import { ModelProvider } from './abstract-provider'
 import { LargeLanguageModel, resolveTokenUsage } from './llm'
 
@@ -48,6 +48,92 @@ class TestLargeLanguageModel extends LargeLanguageModel {
       currency: 'USD',
       latency: 0
     }
+  }
+}
+
+class PricedLargeLanguageModel extends LargeLanguageModel {
+  constructor() {
+    super(new TestModelProvider(), AiModelTypeEnum.LLM)
+  }
+
+  validateCredentials(): Promise<void> {
+    return Promise.resolve()
+  }
+
+  override predefinedModels(): AIModelEntity[] {
+    return [
+      {
+        model: 'priced-model',
+        label: { en_US: 'Priced model', zh_Hans: '计价模型' },
+        model_type: AiModelTypeEnum.LLM,
+        fetch_from: FetchFrom.PREDEFINED_MODEL,
+        model_properties: {},
+        pricing: {
+          input: 1,
+          output: 2,
+          unit: 0.001,
+          currency: 'CNY',
+          rules: [
+            { component: 'cache_read_input', unit_price: 0.5, unit_size: 1000 },
+            { component: 'request', add_on: 'grounding', unit_price: 0.1, unit_size: 1 }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+class TimedPricedLargeLanguageModel extends LargeLanguageModel {
+  constructor() {
+    super(new TestModelProvider(), AiModelTypeEnum.LLM)
+  }
+
+  validateCredentials(): Promise<void> {
+    return Promise.resolve()
+  }
+
+  override predefinedModels(): AIModelEntity[] {
+    return [
+      {
+        model: 'timed-priced-model',
+        label: { en_US: 'Timed priced model', zh_Hans: '周期计价模型' },
+        model_type: AiModelTypeEnum.LLM,
+        fetch_from: FetchFrom.PREDEFINED_MODEL,
+        model_properties: {},
+        pricing: {
+          input: 1,
+          output: 1,
+          unit: 0.001,
+          currency: 'CNY',
+          rules: [
+            {
+              component: 'input',
+              unit_price: 2,
+              unit_size: 1000,
+              daily_time_window: { time_zone: 'UTC', start_time: '08:00', end_time: '20:00' }
+            },
+            {
+              component: 'output',
+              unit_price: 4,
+              unit_size: 1000,
+              daily_time_window: { time_zone: 'UTC', start_time: '08:00', end_time: '20:00' }
+            },
+            {
+              component: 'input',
+              unit_price: 1,
+              unit_size: 1000,
+              daily_time_window: { time_zone: 'UTC', start_time: '20:00', end_time: '08:00' }
+            },
+            {
+              component: 'output',
+              unit_price: 2,
+              unit_size: 1000,
+              daily_time_window: { time_zone: 'UTC', start_time: '20:00', end_time: '08:00' }
+            }
+          ]
+        }
+      }
+    ]
   }
 }
 
@@ -185,6 +271,152 @@ describe('resolveTokenUsage', () => {
       }),
       tokenUsed: 7438
     })
+  })
+
+  it('normalizes providers whose input count excludes cache tokens only when explicitly declared', async () => {
+    const handleLLMTokens = jest.fn()
+    const output = resultWithUsage(100, 10, 110)
+    const message = (output.generations?.[0]?.[0] as ChatGenerationChunk).message as AIMessageChunk
+    if (!message.usage_metadata) throw new Error('Expected usage metadata')
+    message.usage_metadata.input_token_details = {
+      cache_read: 20,
+      cache_creation: 5
+    }
+    const [callbacks] = new TestLargeLanguageModel().createHandleUsageCallbacks(
+      { role: AiProviderRole.Primary },
+      'provider-independent-model',
+      {},
+      handleLLMTokens,
+      { inputTokensIncludeCache: false }
+    )
+
+    await callbacks.handleLLMEnd(output, 'run-cache-usage-1')
+
+    expect(handleLLMTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usage: expect.objectContaining({
+          promptTokens: 125,
+          completionTokens: 10,
+          totalTokens: 135
+        }),
+        tokenUsed: 135
+      })
+    )
+  })
+
+  it('reports the conditional price breakdown from the model schema', async () => {
+    const handleLLMTokens = jest.fn()
+    const output = resultWithUsage(1000, 100, 1100)
+    const message = (output.generations?.[0]?.[0] as ChatGenerationChunk).message as AIMessageChunk
+    if (!message.usage_metadata) throw new Error('Expected usage metadata')
+    message.usage_metadata.input_token_details = { cache_read: 200 }
+    const [callbacks] = new PricedLargeLanguageModel().createHandleUsageCallbacks(
+      { role: AiProviderRole.Primary },
+      'priced-model',
+      {},
+      handleLLMTokens,
+      { addOns: [{ type: 'grounding', quantity: 1 }] }
+    )
+
+    await callbacks.handleLLMEnd(output, 'run-priced-usage-1')
+
+    expect(handleLLMTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usage: expect.objectContaining({
+          promptTokens: 1000,
+          completionTokens: 100,
+          totalPrice: 1.2,
+          pricingStatus: 'priced',
+          pricingBreakdown: expect.arrayContaining([
+            expect.objectContaining({ component: 'cache_read_input', quantity: 200, amount: 0.1 }),
+            expect.objectContaining({ component: 'input', quantity: 800, amount: 0.8 }),
+            expect.objectContaining({ component: 'output', quantity: 100, amount: 0.2 }),
+            expect.objectContaining({ component: 'request', addOn: 'grounding', amount: 0.1 })
+          ])
+        })
+      })
+    )
+  })
+
+  it('freezes a recurring daily price window at invocation start', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-17T19:59:00.000Z'))
+    try {
+      const handleLLMTokens = jest.fn()
+      const [callbacks] = new TimedPricedLargeLanguageModel().createHandleUsageCallbacks(
+        { role: AiProviderRole.Primary },
+        'timed-priced-model',
+        {},
+        handleLLMTokens
+      )
+
+      callbacks.handleLLMStart?.({}, ['prompt'], 'run-timed-price-1')
+      jest.setSystemTime(new Date('2026-08-17T20:01:00.000Z'))
+      await callbacks.handleLLMEnd(resultWithUsage(1000, 1000, 2000), 'run-timed-price-1')
+
+      expect(handleLLMTokens).toHaveBeenCalledWith(
+        expect.objectContaining({
+          usage: expect.objectContaining({ totalPrice: 6, pricingStatus: 'priced', currency: 'CNY' })
+        })
+      )
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('uses a provider-reported price instead of catalog pricing', async () => {
+    const handleLLMTokens = jest.fn()
+    const output = resultWithUsage(1000, 100, 1100)
+    const [callbacks] = new PricedLargeLanguageModel().createHandleUsageCallbacks(
+      { role: AiProviderRole.Primary },
+      'priced-model',
+      {},
+      handleLLMTokens,
+      {
+        resolveReportedPrice: () => ({ amount: 0.95, currency: 'OPENROUTER_CREDIT' }),
+        reportedPriceRequired: true
+      }
+    )
+
+    await callbacks.handleLLMEnd(output, 'run-provider-price-1')
+
+    expect(handleLLMTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usage: expect.objectContaining({
+          totalPrice: 0.95,
+          currency: 'OPENROUTER_CREDIT',
+          pricingStatus: 'priced',
+          priceAuthority: 'provider',
+          pricingBreakdown: undefined
+        })
+      })
+    )
+  })
+
+  it('marks a required provider price unpriced when the response omits it', async () => {
+    const handleLLMTokens = jest.fn()
+    const [callbacks] = new PricedLargeLanguageModel().createHandleUsageCallbacks(
+      { role: AiProviderRole.Primary },
+      'priced-model',
+      {},
+      handleLLMTokens,
+      {
+        resolveReportedPrice: () => undefined,
+        reportedPriceRequired: true
+      }
+    )
+
+    await callbacks.handleLLMEnd(resultWithUsage(1000, 100, 1100), 'run-provider-price-2')
+
+    expect(handleLLMTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usage: expect.objectContaining({
+          totalPrice: 0,
+          pricingStatus: 'unpriced',
+          priceAuthority: 'provider',
+          pricingBreakdown: undefined
+        })
+      })
+    )
   })
 
   it('records estimated usage before an interrupted call rejects', async () => {

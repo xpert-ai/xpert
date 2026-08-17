@@ -6,11 +6,15 @@ import {
     MembershipLedgerSourceEnum,
     ModelAccessSourceEnum,
     ModelGatewayUsageChannelEnum,
+    type LLMPriceAuthority,
+    type LLMPriceBreakdownItem,
     type ModelUsageMetric,
+    type ModelUsageMetricComponent,
     type ModelUsageLedgerModality,
     type ModelUsageLedgerOperation,
     type ModelUsageOriginType,
     type ModelUsagePriceRule,
+    type ModelUsagePricingDimensions,
     type ModelUsagePricingStatus
 } from '@xpert-ai/contracts'
 import { TenantBaseEntity, User } from '@xpert-ai/server-core'
@@ -33,8 +37,8 @@ const numericNumberTransformer = {
 @Index('IDX_membership_ledger_model_grant', ['tenantId', 'modelGrantId'])
 @Index('IDX_membership_ledger_gateway_request', ['tenantId', 'gatewayRequestId'])
 @Index(
-    'UQ_membership_ledger_model_usage_request_unit_revision',
-    ['tenantId', 'providerScopeId', 'requestId', 'unit', 'revision'],
+    'UQ_membership_ledger_model_usage_request_metric_revision',
+    ['tenantId', 'providerScopeId', 'requestId', 'metricKey', 'revision'],
     { unique: true }
 )
 @Index('IDX_membership_ledger_model_usage_scope_recorded', ['tenantId', 'organizationId', 'recordedAt'])
@@ -216,6 +220,18 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
     operation?: ModelUsageLedgerOperation | null
 
     @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', length: 191, nullable: true })
+    metricKey?: string | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    component?: ModelUsageMetricComponent | null
+
+    @ApiPropertyOptional({ type: () => Object })
+    @Column({ type: 'json', nullable: true })
+    pricingDimensions?: ModelUsagePricingDimensions | null
+
+    @ApiPropertyOptional({ type: () => String })
     @Column({ type: 'varchar', length: 20, nullable: true })
     unit?: ModelUsageMetric['unit'] | null
 
@@ -275,9 +291,17 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
     @Column({ type: 'numeric', precision: 24, scale: 10, nullable: true, transformer: numericNumberTransformer })
     priceAmount?: number | null
 
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    priceAuthority?: LLMPriceAuthority | null
+
     @ApiPropertyOptional({ type: () => Object })
     @Column({ type: 'json', nullable: true })
     pricingRule?: ModelUsagePriceRule | null
+
+    @ApiPropertyOptional({ type: () => Array })
+    @Column({ type: 'json', nullable: true })
+    pricingBreakdown?: LLMPriceBreakdownItem[] | null
 
     @ApiPropertyOptional({ type: () => Date })
     @Column({ type: 'timestamptz', nullable: true })

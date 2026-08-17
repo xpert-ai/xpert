@@ -23,7 +23,10 @@ export class KnowledgeGraphEntitySearchHandler implements IQueryHandler<Knowledg
         }
 
         const limit = Math.min(100, Math.max(1, Math.trunc(input.take ?? 12)))
-        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true)
+        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true, {
+            xpertId: input.xpertId,
+            threadId: input.threadId
+        })
         const results = await vectorStore.similaritySearchWithScore(query, limit, {
             kind: 'knowledge_graph_entity',
             knowledgebaseId: knowledgebase.id

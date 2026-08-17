@@ -69,6 +69,10 @@ import {
     AiProviderRole,
     ChatMessageEventTypeEnum,
     ICopilotModel,
+    IModelAccessResolution,
+    ModelAccessChannelEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -308,9 +312,110 @@ describe('AgentMiddlewareRuntimeService', () => {
             provider: 'zhipuai',
             baseURL: 'https://organization-key.example/api/paas/v4',
             authorization: 'Bearer organization-key',
+            resolveModelAccess: expect.any(Function),
             resolvePricingSnapshot: expect.any(Function),
             reportUsage: expect.any(Function)
         })
+    })
+
+    it('resolves provider-backed AIGC access before invocation and preserves it for usage recording', async () => {
+        const modelAccess = {
+            allowed: true,
+            channel: ModelAccessChannelEnum.Xpert,
+            billableUserId: 'billing-user-1',
+            copilotId: 'organization-copilot',
+            copilotModelId: 'video-model',
+            provider: 'zhipuai',
+            modelType: AiModelTypeEnum.VIDEO,
+            model: 'video-model',
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-1',
+            multiplier: 1.5,
+            scope: ModelAccessOwnershipScopeEnum.Organization,
+            organizationId: 'org-1'
+        } satisfies IModelAccessResolution
+        findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                role: AiProviderRole.Primary,
+                organizationId: 'org-1',
+                modelProvider: {
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'organization-key' },
+                    isValid: true
+                }
+            }
+        ])
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof AIModelGetProviderQuery) {
+                return {
+                    getBaseUrl: () => 'https://api.example',
+                    getAuthorization: () => 'Bearer organization-key',
+                    getModelManager: () => ({
+                        getUsagePricingSnapshot: jest.fn().mockReturnValue({
+                            capturedAt: '2026-08-17T00:00:00.000Z',
+                            rules: []
+                        })
+                    })
+                }
+            }
+            return undefined
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CopilotCheckLimitCommand) return modelAccess
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const connection = await service.getModelProvider('zhipuai', {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'runtime-user-1',
+            xpertId: 'xpert-1',
+            executionId: 'execution-1'
+        })
+        const access = await connection.resolveModelAccess?.({
+            requestId: 'request-1',
+            model: 'video-model',
+            operation: 'text_to_video',
+            modality: 'video',
+            startedAt: '2026-08-17T00:00:00.000Z'
+        })
+        await connection.reportUsage(
+            {
+                requestId: 'request-1',
+                model: 'video-model',
+                modelType: AiModelTypeEnum.VIDEO,
+                operation: 'text_to_video',
+                modality: 'video',
+                metrics: [{ unit: 'generation', quantity: 1, authority: 'provider' }]
+            },
+            access
+        )
+
+        const accessCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof CopilotCheckLimitCommand
+        )?.[0] as CopilotCheckLimitCommand
+        expect(accessCommand.input).toEqual(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'runtime-user-1',
+                xpertId: 'xpert-1',
+                model: 'video-model',
+                modelType: AiModelTypeEnum.VIDEO
+            })
+        )
+        expect(copilotUsage.recordModelUsage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'billing-user-1',
+                modelAccess,
+                originExecutionId: 'execution-1'
+            }),
+            expect.objectContaining({ requestId: 'request-1' }),
+            expect.any(Object)
+        )
     })
 
     it('resolves the exact model provider connection captured by the runtime scope', async () => {

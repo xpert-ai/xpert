@@ -17,7 +17,11 @@ import {
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
-import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
+import {
+    CopilotCheckLimitCommand,
+    CopilotModelUsageRecordCommand,
+    CopilotTokenRecordCommand
+} from '../../../copilot-user'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotModelGetChatModelHandler } from './get-chat-model.handler'
 import { prepareMessagesForModel } from '../../model-capabilities'
@@ -64,7 +68,11 @@ describe('CopilotModelGetChatModelHandler', () => {
             }
         ])
         const getParameterRules = jest.fn().mockReturnValue(parameterRules)
-        const getModelManager = jest.fn().mockReturnValue({ getParameterRules })
+        const getUsagePricingSnapshot = jest.fn().mockReturnValue({
+            capturedAt: '2026-08-17T00:00:00.000Z',
+            rules: []
+        })
+        const getModelManager = jest.fn().mockReturnValue({ getParameterRules, getUsagePricingSnapshot })
         const queryBus = {
             execute: jest.fn(async (query) => {
                 if (query instanceof GetCopilotProviderModelQuery) {
@@ -113,6 +121,7 @@ describe('CopilotModelGetChatModelHandler', () => {
             commandBus,
             getModelInstance,
             getParameterRules,
+            getUsagePricingSnapshot,
             handler,
             model,
             modelAccess,
@@ -218,6 +227,50 @@ describe('CopilotModelGetChatModelHandler', () => {
         )
     })
 
+    it('records authoritative specialized-model usage through the unified model ledger', async () => {
+        const { commandBus, getModelInstance, handler, modelAccess, query } = createFixture([], AiModelTypeEnum.TTS)
+
+        await handler.execute(query)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleModelUsage({
+            requestId: 'tts-request-1',
+            model: 'provider-reported-name',
+            modelType: AiModelTypeEnum.LLM,
+            operation: AiModelTypeEnum.TTS,
+            modality: 'audio',
+            metrics: [
+                {
+                    key: 'input',
+                    component: 'input',
+                    unit: 'character',
+                    quantity: 12,
+                    authority: 'request'
+                }
+            ],
+            pricingSnapshot: {
+                capturedAt: '2026-08-17T00:00:00.000Z',
+                rules: []
+            }
+        })
+
+        const recordCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof CopilotModelUsageRecordCommand) as CopilotModelUsageRecordCommand
+        expect(recordCommand.input).toMatchObject({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            modelAccess,
+            report: {
+                requestId: 'tts-request-1',
+                model: 'qwen3.6-plus',
+                modelType: AiModelTypeEnum.TTS,
+                operation: AiModelTypeEnum.TTS,
+                modality: 'audio',
+                metrics: [expect.objectContaining({ unit: 'character', quantity: 12 })]
+            }
+        })
+    })
+
     it('resolves missing parameter defaults before creating the model instance', async () => {
         const rules: ParameterRule[] = [
             {
@@ -242,6 +295,41 @@ describe('CopilotModelGetChatModelHandler', () => {
         expect(getModelInstance.mock.calls[0][1].options).toEqual({
             temperature: 0.3,
             enable_thinking: true
+        })
+    })
+
+    it('records incomplete add-on pricing as unpriced instead of settling a partial amount', async () => {
+        const { commandBus, getModelInstance, handler, query } = createFixture()
+        const pricingBreakdown = [
+            {
+                component: 'request' as const,
+                addOn: 'grounding' as const,
+                quantity: 1,
+                pricingStatus: 'unpriced' as const
+            }
+        ]
+
+        await handler.execute(query)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleLLMTokens({
+            model: 'qwen3.6-plus',
+            usage: {
+                totalTokens: 120,
+                totalPrice: 0.5,
+                currency: 'CNY',
+                pricingStatus: 'unpriced',
+                pricingBreakdown
+            }
+        })
+
+        const recordCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof CopilotTokenRecordCommand) as CopilotTokenRecordCommand
+        expect(recordCommand.input).toMatchObject({
+            tokenUsed: 120,
+            priceUsed: undefined,
+            pricingStatus: 'unpriced',
+            pricingBreakdown
         })
     })
 

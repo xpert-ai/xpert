@@ -9,7 +9,7 @@ import {
     TSensitiveOperation,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
-import { getErrorMessage, omit } from '@xpert-ai/server-common'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
@@ -136,7 +136,11 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                                 // Record Execution End time
                                 await this.commandBus.execute(
                                     new XpertAgentExecutionUpsertCommand({
-                                        ...execution,
+                                        id: execution.id,
+                                        checkpointNs: execution.checkpointNs,
+                                        checkpointId: execution.checkpointId,
+                                        title: execution.title,
+                                        metadata: execution.metadata,
                                         elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
                                         status,
                                         error,
@@ -185,7 +189,10 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                                     // Record End time
                                     await this.commandBus.execute(
                                         new XpertAgentExecutionUpsertCommand({
-                                            ...omit(execution, 'checkpointId'),
+                                            id: execution.id,
+                                            checkpointNs: execution.checkpointNs,
+                                            title: execution.title,
+                                            metadata: execution.metadata,
                                             elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
                                             status: XpertAgentExecutionStatusEnum.ERROR,
                                             error: 'Aborted!',
