@@ -6,6 +6,7 @@ import type { Runtime as LangGraphRuntime, PregelOptions, StreamMode } from '@la
 import type { BaseMessage } from '@langchain/core/messages'
 import {
   ICopilotModel,
+  IModelAccessResolution,
   IXpertAgentExecution,
   JSONValue,
   ModelUsagePricingSnapshot,
@@ -94,6 +95,10 @@ export type AgentMiddlewareCreateModelClientOptions = {
   purpose?: 'invoke' | 'observe'
 }
 
+export type AgentMiddlewareModelAccessContext = ModelUsagePricingContext & {
+  requestId: string
+}
+
 export type AgentMiddlewareModelProviderConnection = {
   /** Stable host-owned model provider configuration boundary. */
   providerScopeId: string
@@ -104,10 +109,12 @@ export type AgentMiddlewareModelProviderConnection = {
   provider: string
   baseURL: string
   authorization: string
+  /** Resolve and freeze the host-owned Direct/Grant access decision before provider invocation. */
+  resolveModelAccess?: (context: AgentMiddlewareModelAccessContext) => Promise<IModelAccessResolution>
   /** Resolve the model YAML price rule and freeze it for one invocation. */
   resolvePricingSnapshot?: (context: ModelUsagePricingContext) => Promise<ModelUsagePricingSnapshot>
   /** Persist final authoritative usage and calculate its charge exactly once. */
-  reportUsage(report: ModelUsageReport): Promise<ModelUsageReportResult>
+  reportUsage(report: ModelUsageReport, modelAccess?: IModelAccessResolution): Promise<ModelUsageReportResult>
 }
 
 export type AgentMiddlewareRuntimeScope = {
