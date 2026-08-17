@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.17.1
+
+### Patch Changes
+
+- 612baea: Resolve model parameter defaults consistently across configuration UIs and runtime model creation, and expose provider parameter rules through the plugin SDK.
+
 ## 3.17.0
 
 ### Minor Changes
