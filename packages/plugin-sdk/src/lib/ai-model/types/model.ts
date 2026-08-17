@@ -4,8 +4,10 @@ import {
   ICopilot,
   ICopilotModel,
   ILLMUsage,
-  ModelUsagePricingSnapshot,
+  ModelUsageReport,
   ModelUsagePricingContext,
+  ModelUsagePricingSnapshot,
+  ParameterRule,
   ParameterType,
   PriceInfo,
   PriceType
@@ -19,6 +21,12 @@ export type TLLMUsage = ILLMUsage & {
 
 export type TChatModelOptions = {
   modelProperties: Record<string, any>
+  /** Final authoritative usage for non-LLM model clients. */
+  handleModelUsage?: (report: ModelUsageReport) => void | Promise<void>
+  /** Freeze the active usage price rules at invocation start. */
+  resolveUsagePricingSnapshot?: (
+    context: ModelUsagePricingContext
+  ) => ModelUsagePricingSnapshot | Promise<ModelUsagePricingSnapshot>
   handleLLMTokens: (input: {
     copilot: ICopilot
     model?: string
@@ -36,6 +44,7 @@ export interface IAIModel {
   validateCredentials(model: string, credentials: Record<string, any>): Promise<void>
   getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel
   predefinedModels(): AIModelEntity[]
+  getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[]
   getUsagePricingSnapshot(
     model: string,
     credentials: Record<string, any>,

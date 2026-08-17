@@ -3,12 +3,15 @@ import { IUser } from '../user.model'
 import { AiModelTypeEnum } from '../agent'
 import { ModelAccessSourceEnum } from './model-access.model'
 import { ModelGatewayUsageChannelEnum } from './model-gateway.model'
+import type { LLMPriceAuthority, LLMPriceBreakdownItem } from './ai-model.model'
 import type {
   ModelUsageMetric,
+  ModelUsageMetricComponent,
   ModelUsageLedgerModality,
   ModelUsageLedgerOperation,
   ModelUsageOriginType,
   ModelUsagePriceRule,
+  ModelUsagePricingDimensions,
   ModelUsagePricingStatus
 } from './model-usage.model'
 
@@ -209,6 +212,9 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   toolName?: string | null
   modality?: ModelUsageLedgerModality | null
   operation?: ModelUsageLedgerOperation | null
+  metricKey?: string | null
+  component?: ModelUsageMetricComponent | null
+  pricingDimensions?: ModelUsagePricingDimensions | null
   unit?: ModelUsageMetric['unit'] | null
   authority?: ModelUsageMetric['authority'] | null
   quantity?: number | null
@@ -224,7 +230,9 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   unitPrice?: number | null
   priceCurrency?: string | null
   priceAmount?: number | null
+  priceAuthority?: LLMPriceAuthority | null
   pricingRule?: ModelUsagePriceRule | null
+  pricingBreakdown?: LLMPriceBreakdownItem[] | null
   chargedAt?: Date | string | null
   settlementCurrency?: string | null
   settlementAmount?: number | null

@@ -112,9 +112,11 @@ function expectedFingerprint() {
 
 describe('FileUnderstandingVectorService', () => {
     it('uses xpert and embedding fingerprint for the collection when xpertId exists', async () => {
-        const { service, commandBus, fileEmbeddingRepository, embeddings } = createService()
+        const { service, commandBus, queryBus, fileEmbeddingRepository, embeddings } = createService()
 
-        await service.indexChunks(asset({ xpertId: 'xpert-1', projectId: 'project-1' }), [chunk('chunk-1')])
+        await service.indexChunks(asset({ xpertId: 'xpert-1', threadId: 'thread-1', projectId: 'project-1' }), [
+            chunk('chunk-1')
+        ])
 
         const collectionName = (commandBus.execute.mock.calls[0][0] as RagCreateVStoreCommand).config.collectionName
         expect(collectionName).toBe(`file-understanding:xpert:xpert-1:${expectedFingerprint()}`)
@@ -124,6 +126,10 @@ describe('FileUnderstandingVectorService', () => {
             fingerprint: expectedFingerprint(),
             dimensions: 3
         })
+        const embeddingQuery = queryBus.execute.mock.calls
+            .map(([query]) => query)
+            .find((query): query is CopilotModelGetEmbeddingsQuery => query instanceof CopilotModelGetEmbeddingsQuery)
+        expect(embeddingQuery?.options).toEqual(expect.objectContaining({ xpertId: 'xpert-1', threadId: 'thread-1' }))
         expect((embeddings as typeof embeddings & { dimensions?: number }).dimensions).toBe(3)
     })
 

@@ -8,7 +8,6 @@ import {
   IModelUsageLedger,
   ModelUsageLedgerModality,
   ModelUsageLedgerQuery,
-  ModelUsageLedgerTotals,
   ModelUsageMetric,
   ModelUsagePricingStatus
 } from '@xpert-ai/contracts'
@@ -60,14 +59,13 @@ export class ModelUsageLedgerComponent {
   readonly userFilter = model('')
   readonly organizationFilter = model('')
   readonly currencyFilter = model('')
-  readonly categoryFilter = model<ModelUsageCategory | ''>('')
+  readonly modalityFilter = model<ModelUsageLedgerModality | ''>('')
+  readonly unitFilter = model<ModelUsageMetric['unit'] | ''>('')
   readonly pricingStatusFilter = model<ModelUsagePricingStatus | ''>('')
 
   readonly items = signal<IModelUsageLedger[]>([])
-  readonly totals = signal<ModelUsageLedgerTotals[]>([])
   readonly expandedAccountKeys = signal<Set<string>>(new Set())
   readonly loading = signal(false)
-  readonly totalsLoading = signal(false)
   readonly currentPage = signal(0)
   readonly done = signal(false)
   readonly pageSize = 30
@@ -81,26 +79,26 @@ export class ModelUsageLedgerComponent {
       })
     }))
   })
-  readonly categories = computed(() => {
+  readonly modalities = computed(() => {
+    this.languageChange()
+    return [
+      { value: '', label: this.translate.instant('XP.Copilot.AllModalities', { Default: 'All modalities' }) },
+      { value: 'text', label: this.translate.instant('XP.Copilot.Text', { Default: 'Text' }) },
+      { value: 'audio', label: this.translate.instant('XP.Copilot.Audio', { Default: 'Audio' }) },
+      { value: 'image', label: this.translate.instant('XP.Copilot.Image', { Default: 'Image' }) },
+      { value: 'video', label: this.translate.instant('XP.Copilot.Video', { Default: 'Video' }) }
+    ] as Array<{ value: ModelUsageLedgerModality | ''; label: string }>
+  })
+  readonly units = computed(() => {
     this.languageChange()
     return [
       { value: '', label: this.translate.instant('XP.Copilot.AllUnits', { Default: 'All units' }) },
-      { value: 'llm_token', label: this.translate.instant('XP.Copilot.LlmToken', { Default: 'LLM Token' }) },
-      { value: 'image_token', label: this.translate.instant('XP.Copilot.ImageToken', { Default: 'Image Token' }) },
-      {
-        value: 'image_generation',
-        label: this.translate.instant('XP.Copilot.ImageGeneration', { Default: 'Image generation' })
-      },
-      { value: 'video_token', label: this.translate.instant('XP.Copilot.VideoToken', { Default: 'Video Token' }) },
-      {
-        value: 'video_generation',
-        label: this.translate.instant('XP.Copilot.VideoGeneration', { Default: 'Video generation' })
-      },
-      {
-        value: 'video_second',
-        label: this.translate.instant('XP.Copilot.VideoSecond', { Default: 'Video seconds' })
-      }
-    ] as Array<{ value: ModelUsageCategory | ''; label: string }>
+      { value: 'token', label: this.translate.instant('XP.Copilot.Token', { Default: 'Token' }) },
+      { value: 'generation', label: this.translate.instant('XP.Copilot.Generation', { Default: 'Generation' }) },
+      { value: 'second', label: this.translate.instant('XP.Copilot.Second', { Default: 'Second' }) },
+      { value: 'character', label: this.translate.instant('XP.Copilot.Character', { Default: 'Characters' }) },
+      { value: 'request', label: this.translate.instant('XP.Copilot.Request', { Default: 'Requests' }) }
+    ] as Array<{ value: ModelUsageMetric['unit'] | ''; label: string }>
   })
   readonly pricingStatuses = computed(() => {
     this.languageChange()
@@ -121,7 +119,6 @@ export class ModelUsageLedgerComponent {
       this.selectedOrganization()?.name ||
       this.translate.instant('XP.Scope.OrganizationEyebrow', { Default: 'Organization Scope' })
   )
-  readonly summaryCards = computed(() => summarizeTotals(this.totals()))
   readonly accountGroups = computed(() => groupUsageByAccount(this.items()))
 
   constructor() {
@@ -142,20 +139,7 @@ export class ModelUsageLedgerComponent {
     this.items.set([])
     this.expandedAccountKeys.set(new Set())
     this.loading.set(false)
-    this.loadTotals(version)
     this.loadMore(version)
-  }
-
-  loadTotals(version = this.#loadVersion) {
-    this.totalsLoading.set(true)
-    this.usageService.getModelUsageLedgerTotals(this.query()).subscribe({
-      next: (totals) => {
-        if (version !== this.#loadVersion) return
-        this.totals.set(totals)
-        this.totalsLoading.set(false)
-      },
-      error: (error) => this.handleError(error, version, true)
-    })
   }
 
   loadMore(version = this.#loadVersion) {
@@ -172,15 +156,11 @@ export class ModelUsageLedgerComponent {
           if (version !== this.#loadVersion) return
           this.items.update((state) => [...state, ...items])
           this.currentPage.update((page) => page + 1)
-          if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) this.done.set(true)
+          if (this.currentPage() * this.pageSize >= total) this.done.set(true)
           this.loading.set(false)
         },
-        error: (error) => this.handleError(error, version, false)
+        error: (error) => this.handleError(error, version)
       })
-  }
-
-  rowUsage(item: IModelUsageLedger) {
-    return item.unit === 'token' ? item.totalTokens : item.quantity
   }
 
   pricingLabel(status: ModelUsagePricingStatus) {
@@ -196,28 +176,42 @@ export class ModelUsageLedgerComponent {
     if (unit === 'second') {
       return this.translate.instant('XP.Copilot.Second', { Default: 'Second' })
     }
+    if (unit === 'character') {
+      return this.translate.instant('XP.Copilot.Character', { Default: 'Characters' })
+    }
+    if (unit === 'request') {
+      return this.translate.instant('XP.Copilot.Request', { Default: 'Requests' })
+    }
     return this.translate.instant('XP.Copilot.Token', { Default: 'Token' })
   }
 
-  currencyLabel(currency: string | null | undefined) {
-    return currency ? normalizeCurrency(currency) : ''
+  modalityLabel(modality: ModelUsageLedgerModality) {
+    if (modality === 'audio') return this.translate.instant('XP.Copilot.Audio', { Default: 'Audio' })
+    if (modality === 'image') return this.translate.instant('XP.Copilot.Image', { Default: 'Image' })
+    if (modality === 'video') return this.translate.instant('XP.Copilot.Video', { Default: 'Video' })
+    return this.translate.instant('XP.Copilot.Text', { Default: 'Text' })
   }
 
-  categoryLabel(category: ModelUsageCategory) {
-    switch (category) {
-      case 'llm_token':
-        return this.translate.instant('XP.Copilot.LlmToken', { Default: 'LLM Token' })
-      case 'image_token':
-        return this.translate.instant('XP.Copilot.ImageToken', { Default: 'Image Token' })
-      case 'image_generation':
-        return this.translate.instant('XP.Copilot.ImageGeneration', { Default: 'Image generation' })
-      case 'video_token':
-        return this.translate.instant('XP.Copilot.VideoToken', { Default: 'Video Token' })
-      case 'video_generation':
-        return this.translate.instant('XP.Copilot.VideoGeneration', { Default: 'Video generation' })
-      case 'video_second':
-        return this.translate.instant('XP.Copilot.VideoSecond', { Default: 'Video seconds' })
+  usageLabel(modality: ModelUsageLedgerModality, unit: ModelUsageMetric['unit']) {
+    if (modality === 'text' && unit === 'token') {
+      return this.translate.instant('XP.Copilot.LlmToken', { Default: 'LLM Token' })
     }
+    if (modality === 'image' && unit === 'token') {
+      return this.translate.instant('XP.Copilot.ImageToken', { Default: 'Image Token' })
+    }
+    if (modality === 'image' && unit === 'generation') {
+      return this.translate.instant('XP.Copilot.ImageGeneration', { Default: 'Image generation' })
+    }
+    if (modality === 'video' && unit === 'token') {
+      return this.translate.instant('XP.Copilot.VideoToken', { Default: 'Video Token' })
+    }
+    if (modality === 'video' && unit === 'generation') {
+      return this.translate.instant('XP.Copilot.VideoGeneration', { Default: 'Video generation' })
+    }
+    if (modality === 'video' && unit === 'second') {
+      return this.translate.instant('XP.Copilot.VideoSecond', { Default: 'Video seconds' })
+    }
+    return `${this.modalityLabel(modality)} · ${this.unitLabel(unit)}`
   }
 
   isAccountExpanded(group: ModelUsageAccountGroup) {
@@ -235,25 +229,23 @@ export class ModelUsageLedgerComponent {
 
   private query(): ModelUsageLedgerQuery {
     const [start, end] = calcTimeRange(this.timeRangeValue())
-    const category = usageCategoryQuery(this.categoryFilter())
     return {
       start,
       end,
-      unit: category?.unit,
+      unit: this.unitFilter() || undefined,
       provider: clean(this.providerFilter()),
       model: clean(this.modelFilter()),
       userId: clean(this.userFilter()),
       organizationId: this.isTenantScope() ? clean(this.organizationFilter()) : this.currentOrganizationId(),
       currency: clean(this.currencyFilter()),
-      modality: category?.modality,
+      modality: this.modalityFilter() || undefined,
       pricingStatus: this.pricingStatusFilter() || undefined
     }
   }
 
-  private handleError(error: unknown, version: number, totals: boolean) {
+  private handleError(error: unknown, version: number) {
     if (version !== this.#loadVersion) return
-    if (totals) this.totalsLoading.set(false)
-    else this.loading.set(false)
+    this.loading.set(false)
     this.toastr.error(error, this.translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
   }
 }
@@ -263,13 +255,18 @@ function clean(value: string | null | undefined) {
   return normalized || undefined
 }
 
-type ModelUsageAccountGroup = {
+export type ModelUsageAccountGroup = {
   key: string
   userId: string | null
   userName: string | null
-  items: IModelUsageLedger[]
+  items: ModelUsageInvocation[]
   lastUsedAt: Date
-  usages: Array<{ category: ModelUsageCategory; unit: ModelUsageMetric['unit']; quantity: number }>
+  usages: Array<{
+    key: string
+    modality: ModelUsageLedgerModality
+    unit: ModelUsageMetric['unit']
+    quantity: number
+  }>
   pricedAmounts: {
     llm: number
     video: number
@@ -277,8 +274,8 @@ type ModelUsageAccountGroup = {
   }
 }
 
-function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup[] {
-  const groups = new Map<string, ModelUsageAccountGroup>()
+export function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup[] {
+  const groups = new Map<string, Omit<ModelUsageAccountGroup, 'items'> & { ledgerItems: IModelUsageLedger[] }>()
   for (const item of items) {
     const userId = clean(item.userId) ?? null
     const key = userId ?? '__unknown_account__'
@@ -288,26 +285,24 @@ function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup
         key,
         userId,
         userName: clean(item.userName) ?? null,
-        items: [],
+        ledgerItems: [],
         lastUsedAt: item.recordedAt,
         usages: [],
         pricedAmounts: { llm: 0, video: 0, total: 0 }
       }
       groups.set(key, group)
     }
-    group.items.push(item)
+    group.ledgerItems.push(item)
     if (!group.userName && item.userName) group.userName = item.userName
     if (new Date(item.recordedAt).getTime() > new Date(group.lastUsedAt).getTime()) {
       group.lastUsedAt = item.recordedAt
     }
 
-    const category = resolveUsageCategory(item.modality, item.unit)
-    if (category) {
-      const usage = group.usages.find((item) => item.category === category)
-      const quantity = Number(item.unit === 'token' ? item.totalTokens : item.quantity) || 0
-      if (usage) usage.quantity += quantity
-      else group.usages.push({ category, unit: item.unit, quantity })
-    }
+    const usageKey = usageCategoryKey(item.modality, item.unit)
+    const usage = group.usages.find((item) => item.key === usageKey)
+    const quantity = Number(item.unit === 'token' ? item.totalTokens : item.quantity) || 0
+    if (usage) usage.quantity += quantity
+    else group.usages.push({ key: usageKey, modality: item.modality, unit: item.unit, quantity })
 
     const settlementAmount = item.charge?.settlementAmount
     if (
@@ -322,95 +317,103 @@ function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup
       if (item.modality === 'video') group.pricedAmounts.video += amount
     }
   }
-  return [...groups.values()]
+  return [...groups.values()].map(({ ledgerItems, ...group }) => ({
+    ...group,
+    items: groupUsageInvocations(ledgerItems)
+  }))
 }
 
-type ModelUsageCategory =
-  | 'llm_token'
-  | 'image_token'
-  | 'image_generation'
-  | 'video_token'
-  | 'video_generation'
-  | 'video_second'
-
-type ModelUsageSummaryCard = {
-  category: ModelUsageCategory
+type ModelUsageDisplayUsage = {
+  key: string
+  modality: ModelUsageLedgerModality
   unit: ModelUsageMetric['unit']
-  usage: number
-  records: number
-  pricingStatuses: Array<{ status: ModelUsagePricingStatus; records: number }>
+  quantity: number
+}
+
+type ModelUsageInvocation = {
+  key: string
+  requestId: string
+  recordedAt: Date
+  provider: string
+  model: string | null
+  operation: IModelUsageLedger['operation']
+  modality: ModelUsageLedgerModality
+  usages: ModelUsageDisplayUsage[]
+  pricingStatus: ModelUsagePricingStatus
   originalAmounts: Array<{ currency: string; amount: number }>
   settlementAmount: number | null
   settlementCurrency: string | null
+  exchangeRates: number[]
 }
 
-const CATEGORY_QUERIES: Record<
-  ModelUsageCategory,
-  { unit: ModelUsageMetric['unit']; modality: ModelUsageLedgerModality }
-> = {
-  llm_token: { unit: 'token', modality: 'text' },
-  image_token: { unit: 'token', modality: 'image' },
-  image_generation: { unit: 'generation', modality: 'image' },
-  video_token: { unit: 'token', modality: 'video' },
-  video_generation: { unit: 'generation', modality: 'video' },
-  video_second: { unit: 'second', modality: 'video' }
-}
-
-function usageCategoryQuery(category: ModelUsageCategory | '') {
-  return category ? CATEGORY_QUERIES[category] : undefined
-}
-
-function summarizeTotals(totals: ModelUsageLedgerTotals[]): ModelUsageSummaryCard[] {
-  const cards = new Map<ModelUsageCategory, ModelUsageSummaryCard>()
-  for (const total of totals) {
-    const category = resolveUsageCategory(total.modality, total.unit)
-    if (!category) continue
-    let card = cards.get(category)
-    if (!card) {
-      card = {
-        category,
-        unit: total.unit,
-        usage: 0,
-        records: 0,
-        pricingStatuses: [],
+function groupUsageInvocations(items: IModelUsageLedger[]): ModelUsageInvocation[] {
+  const invocations = new Map<string, ModelUsageInvocation>()
+  for (const item of items) {
+    const key = `${item.providerScopeId}:${item.requestId}`
+    let invocation = invocations.get(key)
+    if (!invocation) {
+      invocation = {
+        key,
+        requestId: item.requestId,
+        recordedAt: item.recordedAt,
+        provider: item.provider,
+        model: item.model ?? null,
+        operation: item.operation,
+        modality: item.modality,
+        usages: [],
+        pricingStatus: 'unpriced',
         originalAmounts: [],
         settlementAmount: null,
-        settlementCurrency: null
+        settlementCurrency: null,
+        exchangeRates: []
       }
-      cards.set(category, card)
-    }
-    card.usage += Number(total.unit === 'token' ? total.totalTokens : total.quantity) || 0
-    card.records += Number(total.records) || 0
-
-    const pricing = card.pricingStatuses.find(({ status }) => status === total.pricingStatus)
-    if (pricing) pricing.records += Number(total.records) || 0
-    else card.pricingStatuses.push({ status: total.pricingStatus, records: Number(total.records) || 0 })
-
-    if (total.amount !== null && total.amount !== undefined && total.currency) {
-      const currency = normalizeCurrency(total.currency)
-      const original = card.originalAmounts.find((amount) => amount.currency === currency)
-      if (original) original.amount += Number(total.amount) || 0
-      else card.originalAmounts.push({ currency, amount: Number(total.amount) || 0 })
+      invocations.set(key, invocation)
     }
 
-    if (total.settlementAmount !== null && total.settlementAmount !== undefined) {
-      card.settlementAmount = (card.settlementAmount ?? 0) + (Number(total.settlementAmount) || 0)
-      card.settlementCurrency = normalizeCurrency(total.settlementCurrency || 'CNY')
+    const usageKey = usageCategoryKey(item.modality, item.unit)
+    const quantity = Number(item.unit === 'token' ? item.totalTokens : item.quantity) || 0
+    const usage = invocation.usages.find(({ key }) => key === usageKey)
+    if (usage) usage.quantity += quantity
+    else invocation.usages.push({ key: usageKey, modality: item.modality, unit: item.unit, quantity })
+
+    const pricingStatus = item.charge?.pricingStatus ?? 'unpriced'
+    if (pricingStatus === 'priced' || (pricingStatus === 'free' && invocation.pricingStatus === 'unpriced')) {
+      invocation.pricingStatus = pricingStatus
+    }
+
+    const amount = item.charge?.amount
+    if (amount !== null && amount !== undefined && item.charge?.currency) {
+      addCurrencyAmount(invocation.originalAmounts, item.charge.currency, Number(amount) || 0)
+    }
+
+    const settlementAmount = item.charge?.settlementAmount
+    if (settlementAmount !== null && settlementAmount !== undefined) {
+      invocation.settlementAmount = (invocation.settlementAmount ?? 0) + (Number(settlementAmount) || 0)
+      invocation.settlementCurrency = normalizeCurrency(item.charge?.settlementCurrency || 'CNY')
+    }
+
+    const exchangeRate = item.charge?.exchangeRate
+    if (
+      exchangeRate !== null &&
+      exchangeRate !== undefined &&
+      Number.isFinite(Number(exchangeRate)) &&
+      !invocation.exchangeRates.includes(Number(exchangeRate))
+    ) {
+      invocation.exchangeRates.push(Number(exchangeRate))
     }
   }
-  return [...cards.values()]
+  return [...invocations.values()]
 }
 
-function resolveUsageCategory(
-  modality: ModelUsageLedgerModality,
-  unit: ModelUsageMetric['unit']
-): ModelUsageCategory | null {
-  for (const [category, query] of Object.entries(CATEGORY_QUERIES) as Array<
-    [ModelUsageCategory, (typeof CATEGORY_QUERIES)[ModelUsageCategory]]
-  >) {
-    if (query.modality === modality && query.unit === unit) return category
-  }
-  return null
+function addCurrencyAmount(amounts: Array<{ currency: string; amount: number }>, currency: string, amount: number) {
+  const normalizedCurrency = normalizeCurrency(currency)
+  const current = amounts.find((item) => item.currency === normalizedCurrency)
+  if (current) current.amount += amount
+  else amounts.push({ currency: normalizedCurrency, amount })
+}
+
+function usageCategoryKey(modality: ModelUsageLedgerModality, unit: ModelUsageMetric['unit']) {
+  return `${modality}:${unit}`
 }
 
 function normalizeCurrency(currency: string) {

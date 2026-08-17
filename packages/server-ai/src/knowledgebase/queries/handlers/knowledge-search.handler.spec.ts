@@ -24,10 +24,53 @@ function attachHandlerServices(handler: KnowledgeSearchQueryHandler) {
 }
 
 describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
+    it('passes Xpert billing context to vector retrieval', async () => {
+        const knowledgebase = {
+            id: 'kb-1',
+            type: KnowledgebaseTypeEnum.Standard,
+            recall: { topK: 5 }
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({ items: [knowledgebase] }))
+        }
+        const handler = new KnowledgeSearchQueryHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            { execute: jest.fn() } as unknown as QueryBus
+        )
+        attachHandlerServices(handler)
+        const vectorSearch = jest
+            .spyOn(handler, 'similaritySearchWithScore')
+            .mockResolvedValue({ documents: [], diagnostics })
+
+        await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: 'quality requirements',
+                source: 'retriever',
+                xpertId: 'xpert-1',
+                threadId: 'thread-1'
+            })
+        )
+
+        expect(vectorSearch).toHaveBeenCalledWith(
+            knowledgebase,
+            'quality requirements',
+            undefined,
+            expect.any(Object),
+            false,
+            {
+                xpertId: 'xpert-1',
+                threadId: 'thread-1'
+            }
+        )
+    })
+
     it('routes graph mode to graph search without vector search', async () => {
         const graphDocs = [chunk('graph-1', { graphScore: 0.9, score: 0.9 })]
         const queryBus = {
-            execute: jest.fn(async () => ({ docs: graphDocs }))
+            execute: jest.fn().mockResolvedValue({ docs: graphDocs })
         }
         const knowledgebaseService = {
             findAll: jest.fn(async () => ({
@@ -55,6 +98,8 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 knowledgebases: ['kb-1'],
                 query: 'who owns the platform?',
                 source: 'spec',
+                xpertId: 'xpert-1',
+                threadId: 'thread-1',
                 retrieval: {
                     mode: 'graph'
                 }
@@ -63,6 +108,12 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
         expect(vectorSearch).not.toHaveBeenCalled()
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(KnowledgeGraphSearchQuery))
+        const graphQuery = queryBus.execute.mock.calls[0]?.[0]
+        expect(graphQuery).toBeInstanceOf(KnowledgeGraphSearchQuery)
+        if (!(graphQuery instanceof KnowledgeGraphSearchQuery)) {
+            throw new Error('Expected knowledge graph search query')
+        }
+        expect(graphQuery.input).toEqual(expect.objectContaining({ xpertId: 'xpert-1', threadId: 'thread-1' }))
         expect(results.documents).toEqual(graphDocs)
     })
 

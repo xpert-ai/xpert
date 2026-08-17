@@ -26,7 +26,7 @@ import { CopilotUsageService } from './copilot-usage.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @UseGuards(PermissionGuard)
-@Permissions(AIPermissionsEnum.COPILOT_EDIT)
+@Permissions(AIPermissionsEnum.MODEL_USAGE_MONITOR)
 @Controller()
 export class CopilotUsageController {
     constructor(private readonly service: CopilotUsageService) {}

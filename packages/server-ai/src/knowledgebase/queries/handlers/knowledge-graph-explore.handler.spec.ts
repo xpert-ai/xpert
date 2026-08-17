@@ -89,11 +89,19 @@ describe('KnowledgeGraphExploreHandler', () => {
                 knowledgebaseId: 'kb-1',
                 action: 'search',
                 query: '泵站供应商',
+                xpertId: 'xpert-1',
+                threadId: 'thread-1',
                 filters: { fixed: fixedFilter }
             })
         )
 
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(KnowledgeGraphEntitySearchQuery))
+        const entitySearchQuery = queryBus.execute.mock.calls[0]?.[0]
+        expect(entitySearchQuery).toBeInstanceOf(KnowledgeGraphEntitySearchQuery)
+        if (!(entitySearchQuery instanceof KnowledgeGraphEntitySearchQuery)) {
+            throw new Error('Expected knowledge graph entity search query')
+        }
+        expect(entitySearchQuery.input).toEqual(expect.objectContaining({ xpertId: 'xpert-1', threadId: 'thread-1' }))
         expect(knowledgebaseService.listStructuredGraphEvidence).toHaveBeenCalledWith(
             'kb-1',
             'tenant-1',

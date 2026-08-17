@@ -1192,7 +1192,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     new FakeStreamingChatModel({ responses: [new AIMessage(errorHandling.defaultValue?.content)] })
                 ])
             }
-            setModelPreparesOwnMessages(withFallbackModel)
+            // RunnableLambda/Retry/Fallback wrappers intentionally hide the
+            // provider client, but middleware still needs the provider's
+            // public capability profile to make safe decisions (for example,
+            // whether checksum-verified image evidence may be attached).
+            // Preserve that profile on the final primary-model wrapper.
+            setModelPreparesOwnMessages(copyPublicModelProfile(withFallbackModel, chatModel))
 
             const { systemMessage, messageHistory, humanMessages } = await stateModifier(
                 state,
@@ -2184,10 +2189,31 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools:
 
 function withModelMessagePreparation(model: Runnable, capabilityModel: object) {
     return setModelPreparesOwnMessages(
-        RunnableLambda.from((messages: BaseMessage[], config?: RunnableConfig) =>
-            model.invoke(prepareMessagesForModel(messages, capabilityModel), config)
+        copyPublicModelProfile(
+            RunnableLambda.from((messages: BaseMessage[], config?: RunnableConfig) =>
+                model.invoke(prepareMessagesForModel(messages, capabilityModel), config)
+            ),
+            capabilityModel
         )
     )
+}
+
+function copyPublicModelProfile<T extends object>(target: T, source: object): T {
+    const directProfile = 'profile' in source ? source.profile : undefined
+    const metadata = 'metadata' in source ? source.metadata : undefined
+    const metadataProfile =
+        metadata && typeof metadata === 'object' && 'profile' in metadata ? metadata.profile : undefined
+    const profile = directProfile ?? metadataProfile
+    if (!profile || typeof profile !== 'object') {
+        return target
+    }
+    Object.defineProperty(target, 'profile', {
+        configurable: true,
+        enumerable: true,
+        value: profile,
+        writable: false
+    })
+    return target
 }
 
 function supportsParallelToolCallsParam(chatModel: BaseChatModel) {

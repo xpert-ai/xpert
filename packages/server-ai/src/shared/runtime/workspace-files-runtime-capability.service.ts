@@ -26,9 +26,12 @@ import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-cor
 import {
     CreateWorkspaceFileAssetCommand,
     EnqueueFileParseCommand,
+    GetFileAssetByStorageFileQuery,
+    GetFileAssetQuery,
     GetFileUnderstandingStatusQuery,
     ValidateFileUnderstandingReferencesQuery,
     isWorkspaceFileCatalog,
+    resolveFileAssetWorkspaceRelativePath,
     resolveWorkspaceFileCatalog,
     resolveWorkspaceVolumeScope,
     type FileAsset,
@@ -37,6 +40,7 @@ import {
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 /**
  * Runtime workspace defaults captured from the current Agent execution.
@@ -45,6 +49,7 @@ const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
  * tenant, user, project/Xpert scope, and sandbox workspace root information.
  */
 export type WorkspaceFilesRuntimeDefaults = WorkspaceFileScope & {
+    conversationId?: string | null
     workspaceRoot?: string | null
     workspacePath?: string | null
 }
@@ -354,7 +359,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         defaults: WorkspaceFilesRuntimeDefaults
     ): Promise<WorkspacePortableFileReference> {
         const descriptor = toWorkspaceRuntimeDescriptor(input)
-        const filePath = normalizeRuntimeWorkspaceFilePath(readRuntimeFilePath(descriptor), defaults)
+        const filePath = await this.resolveRuntimeFilePath(readRuntimeFilePath(descriptor), defaults)
         const scopedInput = applyRuntimeScopeDefaults(
             {
                 ...readRuntimeScope(descriptor),
@@ -389,6 +394,51 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             ...(name ? { name } : {}),
             ...(mimeType ? { mimeType } : {}),
             ...(typeof size === 'number' ? { size } : {})
+        }
+    }
+
+    private async resolveRuntimeFilePath(value: unknown, defaults: WorkspaceFilesRuntimeDefaults) {
+        const raw = normalizeOptionalString(value)
+        if (!raw || !UUID_PATTERN.test(raw) || !this.queryBus) {
+            return normalizeRuntimeWorkspaceFilePath(value, defaults)
+        }
+
+        const fileAsset =
+            (await this.queryBus
+                .execute<GetFileAssetQuery, FileAsset | null>(new GetFileAssetQuery(raw))
+                .catch(() => null)) ??
+            (await this.queryBus
+                .execute<GetFileAssetByStorageFileQuery, FileAsset | null>(new GetFileAssetByStorageFileQuery(raw))
+                .catch(() => null))
+        if (!fileAsset) {
+            return normalizeRuntimeWorkspaceFilePath(value, defaults)
+        }
+
+        this.assertRuntimeFileAssetScope(fileAsset, defaults)
+        const relativePath = resolveFileAssetWorkspaceRelativePath(fileAsset)
+        if (!relativePath) {
+            throw new BadRequestException('Workspace file not found')
+        }
+        return normalizeRuntimeWorkspaceFilePath(relativePath, defaults)
+    }
+
+    private assertRuntimeFileAssetScope(fileAsset: FileAsset, defaults: WorkspaceFilesRuntimeDefaults) {
+        const tenantId = normalizeOptionalString(defaults.tenantId) ?? RequestContext.currentTenantId()
+        const organizationId = defaults.organizationId ?? RequestContext.getOrganizationId() ?? null
+        const userId = normalizeOptionalString(defaults.userId) ?? RequestContext.currentUserId()
+        const projectId = normalizeOptionalString(defaults.projectId)
+        const xpertId = normalizeOptionalString(defaults.xpertId)
+        const conversationId = normalizeOptionalString(defaults.conversationId)
+        const scopeMismatch =
+            !tenantId ||
+            fileAsset.tenantId !== tenantId ||
+            (fileAsset.organizationId ?? null) !== organizationId ||
+            Boolean(userId && fileAsset.userId && fileAsset.userId !== userId) ||
+            Boolean(projectId && fileAsset.projectId !== projectId) ||
+            Boolean(xpertId && fileAsset.xpertId !== xpertId) ||
+            Boolean(conversationId && fileAsset.conversationId !== conversationId)
+        if (scopeMismatch) {
+            throw new BadRequestException('Workspace file not found')
         }
     }
 

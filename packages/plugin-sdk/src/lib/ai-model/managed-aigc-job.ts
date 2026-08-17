@@ -1,5 +1,6 @@
 import {
   AiModelTypeEnum,
+  type IModelAccessResolution,
   type ModelUsageMetric,
   type ModelUsageModality,
   type ModelUsageOperation,
@@ -25,6 +26,7 @@ export type AsyncAIGCManagedJobPayload<TInput, TResult> = {
   startedAt: string
   providerRequestId?: string
   providerState?: AIGCModelObservation['state']
+  modelAccess?: IModelAccessResolution
   pricingSnapshot?: ModelUsagePricingSnapshot
   usageReported?: boolean
   result?: TResult
@@ -52,6 +54,18 @@ export async function processAsyncAIGCManagedJob<TInput, TData, TResult>(
   let payload = job.data
   if (payload.phase === 'succeeded' && payload.result !== undefined) return payload.result
   if (payload.phase === 'failed') throw new Error(payload.errorCode || 'Provider generation task failed')
+
+  if (!payload.modelAccess && options.provider.resolveModelAccess) {
+    const modelAccess = await options.provider.resolveModelAccess({
+      requestId: payload.requestId,
+      model: payload.model,
+      operation: payload.operation,
+      modality: payload.modality,
+      pricingDimensions: payload.pricingDimensions,
+      startedAt: payload.startedAt
+    })
+    payload = await checkpoint(job, { ...payload, modelAccess })
+  }
 
   if (!payload.pricingSnapshot) {
     const pricingSnapshot = options.provider.resolvePricingSnapshot
@@ -124,18 +138,21 @@ async function reportTerminalUsage<TInput, TResult>(
   provider: AgentMiddlewareModelProviderConnection
 ) {
   if (payload.usageReported || !metrics?.length) return payload
-  await provider.reportUsage({
-    requestId: payload.requestId,
-    model: payload.model,
-    modelType: payload.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO,
-    toolName: payload.toolName,
-    operation: payload.operation,
-    modality: payload.modality,
-    pricingDimensions: payload.pricingDimensions,
-    pricingSnapshot: payload.pricingSnapshot,
-    metrics,
-    recordedAt: new Date().toISOString()
-  })
+  await provider.reportUsage(
+    {
+      requestId: payload.requestId,
+      model: payload.model,
+      modelType: payload.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO,
+      toolName: payload.toolName,
+      operation: payload.operation,
+      modality: payload.modality,
+      pricingDimensions: payload.pricingDimensions,
+      pricingSnapshot: payload.pricingSnapshot,
+      metrics,
+      recordedAt: new Date().toISOString()
+    },
+    payload.modelAccess
+  )
   return checkpoint(job, { ...payload, usageReported: true })
 }
 

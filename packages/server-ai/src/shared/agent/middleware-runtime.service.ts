@@ -9,6 +9,7 @@ import {
     IStorageFile,
     IModelAccessResolution,
     IXpertAgentExecution,
+    ModelUsagePricingContext,
     TChatConversationStatus,
     TChatRequest,
     XpertAgentExecutionStatusEnum,
@@ -20,6 +21,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import {
     AIModelProviderNotFoundException,
+    IAIModelProviderStrategy,
     AgentMiddlewareAssistantTaskFile,
     AgentMiddlewareAssistantTaskCancelResult,
     AgentMiddlewareAssistantTaskInput,
@@ -87,7 +89,6 @@ import {
 import { FileStorage, GetStorageFileQuery, OutboundActorTokenProvider } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
-import { ModelProvider } from '../../ai-model/ai-provider'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
 import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limit.command'
@@ -200,7 +201,7 @@ export class AgentMiddlewareRuntimeService {
             new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
         )
 
-        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, IAIModelProviderStrategy>(
             new AIModelGetProviderQuery(copilot.modelProvider.providerName)
         )
 
@@ -241,7 +242,8 @@ export class AgentMiddlewareRuntimeService {
                                 inputTokens: input.usage.promptTokens,
                                 outputTokens: input.usage.completionTokens,
                                 totalTokens: input.usage.totalTokens,
-                                totalPrice: input.usage.totalPrice,
+                                totalPrice:
+                                    input.usage.pricingStatus === 'unpriced' ? undefined : input.usage.totalPrice,
                                 currency: input.usage.currency,
                                 responseLatencySeconds:
                                     typeof input.usage.latency === 'number' ? input.usage.latency / 1000 : undefined
@@ -268,8 +270,12 @@ export class AgentMiddlewareRuntimeService {
                                 promptTokens: input.usage?.promptTokens,
                                 completionTokens: input.usage?.completionTokens,
                                 tokenUsed: input.usage?.totalTokens,
-                                priceUsed: input.usage?.totalPrice,
-                                currency: input.usage?.currency
+                                priceUsed:
+                                    input.usage?.pricingStatus === 'unpriced' ? undefined : input.usage?.totalPrice,
+                                currency: input.usage?.currency,
+                                pricingStatus: input.usage?.pricingStatus,
+                                priceAuthority: input.usage?.priceAuthority,
+                                pricingBreakdown: input.usage?.pricingBreakdown
                             })
                         )
                     } catch (error) {
@@ -298,6 +304,8 @@ export class AgentMiddlewareRuntimeService {
         const tenantId = normalizeOptionalString(scope.tenantId) ?? RequestContext.currentTenantId()
         const organizationId = normalizeOptionalString(scope.organizationId) ?? RequestContext.getOrganizationId()
         const providerScopeId = normalizeOptionalString(scope.providerScopeId)
+        const userId = normalizeOptionalString(scope.userId) ?? RequestContext.currentUserId()
+        const xpertId = normalizeOptionalString(scope.xpertId)
         if (!providerName || !tenantId) {
             throw new Error(
                 t('server-ai:Error.ToolModelProviderContextRequired', {
@@ -339,7 +347,7 @@ export class AgentMiddlewareRuntimeService {
             )
         }
 
-        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, IAIModelProviderStrategy>(
             new AIModelGetProviderQuery(providerName)
         )
         if (!modelProvider) {
@@ -351,11 +359,23 @@ export class AgentMiddlewareRuntimeService {
         const resolvePricingSnapshot: AgentMiddlewareModelProviderConnection['resolvePricingSnapshot'] = async (
             context
         ) => {
-            const modelType = context.modality === 'image' ? AiModelTypeEnum.IMAGE : AiModelTypeEnum.VIDEO
+            const modelType = resolveUsageModelType(context)
             return modelProvider
                 .getModelManager(modelType)
                 .getUsagePricingSnapshot(context.model, connection.credentials, context)
         }
+        const resolveModelAccess: AgentMiddlewareModelProviderConnection['resolveModelAccess'] = async (context) =>
+            this.commandBus.execute<CopilotCheckLimitCommand, IModelAccessResolution>(
+                new CopilotCheckLimitCommand({
+                    tenantId,
+                    organizationId,
+                    userId,
+                    xpertId,
+                    copilot: candidates[0],
+                    model: context.model,
+                    modelType: resolveUsageModelType(context)
+                })
+            )
 
         return {
             providerScopeId: connection.id,
@@ -364,8 +384,21 @@ export class AgentMiddlewareRuntimeService {
             provider: providerName,
             baseURL: modelProvider.getBaseUrl(connection.credentials),
             authorization: modelProvider.getAuthorization(connection.credentials),
+            resolveModelAccess,
             resolvePricingSnapshot,
-            reportUsage: async (report) => {
+            reportUsage: async (report, modelAccess) => {
+                const resolvedModelAccess =
+                    modelAccess ??
+                    (report.model
+                        ? await resolveModelAccess({
+                              requestId: report.requestId,
+                              model: report.model,
+                              operation: report.operation,
+                              modality: report.modality,
+                              pricingDimensions: report.pricingDimensions,
+                              startedAt: report.recordedAt
+                          })
+                        : undefined)
                 const pricingSnapshot =
                     report.pricingSnapshot ??
                     (report.model
@@ -382,9 +415,10 @@ export class AgentMiddlewareRuntimeService {
                         tenantId,
                         organizationId,
                         copilotOrganizationId: candidates[0].organizationId ?? null,
-                        userId: normalizeOptionalString(scope.userId) ?? RequestContext.currentUserId(),
+                        userId: resolvedModelAccess?.billableUserId ?? userId,
+                        modelAccess: resolvedModelAccess,
                         originExecutionId: normalizeOptionalString(scope.executionId),
-                        xpertId: normalizeOptionalString(scope.xpertId),
+                        xpertId,
                         copilotId: candidates[0].id,
                         providerScopeId: connection.id,
                         provider: providerName
@@ -967,6 +1001,25 @@ export class AgentMiddlewareRuntimeService {
 
 function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function resolveUsageModelType(context: ModelUsagePricingContext): AiModelTypeEnum {
+    switch (context.operation) {
+        case AiModelTypeEnum.LLM:
+        case AiModelTypeEnum.TEXT_EMBEDDING:
+        case AiModelTypeEnum.RERANK:
+        case AiModelTypeEnum.SPEECH2TEXT:
+        case AiModelTypeEnum.MODERATION:
+        case AiModelTypeEnum.TTS:
+        case AiModelTypeEnum.IMAGE:
+        case AiModelTypeEnum.TEXT2IMG:
+        case AiModelTypeEnum.VIDEO:
+            return context.operation
+        default:
+            if (context.modality === 'image') return AiModelTypeEnum.IMAGE
+            if (context.modality === 'video') return AiModelTypeEnum.VIDEO
+            throw new Error(`Model usage operation '${context.operation}' must identify its model type.`)
+    }
 }
 
 function pruneUndefined<T extends Record<string, unknown>>(value: T): T {

@@ -10,7 +10,7 @@ import { IRerank } from '@xpert-ai/plugin-sdk'
 import { RequestContext } from '@xpert-ai/server-core'
 import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
-import { CopilotCheckLimitCommand } from '../../../copilot-user'
+import { CopilotCheckLimitCommand, CopilotModelUsageRecordCommand } from '../../../copilot-user'
 import { CopilotModelGetRerankQuery } from '../get-rerank.query'
 import { CopilotModelGetRerankHandler } from './get-rerank.handler'
 
@@ -42,9 +42,7 @@ describe('CopilotModelGetRerankHandler', () => {
             organizationId: 'org-1'
         }
         const commandBus = {
-            execute: jest.fn(async (command) =>
-                command instanceof CopilotCheckLimitCommand ? modelAccess : undefined
-            )
+            execute: jest.fn(async (command) => (command instanceof CopilotCheckLimitCommand ? modelAccess : undefined))
         }
         const reranker = {
             rerank: jest.fn().mockResolvedValue([{ index: 0, relevanceScore: 0.9 }])
@@ -106,9 +104,9 @@ describe('CopilotModelGetRerankHandler', () => {
             )
         ).resolves.toEqual([{ index: 0, relevanceScore: 0.9 }])
 
-        expect(commandBus.execute.mock.calls.filter(([command]) => command instanceof CopilotCheckLimitCommand)).toHaveLength(
-            1
-        )
+        expect(
+            commandBus.execute.mock.calls.filter(([command]) => command instanceof CopilotCheckLimitCommand)
+        ).toHaveLength(1)
     })
 
     it('propagates provider failures after the access check', async () => {
@@ -168,5 +166,71 @@ describe('CopilotModelGetRerankHandler', () => {
             })
         ).rejects.toThrow('provider failed')
         expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('provides rerank adapters with the unified usage reporter', async () => {
+        const modelAccess = {
+            allowed: true,
+            billableUserId: 'creator-user',
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-1',
+            multiplier: 1
+        }
+        const commandBus = {
+            execute: jest.fn(async (command) => (command instanceof CopilotCheckLimitCommand ? modelAccess : undefined))
+        }
+        const getModelInstance = jest.fn().mockResolvedValue({ rerank: jest.fn() })
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query instanceof GetCopilotProviderModelQuery) return []
+                if (query instanceof AIModelGetProviderQuery) {
+                    return {
+                        getModelInstance,
+                        getModelManager: jest.fn().mockReturnValue({
+                            getUsagePricingSnapshot: jest.fn().mockReturnValue({
+                                capturedAt: '2026-08-17T00:00:00.000Z',
+                                rules: []
+                            })
+                        })
+                    }
+                }
+                throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+            })
+        }
+        const handler = new CopilotModelGetRerankHandler(
+            commandBus as never,
+            queryBus as never,
+            { t: jest.fn() } as never
+        )
+
+        await handler.execute(
+            new CopilotModelGetRerankQuery(
+                {
+                    id: 'copilot-1',
+                    modelProvider: { id: 'provider-1', providerName: 'cohere', credentials: {} }
+                } as never,
+                {
+                    copilotId: 'copilot-1',
+                    model: 'rerank-v3',
+                    modelType: AiModelTypeEnum.RERANK
+                } as never,
+                { xpertId: 'xpert-1' }
+            )
+        )
+
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        await modelOptions.handleModelUsage({
+            requestId: 'rerank-request-1',
+            model: 'rerank-v3',
+            modelType: AiModelTypeEnum.RERANK,
+            operation: AiModelTypeEnum.RERANK,
+            modality: 'text',
+            metrics: [{ unit: 'request', quantity: 1, authority: 'contract' }],
+            pricingSnapshot: { capturedAt: '2026-08-17T00:00:00.000Z', rules: [] }
+        })
+
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotModelUsageRecordCommand)
+        ).toBe(true)
     })
 })

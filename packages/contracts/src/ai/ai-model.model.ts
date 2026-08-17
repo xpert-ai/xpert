@@ -2,7 +2,7 @@ import { AiModelTypeEnum } from '../agent/index'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'
-import type { ModelUsagePricingConfig } from './model-usage.model'
+import type { ModelUsagePricingConfig, ModelUsagePricingStatus } from './model-usage.model'
 
 export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
   /**
@@ -194,10 +194,188 @@ export interface ParameterRule {
   options?: string[]
 }
 
+export function normalizeModelParameterValue(value: unknown, rule: ParameterRule): unknown | undefined {
+  switch (rule.type) {
+    case ParameterType.FLOAT:
+    case ParameterType.INT: {
+      if (value === '' || value === null || value === undefined) {
+        return undefined
+      }
+
+      const numericValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+      if (!Number.isFinite(numericValue)) {
+        return undefined
+      }
+
+      let normalizedValue = rule.type === ParameterType.INT ? Math.trunc(numericValue) : numericValue
+      if (typeof rule.min === 'number' && Number.isFinite(rule.min)) {
+        normalizedValue = Math.max(normalizedValue, rule.min)
+      }
+      if (typeof rule.max === 'number' && Number.isFinite(rule.max)) {
+        normalizedValue = Math.min(normalizedValue, rule.max)
+      }
+      return rule.type === ParameterType.INT ? Math.trunc(normalizedValue) : normalizedValue
+    }
+    case ParameterType.BOOLEAN:
+      if (typeof value === 'boolean') {
+        return value
+      }
+      if (typeof value === 'string') {
+        const normalizedValue = value.trim().toLowerCase()
+        if (normalizedValue === 'true') {
+          return true
+        }
+        if (normalizedValue === 'false') {
+          return false
+        }
+      }
+      if (value === 1) {
+        return true
+      }
+      if (value === 0) {
+        return false
+      }
+      return undefined
+    case ParameterType.STRING:
+    case ParameterType.TEXT:
+      if (typeof value !== 'string') {
+        return undefined
+      }
+      if (rule.options?.length && !rule.options.includes(value)) {
+        return undefined
+      }
+      return value
+    default:
+      return value === undefined ? undefined : value
+  }
+}
+
+export function resolveModelParameterOptions(
+  modelOptions: Record<string, unknown> | undefined,
+  rules: ParameterRule[],
+  config: { preserveUnknown?: boolean } = {}
+): Record<string, unknown> | undefined {
+  const preserveUnknown = config.preserveUnknown ?? true
+  const resolvedOptions: Record<string, unknown> = preserveUnknown ? { ...(modelOptions ?? {}) } : {}
+
+  for (const rule of rules) {
+    if (!rule.name) {
+      continue
+    }
+
+    const hasSavedValue = Object.prototype.hasOwnProperty.call(modelOptions ?? {}, rule.name)
+    let resolvedValue = hasSavedValue ? normalizeModelParameterValue(modelOptions?.[rule.name], rule) : undefined
+    if (resolvedValue === undefined && rule.default !== undefined) {
+      resolvedValue = normalizeModelParameterValue(rule.default, rule)
+    }
+
+    if (resolvedValue === undefined) {
+      delete resolvedOptions[rule.name]
+    } else {
+      resolvedOptions[rule.name] = resolvedValue
+    }
+  }
+
+  return Object.keys(resolvedOptions).length ? resolvedOptions : undefined
+}
+
 export interface PriceTierConfig {
   input: number
   output?: number
   max_tokens: number
+}
+
+export type LLMPriceComponent =
+  | 'input'
+  | 'output'
+  | 'cache_read_input'
+  | 'cache_write_input'
+  | 'request'
+  | 'cache_storage'
+
+export type LLMPriceAddOn = 'web_search' | 'grounding'
+
+export type LLMCacheWriteTtl = '5m' | '1h'
+
+export interface LLMPriceRule {
+  component: LLMPriceComponent
+  unit_price: number
+  unit_size: number
+  currency?: string
+  min_input_tokens?: number
+  max_input_tokens?: number
+  min_output_tokens?: number
+  max_output_tokens?: number
+  mode?: string
+  region?: string
+  service_tier?: string
+  add_on?: LLMPriceAddOn
+  cache_ttl?: LLMCacheWriteTtl
+  daily_time_window?: ModelPriceDailyTimeWindow
+}
+
+export interface LLMPriceAddOnUsage {
+  type: LLMPriceAddOn
+  quantity: number
+}
+
+export interface LLMUnpricedAddOnUsage extends LLMPriceAddOnUsage {
+  authority: 'request'
+}
+
+export type LLMPriceAuthority = 'catalog' | 'provider'
+
+export interface ModelPriceDailyTimeWindow {
+  /** IANA time zone, for example Asia/Shanghai. */
+  time_zone: string
+  /** Inclusive local wall-clock time in HH:mm or HH:mm:ss format. */
+  start_time: string
+  /** Exclusive local wall-clock time in HH:mm or HH:mm:ss format. */
+  end_time: string
+}
+
+export interface LLMReportedPrice {
+  amount: number
+  currency: string
+}
+
+export interface LLMPriceContext {
+  mode?: string
+  region?: string
+  serviceTier?: string
+  cacheWriteTtl?: LLMCacheWriteTtl
+  /** Provider-reported cache write token counts when one response contains multiple TTLs. */
+  cacheWriteInputTokensByTtl?: Partial<Record<LLMCacheWriteTtl, number>>
+  /** Whether promptTokens already includes cache read and write tokens. */
+  inputTokensIncludeCache?: boolean
+  addOns?: LLMPriceAddOnUsage[]
+  /** Requested add-ons whose actual provider usage is unavailable in the response. */
+  unpricedAddOns?: LLMUnpricedAddOnUsage[]
+  /** Stored cache volume multiplied by storage duration in hours. */
+  cacheStorageTokenHours?: number
+  /** Wall-clock instant used to select recurring price windows. */
+  pricingTime?: Date | string
+}
+
+export interface LLMPriceBreakdownItem {
+  component: LLMPriceComponent
+  quantity: number
+  pricingStatus: ModelUsagePricingStatus
+  unitPrice?: number
+  unit?: number
+  amount?: number
+  currency?: string
+  addOn?: LLMPriceAddOn
+  addOnAuthority?: LLMUnpricedAddOnUsage['authority']
+  cacheTtl?: LLMCacheWriteTtl
+  rule?: LLMPriceRule
+}
+
+export interface LLMPriceCalculation {
+  pricingStatus: ModelUsagePricingStatus
+  totalAmount: number
+  currency: string
+  breakdown: LLMPriceBreakdownItem[]
 }
 
 export interface PriceConfig {
@@ -206,6 +384,7 @@ export interface PriceConfig {
   unit: number
   currency: string
   tiered_pricing?: PriceTierConfig[]
+  rules?: LLMPriceRule[]
 }
 
 export interface AIModelEntity extends ProviderModel {
