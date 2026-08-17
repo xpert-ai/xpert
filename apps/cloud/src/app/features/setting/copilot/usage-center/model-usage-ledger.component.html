@@ -1,11 +1,18 @@
 <div class="flex h-full min-h-0 w-full flex-col overflow-hidden">
   <div class="mb-3 flex shrink-0 flex-wrap items-center gap-2">
     <xp-select
-      class="w-52"
+      class="w-44"
       icon="ri-bar-chart-box-line"
-      [placeholder]="categories()[0].label"
-      [selectOptions]="categories()"
-      [(ngModel)]="categoryFilter"
+      [placeholder]="modalities()[0].label"
+      [selectOptions]="modalities()"
+      [(ngModel)]="modalityFilter"
+      (ngModelChange)="reload()"
+    />
+    <xp-select
+      class="w-44"
+      [placeholder]="units()[0].label"
+      [selectOptions]="units()"
+      [(ngModel)]="unitFilter"
       (ngModelChange)="reload()"
     />
     <xp-select
@@ -78,10 +85,10 @@
   </div>
 
   <div class="mb-3 grid shrink-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-    @for (total of summaryCards(); track total.category) {
+    @for (total of summaryCards(); track total.key) {
       <div class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3">
         <div class="mb-2 flex items-center justify-between text-sm font-medium text-text-secondary">
-          <span>{{ categoryLabel(total.category) }}</span>
+          <span>{{ usageLabel(total.modality, total.unit) }}</span>
           <z-icon class="text-text-quaternary" zType="data_usage" />
         </div>
         <div class="grid grid-cols-2 gap-2 text-sm">
@@ -201,9 +208,9 @@
             <td z-table-cell class="whitespace-nowrap px-4 py-2">{{ group.lastUsedAt | relative }}</td>
             <td z-table-cell class="px-4 py-2">
               <div class="flex flex-wrap gap-2">
-                @for (usage of group.usages; track usage.category) {
+                @for (usage of group.usages; track usage.key) {
                   <span class="whitespace-nowrap rounded-md bg-background-default-subtle px-2 py-1 text-text-secondary">
-                    {{ categoryLabel(usage.category) }} · {{ usage.quantity | number: '0.0-6' }}
+                    {{ usageLabel(usage.modality, usage.unit) }} · {{ usage.quantity | number: '0.0-6' }}
                   </span>
                 }
               </div>
