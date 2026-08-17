@@ -5,10 +5,73 @@ import {
     KnowledgebaseGetOneQuery,
     KnowledgeFilterValueOptionsQuery,
     KnowledgeFolderOptionsQuery,
-    KnowledgeGraphExploreQuery
+    KnowledgeGraphExploreQuery,
+    KnowledgeSearchQuery
 } from './queries'
 
 describe('KnowledgeRetriever', () => {
+    it('forwards Xpert billing context to knowledge search', async () => {
+        const execute = jest.fn().mockResolvedValue({ documents: [], diagnostics: [] })
+        const queryBus = { execute } as unknown as QueryBus
+        const retriever = createKnowledgeRetriever(queryBus, 'knowledgebase-1')
+
+        await retriever.invoke('quality requirements', {
+            configurable: {
+                xpertId: 'xpert-1',
+                thread_id: 'thread-1'
+            }
+        })
+
+        const query = execute.mock.calls[0]?.[0]
+        expect(query).toBeInstanceOf(KnowledgeSearchQuery)
+        if (!(query instanceof KnowledgeSearchQuery)) {
+            throw new Error('Expected knowledge search query')
+        }
+        expect(query.input).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                threadId: 'thread-1'
+            })
+        )
+    })
+
+    it('forwards Xpert billing context from the knowledgebase tool', async () => {
+        const execute = jest
+            .fn()
+            .mockResolvedValueOnce({
+                id: 'knowledgebase-1',
+                name: 'Docs',
+                description: 'Knowledgebase docs',
+                metadataSchema: []
+            })
+            .mockResolvedValueOnce({ documents: [], diagnostics: [] })
+        const queryBus = { execute } as unknown as QueryBus
+        const retriever = createKnowledgeRetriever(queryBus, 'knowledgebase-1')
+
+        const knowledgeTool = await retriever.toTool()
+        await knowledgeTool.invoke(
+            { input: 'quality requirements' },
+            {
+                configurable: {
+                    xpertId: 'xpert-1',
+                    thread_id: 'thread-1'
+                }
+            }
+        )
+
+        const query = execute.mock.calls[1]?.[0]
+        expect(query).toBeInstanceOf(KnowledgeSearchQuery)
+        if (!(query instanceof KnowledgeSearchQuery)) {
+            throw new Error('Expected knowledge search query')
+        }
+        expect(query.input).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                threadId: 'thread-1'
+            })
+        )
+    })
+
     it('selects workspace scope fields when building a knowledgebase tool', async () => {
         const execute = jest.fn().mockResolvedValue({
             id: 'knowledgebase-1',
@@ -425,7 +488,13 @@ describe('KnowledgeRetriever', () => {
             String(
                 await graphTool.invoke(
                     { action: 'search', query: '泵站' },
-                    { configurable: { runtimeState: { input: { region: 'east' } } } }
+                    {
+                        configurable: {
+                            runtimeState: { input: { region: 'east' } },
+                            xpertId: 'xpert-1',
+                            thread_id: 'thread-1'
+                        }
+                    }
                 )
             )
         )
@@ -435,6 +504,8 @@ describe('KnowledgeRetriever', () => {
                 knowledgebaseId: 'knowledgebase-1',
                 action: 'search',
                 query: '泵站',
+                xpertId: 'xpert-1',
+                threadId: 'thread-1',
                 filters: expect.objectContaining({ fixed: fixedFilter }),
                 variables: { input: { region: 'east' } }
             })

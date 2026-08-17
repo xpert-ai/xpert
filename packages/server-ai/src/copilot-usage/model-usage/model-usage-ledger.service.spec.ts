@@ -1,4 +1,11 @@
-import { AiModelTypeEnum, MembershipLedgerSourceEnum } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    IModelAccessResolution,
+    MembershipLedgerSourceEnum,
+    ModelAccessChannelEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { MembershipPointLedger } from '../../membership/membership-point-ledger.entity'
 import { ModelUsageLedgerService } from './model-usage-ledger.service'
@@ -52,7 +59,20 @@ describe('ModelUsageLedgerService', () => {
                     completionTokens: 20,
                     totalTokens: 100,
                     priceAmount: 0.5,
-                    priceCurrency: 'CNY'
+                    priceCurrency: 'CNY',
+                    priceAuthority: 'catalog',
+                    pricingBreakdown: [
+                        {
+                            component: 'request',
+                            addOn: 'web_search',
+                            quantity: 1,
+                            pricingStatus: 'priced',
+                            unitPrice: 0.5,
+                            unit: 1,
+                            amount: 0.5,
+                            currency: 'CNY'
+                        }
+                    ]
                 }
             )
         ).resolves.toEqual({ requestId: 'request-1', recorded: true, ledgerIds: [expect.any(String)] })
@@ -71,6 +91,8 @@ describe('ModelUsageLedgerService', () => {
                 pricingStatus: 'priced',
                 priceAmount: 0.5,
                 priceCurrency: 'CNY',
+                priceAuthority: 'catalog',
+                pricingBreakdown: [expect.objectContaining({ component: 'request', addOn: 'web_search' })],
                 settlementAmount: 0.5,
                 settlementCurrency: 'CNY'
             })
@@ -87,7 +109,78 @@ describe('ModelUsageLedgerService', () => {
         )
     })
 
+    it('stores provider-reported credits without converting them into membership settlement', async () => {
+        let stored: MembershipPointLedger | undefined
+        const insert = {
+            insert: jest.fn().mockReturnThis(),
+            into: jest.fn().mockReturnThis(),
+            values: jest.fn().mockImplementation((entry) => {
+                stored = entry
+                return insert
+            }),
+            orIgnore: jest.fn().mockReturnThis(),
+            execute: jest.fn().mockResolvedValue({ identifiers: [{ id: 'ledger-provider-price' }] })
+        }
+        const repository = {
+            create: jest.fn((entry) => Object.assign(new MembershipPointLedger(), entry, { id: 'provider-price-1' })),
+            createQueryBuilder: jest.fn(() => insert),
+            find: jest.fn().mockImplementation(async () => (stored ? [stored] : []))
+        }
+        const membership = { recordUsage: jest.fn() }
+        const service = new ModelUsageLedgerService(
+            repository as never,
+            membership as never,
+            { find: jest.fn() } as never
+        )
+
+        await service.recordTokenUsage(
+            {
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                copilotId: 'copilot-1',
+                providerScopeId: 'provider-scope-1',
+                provider: 'openrouter'
+            },
+            {
+                requestId: 'request-provider-price',
+                model: 'openai/gpt-5',
+                modelType: AiModelTypeEnum.LLM,
+                totalTokens: 100,
+                priceAmount: 0.95,
+                priceCurrency: 'OPENROUTER_CREDIT',
+                pricingStatus: 'priced',
+                priceAuthority: 'provider'
+            }
+        )
+
+        expect(stored).toEqual(
+            expect.objectContaining({
+                pricingStatus: 'priced',
+                priceAmount: 0.95,
+                priceCurrency: 'OPENROUTER_CREDIT',
+                priceAuthority: 'provider',
+                settlementAmount: null
+            })
+        )
+        expect(membership.recordUsage).not.toHaveBeenCalled()
+    })
+
     it('stores model usage in the membership ledger and settles its CNY amount through membership billing', async () => {
+        const modelAccess: IModelAccessResolution = {
+            allowed: true,
+            channel: ModelAccessChannelEnum.Xpert,
+            billableUserId: 'user-1',
+            copilotId: 'copilot-1',
+            copilotModelId: 'seedream',
+            provider: 'volcengine',
+            modelType: AiModelTypeEnum.IMAGE,
+            model: 'seedream',
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-1',
+            multiplier: 1.5,
+            scope: ModelAccessOwnershipScopeEnum.Organization,
+            organizationId: 'org-1'
+        }
         const stored: MembershipPointLedger[] = []
         let pending: MembershipPointLedger | undefined
         const insert = {
@@ -135,7 +228,8 @@ describe('ModelUsageLedgerService', () => {
                     xpertId: 'xpert-1',
                     copilotId: 'copilot-1',
                     providerScopeId: 'provider-scope-1',
-                    provider: 'volcengine'
+                    provider: 'volcengine',
+                    modelAccess
                 },
                 {
                     requestId: 'request-1',
@@ -186,9 +280,121 @@ describe('ModelUsageLedgerService', () => {
                 userId: 'user-1',
                 settlementAmount: 0.6,
                 settlementCurrency: 'CNY',
-                sourceReference: 'model-usage-charge:usage-ledger-2'
+                sourceReference: 'model-usage-charge:usage-ledger-2',
+                modelAccess
             })
         )
+    })
+
+    it('stores and prices multiple same-unit metrics by stable key and per-metric dimensions', async () => {
+        const stored: MembershipPointLedger[] = []
+        let pending: MembershipPointLedger | undefined
+        const insert = {
+            insert: jest.fn().mockReturnThis(),
+            into: jest.fn().mockReturnThis(),
+            values: jest.fn().mockImplementation((entry) => {
+                pending = entry
+                return insert
+            }),
+            orIgnore: jest.fn().mockReturnThis(),
+            execute: jest.fn().mockImplementation(async () => {
+                if (pending) stored.push(pending)
+                return { identifiers: pending ? [{ id: pending.id }] : [] }
+            })
+        }
+        const manager = {
+            create: jest.fn((_entity, entry) => Object.assign(new MembershipPointLedger(), entry)),
+            createQueryBuilder: jest.fn(() => insert),
+            find: jest.fn().mockImplementation(async () => stored)
+        }
+        const service = new ModelUsageLedgerService(
+            { manager: { transaction: jest.fn((callback) => callback(manager)) } } as never,
+            { recordUsage: jest.fn().mockResolvedValue(null) } as never,
+            { find: jest.fn() } as never
+        )
+
+        await expect(
+            service.recordUsage(
+                {
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    copilotId: 'copilot-1',
+                    providerScopeId: 'provider-scope-1',
+                    provider: 'image-provider'
+                },
+                {
+                    requestId: 'request-multiple-outputs',
+                    model: 'image-model',
+                    modelType: AiModelTypeEnum.IMAGE,
+                    operation: 'text_to_image',
+                    modality: 'image',
+                    metrics: [
+                        {
+                            key: 'output:0',
+                            component: 'output',
+                            pricingDimensions: { resolution: '1k' },
+                            unit: 'generation',
+                            quantity: 1,
+                            authority: 'provider'
+                        },
+                        {
+                            key: 'output:1',
+                            component: 'output',
+                            pricingDimensions: { resolution: '2k' },
+                            unit: 'generation',
+                            quantity: 1,
+                            authority: 'provider'
+                        }
+                    ]
+                },
+                {
+                    capturedAt: '2026-08-17T00:00:00.000Z',
+                    rules: [
+                        {
+                            id: 'output-1k',
+                            version: '2026-08-17',
+                            effective_from: '2026-08-17T00:00:00.000Z',
+                            unit: 'generation',
+                            component: 'output',
+                            dimensions: { resolution: '1k' },
+                            unit_size: 1,
+                            unit_price: 0.2,
+                            currency: 'CNY',
+                            charge_type: 'paid'
+                        },
+                        {
+                            id: 'output-2k',
+                            version: '2026-08-17',
+                            effective_from: '2026-08-17T00:00:00.000Z',
+                            unit: 'generation',
+                            component: 'output',
+                            dimensions: { resolution: '2k' },
+                            unit_size: 1,
+                            unit_price: 0.4,
+                            currency: 'CNY',
+                            charge_type: 'paid'
+                        }
+                    ]
+                }
+            )
+        ).resolves.toMatchObject({ requestId: 'request-multiple-outputs', recorded: true })
+
+        expect(stored).toEqual([
+            expect.objectContaining({
+                metricKey: 'output:0',
+                component: 'output',
+                pricingDimensions: { resolution: '1k' },
+                unit: 'generation',
+                priceAmount: 0.2
+            }),
+            expect.objectContaining({
+                metricKey: 'output:1',
+                component: 'output',
+                pricingDimensions: { resolution: '2k' },
+                unit: 'generation',
+                priceAmount: 0.4
+            })
+        ])
     })
 
     it('returns historical token usage without duplicating current settlement rows', async () => {
@@ -215,9 +421,20 @@ describe('ModelUsageLedgerService', () => {
             settlementAmount: 0.1,
             settlementCurrency: 'CNY'
         })
-        const queryBuilder = createReadQueryBuilder([historical, currentSettlement])
+        const pageQueryBuilder = createReadQueryBuilder()
+        pageQueryBuilder.getRawMany.mockResolvedValue([
+            { requestKey: ':legacy:legacy-ledger-1', recordedAt: '2026-08-01T01:00:00.000Z' }
+        ])
+        const countQueryBuilder = createReadQueryBuilder()
+        countQueryBuilder.getRawOne.mockResolvedValue({ total: '1' })
+        const entriesQueryBuilder = createReadQueryBuilder()
+        entriesQueryBuilder.getMany.mockResolvedValue([historical, currentSettlement])
         const repository = {
-            createQueryBuilder: jest.fn(() => queryBuilder)
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(pageQueryBuilder)
+                .mockReturnValueOnce(countQueryBuilder)
+                .mockReturnValueOnce(entriesQueryBuilder)
         }
         const userRepository = {
             find: jest.fn().mockResolvedValue([
@@ -256,18 +473,18 @@ describe('ModelUsageLedgerService', () => {
             ],
             total: 1
         })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        expect(pageQueryBuilder.andWhere).toHaveBeenCalledWith(
             expect.stringContaining('legacyUsageSources'),
             expect.objectContaining({
                 modelUsageSource: MembershipLedgerSourceEnum.ModelUsage,
                 legacyUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
             })
         )
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.unit = :unit'), {
+        expect(pageQueryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.unit = :unit'), {
             unit: 'token',
             legacyUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
         })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.modality = :modality'), {
+        expect(pageQueryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.modality = :modality'), {
             modality: 'text',
             legacyUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
         })
@@ -323,18 +540,20 @@ describe('ModelUsageLedgerService', () => {
     })
 })
 
-function createReadQueryBuilder(entries: MembershipPointLedger[]) {
-    const queryBuilder = {
+function createReadQueryBuilder() {
+    return {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
-        getManyAndCount: jest
-            .fn()
-            .mockResolvedValue([entries, entries.filter((entry) => !entry.settlementAmount).length])
+        getRawMany: jest.fn(),
+        getRawOne: jest.fn(),
+        getMany: jest.fn()
     }
-    return queryBuilder
 }
 
 function createTotalsQueryBuilder(rows: Array<Record<string, string>>) {

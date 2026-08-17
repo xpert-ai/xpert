@@ -81,7 +81,10 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                     completionTokens: input.completionTokens,
                     totalTokens: tokenUsed,
                     priceAmount: input.priceUsed,
-                    priceCurrency: input.currency
+                    priceCurrency: input.currency,
+                    pricingStatus: input.pricingStatus,
+                    priceAuthority: input.priceAuthority,
+                    pricingBreakdown: input.pricingBreakdown
                 }
             )
             // Record the token used by the organization or globally for the user

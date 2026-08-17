@@ -37,6 +37,24 @@
         {{ 'XP.Xpert.ImportDSL' | translate: { Default: 'Import DSL file' } }}
       </span>
     </button>
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]"
+      [disabled]="!sourceTemplate() || loading()"
+      [title]="
+        sourceTemplate()
+          ? ('XP.Xpert.SyncFromTemplateHint'
+            | translate: { Default: 'Replace the draft with the latest source template' })
+          : ('XP.Xpert.SyncFromTemplateUnavailable'
+            | translate: { Default: 'This Xpert is not linked to a source template' })
+      "
+      (click)="syncFromTemplate()"
+    >
+      <i class="ri-refresh-line text-lg mr-1"></i>
+      <span class="text-sm font-medium">
+        {{ 'XP.Xpert.SyncFromTemplate' | translate: { Default: 'Update from template' } }}
+      </span>
+    </button>
   </div>
 </div>
 

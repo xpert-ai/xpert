@@ -65,7 +65,56 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         await expect(service.resolveFile(reference('drawings/missing.pdf'))).rejects.toThrow('Workspace file not found')
     })
 
-    function createService(serverRoot: string, hostRoot: string) {
+    it.each([
+        ['FileAsset id', '8d70766b-c87b-465e-b06c-c900eb18f79a'],
+        ['StorageFile id', '36d672e4-063d-4e75-89ca-b39ca14588f1']
+    ])('resolves a conversation-scoped %s into its projected Workspace path', async (_label, handle) => {
+        const serverRoot = await temporaryRoot()
+        const relativePath = 'sessions/conversation-1/files/8d70766b-c87b-465e-b06c-c900eb18f79a/crown-chest.png'
+        await mkdir(path.dirname(path.join(serverRoot, relativePath)), { recursive: true })
+        await writeFile(path.join(serverRoot, relativePath), Buffer.from('crown-chest'))
+        const fileAsset = conversationFileAsset(relativePath)
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query.fileAssetId === fileAsset.id || query.storageFileId === fileAsset.storageFileId) {
+                    return Promise.resolve(fileAsset)
+                }
+                return Promise.resolve(null)
+            })
+        }
+        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            conversationId: 'conversation-1'
+        })
+
+        await expect(scoped.readRuntimeBuffer(handle)).resolves.toMatchObject({
+            filePath: relativePath,
+            buffer: Buffer.from('crown-chest')
+        })
+    })
+
+    it('rejects a FileAsset handle attached to another conversation', async () => {
+        const serverRoot = await temporaryRoot()
+        const relativePath = 'sessions/conversation-1/files/8d70766b-c87b-465e-b06c-c900eb18f79a/crown-chest.png'
+        const fileAsset = conversationFileAsset(relativePath)
+        const queryBus = { execute: jest.fn().mockResolvedValue(fileAsset) }
+        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            conversationId: 'conversation-2'
+        })
+
+        await expect(scoped.readRuntimeBuffer(fileAsset.id)).rejects.toThrow('Workspace file not found')
+    })
+
+    function createService(serverRoot: string, hostRoot: string, queryBus?: { execute: jest.Mock }) {
         const volume = new VolumeHandle(
             { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1', userId: 'user-1' },
             serverRoot,
@@ -74,8 +123,24 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         )
         return new WorkspaceFilesRuntimeCapabilityService(
             { execute: jest.fn() },
-            { resolve: jest.fn().mockReturnValue(volume) }
+            { resolve: jest.fn().mockReturnValue(volume) },
+            queryBus
         )
+    }
+
+    function conversationFileAsset(relativePath: string) {
+        return {
+            id: '8d70766b-c87b-465e-b06c-c900eb18f79a',
+            storageFileId: '36d672e4-063d-4e75-89ca-b39ca14588f1',
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            xpertId: null,
+            conversationId: 'conversation-1',
+            workspacePath: `/workspace/${relativePath}`,
+            metadata: { workspace: { relativePath } }
+        }
     }
 
     function reference(filePath: string) {

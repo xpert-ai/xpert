@@ -69,6 +69,10 @@ import {
     AiProviderRole,
     ChatMessageEventTypeEnum,
     ICopilotModel,
+    IModelAccessResolution,
+    ModelAccessChannelEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -81,6 +85,7 @@ import {
     CancelConversationCommand,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
+    KnowledgeDocumentVisualAssetsRuntimeCapability,
     KnowledgebaseProvisioningRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
@@ -120,6 +125,7 @@ import { CollaborationService } from '../../collaboration'
 import { CopilotService } from '../../copilot/copilot.service'
 import { applicationMetrics } from '../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
+import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from '../../knowledge-document/visual-assets-runtime.token'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
@@ -134,6 +140,8 @@ describe('AgentMiddlewareRuntimeService', () => {
     let findAllEnabledCopilotsWithoutMembership: jest.Mock
     let copilotUsage: { recordModelUsage: jest.Mock }
     let actorTokenProvider: { mint: jest.Mock }
+    let visualAssetsRuntime: { createScopedApi: jest.Mock }
+    let moduleRef: { get: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -152,11 +160,17 @@ describe('AgentMiddlewareRuntimeService', () => {
         artifacts = {
             createScopedApi: jest.fn((defaults) => ({
                 createArtifact: jest.fn(),
+                findArtifactBySource: jest.fn(),
                 createArtifactVersion: jest.fn(),
+                listArtifactVersions: jest.fn(),
+                ensureArtifactVersion: jest.fn(),
                 createArtifactLink: jest
                     .fn()
                     .mockResolvedValue({ id: 'link-1', publicUrl: 'https://share.test/artifacts/share/one' }),
                 createSignedPreviewLink: jest.fn(),
+                getArtifactShare: jest.fn(),
+                ensureArtifactShare: jest.fn(),
+                revokeArtifactShare: jest.fn(),
                 getArtifact: jest.fn(),
                 listArtifacts: jest.fn(),
                 archiveArtifact: jest.fn(),
@@ -180,6 +194,15 @@ describe('AgentMiddlewareRuntimeService', () => {
                 audience: input?.audience ?? 'xpert'
             }))
         }
+        visualAssetsRuntime = {
+            createScopedApi: jest.fn(() => ({
+                issueCandidates: jest.fn().mockResolvedValue({ candidates: [], warnings: [] }),
+                prepareImages: jest.fn().mockResolvedValue({ batchRef: 'batch-1', images: [], artifactInputs: [] }),
+                consumeImageBatch: jest.fn().mockResolvedValue([]),
+                discardImageBatch: jest.fn().mockResolvedValue(undefined)
+            }))
+        }
+        moduleRef = { get: jest.fn(() => visualAssetsRuntime) }
         service = new AgentMiddlewareRuntimeService(
             commandBus as any,
             queryBus as any,
@@ -195,6 +218,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             collaboration,
             copilotService,
             copilotUsage as never,
+            moduleRef as any,
             actorTokenProvider as any
         )
 
@@ -258,6 +282,43 @@ describe('AgentMiddlewareRuntimeService', () => {
         ).resolves.toBeUndefined()
     })
 
+    it('registers the execution-scoped KnowledgeDocument visual assets capability', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1',
+            agentKey: 'Agent_VisualReviewer',
+            executionId: 'execution-1'
+        }
+        const runtime = service.createScopedApi(scope)
+        const visualAssets = runtime.capabilities?.require(KnowledgeDocumentVisualAssetsRuntimeCapability)
+
+        await expect(
+            visualAssets?.issueCandidates({
+                knowledgebaseId: 'kb-1',
+                knowledgeDocumentId: 'doc-1',
+                query: 'motor nameplate',
+                textAnchors: [],
+                maxAssets: 3,
+                businessScope: {
+                    namespace: 'bom.requirement-evidence',
+                    caseId: 'case-1',
+                    baselineId: 'baseline-1',
+                    runId: 'run-1',
+                    sourceDocumentId: 'source-1'
+                }
+            })
+        ).resolves.toEqual({ candidates: [], warnings: [] })
+        expect(moduleRef.get).toHaveBeenCalledWith(KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME, { strict: false })
+        expect(visualAssetsRuntime.createScopedApi).toHaveBeenCalledWith(scope, {
+            workspaceFiles: expect.objectContaining({
+                writeRuntimeBuffer: expect.any(Function)
+            })
+        })
+    })
+
     it('resolves the organization model provider connection before the tenant provider', async () => {
         findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
             {
@@ -308,9 +369,110 @@ describe('AgentMiddlewareRuntimeService', () => {
             provider: 'zhipuai',
             baseURL: 'https://organization-key.example/api/paas/v4',
             authorization: 'Bearer organization-key',
+            resolveModelAccess: expect.any(Function),
             resolvePricingSnapshot: expect.any(Function),
             reportUsage: expect.any(Function)
         })
+    })
+
+    it('resolves provider-backed AIGC access before invocation and preserves it for usage recording', async () => {
+        const modelAccess = {
+            allowed: true,
+            channel: ModelAccessChannelEnum.Xpert,
+            billableUserId: 'billing-user-1',
+            copilotId: 'organization-copilot',
+            copilotModelId: 'video-model',
+            provider: 'zhipuai',
+            modelType: AiModelTypeEnum.VIDEO,
+            model: 'video-model',
+            accessSource: ModelAccessSourceEnum.Grant,
+            grantId: 'grant-1',
+            multiplier: 1.5,
+            scope: ModelAccessOwnershipScopeEnum.Organization,
+            organizationId: 'org-1'
+        } satisfies IModelAccessResolution
+        findAllEnabledCopilotsWithoutMembership.mockResolvedValue([
+            {
+                id: 'organization-copilot',
+                role: AiProviderRole.Primary,
+                organizationId: 'org-1',
+                modelProvider: {
+                    id: 'organization-provider',
+                    organizationId: 'org-1',
+                    providerName: 'zhipuai',
+                    credentials: { api_key: 'organization-key' },
+                    isValid: true
+                }
+            }
+        ])
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof AIModelGetProviderQuery) {
+                return {
+                    getBaseUrl: () => 'https://api.example',
+                    getAuthorization: () => 'Bearer organization-key',
+                    getModelManager: () => ({
+                        getUsagePricingSnapshot: jest.fn().mockReturnValue({
+                            capturedAt: '2026-08-17T00:00:00.000Z',
+                            rules: []
+                        })
+                    })
+                }
+            }
+            return undefined
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CopilotCheckLimitCommand) return modelAccess
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const connection = await service.getModelProvider('zhipuai', {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'runtime-user-1',
+            xpertId: 'xpert-1',
+            executionId: 'execution-1'
+        })
+        const access = await connection.resolveModelAccess?.({
+            requestId: 'request-1',
+            model: 'video-model',
+            operation: 'text_to_video',
+            modality: 'video',
+            startedAt: '2026-08-17T00:00:00.000Z'
+        })
+        await connection.reportUsage(
+            {
+                requestId: 'request-1',
+                model: 'video-model',
+                modelType: AiModelTypeEnum.VIDEO,
+                operation: 'text_to_video',
+                modality: 'video',
+                metrics: [{ unit: 'generation', quantity: 1, authority: 'provider' }]
+            },
+            access
+        )
+
+        const accessCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof CopilotCheckLimitCommand
+        )?.[0] as CopilotCheckLimitCommand
+        expect(accessCommand.input).toEqual(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'runtime-user-1',
+                xpertId: 'xpert-1',
+                model: 'video-model',
+                modelType: AiModelTypeEnum.VIDEO
+            })
+        )
+        expect(copilotUsage.recordModelUsage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'billing-user-1',
+                modelAccess,
+                originExecutionId: 'execution-1'
+            }),
+            expect.objectContaining({ requestId: 'request-1' }),
+            expect.any(Object)
+        )
     })
 
     it('resolves the exact model provider connection captured by the runtime scope', async () => {

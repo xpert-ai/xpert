@@ -114,6 +114,16 @@
   </div>
 </div>
 
+@if (evidenceExcerpt()) {
+  <aside
+    class="mx-4 mt-3 flex shrink-0 items-start gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-text-secondary"
+    aria-label="Evidence excerpt"
+  >
+    <i class="ri-focus-3-line mt-0.5 text-primary-500"></i>
+    <p class="max-h-20 overflow-auto whitespace-pre-wrap break-words">{{ evidenceExcerpt() }}</p>
+  </aside>
+}
+
 @if (activeView() === 'analysis' && availableAnalysisPreview(); as analysis) {
   <xp-knowledge-document-analysis-preview
     class="block min-h-0 grow"
@@ -151,7 +161,13 @@
       <div class="px-4 overflow-auto" waIntersectionObserver waIntersectionThreshold="0.5">
         <ul class="example-list-wrapping m-2">
           @for (chunk of chunks(); track chunk.id; let i = $index; let last = $last) {
-            <li class="relative group/chunk">
+            <li
+              [id]="chunkAnchorId(chunk)"
+              class="relative group/chunk rounded-lg transition-colors"
+              [class.ring-2]="isTargetChunk(chunk)"
+              [class.ring-primary-300]="isTargetChunk(chunk)"
+              [class.bg-primary-50]="isTargetChunk(chunk)"
+            >
               <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()" />
               <div
                 class="absolute top-0.5 right-0.5 z-20 hidden group-hover/chunk:flex items-center gap-x-0.5 p-1 rounded-[10px] border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-md backdrop-blur-[5px]"

@@ -12,6 +12,11 @@ export interface IAIModelProviderStrategy {
   // meta: IAiProviderEntity
 
   /**
+   * Stable provider identifier from the provider schema.
+   */
+  readonly name: string
+
+  /**
    * Validate whether the credentials are valid
    */
   validateCredentials(credentials: Record<string, any>): Promise<void>
@@ -47,7 +52,7 @@ export interface IAIModelProviderStrategy {
   /**
    * Return the defined provider models (metadata)
    */
-  getProviderModels?(modelType?: AiModelTypeEnum, onlyActive?: boolean): ProviderModel[]
+  getProviderModels(modelType?: AiModelTypeEnum, onlyActive?: boolean): ProviderModel[]
 
   getProviderSchema(): IAiProviderEntity
   getProviderServerPath(): string

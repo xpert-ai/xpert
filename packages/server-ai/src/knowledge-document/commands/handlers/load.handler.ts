@@ -7,7 +7,7 @@ import {
     KBDocumentCategoryEnum,
     KBDocumentStatusEnum
 } from '@xpert-ai/contracts'
-import { getErrorMessage, loadCsvWithAutoEncoding, loadExcel, pick } from '@xpert-ai/server-common'
+import { getErrorMessage, loadCsvWithAutoEncoding, loadExcel, loadExcelWorkbook, pick } from '@xpert-ai/server-common'
 import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -34,6 +34,7 @@ import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
 import { resolveKnowledgeDocumentTransformerIdentity } from '../../document-hash'
 import { KnowledgeDocumentTransformSnapshotService } from '../../transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from '../../analysis-snapshot.service'
+import { createSpreadsheetFormDocuments, createSpreadsheetRecordDocuments } from '../../spreadsheet-document'
 
 type ImageUnderstandingWarning = {
     type: 'image_understanding_skipped' | 'image_understanding_failed'
@@ -93,8 +94,36 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         })
         const volumeClient = workArea.volume
 
-        if (doc.category === KBDocumentCategoryEnum.Sheet) {
+        const hasCustomSheetTransformer = Boolean(
+            docParserConfig.transformerType && docParserConfig.transformerType !== 'default'
+        )
+        if (doc.category === KBDocumentCategoryEnum.Sheet && !hasCustomSheetTransformer) {
             const parserConfig = docParserConfig as DocumentSheetParserConfig
+            if (parserConfig.spreadsheet?.interpretation === 'form_document') {
+                if (doc.name.toLowerCase().endsWith('.csv')) {
+                    throw new Error('Spreadsheet form-document mode currently requires an XLS or XLSX workbook')
+                }
+                const workbook = await loadExcelWorkbook(volumeClient.path(doc.filePath))
+                return {
+                    chunks: createSpreadsheetFormDocuments({
+                        documentId: doc.id,
+                        documentName: doc.name,
+                        workbook,
+                        config: parserConfig.spreadsheet
+                    })
+                }
+            }
+            if (parserConfig.spreadsheet?.interpretation === 'records' && !doc.name.toLowerCase().endsWith('.csv')) {
+                const workbook = await loadExcelWorkbook(volumeClient.path(doc.filePath))
+                return {
+                    chunks: createSpreadsheetRecordDocuments({
+                        documentId: doc.id,
+                        workbook,
+                        config: parserConfig.spreadsheet,
+                        indexedFields: parserConfig.indexedFields
+                    })
+                }
+            }
             // const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
             const data = await this.loadSheet(doc, volumeClient)
             const documents: Document[] = []
@@ -406,7 +435,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
     async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeHandle): Promise<Record<string, any>[]> {
         const filePath = volumeClient.path(doc.filePath)
-        if (doc.name.endsWith('.csv')) {
+        if (doc.name.toLowerCase().endsWith('.csv')) {
             return loadCsvWithAutoEncoding(filePath)
         }
 

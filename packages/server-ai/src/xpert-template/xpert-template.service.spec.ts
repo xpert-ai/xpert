@@ -628,6 +628,7 @@ describe('XpertTemplateService', () => {
             LanguagesEnum.English,
             query
         )
+        const legacyBareDetail = await service.getTemplateDetail('business', LanguagesEnum.English, query)
 
         expect(catalog.recommendedApps.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
         expect(chineseCatalog.recommendedApps[0]).toMatchObject({
@@ -657,6 +658,7 @@ describe('XpertTemplateService', () => {
         })
         expect(chineseDetail.description).toBe('中文插件描述')
         expect(legacyVersionedDetail.id).toBe('@xpert-ai/plugin-demo:business')
+        expect(legacyBareDetail.id).toBe('@xpert-ai/plugin-demo:business')
     })
 
     it('throws a clear error when an external template file is missing after initialization', async () => {

@@ -39,6 +39,7 @@ import {
   TXpertExportedTemplate,
   TXpertCommandProfile,
   TXpertPublishMarketplaceInput,
+  TXpertTemplateSyncResult,
   TWorkflowVarGroup,
   TXpertTeamDraft,
   XpertTypeEnum
@@ -291,6 +292,10 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       dslObject,
       templateId ? { params: { templateId } } : undefined
     )
+  }
+
+  syncFromTemplate(id: string) {
+    return this.httpClient.post<TXpertTemplateSyncResult>(this.apiBaseUrl + `/${id}/sync-template`, {})
   }
 
   duplicate(id: string, options: { basic: Partial<IXpert>; isDraft: boolean }) {

@@ -20,7 +20,10 @@ export {
 } from '@xpert-ai/contracts'
 
 type WorkbenchNavigationOpenCommandOptions = {
-  navigate?: (commands: string[], options?: { queryParams?: Record<string, string> }) => Promise<unknown> | unknown
+  navigate?: (
+    commands: string[],
+    options?: { queryParams?: Record<string, string>; state?: Record<string, unknown> }
+  ) => Promise<unknown> | unknown
   openAssistantConversation?: (request: WorkbenchAssistantConversationOpenRequest) => Promise<unknown> | unknown
   openWorkbenchView?: (request: WorkbenchExtensionViewOpenRequest) => Promise<unknown> | unknown
 }
@@ -134,9 +137,38 @@ export function registerWorkbenchNavigationOpenCommand(
 
     const documentId = getString(payload, 'documentId')
     const parentId = getString(payload, 'parentId')
+    const chunkId = getString(payload, 'chunkId')
+    const page = getPositiveInteger(payload, 'page')
+    const sourceBlockIds = getStringArray(payload, 'sourceBlockIds')
+    const evidenceText = getString(payload, 'evidenceText')
+    const queryParams: Record<string, string> = {}
+    if (parentId) queryParams['parentId'] = parentId
+    if (chunkId) queryParams['chunkId'] = chunkId
+    if (page) {
+      queryParams['view'] = 'analysis'
+      queryParams['page'] = String(page)
+    } else if (chunkId) {
+      queryParams['view'] = 'chunks'
+    }
+    if (sourceBlockIds?.[0]) queryParams['block'] = sourceBlockIds[0]
+    const navigationState = evidenceText
+      ? {
+          knowledgeEvidence: {
+            text: evidenceText.slice(0, 4000),
+            ...(chunkId ? { chunkId } : {}),
+            ...(page ? { page } : {}),
+            ...(sourceBlockIds?.length ? { sourceBlockIds } : {})
+          }
+        }
+      : undefined
     await options.navigate(
       ['/xpert/knowledges', resourceId, 'documents', ...(documentId ? [documentId] : [])],
-      parentId ? { queryParams: { parentId } } : undefined
+      Object.keys(queryParams).length || navigationState
+        ? {
+            ...(Object.keys(queryParams).length ? { queryParams } : {}),
+            ...(navigationState ? { state: navigationState } : {})
+          }
+        : undefined
     )
 
     return {
@@ -145,7 +177,10 @@ export function registerWorkbenchNavigationOpenCommand(
       target,
       knowledgebaseId: resourceId,
       ...(documentId ? { documentId } : {}),
-      ...(parentId ? { parentId } : {})
+      ...(parentId ? { parentId } : {}),
+      ...(chunkId ? { chunkId } : {}),
+      ...(page ? { page } : {}),
+      ...(sourceBlockIds?.length ? { sourceBlockIds } : {})
     }
   })
 }
@@ -176,4 +211,23 @@ function getString(payload: unknown, key: string) {
 
   const value = (payload as Record<string, unknown>)[key]
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function getPositiveInteger(payload: unknown, key: string) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined
+  const value = (payload as Record<string, unknown>)[key]
+  const number = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+  return Number.isInteger(number) && number > 0 ? number : undefined
+}
+
+function getStringArray(payload: unknown, key: string) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined
+  const value = (payload as Record<string, unknown>)[key]
+  if (!Array.isArray(value)) return undefined
+  const items = value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 20)
+  return items.length ? items : undefined
 }

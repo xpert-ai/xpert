@@ -429,6 +429,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         primaryError?: Error
         fallbackSupportsVision?: boolean
         middlewareReplacementSupportsVision?: boolean
+        observePublicProfile?: boolean
     }) {
         const primaryInvoke = jest.fn(async (_messages: unknown) => {
             if (options.primaryError) {
@@ -437,6 +438,11 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             return new AIMessage('primary response')
         })
         const primaryModel = setModelVisionSupport(RunnableLambda.from(primaryInvoke), options.primarySupportsVision)
+        Object.defineProperty(primaryModel, 'metadata', {
+            configurable: true,
+            enumerable: true,
+            value: { profile: { imageInputs: options.primarySupportsVision } }
+        })
         const fallbackInvoke = jest.fn(async (_messages: unknown) => new AIMessage('fallback response'))
         const fallbackModel = setModelVisionSupport(
             RunnableLambda.from(fallbackInvoke),
@@ -486,7 +492,9 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 }
             }
         }
-        const middlewareEnabled = options.middlewareReplacementSupportsVision !== undefined
+        const observedModelProfiles: unknown[] = []
+        const middlewareEnabled =
+            options.middlewareReplacementSupportsVision !== undefined || options.observePublicProfile
         const graphDefinition = {
             nodes: [
                 {
@@ -566,11 +574,17 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 get: jest.fn().mockReturnValue({
                     createMiddleware: jest.fn().mockReturnValue({
                         name: 'test-model-replacement',
-                        wrapModelCall: (request, next) =>
-                            next({
-                                ...request,
-                                model: replacementModel
-                            })
+                        wrapModelCall: (request, next) => {
+                            observedModelProfiles.push('profile' in request.model ? request.model.profile : undefined)
+                            return next(
+                                options.middlewareReplacementSupportsVision === undefined
+                                    ? request
+                                    : {
+                                          ...request,
+                                          model: replacementModel
+                                      }
+                            )
+                        }
                     })
                 })
             }
@@ -606,6 +620,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             ),
             fallbackInvoke,
             handler,
+            observedModelProfiles,
             primaryInvoke,
             replacementInvoke
         }
@@ -669,6 +684,17 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         await invokeGraph(fixture)
 
         expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).toContain('image_url')
+    })
+
+    it('preserves the provider public profile on the model wrapper exposed to middleware', async () => {
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            observePublicProfile: true
+        })
+
+        await invokeGraph(fixture)
+
+        expect(fixture.observedModelProfiles).toEqual([{ imageInputs: true }])
     })
 
     it('filters images for a text-only fallback after a vision primary model fails', async () => {

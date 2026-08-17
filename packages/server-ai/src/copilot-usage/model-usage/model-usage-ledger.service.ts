@@ -31,7 +31,7 @@ import type {
     CopilotTokenUsageRecordingScope,
     CopilotTokenUsageReport
 } from '../copilot-usage.types'
-import { normalizeModelUsageMetrics } from './model-usage.utils'
+import { modelUsageMetricKey, normalizeModelUsageMetrics } from './model-usage.utils'
 
 const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
 const LEGACY_USAGE_SOURCES = [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
@@ -107,8 +107,14 @@ export class ModelUsageLedgerService {
             return { requestId, recorded: false, ledgerIds: [] }
         }
         const recordedAt = normalizeDate(report.recordedAt) ?? new Date()
-        const priceAmount = normalizePriceAmount(report.priceAmount)
-        const pricingStatus = priceAmount === undefined ? 'unpriced' : priceAmount === 0 ? 'free' : 'priced'
+        const reportedPriceAmount = normalizePriceAmount(report.priceAmount)
+        const pricingStatus =
+            report.pricingStatus === 'priced' && reportedPriceAmount === undefined
+                ? 'unpriced'
+                : (report.pricingStatus ??
+                  (reportedPriceAmount === undefined ? 'unpriced' : reportedPriceAmount === 0 ? 'free' : 'priced'))
+        const priceAmount =
+            pricingStatus === 'unpriced' ? undefined : pricingStatus === 'free' ? 0 : reportedPriceAmount
         const priceCurrency = normalizeText(report.priceCurrency)?.toUpperCase()
         const settlement = settleChargeToCny({ pricingStatus, amount: priceAmount, currency: priceCurrency })
         const entry = this.repository.create({
@@ -133,6 +139,7 @@ export class ModelUsageLedgerService {
             modelType: report.modelType,
             modality: 'text',
             operation: report.modelType,
+            metricKey: 'token',
             unit: 'token',
             authority: 'provider',
             quantity: null,
@@ -150,7 +157,9 @@ export class ModelUsageLedgerService {
             unitPrice: null,
             priceCurrency: priceCurrency ?? null,
             priceAmount: priceAmount ?? null,
+            priceAuthority: report.priceAuthority ?? null,
             pricingRule: null,
+            pricingBreakdown: report.pricingBreakdown ?? null,
             chargedAt: recordedAt,
             settlementCurrency: settlement?.currency ?? null,
             settlementAmount: settlement?.amount ?? null,
@@ -261,7 +270,8 @@ export class ModelUsageLedgerService {
                 sourceReference: `model-usage-charge:${entry.id}`,
                 usageHour: entry.usageHour ?? undefined,
                 xpertId: scope.xpertId,
-                copilotId: entry.copilotId ?? undefined
+                copilotId: entry.copilotId ?? undefined,
+                modelAccess: scope.modelAccess
             })
         }
 
@@ -280,11 +290,30 @@ export class ModelUsageLedgerService {
         query: ModelUsageLedgerQuery,
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<IModelUsageLedger>> {
-        const qb = this.baseQuery(query)
+        const requestKeySql = modelUsageRequestKeySql()
+        const take = normalizeTake(options?.take)
+        const skip = Math.max(0, Number(options?.skip) || 0)
+        const [requestRows, countRow] = await Promise.all([
+            this.baseQuery(query)
+                .select(requestKeySql, 'requestKey')
+                .addSelect('MAX(COALESCE(ledger.recordedAt, ledger.createdAt))', 'recordedAt')
+                .groupBy(requestKeySql)
+                .orderBy('MAX(COALESCE(ledger.recordedAt, ledger.createdAt))', 'DESC')
+                .take(take)
+                .skip(skip)
+                .getRawMany<{ requestKey: string }>(),
+            this.baseQuery(query)
+                .select(`COUNT(DISTINCT ${requestKeySql})`, 'total')
+                .getRawOne<{ total: string | number }>()
+        ])
+        const total = Number(countRow?.total) || 0
+        if (!requestRows.length) return { items: [], total }
+        const entries = await this.baseQuery(query)
+            .andWhere(`${requestKeySql} IN (:...requestKeys)`, {
+                requestKeys: requestRows.map(({ requestKey }) => requestKey)
+            })
             .orderBy('COALESCE(ledger.recordedAt, ledger.createdAt)', 'DESC')
-            .take(normalizeTake(options?.take))
-            .skip(Math.max(0, Number(options?.skip) || 0))
-        const [entries, total] = await qb.getManyAndCount()
+            .getMany()
         const items = entries.map(toUsageLedgerItem).filter((entry): entry is IModelUsageLedger => entry !== null)
         return { items: await this.attachUserNames(items), total }
     }
@@ -432,6 +461,10 @@ export class ModelUsageLedgerService {
     }
 }
 
+function modelUsageRequestKeySql() {
+    return "CONCAT(COALESCE(ledger.providerScopeId, ''), ':', COALESCE(NULLIF(ledger.requestId, ''), CONCAT('legacy:', ledger.id)))"
+}
+
 function toLedgerEntry(
     scope: CopilotModelUsageRecordingScope,
     report: ModelUsageReport & { recordedAt: Date },
@@ -453,8 +486,8 @@ function toLedgerEntry(
         pointsDelta: 0,
         requestId: report.requestId,
         revision: 1,
-        originType: scope.originExecutionId ? 'execution' : 'tool',
-        originId: scope.originExecutionId ?? report.requestId,
+        originType: scope.originType ?? (scope.originExecutionId ? 'execution' : 'tool'),
+        originId: scope.originId ?? scope.originExecutionId ?? report.requestId,
         originExecutionId: scope.originExecutionId,
         xpertId: scope.xpertId,
         copilotId: scope.copilotId,
@@ -465,6 +498,9 @@ function toLedgerEntry(
         toolName: report.toolName,
         modality: report.modality,
         operation: report.operation,
+        metricKey: modelUsageMetricKey(metric),
+        component: metric.component ?? null,
+        pricingDimensions: metric.pricingDimensions ?? null,
         unit: metric.unit,
         authority: metric.authority,
         recordedAt: report.recordedAt,
@@ -552,6 +588,9 @@ function toUsageLedgerDto(entry: StoredUsageLedgerEntry): IModelUsageLedger {
         toolName: entry.toolName,
         modality: entry.modality,
         operation: entry.operation,
+        metricKey: entry.metricKey ?? (entry.component ? `${entry.component}:${entry.unit}` : entry.unit),
+        component: entry.component,
+        pricingDimensions: entry.pricingDimensions,
         unit: entry.unit,
         authority: entry.authority,
         quantity: entry.quantity,
@@ -597,6 +636,9 @@ function toLegacyUsageLedgerDto(entry: LegacyUsageLedgerEntry): IModelUsageLedge
         toolName: null,
         modality: 'text',
         operation: AiModelTypeEnum.LLM,
+        metricKey: 'token',
+        component: null,
+        pricingDimensions: null,
         unit: 'token',
         authority: 'provider',
         quantity: null,
@@ -646,7 +688,9 @@ function toChargeDto(entry: StoredUsageLedgerEntry): IModelChargeLedger {
         unitPrice: entry.unitPrice,
         currency: entry.priceCurrency,
         amount: entry.priceAmount,
+        priceAuthority: entry.priceAuthority,
         pricingRule: entry.pricingRule,
+        pricingBreakdown: entry.pricingBreakdown,
         chargedAt: entry.chargedAt,
         settlementCurrency: entry.settlementCurrency,
         settlementAmount: entry.settlementAmount,
@@ -655,8 +699,14 @@ function toChargeDto(entry: StoredUsageLedgerEntry): IModelChargeLedger {
 }
 
 function toMetric(usage: StoredModelUsageEntry): ModelUsageMetric {
+    const qualifiers = {
+        key: usage.metricKey ?? (usage.component ? `${usage.component}:${usage.unit}` : usage.unit),
+        ...(usage.component ? { component: usage.component } : {}),
+        ...(usage.pricingDimensions ? { pricingDimensions: usage.pricingDimensions } : {})
+    }
     if (usage.unit === 'token') {
         return {
+            ...qualifiers,
             unit: 'token',
             promptTokens: usage.promptTokens ?? undefined,
             completionTokens: usage.completionTokens ?? undefined,
@@ -666,15 +716,25 @@ function toMetric(usage: StoredModelUsageEntry): ModelUsageMetric {
     }
     if (usage.unit === 'generation') {
         return {
+            ...qualifiers,
             unit: 'generation',
             quantity: usage.quantity ?? 0,
             authority: usage.authority === 'contract' ? 'contract' : 'provider'
         }
     }
+    if (usage.unit === 'second' || usage.unit === 'character') {
+        return {
+            ...qualifiers,
+            unit: usage.unit,
+            quantity: usage.quantity ?? 0,
+            authority: usage.authority === 'request' ? 'request' : 'provider'
+        }
+    }
     return {
-        unit: 'second',
+        ...qualifiers,
+        unit: 'request',
         quantity: usage.quantity ?? 0,
-        authority: usage.authority === 'request' ? 'request' : 'provider'
+        authority: usage.authority === 'contract' ? 'contract' : 'provider'
     }
 }
 
@@ -689,9 +749,16 @@ function isStoredModelUsageEntry(entry: MembershipPointLedger): entry is StoredM
         typeof entry.provider === 'string' &&
         entry.modelType !== null &&
         entry.modelType !== undefined &&
-        (entry.modality === 'image' || entry.modality === 'video') &&
+        (entry.modality === 'text' ||
+            entry.modality === 'audio' ||
+            entry.modality === 'image' ||
+            entry.modality === 'video') &&
         typeof entry.operation === 'string' &&
-        (entry.unit === 'token' || entry.unit === 'generation' || entry.unit === 'second') &&
+        (entry.unit === 'token' ||
+            entry.unit === 'generation' ||
+            entry.unit === 'second' ||
+            entry.unit === 'character' ||
+            entry.unit === 'request') &&
         typeof entry.authority === 'string' &&
         entry.recordedAt instanceof Date &&
         (entry.pricingStatus === 'priced' || entry.pricingStatus === 'free' || entry.pricingStatus === 'unpriced') &&
@@ -711,9 +778,16 @@ function isStoredUsageLedgerEntry(entry: MembershipPointLedger): entry is Stored
         typeof entry.provider === 'string' &&
         entry.modelType !== null &&
         entry.modelType !== undefined &&
-        (entry.modality === 'text' || entry.modality === 'image' || entry.modality === 'video') &&
+        (entry.modality === 'text' ||
+            entry.modality === 'audio' ||
+            entry.modality === 'image' ||
+            entry.modality === 'video') &&
         typeof entry.operation === 'string' &&
-        (entry.unit === 'token' || entry.unit === 'generation' || entry.unit === 'second') &&
+        (entry.unit === 'token' ||
+            entry.unit === 'generation' ||
+            entry.unit === 'second' ||
+            entry.unit === 'character' ||
+            entry.unit === 'request') &&
         typeof entry.authority === 'string' &&
         entry.recordedAt instanceof Date &&
         (entry.pricingStatus === 'priced' || entry.pricingStatus === 'free' || entry.pricingStatus === 'unpriced') &&

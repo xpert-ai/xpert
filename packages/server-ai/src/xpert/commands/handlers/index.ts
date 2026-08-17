@@ -14,22 +14,24 @@ import { XpertPublishIntegrationHandler } from './publish-integration.handler'
 import { XpertPublishTriggersHandler } from './publish-triggers.handler'
 import { XpertPublishHandler } from './publish.handler'
 import { XpertSummarizeMemoryHandler } from './summarize-memory.handler'
+import { XpertSyncTemplateHandler } from './sync-template.handler'
 
 export const CommandHandlers = [
-	XpertCreateHandler,
-	XpertDeleteHandler,
-	XpertEnqueueTriggerDispatchHandler,
-	XpertPublishHandler,
-	XpertPublishTriggersHandler,
-	XpertChatHandler,
-	XpertExecuteHandler,
-	XpertImportHandler,
-	XpertExportHandler,
-	XpertExportTemplateHandler,
-	XpertDeleteExportedTemplateHandler,
-	XpertSummarizeMemoryHandler,
-	XpertPublishIntegrationHandler,
-	XpertDelIntegrationHandler,
-	XpertExportDiagramHandler,
-	CreateMemoryStoreHandler
+    XpertCreateHandler,
+    XpertDeleteHandler,
+    XpertEnqueueTriggerDispatchHandler,
+    XpertPublishHandler,
+    XpertPublishTriggersHandler,
+    XpertChatHandler,
+    XpertExecuteHandler,
+    XpertImportHandler,
+    XpertExportHandler,
+    XpertExportTemplateHandler,
+    XpertDeleteExportedTemplateHandler,
+    XpertSummarizeMemoryHandler,
+    XpertPublishIntegrationHandler,
+    XpertDelIntegrationHandler,
+    XpertExportDiagramHandler,
+    CreateMemoryStoreHandler,
+    XpertSyncTemplateHandler
 ]

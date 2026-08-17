@@ -93,13 +93,14 @@ const CONTEXT_WINDOW_RETRY_STATE_KEY = '__contextCompressionContextWindowRetryAp
 const COMPRESSION_NO_GAIN_RETRY_STATE_KEY = '__contextCompressionNoGainRetryState'
 const MANUAL_COMPRESSION_RESULT_STATE_KEY = '__contextCompressionManualCommandResult'
 const COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA = 1024
+const COMPRESSION_MINIMUM_GAIN_FRACTION = 0.2
 const MANUAL_COMPRESSION_SUCCESS_MESSAGE = 'Context compressed.'
 const MANUAL_COMPRESSION_SKIPPED_MESSAGE = 'No old context was available to compress, so compression was skipped.'
+const MANUAL_COMPRESSION_FALLBACK_SNAPSHOT =
+    '<state_snapshot><context_status>Earlier non-protected history was intentionally omitted by manual context compression. Re-read authoritative external state and current tool diagnostics before acting. Do not infer current identifiers or tool schemas from omitted history.</context_status></state_snapshot>'
 const COMPRESSION_NO_MESSAGES_MESSAGE = 'No messages available to compress.'
 const COMPRESSION_NO_UNPROTECTED_HISTORY_MESSAGE =
     'No unprotected history available to compress. Recent user turns were preserved.'
-const COMPRESSION_NO_TOKEN_GAIN_MESSAGE =
-    'Context compression was skipped because the generated summary would not reduce the context.'
 const COMPRESSION_SOFT_PROTECTION_MESSAGE =
     'Protected user turns exceeded the compression budget. Older protected turns were summarized; the latest user turn was preserved.'
 
@@ -158,6 +159,14 @@ type ManualCompressionResult = z.infer<typeof ManualCompressionResultSchema>
  */
 function estimateTokenCountSync(text: string): number {
     return Math.max(0, Math.ceil((text || '').length / 4))
+}
+
+function hasInsufficientCompressionGain(currentTokenCount: number, newTokenCount: number): boolean {
+    const minimumGain = Math.min(
+        COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA,
+        Math.max(1, Math.ceil(currentTokenCount * COMPRESSION_MINIMUM_GAIN_FRACTION))
+    )
+    return currentTokenCount - newTokenCount < minimumGain
 }
 
 /**
@@ -1618,6 +1627,34 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                 `Compressing ${historyToCompress.length} messages, keeping ${historyToKeep.length} messages`
             )
 
+            // Manual /compact is a control operation, not a semantic hand-off.
+            // A model-written summary can be compact yet stale about external
+            // tools, files, and immutable project state. Always replace the old
+            // history with a state-free snapshot and require the next turn to
+            // re-read authoritative state. Automatic threshold compression may
+            // still use the model summary below.
+            if (execution.reason === 'manual') {
+                const fallbackHistory = this.buildNewHistory(
+                    MANUAL_COMPRESSION_FALLBACK_SNAPSHOT,
+                    historyToKeep,
+                    currentCompressionId,
+                    historyToCompress.length,
+                    originalTokenCount
+                )
+                const fallbackTokenCount = await this.estimateTokens(fallbackHistory)
+                this.clearNoGainRetryState(stateContainer)
+                this.logger.log(
+                    `Applied deterministic manual compression snapshot: ${originalTokenCount} → ${fallbackTokenCount} tokens.`
+                )
+                this.emitCompressionChunk(runtime, {
+                    id: currentCompressionId,
+                    status: 'success',
+                    message: COMPRESSION_COMPLETED_DISPLAY,
+                    summary: MANUAL_COMPRESSION_FALLBACK_SNAPSHOT
+                })
+                return fallbackHistory
+            }
+
             const compressionModel = await getCompressionModel()
 
             const snapshot = await this.generateStateSnapshot(historyToCompress, compressionModel)
@@ -1632,9 +1669,8 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
             const newTokenCount = await this.estimateTokens(newHistory)
 
-            if (newTokenCount >= currentTokenCount) {
-                const failureMessage = `Compression failed: new token count (${newTokenCount}) >= current count (${currentTokenCount})`
-                const noGainMessage = `${COMPRESSION_NO_TOKEN_GAIN_MESSAGE} New token count (${newTokenCount}) >= current count (${currentTokenCount}).`
+            if (hasInsufficientCompressionGain(currentTokenCount, newTokenCount)) {
+                const failureMessage = `Compression failed to achieve meaningful reduction: ${currentTokenCount} → ${newTokenCount} tokens.`
                 if (!execution.force) {
                     this.recordNoGainRetryState(
                         stateContainer,
@@ -1644,18 +1680,6 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                         tokenLimit
                     )
                 }
-                if (execution.reason === 'manual') {
-                    this.logger.log(noGainMessage)
-                    this.emitCompressionChunk(runtime, {
-                        id: currentCompressionId,
-                        status: 'success',
-                        message: currentMessages !== messages ? COMPRESSION_COMPLETED_DISPLAY : noGainMessage,
-                        summary: currentMessages !== messages ? noGainMessage : snapshot,
-                        ...(currentMessages !== messages ? {} : { reason: 'no_token_gain' })
-                    })
-                    return currentMessages !== messages ? currentMessages : null
-                }
-
                 this.logger.warn(failureMessage)
                 this.emitCompressionChunk(runtime, {
                     id: currentCompressionId,
@@ -1770,11 +1794,25 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                 )
 
                 if (compressedMessages) {
-                    state.messages = compressedMessages
+                    return {
+                        messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), ...compressedMessages]
+                    }
                 }
             },
             wrapModelCall: async (request, handler) => {
-                if (!hasTrailingManualContextCompressionCommand(request.messages ?? [])) {
+                const requestState = request.state
+                const requestHuman =
+                    requestState && typeof requestState === 'object' && 'human' in requestState
+                        ? requestState.human
+                        : undefined
+                const requestInput =
+                    requestHuman && typeof requestHuman === 'object' && 'input' in requestHuman
+                        ? requestHuman.input
+                        : undefined
+                if (
+                    !isManualContextCompressionCommand(requestInput) &&
+                    !hasTrailingManualContextCompressionCommand(request.messages ?? [])
+                ) {
                     return handler(request)
                 }
 

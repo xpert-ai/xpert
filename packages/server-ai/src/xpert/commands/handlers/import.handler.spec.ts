@@ -108,6 +108,10 @@ jest.mock('@xpert-ai/server-core', () => ({
         getLanguageCode: jest.fn().mockReturnValue('en'),
         currentTenantId: jest.fn().mockReturnValue('tenant-1'),
         getOrganizationId: jest.fn().mockReturnValue('org-1')
+    },
+    normalizePluginName: (value: string) => {
+        const lastAt = value.lastIndexOf('@')
+        return lastAt > 0 ? value.slice(0, lastAt) : value
     }
 }))
 
@@ -159,7 +163,8 @@ describe('XpertImportHandler', () => {
             saveDraft: jest.fn().mockImplementation(async (_id, draft) => draft),
             createBulkMemories: jest.fn().mockResolvedValue(undefined),
             repository: {
-                findOne: jest.fn()
+                findOne: jest.fn(),
+                update: jest.fn().mockResolvedValue(undefined)
             },
             ...overrides
         }
@@ -238,6 +243,47 @@ describe('XpertImportHandler', () => {
             ]
         })
         expect(result.id).toBe('new-xpert')
+    })
+
+    it('records template lineage when creating a xpert from a template', async () => {
+        const { handler, xpertService } = buildHandler()
+
+        await handler.execute(
+            new XpertImportCommand(
+                {
+                    team: {
+                        name: 'Imported Expert',
+                        title: 'Imported Expert',
+                        type: 'agent',
+                        agent: { key: 'Agent_imported' }
+                    },
+                    nodes: [
+                        {
+                            type: 'agent',
+                            key: 'Agent_imported',
+                            entity: { key: 'Agent_imported', name: 'Imported Expert' }
+                        }
+                    ],
+                    connections: []
+                } as any,
+                {
+                    templateId: '@xpert-ai/plugin-example:assistant',
+                    sourceTemplateId: '@xpert-ai/plugin-example:assistant'
+                }
+            )
+        )
+
+        expect(xpertService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: expect.objectContaining({
+                    templateSource: expect.objectContaining({
+                        templateId: '@xpert-ai/plugin-example:assistant',
+                        templateKey: 'assistant',
+                        pluginName: '@xpert-ai/plugin-example'
+                    })
+                })
+            })
+        )
     })
 
     it('resolves localized team and agent metadata before persistence', async () => {
@@ -484,6 +530,74 @@ describe('XpertImportHandler', () => {
             })
         )
         expect(result).toBe(currentXpert)
+    })
+
+    it('updates the draft and instance template lineage during a template sync import', async () => {
+        const currentXpert = {
+            id: 'xpert-1',
+            name: 'Support Expert',
+            slug: 'support-expert',
+            type: 'agent',
+            workspaceId: 'workspace-1',
+            options: {},
+            agent: { id: 'agent-1', key: 'Agent_current', name: 'Support Expert' },
+            draft: {
+                team: {
+                    id: 'xpert-1',
+                    name: 'Support Expert',
+                    workspaceId: 'workspace-1',
+                    type: 'agent',
+                    agent: { key: 'Agent_current' }
+                },
+                nodes: [],
+                connections: []
+            }
+        }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(currentXpert),
+            update: jest.fn().mockResolvedValue(undefined)
+        }
+        const { handler, xpertService } = buildHandler({ repository })
+        const templateSource = {
+            templateId: '@xpert-ai/plugin-example:assistant',
+            templateKey: 'assistant',
+            pluginName: '@xpert-ai/plugin-example',
+            source: 'plugin' as const,
+            installedAt: '2026-08-01T00:00:00.000Z',
+            lastSyncedAt: '2026-08-16T00:00:00.000Z'
+        }
+
+        await handler.execute(
+            new XpertImportCommand(
+                {
+                    team: {
+                        name: 'Support Expert',
+                        title: 'Updated Expert',
+                        type: 'agent',
+                        agent: { key: 'Agent_imported' }
+                    },
+                    nodes: [
+                        {
+                            type: 'agent',
+                            key: 'Agent_imported',
+                            entity: { key: 'Agent_imported', name: 'Support Expert' }
+                        }
+                    ],
+                    connections: []
+                } as any,
+                { targetXpertId: 'xpert-1', templateSource }
+            )
+        )
+
+        expect(xpertService.saveDraft).toHaveBeenCalledWith(
+            'xpert-1',
+            expect.objectContaining({
+                team: expect.objectContaining({
+                    options: expect.objectContaining({ templateSource })
+                })
+            })
+        )
+        expect(currentXpert.options).toEqual({ templateSource })
     })
 
     it('syncs the selected team model into imported llm nodes when their copilotId is missing or invalid', async () => {

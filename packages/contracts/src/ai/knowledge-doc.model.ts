@@ -37,9 +37,31 @@ export type DocumentTextParserConfig = DocumentParserConfig & {
   chunkOverlap?: number | null
 }
 
+export type SpreadsheetInterpretation = 'records' | 'form_document'
+export type SpreadsheetContextUnit = 'row' | 'sheet' | 'workbook'
+export type SpreadsheetOversizePolicy = 'sheet' | 'reject'
+export type SpreadsheetOutputFormat = 'anchored_markdown'
+
+/**
+ * Spreadsheet-specific behavior used by the platform default parser.
+ * Custom document transformers take precedence over this configuration.
+ */
+export type DocumentSpreadsheetParserConfig = {
+  interpretation?: SpreadsheetInterpretation
+  contextUnit?: SpreadsheetContextUnit
+  oversizePolicy?: SpreadsheetOversizePolicy
+  maxChunkTokens?: number
+  includeSheets?: string[]
+  includeHiddenSheets?: boolean
+  preserveMergedCells?: boolean
+  emitCellAnchors?: boolean
+  outputFormat?: SpreadsheetOutputFormat
+}
+
 export type DocumentSheetParserConfig = DocumentParserConfig & {
   fields?: string[]
   indexedFields?: string[]
+  spreadsheet?: DocumentSpreadsheetParserConfig
 }
 
 /**
@@ -184,7 +206,7 @@ export type TKnowledgeDocument = {
    * @deprecated unused
    */
   parserId: string
-  parserConfig: DocumentTextParserConfig
+  parserConfig: DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
   /**
    * where dose this document come from
    */

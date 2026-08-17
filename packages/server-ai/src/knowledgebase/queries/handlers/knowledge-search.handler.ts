@@ -89,7 +89,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             query,
                             {
                                 tenantId,
-                                organizationId
+                                organizationId,
+                                xpertId: command.input.xpertId,
+                                threadId: command.input.threadId
                             },
                             k,
                             command.input.filters,
@@ -223,6 +225,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         context: {
             tenantId: string
             organizationId: string
+            xpertId?: string
+            threadId?: string
         },
         k?: number,
         filters?: KnowledgeFilterSources,
@@ -248,6 +252,10 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             knowledgebaseId: kb.id,
             prepared
         })
+        const modelContext = {
+            xpertId: context.xpertId,
+            threadId: context.threadId
+        }
         if (mode === 'graph') {
             const result = await this.queryBus.execute<KnowledgeGraphSearchQuery, TKnowledgeGraphSearchResult>(
                 new KnowledgeGraphSearchQuery({
@@ -258,7 +266,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                     k,
                     retrieval,
                     graphRag: kb.graphRag,
-                    filterScope: graphFilterScope
+                    filterScope: graphFilterScope,
+                    ...modelContext
                 })
             )
             if (result.failed) {
@@ -276,7 +285,14 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             return { documents: result.docs, diagnostics: prepared.diagnostics }
         }
 
-        const vectorResult = await this.similaritySearchWithScore(kb, query, k, prepared, !!prepared.effective)
+        const vectorResult = await this.similaritySearchWithScore(
+            kb,
+            query,
+            k,
+            prepared,
+            !!prepared.effective,
+            modelContext
+        )
         const vectorDocs = vectorResult.documents
         if (mode !== 'hybrid') {
             return vectorResult
@@ -292,7 +308,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                 k,
                 retrieval,
                 graphRag: kb.graphRag,
-                filterScope: graphFilterScope
+                filterScope: graphFilterScope,
+                ...modelContext
             })
         )
         if (graphResult.failed) {
@@ -312,7 +329,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             vectorDocs,
             graphResult.docs,
             k,
-            retrieval?.graphWeight ?? kb.graphRag?.graphWeight ?? 0.35
+            retrieval?.graphWeight ?? kb.graphRag?.graphWeight ?? 0.35,
+            modelContext
         )
         vectorResult.diagnostics.hitCount = documents.length
         return { documents, diagnostics: vectorResult.diagnostics }
@@ -334,7 +352,11 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         vectorDocs: DocumentInterface<DocumentMetadata>[],
         graphDocs: DocumentInterface<DocumentMetadata>[],
         k?: number,
-        graphWeight = 0.35
+        graphWeight = 0.35,
+        modelContext?: {
+            xpertId?: string
+            threadId?: string
+        }
     ) {
         const weight = Math.min(1, Math.max(0, graphWeight))
         const byChunkId = new Map<
@@ -386,7 +408,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
         if (kb.rerankModelId && merged.length > 0) {
             try {
-                const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true)
+                const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, modelContext)
                 const rerankedDocs = await vectorStore.rerank(merged, query, {
                     topN: Math.min(merged.length, k ?? kb.recall?.topK)
                 })
@@ -465,9 +487,13 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         query: string,
         k?: number,
         prepared?: PreparedKnowledgeFilter,
-        filterConfigured = false
+        filterConfigured = false,
+        modelContext?: {
+            xpertId?: string
+            threadId?: string
+        }
     ): Promise<{ documents: DocumentInterface<DocumentMetadata>[]; diagnostics: KnowledgeFilterDiagnostics }> {
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true)
+        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, modelContext)
         const vectorTopK = k ?? kb.recall?.topK ?? 10
         const diagnostics = prepared?.diagnostics ?? {
             filterVersion: 2,

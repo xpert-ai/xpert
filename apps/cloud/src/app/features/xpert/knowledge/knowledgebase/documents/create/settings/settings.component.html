@@ -1,12 +1,147 @@
 <div class="py-4 flex w-full grow overflow-hidden">
   <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
-    @if (onlySheet()) {
+    @if (onlySheet() && transformerType() === 'default') {
+      <div class="system-md-semibold mb-3 flex items-center justify-between gap-3">
+        <div class="flex-1">
+          <span>{{ 'XP.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
+          <i
+            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [zTooltip]="
+              'XP.Knowledgebase.SpreadsheetProcessorFirst'
+                | translate
+                  : {
+                      Default:
+                        'Spreadsheet parsing settings apply only to the platform default transformer. Select another transformer to use its own extraction and chunking settings.'
+                    }
+            "
+            zPosition="top"
+          ></i>
+        </div>
+        <xp-select
+          class="w-52"
+          [placeholder]="'XP.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
+          [(ngModel)]="transformerType"
+          [selectOptions]="documentTransformerStrategies()"
+          [nullable]="false"
+        />
+      </div>
+
       <div class="flex px-4 py-2 font-body bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-text-secondary">
         {{
-          'XP.Knowledgebase.OnlyIndexedFields'
-            | translate
-              : { Default: 'Only indexed fields can be searched, other full fields are displayed in metadata.' }
+          spreadsheetInterpretation() === 'records'
+            ? ('XP.Knowledgebase.OnlyIndexedFields'
+              | translate
+                : { Default: 'Only indexed fields can be searched; other fields remain available in metadata.' })
+            : ('XP.Knowledgebase.SpreadsheetFormHint'
+              | translate
+                : {
+                    Default:
+                      'Form-document mode preserves worksheet context and cell coordinates. The application that uploads the document should choose this mode explicitly.'
+                  })
         }}
+      </div>
+
+      <div class="system-md-semibold mb-1 flex items-center gap-2">
+        <span>{{ 'XP.Knowledgebase.SpreadsheetParsing' | translate: { Default: 'Spreadsheet parsing' } }}</span>
+        <i
+          class="ri-information-2-line text-text-tertiary hover:text-text-primary"
+          [zTooltip]="
+            'XP.Knowledgebase.SpreadsheetParsingDesc'
+              | translate
+                : {
+                    Default:
+                      'This is a generic parser configuration. Business applications decide which mode to send; the knowledge base does not infer business document types.'
+                  }
+          "
+          zPosition="top"
+        ></i>
+      </div>
+
+      <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <div class="text-sm text-text-secondary">
+              {{ 'XP.Knowledgebase.SpreadsheetInterpretation' | translate: { Default: 'Interpretation' } }}
+            </div>
+            <xp-select
+              class="w-full"
+              [(ngModel)]="spreadsheetInterpretation"
+              [selectOptions]="spreadsheetInterpretationOptions"
+              [nullable]="false"
+            />
+          </div>
+
+          @if (spreadsheetInterpretation() === 'form_document') {
+            <div class="space-y-1.5">
+              <div class="text-sm text-text-secondary">
+                {{ 'XP.Knowledgebase.SpreadsheetContextUnit' | translate: { Default: 'Context unit' } }}
+              </div>
+              <xp-select
+                class="w-full"
+                [(ngModel)]="spreadsheetContextUnit"
+                [selectOptions]="spreadsheetContextUnitOptions"
+                [nullable]="false"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <xp-input
+                simple
+                type="number"
+                [label]="
+                  'XP.Knowledgebase.SpreadsheetMaxChunkTokens' | translate: { Default: 'Maximum tokens per chunk' }
+                "
+                [(ngModel)]="spreadsheetMaxChunkTokens"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="text-sm text-text-secondary">
+                {{ 'XP.Knowledgebase.SpreadsheetOversizePolicy' | translate: { Default: 'Oversize policy' } }}
+              </div>
+              <xp-select
+                class="w-full"
+                [(ngModel)]="spreadsheetOversizePolicy"
+                [selectOptions]="spreadsheetOversizePolicyOptions"
+                [nullable]="false"
+              />
+            </div>
+          }
+
+          <div class="space-y-1.5 col-span-2">
+            <xp-input
+              simple
+              [label]="'XP.Knowledgebase.SpreadsheetIncludedSheets' | translate: { Default: 'Included worksheets' }"
+              [placeholder]="
+                'XP.Knowledgebase.SpreadsheetIncludedSheetsHint'
+                  | translate: { Default: 'Use * for all, or comma-separated worksheet names' }
+              "
+              [(ngModel)]="spreadsheetIncludeSheets"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-col items-start gap-3 pt-1">
+          <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetIncludeHiddenSheets">
+            {{ 'XP.Knowledgebase.IncludeHiddenSheets' | translate: { Default: 'Include hidden worksheets' } }}
+          </z-checkbox>
+          @if (spreadsheetInterpretation() === 'form_document') {
+            <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetPreserveMergedCells">
+              {{ 'XP.Knowledgebase.PreserveMergedCells' | translate: { Default: 'Preserve merged-cell ranges' } }}
+            </z-checkbox>
+            <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetEmitCellAnchors">
+              {{ 'XP.Knowledgebase.EmitCellAnchors' | translate: { Default: 'Emit cell coordinates in content' } }}
+            </z-checkbox>
+          }
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+        <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
+          <z-icon zType="search" />
+          {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
+        </button>
+        <ng-content select="[inline-actions]"></ng-content>
       </div>
     } @else {
       <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
@@ -477,9 +612,13 @@
   <div cdkMenu class="cdk-menu__medium">
     @for (doc of documents(); track doc; let i = $index) {
       <div cdkMenuItem (click)="selectedDocIndex.set(i)">
-        <div class="w-full flex flex-col items-start">
-          <div>{{ doc.metadata.title }}</div>
-          <div class="text-xs text-text-secondary">{{ doc.metadata.url }}</div>
+        <div class="flex min-w-0 w-full items-center gap-2">
+          <knowledge-doc-id class="flex min-w-0 flex-1 items-center" [doc]="doc" />
+          @if (doc.metadata?.url) {
+            <div class="max-w-48 truncate text-xs text-text-secondary" [title]="doc.metadata.url">
+              {{ doc.metadata.url }}
+            </div>
+          }
         </div>
       </div>
     }

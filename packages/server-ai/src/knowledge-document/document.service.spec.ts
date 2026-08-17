@@ -1014,6 +1014,47 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
         expect(result.items.map((chunk) => chunk.id)).toEqual(['chunk-1', 'chunk-2'])
     })
 
+    it('includes an exact evidence chunk outside the current document page', async () => {
+        const service = createService([])
+        const findAll = jest
+            .fn()
+            .mockResolvedValueOnce({
+                items: [{ id: 'chunk-1', pageContent: 'first page chunk', metadata: { chunkIndex: 0 } }],
+                total: 25
+            })
+            .mockResolvedValueOnce({
+                items: [
+                    {
+                        id: 'row-25',
+                        pageContent: 'exact cited evidence',
+                        metadata: { chunkId: 'evidence-chunk-25', chunkIndex: 24 }
+                    }
+                ],
+                total: 1
+            })
+        Object.assign(service, { chunkService: { findAll } })
+
+        const result = await service.getChunks('doc-1', {
+            skip: 0,
+            take: 20,
+            targetChunkId: 'evidence-chunk-25'
+        })
+
+        expect(result.total).toBe(25)
+        expect(result.items.map((chunk) => chunk.metadata?.chunkId ?? chunk.id)).toEqual([
+            'evidence-chunk-25',
+            'chunk-1'
+        ])
+        expect(findAll).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                take: 1,
+                skip: 0,
+                where: expect.any(Array)
+            })
+        )
+    })
+
     it('checks all bulk versions before updating any document', async () => {
         const service = createService([], {
             repo: {

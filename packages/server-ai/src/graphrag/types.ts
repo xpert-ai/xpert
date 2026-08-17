@@ -30,6 +30,8 @@ export type TKnowledgeGraphEnqueueInput = {
 export type TKnowledgeGraphSearchInput = {
     tenantId?: string | null
     organizationId?: string | null
+    xpertId?: string
+    threadId?: string
     knowledgebase: IKnowledgebase
     query: string
     k?: number

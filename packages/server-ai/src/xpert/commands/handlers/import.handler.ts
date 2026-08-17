@@ -13,6 +13,8 @@ import {
     ProviderModel,
     resolveI18nText,
     replaceAgentInDraft,
+    TXpertOptions,
+    TXpertTemplateSource,
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
@@ -33,6 +35,7 @@ import {
 import { XpertService } from '../../xpert.service'
 import { XpertDraftDslDTO } from '../../dto'
 import { normalizeImportedSandboxFeatures } from '../../import-draft.utils'
+import { createTemplateSourceFromIds, resolveTemplateSourceFromOptions } from '../../template-source'
 import { XpertImportCommand } from '../import.command'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
@@ -110,22 +113,29 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             )
         }
 
+        const templateSource = this.resolveImportTemplateSource(command, draft)
+
         if (command.options?.targetXpertId) {
             return this.overwriteExistingXpertDraft(
                 command.options.targetXpertId,
                 draft,
-                command.options?.normalizeCopilotModels === true
+                command.options?.normalizeCopilotModels === true,
+                templateSource
             )
         }
 
-        return this.importAsNewXpert(draft, command.options?.normalizeCopilotModels === true)
+        return this.importAsNewXpert(draft, command.options?.normalizeCopilotModels === true, templateSource)
     }
 
     /**
      * Creates a new xpert from the DSL, after optional model normalization, and
      * persists the normalized draft and imported long-term memories.
      */
-    private async importAsNewXpert(draft: XpertDraftDslDTO, normalizeCopilotModels = false): Promise<IXpert> {
+    private async importAsNewXpert(
+        draft: XpertDraftDslDTO,
+        normalizeCopilotModels = false,
+        templateSource?: TXpertTemplateSource | null
+    ): Promise<IXpert> {
         const team = draft.team
         await this.validateImportedName(team.name)
 
@@ -138,6 +148,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 
         const xpert = await this.xpertService.create({
             ...omit(team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases', ...SYSTEM_FIELDS),
+            options: this.withTemplateSource(team.options, templateSource),
             latest: true,
             version: null,
             agent: omit(primaryAgent, ...SYSTEM_FIELDS)
@@ -187,7 +198,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
     private async overwriteExistingXpertDraft(
         targetXpertId: string,
         draft: XpertDraftDslDTO,
-        normalizeCopilotModels = false
+        normalizeCopilotModels = false,
+        templateSource?: TXpertTemplateSource | null
     ): Promise<IXpert> {
         const currentXpert = await this.loadXpertById(targetXpertId)
         if (draft.team.type !== currentXpert.type) {
@@ -223,7 +235,14 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             id: currentTeam.id ?? currentXpert.id,
             workspaceId: currentTeam.workspaceId ?? currentXpert.workspaceId,
             type: currentXpert.type,
-            agent: targetPrimaryAgent
+            agent: targetPrimaryAgent,
+            options: this.withTemplateSource(
+                {
+                    ...(currentTeam.options ?? {}),
+                    ...(draft.team.options ?? {})
+                },
+                templateSource
+            )
         } as TXpertTeamDraft['team']
 
         const nextDraft = replaceAgentInDraft(
@@ -240,7 +259,38 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         )
 
         currentXpert.draft = await this.xpertService.saveDraft(currentXpert.id, nextDraft)
+        if (templateSource) {
+            currentXpert.options = this.withTemplateSource(currentXpert.options, templateSource)
+        }
         return currentXpert
+    }
+
+    private resolveImportTemplateSource(command: XpertImportCommand, draft: XpertDraftDslDTO) {
+        const source =
+            command.options.templateSource ??
+            createTemplateSourceFromIds(command.options.templateId, command.options.sourceTemplateId) ??
+            resolveTemplateSourceFromOptions(draft.team.options)
+        if (!source) {
+            return null
+        }
+
+        const now = new Date().toISOString()
+        return {
+            ...source,
+            installedAt: source.installedAt ?? now,
+            lastSyncedAt: source.lastSyncedAt ?? now
+        } satisfies TXpertTemplateSource
+    }
+
+    private withTemplateSource(options?: TXpertOptions | null, templateSource?: TXpertTemplateSource | null) {
+        if (!templateSource) {
+            return options
+        }
+
+        return {
+            ...(options ?? {}),
+            templateSource
+        } satisfies TXpertOptions
     }
 
     /**

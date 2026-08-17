@@ -4,7 +4,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/chatkit-angular'
 import type { ChatKitMessageNavigationOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
-import { catchError, map, of, startWith, switchMap } from 'rxjs'
+import { catchError, firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
   AssistantBindingService,
@@ -17,6 +17,7 @@ import {
   ToastrService
 } from '../../@core'
 import { AppService } from '../../app.service'
+import { ArtifactService } from '../../@core/services/artifact.service'
 import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
@@ -246,6 +247,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   const toastr = inject(ToastrService)
   const appService = inject(AppService)
   const store = inject(Store)
+  const artifactService = inject(ArtifactService, { optional: true })
 
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
@@ -320,6 +322,27 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       pet: input.pet,
       taskSummary: input.taskSummary,
       workbench: input.workbench,
+      toolOutputAttachments: {
+        onRequestPreview: async ({ attachment }) => {
+          if (!artifactService) {
+            throw new Error('Artifact previews are unavailable in this host')
+          }
+          const link = await firstValueFrom(
+            artifactService.createSignedVersionPreviewLink(attachment.artifactId, attachment.artifactVersionId)
+          )
+          const version = link.version
+          if (link.artifactId !== attachment.artifactId || version?.id !== attachment.artifactVersionId) {
+            throw new Error('The Artifact preview did not resolve the requested immutable version')
+          }
+          if (version.sha256 && version.sha256 !== attachment.sha256) {
+            throw new Error('The Artifact preview checksum does not match the tool output')
+          }
+          return {
+            previewUrl: link.publicUrl,
+            ...(link.expiresAt ? { expiresAt: toIsoDate(link.expiresAt) } : {})
+          }
+        }
+      },
       messageNavigation: {
         enabled: true
       },
@@ -365,6 +388,10 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   })
 
   return control
+}
+
+function toIsoDate(value: string | Date) {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
 }
 
 export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {

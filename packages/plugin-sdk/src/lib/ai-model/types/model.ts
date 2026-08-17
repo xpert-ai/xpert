@@ -4,6 +4,7 @@ import {
   ICopilot,
   ICopilotModel,
   ILLMUsage,
+  ModelUsageReport,
   ModelUsagePricingContext,
   ModelUsagePricingSnapshot,
   ParameterRule,
@@ -20,6 +21,12 @@ export type TLLMUsage = ILLMUsage & {
 
 export type TChatModelOptions = {
   modelProperties: Record<string, any>
+  /** Final authoritative usage for non-LLM model clients. */
+  handleModelUsage?: (report: ModelUsageReport) => void | Promise<void>
+  /** Freeze the active usage price rules at invocation start. */
+  resolveUsagePricingSnapshot?: (
+    context: ModelUsagePricingContext
+  ) => ModelUsagePricingSnapshot | Promise<ModelUsagePricingSnapshot>
   handleLLMTokens: (input: {
     copilot: ICopilot
     model?: string

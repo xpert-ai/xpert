@@ -1,4 +1,5 @@
 import { ICommand } from '@nestjs/cqrs'
+import { TXpertTemplateSource } from '@xpert-ai/contracts'
 import { XpertDraftDslDTO } from '../dto'
 
 export type XpertImportCommandOptions = {
@@ -13,6 +14,7 @@ export type XpertImportCommandOptions = {
     normalizeCopilotModels?: boolean
     templateId?: string
     sourceTemplateId?: string
+    templateSource?: TXpertTemplateSource
 }
 
 export class XpertImportCommand implements ICommand {

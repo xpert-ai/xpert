@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { createChatKit } from '@xpert-ai/chatkit-angular'
 import { of } from 'rxjs'
 import { AppService } from '../../app.service'
+import { ArtifactService } from '../../@core/services/artifact.service'
 import {
   AssistantBindingScope,
   AssistantBindingSourceScope,
@@ -382,5 +383,78 @@ describe('assistant chatkit runtime helpers', () => {
       organizationId: 'org-custom'
     })
     expect(options.header.title.text).toBe('Public Assistant')
+  })
+
+  it('resolves tool-output images through a fixed ArtifactVersion preview', async () => {
+    const createChatKitMock = createChatKit as jest.Mock
+    const createSignedVersionPreviewLink = jest.fn(() =>
+      of({
+        id: 'link-1',
+        artifactId: 'artifact-1',
+        publicUrl: 'https://artifacts.example.test/preview/image',
+        expiresAt: '2026-08-17T12:05:00.000Z',
+        version: {
+          id: 'artifact-version-1',
+          sha256: 'a'.repeat(64),
+          mimeType: 'image/png'
+        }
+      })
+    )
+    createChatKitMock.mockReturnValue({ setOptions: jest.fn() })
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: DOCUMENT, useValue: document },
+        {
+          provide: TranslateService,
+          useValue: {
+            currentLang: 'en',
+            instant: (_key: string, params?: { Default?: string }) => params?.Default ?? _key
+          }
+        },
+        { provide: ToastrService, useValue: { error: jest.fn() } },
+        { provide: AppService, useValue: { lang: signal('en'), theme$: signal({ primary: 'light' }) } },
+        {
+          provide: Store,
+          useValue: {
+            token: 'token-1',
+            token$: of('token-1'),
+            organizationId: 'org-1',
+            selectOrganizationId: () => of('org-1')
+          }
+        },
+        { provide: ArtifactService, useValue: { createSignedVersionPreviewLink } }
+      ]
+    })
+
+    TestBed.runInInjectionContext(() => {
+      injectHostedAssistantChatkitControl({
+        identity: signal('xpert_shared'),
+        assistantId: signal('assistant-1'),
+        frameUrl: signal('/chatkit'),
+        titleKey: 'XP.Xpert.Assistant',
+        titleDefault: 'Assistant'
+      })
+    })
+    flushAngularEffects()
+
+    const options = createChatKitMock.mock.calls[0][0]
+    await expect(
+      options.toolOutputAttachments.onRequestPreview({
+        attachment: {
+          type: 'image',
+          artifactId: 'artifact-1',
+          artifactVersionId: 'artifact-version-1',
+          sha256: 'a'.repeat(64),
+          mimeType: 'image/png',
+          source: 'knowledge-document',
+          modelDetail: 'high'
+        }
+      })
+    ).resolves.toEqual({
+      previewUrl: 'https://artifacts.example.test/preview/image',
+      expiresAt: '2026-08-17T12:05:00.000Z'
+    })
+    expect(createSignedVersionPreviewLink).toHaveBeenCalledWith('artifact-1', 'artifact-version-1')
   })
 })
