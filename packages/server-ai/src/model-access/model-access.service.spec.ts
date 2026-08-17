@@ -210,6 +210,51 @@ describe('ModelAccessService organization model configuration', () => {
 })
 
 describe('ModelAccessService model resolution', () => {
+    it('disables a selected model removed from the provider catalog', async () => {
+        const { copilotRepository, input, membershipService, providersService, service } = createFixture()
+        const removedModel = 'deepseek-coder'
+        copilotRepository.findOne.mockResolvedValue({
+            id: 'copilot-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            name: 'Primary',
+            enabled: true,
+            copilotModel: {
+                model: removedModel,
+                modelType: AiModelTypeEnum.LLM
+            },
+            modelProvider: {
+                id: 'provider-1',
+                providerName: 'deepseek',
+                isValid: true
+            }
+        })
+        providersService.getProvider.mockReturnValue({
+            getProviderModels: jest.fn().mockReturnValue([]),
+            getProviderSchema: jest.fn().mockReturnValue({
+                provider: 'deepseek',
+                label: { en_US: 'DeepSeek', zh_Hans: 'DeepSeek' }
+            })
+        })
+        const plan = { id: 'plan-1' }
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: null,
+            membership: { planId: 'plan-1', plan }
+        })
+        membershipService.isModelAllowed.mockReturnValue(true)
+
+        await expect(
+            service.resolveModelAccess({
+                ...input,
+                organizationId: null,
+                copilotModelId: removedModel
+            })
+        ).resolves.toMatchObject({
+            allowed: false,
+            unavailableReason: ModelAccessUnavailableReasonEnum.ModelDisabled
+        })
+    })
+
     it('allows an organization model directly when the billable user cannot manage memberships', async () => {
         const { copilotRepository, input, membershipService, service, userRepository } = createFixture()
         copilotRepository.findOne.mockResolvedValue({
