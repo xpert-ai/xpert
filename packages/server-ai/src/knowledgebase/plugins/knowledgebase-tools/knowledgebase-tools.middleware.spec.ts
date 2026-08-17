@@ -1,5 +1,9 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
-import { DefaultRuntimeCapabilityRegistry, KnowledgeDocumentVisualAssetsRuntimeCapability } from '@xpert-ai/plugin-sdk'
+import {
+    ArtifactsRuntimeCapability,
+    DefaultRuntimeCapabilityRegistry,
+    KnowledgeDocumentVisualAssetsRuntimeCapability
+} from '@xpert-ai/plugin-sdk'
 import { KNOWLEDGE_DOCUMENT_IMAGE_BATCH_METADATA_KEY } from './constants'
 import { KnowledgebaseToolsMiddleware } from './knowledgebase-tools.middleware'
 
@@ -9,6 +13,9 @@ describe('KnowledgebaseToolsMiddleware', () => {
         index: 1,
         mimeType: 'image/png' as const,
         size: 8,
+        width: 12,
+        height: 8,
+        sha256: 'a'.repeat(64),
         knowledgeDocumentId: 'doc-1',
         sourceDocumentId: 'source-1',
         page: 2,
@@ -111,15 +118,103 @@ describe('KnowledgebaseToolsMiddleware', () => {
         expect(toolMessage.content).not.toContain('aW1hZ2U=')
     })
 
+    it('persists fixed ArtifactVersions and exposes only stable image descriptors to ChatKit', async () => {
+        const workspaceFileRef = {
+            source: 'platform.workspace.files' as const,
+            tenantId: 'tenant-1',
+            catalog: 'xperts' as const,
+            scopeId: 'xpert-1',
+            xpertId: 'xpert-1',
+            filePath: '.xpert/tool-output/knowledge-document-images/image.png',
+            workspacePath: '/workspace/.xpert/tool-output/knowledge-document-images/image.png',
+            originalName: 'image.png',
+            name: 'image.png',
+            mimeType: 'image/png',
+            size: 8
+        }
+        const visualAssets = {
+            prepareImages: jest.fn(async () => ({
+                batchRef: 'kdvb_batch-1',
+                images: [{ ...imagePayload, dataBase64: undefined }],
+                artifactInputs: [{ index: 1, fileName: 'image.png', workspaceFileRef }]
+            })),
+            consumeImageBatch: jest.fn(),
+            discardImageBatch: jest.fn(),
+            issueCandidates: jest.fn()
+        }
+        const artifacts = {
+            createArtifact: jest.fn(async () => ({ id: 'artifact-1' })),
+            ensureArtifactVersion: jest.fn(async () => ({
+                outcome: 'created',
+                version: { id: 'artifact-version-1', sha256: imagePayload.sha256 }
+            }))
+        }
+        const { middleware } = createSubject()
+        const created = middleware.createMiddleware(
+            { tools: ['knowledge_document_view_images'] },
+            context(visualAssets, artifacts) as never
+        )
+
+        const result = (await created.tools?.[0].invoke(
+            { filePaths: [filePath] },
+            { metadata: { tool_call_id: 'view-call-1' } }
+        )) as ToolMessage
+
+        expect(artifacts.createArtifact).toHaveBeenCalledWith(
+            expect.objectContaining({
+                source: expect.objectContaining({
+                    resourceId: 'doc-1:visual-2',
+                    checksum: imagePayload.sha256
+                }),
+                kind: 'image'
+            })
+        )
+        expect(artifacts.ensureArtifactVersion).toHaveBeenCalledWith(
+            expect.objectContaining({
+                artifactId: 'artifact-1',
+                idempotencyKey: imagePayload.sha256,
+                workspaceFileRef,
+                sha256: imagePayload.sha256
+            })
+        )
+        expect(result.artifact).toEqual({
+            type: 'xpert.tool-output',
+            version: 1,
+            attachments: [
+                expect.objectContaining({
+                    type: 'image',
+                    artifactId: 'artifact-1',
+                    artifactVersionId: 'artifact-version-1',
+                    sha256: imagePayload.sha256,
+                    modelDetail: 'high',
+                    anchors: expect.objectContaining({
+                        knowledgeDocumentId: 'doc-1',
+                        visualAssetId: 'visual-2'
+                    })
+                })
+            ]
+        })
+        expect(result.content).not.toContain('workspaceFileRef')
+        expect(result.content).not.toContain('/workspace/')
+        expect(JSON.stringify(result.artifact)).not.toContain('previewUrl')
+    })
+
     function createSubject() {
         return { middleware: new KnowledgebaseToolsMiddleware() }
     }
 
-    function context(visualAssets: Record<string, unknown>) {
+    function context(
+        visualAssets: Record<string, unknown>,
+        artifacts: Record<string, unknown> = {
+            createArtifact: jest.fn(),
+            ensureArtifactVersion: jest.fn()
+        }
+    ) {
         return {
             runtime: {
                 capabilities: new DefaultRuntimeCapabilityRegistry([
-                    [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssets]
+                    [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssets],
+                    [ArtifactsRuntimeCapability, artifacts]
                 ])
             }
         }

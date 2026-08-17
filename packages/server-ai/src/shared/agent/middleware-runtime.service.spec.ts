@@ -156,11 +156,17 @@ describe('AgentMiddlewareRuntimeService', () => {
         artifacts = {
             createScopedApi: jest.fn((defaults) => ({
                 createArtifact: jest.fn(),
+                findArtifactBySource: jest.fn(),
                 createArtifactVersion: jest.fn(),
+                listArtifactVersions: jest.fn(),
+                ensureArtifactVersion: jest.fn(),
                 createArtifactLink: jest
                     .fn()
                     .mockResolvedValue({ id: 'link-1', publicUrl: 'https://share.test/artifacts/share/one' }),
                 createSignedPreviewLink: jest.fn(),
+                getArtifactShare: jest.fn(),
+                ensureArtifactShare: jest.fn(),
+                revokeArtifactShare: jest.fn(),
                 getArtifact: jest.fn(),
                 listArtifacts: jest.fn(),
                 archiveArtifact: jest.fn(),
@@ -187,7 +193,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         visualAssetsRuntime = {
             createScopedApi: jest.fn(() => ({
                 issueCandidates: jest.fn().mockResolvedValue({ candidates: [], warnings: [] }),
-                prepareImages: jest.fn().mockResolvedValue({ batchRef: 'batch-1', images: [] }),
+                prepareImages: jest.fn().mockResolvedValue({ batchRef: 'batch-1', images: [], artifactInputs: [] }),
                 consumeImageBatch: jest.fn().mockResolvedValue([]),
                 discardImageBatch: jest.fn().mockResolvedValue(undefined)
             }))
@@ -302,7 +308,11 @@ describe('AgentMiddlewareRuntimeService', () => {
             })
         ).resolves.toEqual({ candidates: [], warnings: [] })
         expect(moduleRef.get).toHaveBeenCalledWith(KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME, { strict: false })
-        expect(visualAssetsRuntime.createScopedApi).toHaveBeenCalledWith(scope)
+        expect(visualAssetsRuntime.createScopedApi).toHaveBeenCalledWith(scope, {
+            workspaceFiles: expect.objectContaining({
+                writeRuntimeBuffer: expect.any(Function)
+            })
+        })
     })
 
     it('resolves the organization model provider connection before the tenant provider', async () => {

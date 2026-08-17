@@ -8,13 +8,18 @@ import {
     isToolMessage
 } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
+import type { ToolOutputImageAttachment, ToolOutputPresentation } from '@xpert-ai/chatkit-types'
 import { getToolCallIdFromConfig, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
+    ArtifactsRuntimeCapability,
+    type ArtifactsApi,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
+    type KnowledgeDocumentPreparedImageArtifact,
+    type KnowledgeDocumentViewedImage,
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     type KnowledgeDocumentVisualAssetsApi,
     type ModelRequest
@@ -26,6 +31,9 @@ import {
     KNOWLEDGE_DOCUMENT_IMAGE_BATCH_METADATA_KEY,
     KNOWLEDGE_DOCUMENT_VIEW_IMAGES_TOOL
 } from './constants'
+
+const KNOWLEDGE_DOCUMENT_ARTIFACT_PLUGIN = 'xpert.platform.knowledgebase'
+const KNOWLEDGE_DOCUMENT_IMAGE_RESOURCE_TYPE = 'knowledge-document-visual-asset'
 
 const optionsSchema = z
     .object({
@@ -98,8 +106,9 @@ export class KnowledgebaseToolsMiddleware implements IAgentMiddlewareStrategy<Kn
     createMiddleware(options: KnowledgebaseToolsOptions, context: IAgentMiddlewareContext): AgentMiddleware {
         const parsedOptions = optionsSchema.parse(options)
         const visualAssets = requireVisualAssets(context)
+        const artifacts = requireArtifacts(context)
         const tools = parsedOptions.tools.includes(KNOWLEDGE_DOCUMENT_VIEW_IMAGES_TOOL)
-            ? [this.createViewImagesTool(visualAssets)]
+            ? [this.createViewImagesTool(visualAssets, artifacts)]
             : []
 
         return {
@@ -112,13 +121,14 @@ export class KnowledgebaseToolsMiddleware implements IAgentMiddlewareStrategy<Kn
         }
     }
 
-    private createViewImagesTool(visualAssets: KnowledgeDocumentVisualAssetsApi) {
+    private createViewImagesTool(visualAssets: KnowledgeDocumentVisualAssetsApi, artifacts: ArtifactsApi) {
         return tool(
             async (input, config) => {
                 const toolCallId = getToolCallIdFromConfig(config) ?? KNOWLEDGE_DOCUMENT_VIEW_IMAGES_TOOL
                 const parsed = inputSchema.parse(input)
                 if (!parsed.filePaths) throw new BadRequestException('filePaths are required')
                 const result = await visualAssets.prepareImages({ filePaths: parsed.filePaths })
+                const artifact = await createToolOutputPresentation(result.images, result.artifactInputs, artifacts)
                 return new ToolMessage({
                     content: JSON.stringify({
                         message: `${result.images.length} governed KnowledgeDocument image(s) will be attached to the next model step.`,
@@ -127,6 +137,7 @@ export class KnowledgebaseToolsMiddleware implements IAgentMiddlewareStrategy<Kn
                     name: KNOWLEDGE_DOCUMENT_VIEW_IMAGES_TOOL,
                     tool_call_id: toolCallId,
                     status: 'success',
+                    artifact,
                     metadata: {
                         [KNOWLEDGE_DOCUMENT_IMAGE_BATCH_METADATA_KEY]: {
                             batchRef: result.batchRef
@@ -145,10 +156,106 @@ export class KnowledgebaseToolsMiddleware implements IAgentMiddlewareStrategy<Kn
     }
 }
 
+function requireArtifacts(context: IAgentMiddlewareContext) {
+    const capability = context.runtime.capabilities?.get(ArtifactsRuntimeCapability)
+    if (!capability) throw new Error('Artifacts capability is unavailable')
+    return capability
+}
+
 function requireVisualAssets(context: IAgentMiddlewareContext) {
     const capability = context.runtime.capabilities?.get(KnowledgeDocumentVisualAssetsRuntimeCapability)
     if (!capability) throw new Error('KnowledgeDocument visual assets capability is unavailable')
     return capability
+}
+
+async function createToolOutputPresentation(
+    images: KnowledgeDocumentViewedImage[],
+    artifactInputs: KnowledgeDocumentPreparedImageArtifact[],
+    artifacts: ArtifactsApi
+): Promise<ToolOutputPresentation> {
+    const inputsByIndex = new Map(artifactInputs.map((input) => [input.index, input]))
+    const attachments = await Promise.all(
+        images.map(async (image): Promise<ToolOutputImageAttachment> => {
+            const artifactInput = inputsByIndex.get(image.index)
+            if (!artifactInput) {
+                throw new Error(`Artifact materialization is missing for KnowledgeDocument image ${image.index}`)
+            }
+            const title = knowledgeDocumentImageTitle(image)
+            const artifact = await artifacts.createArtifact({
+                source: {
+                    pluginName: KNOWLEDGE_DOCUMENT_ARTIFACT_PLUGIN,
+                    resourceType: KNOWLEDGE_DOCUMENT_IMAGE_RESOURCE_TYPE,
+                    resourceId: `${image.knowledgeDocumentId}:${image.visualAssetId}`,
+                    checksum: image.sha256
+                },
+                kind: 'image',
+                title,
+                description: 'Governed KnowledgeDocument image prepared for an Agent vision step.',
+                metadata: stableImageMetadata(image)
+            })
+            const { version } = await artifacts.ensureArtifactVersion({
+                artifactId: artifact.id,
+                idempotencyKey: image.sha256,
+                workspaceFileRef: artifactInput.workspaceFileRef,
+                mimeType: image.mimeType,
+                fileName: artifactInput.fileName,
+                title,
+                size: image.size,
+                sha256: image.sha256,
+                checksum: image.sha256,
+                setCurrent: true,
+                metadata: stableImageMetadata(image)
+            })
+
+            return {
+                type: 'image',
+                artifactId: artifact.id,
+                artifactVersionId: version.id,
+                sha256: version.sha256 ?? image.sha256,
+                mimeType: image.mimeType,
+                ...(image.width ? { width: image.width } : {}),
+                ...(image.height ? { height: image.height } : {}),
+                title,
+                alt: title,
+                source: 'knowledge-document',
+                modelDetail: 'high',
+                anchors: {
+                    knowledgeDocumentId: image.knowledgeDocumentId,
+                    ...(image.page ? { page: image.page } : {}),
+                    ...(image.chunkId ? { chunkId: image.chunkId } : {}),
+                    sourceBlockIds: image.sourceBlockIds,
+                    visualAssetId: image.visualAssetId
+                }
+            }
+        })
+    )
+
+    return {
+        type: 'xpert.tool-output',
+        version: 1,
+        attachments
+    }
+}
+
+function knowledgeDocumentImageTitle(image: KnowledgeDocumentViewedImage) {
+    return image.page ? `KnowledgeDocument image · page ${image.page}` : `KnowledgeDocument image ${image.index}`
+}
+
+function stableImageMetadata(image: KnowledgeDocumentViewedImage) {
+    return {
+        source: 'knowledge-document',
+        knowledgeDocumentId: image.knowledgeDocumentId,
+        sourceDocumentId: image.sourceDocumentId,
+        visualAssetId: image.visualAssetId,
+        ...(image.page ? { page: image.page } : {}),
+        ...(image.chunkId ? { chunkId: image.chunkId } : {}),
+        sourceBlockIds: image.sourceBlockIds,
+        candidateReason: image.candidateReason,
+        modelDetail: 'high',
+        width: image.width,
+        height: image.height,
+        sha256: image.sha256
+    }
 }
 
 async function prepareModelRequest<TState extends Record<string, unknown>>(

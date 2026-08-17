@@ -12,6 +12,7 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
     let document: Record<string, unknown>
     let cacheValues: Map<string, unknown>
     let service: KnowledgeDocumentVisualAssetsRuntimeService
+    let workspaceFiles: { writeRuntimeBuffer: jest.Mock }
 
     beforeEach(async () => {
         rootPath = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'xpert-knowledge-visual-assets-'))
@@ -39,6 +40,23 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
             metadata: { analysisSnapshot: { transformFingerprint: 'snapshot-v1' } }
         }
         cacheValues = new Map()
+        workspaceFiles = {
+            writeRuntimeBuffer: jest.fn(async (input) => ({
+                reference: {
+                    source: 'platform.workspace.files',
+                    tenantId: 'tenant-1',
+                    catalog: 'xperts',
+                    scopeId: 'xpert-1',
+                    xpertId: 'xpert-1',
+                    filePath: `.xpert/tool-output/knowledge-document-images/${input.fileName}`,
+                    workspacePath: `/workspace/.xpert/tool-output/knowledge-document-images/${input.fileName}`,
+                    originalName: input.originalName,
+                    name: input.fileName,
+                    mimeType: input.mimeType,
+                    size: input.size
+                }
+            }))
+        }
         service = new KnowledgeDocumentVisualAssetsRuntimeService(
             {
                 get: jest.fn(async (key: string) => cacheValues.get(key)),
@@ -79,7 +97,7 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
     })
 
     it('issues governed relative paths and injects bytes only inside the same Agent execution', async () => {
-        const api = service.createScopedApi(executionScope())
+        const api = service.createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
         const result = await api.issueCandidates(candidateRequest())
 
         expect(result.candidates).toEqual([
@@ -98,9 +116,11 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
 
         const filePath = result.candidates[0].filePath
         await expect(
-            service.createScopedApi({ ...executionScope(), agentKey: 'Agent_Other' } as never).prepareImages({
-                filePaths: [filePath]
-            })
+            service
+                .createScopedApi({ ...executionScope(), agentKey: 'Agent_Other' } as never, {
+                    workspaceFiles: workspaceFiles as never
+                })
+                .prepareImages({ filePaths: [filePath] })
         ).rejects.toBeInstanceOf(NotFoundException)
 
         await expect(api.prepareImages({ filePaths: ['/tmp/page-2.png'] })).rejects.toBeInstanceOf(NotFoundException)
@@ -116,6 +136,23 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
             })
         ])
         expect(JSON.stringify(prepared)).not.toContain('dataBase64')
+        expect(prepared.artifactInputs).toEqual([
+            expect.objectContaining({
+                index: 1,
+                fileName: expect.stringMatching(/^[a-f0-9]{64}\.png$/),
+                workspaceFileRef: expect.objectContaining({ source: 'platform.workspace.files' })
+            })
+        ])
+        expect(workspaceFiles.writeRuntimeBuffer).toHaveBeenCalledWith(
+            expect.objectContaining({
+                mimeType: 'image/png',
+                folder: '.xpert/tool-output/knowledge-document-images',
+                metadata: expect.objectContaining({
+                    knowledgeDocumentId: 'doc-1',
+                    visualAssetId: 'asset-page-2'
+                })
+            })
+        )
 
         const payloads = await api.consumeImageBatch(prepared.batchRef)
         expect(payloads[0]).toEqual(expect.objectContaining({ dataBase64: expect.any(String) }))
@@ -124,7 +161,7 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
 
     it('binds visual candidates to the child Agent execution available at tool invocation time', async () => {
         const { executionId: _executionId, conversationId: _conversationId, ...graphBuildScope } = executionScope()
-        const api = service.createScopedApi(graphBuildScope)
+        const api = service.createScopedApi(graphBuildScope, { workspaceFiles: workspaceFiles as never })
 
         const result = await AsyncLocalStorageProviderSingleton.runWithConfig(
             {
@@ -167,7 +204,7 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
     })
 
     it('invalidates a governed path when its KnowledgeDocument fingerprint changes', async () => {
-        const api = service.createScopedApi(executionScope())
+        const api = service.createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
         const result = await api.issueCandidates(candidateRequest())
         document.sourceHash = 'source-v2'
 
@@ -197,10 +234,12 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
             ]
         })
 
-        const result = await service.createScopedApi(executionScope()).issueCandidates({
-            ...candidateRequest(),
-            textAnchors: []
-        })
+        const result = await service
+            .createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
+            .issueCandidates({
+                ...candidateRequest(),
+                textAnchors: []
+            })
 
         expect(result.warnings).toEqual([expect.stringContaining('guarded legacy work-area allow-list')])
         expect(result.candidates[0]).toEqual(

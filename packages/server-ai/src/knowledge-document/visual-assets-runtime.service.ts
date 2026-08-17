@@ -13,8 +13,10 @@ import type {
     KnowledgeDocumentVisualCandidateReason,
     KnowledgeDocumentVisualCandidateRequest,
     KnowledgeDocumentVisualImagePayload,
+    KnowledgeDocumentPreparedImageArtifact,
     KnowledgeDocumentViewedImage,
-    KnowledgeDocumentViewImagesResult
+    KnowledgeDocumentViewImagesResult,
+    WorkspaceFilesApi
 } from '@xpert-ai/plugin-sdk'
 import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import {
@@ -94,11 +96,15 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         private readonly workAreaResolver: KnowledgeWorkAreaResolver
     ) {}
 
-    createScopedApi(scope: AgentMiddlewareRuntimeScope): KnowledgeDocumentVisualAssetsApi {
+    createScopedApi(
+        scope: AgentMiddlewareRuntimeScope,
+        dependencies: { workspaceFiles: WorkspaceFilesApi }
+    ): KnowledgeDocumentVisualAssetsApi {
         const allowedPaths = new Map<string, AllowedVisualPathRecord>()
         return {
             issueCandidates: (input) => this.issueCandidates(invocationScope(scope), input, allowedPaths),
-            prepareImages: (input) => this.prepareImages(invocationScope(scope), input.filePaths, allowedPaths),
+            prepareImages: (input) =>
+                this.prepareImages(invocationScope(scope), input.filePaths, allowedPaths, dependencies.workspaceFiles),
             consumeImageBatch: (batchRef) => this.consumeImageBatch(invocationScope(scope), batchRef),
             discardImageBatch: (batchRef) => this.discardImageBatch(invocationScope(scope), batchRef)
         }
@@ -158,7 +164,8 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
     private async prepareImages(
         scope: AgentMiddlewareRuntimeScope,
         rawFilePaths: string[],
-        allowedPaths: Map<string, AllowedVisualPathRecord>
+        allowedPaths: Map<string, AllowedVisualPathRecord>,
+        workspaceFiles: WorkspaceFilesApi
     ): Promise<KnowledgeDocumentViewImagesResult> {
         const binding = requireExecutionBinding(scope)
         const filePaths = [...new Set(rawFilePaths.map((value) => value.trim()).filter(Boolean))]
@@ -170,6 +177,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         }
 
         const images: KnowledgeDocumentVisualImagePayload[] = []
+        const artifactInputs: KnowledgeDocumentPreparedImageArtifact[] = []
         for (const [index, filePath] of filePaths.entries()) {
             if (!isControlledVisualPath(filePath)) {
                 throw new NotFoundException('The governed KnowledgeDocument image path is invalid')
@@ -189,10 +197,13 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
             }
             const target = await this.resolveAllowedTarget(document, binding, allowed.locator)
             const prepared = await readAndPrepareImage(target.absolutePath)
-            images.push({
+            const image: KnowledgeDocumentVisualImagePayload = {
                 index: index + 1,
                 mimeType: prepared.mimeType,
                 size: prepared.buffer.length,
+                width: prepared.width,
+                height: prepared.height,
+                sha256: prepared.sha256,
                 knowledgeDocumentId: allowed.knowledgeDocumentId,
                 sourceDocumentId: allowed.sourceDocumentId,
                 ...(allowed.page ? { page: allowed.page } : {}),
@@ -202,6 +213,32 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
                 candidateReason: allowed.candidateReason,
                 ...(allowed.summary ? { summary: allowed.summary } : {}),
                 dataBase64: prepared.buffer.toString('base64')
+            }
+            images.push(image)
+
+            const fileName = `${prepared.sha256}.${extensionForMimeType(prepared.mimeType)}`
+            const workspaceFile = await workspaceFiles.writeRuntimeBuffer({
+                buffer: prepared.buffer,
+                originalName: knowledgeDocumentImageTitle(image),
+                mimeType: prepared.mimeType,
+                size: prepared.buffer.length,
+                folder: '.xpert/tool-output/knowledge-document-images',
+                fileName,
+                metadata: {
+                    source: 'knowledge-document',
+                    knowledgeDocumentId: image.knowledgeDocumentId,
+                    sourceDocumentId: image.sourceDocumentId,
+                    visualAssetId: image.visualAssetId,
+                    ...(image.page ? { page: image.page } : {}),
+                    ...(image.chunkId ? { chunkId: image.chunkId } : {}),
+                    sourceBlockIds: image.sourceBlockIds,
+                    sha256: image.sha256
+                }
+            })
+            artifactInputs.push({
+                index: image.index,
+                fileName,
+                workspaceFileRef: workspaceFile.reference
             })
         }
 
@@ -215,7 +252,8 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         await this.cacheManager.set(batchCacheKey(batchRef), batch, VISUAL_IMAGE_BATCH_TTL_MS)
         return {
             batchRef,
-            images: images.map(stripImageBytes)
+            images: images.map(stripImageBytes),
+            artifactInputs
         }
     }
 
@@ -557,7 +595,27 @@ async function readAndPrepareImage(absolutePath: string) {
     if (buffer.length > MAX_IMAGE_OUTPUT_BYTES) {
         throw new BadRequestException('The KnowledgeDocument image is too large for model inspection')
     }
-    return { buffer, mimeType }
+    const outputMetadata = await sharp(buffer, { animated: false, failOn: 'error' }).metadata()
+    if (!outputMetadata.width || !outputMetadata.height) {
+        throw new BadRequestException('The KnowledgeDocument image dimensions could not be determined')
+    }
+    return {
+        buffer,
+        mimeType,
+        width: outputMetadata.width,
+        height: outputMetadata.height,
+        sha256: createHash('sha256').update(buffer).digest('hex')
+    }
+}
+
+function extensionForMimeType(mimeType: KnowledgeDocumentViewedImage['mimeType']) {
+    if (mimeType === 'image/jpeg') return 'jpg'
+    if (mimeType === 'image/webp') return 'webp'
+    return 'png'
+}
+
+function knowledgeDocumentImageTitle(image: KnowledgeDocumentViewedImage) {
+    return image.page ? `KnowledgeDocument image page ${image.page}` : `KnowledgeDocument image ${image.index}`
 }
 
 function toPublicCandidate(record: AllowedVisualPathRecord): KnowledgeDocumentVisualCandidate {

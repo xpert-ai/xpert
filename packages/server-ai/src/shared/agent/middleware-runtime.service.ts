@@ -81,6 +81,7 @@ import {
     RequestContext,
     ArtifactsRuntimeCapability,
     CancelConversationCommand,
+    type WorkspaceFilesApi,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage, GetStorageFileQuery, OutboundActorTokenProvider } from '@xpert-ai/server-core'
@@ -751,7 +752,7 @@ export class AgentMiddlewareRuntimeService {
         })
         const collaborationApi = this.collaboration.createScopedApi(scope)
         const actorTokenApi = this.createActorTokenApi(scope)
-        const visualAssetsApi = this.visualAssetsRuntime(scope)
+        const visualAssetsApi = this.visualAssetsRuntime(scope, workspaceFilesApi)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [ActorTokenRuntimeCapability, actorTokenApi],
             [
@@ -820,12 +821,12 @@ export class AgentMiddlewareRuntimeService {
         } satisfies AgentMiddlewareRuntimeApi
     }
 
-    private visualAssetsRuntime(scope: AgentMiddlewareRuntimeScope) {
+    private visualAssetsRuntime(scope: AgentMiddlewareRuntimeScope, workspaceFiles: WorkspaceFilesApi) {
         return this.moduleRef
             .get<KnowledgeDocumentVisualAssetsRuntimeFactory>(KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME, {
                 strict: false
             })
-            .createScopedApi(scope)
+            .createScopedApi(scope, { workspaceFiles })
     }
 
     private createActorTokenApi(scope: AgentMiddlewareRuntimeScope) {

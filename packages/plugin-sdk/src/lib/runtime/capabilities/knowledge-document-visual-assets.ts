@@ -1,4 +1,5 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
+import type { WorkspacePortableFileReference } from './workspace-files'
 
 export type KnowledgeDocumentVisualCandidateReason =
   | 'same_block'
@@ -60,11 +61,27 @@ export type KnowledgeDocumentViewedImage = Omit<KnowledgeDocumentVisualCandidate
   index: number
   mimeType: 'image/png' | 'image/jpeg' | 'image/webp'
   size: number
+  width?: number
+  height?: number
+  sha256: string
+}
+
+/**
+ * Server-only materialization data used to create an immutable ArtifactVersion.
+ *
+ * This value is returned through the in-process runtime capability and must not
+ * be copied into ToolMessage content or persisted chat metadata.
+ */
+export type KnowledgeDocumentPreparedImageArtifact = {
+  index: number
+  fileName: string
+  workspaceFileRef: WorkspacePortableFileReference
 }
 
 export type KnowledgeDocumentViewImagesResult = {
   batchRef: string
   images: KnowledgeDocumentViewedImage[]
+  artifactInputs: KnowledgeDocumentPreparedImageArtifact[]
 }
 
 export type KnowledgeDocumentVisualImagePayload = KnowledgeDocumentViewedImage & {
