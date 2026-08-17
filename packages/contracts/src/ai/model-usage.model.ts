@@ -1,9 +1,10 @@
 import type { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import type { AiModelTypeEnum } from '../agent'
+import type { LLMPriceAuthority, LLMPriceBreakdownItem, ModelPriceDailyTimeWindow } from './ai-model.model'
 
-export type ModelUsageModality = 'image' | 'video'
+export type ModelUsageModality = 'text' | 'audio' | 'image' | 'video'
 
-export type ModelUsageLedgerModality = 'text' | ModelUsageModality
+export type ModelUsageLedgerModality = ModelUsageModality
 
 export type ImageGenerationOperation = 'text_to_image' | 'image_to_image' | 'multi_image_to_image'
 
@@ -13,9 +14,9 @@ export type VideoGenerationOperation =
   | 'first_last_frame_to_video'
   | 'reference_to_video'
 
-export type ModelUsageOperation = ImageGenerationOperation | VideoGenerationOperation
+export type ModelUsageOperation = AiModelTypeEnum | ImageGenerationOperation | VideoGenerationOperation
 
-export type ModelUsageLedgerOperation = AiModelTypeEnum | ModelUsageOperation
+export type ModelUsageLedgerOperation = ModelUsageOperation
 
 export type ModelUsageOriginType = 'execution' | 'tool' | 'model'
 
@@ -33,6 +34,8 @@ export type ModelUsageChargeType = 'paid' | 'free'
 
 export type ModelUsageTokenType = 'prompt' | 'completion' | 'total'
 
+export type ModelUsageMetricComponent = 'input' | 'output' | 'request'
+
 export type ModelUsagePriceRule = {
   id: string
   version: string
@@ -44,8 +47,10 @@ export type ModelUsagePriceRule = {
   unit_price?: number
   currency?: string
   charge_type: ModelUsageChargeType
+  component?: ModelUsageMetricComponent
   operations?: ModelUsageOperation[]
   dimensions?: Partial<Omit<ModelUsagePricingDimensions, 'durationSeconds'>>
+  daily_time_window?: ModelPriceDailyTimeWindow
   source_url?: string
 }
 
@@ -64,27 +69,47 @@ export type ModelUsagePricingContext = {
 
 export type ModelUsagePricingSnapshot = {
   capturedAt: string
+  pricingDimensions?: ModelUsagePricingDimensions
   rules: ModelUsagePriceRule[]
 }
 
-export type ModelUsageMetric =
-  | {
-      unit: 'token'
-      promptTokens?: number
-      completionTokens?: number
-      totalTokens?: number
-      authority: 'provider'
-    }
-  | {
-      unit: 'generation'
-      quantity: number
-      authority: 'provider' | 'contract'
-    }
-  | {
-      unit: 'second'
-      quantity: number
-      authority: 'provider' | 'request'
-    }
+export type ModelUsageMetricQualifiers = {
+  /** Stable identity inside one request. Required when component and unit are not unique. */
+  key?: string
+  component?: ModelUsageMetricComponent
+  pricingDimensions?: ModelUsagePricingDimensions
+}
+
+export type ModelUsageMetric = ModelUsageMetricQualifiers &
+  (
+    | {
+        unit: 'token'
+        promptTokens?: number
+        completionTokens?: number
+        totalTokens?: number
+        authority: 'provider'
+      }
+    | {
+        unit: 'generation'
+        quantity: number
+        authority: 'provider' | 'contract'
+      }
+    | {
+        unit: 'second'
+        quantity: number
+        authority: 'provider' | 'request'
+      }
+    | {
+        unit: 'character'
+        quantity: number
+        authority: 'provider' | 'request'
+      }
+    | {
+        unit: 'request'
+        quantity: number
+        authority: 'provider' | 'contract'
+      }
+  )
 
 /** Final, authoritative usage emitted after a model request has completed. */
 export type ModelUsageReport = {
@@ -122,6 +147,9 @@ export interface IModelUsageLedger extends IBasePerTenantAndOrganizationEntityMo
   toolName?: string | null
   modality: ModelUsageLedgerModality
   operation: ModelUsageLedgerOperation
+  metricKey: string
+  component?: ModelUsageMetricComponent | null
+  pricingDimensions?: ModelUsagePricingDimensions | null
   unit: ModelUsageMetric['unit']
   authority: ModelUsageMetric['authority']
   quantity?: number | null
@@ -157,7 +185,9 @@ export interface IModelChargeLedger extends IBasePerTenantAndOrganizationEntityM
   unitPrice?: number | null
   currency?: string | null
   amount?: number | null
+  priceAuthority?: LLMPriceAuthority | null
   pricingRule?: ModelUsagePriceRule | null
+  pricingBreakdown?: LLMPriceBreakdownItem[] | null
   chargedAt: Date
   settlementCurrency?: string | null
   settlementAmount?: number | null

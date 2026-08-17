@@ -1,7 +1,12 @@
+import type { LLMPriceAuthority, LLMPriceBreakdownItem } from '../ai/ai-model.model'
+import type { ModelUsagePricingStatus } from '../ai/model-usage.model'
+
 export type TTokenUsage = {
   promptTokens: number
   completionTokens: number
   totalTokens: number
+  cacheReadInputTokens?: number
+  cacheWriteInputTokens?: number
 }
 
 export interface IModelUsage {
@@ -20,4 +25,9 @@ export interface ILLMUsage extends IModelUsage {
   completionUnitPrice: number
   completionPriceUnit: number
   completionPrice: number
+  cacheReadInputTokens?: number
+  cacheWriteInputTokens?: number
+  pricingStatus?: ModelUsagePricingStatus
+  priceAuthority?: LLMPriceAuthority
+  pricingBreakdown?: LLMPriceBreakdownItem[]
 }
