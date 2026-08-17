@@ -282,7 +282,45 @@ describe('CopilotModelSelectComponent', () => {
     expect(component['cva'].value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
       temperature: 0.3,
-      max_tokens: 256
+      max_tokens: 256,
+      top_p: 0.9
+    })
+  }))
+
+  it('fills a missing thinking default when other options already exist', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.writeValue({
+      copilotId: copilot.id,
+      model: glmModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+        temperature: 0.3
+      }
+    })
+    fixture.detectChanges()
+
+    glmRules$.next([
+      {
+        name: 'temperature',
+        type: ParameterType.FLOAT,
+        default: 0.7
+      },
+      {
+        name: 'enable_thinking',
+        type: ParameterType.BOOLEAN,
+        default: true
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options).toEqual({
+      [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+      temperature: 0.3,
+      enable_thinking: true
     })
   }))
 
