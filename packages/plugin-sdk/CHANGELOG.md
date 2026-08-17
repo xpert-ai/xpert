@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.17.2
+
+### Patch Changes
+
+- fa1306a: Add conditional LLM pricing rules, provider-reported price authority, cache and add-on components, mixed cache-write TTL pricing, recurring daily price windows frozen at invocation start, and component-aware multi-unit usage reporting for specialized models.
+- Updated dependencies [fa1306a]
+  - @xpert-ai/contracts@3.17.2
+
 ## 3.17.1
 
 ### Patch Changes
