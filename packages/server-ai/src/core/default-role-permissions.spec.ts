@@ -20,6 +20,17 @@ describe('AI default role permissions', () => {
         expect(permissionsFor(role)).toContain(AIPermissionsEnum.MEMBERSHIP_EDIT)
     })
 
+    it.each([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.AI_BUILDER])(
+        'allows %s to monitor model usage',
+        (role) => {
+            expect(permissionsFor(role)).toContain(AIPermissionsEnum.MODEL_USAGE_MONITOR)
+        }
+    )
+
+    it('does not allow TRIAL to monitor model usage', () => {
+        expect(permissionsFor(RolesEnum.TRIAL)).not.toContain(AIPermissionsEnum.MODEL_USAGE_MONITOR)
+    })
+
     it.each([RolesEnum.TRIAL, RolesEnum.AI_BUILDER, RolesEnum.VIEWER])(
         'does not give %s membership administration permissions',
         (role) => {

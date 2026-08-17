@@ -4,6 +4,7 @@ const FULL_AI_PERMISSIONS = [
     AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
+    AIPermissionsEnum.MODEL_USAGE_MONITOR,
     AIPermissionsEnum.XPERT_EDIT,
     AIPermissionsEnum.CHAT_VIEW,
     AIPermissionsEnum.EVOLUTION_VIEW,

@@ -9,6 +9,7 @@ import { Store } from '@cloud/app/@core/state'
 
 const COPILOT_MONITORING_FEATURE = 'FEATURE_COPILOT_MONITORING'
 let monitoringEnabled = true
+let usageMonitoringAllowed = true
 let activeScopeLevel = 'organization'
 
 jest.mock('../../../@core', () => ({
@@ -34,6 +35,7 @@ jest.mock('@cloud/app/@core/state', () => ({
 
     featureContextHydrated = true
     featureContextHydrated$ = jest.requireActual('rxjs').of(true)
+    userRolePermissions$ = jest.requireActual('rxjs').of([])
     selectActiveScope() {
       return jest.requireActual('rxjs').of({ level: activeScopeLevel })
     }
@@ -41,12 +43,17 @@ jest.mock('@cloud/app/@core/state', () => ({
     hasFeatureEnabled(feature: string) {
       return feature === 'FEATURE_COPILOT_MONITORING' && monitoringEnabled
     }
+
+    hasPermission(permission: string) {
+      return permission === 'MODEL_USAGE_MONITOR' && usageMonitoringAllowed
+    }
   }
 }))
 
 describe('CopilotComponent', () => {
   beforeEach(() => {
     monitoringEnabled = true
+    usageMonitoringAllowed = true
     activeScopeLevel = 'organization'
   })
 
@@ -86,6 +93,16 @@ describe('CopilotComponent', () => {
 
     expect(fixture.componentInstance.hasFeatureEnabled(COPILOT_MONITORING_FEATURE)).toBe(false)
     expect(text).not.toContain('XP.Copilot.Overview')
+    expect(text).not.toContain('XP.Copilot.UsageCenter')
+  })
+
+  it('keeps overview visible and hides usage center without model usage monitoring permission', async () => {
+    usageMonitoringAllowed = false
+
+    const fixture = await createComponent()
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? ''
+
+    expect(text).toContain('XP.Copilot.Overview')
     expect(text).not.toContain('XP.Copilot.UsageCenter')
   })
 

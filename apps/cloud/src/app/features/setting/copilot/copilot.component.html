@@ -27,10 +27,12 @@
         <z-icon class="mr-1" zType="monitoring"></z-icon>
         {{ 'XP.Copilot.Overview' | translate: { Default: 'Overview' } }}
       </span>
-      <span z-tab-link [routerLink]="['./usage']" routerLinkActive #rla4="routerLinkActive" [active]="rla4.isActive">
-        <z-icon class="mr-1" zType="data_usage"></z-icon>
-        {{ 'XP.Copilot.UsageCenter' | translate: { Default: 'Usage Center' } }}
-      </span>
+      @if (canMonitorUsage()) {
+        <span z-tab-link [routerLink]="['./usage']" routerLinkActive #rla4="routerLinkActive" [active]="rla4.isActive">
+          <z-icon class="mr-1" zType="data_usage"></z-icon>
+          {{ 'XP.Copilot.UsageCenter' | translate: { Default: 'Usage Center' } }}
+        </span>
+      }
     }
   </nav>
 </div>
