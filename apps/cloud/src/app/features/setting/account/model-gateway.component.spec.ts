@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { Store } from '@cloud/app/@core/state'
@@ -130,5 +131,42 @@ describe('XpAccountModelGatewayComponent', () => {
 
     component.modelSearchControl.setValue('beta')
     expect(component.filteredCatalogItems()).toEqual([unavailable])
+  })
+
+  it('uses the CDK clipboard fallback and reports the copy result without the native Clipboard API', () => {
+    const copy = jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false)
+    const toastr = { error: jest.fn(), success: jest.fn() }
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Clipboard, useValue: { copy } },
+        { provide: ModelGatewayService, useValue: {} },
+        { provide: ZardDialogService, useValue: {} },
+        { provide: TranslateService, useValue: { instant: jest.fn((value: string) => value) } },
+        { provide: ToastrService, useValue: toastr },
+        { provide: Store, useValue: {} },
+        {
+          provide: DOCUMENT,
+          useValue: {
+            defaultView: {
+              location: { origin: 'http://10.151.251.15' },
+              navigator: {}
+            }
+          }
+        }
+      ]
+    })
+    const component = TestBed.runInInjectionContext(() => new XpAccountModelGatewayComponent())
+
+    component.copy('first value')
+
+    expect(copy).toHaveBeenCalledWith('first value')
+    expect(toastr.success).toHaveBeenCalledWith('XP.ACTIONS.Copied')
+    expect(toastr.error).not.toHaveBeenCalled()
+
+    component.copy('second value')
+
+    expect(copy).toHaveBeenCalledWith('second value')
+    expect(toastr.error).toHaveBeenCalledWith('XP.ModelGateway.CopyFailed')
   })
 })

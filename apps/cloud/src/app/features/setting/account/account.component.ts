@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ReferralService } from '@cloud/app/@core/state'
@@ -37,6 +38,7 @@ export class XpAccountComponent {
   private readonly store = inject(Store)
   private readonly referralService = inject(ReferralService)
   private readonly document = inject(DOCUMENT)
+  private readonly clipboard = inject(Clipboard)
   private readonly alertDialog = inject(ZardAlertDialogService)
   private readonly translate = inject(TranslateService)
   private readonly toastr = inject(ToastrService)
@@ -78,15 +80,17 @@ export class XpAccountComponent {
     })
   }
 
-  async copyReferralCode() {
+  copyReferralCode() {
     const code = this.referralCode()
-    const clipboard = this.document.defaultView?.navigator.clipboard
-    if (!code || !clipboard) {
+    if (!code) {
       return
     }
 
     try {
-      await clipboard.writeText(code)
+      if (!this.clipboard.copy(code)) {
+        this.referralCodeCopied.set(false)
+        return
+      }
       this.referralCodeCopied.set(true)
       this.document.defaultView?.setTimeout(() => this.referralCodeCopied.set(false), 1500)
     } catch {

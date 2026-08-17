@@ -1,4 +1,5 @@
 import { CommonModule, DOCUMENT } from '@angular/common'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
@@ -76,6 +77,7 @@ export class XpAccountModelGatewayComponent implements OnInit {
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly #document = inject(DOCUMENT)
+  readonly #clipboard = inject(Clipboard)
   readonly #store = inject(Store)
   readonly #destroyRef = inject(DestroyRef)
   #loadSequence = 0
@@ -278,9 +280,14 @@ export class XpAccountModelGatewayComponent implements OnInit {
     await this.load()
   }
 
-  async copy(value: string) {
+  copy(value: string) {
     try {
-      await this.#document.defaultView?.navigator.clipboard.writeText(value)
+      if (!this.#clipboard.copy(value)) {
+        this.#toastr.error(
+          this.#translate.instant('XP.ModelGateway.CopyFailed', { Default: 'Failed to copy to clipboard' })
+        )
+        return
+      }
       this.#toastr.success(this.#translate.instant('XP.ACTIONS.Copied', { Default: 'Copied' }))
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
