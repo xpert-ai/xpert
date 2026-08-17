@@ -1,4 +1,11 @@
-import { AiModelTypeEnum, ICopilot, IModelAccessResolution } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    ICopilot,
+    IModelAccessResolution,
+    LLMPriceAuthority,
+    LLMPriceBreakdownItem,
+    ModelUsagePricingStatus
+} from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class CopilotTokenRecordCommand implements ICommand {
@@ -22,6 +29,9 @@ export class CopilotTokenRecordCommand implements ICommand {
             tokenUsed?: number
             priceUsed?: number
             currency?: string
+            pricingStatus?: ModelUsagePricingStatus
+            priceAuthority?: LLMPriceAuthority
+            pricingBreakdown?: LLMPriceBreakdownItem[]
         }
     ) {}
 }

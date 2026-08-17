@@ -1,4 +1,11 @@
-import { IModelAccessResolution, mapTranslationLanguage, resolveModelParameterOptions } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    IModelAccessResolution,
+    mapTranslationLanguage,
+    ModelUsagePricingContext,
+    ModelUsageReport,
+    resolveModelParameterOptions
+} from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
@@ -7,7 +14,11 @@ import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
-import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
+import {
+    CopilotCheckLimitCommand,
+    CopilotModelUsageRecordCommand,
+    CopilotTokenRecordCommand
+} from '../../../copilot-user'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
@@ -26,7 +37,8 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
     ) {}
 
     public async execute(command: CopilotModelGetChatModelQuery) {
-        const { abortController, usageCallback, modelAccessCallback, xpertId, threadId } = command.options ?? {}
+        const { abortController, usageCallback, modelUsageCallback, modelAccessCallback, xpertId, threadId } =
+            command.options ?? {}
         let copilot = command.copilot
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
@@ -87,6 +99,13 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             ...copilotModel,
             options: resolveModelParameterOptions(copilotModel.options, parameterRules)
         }
+        const resolveUsagePricingSnapshot = async (context: ModelUsagePricingContext) =>
+            modelProvider
+                .getModelManager(copilotModel.modelType)
+                .getUsagePricingSnapshot(modelName, copilot.modelProvider.credentials, {
+                    ...context,
+                    model: modelName
+                })
 
         const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
@@ -97,6 +116,41 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             {
                 verbose: Logger.isLevelEnabled('verbose'),
                 modelProperties: customModels[0]?.modelProperties,
+                resolveUsagePricingSnapshot,
+                handleModelUsage:
+                    copilotModel.modelType === AiModelTypeEnum.LLM
+                        ? undefined
+                        : async (report: ModelUsageReport) => {
+                              const normalizedReport: ModelUsageReport = {
+                                  ...report,
+                                  model: modelName,
+                                  modelType: copilotModel.modelType
+                              }
+                              await modelUsageCallback?.(normalizedReport)
+                              const pricingSnapshot =
+                                  normalizedReport.pricingSnapshot ??
+                                  (await resolveUsagePricingSnapshot({
+                                      model: modelName,
+                                      operation: normalizedReport.operation,
+                                      modality: normalizedReport.modality,
+                                      pricingDimensions: normalizedReport.pricingDimensions,
+                                      startedAt: normalizedReport.recordedAt
+                                  }))
+                              await this.recordModelUsage(
+                                  new CopilotModelUsageRecordCommand({
+                                      tenantId,
+                                      organizationId,
+                                      userId,
+                                      xpertId,
+                                      originId: threadId,
+                                      copilot,
+                                      modelAccess,
+                                      report: normalizedReport,
+                                      pricingSnapshot
+                                  }),
+                                  abortController
+                              )
+                          },
                 handleLLMTokens: async (input) => {
                     if (usageCallback && input.usage) {
                         await usageCallback(input.usage)
@@ -127,8 +181,11 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                         promptTokens: input.usage?.promptTokens,
                         completionTokens: input.usage?.completionTokens,
                         tokenUsed: input.usage?.totalTokens,
-                        priceUsed: input.usage?.totalPrice,
+                        priceUsed: input.usage?.pricingStatus === 'unpriced' ? undefined : input.usage?.totalPrice,
                         currency: input.usage?.currency,
+                        pricingStatus: input.usage?.pricingStatus,
+                        priceAuthority: input.usage?.priceAuthority,
+                        pricingBreakdown: input.usage?.pricingBreakdown,
                         abortController
                     })
                 }
@@ -149,6 +206,20 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
         const { abortController, ...record } = input
         try {
             await this.commandBus.execute(new CopilotTokenRecordCommand(record))
+        } catch (error) {
+            if (error instanceof ExceedingLimitException) {
+                if (abortController && !abortController.signal.aborted) {
+                    abortController.abort(error.message)
+                }
+                return
+            }
+            this.#logger.error(error)
+        }
+    }
+
+    private async recordModelUsage(command: CopilotModelUsageRecordCommand, abortController?: AbortController) {
+        try {
+            await this.commandBus.execute(command)
         } catch (error) {
             if (error instanceof ExceedingLimitException) {
                 if (abortController && !abortController.signal.aborted) {
