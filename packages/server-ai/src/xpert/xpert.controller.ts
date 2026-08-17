@@ -1048,7 +1048,9 @@ export class XpertController extends CrudController<Xpert> {
                 {
                     ...data,
                     where: {
-                        ...(transformWhere(where ?? {}) ?? {}),
+                        ...(transformWhere<
+                            Pick<ChatConversation, 'id' | 'threadId' | 'xpertId' | 'createdAt' | 'createdById'>
+                        >(where ?? {}) ?? {}),
                         xpertId: id,
                         createdAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
                     }

@@ -272,7 +272,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         })
     }
 
-    async findOneDetail(id: string, options: DeepPartial<PaginationParams<ChatConversation>>) {
+    async findOneDetail(id: string, options: Pick<PaginationParams<ChatConversation>, 'select' | 'relations'>) {
         // Split executions relation
         const { relations } = options ?? {}
         const entity = await this.findOne(id, {
