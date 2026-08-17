@@ -194,6 +194,91 @@ export interface ParameterRule {
   options?: string[]
 }
 
+export function normalizeModelParameterValue(value: unknown, rule: ParameterRule): unknown | undefined {
+  switch (rule.type) {
+    case ParameterType.FLOAT:
+    case ParameterType.INT: {
+      if (value === '' || value === null || value === undefined) {
+        return undefined
+      }
+
+      const numericValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+      if (!Number.isFinite(numericValue)) {
+        return undefined
+      }
+
+      let normalizedValue = rule.type === ParameterType.INT ? Math.trunc(numericValue) : numericValue
+      if (typeof rule.min === 'number' && Number.isFinite(rule.min)) {
+        normalizedValue = Math.max(normalizedValue, rule.min)
+      }
+      if (typeof rule.max === 'number' && Number.isFinite(rule.max)) {
+        normalizedValue = Math.min(normalizedValue, rule.max)
+      }
+      return rule.type === ParameterType.INT ? Math.trunc(normalizedValue) : normalizedValue
+    }
+    case ParameterType.BOOLEAN:
+      if (typeof value === 'boolean') {
+        return value
+      }
+      if (typeof value === 'string') {
+        const normalizedValue = value.trim().toLowerCase()
+        if (normalizedValue === 'true') {
+          return true
+        }
+        if (normalizedValue === 'false') {
+          return false
+        }
+      }
+      if (value === 1) {
+        return true
+      }
+      if (value === 0) {
+        return false
+      }
+      return undefined
+    case ParameterType.STRING:
+    case ParameterType.TEXT:
+      if (typeof value !== 'string') {
+        return undefined
+      }
+      if (rule.options?.length && !rule.options.includes(value)) {
+        return undefined
+      }
+      return value
+    default:
+      return value === undefined ? undefined : value
+  }
+}
+
+export function resolveModelParameterOptions(
+  modelOptions: Record<string, unknown> | undefined,
+  rules: ParameterRule[],
+  config: { preserveUnknown?: boolean } = {}
+): Record<string, unknown> | undefined {
+  const preserveUnknown = config.preserveUnknown ?? true
+  const resolvedOptions: Record<string, unknown> = preserveUnknown ? { ...(modelOptions ?? {}) } : {}
+
+  for (const rule of rules) {
+    if (!rule.name) {
+      continue
+    }
+
+    const hasSavedValue = Object.prototype.hasOwnProperty.call(modelOptions ?? {}, rule.name)
+    let resolvedValue = hasSavedValue ? normalizeModelParameterValue(modelOptions?.[rule.name], rule) : undefined
+    if (resolvedValue === undefined && rule.default !== undefined) {
+      resolvedValue = normalizeModelParameterValue(rule.default, rule)
+    }
+
+    if (resolvedValue === undefined) {
+      delete resolvedOptions[rule.name]
+    } else {
+      resolvedOptions[rule.name] = resolvedValue
+    }
+  }
+
+  return Object.keys(resolvedOptions).length ? resolvedOptions : undefined
+}
+
 export interface PriceTierConfig {
   input: number
   output?: number

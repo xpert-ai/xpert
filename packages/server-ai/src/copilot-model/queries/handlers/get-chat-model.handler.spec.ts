@@ -10,7 +10,9 @@ import {
     ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum,
-    ModelFeature
+    ModelFeature,
+    ParameterRule,
+    ParameterType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../../../ai-model'
@@ -21,7 +23,12 @@ import { CopilotModelGetChatModelHandler } from './get-chat-model.handler'
 import { prepareMessagesForModel } from '../../model-capabilities'
 
 describe('CopilotModelGetChatModelHandler', () => {
-    function createFixture(features: ModelFeature[] = [], modelType = AiModelTypeEnum.LLM) {
+    function createFixture(
+        features: ModelFeature[] = [],
+        modelType = AiModelTypeEnum.LLM,
+        parameterRules: ParameterRule[] = [],
+        modelOptions?: Record<string, unknown>
+    ) {
         const modelAccess: IModelAccessResolution = {
             allowed: true,
             channel: ModelAccessChannelEnum.Xpert,
@@ -56,6 +63,8 @@ describe('CopilotModelGetChatModelHandler', () => {
                 label: { en_US: 'qwen3.6-plus', zh_Hans: 'qwen3.6-plus' }
             }
         ])
+        const getParameterRules = jest.fn().mockReturnValue(parameterRules)
+        const getModelManager = jest.fn().mockReturnValue({ getParameterRules })
         const queryBus = {
             execute: jest.fn(async (query) => {
                 if (query instanceof GetCopilotProviderModelQuery) {
@@ -65,7 +74,8 @@ describe('CopilotModelGetChatModelHandler', () => {
                     return {
                         name: 'tongyi',
                         getModelInstance,
-                        getProviderModels
+                        getProviderModels,
+                        getModelManager
                     }
                 }
                 throw new Error(`Unexpected query: ${query?.constructor?.name}`)
@@ -88,7 +98,8 @@ describe('CopilotModelGetChatModelHandler', () => {
             {
                 copilotId: 'copilot-1',
                 model: 'qwen3.6-plus',
-                modelType
+                modelType,
+                options: modelOptions
             } as never,
             {
                 usageCallback: jest.fn(),
@@ -98,7 +109,16 @@ describe('CopilotModelGetChatModelHandler', () => {
             }
         )
 
-        return { commandBus, getModelInstance, handler, model, modelAccess, modelAccessCallback, query }
+        return {
+            commandBus,
+            getModelInstance,
+            getParameterRules,
+            handler,
+            model,
+            modelAccess,
+            modelAccessCallback,
+            query
+        }
     }
 
     beforeEach(() => {
@@ -148,9 +168,9 @@ describe('CopilotModelGetChatModelHandler', () => {
             modelAccess,
             tokenUsed: 120
         })
-        expect(commandBus.execute.mock.calls.filter(([command]) => command instanceof CopilotCheckLimitCommand)).toHaveLength(
-            1
-        )
+        expect(
+            commandBus.execute.mock.calls.filter(([command]) => command instanceof CopilotCheckLimitCommand)
+        ).toHaveLength(1)
     })
 
     it('waits for the execution usage callback before recording provider usage', async () => {
@@ -171,16 +191,16 @@ describe('CopilotModelGetChatModelHandler', () => {
         })
         await Promise.resolve()
 
-        expect(
-            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
-        ).toBe(false)
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            false
+        )
 
         releaseUsage!()
         await reporting
 
-        expect(
-            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
-        ).toBe(true)
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            true
+        )
     })
 
     it('does not record estimated usage in the provider billing ledger', async () => {
@@ -193,9 +213,36 @@ describe('CopilotModelGetChatModelHandler', () => {
             usage: { totalTokens: 120, type: 'estimated' }
         })
 
-        expect(
-            commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)
-        ).toBe(false)
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
+            false
+        )
+    })
+
+    it('resolves missing parameter defaults before creating the model instance', async () => {
+        const rules: ParameterRule[] = [
+            {
+                name: 'temperature',
+                label: { en_US: 'Temperature' },
+                type: ParameterType.FLOAT,
+                default: 0.7
+            },
+            {
+                name: 'enable_thinking',
+                label: { en_US: 'Thinking mode' },
+                type: ParameterType.BOOLEAN,
+                default: true
+            }
+        ]
+        const { getModelInstance, handler, query } = createFixture([], AiModelTypeEnum.LLM, rules, {
+            temperature: 0.3
+        })
+
+        await handler.execute(query)
+
+        expect(getModelInstance.mock.calls[0][1].options).toEqual({
+            temperature: 0.3,
+            enable_thinking: true
+        })
     })
 
     it('marks predefined vision models', async () => {

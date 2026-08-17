@@ -2935,6 +2935,7 @@
         "CERTIFICATION_EDIT": "Maintain Certifications",
         "COPILOT_VIEW": "Use Copilots",
         "COPILOT_EDIT": "Manage Model Providers",
+        "MODEL_USAGE_MONITOR": "Monitor Model Usage",
         "MEMBERSHIP_EDIT": "Manage Membership Plans",
         "MODEL_ACCESS_REQUEST_VIEW": "View Model Access Requests",
         "MODEL_ACCESS_REQUEST_EDIT": "Manage Model Access Requests",

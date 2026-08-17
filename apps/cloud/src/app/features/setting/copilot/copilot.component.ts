@@ -4,6 +4,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { AiFeatureEnum, RequestScopeLevel, Store } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { map } from 'rxjs'
 import { ToastrService, routeAnimations } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { SharedUiModule } from '../../../@shared/ui.module'
@@ -26,6 +28,10 @@ export class CopilotComponent extends TranslationBaseComponent {
     initialValue: this.#store.activeScope
   })
   readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
+  readonly canMonitorUsage = toSignal(
+    this.#store.userRolePermissions$.pipe(map(() => this.#store.hasPermission(AIPermissionsEnum.MODEL_USAGE_MONITOR))),
+    { initialValue: this.#store.hasPermission(AIPermissionsEnum.MODEL_USAGE_MONITOR) }
+  )
   readonly monitoringEnabled = computed(
     () =>
       !this.featureContextHydrated() ||

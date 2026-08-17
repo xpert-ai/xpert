@@ -1,4 +1,4 @@
-import { IModelAccessResolution, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { IModelAccessResolution, mapTranslationLanguage, resolveModelParameterOptions } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
@@ -79,10 +79,19 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 
         ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
 
+        const parameterRules =
+            modelProvider
+                .getModelManager(copilotModel.modelType)
+                ?.getParameterRules(modelName, customModels[0]?.modelProperties) ?? []
+        const resolvedCopilotModel = {
+            ...copilotModel,
+            options: resolveModelParameterOptions(copilotModel.options, parameterRules)
+        }
+
         const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
             {
-                ...copilotModel,
+                ...resolvedCopilotModel,
                 copilot
             },
             {

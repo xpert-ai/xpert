@@ -1704,6 +1704,7 @@
         "ACCESS_DELETE_ACCOUNT": "Access Delete Account",
         "ACCESS_DELETE_ALL_DATA": "Access Delete All Data",
         "ORG_DEMO_EDIT": "Edit Organization Demo",
+        "MODEL_USAGE_MONITOR": "Monitor Model Usage",
         "MEMBERSHIP_EDIT": "Manage Membership Plans",
         "MODEL_ACCESS_REQUEST_VIEW": "View Model Access Requests",
         "MODEL_ACCESS_REQUEST_EDIT": "Manage Model Access Requests",

@@ -54,7 +54,13 @@ export default [
       },
       {
         path: 'usage',
-        canActivate: [copilotMonitoringGate],
+        canActivate: [NgxPermissionsGuard, copilotMonitoringGate],
+        data: {
+          permissions: {
+            only: [AIPermissionsEnum.MODEL_USAGE_MONITOR],
+            redirectTo: '/copilot/basic'
+          }
+        },
         loadComponent: () => import('./usage-center/usage-center.component').then((m) => m.CopilotUsageCenterComponent)
       },
       {
