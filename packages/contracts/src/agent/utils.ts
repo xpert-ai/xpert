@@ -1,6 +1,10 @@
 import { isRouterKey } from '../ai'
 import { TXpertGraph } from '../ai/xpert.model'
-import { DeepPartial } from '../types'
+
+type TStartNodeConnection = Partial<Pick<TXpertGraph['connections'][number], 'type' | 'from' | 'to'>>
+type TStartNodeGraph = {
+  connections?: TStartNodeConnection[]
+}
 
 /**
  * Channels of all upstream and downstream nodes relative to the starting point startKey.
@@ -13,10 +17,13 @@ export function allChannels(graph: TXpertGraph, startKey: string) {
   return graph.nodes.filter((node) => !(node.type === 'workflow' && isRouterKey(node.key))).map((node) => node.key)
 }
 
-export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): string[] {
+export function findStartNodes(graph: TStartNodeGraph, key: string): string[] {
   const toMap = new Map<string, string[]>()
   // Consider only horizontal processes
-  const connections = graph.connections.filter((_) => _.type === 'edge')
+  const connections = (graph.connections ?? []).filter(
+    (connection): connection is Required<TStartNodeConnection> =>
+      connection.type === 'edge' && typeof connection.from === 'string' && typeof connection.to === 'string'
+  )
   // Construct toMap: record all upstream nodes of each node
   for (const conn of connections) {
     if (!toMap.has(conn.to)) toMap.set(conn.to, [])
@@ -56,13 +63,13 @@ export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): st
 
 /**
  * Keep the content in the same graph as the key node (including the node, its connected nodes, and the 'edge' type connections between them)
- * 
- * @param graph 
- * @param key 
- * @returns 
+ *
+ * @param graph
+ * @param key
+ * @returns
  */
 export function getCurrentGraph(graph: TXpertGraph, key: string): TXpertGraph {
-  const validConnections = graph.connections.filter(conn => conn.type === 'edge')
+  const validConnections = graph.connections.filter((conn) => conn.type === 'edge')
 
   // Extract the primary key (remove the / suffix)
   const normalize = (k: string) => k.split('/')[0]
@@ -98,11 +105,11 @@ export function getCurrentGraph(graph: TXpertGraph, key: string): TXpertGraph {
     }
   }
 
-  const nodeSet = new Set(graph.nodes.map(n => n.key))
-  const keptNodes = graph.nodes.filter(n => visited.has(normalize(n.key)))
-  const keptNodeKeys = new Set(keptNodes.map(n => n.key))
+  const nodeSet = new Set(graph.nodes.map((n) => n.key))
+  const keptNodes = graph.nodes.filter((n) => visited.has(normalize(n.key)))
+  const keptNodeKeys = new Set(keptNodes.map((n) => n.key))
 
-  const keptConnections = validConnections.filter(conn => {
+  const keptConnections = validConnections.filter((conn) => {
     const from = normalize(conn.from)
     const to = normalize(conn.to)
     return visited.has(from) && visited.has(to)

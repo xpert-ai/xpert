@@ -25,6 +25,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
 import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
@@ -64,7 +65,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     /**
      * To solve the problem that Update cannot create OneToOne relation, it is uncertain whether using save to update might pose risks
      */
-    async update(id: string, entity: Partial<Xpert>) {
+    // Isolate TypeORM's recursive update type; business callers use the shallow method to keep ts-node inference bounded.
+    async update(id: string, entity: QueryDeepPartialEntity<Xpert> & Partial<Xpert>) {
+        return this.updateXpert(id, entity)
+    }
+
+    async updateXpert(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
         return await super.save(_entity)

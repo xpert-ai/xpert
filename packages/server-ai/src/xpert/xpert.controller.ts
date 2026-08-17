@@ -994,7 +994,7 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/api')
     async updateChatApi(@Param('id') id: string, @Body() api: Partial<TChatApi>) {
         const xpert = await this.service.findOne(id)
-        await this.service.update(id, { api: { ...(xpert.api ?? {}), ...api } })
+        await this.service.updateXpert(id, { api: { ...(xpert.api ?? {}), ...api } })
         if (!api.disabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
@@ -1003,7 +1003,7 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/app')
     async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
         const xpert = await this.service.findOne(id)
-        await this.service.update(id, { app: { ...(xpert.app ?? {}), ...app } })
+        await this.service.updateXpert(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }

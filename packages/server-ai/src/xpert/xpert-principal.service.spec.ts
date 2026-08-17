@@ -22,7 +22,7 @@ describe('XpertPrincipalService', () => {
         ).resolves.toBe(user)
 
         expect(userService.ensureCommunicationUser).not.toHaveBeenCalled()
-        expect(xpertService.update).not.toHaveBeenCalled()
+        expect(xpertService.updateXpert).not.toHaveBeenCalled()
     })
 
     it('creates and binds a stable communication user when the xpert principal user is missing', async () => {
@@ -50,7 +50,7 @@ describe('XpertPrincipalService', () => {
             thirdPartyId: 'xpert:xpert-1',
             username: 'sales-assistant'
         })
-        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+        expect(xpertService.updateXpert).toHaveBeenCalledWith('xpert-1', {
             user: expect.objectContaining({
                 id: 'assistant-user-1'
             }),
@@ -135,7 +135,7 @@ function createService() {
         repository: {
             createQueryBuilder: jest.fn(() => query)
         },
-        update: jest.fn()
+        updateXpert: jest.fn()
     }
     const userService = {
         findOneByIdWithinTenant: jest.fn(),

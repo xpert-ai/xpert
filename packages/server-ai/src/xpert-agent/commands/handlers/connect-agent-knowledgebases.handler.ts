@@ -64,7 +64,7 @@ export class ConnectAgentKnowledgebasesHandler implements ICommandHandler<Connec
         const graph = connectGraphAgent(xpert.graph, agentKey, knowledgebaseIds)
         const draft = connectDraftAgent(xpert.draft, agentKey, knowledgebaseIds, retrievals)
         if (graph !== xpert.graph || draft !== xpert.draft || retrievals !== xpert.agentConfig?.retrievals) {
-            await this.xpertService.update(xpertId, {
+            await this.xpertService.updateXpert(xpertId, {
                 ...(graph !== xpert.graph ? { graph } : {}),
                 ...(draft !== xpert.draft ? { draft } : {}),
                 ...(retrievals !== xpert.agentConfig?.retrievals

@@ -28,7 +28,7 @@ describe('ConnectAgentKnowledgebasesHandler', () => {
                     nodes: []
                 }
             })),
-            update: jest.fn(async () => undefined)
+            updateXpert: jest.fn(async () => undefined)
         }
         const xpertAgentService = { update: jest.fn(async () => undefined) }
         const queryBus = { execute: jest.fn(async () => [{ id: 'kb-source', name: 'Source KB' }]) }
@@ -48,7 +48,7 @@ describe('ConnectAgentKnowledgebasesHandler', () => {
             })
         )
 
-        expect(xpertService.update).toHaveBeenCalledWith(
+        expect(xpertService.updateXpert).toHaveBeenCalledWith(
             'xpert-1',
             expect.objectContaining({
                 agentConfig: {

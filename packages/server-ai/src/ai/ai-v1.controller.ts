@@ -107,7 +107,7 @@ export class AIV1Controller {
         description: 'Knowledgebase'
     })
     async updateKnowledgebase(@Param('id') id: string, @Body() body: CreateKnowledgebaseDTO) {
-        return this.kbService.update(id, body)
+        return this.kbService.updateKnowledgebase(id, body)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)

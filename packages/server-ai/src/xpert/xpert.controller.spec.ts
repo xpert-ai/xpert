@@ -176,7 +176,7 @@ describe('XpertController', () => {
         findByPrincipalUserId: jest.Mock
         findBySlug: jest.Mock
         findOne: jest.Mock
-        update: jest.Mock
+        updateXpert: jest.Mock
     }
     let environmentService: {
         findOne: jest.Mock
@@ -208,7 +208,7 @@ describe('XpertController', () => {
             findByPrincipalUserId: jest.fn(),
             findBySlug: jest.fn(),
             findOne: jest.fn(),
-            update: jest.fn()
+            updateXpert: jest.fn()
         }
         environmentService = {
             findOne: jest.fn()
@@ -403,7 +403,7 @@ describe('XpertController', () => {
             disabled: false
         })
 
-        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+        expect(xpertService.updateXpert).toHaveBeenCalledWith('xpert-1', {
             api: {
                 disabled: false
             }
@@ -428,7 +428,7 @@ describe('XpertController', () => {
             enabled: true
         })
 
-        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+        expect(xpertService.updateXpert).toHaveBeenCalledWith('xpert-1', {
             app: {
                 enabled: true
             }

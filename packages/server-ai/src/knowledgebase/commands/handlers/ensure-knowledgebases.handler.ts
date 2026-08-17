@@ -88,7 +88,7 @@ export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowle
                 patch.copilotModel = { ...inheritedEmbeddingModel }
             }
             const saved = existing
-                ? await this.knowledgebaseService.update(existing.id, patch)
+                ? await this.knowledgebaseService.updateKnowledgebase(existing.id, patch)
                 : await this.knowledgebaseService.create(patch)
             items.push({
                 id: saved.id,
