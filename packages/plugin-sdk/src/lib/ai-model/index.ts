@@ -1,6 +1,7 @@
 export * from './ai-model-provider.interface'
 export * from './ai-model-provider.decorator'
 export * from './ai-model-provider.registry'
+export * from './ai-model'
 export * from './abstract-provider'
 export * from './types'
 export * from './llm'

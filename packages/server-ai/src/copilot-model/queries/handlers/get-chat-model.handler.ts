@@ -2,10 +2,10 @@ import { IModelAccessResolution, mapTranslationLanguage, resolveModelParameterOp
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { AIModelProviderNotFoundException, RequestContext } from '@xpert-ai/plugin-sdk'
+import { AIModelProviderNotFoundException, IAIModelProviderStrategy, RequestContext } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
-import { AIModelGetProviderQuery, ModelProvider } from '../../../ai-model'
+import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
@@ -67,7 +67,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
         )
 
-        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, IAIModelProviderStrategy>(
             new AIModelGetProviderQuery(copilot.modelProvider.providerName)
         )
 

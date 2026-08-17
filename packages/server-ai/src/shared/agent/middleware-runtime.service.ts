@@ -20,6 +20,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import {
     AIModelProviderNotFoundException,
+    IAIModelProviderStrategy,
     AgentMiddlewareAssistantTaskFile,
     AgentMiddlewareAssistantTaskCancelResult,
     AgentMiddlewareAssistantTaskInput,
@@ -85,7 +86,6 @@ import {
 import { FileStorage, GetStorageFileQuery, OutboundActorTokenProvider } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
-import { ModelProvider } from '../../ai-model/ai-provider'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
 import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limit.command'
@@ -193,7 +193,7 @@ export class AgentMiddlewareRuntimeService {
             new GetCopilotProviderModelQuery(copilot.modelProvider.id, { modelName })
         )
 
-        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, IAIModelProviderStrategy>(
             new AIModelGetProviderQuery(copilot.modelProvider.providerName)
         )
 
@@ -332,7 +332,7 @@ export class AgentMiddlewareRuntimeService {
             )
         }
 
-        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
+        const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, IAIModelProviderStrategy>(
             new AIModelGetProviderQuery(providerName)
         )
         if (!modelProvider) {
