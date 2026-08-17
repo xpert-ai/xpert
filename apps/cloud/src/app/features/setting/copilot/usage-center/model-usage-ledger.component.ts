@@ -8,7 +8,6 @@ import {
   IModelUsageLedger,
   ModelUsageLedgerModality,
   ModelUsageLedgerQuery,
-  ModelUsageLedgerTotals,
   ModelUsageMetric,
   ModelUsagePricingStatus
 } from '@xpert-ai/contracts'
@@ -65,10 +64,8 @@ export class ModelUsageLedgerComponent {
   readonly pricingStatusFilter = model<ModelUsagePricingStatus | ''>('')
 
   readonly items = signal<IModelUsageLedger[]>([])
-  readonly totals = signal<ModelUsageLedgerTotals[]>([])
   readonly expandedAccountKeys = signal<Set<string>>(new Set())
   readonly loading = signal(false)
-  readonly totalsLoading = signal(false)
   readonly currentPage = signal(0)
   readonly done = signal(false)
   readonly pageSize = 30
@@ -122,7 +119,6 @@ export class ModelUsageLedgerComponent {
       this.selectedOrganization()?.name ||
       this.translate.instant('XP.Scope.OrganizationEyebrow', { Default: 'Organization Scope' })
   )
-  readonly summaryCards = computed(() => summarizeTotals(this.totals()))
   readonly accountGroups = computed(() => groupUsageByAccount(this.items()))
 
   constructor() {
@@ -143,20 +139,7 @@ export class ModelUsageLedgerComponent {
     this.items.set([])
     this.expandedAccountKeys.set(new Set())
     this.loading.set(false)
-    this.loadTotals(version)
     this.loadMore(version)
-  }
-
-  loadTotals(version = this.#loadVersion) {
-    this.totalsLoading.set(true)
-    this.usageService.getModelUsageLedgerTotals(this.query()).subscribe({
-      next: (totals) => {
-        if (version !== this.#loadVersion) return
-        this.totals.set(totals)
-        this.totalsLoading.set(false)
-      },
-      error: (error) => this.handleError(error, version, true)
-    })
   }
 
   loadMore(version = this.#loadVersion) {
@@ -173,15 +156,11 @@ export class ModelUsageLedgerComponent {
           if (version !== this.#loadVersion) return
           this.items.update((state) => [...state, ...items])
           this.currentPage.update((page) => page + 1)
-          if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) this.done.set(true)
+          if (this.currentPage() * this.pageSize >= total) this.done.set(true)
           this.loading.set(false)
         },
-        error: (error) => this.handleError(error, version, false)
+        error: (error) => this.handleError(error, version)
       })
-  }
-
-  rowUsage(item: IModelUsageLedger) {
-    return item.unit === 'token' ? item.totalTokens : item.quantity
   }
 
   pricingLabel(status: ModelUsagePricingStatus) {
@@ -204,10 +183,6 @@ export class ModelUsageLedgerComponent {
       return this.translate.instant('XP.Copilot.Request', { Default: 'Requests' })
     }
     return this.translate.instant('XP.Copilot.Token', { Default: 'Token' })
-  }
-
-  currencyLabel(currency: string | null | undefined) {
-    return currency ? normalizeCurrency(currency) : ''
   }
 
   modalityLabel(modality: ModelUsageLedgerModality) {
@@ -268,10 +243,9 @@ export class ModelUsageLedgerComponent {
     }
   }
 
-  private handleError(error: unknown, version: number, totals: boolean) {
+  private handleError(error: unknown, version: number) {
     if (version !== this.#loadVersion) return
-    if (totals) this.totalsLoading.set(false)
-    else this.loading.set(false)
+    this.loading.set(false)
     this.toastr.error(error, this.translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
   }
 }
@@ -281,11 +255,11 @@ function clean(value: string | null | undefined) {
   return normalized || undefined
 }
 
-type ModelUsageAccountGroup = {
+export type ModelUsageAccountGroup = {
   key: string
   userId: string | null
   userName: string | null
-  items: IModelUsageLedger[]
+  items: ModelUsageInvocation[]
   lastUsedAt: Date
   usages: Array<{
     key: string
@@ -300,8 +274,8 @@ type ModelUsageAccountGroup = {
   }
 }
 
-function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup[] {
-  const groups = new Map<string, ModelUsageAccountGroup>()
+export function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup[] {
+  const groups = new Map<string, Omit<ModelUsageAccountGroup, 'items'> & { ledgerItems: IModelUsageLedger[] }>()
   for (const item of items) {
     const userId = clean(item.userId) ?? null
     const key = userId ?? '__unknown_account__'
@@ -311,14 +285,14 @@ function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup
         key,
         userId,
         userName: clean(item.userName) ?? null,
-        items: [],
+        ledgerItems: [],
         lastUsedAt: item.recordedAt,
         usages: [],
         pricedAmounts: { llm: 0, video: 0, total: 0 }
       }
       groups.set(key, group)
     }
-    group.items.push(item)
+    group.ledgerItems.push(item)
     if (!group.userName && item.userName) group.userName = item.userName
     if (new Date(item.recordedAt).getTime() > new Date(group.lastUsedAt).getTime()) {
       group.lastUsedAt = item.recordedAt
@@ -343,60 +317,99 @@ function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup
       if (item.modality === 'video') group.pricedAmounts.video += amount
     }
   }
-  return [...groups.values()]
+  return [...groups.values()].map(({ ledgerItems, ...group }) => ({
+    ...group,
+    items: groupUsageInvocations(ledgerItems)
+  }))
 }
 
-type ModelUsageSummaryCard = {
+type ModelUsageDisplayUsage = {
   key: string
   modality: ModelUsageLedgerModality
   unit: ModelUsageMetric['unit']
-  usage: number
-  records: number
-  pricingStatuses: Array<{ status: ModelUsagePricingStatus; records: number }>
+  quantity: number
+}
+
+type ModelUsageInvocation = {
+  key: string
+  requestId: string
+  recordedAt: Date
+  provider: string
+  model: string | null
+  operation: IModelUsageLedger['operation']
+  modality: ModelUsageLedgerModality
+  usages: ModelUsageDisplayUsage[]
+  pricingStatus: ModelUsagePricingStatus
   originalAmounts: Array<{ currency: string; amount: number }>
   settlementAmount: number | null
   settlementCurrency: string | null
+  exchangeRates: number[]
 }
 
-function summarizeTotals(totals: ModelUsageLedgerTotals[]): ModelUsageSummaryCard[] {
-  const cards = new Map<string, ModelUsageSummaryCard>()
-  for (const total of totals) {
-    const key = usageCategoryKey(total.modality, total.unit)
-    let card = cards.get(key)
-    if (!card) {
-      card = {
+function groupUsageInvocations(items: IModelUsageLedger[]): ModelUsageInvocation[] {
+  const invocations = new Map<string, ModelUsageInvocation>()
+  for (const item of items) {
+    const key = `${item.providerScopeId}:${item.requestId}`
+    let invocation = invocations.get(key)
+    if (!invocation) {
+      invocation = {
         key,
-        modality: total.modality,
-        unit: total.unit,
-        usage: 0,
-        records: 0,
-        pricingStatuses: [],
+        requestId: item.requestId,
+        recordedAt: item.recordedAt,
+        provider: item.provider,
+        model: item.model ?? null,
+        operation: item.operation,
+        modality: item.modality,
+        usages: [],
+        pricingStatus: 'unpriced',
         originalAmounts: [],
         settlementAmount: null,
-        settlementCurrency: null
+        settlementCurrency: null,
+        exchangeRates: []
       }
-      cards.set(key, card)
-    }
-    card.usage += Number(total.unit === 'token' ? total.totalTokens : total.quantity) || 0
-    card.records += Number(total.records) || 0
-
-    const pricing = card.pricingStatuses.find(({ status }) => status === total.pricingStatus)
-    if (pricing) pricing.records += Number(total.records) || 0
-    else card.pricingStatuses.push({ status: total.pricingStatus, records: Number(total.records) || 0 })
-
-    if (total.amount !== null && total.amount !== undefined && total.currency) {
-      const currency = normalizeCurrency(total.currency)
-      const original = card.originalAmounts.find((amount) => amount.currency === currency)
-      if (original) original.amount += Number(total.amount) || 0
-      else card.originalAmounts.push({ currency, amount: Number(total.amount) || 0 })
+      invocations.set(key, invocation)
     }
 
-    if (total.settlementAmount !== null && total.settlementAmount !== undefined) {
-      card.settlementAmount = (card.settlementAmount ?? 0) + (Number(total.settlementAmount) || 0)
-      card.settlementCurrency = normalizeCurrency(total.settlementCurrency || 'CNY')
+    const usageKey = usageCategoryKey(item.modality, item.unit)
+    const quantity = Number(item.unit === 'token' ? item.totalTokens : item.quantity) || 0
+    const usage = invocation.usages.find(({ key }) => key === usageKey)
+    if (usage) usage.quantity += quantity
+    else invocation.usages.push({ key: usageKey, modality: item.modality, unit: item.unit, quantity })
+
+    const pricingStatus = item.charge?.pricingStatus ?? 'unpriced'
+    if (pricingStatus === 'priced' || (pricingStatus === 'free' && invocation.pricingStatus === 'unpriced')) {
+      invocation.pricingStatus = pricingStatus
+    }
+
+    const amount = item.charge?.amount
+    if (amount !== null && amount !== undefined && item.charge?.currency) {
+      addCurrencyAmount(invocation.originalAmounts, item.charge.currency, Number(amount) || 0)
+    }
+
+    const settlementAmount = item.charge?.settlementAmount
+    if (settlementAmount !== null && settlementAmount !== undefined) {
+      invocation.settlementAmount = (invocation.settlementAmount ?? 0) + (Number(settlementAmount) || 0)
+      invocation.settlementCurrency = normalizeCurrency(item.charge?.settlementCurrency || 'CNY')
+    }
+
+    const exchangeRate = item.charge?.exchangeRate
+    if (
+      exchangeRate !== null &&
+      exchangeRate !== undefined &&
+      Number.isFinite(Number(exchangeRate)) &&
+      !invocation.exchangeRates.includes(Number(exchangeRate))
+    ) {
+      invocation.exchangeRates.push(Number(exchangeRate))
     }
   }
-  return [...cards.values()]
+  return [...invocations.values()]
+}
+
+function addCurrencyAmount(amounts: Array<{ currency: string; amount: number }>, currency: string, amount: number) {
+  const normalizedCurrency = normalizeCurrency(currency)
+  const current = amounts.find((item) => item.currency === normalizedCurrency)
+  if (current) current.amount += amount
+  else amounts.push({ currency: normalizedCurrency, amount })
 }
 
 function usageCategoryKey(modality: ModelUsageLedgerModality, unit: ModelUsageMetric['unit']) {

@@ -110,6 +110,10 @@ import { KnowledgebaseDetailDTO } from './dto'
 import { KnowledgeFilterFieldDefinition } from './filter'
 
 type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
+type TKnowledgebaseModelContext = {
+    xpertId?: string
+    threadId?: string
+}
 
 function escapeKnowledgeFilterOptionLike(value: string) {
     return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
@@ -1414,7 +1418,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return typeof dimension === 'number' ? dimension : null
     }
 
-    private async resolveEmbeddingDimensions(copilotModel: TEmbeddingCopilotModel) {
+    private async resolveEmbeddingDimensions(
+        copilotModel: TEmbeddingCopilotModel,
+        modelContext?: TKnowledgebaseModelContext
+    ) {
         const configuredDimensions = this.resolveConfiguredEmbeddingDimensions(copilotModel)
         if (configuredDimensions) {
             return configuredDimensions
@@ -1429,6 +1436,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
         const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
             new CopilotModelGetEmbeddingsQuery(copilot, copilotModel as TCopilotModel, {
+                ...modelContext,
                 tokenCallback: () => {
                     //
                 }
@@ -1441,14 +1449,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     private async resolveEmbeddingModelTarget(
         knowledgebaseId: string,
         copilotModel: TEmbeddingCopilotModel | null,
-        copilotModelId?: string | null
+        copilotModelId?: string | null,
+        modelContext?: TKnowledgebaseModelContext
     ): Promise<TResolvedEmbeddingModelTarget> {
         const resolvedModel = await this.ensureCopilotModel(copilotModel)
         if (!resolvedModel) {
             throw new BadRequestException('Embedding model is required')
         }
 
-        const dimensions = await this.resolveEmbeddingDimensions(resolvedModel)
+        const dimensions = await this.resolveEmbeddingDimensions(resolvedModel, modelContext)
         const fingerprint = createEmbeddingFingerprint({
             provider: this.getEmbeddingProviderName(resolvedModel),
             model: this.getEmbeddingModelName(resolvedModel),
@@ -1479,7 +1488,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return this.resolveEmbeddingModelTarget(knowledgebaseId, copilotModel, copilotModelId)
     }
 
-    private async ensureLegacyActiveEmbeddingState(knowledgebase: IKnowledgebase, requiredEmbeddings: boolean) {
+    private async ensureLegacyActiveEmbeddingState(
+        knowledgebase: IKnowledgebase,
+        requiredEmbeddings: boolean,
+        modelContext?: TKnowledgebaseModelContext
+    ) {
         if (!requiredEmbeddings || knowledgebase.embeddingCollectionName || !knowledgebase.copilotModel) {
             return
         }
@@ -1487,7 +1500,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         const target = await this.resolveEmbeddingModelTarget(
             knowledgebase.id,
             knowledgebase.copilotModel,
-            knowledgebase.copilotModelId
+            knowledgebase.copilotModelId,
+            modelContext
         )
         const patch: Partial<Knowledgebase> = {
             embeddingCollectionName: knowledgebase.id,
@@ -1507,6 +1521,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         requiredEmbeddings: boolean
         rerankEnabled: boolean
         embeddingMetadata: TEmbeddingVectorMetadata
+        modelContext?: TKnowledgebaseModelContext
     }) {
         const { knowledgebase, collectionName, requiredEmbeddings, rerankEnabled, embeddingMetadata } = options
         const copilotModel = await this.ensureCopilotModel(options.copilotModel)
@@ -1530,6 +1545,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         if (copilotModel && copilot?.modelProvider) {
             embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
                 new CopilotModelGetEmbeddingsQuery(copilot, copilotModel as TCopilotModel, {
+                    ...options.modelContext,
                     tokenCallback: (token) => {
                         // execution.tokens += (token ?? 0)
                     },
@@ -1550,6 +1566,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         if (rerankEnabled && knowledgebase.rerankModel) {
             rerankModel = await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
                 new CopilotModelGetRerankQuery(knowledgebase.rerankModel.copilot, knowledgebase.rerankModel, {
+                    ...options.modelContext,
                     tokenCallback: (token) => {
                         // execution.tokens += (token ?? 0)
                     }
@@ -1587,9 +1604,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return vStore
     }
 
-    async getActiveVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false) {
+    async getActiveVectorStore(
+        knowledgebaseId: IKnowledgebase | string,
+        requiredEmbeddings = false,
+        modelContext?: TKnowledgebaseModelContext
+    ) {
         const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(knowledgebaseId, requiredEmbeddings)
-        await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings)
+        await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings, modelContext)
         const copilotModel = knowledgebase.copilotModel
         const collectionName = knowledgebase.embeddingCollectionName ?? knowledgebase.id
         return this.createVectorStoreForModel({
@@ -1598,6 +1619,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             collectionName,
             requiredEmbeddings,
             rerankEnabled: true,
+            modelContext,
             embeddingMetadata: {
                 provider: this.getEmbeddingProviderName(copilotModel),
                 model: this.getEmbeddingModelName(copilotModel),
@@ -1609,9 +1631,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         })
     }
 
-    async getGraphEntityVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false) {
+    async getGraphEntityVectorStore(
+        knowledgebaseId: IKnowledgebase | string,
+        requiredEmbeddings = false,
+        modelContext?: TKnowledgebaseModelContext
+    ) {
         const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(knowledgebaseId, requiredEmbeddings)
-        await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings)
+        await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings, modelContext)
         const copilotModel = knowledgebase.copilotModel
         const activeCollectionName = knowledgebase.embeddingCollectionName ?? knowledgebase.id
         const collectionName = `${activeCollectionName}:graph-entities`
@@ -1621,6 +1647,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             collectionName,
             requiredEmbeddings,
             rerankEnabled: false,
+            modelContext,
             embeddingMetadata: {
                 provider: this.getEmbeddingProviderName(copilotModel),
                 model: this.getEmbeddingModelName(copilotModel),

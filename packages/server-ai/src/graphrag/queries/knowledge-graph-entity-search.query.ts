@@ -9,6 +9,8 @@ export class KnowledgeGraphEntitySearchQuery implements IQuery {
             knowledgebase: IKnowledgebase
             query: string
             take?: number
+            xpertId?: string
+            threadId?: string
         }
     ) {}
 }

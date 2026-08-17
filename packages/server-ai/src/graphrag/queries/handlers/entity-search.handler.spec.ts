@@ -54,10 +54,17 @@ describe('KnowledgeGraphEntitySearchHandler', () => {
             new KnowledgeGraphEntitySearchQuery({
                 knowledgebase: enabledKnowledgebase(),
                 query: 'pump-station supplier',
-                take: 10
+                take: 10,
+                xpertId: 'xpert-1',
+                threadId: 'thread-1'
             })
         )
 
+        expect(knowledgebaseService.getGraphEntityVectorStore).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'kb-1' }),
+            true,
+            { xpertId: 'xpert-1', threadId: 'thread-1' }
+        )
         expect(vectorStore.similaritySearchWithScore).toHaveBeenCalledWith('pump-station supplier', 10, {
             kind: 'knowledge_graph_entity',
             knowledgebaseId: 'kb-1'

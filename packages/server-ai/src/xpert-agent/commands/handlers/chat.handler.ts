@@ -137,6 +137,10 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                                 await this.commandBus.execute(
                                     new XpertAgentExecutionUpsertCommand({
                                         id: execution.id,
+                                        checkpointNs: execution.checkpointNs,
+                                        checkpointId: execution.checkpointId,
+                                        title: execution.title,
+                                        metadata: execution.metadata,
                                         elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
                                         status,
                                         error,
@@ -186,6 +190,9 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                                     await this.commandBus.execute(
                                         new XpertAgentExecutionUpsertCommand({
                                             id: execution.id,
+                                            checkpointNs: execution.checkpointNs,
+                                            title: execution.title,
+                                            metadata: execution.metadata,
                                             elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
                                             status: XpertAgentExecutionStatusEnum.ERROR,
                                             error: 'Aborted!',

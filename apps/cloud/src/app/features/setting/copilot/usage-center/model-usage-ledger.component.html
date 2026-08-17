@@ -84,68 +84,6 @@
     </button>
   </div>
 
-  <div class="mb-3 grid shrink-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-    @for (total of summaryCards(); track total.key) {
-      <div class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3">
-        <div class="mb-2 flex items-center justify-between text-sm font-medium text-text-secondary">
-          <span>{{ usageLabel(total.modality, total.unit) }}</span>
-          <z-icon class="text-text-quaternary" zType="data_usage" />
-        </div>
-        <div class="grid grid-cols-2 gap-2 text-sm">
-          <div>
-            <div class="text-text-quaternary">{{ 'XP.Copilot.Usage' | translate: { Default: 'Usage' } }}</div>
-            <div class="font-semibold text-text-primary">
-              {{ total.usage | number: '0.0-6' }} {{ unitLabel(total.unit) }}
-            </div>
-          </div>
-          <div>
-            <div class="text-text-quaternary">{{ 'XP.Copilot.Records' | translate: { Default: 'Records' } }}</div>
-            <div class="font-semibold text-text-primary">{{ total.records | number }}</div>
-          </div>
-          <div class="col-span-2 flex flex-wrap gap-2">
-            @for (pricing of total.pricingStatuses; track pricing.status) {
-              <span class="whitespace-nowrap rounded-md bg-background-default-subtle px-2 py-1 text-text-secondary">
-                {{ pricingLabel(pricing.status) }} · {{ pricing.records | number }}
-              </span>
-            }
-          </div>
-          @if (total.originalAmounts.length) {
-            <div class="col-span-2">
-              <div class="text-text-quaternary">
-                {{ 'XP.Copilot.OriginalAmount' | translate: { Default: 'Original amount' } }}
-              </div>
-              @for (amount of total.originalAmounts; track amount.currency) {
-                <div class="font-semibold text-text-primary">
-                  {{ amount.amount | number: '0.0-10' }} {{ amount.currency }}
-                </div>
-              }
-            </div>
-          }
-          @if (total.settlementAmount !== null && total.settlementAmount !== undefined) {
-            <div class="col-span-2">
-              <div class="text-text-quaternary">
-                {{ 'XP.Copilot.CnySettlement' | translate: { Default: 'RMB settlement' } }}
-              </div>
-              <div class="font-semibold text-text-primary">
-                {{ total.settlementAmount | number: '0.0-10' }} {{ total.settlementCurrency || 'CNY' }}
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    } @empty {
-      <div
-        class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3 text-text-quaternary"
-      >
-        @if (totalsLoading()) {
-          <xp-spin />
-        } @else {
-          {{ 'XP.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
-        }
-      </div>
-    }
-  </div>
-
   <div
     class="min-h-0 flex-1 overflow-auto rounded-lg border border-solid border-divider-regular"
     waIntersectionObserver
@@ -259,7 +197,7 @@
                       </tr>
                     </thead>
                     <tbody z-table-body>
-                      @for (item of group.items; track item.id) {
+                      @for (item of group.items; track item.key) {
                         <tr z-table-row class="border-t border-divider-subtle bg-components-card-bg">
                           <td z-table-cell class="whitespace-nowrap px-3 py-2">{{ item.recordedAt | relative }}</td>
                           <td z-table-cell class="max-w-40 truncate px-3 py-2" [title]="item.provider">
@@ -272,36 +210,44 @@
                             {{ item.operation }}
                           </td>
                           <td z-table-cell class="whitespace-nowrap px-3 py-2">
-                            {{ rowUsage(item) | number: '0.0-6' }} {{ unitLabel(item.unit) }}
+                            <div class="flex flex-wrap gap-2">
+                              @for (usage of item.usages; track usage.key) {
+                                <span
+                                  class="whitespace-nowrap rounded-md bg-background-default-subtle px-2 py-1 text-text-secondary"
+                                >
+                                  {{ usage.quantity | number: '0.0-6' }} {{ unitLabel(usage.unit) }}
+                                </span>
+                              }
+                            </div>
                           </td>
                           <td z-table-cell class="whitespace-nowrap px-3 py-2">
-                            {{ pricingLabel(item.charge?.pricingStatus || 'unpriced') }}
+                            {{ pricingLabel(item.pricingStatus) }}
                           </td>
                           <td z-table-cell class="whitespace-nowrap px-3 py-2">
-                            @if (!item.charge || item.charge.pricingStatus === 'unpriced') {
+                            @if (item.pricingStatus === 'unpriced') {
                               {{ pricingLabel('unpriced') }}
-                            } @else if (item.charge.amount === null || item.charge.amount === undefined) {
+                            } @else if (!item.originalAmounts.length) {
                               {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
                             } @else {
-                              {{ item.charge.amount | number: '0.0-10' }} {{ currencyLabel(item.charge.currency) }}
+                              @for (amount of item.originalAmounts; track amount.currency) {
+                                <div>{{ amount.amount | number: '0.0-10' }} {{ amount.currency }}</div>
+                              }
                             }
                           </td>
                           <td z-table-cell class="whitespace-nowrap px-3 py-2">
-                            @if (!item.charge || item.charge.pricingStatus === 'unpriced') {
+                            @if (item.pricingStatus === 'unpriced') {
                               {{ pricingLabel('unpriced') }}
-                            } @else if (
-                              item.charge.settlementAmount === null || item.charge.settlementAmount === undefined
-                            ) {
+                            } @else if (item.settlementAmount === null || item.settlementAmount === undefined) {
                               {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
                             } @else {
                               <div>
-                                {{ item.charge.settlementAmount | number: '0.0-10' }}
-                                {{ item.charge.settlementCurrency || 'CNY' }}
+                                {{ item.settlementAmount | number: '0.0-10' }}
+                                {{ item.settlementCurrency || 'CNY' }}
                               </div>
-                              @if (item.charge.exchangeRate !== null && item.charge.exchangeRate !== undefined) {
+                              @for (exchangeRate of item.exchangeRates; track exchangeRate) {
                                 <div class="text-text-quaternary">
                                   {{ 'XP.Copilot.ExchangeRate' | translate: { Default: 'Exchange rate' } }}
-                                  {{ item.charge.exchangeRate | number: '0.0-10' }}
+                                  {{ exchangeRate | number: '0.0-10' }}
                                 </div>
                               }
                             }

@@ -18,6 +18,8 @@ export class KnowledgeGraphExploreQuery implements IQuery {
             take?: number
             filters?: KnowledgeFilterSources
             variables?: Record<string, unknown>
+            xpertId?: string
+            threadId?: string
         }
     ) {}
 }

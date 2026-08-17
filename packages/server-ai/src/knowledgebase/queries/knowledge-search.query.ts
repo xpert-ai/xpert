@@ -29,6 +29,8 @@ export class KnowledgeSearchQuery implements IQuery {
             retrieval?: TKBRetrievalSettings
             source: string
             id?: string // Request ID for tracing the request
+            xpertId?: string
+            threadId?: string
         }
     ) {}
 }

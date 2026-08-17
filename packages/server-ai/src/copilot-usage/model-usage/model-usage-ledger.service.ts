@@ -290,11 +290,30 @@ export class ModelUsageLedgerService {
         query: ModelUsageLedgerQuery,
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<IModelUsageLedger>> {
-        const qb = this.baseQuery(query)
+        const requestKeySql = modelUsageRequestKeySql()
+        const take = normalizeTake(options?.take)
+        const skip = Math.max(0, Number(options?.skip) || 0)
+        const [requestRows, countRow] = await Promise.all([
+            this.baseQuery(query)
+                .select(requestKeySql, 'requestKey')
+                .addSelect('MAX(COALESCE(ledger.recordedAt, ledger.createdAt))', 'recordedAt')
+                .groupBy(requestKeySql)
+                .orderBy('MAX(COALESCE(ledger.recordedAt, ledger.createdAt))', 'DESC')
+                .take(take)
+                .skip(skip)
+                .getRawMany<{ requestKey: string }>(),
+            this.baseQuery(query)
+                .select(`COUNT(DISTINCT ${requestKeySql})`, 'total')
+                .getRawOne<{ total: string | number }>()
+        ])
+        const total = Number(countRow?.total) || 0
+        if (!requestRows.length) return { items: [], total }
+        const entries = await this.baseQuery(query)
+            .andWhere(`${requestKeySql} IN (:...requestKeys)`, {
+                requestKeys: requestRows.map(({ requestKey }) => requestKey)
+            })
             .orderBy('COALESCE(ledger.recordedAt, ledger.createdAt)', 'DESC')
-            .take(normalizeTake(options?.take))
-            .skip(Math.max(0, Number(options?.skip) || 0))
-        const [entries, total] = await qb.getManyAndCount()
+            .getMany()
         const items = entries.map(toUsageLedgerItem).filter((entry): entry is IModelUsageLedger => entry !== null)
         return { items: await this.attachUserNames(items), total }
     }
@@ -440,6 +459,10 @@ export class ModelUsageLedgerService {
         if (end) qb.andWhere('COALESCE(ledger.recordedAt, ledger.createdAt) <= :end', { end })
         return qb
     }
+}
+
+function modelUsageRequestKeySql() {
+    return "CONCAT(COALESCE(ledger.providerScopeId, ''), ':', COALESCE(NULLIF(ledger.requestId, ''), CONCAT('legacy:', ledger.id)))"
 }
 
 function toLedgerEntry(

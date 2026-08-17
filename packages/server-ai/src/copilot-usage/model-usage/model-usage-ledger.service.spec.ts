@@ -421,9 +421,20 @@ describe('ModelUsageLedgerService', () => {
             settlementAmount: 0.1,
             settlementCurrency: 'CNY'
         })
-        const queryBuilder = createReadQueryBuilder([historical, currentSettlement])
+        const pageQueryBuilder = createReadQueryBuilder()
+        pageQueryBuilder.getRawMany.mockResolvedValue([
+            { requestKey: ':legacy:legacy-ledger-1', recordedAt: '2026-08-01T01:00:00.000Z' }
+        ])
+        const countQueryBuilder = createReadQueryBuilder()
+        countQueryBuilder.getRawOne.mockResolvedValue({ total: '1' })
+        const entriesQueryBuilder = createReadQueryBuilder()
+        entriesQueryBuilder.getMany.mockResolvedValue([historical, currentSettlement])
         const repository = {
-            createQueryBuilder: jest.fn(() => queryBuilder)
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(pageQueryBuilder)
+                .mockReturnValueOnce(countQueryBuilder)
+                .mockReturnValueOnce(entriesQueryBuilder)
         }
         const userRepository = {
             find: jest.fn().mockResolvedValue([
@@ -462,18 +473,18 @@ describe('ModelUsageLedgerService', () => {
             ],
             total: 1
         })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        expect(pageQueryBuilder.andWhere).toHaveBeenCalledWith(
             expect.stringContaining('legacyUsageSources'),
             expect.objectContaining({
                 modelUsageSource: MembershipLedgerSourceEnum.ModelUsage,
                 legacyUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
             })
         )
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.unit = :unit'), {
+        expect(pageQueryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.unit = :unit'), {
             unit: 'token',
             legacyUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
         })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.modality = :modality'), {
+        expect(pageQueryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('ledger.modality = :modality'), {
             modality: 'text',
             legacyUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
         })
@@ -529,18 +540,20 @@ describe('ModelUsageLedgerService', () => {
     })
 })
 
-function createReadQueryBuilder(entries: MembershipPointLedger[]) {
-    const queryBuilder = {
+function createReadQueryBuilder() {
+    return {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
-        getManyAndCount: jest
-            .fn()
-            .mockResolvedValue([entries, entries.filter((entry) => !entry.settlementAmount).length])
+        getRawMany: jest.fn(),
+        getRawOne: jest.fn(),
+        getMany: jest.fn()
     }
-    return queryBuilder
 }
 
 function createTotalsQueryBuilder(rows: Array<Record<string, string>>) {
