@@ -18,6 +18,8 @@ import { KnowledgeDocumentChunk } from './chunk/chunk.entity'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
+import { KnowledgeDocumentVisualAssetsRuntimeService } from './visual-assets-runtime.service'
+import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtime.token'
 
 @Module({
     imports: [
@@ -42,6 +44,11 @@ import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.se
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
+        KnowledgeDocumentVisualAssetsRuntimeService,
+        {
+            provide: KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
+            useExisting: KnowledgeDocumentVisualAssetsRuntimeService
+        },
         KnowledgeDocumentConsumer,
         ...CommandHandlers,
         ...QueryHandlers
@@ -51,6 +58,7 @@ import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.se
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
+        KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
         TypeOrmModule
     ]
 })

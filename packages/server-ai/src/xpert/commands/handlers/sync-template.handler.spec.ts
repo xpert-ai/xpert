@@ -107,6 +107,51 @@ describe('XpertSyncTemplateHandler', () => {
         )
     })
 
+    it('resolves a tracked legacy source whose template id is not namespaced', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            name: 'My Assistant',
+            options: {
+                templateSource: {
+                    templateId: 'assistant',
+                    templateKey: 'assistant',
+                    pluginName: '@xpert-ai/plugin-example',
+                    pluginDisplayName: 'Example plugin'
+                }
+            }
+        }
+        const { handler, xpertTemplateService, commandBus } = buildHandler(xpert)
+
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+
+        expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('@xpert-ai/plugin-example:assistant', 'en')
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('enriches an older tracked source from its data-xpert plugin declaration', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            name: 'My Assistant',
+            options: {
+                templateSource: {
+                    templateId: 'assistant',
+                    templateKey: 'assistant',
+                    pluginDisplayName: '@xpert-ai/plugin-example'
+                },
+                dataXpert: {
+                    templateKey: 'assistant',
+                    requiredPlugin: '@xpert-ai/plugin-example'
+                }
+            }
+        }
+        const { handler, xpertTemplateService, commandBus } = buildHandler(xpert)
+
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+
+        expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('@xpert-ai/plugin-example:assistant', 'en')
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
     it('rejects xperts that are not linked to a template', async () => {
         const { handler, xpertTemplateService, commandBus } = buildHandler({
             id: 'xpert-1',

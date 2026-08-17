@@ -857,15 +857,31 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
     private findPluginTemplateById(templates: TXpertTemplateDescriptor[], id: string) {
         const normalizedId = this.normalizePluginTemplateId(id)
-        return (
-            templates.find(
-                (template) =>
-                    template.id === id ||
-                    template.key === id ||
-                    this.normalizePluginTemplateId(template.id) === normalizedId ||
-                    this.normalizePluginTemplateId(template.key) === normalizedId
-            ) ?? null
+        const exactMatch = templates.find(
+            (template) =>
+                template.id === id ||
+                template.key === id ||
+                this.normalizePluginTemplateId(template.id) === normalizedId ||
+                this.normalizePluginTemplateId(template.key) === normalizedId
         )
+        if (exactMatch) {
+            return exactMatch
+        }
+
+        // Assistant instances created by older plugin versions only persisted the
+        // template key (for example `bom-lifecycle-orchestrator`). Resolve that
+        // legacy source only when the key is unique across installed plugins so a
+        // bare id can never silently select the wrong plugin template.
+        if (!normalizedId.includes(':')) {
+            const keyMatches = templates.filter((template) => {
+                const templateId = this.normalizePluginTemplateId(template.id)
+                const templateKey = this.normalizePluginTemplateId(template.key)
+                return templateId.endsWith(`:${normalizedId}`) || templateKey.endsWith(`:${normalizedId}`)
+            })
+            return keyMatches.length === 1 ? keyMatches[0] : null
+        }
+
+        return null
     }
 
     private resolveRecommendedTemplates(

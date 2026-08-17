@@ -3,6 +3,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { yaml } from '@xpert-ai/server-common'
+import { normalizePluginName } from '@xpert-ai/server-core'
 import { XpertTemplateService } from '../../../xpert-template/xpert-template.service'
 import { XpertDraftDslDTO } from '../../dto'
 import { createXpertTemplateSource, resolveXpertTemplateSource } from '../../template-source'
@@ -27,12 +28,13 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
 
         const language =
             command.language ?? (RequestContext.getLanguageCode() as LanguagesEnum | undefined) ?? LanguagesEnum.English
+        const templateId = resolveTemplateLookupId(currentSource)
         let template
         try {
-            template = await this.xpertTemplateService.getTemplateDetail(currentSource.templateId, language)
+            template = await this.xpertTemplateService.getTemplateDetail(templateId, language)
         } catch {
             throw new BadRequestException(
-                `Source template '${currentSource.templateId}' is not available. Refresh or reinstall its plugin first.`
+                `Source template '${templateId}' is not available. Refresh or reinstall its plugin first.`
             )
         }
 
@@ -65,4 +67,13 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
             ...(template.releaseNotes ? { releaseNotes: template.releaseNotes } : {})
         }
     }
+}
+
+function resolveTemplateLookupId(source: { templateId: string; templateKey?: string; pluginName?: string }) {
+    if (source.templateId.includes(':')) {
+        return source.templateId
+    }
+
+    const pluginName = normalizePluginName(source.pluginName ?? '')
+    return pluginName ? `${pluginName}:${source.templateKey || source.templateId}` : source.templateId
 }

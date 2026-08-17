@@ -71,6 +71,7 @@ import {
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
+    KnowledgeDocumentVisualAssetsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     KnowledgebaseProvisioningRuntimeCapability,
     KnowledgebaseEnsureInput,
@@ -122,6 +123,11 @@ import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { CollaborationService } from '../../collaboration/collaboration.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
+import {
+    KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
+    type KnowledgeDocumentVisualAssetsRuntimeFactory
+} from '../../knowledge-document/visual-assets-runtime.token'
+import { ModuleRef } from '@nestjs/core'
 import { wrapAgentExecution } from './execution'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
@@ -721,6 +727,7 @@ export class AgentMiddlewareRuntimeService {
         private readonly collaboration: CollaborationService,
         private readonly copilotService: CopilotService,
         private readonly copilotUsage: CopilotUsageService,
+        private readonly moduleRef: ModuleRef,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
@@ -744,6 +751,7 @@ export class AgentMiddlewareRuntimeService {
         })
         const collaborationApi = this.collaboration.createScopedApi(scope)
         const actorTokenApi = this.createActorTokenApi(scope)
+        const visualAssetsApi = this.visualAssetsRuntime(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [ActorTokenRuntimeCapability, actorTokenApi],
             [
@@ -799,7 +807,8 @@ export class AgentMiddlewareRuntimeService {
             ],
             [ArtifactsRuntimeCapability, artifactsApi],
             [CollaborationRuntimeCapability, collaborationApi],
-            [WorkspaceFilesRuntimeCapability, workspaceFilesApi]
+            [WorkspaceFilesRuntimeCapability, workspaceFilesApi],
+            [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssetsApi]
         ])
 
         return {
@@ -809,6 +818,14 @@ export class AgentMiddlewareRuntimeService {
             emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
             capabilities
         } satisfies AgentMiddlewareRuntimeApi
+    }
+
+    private visualAssetsRuntime(scope: AgentMiddlewareRuntimeScope) {
+        return this.moduleRef
+            .get<KnowledgeDocumentVisualAssetsRuntimeFactory>(KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME, {
+                strict: false
+            })
+            .createScopedApi(scope)
     }
 
     private createActorTokenApi(scope: AgentMiddlewareRuntimeScope) {

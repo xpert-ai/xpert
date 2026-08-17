@@ -19,7 +19,7 @@ export function resolveTemplateSourceFromOptions(
     ...optionsList: Array<TXpertOptions | null | undefined>
 ): TXpertTemplateSource | null {
     for (const options of optionsList) {
-        const tracked = normalizeTrackedTemplateSource(options?.templateSource)
+        const tracked = normalizeTrackedTemplateSource(options?.templateSource, readConfiguredPluginName(options))
         if (tracked) {
             return tracked
         }
@@ -87,19 +87,32 @@ export function createTemplateSourceFromIds(templateId?: string, sourceTemplateI
     } satisfies TXpertTemplateSource
 }
 
-function normalizeTrackedTemplateSource(value?: TXpertTemplateSource | null): TXpertTemplateSource | null {
+function normalizeTrackedTemplateSource(
+    value?: TXpertTemplateSource | null,
+    fallbackPluginName = ''
+): TXpertTemplateSource | null {
     const templateId = readString(value?.templateId)
     if (!templateId) {
         return null
     }
 
-    const pluginName = normalizePluginName(readString(value?.pluginName) || readPluginName(templateId))
+    const pluginName = normalizePluginName(
+        readString(value?.pluginName) || readPluginName(templateId) || fallbackPluginName
+    )
     return {
         ...value,
         templateId,
         templateKey: readString(value?.templateKey) || readTemplateKey(templateId),
         ...(pluginName ? { pluginName } : {})
     }
+}
+
+function readConfiguredPluginName(options?: TXpertOptions | null) {
+    return normalizePluginName(
+        readString(options?.dataXpert?.requiredPlugin) ||
+            (options?.dataXpert?.requiredPlugins ?? []).map(readString).find(Boolean) ||
+            ''
+    )
 }
 
 function createLegacyTemplateSource(templateKey: string, pluginName = ''): TXpertTemplateSource {

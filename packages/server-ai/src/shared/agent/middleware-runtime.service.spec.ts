@@ -81,6 +81,7 @@ import {
     CancelConversationCommand,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
+    KnowledgeDocumentVisualAssetsRuntimeCapability,
     KnowledgebaseProvisioningRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
@@ -120,6 +121,7 @@ import { CollaborationService } from '../../collaboration'
 import { CopilotService } from '../../copilot/copilot.service'
 import { applicationMetrics } from '../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
+import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from '../../knowledge-document/visual-assets-runtime.token'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
@@ -134,6 +136,8 @@ describe('AgentMiddlewareRuntimeService', () => {
     let findAllEnabledCopilotsWithoutMembership: jest.Mock
     let copilotUsage: { recordModelUsage: jest.Mock }
     let actorTokenProvider: { mint: jest.Mock }
+    let visualAssetsRuntime: { createScopedApi: jest.Mock }
+    let moduleRef: { get: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -180,6 +184,15 @@ describe('AgentMiddlewareRuntimeService', () => {
                 audience: input?.audience ?? 'xpert'
             }))
         }
+        visualAssetsRuntime = {
+            createScopedApi: jest.fn(() => ({
+                issueCandidates: jest.fn().mockResolvedValue({ candidates: [], warnings: [] }),
+                prepareImages: jest.fn().mockResolvedValue({ batchRef: 'batch-1', images: [] }),
+                consumeImageBatch: jest.fn().mockResolvedValue([]),
+                discardImageBatch: jest.fn().mockResolvedValue(undefined)
+            }))
+        }
+        moduleRef = { get: jest.fn(() => visualAssetsRuntime) }
         service = new AgentMiddlewareRuntimeService(
             commandBus as any,
             queryBus as any,
@@ -195,6 +208,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             collaboration,
             copilotService,
             copilotUsage as never,
+            moduleRef as any,
             actorTokenProvider as any
         )
 
@@ -256,6 +270,39 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('registers the execution-scoped KnowledgeDocument visual assets capability', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1',
+            agentKey: 'Agent_VisualReviewer',
+            executionId: 'execution-1'
+        }
+        const runtime = service.createScopedApi(scope)
+        const visualAssets = runtime.capabilities?.require(KnowledgeDocumentVisualAssetsRuntimeCapability)
+
+        await expect(
+            visualAssets?.issueCandidates({
+                knowledgebaseId: 'kb-1',
+                knowledgeDocumentId: 'doc-1',
+                query: 'motor nameplate',
+                textAnchors: [],
+                maxAssets: 3,
+                businessScope: {
+                    namespace: 'bom.requirement-evidence',
+                    caseId: 'case-1',
+                    baselineId: 'baseline-1',
+                    runId: 'run-1',
+                    sourceDocumentId: 'source-1'
+                }
+            })
+        ).resolves.toEqual({ candidates: [], warnings: [] })
+        expect(moduleRef.get).toHaveBeenCalledWith(KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME, { strict: false })
+        expect(visualAssetsRuntime.createScopedApi).toHaveBeenCalledWith(scope)
     })
 
     it('resolves the organization model provider connection before the tenant provider', async () => {
