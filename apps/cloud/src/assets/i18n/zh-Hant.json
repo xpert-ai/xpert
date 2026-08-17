@@ -5694,6 +5694,7 @@
         "CERTIFICATION_EDIT": "維護認證",
         "COPILOT_VIEW": "使用智能助理",
         "COPILOT_EDIT": "管理模型提供商",
+        "MODEL_USAGE_MONITOR": "監測模型用量",
         "MEMBERSHIP_EDIT": "管理會員套餐",
         "MODEL_ACCESS_REQUEST_VIEW": "查看模型授權申請",
         "MODEL_ACCESS_REQUEST_EDIT": "管理模型授權申請",

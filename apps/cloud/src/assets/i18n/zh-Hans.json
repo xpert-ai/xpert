@@ -7224,6 +7224,7 @@
         "CERTIFICATION_EDIT": "维护认证",
         "COPILOT_VIEW": "使用智能助理",
         "COPILOT_EDIT": "管理模型提供商",
+        "MODEL_USAGE_MONITOR": "监测模型用量",
         "MEMBERSHIP_EDIT": "管理会员套餐",
         "MODEL_ACCESS_REQUEST_VIEW": "查看模型授权申请",
         "MODEL_ACCESS_REQUEST_EDIT": "管理模型授权申请",
