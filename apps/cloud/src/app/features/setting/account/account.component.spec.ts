@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { TestBed } from '@angular/core/testing'
 import { ReferralService } from '@cloud/app/@core/state'
 import { TranslateService } from '@ngx-translate/core'
@@ -53,10 +54,14 @@ describe('XpAccountComponent template', () => {
   })
 
   it('copies the loaded invitation code', async () => {
-    const writeText = jest.fn().mockResolvedValue(undefined)
+    const copy = jest.fn().mockReturnValue(true)
     const setTimeout = jest.fn()
     TestBed.configureTestingModule({
       providers: [
+        {
+          provide: Clipboard,
+          useValue: { copy }
+        },
         {
           provide: Store,
           useValue: {
@@ -97,11 +102,7 @@ describe('XpAccountComponent template', () => {
           provide: DOCUMENT,
           useValue: {
             defaultView: {
-              navigator: {
-                clipboard: {
-                  writeText
-                }
-              },
+              navigator: {},
               setTimeout
             }
           }
@@ -113,7 +114,7 @@ describe('XpAccountComponent template', () => {
 
     await component.copyReferralCode()
 
-    expect(writeText).toHaveBeenCalledWith('ABC234DEFG')
+    expect(copy).toHaveBeenCalledWith('ABC234DEFG')
     expect(component.referralCodeCopied()).toBe(true)
     expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1500)
   })
