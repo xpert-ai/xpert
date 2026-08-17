@@ -69,6 +69,8 @@ type FeedbackSearchRequest = {
     offset?: number
 }
 
+type FeedbackMutationRequest = Partial<Pick<IChatMessageFeedback, 'rating' | 'content'>>
+
 @ApiTags('AI/Conversations')
 @ApiBearerAuth()
 @Public()
@@ -405,7 +407,7 @@ export class ConversationsController {
     async createFeedback(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string,
-        @Body() body: Partial<IChatMessageFeedback>
+        @Body() body: FeedbackMutationRequest
     ) {
         await this.ensureMessage(conversationId, messageId)
         const publicScope = getPublicXpertSessionConversationScope()
@@ -437,7 +439,7 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string,
         @Param('feedback_id', UUIDValidationPipe) feedbackId: string,
-        @Body() body: Partial<IChatMessageFeedback>
+        @Body() body: FeedbackMutationRequest
     ) {
         await this.ensureMessage(conversationId, messageId)
         await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
