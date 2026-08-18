@@ -4,7 +4,7 @@
       <div
         class="flex flex-row items-center text-3xl font-semibold text-text-secondary group-hover:text-text-primary break-all"
       >
-        {{ total() | number:'0.0-1' }}{{unit()}}
+        {{ displayedTotal() | number: '0.0-1' }}{{ unit() }}
       </div>
       <div class="text-xs font-normal text-text-tertiary group-hover:text-text-secondary break-all"></div>
       <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -12,8 +12,4 @@
   </div>
 </div>
 
-<div class="echarts h-64" echarts
-  [options]="options()"
-  theme="light"
->
-</div>
+<div class="echarts h-64" echarts [options]="options()" theme="light"></div>

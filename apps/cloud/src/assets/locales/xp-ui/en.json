@@ -21,6 +21,7 @@
     "cancel": "Cancel"
   },
   "select": {
+    "placeholder": "Select an option...",
     "moreItemsSelected_one": "{{count}} more item selected",
     "moreItemsSelected_other": "{{count}} more items selected"
   },

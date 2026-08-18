@@ -23,6 +23,7 @@ import { injectApiBaseUrl, injectLanguage } from '../providers'
 import {
   IChatConversation,
   IChatMessageFeedback,
+  ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
   IUserGroup,
@@ -482,35 +483,41 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   // Statistics
 
-  getDailyConversations(id: string, timeRange: string[]) {
+  getDailyConversations(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/daily-conversations`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getDailyEndUsers(id: string, timeRange: string[]) {
+  getUsageOverview(id: string, timeRange: string[], filters?: StatisticsFilters) {
+    return this.httpClient.get<ICopilotUsageOverview>(`${this.apiBaseUrl}/${id}/statistics/usage-overview`, {
+      params: this.statisticsParams(timeRange, filters)
+    })
+  }
+
+  getDailyEndUsers(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/daily-end-users`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getAverageSessionInteractions(id: string, timeRange: string[]) {
+  getAverageSessionInteractions(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/average-session-interactions`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getDailyMessages(id: string, timeRange: string[], options?: { currentUserOnly?: boolean }) {
-    let params = timeRangeToParams(new HttpParams(), timeRange)
+  getDailyMessages(id: string, timeRange: string[], options?: StatisticsFilters & { currentUserOnly?: boolean }) {
+    let params = this.statisticsParams(timeRange, options)
     if (options?.currentUserOnly != null) {
       params = params.append('currentUserOnly', String(options.currentUserOnly))
     }
@@ -523,11 +530,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
-  getStatisticsTokensPerSecond(id: string, timeRange: string[]) {
+  getStatisticsTokensPerSecond(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/tokens-per-second`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
@@ -541,11 +548,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
-  getStatisticsUserSatisfactionRate(id: string, timeRange: string[]) {
-    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string }[]>(
+  getStatisticsUserSatisfactionRate(id: string, timeRange: string[], filters?: StatisticsFilters) {
+    return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/user-satisfaction-rate`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }

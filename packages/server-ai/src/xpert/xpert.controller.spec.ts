@@ -7,6 +7,7 @@ import type { Response } from 'express'
 import type { I18nService } from 'nestjs-i18n'
 import { EMPTY, Observable } from 'rxjs'
 import type { CopilotStoreService } from '../copilot-store/copilot-store.service'
+import type { CopilotUsageService } from '../copilot-usage/copilot-usage.service'
 import type { EnvironmentService } from '../environment'
 import type { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import type { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
@@ -259,6 +260,7 @@ describe('XpertController', () => {
             {} as unknown as XpertFrequentQuestionsService,
             templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
             {} as unknown as XpertWorkspaceFilesService,
+            {} as unknown as CopilotUsageService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )

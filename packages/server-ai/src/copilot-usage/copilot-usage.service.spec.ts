@@ -1,4 +1,4 @@
-import { OrderTypeEnum, RolesEnum } from '@xpert-ai/contracts'
+import { MembershipLedgerSourceEnum, OrderTypeEnum, RolesEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Repository, SelectQueryBuilder } from 'typeorm'
 import { CopilotOrganization } from '../copilot-organization/copilot-organization.entity'
@@ -34,7 +34,10 @@ function mockRequestContext(options?: { organizationId?: string | null; superAdm
     )
 }
 
-function createQueryBuilderMock<T>(rawRows: Array<Record<string, unknown>> = []) {
+function createQueryBuilderMock<T>(
+    rawRows: Array<Record<string, unknown>> = [],
+    rawOne: Record<string, unknown> | undefined = rawRows[0]
+) {
     const queryBuilder = {
         leftJoin: jest.fn().mockReturnThis(),
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -48,6 +51,7 @@ function createQueryBuilderMock<T>(rawRows: Array<Record<string, unknown>> = [])
         take: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue(rawRows),
+        getRawOne: jest.fn().mockResolvedValue(rawOne),
         getMany: jest.fn().mockResolvedValue(rawRows)
     }
 
@@ -243,6 +247,183 @@ describe('CopilotUsageService', () => {
                 { filterUserId: 'owner-user' }
             )
         }
+    })
+
+    it('returns daily token and membership point usage from the real ledger', async () => {
+        const bucketQb = createQueryBuilderMock<MembershipPointLedger>([
+            {
+                day: new Date('2026-06-01T00:00:00.000Z'),
+                provider: 'openai',
+                model: 'gpt-4.1',
+                tokenUsed: '1200',
+                membershipPointsUsed: '2.75',
+                callCount: '3'
+            },
+            {
+                day: new Date('2026-06-01T00:00:00.000Z'),
+                provider: 'anthropic',
+                model: 'claude-3-5-sonnet',
+                tokenUsed: '100',
+                membershipPointsUsed: '0.25',
+                callCount: '1'
+            },
+            {
+                day: '2026-06-02T00:00:00.000Z',
+                provider: 'openai',
+                model: 'gpt-4.1',
+                tokenUsed: '300',
+                membershipPointsUsed: '0.5',
+                callCount: '1'
+            }
+        ])
+        const dailyQb = createQueryBuilderMock<MembershipPointLedger>([
+            {
+                day: new Date('2026-06-01T00:00:00.000Z'),
+                tokenUsed: '1300',
+                membershipPointsUsed: '3',
+                callCount: '4',
+                activeUsers: '2',
+                conversationCount: '3'
+            },
+            {
+                day: new Date('2026-06-02T00:00:00.000Z'),
+                tokenUsed: '300',
+                membershipPointsUsed: '0.5',
+                callCount: '1',
+                activeUsers: '1',
+                conversationCount: '1'
+            }
+        ])
+        const totalsQb = createQueryBuilderMock<MembershipPointLedger>([], {
+            totalCalls: '5',
+            activeUsers: '2',
+            totalConversations: '4'
+        })
+        const availableModelsQb = createQueryBuilderMock<MembershipPointLedger>([
+            { provider: 'openai', model: 'gpt-4.1' },
+            { provider: 'anthropic', model: 'claude-3-5-sonnet' }
+        ])
+        const userRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn(),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const orgRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn(),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const ledgerRepository: RepositoryMock = {
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(bucketQb)
+                .mockReturnValueOnce(dailyQb)
+                .mockReturnValueOnce(totalsQb)
+                .mockReturnValueOnce(availableModelsQb),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const service = createService(userRepository, orgRepository, ledgerRepository)
+
+        const result = await service.findOverview({
+            start: '2026-06-01T00:00:00.000Z',
+            end: '2026-06-02T23:59:59.999Z',
+            provider: 'openai',
+            model: 'gpt-4.1',
+            userId: 'user-1',
+            xpertId: 'xpert-1'
+        })
+
+        expect(bucketQb.where).toHaveBeenCalledWith('ledger.source IN (:...membershipUsageSources)', {
+            membershipUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
+        })
+        expect(bucketQb.andWhere).toHaveBeenCalledWith('ledger.userId = :membershipUserId', {
+            membershipUserId: 'user-1'
+        })
+        expect(bucketQb.andWhere).toHaveBeenCalledWith('ledger.xpertId = :membershipXpertId', {
+            membershipXpertId: 'xpert-1'
+        })
+        expect(bucketQb.andWhere).toHaveBeenCalledWith('ledger.provider = :provider', { provider: 'openai' })
+        expect(bucketQb.andWhere).toHaveBeenCalledWith('ledger.model = :model', { model: 'gpt-4.1' })
+        expect(availableModelsQb.andWhere).not.toHaveBeenCalledWith('ledger.model = :model', expect.anything())
+        expect(result).toEqual({
+            totalTokens: 1600,
+            totalMembershipPoints: 3.5,
+            totalCalls: 5,
+            activeUsers: 2,
+            totalConversations: 4,
+            activeDays: 2,
+            buckets: [
+                {
+                    date: '2026-06-01',
+                    provider: 'openai',
+                    model: 'gpt-4.1',
+                    tokenUsed: 1200,
+                    membershipPointsUsed: 2.75,
+                    callCount: 3
+                },
+                {
+                    date: '2026-06-01',
+                    provider: 'anthropic',
+                    model: 'claude-3-5-sonnet',
+                    tokenUsed: 100,
+                    membershipPointsUsed: 0.25,
+                    callCount: 1
+                },
+                {
+                    date: '2026-06-02',
+                    provider: 'openai',
+                    model: 'gpt-4.1',
+                    tokenUsed: 300,
+                    membershipPointsUsed: 0.5,
+                    callCount: 1
+                }
+            ],
+            daily: [
+                {
+                    date: '2026-06-01',
+                    tokenUsed: 1300,
+                    membershipPointsUsed: 3,
+                    callCount: 4,
+                    activeUsers: 2,
+                    conversationCount: 3
+                },
+                {
+                    date: '2026-06-02',
+                    tokenUsed: 300,
+                    membershipPointsUsed: 0.5,
+                    callCount: 1,
+                    activeUsers: 1,
+                    conversationCount: 1
+                }
+            ],
+            modelUsage: [
+                {
+                    provider: 'openai',
+                    model: 'gpt-4.1',
+                    tokenUsed: 1500,
+                    membershipPointsUsed: 3.25,
+                    callCount: 4
+                },
+                {
+                    provider: 'anthropic',
+                    model: 'claude-3-5-sonnet',
+                    tokenUsed: 100,
+                    membershipPointsUsed: 0.25,
+                    callCount: 1
+                }
+            ],
+            availableModels: [
+                { provider: 'openai', model: 'gpt-4.1' },
+                { provider: 'anthropic', model: 'claude-3-5-sonnet' }
+            ]
+        })
     })
 
     it('filters user details by creator but returns runtime user usage rows', async () => {
