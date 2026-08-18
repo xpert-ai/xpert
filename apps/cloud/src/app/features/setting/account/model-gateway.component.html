@@ -389,7 +389,7 @@
                     <td z-table-cell>
                       {{ 'XP.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
                     </td>
-                    <td z-table-cell>{{ call.chargedPoints }}</td>
+                    <td z-table-cell>{{ call.chargedPoints | number: '1.0-2' }}</td>
                     <td z-table-cell>{{ formatDate(call.startedAt) }}</td>
                   </tr>
                 }

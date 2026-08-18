@@ -9,20 +9,20 @@ import { IQuery } from '@nestjs/cqrs'
  * 3. xpert.copilotModel
  */
 export class GetXpertChatModelQuery implements IQuery {
-	static readonly type = '[Xpert] Get chatModel for agent'
+    static readonly type = '[Xpert] Get chatModel for agent'
 
-	constructor(
-		public readonly xpert: IXpert,
-		/**
-		 * @deprecated use copilotModel in options
-		 */
-		public readonly agent: IXpertAgent,
-		public readonly options: {
-			copilotModel?: TCopilotModel
-			abortController?: AbortController;
-			// tokenCallback?: (tokens: number) => void
-			usageCallback: (tokens: TLLMUsage) => void | Promise<void>
-			threadId: string
-		}
-	) {}
+    constructor(
+        public readonly xpert: IXpert,
+        /**
+         * @deprecated use copilotModel in options
+         */
+        public readonly agent: IXpertAgent,
+        public readonly options: {
+            copilotModel?: TCopilotModel
+            abortController?: AbortController
+            // tokenCallback?: (tokens: number) => void
+            usageCallback: (tokens: TLLMUsage) => void | Promise<void>
+            threadId: string
+        }
+    ) {}
 }

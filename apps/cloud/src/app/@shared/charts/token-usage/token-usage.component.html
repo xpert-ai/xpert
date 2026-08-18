@@ -1,5 +1,5 @@
 <div class="flex justify-start gap-4 mb-4 flex-1">
-  @for (total of totals(); track total.currency) {
+  @for (total of totals(); track total.key) {
     <div class="flex items-start p-1">
       <div class="group">
         <div
@@ -9,9 +9,16 @@
         </div>
         <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
           {{ 'XP.Xpert.ConsumedTokens' | translate: { Default: 'Consumed Tokens' } }}
-          <div class="font-medium text-orange-400">
-            (~ {{ total.usage.price | currency: total.currency : 'symbol' : '0.0-7' }})
-          </div>
+          @if (displayMode() === 'membership') {
+            <div class="font-medium text-primary-600">
+              {{ total.usage.membershipPointsUsed | number: '1.0-10' }}
+              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
+            </div>
+          } @else {
+            <div class="font-medium text-orange-400">
+              (~ {{ total.usage.price | currency: total.currency : 'symbol' : '0.0-7' }})
+            </div>
+          }
         </div>
       </div>
     </div>

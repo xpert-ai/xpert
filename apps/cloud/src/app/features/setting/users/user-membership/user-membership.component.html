@@ -53,7 +53,7 @@
                   >∞</span
                 >
               } @else {
-                {{ remainingPoints() | number: '1.0-10' }}
+                {{ remainingPoints() | number: '1.0-2' }}
               }
             </div>
           </div>
@@ -62,7 +62,7 @@
               <div class="text-sm text-text-tertiary">
                 {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
               </div>
-              <div class="font-medium">{{ personalPointsBalance() | number: '1.0-10' }}</div>
+              <div class="font-medium">{{ personalPointsBalance() | number: '1.0-2' }}</div>
             </div>
           }
         </div>
@@ -74,10 +74,10 @@
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
-                {{ currentMembership.pointsUsed | number: '1.0-10' }} / ∞
+                {{ currentMembership.pointsUsed | number: '1.0-2' }} / ∞
               } @else {
-                {{ currentMembership.pointsUsed | number: '1.0-10' }} /
-                {{ currentMembership.pointsGranted | number: '1.0-10' }}
+                {{ currentMembership.pointsUsed | number: '1.0-2' }} /
+                {{ currentMembership.pointsGranted | number: '1.0-2' }}
               }
             </div>
           </div>
@@ -230,7 +230,7 @@
                               >∞</span
                             >
                           } @else {
-                            {{ period.pointsGranted | number: '1.0-10' }}
+                            {{ period.pointsGranted | number: '1.0-2' }}
                           }
                         </div>
                       </div>
@@ -331,7 +331,7 @@
                       >∞</span
                     >
                   } @else {
-                    {{ period.pointsGranted | number: '1.0-10' }}
+                    {{ period.pointsGranted | number: '1.0-2' }}
                   }
                 </div>
               </div>
@@ -550,7 +550,7 @@
                 <z-badge zType="outline" zShape="pill">{{ auditScopeLabel(entry) }}</z-badge>
                 @if (entry.pointsDelta) {
                   <z-badge [zType]="entry.pointsDelta > 0 ? 'secondary' : 'outline'" zShape="pill">
-                    {{ entry.pointsDelta > 0 ? '+' : '' }}{{ entry.pointsDelta | number: '1.0-10' }}
+                    {{ entry.pointsDelta > 0 ? '+' : '' }}{{ entry.pointsDelta | number: '1.0-2' }}
                   </z-badge>
                 }
               </div>

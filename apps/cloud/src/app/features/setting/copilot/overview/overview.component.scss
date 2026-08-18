@@ -1,4 +1,241 @@
 @reference "../../../../../styles/tailwind-reference.css";
+
 :host {
   @apply flex flex-col w-full p-8;
+}
+
+.overview-header {
+  @apply mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between;
+}
+
+.overview-kicker,
+.overview-section-kicker {
+  @apply flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-text-tertiary;
+}
+
+.overview-period-chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-divider-regular bg-components-card-bg px-2.5 py-1 text-xs font-medium text-text-secondary shadow-sm;
+}
+
+.overview-period-chip i {
+  @apply text-sm text-text-tertiary;
+}
+
+.overview-source-badge {
+  @apply flex max-w-full items-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 shadow-sm lg:max-w-[300px];
+}
+
+.overview-source-icon {
+  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-lg text-text-secondary;
+}
+
+.overview-summary-grid {
+  @apply mb-8 grid w-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.8fr)];
+}
+
+.overview-primary-summary {
+  @apply relative flex min-h-[230px] flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg p-6 shadow-sm transition-shadow duration-200 hover:shadow-md;
+}
+
+.overview-primary-summary::after {
+  content: '';
+  @apply absolute inset-y-0 left-0 w-1 bg-primary-600;
+}
+
+.overview-summary-header {
+  @apply flex items-start justify-between gap-4;
+}
+
+.overview-summary-status {
+  @apply inline-flex shrink-0 items-center gap-2 rounded-full border border-divider-subtle bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-tertiary;
+}
+
+.overview-primary-metrics {
+  @apply mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2;
+}
+
+.overview-primary-metric {
+  @apply min-w-0 border-l-2 border-primary-600 pl-4;
+}
+
+.overview-primary-metric--points {
+  @apply border-text-warning;
+}
+
+.overview-metric-label {
+  @apply flex min-w-0 items-center gap-2 text-sm font-medium text-text-secondary;
+}
+
+.overview-metric-label > span:not(.overview-help-icon) {
+  @apply truncate;
+}
+
+.overview-metric-label > i {
+  @apply shrink-0 text-base;
+}
+
+.overview-primary-value {
+  @apply mt-3 truncate text-4xl font-semibold tracking-tight text-text-primary;
+}
+
+.overview-secondary-grid {
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1;
+}
+
+.overview-secondary-card {
+  @apply flex min-h-[107px] items-center gap-4 rounded-2xl border border-divider-regular bg-components-card-bg p-5 shadow-sm transition-shadow duration-200 hover:shadow-md;
+}
+
+.overview-secondary-icon {
+  @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg;
+}
+
+.overview-secondary-copy {
+  @apply min-w-0;
+}
+
+.overview-secondary-value {
+  @apply mt-1 text-2xl font-semibold tracking-tight text-text-primary;
+}
+
+.overview-kpi-label {
+  @apply flex max-w-full items-center gap-1.5 text-sm font-medium text-text-secondary;
+}
+
+.overview-help-icon {
+  @apply inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full text-text-tertiary transition-colors duration-150 hover:bg-background-default-subtle hover:text-text-secondary;
+}
+
+.overview-help-icon i {
+  @apply text-sm;
+}
+
+.overview-analysis-section {
+  @apply mb-5;
+}
+
+.overview-section-heading {
+  @apply mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between;
+}
+
+.overview-section-kicker i {
+  @apply text-base text-primary-600;
+}
+
+.overview-section-meta {
+  @apply inline-flex w-fit items-center gap-2 rounded-full border border-divider-subtle bg-components-card-bg px-3 py-1.5 text-xs font-medium text-text-tertiary;
+}
+
+.overview-filter-bar {
+  @apply flex flex-col gap-3 rounded-2xl border border-divider-regular bg-background-default-subtle/70 p-3 sm:flex-row sm:items-center;
+}
+
+.overview-filter-label {
+  @apply flex shrink-0 items-center gap-2 px-1 text-sm font-medium text-text-secondary;
+}
+
+.overview-filter-label i {
+  @apply text-base text-text-tertiary;
+}
+
+.overview-filter-controls {
+  @apply flex min-w-0 flex-1 flex-col gap-2 sm:flex-row;
+}
+
+.overview-chart-grid {
+  @apply mb-4 grid w-full grid-cols-1 gap-4;
+}
+
+.overview-chart-grid--distribution {
+  @apply xl:grid-cols-2;
+}
+
+.overview-chart-grid--trends {
+  @apply lg:grid-cols-2 2xl:grid-cols-3;
+}
+
+.overview-chart-card {
+  @apply flex min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg shadow-sm transition-shadow duration-200 hover:shadow-md;
+}
+
+.overview-panel-header {
+  @apply flex min-h-[76px] items-start justify-between gap-3 border-b border-divider-subtle px-5 py-4;
+}
+
+.overview-panel-title-group {
+  @apply flex min-w-0 items-center gap-3;
+}
+
+.overview-panel-icon {
+  @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base;
+}
+
+.overview-panel-title {
+  @apply truncate text-sm font-semibold text-text-primary;
+}
+
+.overview-panel-subtitle {
+  @apply mt-1 truncate text-xs text-text-tertiary;
+}
+
+.overview-chart-body {
+  @apply flex min-h-[300px] flex-1 flex-col px-5 pb-5 pt-2;
+}
+
+.overview-chart-body--trend {
+  @apply min-h-[270px] px-4 pb-4 pt-1;
+}
+
+.overview-empty-state {
+  @apply flex min-h-[240px] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-divider-subtle bg-background-default-subtle/50 px-4 text-center text-sm text-text-tertiary;
+}
+
+.overview-empty-state i {
+  @apply text-2xl text-text-quaternary;
+}
+
+.overview-token-card {
+  @apply mb-4;
+}
+
+.overview-token-card--primary {
+  @apply mb-4;
+}
+
+.overview-token-body {
+  @apply min-h-[350px] px-5 pb-5 pt-2;
+}
+
+.overview-legend {
+  @apply flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-xs text-text-tertiary;
+}
+
+.overview-legend span {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.overview-legend i {
+  @apply h-2 w-2 rounded-full;
+}
+
+@media (max-width: 639px) {
+  :host {
+    @apply p-4;
+  }
+
+  .overview-source-badge {
+    @apply w-full;
+  }
+
+  .overview-panel-header {
+    @apply px-4;
+  }
+
+  .overview-panel-title {
+    @apply whitespace-normal;
+  }
+
+  .overview-legend {
+    @apply justify-start px-4 pb-3;
+  }
 }

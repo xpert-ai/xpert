@@ -2,6 +2,7 @@ import {
     AIPermissionsEnum,
     ICopilotUsageGroupKey,
     ICopilotUsageQuery,
+    ICopilotUsageOverview,
     ICopilotUsageSummary,
     ICopilotUsageTotals,
     ModelUsageLedgerQuery,
@@ -60,6 +61,12 @@ export class CopilotUsageController {
     @UseValidationPipe()
     async getTotals(@Query() query: ICopilotUsageQuery): Promise<ICopilotUsageTotals[]> {
         return this.service.findTotals(query)
+    }
+
+    @Get('overview')
+    @UseValidationPipe()
+    async getOverview(@Query() query: ICopilotUsageQuery): Promise<ICopilotUsageOverview> {
+        return this.service.findOverview(query)
     }
 
     @Post('details')
