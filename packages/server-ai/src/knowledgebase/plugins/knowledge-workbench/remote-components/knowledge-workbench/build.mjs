@@ -35,6 +35,7 @@ execFileSync(resolveLocalBin(workspaceRoot, 'tailwindcss'), ['-i', cssSourcePath
 
 stripTrailingWhitespace(scriptTargetPath)
 stripTrailingWhitespace(cssTargetPath)
+assertNoWebStorageAccess(scriptTargetPath)
 
 function findWorkspaceRoot(startDir) {
     let current = startDir
@@ -62,6 +63,7 @@ function xpertRemoteComponentPlugin() {
     const jsxRuntimeShimPath = 'xpert-react-jsx-runtime-shim'
     const reactDomShimPath = 'xpert-react-dom-shim'
     const reactDomClientShimPath = 'xpert-react-dom-client-shim'
+    const nextThemesShimPath = 'xpert-next-themes-shim'
 
     return {
         name: 'xpert-remote-component',
@@ -90,6 +92,10 @@ function xpertRemoteComponentPlugin() {
             }))
             esbuild.onResolve({ filter: /^react-dom\/client$/ }, () => ({
                 path: reactDomClientShimPath,
+                namespace: 'xpert-global'
+            }))
+            esbuild.onResolve({ filter: /^next-themes$/ }, () => ({
+                path: nextThemesShimPath,
                 namespace: 'xpert-global'
             }))
             esbuild.onLoad({ filter: /.*/, namespace: 'xpert-global' }, (args) => ({
@@ -177,6 +183,14 @@ export const hydrateRoot = ReactDOM.hydrateRoot;
 `
     }
 
+    if (path === 'xpert-next-themes-shim') {
+        return `
+const themeState = { theme: 'system', resolvedTheme: 'light', themes: ['light', 'dark', 'system'] };
+export function useTheme() { return themeState; }
+export function ThemeProvider({ children }) { return children; }
+`
+    }
+
     return `
 const ReactDOM = globalThis.ReactDOM;
 export default ReactDOM;
@@ -189,4 +203,14 @@ export const unstable_batchedUpdates = ReactDOM.unstable_batchedUpdates;
 function stripTrailingWhitespace(path) {
     const content = readFileSync(path, 'utf8')
     writeFileSync(path, content.replace(/[ \t]+$/gm, ''))
+}
+
+function assertNoWebStorageAccess(path) {
+    const content = readFileSync(path, 'utf8')
+    const forbiddenPropertyNames = ['local', 'session'].map((prefix) => `${prefix}Storage`)
+    const match = forbiddenPropertyNames.find((propertyName) => content.includes(propertyName))
+
+    if (match) {
+        throw new Error(`Remote component bundle must not access Window.${match}`)
+    }
 }

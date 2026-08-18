@@ -56,8 +56,7 @@ import { compact, extractCitationTarget, normalizeFileSize, readError } from './
 
 declare const ReactDOM: any
 
-const PREVIEW_WIDTH_STORAGE_KEY = 'xpert.knowledgeWorkbench.previewWidth'
-// Store the preview column as a percentage so it survives different workbench widths.
+// Keep the preview column as a percentage so it adapts to different workbench widths.
 const DEFAULT_PREVIEW_WIDTH_PERCENT = 46
 const MIN_PREVIEW_WIDTH_PERCENT = 28
 const MAX_PREVIEW_WIDTH_PERCENT = 72
@@ -94,7 +93,7 @@ function App() {
     const [sortMode, setSortMode] = React.useState<'updated' | 'name'>('updated')
     const [createFolderDialogOpen, setCreateFolderDialogOpen] = React.useState(false)
     const [folderNameInput, setFolderNameInput] = React.useState('')
-    const [previewWidth, setPreviewWidth] = React.useState(readStoredPreviewWidth)
+    const [previewWidth, setPreviewWidth] = React.useState(DEFAULT_PREVIEW_WIDTH_PERCENT)
     const [isNarrowViewport, setIsNarrowViewport] = React.useState(isNarrowWorkbenchViewport)
     const layoutRef = React.useRef<HTMLElement | null>(null)
     const fileInputRef = React.useRef<HTMLInputElement | null>(null)
@@ -570,7 +569,6 @@ function App() {
             }
 
             event.preventDefault()
-            let nextWidth = previewWidth
             const previousCursor = document.body.style.cursor
             const previousUserSelect = document.body.style.userSelect
             document.body.style.cursor = 'col-resize'
@@ -578,21 +576,19 @@ function App() {
 
             // Capture movement on document so dragging remains smooth outside the narrow handle.
             const onPointerMove = (moveEvent: PointerEvent) => {
-                nextWidth = resolvePreviewWidth(moveEvent.clientX)
-                setPreviewWidth(nextWidth)
+                setPreviewWidth(resolvePreviewWidth(moveEvent.clientX))
             }
             const onPointerUp = () => {
                 document.removeEventListener('pointermove', onPointerMove)
                 document.removeEventListener('pointerup', onPointerUp)
                 document.body.style.cursor = previousCursor
                 document.body.style.userSelect = previousUserSelect
-                storePreviewWidth(nextWidth)
             }
 
             document.addEventListener('pointermove', onPointerMove)
             document.addEventListener('pointerup', onPointerUp)
         },
-        [isNarrowViewport, previewWidth, resolvePreviewWidth]
+        [isNarrowViewport, resolvePreviewWidth]
     )
 
     const handlePreviewResizeKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -600,16 +596,11 @@ function App() {
             return
         }
         event.preventDefault()
-        setPreviewWidth((current) => {
-            const next = clampPreviewWidth(current + (event.key === 'ArrowLeft' ? 2 : -2))
-            storePreviewWidth(next)
-            return next
-        })
+        setPreviewWidth((current) => clampPreviewWidth(current + (event.key === 'ArrowLeft' ? 2 : -2)))
     }, [])
 
     const resetPreviewWidth = React.useCallback(() => {
         setPreviewWidth(DEFAULT_PREVIEW_WIDTH_PERCENT)
-        storePreviewWidth(DEFAULT_PREVIEW_WIDTH_PERCENT)
     }, [])
 
     const layoutStyle = React.useMemo<React.CSSProperties | undefined>(
@@ -1039,21 +1030,6 @@ function App() {
             </main>
         </TooltipProvider>
     )
-}
-
-function readStoredPreviewWidth() {
-    if (typeof window === 'undefined') {
-        return DEFAULT_PREVIEW_WIDTH_PERCENT
-    }
-    const stored = Number(window.localStorage?.getItem(PREVIEW_WIDTH_STORAGE_KEY))
-    return Number.isFinite(stored) ? clampPreviewWidth(stored) : DEFAULT_PREVIEW_WIDTH_PERCENT
-}
-
-function storePreviewWidth(value: number) {
-    if (typeof window === 'undefined') {
-        return
-    }
-    window.localStorage?.setItem(PREVIEW_WIDTH_STORAGE_KEY, String(Math.round(clampPreviewWidth(value))))
 }
 
 function clampPreviewWidth(value: number, min = MIN_PREVIEW_WIDTH_PERCENT, max = MAX_PREVIEW_WIDTH_PERCENT) {
