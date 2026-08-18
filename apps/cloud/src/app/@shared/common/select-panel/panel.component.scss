@@ -1,14 +1,5 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  .select-search-input {
-    padding-left: 2.25rem !important;
-    padding-right: 2.25rem !important;
-  }
-
-  .select-search-icon {
-    @apply pointer-events-none;
-  }
-
   .select-trigger {
     @apply px-2 py-1.5 border-[0.5px] border-solid border-transparent bg-components-input-bg-normal hover:border-divider-deep;
   }

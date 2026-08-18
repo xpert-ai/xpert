@@ -12600,18 +12600,20 @@
         return Zc('executeAction', { actionKey: e, input: t, parameters: r }, 'actionResult')
     }
     function wL(e, t, r, n) {
-        return t.arrayBuffer().then((a) =>
-            Zc(
-                'executeFileAction',
-                {
-                    actionKey: e,
-                    input: r,
-                    parameters: n,
-                    file: { name: t.name, type: t.type, size: t.size, buffer: a }
-                },
-                'fileActionResult'
+        return t
+            .arrayBuffer()
+            .then((a) =>
+                Zc(
+                    'executeFileAction',
+                    {
+                        actionKey: e,
+                        input: r,
+                        parameters: n,
+                        file: { name: t.name, type: t.type, size: t.size, buffer: a }
+                    },
+                    'fileActionResult'
+                )
             )
-        )
     }
     function Qc(e, t) {
         return Zc('invokeClientCommand', { commandKey: e, payload: t }, 'clientCommandResult')
@@ -47694,20 +47696,22 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 e.evidence.length
                     ? w('div', {
                           className: 'grid gap-1 border-l-2 border-border pl-2 text-xs text-muted-foreground',
-                          children: e.evidence.slice(0, 3).map((r, n) =>
-                              Y(
-                                  'div',
-                                  {
-                                      children: [
-                                          r.quote || oe('evidence'),
-                                          typeof r.confidence == 'number'
-                                              ? ` \xB7 ${oe('confidence')} ${Yd(r.confidence)}`
-                                              : ''
-                                      ]
-                                  },
-                                  r.id ?? n
+                          children: e.evidence
+                              .slice(0, 3)
+                              .map((r, n) =>
+                                  Y(
+                                      'div',
+                                      {
+                                          children: [
+                                              r.quote || oe('evidence'),
+                                              typeof r.confidence == 'number'
+                                                  ? ` \xB7 ${oe('confidence')} ${Yd(r.confidence)}`
+                                                  : ''
+                                          ]
+                                      },
+                                      r.id ?? n
+                                  )
                               )
-                          )
                       })
                     : null
             ]

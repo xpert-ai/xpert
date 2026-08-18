@@ -7,16 +7,6 @@
       outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50
       focus-visible:ring-[3px];
   }
-
-  .select-search-input {
-    padding-left: 2.25rem !important;
-    padding-right: 2.25rem !important;
-  }
-
-  .select-search-icon {
-    @apply pointer-events-none;
-  }
-
   &[disabled] .select-trigger {
     @apply cursor-not-allowed opacity-50;
   }
