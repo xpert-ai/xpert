@@ -31,7 +31,7 @@
               @if (overview()?.pointsRemaining === null) {
                 {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ overview()?.pointsRemaining | number: '1.0-10' }}
+                {{ overview()?.pointsRemaining | number: '1.0-2' }}
               }
             </div>
           </div>
@@ -40,7 +40,7 @@
               {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
-              {{ overview()?.pointsUsed | number: '1.0-10' }}
+              {{ overview()?.pointsUsed | number: '1.0-2' }}
             </div>
           </div>
           <div class="rounded-lg bg-components-panel-bg p-3">
@@ -48,7 +48,7 @@
               {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
-              {{ overview()?.personalPointsBalance | number: '1.0-10' }}
+              {{ overview()?.personalPointsBalance | number: '1.0-2' }}
             </div>
           </div>
         </div>
@@ -81,7 +81,7 @@
             <div class="text-xs font-medium text-text-tertiary">
               {{ 'XP.Membership.TotalPoints' | translate: { Default: 'Total points' } }}
             </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ totalPoints() | number: '1.0-10' }}</div>
+            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ totalPoints() | number: '1.0-2' }}</div>
           </div>
         </z-card-content>
       </z-card>
@@ -113,7 +113,7 @@
             <div class="text-xs font-medium text-text-tertiary">
               {{ 'XP.Membership.PeakDailyPoints' | translate: { Default: 'Peak daily points' } }}
             </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ peakDailyPoints() | number: '1.0-10' }}</div>
+            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ peakDailyPoints() | number: '1.0-2' }}</div>
           </div>
         </z-card-content>
       </z-card>
@@ -231,7 +231,7 @@
                 @if (period.pointsGranted === null) {
                   {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                 } @else {
-                  {{ period.pointsGranted | number: '1.0-10' }}
+                  {{ period.pointsGranted | number: '1.0-2' }}
                   {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
                 }
               </div>
@@ -310,7 +310,7 @@
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number: '1.0-10' }}
+              {{ item.pointsUsed | number: '1.0-2' }}
               {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
@@ -340,7 +340,7 @@
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number: '1.0-10' }}
+              {{ item.pointsUsed | number: '1.0-2' }}
               {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
@@ -370,7 +370,7 @@
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number: '1.0-10' }}
+              {{ item.pointsUsed | number: '1.0-2' }}
               {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>

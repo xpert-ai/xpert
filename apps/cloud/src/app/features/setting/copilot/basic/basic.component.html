@@ -40,8 +40,8 @@
                 >∞</span
               >
             } @else {
-              {{ membership.pointsRemaining | number: '1.0-10' }} /
-              {{ membership.pointsGranted | number: '1.0-10' }}
+              {{ membership.pointsRemaining | number: '1.0-2' }} /
+              {{ membership.pointsGranted | number: '1.0-2' }}
             }
           </div>
           <div class="mt-1 text-xs text-text-tertiary">
@@ -60,7 +60,7 @@
             {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
           </div>
           <div class="mt-1 font-semibold text-text-primary">
-            {{ membership.personalPointsBalance | number: '1.0-10' }}
+            {{ membership.personalPointsBalance | number: '1.0-2' }}
           </div>
           <div class="mt-1 text-xs text-text-tertiary">
             {{ 'XP.Membership.Permanent' | translate: { Default: 'Permanent' } }}

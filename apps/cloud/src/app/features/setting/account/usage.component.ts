@@ -109,7 +109,7 @@ export class XpAccountUsageComponent implements OnInit {
       month: 'long',
       day: 'numeric'
     }).format(bucket.dateValue)
-    const pointsUsed = new Intl.NumberFormat(locale, { maximumFractionDigits: 10 }).format(bucket.pointsUsed)
+    const pointsUsed = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(bucket.pointsUsed)
 
     return this.#translate.instant('XP.Membership.HeatmapDailyPointsTitle', {
       date,

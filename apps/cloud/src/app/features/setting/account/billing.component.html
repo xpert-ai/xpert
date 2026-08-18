@@ -39,7 +39,7 @@
               @if (isUnlimited()) {
                 {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ me()?.pointsRemaining | number: '1.0-10' }} / {{ me()?.pointsGranted | number: '1.0-10' }}
+                {{ me()?.pointsRemaining | number: '1.0-2' }} / {{ me()?.pointsGranted | number: '1.0-2' }}
               }
             </div>
             <div class="mt-1 text-xs text-text-tertiary">
@@ -56,7 +56,7 @@
             <div class="text-xs font-medium text-text-tertiary">
               {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number: '1.0-10' }}</div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number: '1.0-2' }}</div>
             <div class="mt-1 text-xs text-text-tertiary">
               {{ usedPercent() | number }}% {{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}
             </div>
@@ -67,7 +67,7 @@
               {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
             </div>
             <div class="mt-2 text-2xl font-semibold text-text-primary">
-              {{ me()?.personalPointsBalance | number: '1.0-10' }}
+              {{ me()?.personalPointsBalance | number: '1.0-2' }}
             </div>
             <div class="mt-1 text-xs text-text-tertiary">
               {{
@@ -83,10 +83,10 @@
             <span>{{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
             <span>
               @if (isUnlimited()) {
-                {{ me()?.pointsUsed | number: '1.0-10' }} /
+                {{ me()?.pointsUsed | number: '1.0-2' }} /
                 {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ me()?.pointsUsed | number: '1.0-10' }} / {{ me()?.pointsGranted | number: '1.0-10' }}
+                {{ me()?.pointsUsed | number: '1.0-2' }} / {{ me()?.pointsGranted | number: '1.0-2' }}
               }
             </span>
           </div>
@@ -121,7 +121,7 @@
             @if (me()?.plan?.includedPoints === null) {
               {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
             } @else {
-              {{ me()?.plan?.includedPoints | number }}
+              {{ me()?.plan?.includedPoints | number: '1.0-2' }}
             }
           </span>
         </div>
@@ -233,7 +233,7 @@
                     class="whitespace-nowrap px-4 py-3 text-right font-semibold"
                     [ngClass]="summary.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
                   >
-                    {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number: '1.0-10' }}
+                    {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number: '1.0-2' }}
                   </td>
                 </tr>
                 @if (isExpanded(summary)) {
@@ -283,7 +283,7 @@
                                   class="whitespace-nowrap px-4 py-2 text-right font-semibold"
                                   [ngClass]="ledger.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
                                 >
-                                  {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number: '1.0-10' }}
+                                  {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number: '1.0-2' }}
                                 </td>
                               </tr>
                             } @empty {
