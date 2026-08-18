@@ -1264,10 +1264,7 @@ export class LocalShellSandboxProvider implements ISandboxProvider<LocalShellSan
     }
 
     isAvailable(): boolean {
-        if (process.env.NODE_ENV !== 'production') {
-            return true
-        }
-        return !process.env.NSJAIL_RUNNER_URL?.trim() && !process.env.NSJAIL_RUNNER_TOKEN?.trim()
+        return process.env.XPERT_LOCAL_SANDBOX_ENABLED?.trim().toLowerCase() === 'true'
     }
 
     async create(options?: SandboxProviderCreateOptions): Promise<LocalShellSandbox> {

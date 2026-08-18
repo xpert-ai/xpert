@@ -24,6 +24,7 @@ import { ZardButtonComponent } from '../button'
 import { ZardIconComponent } from '../icon'
 import { ZardPaginationContentComponent, ZardPaginationItemComponent } from './pagination.component'
 import { ZardSelectComponent, ZardSelectItemComponent } from '../select'
+import { injectUiI18nService } from '../../core/i18n/ui-i18n.service'
 import { mergeClasses } from '../../utils/merge-classes'
 
 const DEFAULT_PAGE_SIZE = 50
@@ -68,7 +69,7 @@ export interface ZardPaginatorLike {
         <div data-slot="paginator-page-size" [class]="pageSizeClasses()">
           @if (!hidePageSizeLabel) {
             <span data-slot="paginator-page-size-label" class="whitespace-nowrap text-current/80">
-              Items per page:
+              {{ itemsPerPageLabel() }}
             </span>
           }
 
@@ -78,7 +79,7 @@ export interface ZardPaginatorLike {
               [class]="selectClasses()"
               [ngModel]="pageSize"
               [zDisabled]="disabled"
-              [zPlaceholder]="'Items per page'"
+              [zPlaceholder]="itemsPerPagePlaceholder()"
               (ngModelChange)="changePageSize($event)"
             >
               @for (option of displayedPageSizeOptions(); track option) {
@@ -116,8 +117,8 @@ export interface ZardPaginatorLike {
                 zType="ghost"
                 [zSize]="buttonSize()"
                 [zDisabled]="previousButtonsDisabled()"
-                [attr.aria-label]="'First page'"
-                [attr.title]="'First page'"
+                [attr.aria-label]="firstPageLabel()"
+                [attr.title]="firstPageLabel()"
                 (click)="firstPage()"
               >
                 <z-icon class="z-icon-rtl-mirror" zType="chevrons-left" aria-hidden="true" />
@@ -133,8 +134,8 @@ export interface ZardPaginatorLike {
               zType="ghost"
               [zSize]="buttonSize()"
               [zDisabled]="previousButtonsDisabled()"
-              [attr.aria-label]="'Previous page'"
-              [attr.title]="'Previous page'"
+              [attr.aria-label]="previousPageLabel()"
+              [attr.title]="previousPageLabel()"
               (click)="previousPage()"
             >
               <z-icon class="z-icon-rtl-mirror" zType="chevron-left" aria-hidden="true" />
@@ -149,8 +150,8 @@ export interface ZardPaginatorLike {
               zType="ghost"
               [zSize]="buttonSize()"
               [zDisabled]="nextButtonsDisabled()"
-              [attr.aria-label]="'Next page'"
-              [attr.title]="'Next page'"
+              [attr.aria-label]="nextPageLabel()"
+              [attr.title]="nextPageLabel()"
               (click)="nextPage()"
             >
               <z-icon class="z-icon-rtl-mirror" zType="chevron-right" aria-hidden="true" />
@@ -166,8 +167,8 @@ export interface ZardPaginatorLike {
                 zType="ghost"
                 [zSize]="buttonSize()"
                 [zDisabled]="nextButtonsDisabled()"
-                [attr.aria-label]="'Last page'"
-                [attr.title]="'Last page'"
+                [attr.aria-label]="lastPageLabel()"
+                [attr.title]="lastPageLabel()"
                 (click)="lastPage()"
               >
                 <z-icon class="z-icon-rtl-mirror" zType="chevrons-right" aria-hidden="true" />
@@ -189,6 +190,7 @@ export interface ZardPaginatorLike {
 })
 export class ZardPaginatorComponent implements OnInit, OnDestroy, ZardPaginatorLike {
   private readonly changeDetectorRef = inject(ChangeDetectorRef)
+  private readonly i18n = injectUiI18nService()
 
   readonly class = input<ClassValue>('')
 
@@ -327,19 +329,40 @@ export class ZardPaginatorComponent implements OnInit, OnDestroy, ZardPaginatorL
 
   protected readonly displayedPageSizeOptions = computed(() => this.displayedPageSizeOptionsState())
 
+  protected readonly itemsPerPageLabel = computed(() =>
+    this.i18n.t('paginator.itemsPerPage', { Default: 'Items per page:' })
+  )
+  protected readonly itemsPerPagePlaceholder = computed(() =>
+    this.i18n.t('paginator.itemsPerPagePlaceholder', { Default: 'Items per page' })
+  )
+  protected readonly firstPageLabel = computed(() => this.i18n.t('paginator.firstPage', { Default: 'First page' }))
+  protected readonly previousPageLabel = computed(() =>
+    this.i18n.t('paginator.previousPage', { Default: 'Previous page' })
+  )
+  protected readonly nextPageLabel = computed(() => this.i18n.t('paginator.nextPage', { Default: 'Next page' }))
+  protected readonly lastPageLabel = computed(() => this.i18n.t('paginator.lastPage', { Default: 'Last page' }))
+
   protected readonly rangeLabel = computed(() => {
     const length = this.lengthState()
     const pageSize = this.pageSizeState()
     const pageIndex = this.pageIndexState()
 
     if (length === 0 || pageSize === 0) {
-      return `0 of ${length}`
+      return this.i18n.t('paginator.emptyRange', {
+        length,
+        Default: `0 of ${length}`
+      })
     }
 
     const startIndex = pageIndex * pageSize
     const endIndex = startIndex < length ? Math.min(startIndex + pageSize, length) : startIndex + pageSize
 
-    return `${startIndex + 1} \u2013 ${endIndex} of ${length}`
+    return this.i18n.t('paginator.range', {
+      start: startIndex + 1,
+      end: endIndex,
+      length,
+      Default: `${startIndex + 1} \u2013 ${endIndex} of ${length}`
+    })
   })
 
   ngOnInit(): void {

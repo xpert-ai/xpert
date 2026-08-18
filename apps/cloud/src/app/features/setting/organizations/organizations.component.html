@@ -35,7 +35,7 @@
               <ng-template #search><i class="ri-search-line text-text-tertiary"></i></ng-template>
 
               @if (canCreateOrganizations()) {
-                <button z-button zType="default" displayDensity="cosy" (click)="addOrganization()">
+                <button z-button zType="default" zSize="sm" (click)="addOrganization()">
                   <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
                 </button>
               }

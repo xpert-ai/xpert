@@ -262,7 +262,11 @@
   <div class="flex items-center gap-2">
     <tag-filter [allTags]="allTags()" [(tags)]="tags" />
 
-    <xp-search class="rounded-xl overflow-hidden" [formControl]="searchControl" />
+    <z-search-input
+      [formControl]="searchControl"
+      [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+    />
   </div>
 </div>
 
@@ -279,15 +283,11 @@
 <ng-template #workspaceMenu>
   <div cdkMenu class="cdk-menu__large">
     @if (workspaces()?.length > 10) {
-      <div class="p-1 relative w-full">
-        <div
-          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder flex justify-center items-center"
-        >
-          <i class="ri-search-line"></i>
-        </div>
-        <input
-          class="xp-input w-full pl-[26px]"
+      <div class="w-full p-1">
+        <z-search-input
+          class="w-full"
           [placeholder]="'XP.Xpert.FilterWorkspace' | translate: { Default: 'Filter Workspace' }"
+          [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
           [(ngModel)]="searchWorkspace"
         />
       </div>

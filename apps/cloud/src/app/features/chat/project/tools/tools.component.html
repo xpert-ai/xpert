@@ -119,10 +119,10 @@
 <ng-template #builtinMenu>
   <div cdkMenu class="relative">
     <div class="w-[200px] p-2 sticky top-0 z-10 bg-components-card-bg">
-      <i class="ri-search-line absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 flex justify-center items-center"></i>
-      <input
-        class="xp-input w-full pl-[26px]"
-        placeholder="{{ 'XP.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
+      <z-search-input
+        class="w-full"
+        [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
         [(ngModel)]="search"
       />
     </div>

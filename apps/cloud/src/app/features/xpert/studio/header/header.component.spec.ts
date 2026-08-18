@@ -14,4 +14,12 @@ describe('XpertStudioHeaderComponent template', () => {
     expect(publishedStatus).toContain('v{{ version() }}')
     expect(publishedStatus).not.toContain('XP.Xpert.Draft')
   })
+
+  it('includes the initial chat layout settings in the agent settings menu', () => {
+    const start = template.indexOf('<ng-template #agentMenu')
+    const end = template.indexOf('<ng-template #diagramMenu>', start)
+    const agentSettings = template.slice(start, end)
+
+    expect(agentSettings).toContain('<xp-xpert-workbench-initial-layout-settings />')
+  })
 })

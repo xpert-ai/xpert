@@ -12,7 +12,12 @@
 
 <div class="flex justify-start items-center px-4 py-2">
   <div class="font-semibold mr-2">{{ 'XP.KEY_WORDS.Language' | translate: { Default: 'Language' } }}:</div>
-  <xp-tags [tags]="languages()" selectable large [(ngModel)]="languageCodes" />
+  <z-segmented
+    zSize="lg"
+    [zOptions]="languageOptions()"
+    [zAriaLabel]="'XP.KEY_WORDS.Language' | translate: { Default: 'Language' }"
+    [(ngModel)]="languageCode"
+  />
 </div>
 
 <div class="w-full my-2 border-t border-solid border-divider-regular"></div>
@@ -94,7 +99,7 @@
     />
 
     <div class="w-full flex justify-end">
-      <div xpButtonGroup displayDensity="cosy">
+      <div class="flex items-center gap-1">
         <button z-button zType="default" class="shrink-0 w-24" [disabled]="!languageCode || !name()" (click)="create()">
           <div class="flex items-center">
             {{ 'XP.ACTIONS.Create' | translate: { Default: 'Create' } }}
@@ -114,7 +119,7 @@
       </span>
     </button>
 
-    <button cdkMenuItem xpAppearance="danger" class="xp-cdk-menu-item p-1" (click)="delete(item.name)">
+    <button cdkMenuItem class="xp-cdk-menu-item danger p-1" (click)="delete(item.name)">
       <i class="ri-delete-bin-line mr-1"></i>
       <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>

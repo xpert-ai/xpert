@@ -106,7 +106,7 @@ export function createKnowledgebaseCitationFromDocument(
             ...(score !== undefined ? { score } : {}),
             ...(relevanceScore !== undefined ? { relevanceScore } : {}),
             snippet: trimSnippet(doc.pageContent, 1200),
-            metadata
+            metadata: sanitizeKnowledgebaseCitationMetadata(metadata)
         },
         fallbackKnowledgebaseId
     )
@@ -121,7 +121,9 @@ export function formatKnowledgebaseRetrievalToolOutput(
         ...createKnowledgebaseCitationFromDocument(doc, index + 1, fallbackKnowledgebaseId),
         content: doc.pageContent
     }))
-    const citations = chunks.map(({ content, ...citation }) => citation)
+    // Citation summaries deliberately avoid repeating chunk metadata. The chunk already
+    // carries the compact provenance needed by the Agent and citation URL.
+    const citations = chunks.map(({ content, metadata: _metadata, ...citation }) => citation)
 
     return JSON.stringify(
         {
@@ -133,6 +135,24 @@ export function formatKnowledgebaseRetrievalToolOutput(
         null,
         2
     )
+}
+
+/**
+ * Keep retrieval provenance useful to an Agent without copying document-scale analysis
+ * payloads into every matching chunk. In particular, OCR transformers may attach the
+ * complete Markdown source map to source metadata; repeating that map for top-K hits can
+ * turn a small retrieval into a multi-megabyte model request. The durable sourceMapAsset,
+ * chunk/page/block locators and provider metadata remain available for exact trace-back.
+ */
+function sanitizeKnowledgebaseCitationMetadata(metadata: Record<string, unknown>) {
+    const {
+        children: _children,
+        documentLayout: _documentLayout,
+        markdownSourceMap: _markdownSourceMap,
+        raw: _raw,
+        ...bounded
+    } = metadata
+    return bounded
 }
 
 function trimSnippet(value: string | undefined, maxLength: number) {

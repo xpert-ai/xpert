@@ -21,6 +21,7 @@ import {
   ZardCheckboxComponent,
   ZardDialogService,
   ZardIconComponent,
+  ZardSearchInputComponent,
   ZardSelectImports,
   ZardStepperImports,
   ZardSwitchComponent,
@@ -31,6 +32,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AIPermissionsEnum,
   CopilotServerService,
+  convertToUrlPath,
   EnvironmentService,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
@@ -136,6 +138,7 @@ import {
   extractKnowledgeTemplateWizardState
 } from './blank-template.util'
 import { BlankTemplateChoice, BlankTemplateSelectionComponent } from './blank-template-selection.component'
+import { resolveTemplatePluginSkillInstallError } from './blank-plugin-resource-error.util'
 
 type BlankWorkflowNodeOption = {
   key: BlankWorkflowStarterNodeKey
@@ -339,6 +342,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     ZardCheckboxComponent,
     ZardComboboxDeprecatedComponent,
     ZardIconComponent,
+    ZardSearchInputComponent,
     ...ZardSelectImports,
     ZardSwitchComponent,
     XpertBasicFormComponent,
@@ -861,6 +865,27 @@ export class XpertNewBlankComponent {
   readonly basicStepInvalid = computed(
     () => this.basicInvalid() || this.workspaceSelectionInvalid() || this.noAvailableWorkspaces()
   )
+  readonly directBasicStepInvalid = computed(() => {
+    const basicForm = this.basicForm()
+    if (basicForm) {
+      return (
+        basicForm.checking() ||
+        !!basicForm.invalid() ||
+        this.workspaceSelectionInvalid() ||
+        this.noAvailableWorkspaces()
+      )
+    }
+
+    const name = this.name()?.trim()
+    return (
+      !name ||
+      /[^a-zA-Z0-9-\s]/.test(name) ||
+      convertToUrlPath(name).length < 5 ||
+      !this.copilotModel()?.copilotId ||
+      this.workspaceSelectionInvalid() ||
+      this.noAvailableWorkspaces()
+    )
+  })
   readonly selectedTriggersInvalid = computed(() =>
     this.hasInvalidTriggerSelections(this.selectedTriggers(), this.triggerProviderOptions())
   )
@@ -879,6 +904,25 @@ export class XpertNewBlankComponent {
   readonly loading = signal(false)
   readonly enablingPrimaryCopilot = signal(false)
   readonly modelProviderSetupCompleted = signal(false)
+  readonly canCreateDirectly = computed(
+    () => this.lockStartMode && this.startMode() === 'template' && !!this.selectedTemplateId()
+  )
+  readonly directCreateDisabled = computed(
+    () =>
+      !this.canCreateDirectly() ||
+      this.loading() ||
+      this.startStepInvalid() ||
+      this.checkingModelProviders() ||
+      this.modelProviderStepInvalid() ||
+      this.directBasicStepInvalid() ||
+      this.selectedTriggersInvalid() ||
+      this.installingSkillPackage() ||
+      this.loadingTemplateToolsets() ||
+      !!this.configuringTemplateToolsetKey() ||
+      !!this.templatePluginSkillInstallError() ||
+      !!this.templateToolsetInstallError() ||
+      (this.templateToolsetSelectionStates().length > 0 && this.templateToolsetsStepInvalid())
+  )
 
   refreshWorkspaces() {
     this.#refreshWorkspaces$.next()
@@ -1016,23 +1060,56 @@ export class XpertNewBlankComponent {
   }
 
   async create() {
-    if (
-      this.loading() ||
+    if (this.loading() || this.creationInvalid(!!this.basicStepInvalid())) {
+      return
+    }
+
+    await this.runCreate()
+  }
+
+  async createDirectly() {
+    if (this.directCreateDisabled()) {
+      return
+    }
+
+    const name = this.name()?.trim()
+    if (!name) {
+      return
+    }
+
+    await this.runCreate(async () => {
+      const nameAvailable = await firstValueFrom(this.xpertService.validateName(name).pipe(take(1)))
+      if (!nameAvailable) {
+        this.#toastr.error(this.#translate.instant('XP.Xpert.IDNotAvailable', { Default: 'ID not available' }))
+        return false
+      }
+
+      await this.prepareAgentSkillStep()
+      return this.name()?.trim() === name && !this.creationInvalid(!!this.directBasicStepInvalid())
+    })
+  }
+
+  private creationInvalid(basicStepInvalid: boolean) {
+    return (
       this.startStepInvalid() ||
       this.modelProviderStepInvalid() ||
-      this.basicStepInvalid() ||
+      basicStepInvalid ||
       (this.isAgentType() && this.selectedTriggersInvalid()) ||
       (this.isKnowledgeType() && this.selectedKnowledgeTriggersInvalid()) ||
       this.installingSkillPackage() ||
       this.loadingTemplateToolsets() ||
       !!this.templatePluginSkillInstallError() ||
       !!this.templateToolsetInstallError()
-    ) {
-      return
-    }
+    )
+  }
 
+  private async runCreate(preflight?: () => Promise<boolean>) {
     this.loading.set(true)
     try {
+      if (preflight && !(await preflight())) {
+        return
+      }
+
       if (this.isAgentType()) {
         const templatePluginSkillsReady = await this.prepareTemplatePluginSkillsForCurrentWorkspace()
         if (!templatePluginSkillsReady) {
@@ -2081,8 +2158,12 @@ export class XpertNewBlankComponent {
         ).filter((componentKey) => !installedComponentKeys.has(componentKey))
 
         if (missingComponentKeys.length) {
+          const components = `${group.pluginName}/${missingComponentKeys.join(', ')}`
           throw new Error(
-            `Failed to initialize template skills: ${group.pluginName}/${missingComponentKeys.join(', ')}`
+            this.#translate.instant('XP.Xpert.TemplatePluginSkillsMissingRuntimePackages', {
+              Default: `The required template skills could not be installed: ${components}.`,
+              components
+            }) as string
           )
         }
 
@@ -2098,7 +2179,13 @@ export class XpertNewBlankComponent {
       this.refreshSkills()
       return true
     } catch (error) {
-      const message = getErrorMessage(error) || 'Failed to initialize template skills.'
+      const localizedError = resolveTemplatePluginSkillInstallError(error)
+      const message = localizedError
+        ? (this.#translate.instant(localizedError.key, { Default: localizedError.defaultMessage }) as string)
+        : getErrorMessage(error) ||
+          (this.#translate.instant('XP.Xpert.TemplatePluginSkillsInstallFailedDetail', {
+            Default: 'Template skills could not be initialized. Try again.'
+          }) as string)
       this.templatePluginSkillInstallError.set(message)
       this.#toastr.error(message)
       return false

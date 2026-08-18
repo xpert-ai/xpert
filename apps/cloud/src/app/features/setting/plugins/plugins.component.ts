@@ -27,7 +27,7 @@ import { firstValueFrom } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardSearchInputComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin } from './types'
 import {
@@ -70,6 +70,7 @@ type TPluginComponentSummaryItem = {
     FormsModule,
     CdkMenuModule,
     ZardButtonComponent,
+    ZardSearchInputComponent,
     ...ZardTooltipImports,
     XpSelectComponent,
     XpI18nPipe,

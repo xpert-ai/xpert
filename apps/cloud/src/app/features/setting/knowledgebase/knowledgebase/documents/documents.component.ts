@@ -3,6 +3,7 @@ import { afterNextRender, Component, effect, inject, model, signal, viewChild } 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
+  ZardBadgeComponent,
   ZardDialogService,
   ZardPaginatorComponent,
   ZardProgressCircleComponent,
@@ -54,6 +55,7 @@ import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
     FormsModule,
     TranslateModule,
     SharedUiModule,
+    ZardBadgeComponent,
     ZardPaginatorComponent,
     ZardProgressCircleComponent,
     XpCommonModule

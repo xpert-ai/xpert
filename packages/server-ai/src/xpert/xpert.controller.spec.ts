@@ -21,6 +21,7 @@ import type { XpertTemplateWorkspaceInitializer } from './template-workspace-ini
 import type { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import type { XpertDraftDslDTO } from './dto'
 import { FindCopilotModelsQuery } from '../copilot/queries'
+import { XpertImportCommand, XpertSyncTemplateCommand } from './commands'
 
 jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
@@ -176,7 +177,7 @@ describe('XpertController', () => {
         findByPrincipalUserId: jest.Mock
         findBySlug: jest.Mock
         findOne: jest.Mock
-        update: jest.Mock
+        updateXpert: jest.Mock
     }
     let environmentService: {
         findOne: jest.Mock
@@ -208,7 +209,7 @@ describe('XpertController', () => {
             findByPrincipalUserId: jest.fn(),
             findBySlug: jest.fn(),
             findOne: jest.fn(),
-            update: jest.fn()
+            updateXpert: jest.fn()
         }
         environmentService = {
             findOne: jest.fn()
@@ -345,6 +346,14 @@ describe('XpertController', () => {
             'workspace-1',
             LanguagesEnum.English
         )
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand).toBeInstanceOf(XpertImportCommand)
+        expect(importCommand.options).toEqual(
+            expect.objectContaining({
+                templateId: '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
+                sourceTemplateId: '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant'
+            })
+        )
     })
 
     it('keeps plain DSL imports unchanged when no template id is provided', async () => {
@@ -364,6 +373,21 @@ describe('XpertController', () => {
         expect(templateWorkspaceInitializer.initializeByTemplateId).not.toHaveBeenCalled()
     })
 
+    it('forwards update-from-template to the sync command without publishing', async () => {
+        const result = {
+            xpertId: 'xpert-1',
+            templateTitle: 'Presentation Studio'
+        }
+        commandBus.execute.mockResolvedValue(result)
+
+        await expect(controller.syncFromTemplate('xpert-1', LanguagesEnum.English)).resolves.toBe(result)
+
+        const command = commandBus.execute.mock.calls[0][0] as XpertSyncTemplateCommand
+        expect(command).toBeInstanceOf(XpertSyncTemplateCommand)
+        expect(command.xpertId).toBe('xpert-1')
+        expect(command.language).toBe(LanguagesEnum.English)
+    })
+
     it('initializes the xpert principal user when enabling Chat API', async () => {
         const xpert = {
             id: 'xpert-1',
@@ -381,7 +405,7 @@ describe('XpertController', () => {
             disabled: false
         })
 
-        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+        expect(xpertService.updateXpert).toHaveBeenCalledWith('xpert-1', {
             api: {
                 disabled: false
             }
@@ -406,7 +430,7 @@ describe('XpertController', () => {
             enabled: true
         })
 
-        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+        expect(xpertService.updateXpert).toHaveBeenCalledWith('xpert-1', {
             app: {
                 enabled: true
             }

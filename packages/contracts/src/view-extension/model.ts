@@ -317,6 +317,7 @@ export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
 export const WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET = 'knowledgebase.documents'
 export const WORKBENCH_ASSISTANT_CONVERSATION_TARGET = 'assistant.conversation'
+export const WORKBENCH_EXTENSION_VIEW_TARGET = 'workbench.view'
 export const XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE = 'invokeClientCommand'
 
 export interface WorkbenchOpenFileEvidenceBox {
@@ -361,19 +362,39 @@ export interface WorkbenchOpenFile {
 export type WorkbenchNavigationOpenTarget =
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
   | typeof WORKBENCH_ASSISTANT_CONVERSATION_TARGET
+  | typeof WORKBENCH_EXTENSION_VIEW_TARGET
 
 export interface WorkbenchNavigationOpenPayload {
   target: WorkbenchNavigationOpenTarget
   knowledgebaseId?: string
+  documentId?: string
+  parentId?: string
+  /** Exact KnowledgeDocument chunk anchor for evidence navigation. */
+  chunkId?: string
+  /** One-based source page anchor when the document has an analysis preview. */
+  page?: number
+  /** Parser/OCR block anchors within the source page. */
+  sourceBlockIds?: string[]
+  /** Transient source excerpt used for context/highlighting; the host must not place it in the URL. */
+  evidenceText?: string
   conversationId?: string
   threadId?: string
   executionId?: string
+  viewKey?: string
+  selectionId?: string
+  parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
 }
 
 export interface WorkbenchAssistantConversationOpenRequest {
   conversationId: string
   threadId?: string
   executionId?: string
+}
+
+export interface WorkbenchExtensionViewOpenRequest {
+  viewKey: string
+  selectionId?: string
+  parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
 }
 
 export interface XpertRemoteComponentInvokeClientCommandRequest {

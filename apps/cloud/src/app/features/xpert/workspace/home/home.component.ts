@@ -20,7 +20,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@cloud/app/@core/state'
-import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
+import { injectConfirmUnique, XpCommonModule, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -68,6 +68,7 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     ...ZardTooltipImports,
 
     XpCommonModule,
+    ZardSearchInputComponent,
     TagFilterComponent,
     XpertWorkspaceWelcomeComponent
   ],

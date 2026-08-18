@@ -59,10 +59,7 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
     @Column({ type: 'bigint', nullable: true, default: 1000, transformer: bigintNumberTransformer })
     includedPoints: number | null
 
-    @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'bigint', default: 1000, transformer: bigintNumberTransformer })
-    tokensPerPoint: number
-
+    /** @deprecated Read-only compatibility columns for migrating sale prices into Pro billing products. */
     @ApiPropertyOptional({ type: () => Number })
     @Column({
         type: 'numeric',
@@ -76,6 +73,7 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
     })
     priceAmount?: number | null
 
+    /** @deprecated Read-only compatibility columns for migrating sale prices into Pro billing products. */
     @ApiPropertyOptional({ type: () => String })
     @Column({ type: 'varchar', nullable: true, length: 12 })
     priceCurrency?: string | null

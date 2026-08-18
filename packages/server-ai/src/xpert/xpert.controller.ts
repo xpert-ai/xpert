@@ -15,6 +15,7 @@ import {
     TMemoryUserProfile,
     TChatRequest,
     TXpertCommandProfile,
+    TXpertTemplateSyncResult,
     TXpertTeamDraft,
     SecretTokenBindingType,
     xpertLabel,
@@ -90,7 +91,8 @@ import {
     type XpertExportedDiagram,
     XpertExportTemplateCommand,
     XpertImportCommand,
-    XpertPublishIntegrationCommand
+    XpertPublishIntegrationCommand,
+    XpertSyncTemplateCommand
 } from './commands'
 import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
@@ -233,12 +235,15 @@ export class XpertController extends CrudController<Xpert> {
         @I18nLang() language: LanguagesEnum = LanguagesEnum.English
     ) {
         try {
+            const normalizedTemplateId = typeof templateId === 'string' ? templateId.trim() : ''
             const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
                 new XpertImportCommand(dsl, {
-                    language: LanguagesMap[language] ?? language
+                    language: LanguagesMap[language] ?? language,
+                    ...(normalizedTemplateId
+                        ? { templateId: normalizedTemplateId, sourceTemplateId: normalizedTemplateId }
+                        : {})
                 })
             )
-            const normalizedTemplateId = typeof templateId === 'string' ? templateId.trim() : ''
             if (normalizedTemplateId && xpert.workspaceId) {
                 await this.templateWorkspaceInitializer.initializeByTemplateId(
                     normalizedTemplateId,
@@ -275,6 +280,19 @@ export class XpertController extends CrudController<Xpert> {
                 normalizeCopilotModels: true
             })
         )
+    }
+
+    /**
+     * Replaces only the current draft graph with the latest registered source
+     * template. The published version and Xpert identity remain unchanged.
+     */
+    @UseGuards(XpertGuard)
+    @Post(':id/sync-template')
+    async syncFromTemplate(
+        @Param('id') id: string,
+        @I18nLang() language: LanguagesEnum
+    ): Promise<TXpertTemplateSyncResult> {
+        return await this.commandBus.execute(new XpertSyncTemplateCommand(id, language))
     }
 
     @UseGuards(PermissionGuard)
@@ -545,6 +563,35 @@ export class XpertController extends CrudController<Xpert> {
     @Get(':id/user-groups')
     async getUserGroups(@Param('id') id: string, @Query('organizationId') organizationId?: string) {
         return this.service.getUserGroups(id, organizationId)
+    }
+
+    @UseGuards(PermissionGuard)
+    @Permissions(PermissionsEnum.ORG_USERS_VIEW)
+    @Get('user-groups/authorizations')
+    async getUserGroupAuthorizations(
+        @Query('groupId') groupId?: string,
+        @Query('organizationId') organizationId?: string
+    ) {
+        const result = await this.service.getUserGroupAuthorizations(groupId, organizationId)
+        return {
+            ...result,
+            items: result.items.map((item) => new XpertPublicDTO(item))
+        }
+    }
+
+    @UseGuards(PermissionGuard)
+    @Permissions(PermissionsEnum.ORG_USERS_EDIT)
+    @Put('user-groups/:groupId/authorizations')
+    async updateUserGroupAuthorizations(
+        @Param('groupId') groupId: string,
+        @Body() xpertIds: string[],
+        @Query('organizationId') organizationId?: string
+    ) {
+        const result = await this.service.updateUserGroupAuthorizations(groupId, xpertIds, organizationId)
+        return {
+            ...result,
+            items: result.items.map((item) => new XpertPublicDTO(item))
+        }
     }
 
     @UseGuards(XpertGuard)
@@ -949,7 +996,7 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/api')
     async updateChatApi(@Param('id') id: string, @Body() api: Partial<TChatApi>) {
         const xpert = await this.service.findOne(id)
-        await this.service.update(id, { api: { ...(xpert.api ?? {}), ...api } })
+        await this.service.updateXpert(id, { api: { ...(xpert.api ?? {}), ...api } })
         if (!api.disabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
@@ -958,7 +1005,7 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/app')
     async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
         const xpert = await this.service.findOne(id)
-        await this.service.update(id, { app: { ...(xpert.app ?? {}), ...app } })
+        await this.service.updateXpert(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
@@ -1003,7 +1050,9 @@ export class XpertController extends CrudController<Xpert> {
                 {
                     ...data,
                     where: {
-                        ...(transformWhere(where ?? {}) ?? {}),
+                        ...(transformWhere<
+                            Pick<ChatConversation, 'id' | 'threadId' | 'xpertId' | 'createdAt' | 'createdById'>
+                        >(where ?? {}) ?? {}),
                         xpertId: id,
                         createdAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
                     }

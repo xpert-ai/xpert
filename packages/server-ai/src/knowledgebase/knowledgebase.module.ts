@@ -24,7 +24,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
 import { KnowledgebaseTaskService } from './task/task.service'
 import { KnowledgebaseTask } from './task/task.entity'
-import { Validators, Strategies, KnowledgeWorkbenchProviders } from './plugins'
+import { Validators, Strategies, KnowledgeWorkbenchProviders, KnowledgebaseToolsProviders } from './plugins'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
 import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware'
@@ -67,6 +67,7 @@ import { KnowledgeGraphFilterScopeService } from './filter'
         KnowledgeFilterV2MigrationService,
         KnowledgeGraphFilterScopeService,
         ...KnowledgeWorkbenchProviders,
+        ...KnowledgebaseToolsProviders,
         ...QueryHandlers,
         ...CommandHandlers,
         ...Strategies,

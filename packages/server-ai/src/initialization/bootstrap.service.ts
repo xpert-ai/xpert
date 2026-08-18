@@ -528,7 +528,13 @@ export class ServerAIBootstrapService {
                 }
             }
 
-            await this.commandBus.execute(new XpertImportCommand(draft, existing ? { targetXpertId: existing.id } : {}))
+            await this.commandBus.execute(
+                new XpertImportCommand(draft, {
+                    ...(existing ? { targetXpertId: existing.id } : {}),
+                    templateId: templateKey,
+                    sourceTemplateId: template.id
+                })
+            )
         }
     }
 

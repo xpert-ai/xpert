@@ -13,7 +13,6 @@ import {
 import { FormsModule } from '@angular/forms'
 
 import { ITag, IUser } from '@xpert-ai/contracts'
-import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from '../../../@core'
 import { Store } from '../../../@core/services/store.service'
@@ -22,16 +21,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    ZardIconComponent,
-    ZardButtonComponent,
-    DragDropModule,
-    TranslateModule,
-    XpButtonGroupDirective,
-
-    UserFormsModule
-  ],
+  imports: [FormsModule, ZardIconComponent, ZardButtonComponent, DragDropModule, TranslateModule, UserFormsModule],
   selector: 'xp-user-mutation',
   templateUrl: './user-mutation.component.html',
   styleUrls: ['./user-mutation.component.scss'],

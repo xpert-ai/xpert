@@ -39,10 +39,10 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Component({
     standalone: true,
-    selector: 'xp-search',
+    selector: 'z-search-input',
     template: ''
   })
-  class XpSearchComponent {}
+  class ZardSearchInputComponent {}
 
   @Directive({
     standalone: true,
@@ -56,7 +56,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   return {
     debouncedSignal: (value: unknown) => value,
     XpHighlightDirective,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     nonNullable: <T>(value: T | null | undefined): value is T => value != null,
     OverlayAnimation1: [],
     ZardButtonComponent,

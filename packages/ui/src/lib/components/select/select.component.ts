@@ -76,7 +76,7 @@ const COMPACT_MODE_WIDTH_THRESHOLD = 100
             <span class="truncate">{{ label }}</span>
           }
         } @empty {
-          <span class="text-muted-foreground truncate">{{ zPlaceholder() }}</span>
+          <span class="text-muted-foreground truncate">{{ displayPlaceholder() }}</span>
         }
       </span>
       <z-icon zType="chevron-down" zSize="lg" class="opacity-50" />
@@ -134,7 +134,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   readonly zLabel = input<string>('')
   readonly zMaxLabelCount = input<number>(1)
   readonly zMultiple = input<boolean>(false)
-  readonly zPlaceholder = input<string>('Select an option...')
+  readonly zPlaceholder = input<string>()
   readonly zSize = input<ZardSelectSizeVariants>('default')
   readonly zValue = model<ZardSelectValue | ZardSelectValue[]>(this.zMultiple() ? [] : '')
 
@@ -178,6 +178,14 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
 
     return this.provideLabelForSingleSelectMode(selectedValue as ZardSelectValue)
   })
+
+  readonly displayPlaceholder = computed(
+    () =>
+      this.zPlaceholder() ??
+      this.i18n.t('xp-ui:select.placeholder', {
+        Default: 'Select an option...'
+      })
+  )
 
   private onChange: OnChangeType = (_value: ZardSelectValue | ZardSelectValue[]) => {
     // ControlValueAccessor onChange callback

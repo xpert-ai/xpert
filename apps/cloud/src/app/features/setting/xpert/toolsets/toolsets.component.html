@@ -1,7 +1,7 @@
 <div class="filter-bar p-2 flex items-center gap-4">
   <span class="flex-1"></span>
 
-  <div xpButtonGroup>
+  <div class="flex items-center gap-1">
     <button
       z-button
       zType="default"
@@ -61,11 +61,11 @@
             }
           </td>
           <td z-table-cell zTableStickyEnd [zTableStickyEnd]="0" [zTableStickyZIndex]="4" class="w-32">
-            <div class="flex items-center gap-2" displayDensity="cosy">
+            <div class="flex items-center gap-2">
               <button
                 z-button
-                zType="ghost"
-                zSize="icon"
+                zType="destructive"
+                zSize="icon-sm"
                 zShape="circle"
                 class="opacity-50 hover:opacity-100"
                 [zTooltip]="'XP.KEY_WORDS.Edit' | translate: { Default: 'Edit' }"
@@ -79,10 +79,9 @@
               <button
                 z-button
                 zType="ghost"
-                zSize="icon"
+                zSize="icon-sm"
                 zShape="circle"
                 class="opacity-50 hover:opacity-100"
-                xpAppearance="danger"
                 [zTooltip]="'XP.KEY_WORDS.Delete' | translate: { Default: 'Delete' }"
                 (click)="deleteEntity(element)"
               >

@@ -279,12 +279,65 @@ export interface IXpertPrincipalReference {
   workspaceName?: string | null
 }
 
+export enum XpertWorkbenchInitialLayoutEnum {
+  TwoColumns = 'two-columns',
+  ChatkitMaximized = 'chatkit-maximized',
+  WorkbenchMaximized = 'workbench-maximized'
+}
+
+export type TXpertWorkbenchOptions = {
+  /**
+   * Initial layout used before this user has a saved Workbench layout preference.
+   */
+  initialLayout?: XpertWorkbenchInitialLayoutEnum
+  /** Public extension view key selected when the Workbench first loads. */
+  defaultViewKey?: string
+}
+
+/**
+ * Stable lineage for an Xpert created or updated from an Assistant template.
+ * `templateId` is the canonical lookup key. Plugin templates use
+ * `<plugin package>:<template key>` so a later sync resolves the same provider.
+ */
+export type TXpertTemplateSource = {
+  templateId: string
+  templateKey: string
+  pluginName?: string
+  pluginDisplayName?: string
+  source?: 'builtin' | 'plugin' | string
+  installedAt?: string
+  lastSyncedAt?: string
+  releaseNotes?: string
+}
+
+export type TXpertTemplateSyncResult = {
+  xpertId: string
+  templateSource: TXpertTemplateSource
+  templateTitle: string
+  releaseNotes?: string
+}
+
+export type TXpertDataXpertOptions = {
+  managedBy?: string
+  templateKey?: string
+  requiredPlugin?: string
+  requiredPlugins?: string[]
+  [key: string]: unknown
+}
+
 export type TXpertOptions = {
+  /** Legacy template key retained for existing plugin-authored DSL files. */
+  templateKey?: string
+  /** Legacy Agentic App descriptor retained for backward-compatible source discovery. */
+  dataXpert?: TXpertDataXpertOptions
+  /** Canonical source used by Studio's update-from-template operation. */
+  templateSource?: TXpertTemplateSource
   bootstrap?: {
     source: 'template'
     templateKey: string
     workspaceKind: 'org-default'
   }
+  workbench?: TXpertWorkbenchOptions
   knowledge?: Record<
     string,
     {

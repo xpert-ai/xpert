@@ -10,6 +10,10 @@ import {
   ICopilotUsageTotals,
   ICopilotUser,
   ICopilotUserUsageSummary,
+  IModelUsageLedger,
+  IPagination,
+  ModelUsageLedgerQuery,
+  ModelUsageLedgerTotals,
   OrderTypeEnum,
   TCopilotQuotaAdjustInput,
   TCopilotQuotaRenewInput
@@ -48,6 +52,18 @@ export class CopilotUsageService {
 
   getUsageDetails(groupKey: ICopilotUsageGroupKey) {
     return this.httpClient.post<ICopilotUser[]>(API_COPILOT_USAGE + '/details', groupKey)
+  }
+
+  getModelUsageLedger(params: ModelUsageLedgerQuery & { take?: number; skip?: number }) {
+    return this.httpClient.get<IPagination<IModelUsageLedger>>(API_COPILOT_USAGE + '/ledger', {
+      params: this.toModelUsageHttpParams(params)
+    })
+  }
+
+  getModelUsageLedgerTotals(params: ModelUsageLedgerQuery) {
+    return this.httpClient.get<ModelUsageLedgerTotals[]>(API_COPILOT_USAGE + '/ledger/totals', {
+      params: this.toModelUsageHttpParams(params)
+    })
   }
 
   adjustQuota(input: TCopilotQuotaAdjustInput) {
@@ -136,6 +152,27 @@ export class CopilotUsageService {
     append('$skip', params?.skip)
     append('$order', params?.order)
 
+    return httpParams
+  }
+
+  private toModelUsageHttpParams(params?: ModelUsageLedgerQuery & { take?: number; skip?: number }) {
+    let httpParams = new HttpParams()
+    const append = (key: string, value: string | number | undefined) => {
+      if (value !== undefined && value !== '') httpParams = httpParams.set(key, String(value))
+    }
+
+    append('start', params?.start)
+    append('end', params?.end)
+    append('provider', params?.provider)
+    append('model', params?.model)
+    append('userId', params?.userId)
+    append('organizationId', params?.organizationId)
+    append('unit', params?.unit)
+    append('modality', params?.modality)
+    append('currency', params?.currency)
+    append('pricingStatus', params?.pricingStatus)
+    append('$take', params?.take)
+    append('$skip', params?.skip)
     return httpParams
   }
 }

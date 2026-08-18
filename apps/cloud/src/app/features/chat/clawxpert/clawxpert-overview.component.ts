@@ -88,9 +88,48 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
     <div class="h-full min-h-0">
       @if (facade.loading()) {
         <div
-          class="flex h-full min-h-128 items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+          data-clawxpert-loading
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          class="flex h-full min-h-[32rem] items-center justify-center px-6 py-12"
         >
-          {{ 'XP.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
+          <div class="flex w-full max-w-sm flex-col items-center text-center">
+            <div
+              class="relative flex size-16 items-center justify-center rounded-2xl border border-divider-regular bg-components-card-bg shadow-sm"
+              aria-hidden="true"
+            >
+              <span class="absolute inset-3 rounded-full border-2 border-divider-regular"></span>
+              <span
+                data-clawxpert-loading-spinner
+                class="absolute inset-3 animate-spin rounded-full border-2 border-transparent border-t-primary motion-reduce:animate-none"
+              ></span>
+              <i class="ri-sparkling-2-line text-xl text-text-primary"></i>
+            </div>
+
+            <div class="mt-5 text-base font-medium text-text-primary">
+              {{ 'XP.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
+            </div>
+            <p class="mt-2 max-w-xs text-sm leading-6 text-text-secondary">
+              {{
+                'XP.Chat.ClawXpert.LoadingDesc'
+                  | translate
+                    : {
+                        Default: 'Loading your assistant settings and workspace. This usually takes only a moment.'
+                      }
+              }}
+            </p>
+
+            <div class="mt-5 flex items-center gap-1.5 text-text-tertiary" aria-hidden="true">
+              <span class="size-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none"></span>
+              <span
+                class="size-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms] motion-reduce:animate-none"
+              ></span>
+              <span
+                class="size-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms] motion-reduce:animate-none"
+              ></span>
+            </div>
+          </div>
         </div>
       } @else if (!facade.organizationId()) {
         <div class="block w-full h-full min-h-0 animate-pulse p-4">
@@ -158,7 +197,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                   class="flex-1 rounded-l-lg rounded-r-none"
                   z-button
                   zType="ghost"
-                  displayDensity="cosy"
+                  zSize="sm"
                   type="button"
                   z-menu
                   [zMenuTriggerFor]="copilotModelMenu"
@@ -172,9 +211,8 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 <button
                   z-button
                   zType="ghost"
-                  displayDensity="cosy"
                   type="button"
-                  zSize="icon"
+                  zSize="icon-sm"
                   class="shrink-0 rounded-none rounded-r-lg border-0 border-l border-border px-3"
                   z-menu
                   [zMenuTriggerFor]="actionMenu"

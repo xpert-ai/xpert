@@ -114,7 +114,7 @@ export class ZardComboboxOptionTemplateDirective {
 
     <ng-template #popoverContent>
       <z-popover [class]="popoverClasses()">
-        <z-command class="min-h-auto" (zCommandSelected)="handleSelect($event)" #commandRef>
+        <z-command class="min-h-auto border-0 shadow-none" (zCommandSelected)="handleSelect($event)" #commandRef>
           @if (searchable()) {
             <z-command-input [placeholder]="searchPlaceholder()" #commandInputRef />
           }

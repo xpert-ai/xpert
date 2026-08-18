@@ -1,0 +1,280 @@
+<div class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+  <div class="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+    <xp-select
+      class="w-44"
+      icon="ri-bar-chart-box-line"
+      [placeholder]="modalities()[0].label"
+      [selectOptions]="modalities()"
+      [(ngModel)]="modalityFilter"
+      (ngModelChange)="reload()"
+    />
+    <xp-select
+      class="w-44"
+      [placeholder]="units()[0].label"
+      [selectOptions]="units()"
+      [(ngModel)]="unitFilter"
+      (ngModelChange)="reload()"
+    />
+    <xp-select
+      class="w-48"
+      icon="ri-calendar-line"
+      [selectOptions]="timeRanges()"
+      [(ngModel)]="timeRangeValue"
+      (ngModelChange)="reload()"
+    />
+    <xp-select
+      class="w-40"
+      [placeholder]="pricingStatuses()[0].label"
+      [selectOptions]="pricingStatuses()"
+      [(ngModel)]="pricingStatusFilter"
+      (ngModelChange)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-40"
+      [placeholder]="'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' }"
+      [(ngModel)]="providerFilter"
+      (keyup.enter)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-48"
+      [placeholder]="'XP.Copilot.Model' | translate: { Default: 'Model' }"
+      [(ngModel)]="modelFilter"
+      (keyup.enter)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-48"
+      [placeholder]="'XP.Copilot.UserId' | translate: { Default: 'User ID' }"
+      [(ngModel)]="userFilter"
+      (keyup.enter)="reload()"
+    />
+    @if (isTenantScope()) {
+      <input
+        z-input
+        zSize="sm"
+        class="w-52"
+        [placeholder]="'XP.Copilot.OrganizationId' | translate: { Default: 'Organization ID' }"
+        [(ngModel)]="organizationFilter"
+        (keyup.enter)="reload()"
+      />
+    } @else {
+      <div
+        class="flex h-9 max-w-64 items-center gap-2 rounded-md border border-solid border-divider-regular bg-components-card-bg px-3 text-sm text-text-secondary"
+      >
+        <z-icon class="text-text-quaternary" zType="corporate_fare" />
+        <span class="truncate" [title]="scopeName()">{{ scopeName() }}</span>
+      </div>
+    }
+    <input
+      z-input
+      zSize="sm"
+      class="w-28"
+      [placeholder]="'XP.KEY_WORDS.Currency' | translate: { Default: 'Currency' }"
+      [(ngModel)]="currencyFilter"
+      (keyup.enter)="reload()"
+    />
+    <button z-button zType="outline" zSize="sm" (click)="reload()">
+      <z-icon zType="search" />
+      {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+    </button>
+  </div>
+
+  <div
+    class="min-h-0 flex-1 overflow-auto rounded-lg border border-solid border-divider-regular"
+    waIntersectionObserver
+    waIntersectionThreshold="0.5"
+  >
+    <table z-table zSize="compact" class="min-w-max w-full text-left text-sm text-text-tertiary">
+      <thead z-table-header class="bg-background-default-subtle uppercase text-text-secondary">
+        <tr z-table-row>
+          <th z-table-head class="sticky top-0 z-10 w-80 whitespace-nowrap bg-background-default-subtle p-3">
+            {{ 'XP.KEY_WORDS.User' | translate: { Default: 'User' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-44 whitespace-nowrap bg-background-default-subtle p-3">
+            {{ 'XP.Copilot.LastUsed' | translate: { Default: 'Recorded' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-80 whitespace-nowrap bg-background-default-subtle p-3">
+            {{ 'XP.Copilot.Usage' | translate: { Default: 'Usage' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-40 whitespace-nowrap bg-background-default-subtle p-3">
+            {{ 'XP.Copilot.LlmPrice' | translate: { Default: 'LLM price' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-40 whitespace-nowrap bg-background-default-subtle p-3">
+            {{ 'XP.Copilot.VideoPrice' | translate: { Default: 'Video price' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-40 whitespace-nowrap bg-background-default-subtle p-3">
+            {{ 'XP.Copilot.TotalPrice' | translate: { Default: 'Total price' } }}
+          </th>
+        </tr>
+      </thead>
+      <tbody z-table-body>
+        @for (group of accountGroups(); track group.key) {
+          <tr
+            z-table-row
+            class="cursor-pointer border-b border-divider-regular bg-components-card-bg hover:bg-hover-bg"
+            (click)="toggleAccount(group)"
+          >
+            <td z-table-cell class="px-4 py-2">
+              <div class="flex min-w-0 items-center gap-2">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  type="button"
+                  class="shrink-0 text-text-quaternary"
+                  [attr.aria-expanded]="isAccountExpanded(group)"
+                  [attr.aria-label]="
+                    isAccountExpanded(group)
+                      ? ('XP.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+                      : ('XP.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                  "
+                  (click)="toggleAccount(group); $event.stopPropagation()"
+                >
+                  <z-icon [zType]="isAccountExpanded(group) ? 'chevron-down' : 'chevron-right'" />
+                </button>
+                <span class="truncate font-medium text-text-primary" [title]="group.userName || ''">
+                  {{ group.userName || ('XP.KEY_WORDS.Unknown' | translate: { Default: 'Unknown' }) }}
+                </span>
+              </div>
+            </td>
+            <td z-table-cell class="whitespace-nowrap px-4 py-2">{{ group.lastUsedAt | relative }}</td>
+            <td z-table-cell class="px-4 py-2">
+              <div class="flex flex-wrap gap-2">
+                @for (usage of group.usages; track usage.key) {
+                  <span class="whitespace-nowrap rounded-md bg-background-default-subtle px-2 py-1 text-text-secondary">
+                    {{ usageLabel(usage.modality, usage.unit) }} · {{ usage.quantity | number: '0.0-6' }}
+                  </span>
+                }
+              </div>
+            </td>
+            <td z-table-cell class="whitespace-nowrap px-4 py-2">
+              {{ group.pricedAmounts.llm | number: '0.0-10' }} CNY
+            </td>
+            <td z-table-cell class="whitespace-nowrap px-4 py-2">
+              {{ group.pricedAmounts.video | number: '0.0-10' }} CNY
+            </td>
+            <td z-table-cell class="whitespace-nowrap px-4 py-2 font-medium text-text-primary">
+              {{ group.pricedAmounts.total | number: '0.0-10' }} CNY
+            </td>
+          </tr>
+          @if (isAccountExpanded(group)) {
+            <tr z-table-row class="border-b border-divider-regular bg-background-default-subtle">
+              <td z-table-cell colspan="6" class="p-0">
+                <div class="overflow-x-auto px-12 py-3">
+                  <table z-table zSize="compact" class="min-w-max w-full text-left text-xs text-text-tertiary">
+                    <thead z-table-header class="text-text-secondary">
+                      <tr z-table-row>
+                        <th z-table-head class="w-40 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.LastUsed' | translate: { Default: 'Recorded' } }}
+                        </th>
+                        <th z-table-head class="w-40 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+                        </th>
+                        <th z-table-head class="w-56 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.Model' | translate: { Default: 'Model' } }}
+                        </th>
+                        <th z-table-head class="w-44 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.Operation' | translate: { Default: 'Operation' } }}
+                        </th>
+                        <th z-table-head class="w-40 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.Usage' | translate: { Default: 'Usage' } }}
+                        </th>
+                        <th z-table-head class="w-44 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.Pricing' | translate: { Default: 'Pricing' } }}
+                        </th>
+                        <th z-table-head class="w-40 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.OriginalAmount' | translate: { Default: 'Original amount' } }}
+                        </th>
+                        <th z-table-head class="w-48 whitespace-nowrap px-3 py-2">
+                          {{ 'XP.Copilot.CnySettlement' | translate: { Default: 'RMB settlement' } }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody z-table-body>
+                      @for (item of group.items; track item.key) {
+                        <tr z-table-row class="border-t border-divider-subtle bg-components-card-bg">
+                          <td z-table-cell class="whitespace-nowrap px-3 py-2">{{ item.recordedAt | relative }}</td>
+                          <td z-table-cell class="max-w-40 truncate px-3 py-2" [title]="item.provider">
+                            {{ item.provider }}
+                          </td>
+                          <td z-table-cell class="max-w-56 truncate px-3 py-2" [title]="item.model || ''">
+                            {{ item.model || '-' }}
+                          </td>
+                          <td z-table-cell class="max-w-44 truncate px-3 py-2" [title]="item.operation">
+                            {{ item.operation }}
+                          </td>
+                          <td z-table-cell class="whitespace-nowrap px-3 py-2">
+                            <div class="flex flex-wrap gap-2">
+                              @for (usage of item.usages; track usage.key) {
+                                <span
+                                  class="whitespace-nowrap rounded-md bg-background-default-subtle px-2 py-1 text-text-secondary"
+                                >
+                                  {{ usage.quantity | number: '0.0-6' }} {{ unitLabel(usage.unit) }}
+                                </span>
+                              }
+                            </div>
+                          </td>
+                          <td z-table-cell class="whitespace-nowrap px-3 py-2">
+                            {{ pricingLabel(item.pricingStatus) }}
+                          </td>
+                          <td z-table-cell class="whitespace-nowrap px-3 py-2">
+                            @if (item.pricingStatus === 'unpriced') {
+                              {{ pricingLabel('unpriced') }}
+                            } @else if (!item.originalAmounts.length) {
+                              {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+                            } @else {
+                              @for (amount of item.originalAmounts; track amount.currency) {
+                                <div>{{ amount.amount | number: '0.0-10' }} {{ amount.currency }}</div>
+                              }
+                            }
+                          </td>
+                          <td z-table-cell class="whitespace-nowrap px-3 py-2">
+                            @if (item.pricingStatus === 'unpriced') {
+                              {{ pricingLabel('unpriced') }}
+                            } @else if (item.settlementAmount === null || item.settlementAmount === undefined) {
+                              {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+                            } @else {
+                              <div>
+                                {{ item.settlementAmount | number: '0.0-10' }}
+                                {{ item.settlementCurrency || 'CNY' }}
+                              </div>
+                              @for (exchangeRate of item.exchangeRates; track exchangeRate) {
+                                <div class="text-text-quaternary">
+                                  {{ 'XP.Copilot.ExchangeRate' | translate: { Default: 'Exchange rate' } }}
+                                  {{ exchangeRate | number: '0.0-10' }}
+                                </div>
+                              }
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+    @if (loading()) {
+      <div class="flex justify-center py-3"><xp-spin /></div>
+    }
+    @if (!done()) {
+      <button
+        (waIntersectionObservee)="loadMore()"
+        class="flex w-full cursor-pointer justify-center p-2 hover:bg-hover-bg"
+        [disabled]="loading()"
+        (click)="loadMore()"
+      >
+        <i class="ri-arrow-down-wide-line"></i>
+      </button>
+    }
+  </div>
+</div>

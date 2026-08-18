@@ -57,6 +57,7 @@ import { ModelGatewayModule } from './model-gateway'
 import { ArtifactsModule } from './artifacts'
 import { CollaborationModule } from './collaboration'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
+import { AgentEvolutionModule } from './agent-evolution'
 
 @Module({
     imports: [
@@ -116,7 +117,8 @@ import { WorkspaceFileAccessModule } from './workspace-file-access'
         SandboxModule,
         ArtifactsModule,
         CollaborationModule,
-        WorkspaceFileAccessModule
+        WorkspaceFileAccessModule,
+        AgentEvolutionModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]

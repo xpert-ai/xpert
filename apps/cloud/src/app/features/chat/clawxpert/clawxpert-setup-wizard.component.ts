@@ -299,7 +299,7 @@ type RecommendedTemplateToolsetDependency = {
               <button
                 z-button
                 zType="default"
-                displayDensity="cosy"
+                zSize="sm"
                 type="button"
                 [disabled]="modelProviderSaveDisabled()"
                 (click)="saveModelProvider()"
@@ -313,7 +313,7 @@ type RecommendedTemplateToolsetDependency = {
               <button
                 z-button
                 zType="default"
-                displayDensity="cosy"
+                zSize="sm"
                 type="button"
                 [disabled]="creatingXpert() || !canCreateXpert()"
                 (click)="completeInitialization()"

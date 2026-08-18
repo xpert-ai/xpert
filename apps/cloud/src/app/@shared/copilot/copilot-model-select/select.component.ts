@@ -21,7 +21,13 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { distinctUntilChanged, map, of } from 'rxjs'
-import { AiModelTypeEnum, ModelFeature, ModelPropertyKey, ParameterType } from '@xpert-ai/contracts'
+import {
+  AiModelTypeEnum,
+  ModelFeature,
+  ModelPropertyKey,
+  normalizeModelParameterValue,
+  resolveModelParameterOptions
+} from '@xpert-ai/contracts'
 import type {
   I18nObject,
   ICopilot,
@@ -34,7 +40,7 @@ import { injectCopilotProviderService } from '../../../@core/services/copilot-pr
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui'
+import { ZardAlertComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { ModelFilterTag, providerModelDisplayTags, providerModelFilterTags } from '../model-tags'
 
 type ModelParameterRulesResourceValue = {
@@ -63,7 +69,8 @@ const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
     XpI18nPipe,
     XpHighlightDirective,
     ModelParameterInputComponent,
-    ZardAlertComponent
+    ZardAlertComponent,
+    ZardSearchInputComponent
   ],
   selector: 'copilot-model-select',
   templateUrl: 'select.component.html',
@@ -430,7 +437,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     const rule = this.hasResolvedCurrentModelParameterRules()
       ? this.modelParameterRules().find((item) => item.name === name)
       : null
-    const nextValue = rule ? this.normalizeParameterValue(value, rule) : value
+    const nextValue = rule ? normalizeModelParameterValue(value, rule) : value
 
     this.updateValue({
       ...this.cva.value$(),
@@ -615,35 +622,21 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   private resolveOptions(options: Record<string, any> | undefined, rules: ParameterRule[]) {
     const contextSize = this.parseContextSize(options?.[ModelPropertyKey.CONTEXT_SIZE])
-    const nextOptions = {
+    const retainedOptions = {
       ...(typeof contextSize === 'number' ? { [ModelPropertyKey.CONTEXT_SIZE]: contextSize } : {})
     } as Record<string, any>
 
-    let hasRetainedRuleValue = false
     for (const rule of rules) {
       if (!rule.name) {
         continue
       }
 
-      const value = options?.[rule.name]
-      if (value !== undefined) {
-        const nextValue = this.normalizeParameterValue(value, rule)
-        if (nextValue !== undefined) {
-          nextOptions[rule.name] = nextValue
-          hasRetainedRuleValue = true
-        }
+      if (Object.prototype.hasOwnProperty.call(options ?? {}, rule.name)) {
+        retainedOptions[rule.name] = options?.[rule.name]
       }
     }
 
-    if (!hasRetainedRuleValue && this.shouldInitDefaultOptions(options)) {
-      for (const rule of rules) {
-        if (rule.name && rule.default !== undefined) {
-          nextOptions[rule.name] = rule.default
-        }
-      }
-    }
-
-    return Object.keys(nextOptions).length ? nextOptions : undefined
+    return resolveModelParameterOptions(retainedOptions, rules)
   }
 
   private cloneOptions(options?: Record<string, any>) {
@@ -659,65 +652,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     }
 
     return currentKeys.every((key) => current?.[key] === next?.[key])
-  }
-
-  private shouldInitDefaultOptions(options?: Record<string, any>): boolean {
-    if (!options) {
-      return true
-    }
-    const keys = Object.keys(options).filter((key) => options[key] !== undefined)
-    return keys.length === 0 || (keys.length === 1 && keys[0] === ModelPropertyKey.CONTEXT_SIZE)
-  }
-
-  private normalizeParameterValue(value: unknown, rule: ParameterRule) {
-    if (rule.type !== ParameterType.FLOAT && rule.type !== ParameterType.INT) {
-      return value
-    }
-
-    const numericValue = this.parseNumericParameterValue(value, rule.type)
-    if (numericValue === undefined) {
-      return undefined
-    }
-
-    return this.clampNumericParameterValue(numericValue, rule)
-  }
-
-  private parseNumericParameterValue(
-    value: unknown,
-    type: ParameterType.FLOAT | ParameterType.INT
-  ): number | undefined {
-    if (value === '' || value === null || value === undefined) {
-      return undefined
-    }
-
-    let parsed: number
-    if (typeof value === 'number') {
-      parsed = value
-    } else if (typeof value === 'string') {
-      parsed = type === ParameterType.INT ? Number.parseInt(value, 10) : Number.parseFloat(value)
-    } else {
-      return undefined
-    }
-
-    if (!Number.isFinite(parsed)) {
-      return undefined
-    }
-
-    return type === ParameterType.INT ? Math.trunc(parsed) : parsed
-  }
-
-  private clampNumericParameterValue(value: number, rule: ParameterRule) {
-    let nextValue = value
-
-    if (typeof rule.min === 'number' && Number.isFinite(rule.min) && nextValue < rule.min) {
-      nextValue = rule.min
-    }
-
-    if (typeof rule.max === 'number' && Number.isFinite(rule.max) && nextValue > rule.max) {
-      nextValue = rule.max
-    }
-
-    return rule.type === ParameterType.INT ? Math.trunc(nextValue) : nextValue
   }
 
   private getMenuRailBounds(containerWidth: number | null | undefined) {

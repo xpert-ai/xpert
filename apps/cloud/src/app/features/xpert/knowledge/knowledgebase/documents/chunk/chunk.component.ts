@@ -31,6 +31,7 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardInputDirective,
+  ZardSearchInputComponent,
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
@@ -47,6 +48,7 @@ import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.co
     CdkMenuModule,
     ZardButtonComponent,
     ZardInputDirective,
+    ZardSearchInputComponent,
     ZardSwitchComponent,
     ...ZardTooltipImports,
     ZardIconComponent,
@@ -71,7 +73,11 @@ export class KnowledgeDocumentChunkComponent {
   readonly paramId = injectParams('id')
   readonly parentId = injectQueryParams('parentId')
   readonly requestedView = injectQueryParams('view')
+  readonly requestedChunkId = injectQueryParams('chunkId')
   readonly confirmDelete = injectConfirmDelete()
+  readonly evidenceExcerpt = signal(
+    readEvidenceExcerpt(this.#router.getCurrentNavigation()?.extras.state ?? globalThis.history?.state)
+  )
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -119,6 +125,7 @@ export class KnowledgeDocumentChunkComponent {
 
   // Search
   readonly search = model<string>()
+  #positionedChunkId: string | null = null
 
   // Metadata schema
   readonly metadataSchema = computed(() => this.knowledgebase()?.metadataSchema || [])
@@ -150,6 +157,20 @@ export class KnowledgeDocumentChunkComponent {
       if (this.document()) {
         this.docEnabled.set(!this.document().disabled)
       }
+    })
+
+    effect(() => {
+      if (this.activeView() !== 'chunks') return
+      const targetChunkId = this.requestedChunkId()?.trim()
+      if (!targetChunkId || this.#positionedChunkId === targetChunkId) return
+      const target = this.chunks().find((chunk) => this.isTargetChunk(chunk))
+      if (!target) return
+      this.#positionedChunkId = targetChunkId
+      requestAnimationFrame(() => {
+        globalThis.document
+          ?.getElementById(this.chunkAnchorId(target))
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
     })
 
     // effect(() => {
@@ -214,7 +235,8 @@ export class KnowledgeDocumentChunkComponent {
         return this.knowledgeDocumentService.getChunks(id, {
           take: this.pageSize,
           skip: this.currentPage() * this.pageSize,
-          search: this.search()?.trim()
+          search: this.search()?.trim(),
+          targetChunkId: this.currentPage() === 0 ? this.requestedChunkId()?.trim() : undefined
         })
       }),
       tap({
@@ -258,6 +280,18 @@ export class KnowledgeDocumentChunkComponent {
     this.editChunk.set(null)
     this.showMetadata.set(false)
     this.metadataChunk.set(chunk)
+  }
+
+  chunkAnchorId(chunk: IKnowledgeDocumentChunk) {
+    return `knowledge-chunk-${encodeURIComponent(String(chunk.id ?? chunk.metadata?.chunkId ?? 'unknown'))}`
+  }
+
+  isTargetChunk(chunk: IKnowledgeDocumentChunk) {
+    const targetChunkId = this.requestedChunkId()?.trim()
+    return Boolean(
+      targetChunkId &&
+      (String(chunk.id ?? '') === targetChunkId || String(chunk.metadata?.chunkId ?? '') === targetChunkId)
+    )
   }
 
   closeChunkMetadata() {
@@ -566,4 +600,12 @@ export class KnowledgeDocumentChunkComponent {
       return String(value)
     }
   }
+}
+
+function readEvidenceExcerpt(state: unknown) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) return null
+  const evidence = (state as Record<string, unknown>)['knowledgeEvidence']
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return null
+  const text = (evidence as Record<string, unknown>)['text']
+  return typeof text === 'string' && text.trim() ? text.trim().slice(0, 4000) : null
 }

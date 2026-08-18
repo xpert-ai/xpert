@@ -27,6 +27,7 @@ import { I18nService, TranslateOptions } from 'nestjs-i18n'
 import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 
 const DEFAULT_MCP_AVATAR: TAvatar = {
     url:
@@ -68,7 +69,8 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         workspaceAccessService: XpertWorkspaceAccessService,
         private readonly i18n: I18nService,
         protected readonly commandBus: CommandBus,
-        protected readonly queryBus: QueryBus
+        protected readonly queryBus: QueryBus,
+        private readonly agentMiddlewareRuntime: AgentMiddlewareRuntimeService
     ) {
         super(repository, workspaceAccessService)
     }
@@ -172,13 +174,18 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         }
 
         const envState = await this.queryBus.execute(new EnvStateQuery(entity.workspaceId))
+        const scopedModelRuntime = this.agentMiddlewareRuntime.createScopedApi({ tenantId, organizationId })
         const toolproviderController: BuiltinToolset = await createBuiltinToolset(provider, null, {
             tenantId,
             organizationId,
             // toolsetService: this,
             commandBus: this.commandBus,
             queryBus: this.queryBus,
-            env: envState
+            env: envState,
+            modelRuntime: {
+                createModelClient: scopedModelRuntime.createModelClient,
+                getModelProvider: scopedModelRuntime.getModelProvider
+            }
         })
         // validate credentials
         if (toolproviderController.validateCredentials) {

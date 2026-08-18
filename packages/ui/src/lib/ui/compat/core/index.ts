@@ -1,4 +1,3 @@
-export * from './core.module'
 export * from './animations'
 export * from './directives'
 export * from './excel'

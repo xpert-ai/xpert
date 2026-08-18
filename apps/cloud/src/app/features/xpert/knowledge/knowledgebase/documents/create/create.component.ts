@@ -12,6 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { BehaviorSubject } from 'rxjs'
 import {
   DocumentSourceProviderCategoryEnum,
+  DocumentSheetParserConfig,
   DocumentTextParserConfig,
   DocumentTypeEnum,
   IIntegration,
@@ -87,7 +88,7 @@ export class KnowledgeDocumentCreateComponent {
   readonly selectedWebPages = signal<string[]>([])
 
   // Step 2
-  readonly parserConfig = model<DocumentTextParserConfig>({} as DocumentTextParserConfig)
+  readonly parserConfig = model<DocumentTextParserConfig & Partial<DocumentSheetParserConfig>>({})
   readonly step2Avaiable = computed(() => this.files()?.length || this.webResult()?.docs?.length)
 
   // Step 3

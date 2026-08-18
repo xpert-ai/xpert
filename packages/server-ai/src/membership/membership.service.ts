@@ -16,9 +16,8 @@ import {
     IMembershipUsageQuery,
     IModelAccessResolution,
     IPagination,
-    DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
-    MEMBERSHIP_TOKENS_PER_POINT_SETTING,
-    MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
+    DEFAULT_MEMBERSHIP_CNY_PER_POINT,
+    MEMBERSHIP_CNY_PER_POINT_SETTING,
     MembershipLedgerSourceEnum,
     MembershipAdminUserStatusEnum,
     MembershipBulkActionEnum,
@@ -60,6 +59,7 @@ import { endOfDayInTimeZone, formatInUTC0 } from '../shared/utils'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPeriod } from './membership-period.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
+import { pointsFromCny } from './model-billing'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { Copilot } from '../copilot/copilot.entity'
@@ -80,6 +80,12 @@ type RecordUsageInput = {
     provider?: string
     model?: string
     tokenUsed?: number
+    priceAmount?: number | null
+    priceCurrency?: string | null
+    settlementAmount?: number | null
+    settlementCurrency?: string | null
+    exchangeRate?: number | null
+    sourceReference?: string | null
     usageHour?: string
     xpertId?: string
     threadId?: string
@@ -252,7 +258,6 @@ export class MembershipService {
         const scope = this.requireCurrentScope()
         await this.assertMembershipPlanFeatureEnabled(scope)
         const { tenantId, organizationId } = scope
-        const tokensPerPoint = await this.resolveTenantTokensPerPoint(tenantId)
         const name = this.normalizePlanName(input.name, DEFAULT_PLAN_NAME)
         const code = this.normalizePlanCode(input.code, this.slugify(name) || 'plan')
         const status = input.status ?? MembershipPlanStatusEnum.Active
@@ -269,9 +274,6 @@ export class MembershipService {
             isDefault,
             period: input.period ?? MembershipPeriodEnum.Monthly,
             includedPoints: this.nonNegativeNumberOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS),
-            tokensPerPoint,
-            priceAmount: this.optionalNonNegativeNumber(input.priceAmount),
-            priceCurrency: input.priceCurrency,
             allowedModels: this.normalizeAllowedModels(input.allowedModels),
             modelMultipliers: this.normalizeModelMultipliers(input.modelMultipliers),
             rateLimits: this.normalizeRateLimits(input.rateLimits)
@@ -370,12 +372,6 @@ export class MembershipService {
             }
             if (input.includedPoints !== undefined) {
                 plan.includedPoints = nextIncludedPoints
-            }
-            if (input.priceAmount !== undefined) {
-                plan.priceAmount = this.optionalNonNegativeNumber(input.priceAmount)
-            }
-            if (input.priceCurrency !== undefined) {
-                plan.priceCurrency = input.priceCurrency
             }
             if (input.allowedModels !== undefined) {
                 plan.allowedModels = this.normalizeAllowedModels(input.allowedModels)
@@ -1054,7 +1050,6 @@ export class MembershipService {
                 return null
             }
 
-            const tokensPerPoint = await this.resolveTenantTokensPerPoint(tenantId)
             return repository.save(
                 repository.create({
                     tenantId,
@@ -1066,7 +1061,6 @@ export class MembershipService {
                     isDefault: true,
                     period: MembershipPeriodEnum.Monthly,
                     includedPoints: DEFAULT_INCLUDED_POINTS,
-                    tokensPerPoint,
                     allowedModels: [],
                     modelMultipliers: [],
                     rateLimits: []
@@ -1149,6 +1143,16 @@ export class MembershipService {
         await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
             tenantId,
             `model-gateway-request:${requestId}`
+        ])
+    }
+
+    private async acquireUsageSourceLock(manager: EntityManager, tenantId: string, sourceReference: string) {
+        if (manager.connection.options.type !== 'postgres') {
+            return
+        }
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+            tenantId,
+            `membership-usage-source:${sourceReference}`
         ])
     }
 
@@ -1749,7 +1753,6 @@ export class MembershipService {
                 existing.status = MembershipPlanStatusEnum.Active
                 existing.period = snapshot.period
                 existing.includedPoints = snapshot.includedPoints
-                existing.tokensPerPoint = snapshot.tokensPerPoint
                 existing.priceAmount = null
                 existing.priceCurrency = null
                 existing.allowedModels = snapshot.allowedModels?.map((rule) => ({ ...rule }))
@@ -1772,7 +1775,6 @@ export class MembershipService {
                     isDefault: false,
                     period: snapshot.period,
                     includedPoints: snapshot.includedPoints,
-                    tokensPerPoint: snapshot.tokensPerPoint,
                     priceAmount: null,
                     priceCurrency: null,
                     allowedModels: snapshot.allowedModels?.map((rule) => ({ ...rule })),
@@ -2621,7 +2623,8 @@ export class MembershipService {
 
     async recordUsage(input: RecordUsageInput): Promise<MembershipPointLedger | null> {
         const tokenUsed = Math.max(0, Math.trunc(input.tokenUsed ?? 0))
-        if (!tokenUsed) {
+        const settlementAmount = this.nonNegativeBillingAmount(input.settlementAmount)
+        if (!settlementAmount) {
             return null
         }
         if (input.modelAccess?.accessSource === ModelAccessSourceEnum.Direct) {
@@ -2635,10 +2638,22 @@ export class MembershipService {
         ) {
             return null
         }
-        const tokensPerPoint = await this.resolveTenantTokensPerPoint(input.tenantId)
-
+        const cnyPerPoint = await this.resolveTenantCnyPerPoint(input.tenantId)
         let exceeded = false
         const ledger = await this.dataSource.transaction(async (manager) => {
+            if (input.sourceReference) {
+                await this.acquireUsageSourceLock(manager, input.tenantId, input.sourceReference)
+                const existing = await manager.getRepository(MembershipPointLedger).findOne({
+                    where: {
+                        tenantId: input.tenantId,
+                        sourceReference: input.sourceReference
+                    }
+                })
+                if (existing) {
+                    exceeded = Number(existing.excessPoints ?? 0) > 0
+                    return existing
+                }
+            }
             const access = await this.findModelAccessWithOrganizationSelfHeal(
                 {
                     tenantId: input.tenantId,
@@ -2665,11 +2680,14 @@ export class MembershipService {
 
             const { membership, organizationId } = access
             const billableUserId = membership.userId
-            const pointsUsed = input.modelAccess
-                ? this.calculatePointsWithMultiplier(tokenUsed, input.modelAccess.multiplier, tokensPerPoint)
-                : this.calculatePoints(tokenUsed, membership.plan, input.provider, input.model, tokensPerPoint)
+            const settlementMultiplier =
+                input.modelAccess?.multiplier ??
+                this.resolveModelMultiplier(membership.plan, input.provider, input.model)
+            const billableSettlementAmount = this.applySettlementMultiplier(settlementAmount, settlementMultiplier)
+            const pointsUsed = this.calculatePointsFromCny(billableSettlementAmount, cnyPerPoint)
             const accessSource = input.modelAccess?.accessSource ?? ModelAccessSourceEnum.Plan
             const modelGrantId = input.modelAccess?.grantId ?? null
+            const billingFields = this.billingLedgerFields(input, billableSettlementAmount)
             if (access.personalPointsOnly) {
                 const personalPointsBalance = await this.getPersonalPointsBalance(
                     input.tenantId,
@@ -2695,7 +2713,11 @@ export class MembershipService {
                     copilotId: input.copilotId,
                     usageHour: input.usageHour ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT),
                     accessSource,
-                    modelGrantId
+                    modelGrantId,
+                    sourceReference: input.sourceReference,
+                    chargedPoints: personalPointsUsed,
+                    excessPoints: Math.max(0, pointsUsed - personalPointsUsed),
+                    ...billingFields
                 })
             }
             const membershipPointsRemaining = this.pointsRemaining(membership)
@@ -2734,7 +2756,12 @@ export class MembershipService {
                 copilotId: input.copilotId,
                 usageHour: input.usageHour ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT),
                 accessSource,
-                modelGrantId
+                modelGrantId,
+                sourceReference: input.sourceReference,
+                chargedPoints: membershipPointsUsed,
+                excessPoints: Math.max(0, pointsUsed - membershipPointsUsed - personalPointsUsed),
+                ...billingFields,
+                settlementAmount: this.cnyFromPoints(membershipPointsUsed, cnyPerPoint)
             })
 
             if (personalPointsUsed > 0) {
@@ -2755,7 +2782,13 @@ export class MembershipService {
                     copilotId: input.copilotId,
                     usageHour: input.usageHour ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT),
                     accessSource,
-                    modelGrantId
+                    modelGrantId,
+                    sourceReference: input.sourceReference ? `${input.sourceReference}:personal` : null,
+                    chargedPoints: personalPointsUsed,
+                    excessPoints: 0,
+                    settlementCurrency: input.settlementCurrency ?? 'CNY',
+                    settlementAmount: this.cnyFromPoints(personalPointsUsed, cnyPerPoint),
+                    exchangeRate: input.exchangeRate
                 })
             }
 
@@ -2780,11 +2813,12 @@ export class MembershipService {
 
     async recordGatewayUsage(input: RecordGatewayUsageInput): Promise<RecordGatewayUsageResult> {
         const tokenUsed = Math.max(0, Math.trunc(input.tokenUsed ?? 0))
-        if (!tokenUsed) {
+        const settlementAmount = this.nonNegativeBillingAmount(input.settlementAmount)
+        if (!settlementAmount) {
             return { chargedPoints: 0, excessPoints: 0, ledger: null }
         }
         const sourceReference = `model-gateway:${input.gatewayRequestId}`
-        const tokensPerPoint = await this.resolveTenantTokensPerPoint(input.tenantId)
+        const cnyPerPoint = await this.resolveTenantCnyPerPoint(input.tenantId)
 
         return this.dataSource.transaction(async (manager) => {
             await this.acquireGatewayRequestLock(manager, input.tenantId, input.gatewayRequestId)
@@ -2827,11 +2861,12 @@ export class MembershipService {
                 manager,
                 true
             )
-            const pointsUsed = this.calculatePointsWithMultiplier(
-                tokenUsed,
-                input.modelAccess.multiplier,
-                tokensPerPoint
+            const billableSettlementAmount = this.applySettlementMultiplier(
+                settlementAmount,
+                input.modelAccess.multiplier
             )
+            const pointsUsed = this.calculatePointsFromCny(billableSettlementAmount, cnyPerPoint)
+            const billingFields = this.billingLedgerFields(input, billableSettlementAmount)
             if (!access) {
                 const ledger = await this.createLedger(manager, {
                     tenantId: input.tenantId,
@@ -2854,7 +2889,8 @@ export class MembershipService {
                     gatewayRequestId: input.gatewayRequestId,
                     gatewayApiKeyId: input.gatewayApiKeyId,
                     chargedPoints: 0,
-                    excessPoints: pointsUsed
+                    excessPoints: pointsUsed,
+                    ...billingFields
                 })
                 return { chargedPoints: 0, excessPoints: pointsUsed, ledger }
             }
@@ -2899,7 +2935,9 @@ export class MembershipService {
                 usageChannel: ModelGatewayUsageChannelEnum.ExternalApi,
                 gatewayRequestId: input.gatewayRequestId,
                 gatewayApiKeyId: input.gatewayApiKeyId,
-                excessPoints
+                excessPoints,
+                settlementCurrency: input.settlementCurrency ?? 'CNY',
+                exchangeRate: input.exchangeRate
             }
             const ledger = await this.createLedger(manager, {
                 ...common,
@@ -2911,7 +2949,13 @@ export class MembershipService {
                 pointsDelta: -(access.personalPointsOnly ? personalPointsUsed : membershipPointsUsed),
                 tokenUsed,
                 chargedPoints: access.personalPointsOnly ? personalPointsUsed : membershipPointsUsed,
-                sourceReference
+                sourceReference,
+                priceAmount: input.priceAmount,
+                priceCurrency: input.priceCurrency,
+                settlementAmount: this.cnyFromPoints(
+                    access.personalPointsOnly ? personalPointsUsed : membershipPointsUsed,
+                    cnyPerPoint
+                )
             })
             if (personalPointsUsed > 0 && !access.personalPointsOnly) {
                 await this.createLedger(manager, {
@@ -2923,7 +2967,8 @@ export class MembershipService {
                     tokenUsed: 0,
                     chargedPoints: personalPointsUsed,
                     excessPoints: 0,
-                    sourceReference: `${sourceReference}:personal`
+                    sourceReference: `${sourceReference}:personal`,
+                    settlementAmount: this.cnyFromPoints(personalPointsUsed, cnyPerPoint)
                 })
             }
             return { chargedPoints, excessPoints, ledger }
@@ -2961,23 +3006,31 @@ export class MembershipService {
         return creatorId
     }
 
-    calculatePoints(
-        tokenUsed: number,
-        plan: MembershipPlan,
-        provider?: string,
-        model?: string,
-        tokensPerPoint = DEFAULT_MEMBERSHIP_TOKENS_PER_POINT
-    ): number {
-        const multiplier = this.resolveModelMultiplier(plan, provider, model)
-        return this.calculatePointsWithMultiplier(tokenUsed, multiplier, tokensPerPoint)
+    calculatePointsFromCny(amount: number, cnyPerPoint = DEFAULT_MEMBERSHIP_CNY_PER_POINT): number {
+        return pointsFromCny(amount, cnyPerPoint)
     }
 
-    calculatePointsWithMultiplier(
-        tokenUsed: number,
-        multiplier: number,
-        tokensPerPoint = DEFAULT_MEMBERSHIP_TOKENS_PER_POINT
-    ): number {
-        return Number(((tokenUsed / tokensPerPoint) * Math.max(0, multiplier)).toFixed(10))
+    private cnyFromPoints(points: number, cnyPerPoint: number): number {
+        return Number((Math.max(0, points) * cnyPerPoint).toFixed(10))
+    }
+
+    private nonNegativeBillingAmount(value: number | null | undefined): number {
+        const amount = Number(value)
+        return Number.isFinite(amount) && amount > 0 ? Number(amount.toFixed(10)) : 0
+    }
+
+    private applySettlementMultiplier(amount: number, multiplier: number): number {
+        return Number((amount * Math.max(0, multiplier)).toFixed(10))
+    }
+
+    private billingLedgerFields(input: RecordUsageInput, settlementAmount: number): Partial<MembershipPointLedger> {
+        return {
+            priceAmount: input.priceAmount,
+            priceCurrency: input.priceCurrency,
+            settlementAmount,
+            settlementCurrency: input.settlementCurrency ?? 'CNY',
+            exchangeRate: input.exchangeRate
+        }
     }
 
     resolveModelMultiplierForPlan(plan: Pick<IMembershipPlan, 'modelMultipliers'>, provider?: string, model?: string) {
@@ -3313,7 +3366,6 @@ export class MembershipService {
     ): Promise<MembershipPlan | null> {
         await this.acquireOrganizationDefaultPlanInitializationLock(manager, scope.tenantId, scope.organizationId)
         const repository = manager.getRepository(MembershipPlan)
-        const tokensPerPoint = await this.resolveTenantTokensPerPoint(scope.tenantId)
         const existingDefaultPlan = await this.findDefaultPlan(scope.tenantId, scope.organizationId, manager)
         if (existingDefaultPlan) {
             return existingDefaultPlan
@@ -3357,7 +3409,6 @@ export class MembershipService {
             isDefault: true,
             period: MembershipPeriodEnum.Monthly,
             includedPoints: DEFAULT_INCLUDED_POINTS,
-            tokensPerPoint,
             allowedModels: [],
             modelMultipliers: [],
             rateLimits: []
@@ -4316,7 +4367,6 @@ export class MembershipService {
             catalogSourcePlanId: plan.catalogSourcePlanId ?? null,
             period: plan.period,
             includedPoints: plan.includedPoints,
-            tokensPerPoint: plan.tokensPerPoint,
             allowedModels: plan.allowedModels?.map((rule) => ({ ...rule })),
             modelMultipliers: plan.modelMultipliers?.map((rule) => ({ ...rule })),
             rateLimits: plan.rateLimits?.map((rule) => ({ ...rule }))
@@ -4351,7 +4401,6 @@ export class MembershipService {
             isDefault: false,
             period: snapshot.period,
             includedPoints: snapshot.includedPoints,
-            tokensPerPoint: snapshot.tokensPerPoint,
             allowedModels: snapshot.allowedModels?.map((rule) => ({ ...rule })),
             modelMultipliers: snapshot.modelMultipliers?.map((rule) => ({ ...rule })),
             rateLimits: snapshot.rateLimits?.map((rule) => ({ ...rule }))
@@ -5045,25 +5094,6 @@ export class MembershipService {
         return numberValue
     }
 
-    private optionalNonNegativeNumber(value: unknown): number | null | undefined {
-        if (value === undefined) {
-            return undefined
-        }
-        if (value === null) {
-            return null
-        }
-        const numberValue = Number(value)
-        if (!Number.isFinite(numberValue) || numberValue < 0) {
-            throw new BadRequestException(
-                this.translateMembershipError(
-                    'server-ai:Error.InvalidMembershipPrice',
-                    'Membership plan price must be a non-negative number.'
-                )
-            )
-        }
-        return numberValue
-    }
-
     private requireNonZeroPointDelta(value: unknown) {
         const numberValue = Number(value)
         const pointDelta = Number(numberValue.toFixed(3))
@@ -5082,17 +5112,15 @@ export class MembershipService {
         return pointDelta
     }
 
-    private async resolveTenantTokensPerPoint(tenantId: string) {
+    private async resolveTenantCnyPerPoint(tenantId: string) {
         const setting = await this.tenantSettingRepository?.findOne({
             where: {
                 tenantId,
-                name: MEMBERSHIP_TOKENS_PER_POINT_SETTING
+                name: MEMBERSHIP_CNY_PER_POINT_SETTING
             }
         })
         const numberValue = Number(setting?.value)
-        return MEMBERSHIP_TOKENS_PER_POINT_OPTIONS.some((option) => option === numberValue)
-            ? numberValue
-            : DEFAULT_MEMBERSHIP_TOKENS_PER_POINT
+        return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : DEFAULT_MEMBERSHIP_CNY_PER_POINT
     }
 
     private normalizeAllowedModels(value: unknown): IMembershipAllowedModel[] {
@@ -5137,7 +5165,7 @@ export class MembershipService {
             throw new BadRequestException(
                 this.translateMembershipError(
                     'server-ai:Error.InvalidMembershipModelMultipliers',
-                    'Model multipliers must be an array of model rules.'
+                    'Settlement amount multipliers must be an array of model rules.'
                 )
             )
         }
@@ -5151,7 +5179,7 @@ export class MembershipService {
                 throw new BadRequestException(
                     this.translateMembershipError(
                         'server-ai:Error.InvalidMembershipModelMultipliers',
-                        'Each model multiplier must be a non-negative number.'
+                        'Each settlement amount multiplier must be a non-negative number.'
                     )
                 )
             }

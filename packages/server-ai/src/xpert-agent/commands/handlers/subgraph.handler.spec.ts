@@ -7,6 +7,7 @@ jest.mock('yargs', () => ({
 
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
+import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { tool } from '@langchain/core/tools'
 import { Logger } from '@nestjs/common'
 import {
@@ -29,9 +30,154 @@ import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { CreateNodeConsumePendingSteerFollowUpsHandler } from './create-node-consume-pending-steer-follow-ups.handler'
 import { CreateNodeStagePendingSteerFollowUpsHandler } from './create-node-stage-pending-steer-follow-ups.handler'
-import { XpertAgentSubgraphHandler } from './subgraph.handler'
+import { getCurrentExecutionId, XpertAgentSubgraphHandler } from './subgraph.handler'
+
+describe('XpertAgentSubgraphHandler invocation execution id', () => {
+    it('resolves the current execution id between concurrent sub-agent calls', async () => {
+        type ChildGraphConfig = {
+            configurable?: {
+                executionId?: string
+            }
+        }
+
+        const observedExecutions: Array<{ expected?: string; actual?: string }> = []
+        let startedInvocations = 0
+        let releaseInvocations: (() => void) | undefined
+        const allInvocationsStarted = new Promise<void>((resolve) => {
+            releaseInvocations = resolve
+        })
+        const childGraph = {
+            getState: jest.fn(async () => ({
+                config: {
+                    configurable: {
+                        checkpoint_id: 'checkpoint-1'
+                    }
+                }
+            })),
+            invoke: jest.fn(async (_state: unknown, invokeConfig: ChildGraphConfig) =>
+                AsyncLocalStorageProviderSingleton.runWithConfig(invokeConfig, async () => {
+                    startedInvocations += 1
+                    if (startedInvocations === 2) {
+                        releaseInvocations?.()
+                    }
+                    await allInvocationsStarted
+                    observedExecutions.push({
+                        expected: invokeConfig.configurable?.executionId,
+                        actual: getCurrentExecutionId()
+                    })
+                    return {
+                        messages: [new AIMessage(`result-${invokeConfig.configurable?.executionId}`)]
+                    }
+                })
+            )
+        }
+        let executionSequence = 0
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                if (command instanceof XpertAgentSubgraphCommand) {
+                    return {
+                        graph: childGraph,
+                        nextNodes: [],
+                        failNode: undefined
+                    }
+                }
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    if (!command.execution.id) {
+                        executionSequence += 1
+                        return {
+                            ...command.execution,
+                            id: `child-execution-${executionSequence}`
+                        }
+                    }
+                    return command.execution
+                }
+                throw new Error(`Unexpected command: ${command?.constructor.name}`)
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                if (query instanceof XpertAgentExecutionOneQuery) {
+                    return { id: query.id }
+                }
+                throw new Error(`Unexpected query: ${query?.constructor.name}`)
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            null,
+            null,
+            {
+                createScopedApi: jest.fn().mockReturnValue({})
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
+        )
+        const subscriber = {
+            next: jest.fn()
+        }
+        const subAgent = await handler.createAgentSubgraph(
+            {
+                key: 'agent-2',
+                name: 'Agent 2',
+                description: 'Concurrent sub-agent'
+            } as IXpertAgent,
+            {
+                xpert: {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                },
+                options: {
+                    leaderKey: 'agent-1',
+                    isDraft: true,
+                    subscriber
+                },
+                thread_id: 'thread-1',
+                rootController: new AbortController(),
+                signal: new AbortController().signal,
+                isTool: true,
+                partners: [],
+                mute: [],
+                store: null,
+                subscriber,
+                isDraft: true
+            } as unknown as Parameters<XpertAgentSubgraphHandler['createAgentSubgraph']>[1]
+        )
+
+        const invoke = (callId: string) =>
+            subAgent.stateGraph?.invoke(
+                {
+                    messages: [],
+                    toolCall: {
+                        id: callId,
+                        name: 'agent-2',
+                        args: { input: callId }
+                    }
+                },
+                {
+                    configurable: {
+                        executionId: 'parent-execution',
+                        thread_id: 'thread-1',
+                        checkpoint_ns: ''
+                    }
+                }
+            )
+
+        await Promise.all([invoke('call-1'), invoke('call-2')])
+
+        expect(observedExecutions).toHaveLength(2)
+        expect(observedExecutions).toEqual(
+            expect.arrayContaining([
+                { expected: 'child-execution-1', actual: 'child-execution-1' },
+                { expected: 'child-execution-2', actual: 'child-execution-2' }
+            ])
+        )
+    })
+})
 
 describe('subgraph steer follow-up pre-turn node handlers', () => {
     it('stage handler returns a runnable lambda that loads pending steer follow-ups into the staging channel', async () => {
@@ -283,6 +429,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         primaryError?: Error
         fallbackSupportsVision?: boolean
         middlewareReplacementSupportsVision?: boolean
+        observePublicProfile?: boolean
     }) {
         const primaryInvoke = jest.fn(async (_messages: unknown) => {
             if (options.primaryError) {
@@ -291,6 +438,11 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             return new AIMessage('primary response')
         })
         const primaryModel = setModelVisionSupport(RunnableLambda.from(primaryInvoke), options.primarySupportsVision)
+        Object.defineProperty(primaryModel, 'metadata', {
+            configurable: true,
+            enumerable: true,
+            value: { profile: { imageInputs: options.primarySupportsVision } }
+        })
         const fallbackInvoke = jest.fn(async (_messages: unknown) => new AIMessage('fallback response'))
         const fallbackModel = setModelVisionSupport(
             RunnableLambda.from(fallbackInvoke),
@@ -340,7 +492,9 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 }
             }
         }
-        const middlewareEnabled = options.middlewareReplacementSupportsVision !== undefined
+        const observedModelProfiles: unknown[] = []
+        const middlewareEnabled =
+            options.middlewareReplacementSupportsVision !== undefined || options.observePublicProfile
         const graphDefinition = {
             nodes: [
                 {
@@ -412,18 +566,25 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
                 get: jest.fn().mockReturnValue({
                     createMiddleware: jest.fn().mockReturnValue({
                         name: 'test-model-replacement',
-                        wrapModelCall: (request, next) =>
-                            next({
-                                ...request,
-                                model: replacementModel
-                            })
+                        wrapModelCall: (request, next) => {
+                            observedModelProfiles.push('profile' in request.model ? request.model.profile : undefined)
+                            return next(
+                                options.middlewareReplacementSupportsVision === undefined
+                                    ? request
+                                    : {
+                                          ...request,
+                                          model: replacementModel
+                                      }
+                            )
+                        }
                     })
                 })
             }
@@ -459,6 +620,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             ),
             fallbackInvoke,
             handler,
+            observedModelProfiles,
             primaryInvoke,
             replacementInvoke
         }
@@ -522,6 +684,17 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         await invokeGraph(fixture)
 
         expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).toContain('image_url')
+    })
+
+    it('preserves the provider public profile on the model wrapper exposed to middleware', async () => {
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            observePublicProfile: true
+        })
+
+        await invokeGraph(fixture)
+
+        expect(fixture.observedModelProfiles).toEqual([{ imageInputs: true }])
     })
 
     it('filters images for a text-only fallback after a vision primary model fails', async () => {
@@ -639,7 +812,8 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -769,7 +943,8 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -945,7 +1120,8 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -1020,14 +1196,18 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         return value && typeof value === 'object' ? value.constructor.name : ''
     }
 
-    function createMalformedToolCallFixture(options: { invalidArgs: string; errorHandling?: ErrorHandlingOption }) {
+    function createMalformedToolCallFixture(options: {
+        invalidArgs: string
+        errorHandling?: ErrorHandlingOption
+        toolName?: string
+    }) {
         const invalidMessage = new AIMessage({
             id: 'ai-invalid-1',
             content: '',
             invalid_tool_calls: [
                 {
                     id: 'call-invalid-1',
-                    name: 'excalidraw_create_drawing',
+                    name: options.toolName ?? 'excalidraw_create_drawing',
                     error: 'Malformed args.',
                     args: options.invalidArgs
                 }
@@ -1130,7 +1310,8 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
             null,
             {
                 createScopedApi: jest.fn().mockReturnValue({})
-            } as unknown as AgentMiddlewareRuntimeService
+            } as unknown as AgentMiddlewareRuntimeService,
+            { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
             value: {
@@ -1251,8 +1432,8 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         jest.restoreAllMocks()
     })
 
-    it('logs invalid tool call diagnostics and throws a sanitized error', async () => {
-        const longArgs = `{"elements": ${'x'.repeat(21050)}`
+    it('logs invalid tool call diagnostics and throws a bounded args preview', async () => {
+        const longArgs = `{"elements":"${'x'.repeat(10500)}","broken":BROKEN_VALUE,"tail":"${'y'.repeat(10500)}"}`
         const loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
         const fixture = createMalformedToolCallFixture({ invalidArgs: longArgs })
 
@@ -1265,8 +1446,13 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
 
         const thrownMessage = thrown instanceof Error ? thrown.message : String(thrown)
         expect(thrownMessage).toContain('excalidraw_create_drawing: Malformed args.')
+        expect(thrownMessage).toContain(`Args (${longArgs.length} chars, preview truncated):`)
+        expect(thrownMessage).toContain('{"elements":')
+        expect(thrownMessage).toContain('Around JSON parse error at character')
+        expect(thrownMessage).toContain('BROKEN_VALUE')
+        expect(thrownMessage).not.toContain('Likely unescaped ASCII double quote')
         expect(thrownMessage).toContain('diagnosticId:')
-        expect(thrownMessage).not.toContain('{"elements":')
+        expect(thrownMessage.length).toBeLessThan(5000)
         expect(loggerError).toHaveBeenCalledWith(
             expect.objectContaining({
                 event: 'xpert.invalid_tool_calls',
@@ -1318,6 +1504,7 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
         expect(rootMessages).toHaveLength(2)
         expect(channelMessages).toHaveLength(2)
         expect(getMessageContent(lastChannelMessage)).toContain('diagnosticId:')
+        expect(getMessageContent(lastChannelMessage)).toContain('[REDACTED]')
         expect(outputJson).not.toContain(invalidArgs)
         expect(outputJson).not.toContain('secret-value')
         expect(outputJson).not.toContain('call-invalid-1')
@@ -1328,6 +1515,54 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
                         argsPreview: expect.stringContaining('[REDACTED]')
                     })
                 ]
+            })
+        )
+    })
+
+    it('identifies an unescaped quote and the affected JSON string field', async () => {
+        const invalidArgs =
+            '{"projectId":"00000000-0000-4000-8000-000000000001","episode":{"script":"孩子呼喊："救命！救命！"。"}}'
+        const loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+        const fixture = createMalformedToolCallFixture({
+            invalidArgs,
+            toolName: 'story_upsert_production_episode'
+        })
+
+        let thrown: unknown
+        try {
+            await invokeMalformedGraph(fixture)
+        } catch (err) {
+            thrown = err
+        }
+
+        const thrownMessage = thrown instanceof Error ? thrown.message : String(thrown)
+        expect(thrownMessage).toContain('story_upsert_production_episode: Malformed args.')
+        expect(thrownMessage).toContain('Likely unescaped ASCII double quote in JSON string field "script"')
+        expect(thrownMessage).toContain('use typographic quotation marks')
+        expect(thrown).toEqual(
+            expect.objectContaining({
+                name: 'ModelOutputValidationError',
+                code: 'MODEL_OUTPUT_VALIDATION_ERROR',
+                retryable: true,
+                repairContext: {
+                    kind: 'invalid_tool_calls',
+                    issues: [
+                        expect.objectContaining({
+                            toolName: 'story_upsert_production_episode',
+                            fieldName: 'script',
+                            error: 'Malformed args.',
+                            characterOffset: expect.any(Number),
+                            hint: expect.stringContaining('unescaped ASCII double quote')
+                        })
+                    ]
+                }
+            })
+        )
+        expect(JSON.stringify(Reflect.get(thrown as object, 'repairContext'))).not.toContain('孩子呼喊')
+        expect(getFirstLoggedInvalidToolCall(loggerError)).toEqual(
+            expect.objectContaining({
+                name: 'story_upsert_production_episode',
+                jsonHint: expect.stringContaining('field "script"')
             })
         )
     })

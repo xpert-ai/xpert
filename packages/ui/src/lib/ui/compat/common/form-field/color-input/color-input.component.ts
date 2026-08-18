@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, Input, forwardRef } from '@angular/
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardInputDirective } from '../../../../../components'
-import { DensityDirective } from '../../../core'
 
 export type ColorInputFormat = 'hex' | 'rgba' | 'hsla' | 'hsva' | 'cmyk'
 
@@ -12,7 +11,7 @@ const TRANSPARENT_COLOR_DEFAULT = createEmptyHexColor(8)
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective, DensityDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'xp-color-input',
   templateUrl: './color-input.component.html',

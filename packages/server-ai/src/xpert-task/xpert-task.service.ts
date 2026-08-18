@@ -2246,8 +2246,10 @@ const XPERT_TASK_MUTATION_KEYS = [
     'agentKey'
 ] satisfies (keyof IXpertTask)[]
 
-function sanitizeTaskMutationInput(entity: Partial<IXpertTask>): Partial<IXpertTask> {
-    const result: Partial<IXpertTask> = {}
+type XpertTaskMutation = Partial<Pick<IXpertTask, (typeof XPERT_TASK_MUTATION_KEYS)[number]>>
+
+function sanitizeTaskMutationInput(entity: Partial<IXpertTask>): XpertTaskMutation {
+    const result: XpertTaskMutation = {}
     const source = entity as Record<string, unknown>
     const target = result as Record<string, unknown>
 

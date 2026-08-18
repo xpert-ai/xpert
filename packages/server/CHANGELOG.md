@@ -1,5 +1,38 @@
 # @xpert-ai/server-core
 
+## 3.9.40
+
+### Patch Changes
+
+- Updated dependencies [612baea]
+    - @xpert-ai/contracts@3.17.1
+    - @xpert-ai/plugin-sdk@3.17.1
+
+## 3.9.39
+
+### Patch Changes
+
+- 3c16d3a: Add an optional dedicated proxy for plugin marketplace HTTP requests.
+- Updated dependencies [747732e]
+- Updated dependencies [e44e5bc]
+    - @xpert-ai/plugin-sdk@3.17.0
+    - @xpert-ai/contracts@3.17.0
+
+## 3.9.38
+
+### Patch Changes
+
+- Updated dependencies [57721a6]
+    - @xpert-ai/plugin-sdk@3.16.1
+
+## 3.9.37
+
+### Patch Changes
+
+- Updated dependencies [b800da5]
+    - @xpert-ai/plugin-sdk@3.16.0
+    - @xpert-ai/contracts@3.16.0
+
 ## 3.9.36
 
 ### Patch Changes

@@ -171,6 +171,33 @@ describe('ClawXpertOverviewComponent', () => {
     expect(legend.filter((cell) => cell.background === 'var(--sys-success)')).toHaveLength(3)
   })
 
+  it('renders an accessible page-level loading state with visual progress feedback', async () => {
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertOverviewComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: {
+            loading: signal(true)
+          }
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertOverviewComponent)
+    fixture.detectChanges()
+
+    const loadingState = fixture.nativeElement.querySelector('[data-clawxpert-loading]')
+    expect(loadingState).not.toBeNull()
+    expect(loadingState.getAttribute('role')).toBe('status')
+    expect(loadingState.getAttribute('aria-live')).toBe('polite')
+    expect(loadingState.getAttribute('aria-busy')).toBe('true')
+    expect(loadingState.querySelector('[data-clawxpert-loading-spinner]')).not.toBeNull()
+    expect(loadingState.textContent).toContain('XP.Chat.ClawXpert.Loading')
+    expect(loadingState.textContent).toContain('XP.Chat.ClawXpert.LoadingDesc')
+  })
+
   it('renders the inline binding wizard when the overview is in setup state', async () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertOverviewComponent],

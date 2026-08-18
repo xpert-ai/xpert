@@ -57,18 +57,22 @@ describe('CopilotTokenRecordHandler', () => {
                 tokenLimit: null
             })
         }
-        const membershipService = {
-            recordUsage: jest.fn().mockResolvedValue(null)
-        }
         const modelAccessService = {
             assertCanUseModel: jest.fn()
+        }
+        const copilotUsageService = {
+            recordTokenUsage: jest.fn().mockResolvedValue({
+                requestId: 'llm-request-1',
+                recorded: true,
+                ledgerIds: ['usage-ledger-1']
+            })
         }
         const handler = new CopilotTokenRecordHandler(
             queryBus as never,
             copilotUserService as never,
             copilotOrganizationService as never,
-            membershipService as never,
             modelAccessService as never,
+            copilotUsageService as never,
             { t: jest.fn().mockResolvedValue('limit exceeded') } as never
         )
         const modelAccess = grantResolution()
@@ -76,6 +80,7 @@ describe('CopilotTokenRecordHandler', () => {
         await handler.execute(
             new CopilotTokenRecordCommand({
                 tenantId: 'tenant-1',
+                requestId: 'llm-request-1',
                 organizationId: 'runtime-org-1',
                 userId: 'assistant-tech-user',
                 xpertId: 'xpert-1',
@@ -84,7 +89,9 @@ describe('CopilotTokenRecordHandler', () => {
                 model: 'qwen3.6-plus',
                 modelType: AiModelTypeEnum.LLM,
                 modelAccess,
-                tokenUsed: 100
+                tokenUsed: 100,
+                priceUsed: 0.5,
+                currency: 'CNY'
             })
         )
 
@@ -95,17 +102,23 @@ describe('CopilotTokenRecordHandler', () => {
                 userId: 'creator-user'
             })
         )
-        expect(membershipService.recordUsage).toHaveBeenCalledWith(
+        expect(copilotUsageService.recordTokenUsage).toHaveBeenCalledWith(
             expect.objectContaining({
                 tenantId: 'tenant-1',
                 organizationId: 'runtime-org-1',
-                copilotOrganizationId: 'copilot-org-1',
                 userId: 'creator-user',
-                provider: 'tongyi',
+                originId: 'thread-1',
+                copilotId: 'copilot-1',
+                providerScopeId: 'copilot-1',
+                provider: 'tongyi'
+            }),
+            expect.objectContaining({
+                requestId: 'llm-request-1',
                 model: 'qwen3.6-plus',
-                tokenUsed: 100,
-                usageHour: expect.any(String),
-                modelAccess
+                modelType: AiModelTypeEnum.LLM,
+                totalTokens: 100,
+                priceAmount: 0.5,
+                priceCurrency: 'CNY'
             })
         )
         expect(modelAccessService.assertCanUseModel).not.toHaveBeenCalled()
@@ -137,9 +150,6 @@ describe('CopilotTokenRecordHandler', () => {
                 tokenLimit: null
             })
         }
-        const membershipService = {
-            recordUsage: jest.fn().mockResolvedValue(null)
-        }
         const modelAccess = grantResolution({
             billableUserId: 'user-1',
             copilotModelId: 'deepseek-chat',
@@ -151,18 +161,26 @@ describe('CopilotTokenRecordHandler', () => {
         const modelAccessService = {
             assertCanUseModel: jest.fn().mockResolvedValue(modelAccess)
         }
+        const copilotUsageService = {
+            recordTokenUsage: jest.fn().mockResolvedValue({
+                requestId: 'llm-request-2',
+                recorded: true,
+                ledgerIds: ['usage-ledger-2']
+            })
+        }
         const handler = new CopilotTokenRecordHandler(
             queryBus as never,
             copilotUserService as never,
             copilotOrganizationService as never,
-            membershipService as never,
             modelAccessService as never,
+            copilotUsageService as never,
             { t: jest.fn().mockResolvedValue('limit exceeded') } as never
         )
 
         await handler.execute(
             new CopilotTokenRecordCommand({
                 tenantId: 'tenant-1',
+                requestId: 'llm-request-2',
                 organizationId: 'org-1',
                 userId: 'user-1',
                 copilotId: 'copilot-1',
@@ -174,20 +192,6 @@ describe('CopilotTokenRecordHandler', () => {
 
         expect(copilotUserService.upsert).toHaveBeenCalled()
         expect(copilotOrganizationService.upsert).toHaveBeenCalled()
-        expect(membershipService.recordUsage).toHaveBeenCalledWith(
-            expect.objectContaining({
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                copilotOrganizationId: 'org-1',
-                userId: 'user-1',
-                provider: 'deepseek',
-                model: 'deepseek-chat',
-                tokenUsed: 100,
-                usageHour: expect.any(String),
-                copilotId: 'copilot-1',
-                modelAccess
-            })
-        )
         expect(modelAccessService.assertCanUseModel).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: 'org-1',

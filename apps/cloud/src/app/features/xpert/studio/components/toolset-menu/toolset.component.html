@@ -1,7 +1,12 @@
 <div
   class="w-full flex flex-col items-start sticky top-0 z-10 border-b-[0.5px] mb-2 border-black/[0.08] bg-components-card-bg"
 >
-  <xp-search [formControl]="searchControl" class="w-full rounded-xl" />
+  <z-search-input
+    class="w-full"
+    [formControl]="searchControl"
+    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+  />
 
   <ul class="w-full flex items-center px-3 py-2 space-x-1 bg-gray-25" cdkListbox [(ngModel)]="type">
     @for (type of TYPES; track type.value) {

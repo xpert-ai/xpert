@@ -170,7 +170,7 @@ export class XpertChatAppComponent {
       }
     })
     const unregisterNavigationOpen = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
-      navigate: (commands) => this.#router.navigate(commands)
+      navigate: (commands, options) => this.#router.navigate(commands, options)
     })
 
     effect(() => {

@@ -216,6 +216,7 @@ export class KnowledgeDocumentConsumer {
                         await this.commandBus.execute(
                             new CopilotTokenRecordCommand({
                                 tenantId: knowledgebase.tenantId,
+                                requestId: `knowledge-document:${job.id}:${document.id}:${count}`,
                                 organizationId: knowledgebase.organizationId,
                                 userId: job.data.userId,
                                 copilotId: copilot.id,

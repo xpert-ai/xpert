@@ -5,6 +5,7 @@ import {
     ICopilotUsageOverview,
     ICopilotUsageSummary,
     ICopilotUsageTotals,
+    ModelUsageLedgerQuery,
     IPagination,
     TCopilotQuotaAdjustInput,
     TCopilotQuotaRenewInput
@@ -26,10 +27,24 @@ import { CopilotUsageService } from './copilot-usage.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @UseGuards(PermissionGuard)
-@Permissions(AIPermissionsEnum.COPILOT_EDIT)
+@Permissions(AIPermissionsEnum.MODEL_USAGE_MONITOR)
 @Controller()
 export class CopilotUsageController {
     constructor(private readonly service: CopilotUsageService) {}
+
+    @Get('ledger')
+    async getLedger(
+        @Query() query: ModelUsageLedgerQuery,
+        @Query('$take') take?: number,
+        @Query('$skip') skip?: number
+    ) {
+        return this.service.findModelUsagePage(query, { take, skip })
+    }
+
+    @Get('ledger/totals')
+    async getLedgerTotals(@Query() query: ModelUsageLedgerQuery) {
+        return this.service.findModelUsageTotals(query)
+    }
 
     @Get('summary')
     @UseValidationPipe()

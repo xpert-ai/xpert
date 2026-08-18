@@ -1,5 +1,43 @@
 # @xpert-ai/plugin-sdk
 
+## 3.17.1
+
+### Patch Changes
+
+- 612baea: Resolve model parameter defaults consistently across configuration UIs and runtime model creation, and expose provider parameter rules through the plugin SDK.
+- Updated dependencies [612baea]
+  - @xpert-ai/contracts@3.17.1
+
+## 3.17.0
+
+### Minor Changes
+
+- 747732e: v3.17
+
+### Patch Changes
+
+- e44e5bc: Add shared IMAGE and VIDEO model clients, Managed Queue checkpoints for asynchronous AIGC jobs, host-owned model provider resolution, authoritative model usage reporting, and versioned token/generation/second usage accounting for model plugins.
+- Updated dependencies [747732e]
+- Updated dependencies [e44e5bc]
+  - @xpert-ai/contracts@3.17.0
+
+## 3.16.1
+
+### Patch Changes
+
+- 57721a6: Normalize missing assistant roles in OpenAI-compatible completion responses.
+
+## 3.16.0
+
+### Minor Changes
+
+- b800da5: v3.16
+
+### Patch Changes
+
+- Updated dependencies [b800da5]
+  - @xpert-ai/contracts@3.16.0
+
 ## 3.15.18
 
 ### Patch Changes

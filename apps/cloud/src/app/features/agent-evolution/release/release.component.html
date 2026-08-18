@@ -1,0 +1,551 @@
+<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
+  <section
+    class="flex flex-col gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-4 lg:flex-row lg:items-center"
+  >
+    <label class="flex min-w-0 flex-1 items-center gap-3 text-xs text-text-secondary">
+      <span class="shrink-0 font-medium">{{ 'XP.AgentEvolution.ReleasePackage' | translate }}</span>
+      <z-combobox
+        class="min-w-0 flex-1"
+        zWidth="full"
+        [value]="release()?.releasePackageId || null"
+        [options]="releaseOptions()"
+        [placeholder]="'XP.AgentEvolution.SelectReleasePackage' | translate"
+        [searchPlaceholder]="'XP.AgentEvolution.SearchReleasePackage' | translate"
+        [emptyText]="'XP.AgentEvolution.NoReleasePackageOptions' | translate"
+        [ariaLabel]="'XP.AgentEvolution.ReleasePackage' | translate"
+        (zValueChange)="selectRelease($event || '')"
+      />
+    </label>
+    <div class="text-xs text-text-secondary">
+      {{ 'XP.AgentEvolution.ReleaseScopeIsolationHint' | translate }}
+    </div>
+  </section>
+
+  @if (release(); as item) {
+    <section
+      class="flex flex-col gap-4 rounded-xl border border-divider-regular bg-components-card-bg p-5 lg:flex-row lg:items-start lg:justify-between"
+    >
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+          <span>{{ 'XP.AgentEvolution.TabRelease' | translate }}</span
+          ><i class="ri-arrow-right-s-line"></i><span class="font-mono">{{ item.releasePackageId }}</span>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <h2 class="text-xl font-semibold text-text-primary">{{ targetName() }} · {{ item.targetVersionId }}</h2>
+          <z-badge zType="outline" class="border-state-success-hover bg-state-success-hover/10 text-text-success">{{
+            'XP.AgentEvolution.Status.' + item.status | translate: { Default: item.status }
+          }}</z-badge>
+        </div>
+        <p class="mt-1 text-sm text-text-secondary">
+          {{ 'XP.AgentEvolution.Candidate' | translate }} {{ item.candidateId }} ·
+          {{ 'XP.AgentEvolution.Rollback' | translate }} {{ item.rollbackVersionId }} ·
+          {{ 'XP.AgentEvolution.ScopeType.' + item.scope.type | translate: { Default: item.scope.type } }}
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @if (primaryAction(); as action) {
+          <button
+            z-button
+            type="button"
+            [zLoading]="facade.mutating()"
+            [zDisabled]="!action.enabled"
+            [title]="action.enabled ? action.description : ('XP.AgentEvolution.ReleaseGateActionDisabled' | translate)"
+            (click)="performPrimaryAction()"
+          >
+            <i class="ri-arrow-right-circle-line"></i>{{ action.label }}
+          </button>
+        }
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          [zDisabled]="item.status !== 'shadow' && item.status !== 'canary'"
+          [title]="'XP.AgentEvolution.PauseOnlyDuringStagedRelease' | translate"
+          (click)="pause()"
+        >
+          <i class="ri-pause-line"></i>{{ 'XP.AgentEvolution.Pause' | translate }}
+        </button>
+        @if (item.status === 'active') {
+          <button z-button zType="destructive" type="button" [zLoading]="facade.mutating()" (click)="rollback()">
+            <i class="ri-arrow-go-back-line"></i>{{ 'XP.AgentEvolution.Rollback' | translate }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="overflow-x-auto rounded-xl border border-divider-regular bg-components-card-bg px-5 py-5">
+      <div class="flex min-w-[780px] items-start">
+        @for (step of timeline(); track step.label; let last = $last) {
+          <div class="flex flex-1 items-start">
+            <div class="flex min-w-24 flex-col items-center text-center">
+              <span
+                class="flex size-8 items-center justify-center rounded-full border"
+                [ngClass]="
+                  step.done
+                    ? 'border-state-success-hover bg-state-success-hover/20 text-text-success'
+                    : 'border-divider-deep bg-components-card-bg text-text-secondary'
+                "
+                ><i [class]="step.done ? 'ri-check-line' : 'ri-time-line'"></i
+              ></span>
+              <div
+                class="mt-2 text-xs font-medium"
+                [class.text-text-primary]="step.done"
+                [class.text-text-secondary]="!step.done"
+              >
+                {{ step.label }}
+              </div>
+              <div class="mt-0.5 text-[10px] text-text-secondary">{{ step.detail }}</div>
+            </div>
+            @if (!last) {
+              <div
+                class="mt-4 h-px flex-1"
+                [ngClass]="step.done ? 'bg-state-success-hover' : 'bg-divider-regular'"
+              ></div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.CandidateAccuracy' | translate }}</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ percent(latestAccuracy()) }}</div>
+          <div class="mt-1 text-[11px] text-text-success">
+            {{ 'XP.AgentEvolution.PersistedObservationsHealthy' | translate }}
+          </div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.SevereErrors' | translate }}</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ severeErrors() }}</div>
+          <div class="mt-1 text-[11px] text-text-success">
+            {{ 'XP.AgentEvolution.ThresholdZero' | translate }}
+          </div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.TotalRuntimeSamples' | translate }}</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ totalSamples() }}</div>
+          <div class="mt-1 text-[11px] text-text-secondary">
+            {{ 'XP.AgentEvolution.PersistedShadowCanary' | translate }}
+          </div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.CanaryTraffic' | translate }}</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ item.canaryPercent }}%</div>
+          <div class="mt-1 text-[11px] text-text-secondary">
+            {{ 'XP.AgentEvolution.DeterministicSlice' | translate }}
+          </div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.PointerRevision' | translate }}</div>
+          <div class="mt-2 text-2xl font-semibold text-text-primary">{{ pointer()?.revision ?? '—' }}</div>
+          <div class="mt-1 text-[11px] text-text-secondary">
+            {{ 'XP.AgentEvolution.CasProtected' | translate }}
+          </div></z-card-content
+        ></z-card
+      >
+      <z-card class="border border-state-success-hover bg-state-success-hover/10 shadow-none"
+        ><z-card-content class="p-4"
+          ><div class="text-xs text-text-success">{{ 'XP.AgentEvolution.ReleaseDecision' | translate }}</div>
+          <div class="mt-2 text-xl font-semibold text-text-success">{{ releaseDecision().label }}</div>
+          <div class="mt-1 text-[11px] text-text-success">{{ releaseDecision().detail }}</div></z-card-content
+        ></z-card
+      >
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,.75fr)]">
+      <div class="flex min-w-0 flex-col gap-4">
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><div class="flex items-center justify-between gap-3">
+              <div>
+                <z-card-title>{{ 'XP.AgentEvolution.PersistedRuntimeObservations' | translate }}</z-card-title
+                ><z-card-subtitle class="mt-1">{{
+                  'XP.AgentEvolution.RuntimeObservationDescription' | translate
+                }}</z-card-subtitle>
+              </div>
+              <z-badge zType="outline">{{ runtimeDataSource() }}</z-badge>
+            </div></z-card-header
+          ><z-card-content class="p-4"
+            ><div echarts class="h-72 w-full" [options]="runtimeOptions()"></div></z-card-content
+        ></z-card>
+
+        <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><div class="flex items-center justify-between">
+              <div>
+                <z-card-title>{{ 'XP.AgentEvolution.TrafficSlices' | translate }}</z-card-title
+                ><z-card-subtitle class="mt-1">{{
+                  'XP.AgentEvolution.TrafficSlicesDescription' | translate
+                }}</z-card-subtitle>
+              </div>
+              <z-badge zType="outline">{{
+                'XP.AgentEvolution.DeploymentCount' | translate: { count: deployments().length }
+              }}</z-badge>
+            </div></z-card-header
+          >
+          <z-card-content class="p-0"
+            ><div class="overflow-x-auto">
+              <table class="w-full min-w-[720px] text-left text-xs">
+                <thead class="bg-background-default-subtle text-text-secondary">
+                  <tr>
+                    <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Channel' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.StatusLabel' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.DataSource' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Traffic' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Samples' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Accuracy' | translate }}</th>
+                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.SevereErrors' | translate }}</th>
+                    <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.StartTime' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-divider-subtle">
+                  @for (deployment of deployments(); track deployment.deploymentId) {
+                    <tr>
+                      <td class="px-5 py-3.5 font-medium text-text-primary">
+                        {{
+                          'XP.AgentEvolution.ChannelType.' + deployment.channel
+                            | translate: { Default: deployment.channel }
+                        }}
+                      </td>
+                      <td class="px-4 py-3.5">
+                        <z-badge zType="outline" class="text-text-success">{{
+                          'XP.AgentEvolution.Status.' + deployment.status | translate: { Default: deployment.status }
+                        }}</z-badge>
+                      </td>
+                      <td class="px-4 py-3.5 font-mono text-[11px] text-text-secondary">
+                        {{ deployment.dataSource || 'legacy_aggregate' }}
+                      </td>
+                      <td class="px-4 py-3.5 tabular-nums">{{ deployment.canaryPercent }}%</td>
+                      <td class="px-4 py-3.5 tabular-nums">{{ deployment.sampleCount }}</td>
+                      <td class="px-4 py-3.5 tabular-nums text-text-success">
+                        {{ percent(deployment.candidateAccuracy) }}
+                      </td>
+                      <td class="px-4 py-3.5 tabular-nums">{{ deployment.severeErrors }}</td>
+                      <td class="px-5 py-3.5 text-right text-text-secondary">
+                        {{ deployment.startedAt | date: 'MM-dd HH:mm:ss' }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="px-5 py-10 text-center text-text-secondary">
+                        {{ 'XP.AgentEvolution.NoDeployments' | translate }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div></z-card-content
+          >
+        </z-card>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><div class="flex items-center gap-3">
+              <span
+                class="flex size-9 items-center justify-center rounded-lg bg-state-success-hover/10 text-text-success"
+                ><i class="ri-shield-check-line"></i
+              ></span>
+              <div>
+                <z-card-title>{{ 'XP.AgentEvolution.ReleaseDecision' | translate }}</z-card-title
+                ><z-card-subtitle class="mt-1">{{
+                  'XP.AgentEvolution.GovernanceEngineRecommendation' | translate
+                }}</z-card-subtitle>
+              </div>
+            </div></z-card-header
+          ><z-card-content class="space-y-4 p-5"
+            ><div class="rounded-lg bg-state-success-hover/10 p-4">
+              <div class="text-sm font-semibold text-text-success">{{ releaseDecision().label }}</div>
+              <p class="mt-1 text-xs leading-5 text-text-secondary">
+                {{
+                  'XP.AgentEvolution.ReleaseDecisionObservationSummary'
+                    | translate: { detail: releaseDecision().detail, count: runtimePoints().length }
+                }}
+              </p>
+            </div>
+            <dl class="space-y-3 text-xs">
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.ArtifactHash' | translate }}</dt>
+                <dd class="break-all text-right font-mono text-text-primary">{{ shortId(item.artifactHash, 18) }}</dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Provider' | translate }}</dt>
+                <dd class="text-right font-mono text-text-primary">
+                  {{ item.providerKey }}@{{ item.providerVersion }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Approvals' | translate }}</dt>
+                <dd class="font-semibold text-text-primary">{{ item.approvalIds.length }}</dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.ReleaseGatePolicy' | translate }}</dt>
+                <dd class="font-semibold text-text-primary">
+                  {{ 'XP.AgentEvolution.GateProfile.' + gatePolicy().profile | translate }}
+                </dd>
+              </div>
+            </dl></z-card-content
+          ></z-card
+        >
+
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><z-card-title>{{ 'XP.AgentEvolution.ReleaseGateThresholds' | translate }}</z-card-title></z-card-header
+          ><z-card-content class="space-y-2 p-5 text-xs text-text-secondary">
+            <p>
+              {{
+                'XP.AgentEvolution.ShadowGateSummary'
+                  | translate
+                    : {
+                        hours: gatePolicy().shadowMinimumDurationHours,
+                        samples: gatePolicy().shadowMinimumSamples
+                      }
+              }}
+            </p>
+            <p>
+              {{
+                'XP.AgentEvolution.CanaryGateSummary'
+                  | translate
+                    : {
+                        hours: gatePolicy().canaryMinimumDurationHours,
+                        samples: gatePolicy().canaryMinimumSamples
+                      }
+              }}
+            </p>
+            @if (gatePolicy().profile === 'manual_test') {
+              <p class="font-medium text-text-warning">{{ 'XP.AgentEvolution.ManualTestGateWarning' | translate }}</p>
+            }
+          </z-card-content></z-card
+        >
+
+        @if (showManualTestOverride()) {
+          <z-card class="border border-text-warning/50 bg-text-warning/5 shadow-none"
+            ><z-card-header class="border-b border-text-warning/20 px-5 py-4"
+              ><div class="flex items-start justify-between gap-3">
+                <div>
+                  <z-card-title>{{ 'XP.AgentEvolution.CanaryTestOverrideTitle' | translate }}</z-card-title>
+                  <z-card-subtitle class="mt-1">{{
+                    'XP.AgentEvolution.CanaryTestOverrideSubtitle' | translate
+                  }}</z-card-subtitle>
+                </div>
+                <z-badge zType="outline" class="shrink-0 border-text-warning/50 text-text-warning">{{
+                  'XP.AgentEvolution.AdministratorOnly' | translate
+                }}</z-badge>
+              </div></z-card-header
+            ><z-card-content class="space-y-4 p-5">
+              <div
+                class="rounded-lg border border-text-warning/30 bg-components-card-bg p-3 text-xs leading-5 text-text-warning"
+              >
+                <i class="ri-error-warning-line mr-1"></i
+                >{{ 'XP.AgentEvolution.CanaryTestOverrideWarning' | translate }}
+              </div>
+              <label class="block space-y-1.5 text-xs">
+                <span class="font-medium text-text-primary">{{
+                  'XP.AgentEvolution.CanaryTestSubjectKey' | translate
+                }}</span>
+                <input
+                  z-input
+                  class="w-full"
+                  [ngModel]="manualTestSubjectKey()"
+                  (ngModelChange)="manualTestSubjectKey.set($event)"
+                  [placeholder]="'XP.AgentEvolution.CanaryTestSubjectKeyPlaceholder' | translate"
+                />
+              </label>
+              <label class="block space-y-1.5 text-xs">
+                <span class="font-medium text-text-primary">{{
+                  'XP.AgentEvolution.CanaryTestReason' | translate
+                }}</span>
+                <textarea
+                  z-input
+                  class="min-h-20 w-full resize-y"
+                  [ngModel]="manualTestReason()"
+                  (ngModelChange)="manualTestReason.set($event)"
+                  [placeholder]="'XP.AgentEvolution.CanaryTestReasonPlaceholder' | translate"
+                ></textarea>
+              </label>
+              <label class="block space-y-1.5 text-xs">
+                <span class="font-medium text-text-primary">{{
+                  'XP.AgentEvolution.CanaryTestExpiryMinutes' | translate
+                }}</span>
+                <input
+                  z-input
+                  class="w-full"
+                  type="number"
+                  min="1"
+                  max="120"
+                  [ngModel]="manualTestExpiresInMinutes()"
+                  (ngModelChange)="manualTestExpiresInMinutes.set(+$event)"
+                />
+              </label>
+              <button
+                z-button
+                type="button"
+                class="w-full"
+                [zLoading]="facade.mutating()"
+                [zDisabled]="!canCreateManualTestOverride()"
+                (click)="createManualTestOverride()"
+              >
+                <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.CreateCanaryTestOverride' | translate }}
+              </button>
+
+              @if (manualTestOverrides().length) {
+                <div class="space-y-2 border-t border-text-warning/20 pt-4">
+                  <div class="text-xs font-medium text-text-primary">
+                    {{ 'XP.AgentEvolution.CanaryTestOverrideHistory' | translate }}
+                  </div>
+                  @for (override of manualTestOverrides().slice(0, 3); track override.overrideId) {
+                    <div class="rounded-lg border border-divider-regular bg-components-card-bg p-3 text-[11px]">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="truncate font-mono text-text-primary" [title]="override.subjectKey">{{
+                          override.subjectKey
+                        }}</span>
+                        <z-badge zType="outline">{{
+                          'XP.AgentEvolution.CanaryTestOverrideStatus.' + override.status
+                            | translate: { Default: override.status }
+                        }}</z-badge>
+                      </div>
+                      <p class="mt-1 line-clamp-2 text-text-secondary">{{ override.reason }}</p>
+                      <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-text-secondary">
+                        <span>{{ shortId(override.overrideId, 18) }}</span>
+                        @if (override.consumedByExecutionId) {
+                          <span
+                            >{{ 'XP.AgentEvolution.Execution' | translate }} {{ override.consumedByExecutionId }}</span
+                          >
+                        } @else {
+                          <span
+                            >{{ 'XP.AgentEvolution.ExpiresAt' | translate }}
+                            {{ override.expiresAt | date: 'MM-dd HH:mm:ss' }}</span
+                          >
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </z-card-content></z-card
+          >
+        }
+
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
+          ><z-card-header class="border-b border-divider-subtle px-5 py-4"
+            ><z-card-title>{{ 'XP.AgentEvolution.VersionsAndPointers' | translate }}</z-card-title></z-card-header
+          ><z-card-content class="space-y-4 p-5"
+            ><div>
+              <div class="text-[11px] uppercase text-text-secondary">
+                {{ 'XP.AgentEvolution.ActiveVersion' | translate }}
+              </div>
+              <div
+                class="mt-1 rounded-lg bg-state-success-hover/10 p-3 font-mono text-sm font-semibold text-text-success"
+              >
+                {{ pointer()?.activeVersionId || item.targetVersionId }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[11px] uppercase text-text-secondary">
+                {{ 'XP.AgentEvolution.RollbackVersion' | translate }}
+              </div>
+              <div class="mt-1 rounded-lg bg-background-default-subtle p-3 font-mono text-sm text-text-primary">
+                {{ pointer()?.rollbackVersionId || item.rollbackVersionId }}
+              </div>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-text-secondary">{{ 'XP.AgentEvolution.PointerId' | translate }}</span
+              ><span class="font-mono text-text-primary">{{ shortId(pointer()?.pointerId, 14) }}</span>
+            </div></z-card-content
+          ></z-card
+        >
+      </div>
+    </section>
+
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+      <z-card-header class="border-b border-divider-subtle px-5 py-4"
+        ><div class="flex items-center justify-between">
+          <div>
+            <z-card-title>{{ 'XP.AgentEvolution.ReleaseEvents' | translate }}</z-card-title
+            ><z-card-subtitle class="mt-1">{{
+              'XP.AgentEvolution.ReleaseEventsDescription' | translate
+            }}</z-card-subtitle>
+          </div>
+          <z-badge zType="outline">{{
+            'XP.AgentEvolution.EventCount' | translate: { count: auditEvents().length }
+          }}</z-badge>
+        </div></z-card-header
+      >
+      <z-card-content class="p-0"
+        ><div class="overflow-x-auto">
+          <table class="w-full min-w-[820px] text-left text-xs">
+            <thead class="bg-background-default-subtle text-text-secondary">
+              <tr>
+                <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Time' | translate }}</th>
+                <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Action' | translate }}</th>
+                <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Summary' | translate }}</th>
+                <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Actor' | translate }}</th>
+                <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.AuditId' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-divider-subtle">
+              @for (audit of auditEvents(); track audit.auditId) {
+                <tr>
+                  <td class="px-5 py-3.5 text-text-secondary">{{ audit.occurredAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+                  <td class="px-4 py-3.5">
+                    <z-badge zType="outline">{{
+                      'XP.AgentEvolution.AuditAction.' + audit.action | translate: { Default: audit.action }
+                    }}</z-badge>
+                  </td>
+                  <td class="px-4 py-3.5 text-text-primary">{{ auditSummary(audit) }}</td>
+                  <td class="px-4 py-3.5">
+                    <div>{{ audit.actorId }}</div>
+                    <div class="text-[10px] text-text-secondary">{{ audit.actorRole }}</div>
+                  </td>
+                  <td class="px-5 py-3.5 text-right font-mono text-text-secondary">{{ audit.auditId }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="px-5 py-10 text-center text-text-secondary">
+                    {{ 'XP.AgentEvolution.NoAuditEvents' | translate }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div></z-card-content
+      >
+    </z-card>
+
+    <footer
+      class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-secondary"
+    >
+      <span>{{ 'XP.AgentEvolution.Release' | translate }} {{ item.releasePackageId }}</span
+      ><span>{{ 'XP.AgentEvolution.Evaluation' | translate }} {{ item.evaluationRunId }}</span
+      ><span
+        >{{ 'XP.AgentEvolution.Scope' | translate }}
+        {{ 'XP.AgentEvolution.ScopeType.' + item.scope.type | translate: { Default: item.scope.type } }} /
+        {{ item.scope.key }}</span
+      ><span>{{ 'XP.AgentEvolution.RollbackTarget' | translate }} {{ item.rollbackVersionId }}</span>
+    </footer>
+  } @else {
+    <section
+      class="flex min-h-[560px] flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center"
+    >
+      <span
+        class="flex size-14 items-center justify-center rounded-full bg-background-default-subtle text-text-secondary"
+        ><i class="ri-rocket-line text-3xl"></i
+      ></span>
+      <h2 class="mt-4 text-lg font-semibold text-text-primary">{{ 'XP.AgentEvolution.NoReleaseRuns' | translate }}</h2>
+      <p class="mt-2 max-w-md text-sm leading-6 text-text-secondary">
+        {{ 'XP.AgentEvolution.NoReleaseDescription' | translate }}
+      </p>
+    </section>
+  }
+</main>

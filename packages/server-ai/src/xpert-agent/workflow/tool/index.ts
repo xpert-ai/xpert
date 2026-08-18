@@ -63,6 +63,17 @@ export function createToolNode(
                 const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
                     configurable
 
+                const execution: IXpertAgentExecution = {
+                    category: 'workflow',
+                    type: WorkflowNodeTypeEnum.TOOL,
+                    parentId: executionId,
+                    threadId: thread_id,
+                    checkpointNs: checkpoint_ns,
+                    checkpointId: checkpoint_id,
+                    agentKey: node.key,
+                    title: entity.title
+                }
+
                 const toolsets = await commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
                     new ToolsetGetToolsCommand([toolsetId], {
                         projectId,
@@ -72,7 +83,8 @@ export function createToolNode(
                         agentKey,
                         executionId,
                         signal: config.signal,
-                        env: toEnvState(environment)
+                        env: toEnvState(environment),
+                        getExecutionId: () => execution.id ?? executionId
                     })
                 )
 
@@ -92,17 +104,7 @@ export function createToolNode(
                     parameters = omitBy(parameters, isBlank)
                 }
 
-                const execution: IXpertAgentExecution = {
-                    category: 'workflow',
-                    type: WorkflowNodeTypeEnum.TOOL,
-                    inputs: parameters,
-                    parentId: executionId,
-                    threadId: thread_id,
-                    checkpointNs: checkpoint_ns,
-                    checkpointId: checkpoint_id,
-                    agentKey: node.key,
-                    title: entity.title
-                }
+                execution.inputs = parameters
                 return await wrapAgentExecution(
                     async () => {
                         const toolset = toolsets[0]

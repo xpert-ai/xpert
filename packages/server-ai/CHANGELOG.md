@@ -1,5 +1,42 @@
 # @xpert-ai/server-ai
 
+## 3.9.25
+
+### Patch Changes
+
+- Updated dependencies [612baea]
+    - @xpert-ai/contracts@3.17.1
+    - @xpert-ai/plugin-sdk@3.17.1
+    - @xpert-ai/server-core@3.9.40
+
+## 3.9.24
+
+### Patch Changes
+
+- Updated dependencies [3c16d3a]
+- Updated dependencies [747732e]
+- Updated dependencies [e44e5bc]
+    - @xpert-ai/server-core@3.9.39
+    - @xpert-ai/plugin-sdk@3.17.0
+    - @xpert-ai/contracts@3.17.0
+
+## 3.9.23
+
+### Patch Changes
+
+- Updated dependencies [57721a6]
+    - @xpert-ai/plugin-sdk@3.16.1
+    - @xpert-ai/server-core@3.9.38
+
+## 3.9.22
+
+### Patch Changes
+
+- Updated dependencies [b800da5]
+    - @xpert-ai/plugin-sdk@3.16.0
+    - @xpert-ai/contracts@3.16.0
+    - @xpert-ai/server-core@3.9.37
+
 ## 3.9.21
 
 ### Patch Changes

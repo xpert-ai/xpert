@@ -20,11 +20,13 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
                       Default: 'Scheduled tasks({{count
 
 
+
+
             }})', count: count() } }}
           </div>
 
           <div class="flex flex-wrap items-center justify-end gap-2">
-            <button z-button zType="default" displayDensity="cosy" type="button" (click)="create.emit()">
+            <button z-button zType="default" zSize="sm" type="button" (click)="create.emit()">
               <i class="ri-add-line text-base"></i>
               {{ 'XP.Xpert.NewTask' | translate: { Default: 'New Task' } }}
             </button>

@@ -14,7 +14,6 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 
 import { ActivatedRoute } from '@angular/router'
 import { ICustomSmtp, ICustomSmtpFindInput, IOrganization, IUser, SMTPSecureEnum } from '@xpert-ai/contracts'
-import { XpButtonGroupDirective, OcapCoreModule } from '@xpert-ai/headless-ui'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'
@@ -27,17 +26,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-
-    FormlyModule,
-    ZardButtonComponent,
-    XpButtonGroupDirective,
-
-    OcapCoreModule
-  ],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule, ZardButtonComponent],
   selector: 'xp-smtp',
   templateUrl: './smtp.component.html',
   styleUrls: ['./smtp.component.scss']

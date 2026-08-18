@@ -4,11 +4,10 @@
 <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
 } @if (props?.type !== 'inline') {
 <button
-  [class]="data.length ? 'text-text-accent hover:text-text-accent' : ''"
+  [class]="data.length ? 'border-dashed text-text-accent hover:text-text-accent' : 'border-dashed'"
   z-button
-  zType="ghost"
-  xpAppearance="dashed"
-  displayDensity="cosy"
+  zType="outline"
+  zSize="sm"
   (click)="open()"
 >
   <z-icon zType="edit"></z-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate: {Default: 'Open'} ) }}
@@ -58,15 +57,7 @@
           }
 
           <td z-table-cell>
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              displayDensity="cosy"
-              xpAppearance="danger"
-              (click)="deleteRow(i)"
-            >
+            <button z-button zType="destructive" zSize="icon-sm" zShape="circle" (click)="deleteRow(i)">
               <z-icon zType="close"></z-icon>
             </button>
           </td>
@@ -82,7 +73,7 @@
     </table>
   </div>
   <div class="my-2">
-    <button z-button zType="ghost" xpAppearance="dashed" displayDensity="cosy" (click)="addRow()">
+    <button z-button zType="outline" class="border-dashed" zSize="sm" (click)="addRow()">
       <div class="flex items-center justify-start">
         <z-icon zType="add"></z-icon>
         {{'FORMLY.TABLE.AddRow' | translate: {Default: 'Add'} }}
@@ -109,7 +100,7 @@
       </button>
     </div>
 
-    <div xpButtonGroup>
+    <div class="flex items-center gap-1">
       <button z-button zType="ghost" xpDialogClose>
         {{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}
       </button>

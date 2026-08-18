@@ -28,6 +28,7 @@ import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { I18nLang } from 'nestjs-i18n'
 import { In } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskService } from './xpert-task.service'
 import { CreateXpertTaskCommand } from './commands'
@@ -131,7 +132,7 @@ export class XpertTaskController extends CrudController<XpertTask> {
     @UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
     @UseInterceptors(ClassSerializerInterceptor)
     @Put(':id')
-    async update(@Param('id') id: string, @Body() entity: XpertTask) {
+    async update(@Param('id') id: string, @Body() entity: QueryDeepPartialEntity<XpertTask> & XpertTask) {
         try {
             return await this.service.updateTask(id, entity)
         } catch (err) {

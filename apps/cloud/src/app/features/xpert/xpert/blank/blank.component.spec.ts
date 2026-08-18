@@ -1,7 +1,7 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { PluginAPIService, Store } from '@cloud/app/@core/state'
-import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AiProviderRole, PLUGIN_RESOURCE_ERROR_CODE } from '@xpert-ai/contracts'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, throwError } from 'rxjs'
 import { NgxPermissionsService } from 'ngx-permissions'
@@ -79,6 +79,7 @@ type BlankSpecContext = {
     importDSL: jest.Mock
     publish: jest.Mock
     saveDraft: jest.Mock
+    validateName: jest.Mock
   }
   workspaceService: { getAllMy: jest.Mock }
 }
@@ -495,10 +496,12 @@ async function createComponent(
   options?: {
     agentTemplateDetail?: any
     agentTemplates?: any[]
+    basicForm?: { checking: () => boolean; invalid: () => boolean } | null
     createdXpert?: any
     importedXpert?: any
     installedSkillPackage?: any
     language?: string
+    nameAvailable?: boolean
     pluginSkillInstallError?: unknown
     pluginSkillInstallResult?: any
     copilotModels?: any[]
@@ -566,7 +569,8 @@ async function createComponent(
     getTriggerProviders: jest.fn(() => of(triggerProviders)),
     importDSL: jest.fn(() => of(importedXpert)),
     publish: jest.fn(() => of(publishedXpert)),
-    saveDraft: jest.fn(() => of({ checklist: [] }))
+    saveDraft: jest.fn(() => of({ checklist: [] })),
+    validateName: jest.fn(() => of(options?.nameAvailable ?? true))
   }
   const xpertAgentService = {
     agentMiddlewares$: of(middlewareProviders)
@@ -742,10 +746,13 @@ async function createComponent(
   const component = fixture.componentInstance
 
   Object.defineProperty(component, 'basicForm', {
-    value: () => ({
-      checking: () => false,
-      invalid: () => false
-    })
+    value: () =>
+      options?.basicForm === null
+        ? null
+        : (options?.basicForm ?? {
+            checking: () => false,
+            invalid: () => false
+          })
   })
 
   fixture.detectChanges()
@@ -947,6 +954,118 @@ describe('XpertNewBlankComponent', () => {
     expect(component.skipTemplateSelectionStep).toBe(true)
     expect(component.agentInitialStepIndex).toBe(1)
     expect(component.selectedTemplateId()).toBe('template-agent')
+  })
+
+  it('creates directly from a complete marketplace template without visiting the intermediate steps', async () => {
+    const templateYaml = createAgentTemplateYaml().replace(
+      '  copilotModel:\n    modelType: llm',
+      '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+    )
+    const { component, skillPackageService, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: templateYaml },
+        basicForm: null,
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    expect(component.directCreateDisabled()).toBe(false)
+
+    await component.createDirectly()
+
+    expect(xpertService.validateName).toHaveBeenCalledWith('template-agent')
+    expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
+    expect(xpertService.importDSL).toHaveBeenCalled()
+  })
+
+  it('does not create directly from an unlocked agent template', async () => {
+    const templateYaml = createAgentTemplateYaml().replace(
+      '  copilotModel:\n    modelType: llm',
+      '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+    )
+    const { component, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: templateYaml },
+        basicForm: null
+      }
+    )
+
+    expect(component.directCreateDisabled()).toBe(true)
+
+    await component.createDirectly()
+
+    expect(xpertService.validateName).not.toHaveBeenCalled()
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('does not create a blank agent directly', async () => {
+    const { component, xpertService } = await createComponent({
+      completionMode: 'create',
+      initialStartMode: 'blank',
+      type: XpertTypeEnum.Agent
+    })
+    component.name.set('blank-expert')
+    component.copilotModel.set({
+      copilotId: 'copilot-primary',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'gpt-4o'
+    })
+
+    expect(component.directCreateDisabled()).toBe(true)
+
+    await component.createDirectly()
+
+    expect(xpertService.validateName).not.toHaveBeenCalled()
+    expect(xpertService.create).not.toHaveBeenCalled()
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('does not create directly when the template name is no longer available', async () => {
+    const templateYaml = createAgentTemplateYaml().replace(
+      '  copilotModel:\n    modelType: llm',
+      '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+    )
+    const { component, toastr, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: templateYaml },
+        basicForm: null,
+        nameAvailable: false,
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.createDirectly()
+
+    expect(toastr.error).toHaveBeenCalledWith('ID not available')
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
   })
 
   it('does not add the model provider setup step for non-ClawXpert Agent creation', async () => {
@@ -1290,6 +1409,36 @@ describe('XpertNewBlankComponent', () => {
     expect(xpertService.importDSL).not.toHaveBeenCalled()
   })
 
+  it('localizes a structured plugin component selection error', async () => {
+    const { component, toastr } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail(),
+        pluginSkillInstallError: {
+          error: { errorCode: PLUGIN_RESOURCE_ERROR_CODE.NO_MATCHING_COMPONENTS }
+        },
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    const message =
+      'The plugin components required by this template were not found. Verify that the required plugins are installed and try again.'
+    expect(component.templatePluginSkillInstallError()).toBe(message)
+    expect(toastr.error).toHaveBeenCalledWith(message)
+  })
+
   it('blocks template creation when installed plugin skills do not return runtime package ids', async () => {
     const { component, toastr, xpertService } = await createComponent(
       {
@@ -1316,10 +1465,10 @@ describe('XpertNewBlankComponent', () => {
     await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
 
     expect(component.templatePluginSkillInstallError()).toBe(
-      'Failed to initialize template skills: @xpert-ai/plugin-canvas/canvas-agent-skill'
+      'The required template skills could not be installed: @xpert-ai/plugin-canvas/canvas-agent-skill.'
     )
     expect(toastr.error).toHaveBeenCalledWith(
-      'Failed to initialize template skills: @xpert-ai/plugin-canvas/canvas-agent-skill'
+      'The required template skills could not be installed: @xpert-ai/plugin-canvas/canvas-agent-skill.'
     )
 
     await component.create()

@@ -23,7 +23,7 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '../../../../../components'
-import { DisplayBehaviour, DisplayDensity, ISelectOption, XpDensityDirective, OcapCoreModule } from '../../../core'
+import { DisplayBehaviour, DisplayDensity, ISelectOption, XpDensityDirective } from '../../../core'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { XpDisplayBehaviourComponent } from '../../display-behaviour'
 import { XpOptionContent } from '../../input/option-content'
@@ -69,8 +69,6 @@ import { XpOptionContent } from '../../input/option-content'
     ...ZardFormImports,
     ZardIconComponent,
     ScrollingModule,
-
-    OcapCoreModule,
     XpDisplayBehaviourComponent
   ]
 })

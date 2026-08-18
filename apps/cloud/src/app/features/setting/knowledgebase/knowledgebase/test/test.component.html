@@ -65,17 +65,15 @@
         <li role="listitem" class="p-4 rounded-lg hover:bg-hover-bg dark:hover:bg-white/10">
           <div class="mb-2 flex justify-between items-center">
             <span></span>
-            @if (item.metadata?.score != null) {
-              <xp-tags
-                class="text-sm"
-                [tags]="[
-                  {
-                    caption:
-                      ('XP.Knowledgebase.RelevanceScore' | translate: { Default: 'Score' }) + ': ' + item.metadata.score
-                  }
-                ]"
-                color="green"
-              />
+            @if (item.metadata?.score !== null && item.metadata?.score !== undefined) {
+              <z-badge
+                zType="outline"
+                zShape="pill"
+                class="border-text-success/30 bg-text-success/10 text-text-success"
+              >
+                {{ 'XP.Knowledgebase.RelevanceScore' | translate: { Default: 'Score' } }}:
+                {{ item.metadata.score }}
+              </z-badge>
             }
           </div>
           <span>{{ item.pageContent }}</span>

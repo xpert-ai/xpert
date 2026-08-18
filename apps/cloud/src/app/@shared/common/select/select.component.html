@@ -42,22 +42,12 @@
     [style.width.px]="menuTrigger.offsetWidth"
   >
     @if (searchable()) {
-      <div class="relative w-full mb-2">
-        <i
-          class="select-search-icon ri-search-2-line flex justify-center items-center absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-        ></i>
-        <input
-          class="xp-input select-search-input w-full"
-          [placeholder]="'XP.MODEL.Search' | translate: { Default: 'Search' }"
-          [(ngModel)]="search"
-        />
-        @if (search()) {
-          <i
-            class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            (click)="search.set('')"
-          ></i>
-        }
-      </div>
+      <z-search-input
+        class="mb-2 w-full"
+        [placeholder]="'XP.MODEL.Search' | translate: { Default: 'Search' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        [(ngModel)]="search"
+      />
     }
     <ul
       class="space-y-1"

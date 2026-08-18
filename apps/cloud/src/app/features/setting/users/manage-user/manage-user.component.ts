@@ -32,7 +32,7 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardIconComponent,
-  ZardInputDirective,
+  ZardSearchInputComponent,
   ZardSelectImports,
   ZardTableImports
 } from '@xpert-ai/headless-ui'
@@ -90,7 +90,7 @@ const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; de
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardIconComponent,
-    ZardInputDirective,
+    ZardSearchInputComponent,
     ...ZardSelectImports,
     ...ZardTableImports,
     DateRelativePipe

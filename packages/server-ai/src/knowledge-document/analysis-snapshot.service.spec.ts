@@ -93,6 +93,18 @@ describe('KnowledgeDocumentAnalysisSnapshotService', () => {
             absolutePath: path.join(rootPath, imagePath),
             mimeType: 'image/png'
         })
+        await expect(service.getVisualCatalog(storedDocument)).resolves.toEqual({
+            snapshotFingerprint: reference.transformFingerprint,
+            assets: [
+                expect.objectContaining({
+                    visualAssetId: assetId,
+                    page: 660,
+                    order: 1,
+                    sourceBlockIds: ['table-660'],
+                    summary: '| A | B |'
+                })
+            ]
+        })
         await expect(service.resolveAsset(storedDocument, '../outside')).rejects.toMatchObject({ status: 404 })
     })
 

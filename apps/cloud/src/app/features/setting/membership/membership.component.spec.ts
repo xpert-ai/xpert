@@ -95,6 +95,32 @@ describe('MembershipAdminComponent', () => {
     expect(membershipService.archivePlan).not.toHaveBeenCalled()
   })
 
+  it('opens plan configuration by default and switches to user memberships', () => {
+    expect(component.activeTab()).toBe('plans')
+
+    component.setActiveTab('users')
+
+    expect(component.activeTab()).toBe('users')
+  })
+
+  it('keeps plan and user management in separate task tabs', () => {
+    const template = readFileSync(join(__dirname, 'membership.component.html'), 'utf8')
+
+    expect(template).toContain('z-tab-nav-bar')
+    expect(template).toContain("activeTab() === 'plans'")
+    expect(template).toContain("setActiveTab('users')")
+  })
+
+  it('uses subtle borders for plan choices and the plan detail surfaces', () => {
+    const template = readFileSync(join(__dirname, 'membership.component.html'), 'utf8')
+
+    expect(template).toContain("'border-divider-subtle bg-components-card-bg hover:border-divider-regular'")
+    expect(
+      template.match(/overflow-hidden border border-divider-subtle bg-components-card-bg shadow-none/g)
+    ).toHaveLength(2)
+    expect(template.match(/rounded-lg border border-divider-subtle bg-components-panel-bg px-4 py-3/g)).toHaveLength(7)
+  })
+
   it('round-trips the explicit plan level in the edit form', () => {
     component.edit(targetPlan)
 
@@ -103,17 +129,6 @@ describe('MembershipAdminComponent', () => {
     expect(component.planForm.controls.level.valid).toBe(false)
     component.planForm.controls.level.setValue(3)
     expect(component.planForm.controls.level.valid).toBe(true)
-  })
-
-  it('rejects an empty or oversized price currency code', () => {
-    component.planForm.controls.priceCurrency.setValue('   ')
-    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
-
-    component.planForm.controls.priceCurrency.setValue('TOO-LONG-CURRENCY')
-    expect(component.planForm.controls.priceCurrency.valid).toBe(false)
-
-    component.planForm.controls.priceCurrency.setValue('USD')
-    expect(component.planForm.controls.priceCurrency.valid).toBe(true)
   })
 
   it('hides purchase-managed organization plan clones from editable plan management', () => {

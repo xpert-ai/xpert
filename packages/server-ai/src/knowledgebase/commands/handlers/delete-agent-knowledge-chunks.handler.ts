@@ -22,10 +22,13 @@ export class DeleteAgentKnowledgeChunksHandler implements ICommandHandler<Delete
         documentId?: string
         writeKeys?: string[]
         writeKeyPrefix?: string
+        documentDeleted?: boolean
     }> {
-        const { knowledgebaseIds, knowledgebaseId, xpertId, agentKey, writeKeyPrefix } = command.input
+        const { knowledgebaseIds, knowledgebaseId, xpertId, agentKey, writeKeyPrefix, deleteDocumentIfEmpty } =
+            command.input
         const writeKeys = uniqueStrings(command.input.writeKeys)
         const normalizedPrefix = normalizeOptionalString(writeKeyPrefix)
+        const documentKey = normalizeOptionalString(command.input.documentKey)
 
         if (!knowledgebaseIds.includes(knowledgebaseId)) {
             throw new BadRequestException(`Knowledgebase '${knowledgebaseId}' is not connected to agent '${agentKey}'`)
@@ -34,7 +37,7 @@ export class DeleteAgentKnowledgeChunksHandler implements ICommandHandler<Delete
             throw new BadRequestException('writeKeys or writeKeyPrefix is required')
         }
 
-        const document = await this.findExistingAgentDocument(knowledgebaseId, xpertId, agentKey)
+        const document = await this.findExistingAgentDocument(knowledgebaseId, xpertId, agentKey, documentKey)
         if (!document?.id) {
             return {
                 deletedCount: 0,
@@ -70,16 +73,34 @@ export class DeleteAgentKnowledgeChunksHandler implements ICommandHandler<Delete
             }
         }
 
+        let documentDeleted = false
+        if (deleteDocumentIfEmpty) {
+            const { items: remainingChunks } = await this.chunkService.findAll({
+                where: { documentId: document.id },
+                take: 1
+            })
+            if (!remainingChunks.length) {
+                await this.documentService.deleteBulk([document.id])
+                documentDeleted = true
+            }
+        }
+
         return {
             deletedCount: items.filter((chunk) => Boolean(chunk.id)).length,
             knowledgebaseId,
             documentId: document.id,
             ...(writeKeys.length ? { writeKeys } : {}),
-            ...(normalizedPrefix ? { writeKeyPrefix: normalizedPrefix } : {})
+            ...(normalizedPrefix ? { writeKeyPrefix: normalizedPrefix } : {}),
+            ...(deleteDocumentIfEmpty ? { documentDeleted } : {})
         }
     }
 
-    private async findExistingAgentDocument(knowledgebaseId: string, xpertId: string, agentKey: string) {
+    private async findExistingAgentDocument(
+        knowledgebaseId: string,
+        xpertId: string,
+        agentKey: string,
+        documentKey?: string
+    ) {
         try {
             return await this.documentService.findOneByOptions({
                 where: {
@@ -89,12 +110,14 @@ export class DeleteAgentKnowledgeChunksHandler implements ICommandHandler<Delete
                             [
                                 `COALESCE((${alias})::jsonb ->> 'systemManagedType', '') = :systemManagedType`,
                                 `COALESCE((${alias})::jsonb ->> 'ownerXpertId', '') = :ownerXpertId`,
-                                `COALESCE((${alias})::jsonb ->> 'ownerAgentKey', '') = :ownerAgentKey`
+                                `COALESCE((${alias})::jsonb ->> 'ownerAgentKey', '') = :ownerAgentKey`,
+                                `COALESCE((${alias})::jsonb ->> 'managedDocumentKey', '') = :managedDocumentKey`
                             ].join(' AND '),
                         {
                             systemManagedType: AGENT_WRITER_SYSTEM_MANAGED_TYPE,
                             ownerXpertId: xpertId,
-                            ownerAgentKey: agentKey
+                            ownerAgentKey: agentKey,
+                            managedDocumentKey: documentKey ?? ''
                         }
                     )
                 }

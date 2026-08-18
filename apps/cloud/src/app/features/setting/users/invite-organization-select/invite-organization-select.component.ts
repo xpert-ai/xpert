@@ -3,8 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { XpHighlightDirective, XpSearchComponent } from '@xpert-ai/headless-ui'
-import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IOrganization } from '../../../../@core'
 import { OrgAvatarComponent } from '../../../../@shared/organization'
@@ -28,9 +27,8 @@ export interface InviteOrganizationSelectDialogData {
     FormsModule,
     DragDropModule,
     TranslateModule,
-    XpSearchComponent,
+    ZardSearchInputComponent,
     XpHighlightDirective,
-    XpButtonGroupDirective,
     OrgAvatarComponent,
     ZardButtonComponent,
     ZardIconComponent

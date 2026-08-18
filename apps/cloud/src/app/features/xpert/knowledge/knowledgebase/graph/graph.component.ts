@@ -24,6 +24,7 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
+  ZardSearchInputComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
@@ -88,6 +89,7 @@ const ALL_SELECT_VALUE = '__all__'
     ZardEmptyComponent,
     ZardIconComponent,
     ZardInputDirective,
+    ZardSearchInputComponent,
     ...ZardCardImports,
     ...ZardFormImports,
     ...ZardSelectImports

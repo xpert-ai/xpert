@@ -8,10 +8,12 @@ export type SignedArtifactPreviewLink = {
   publicUrl: string
   expiresAt?: string | Date | null
   version?: {
+    id?: string | null
     mimeType?: string | null
     fileName?: string | null
     title?: string | null
     size?: number | null
+    sha256?: string | null
   } | null
   artifact?: {
     title?: string | null
@@ -37,6 +39,21 @@ export class ArtifactService {
         presentation: {
           disposition: 'inline',
           allowDownload: true
+        }
+      }
+    )
+  }
+
+  createSignedVersionPreviewLink(artifactId: string, artifactVersionId: string, ttlSeconds = 300) {
+    return this.#http.post<SignedArtifactPreviewLink>(
+      `${API_PREFIX}/artifacts/${encodeURIComponent(artifactId)}/links/signed-preview`,
+      {
+        artifactVersionId,
+        versionMode: 'version',
+        ttlSeconds,
+        presentation: {
+          disposition: 'inline',
+          allowDownload: false
         }
       }
     )

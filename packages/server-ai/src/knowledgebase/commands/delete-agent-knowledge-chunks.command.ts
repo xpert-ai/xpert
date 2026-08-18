@@ -11,6 +11,8 @@ export class DeleteAgentKnowledgeChunksCommand implements ICommand {
             knowledgebaseId: string
             writeKeys?: string[]
             writeKeyPrefix?: string
+            documentKey?: string
+            deleteDocumentIfEmpty?: boolean
         }
     ) {}
 }

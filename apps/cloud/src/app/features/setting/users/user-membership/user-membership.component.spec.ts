@@ -77,8 +77,7 @@ describe('UserMembershipComponent', () => {
       code: 'default',
       name: 'Default',
       period: MembershipPeriodEnum.Monthly,
-      includedPoints: 100,
-      tokensPerPoint: 1000
+      includedPoints: 100
     },
     ...overrides
   })

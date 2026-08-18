@@ -5,6 +5,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
   AiModelTypeEnum,
+  DocumentSheetParserConfig,
+  DocumentSpreadsheetParserConfig,
   DocumentTextParserConfig,
   IKnowledgeDocument,
   KBDocumentCategoryEnum,
@@ -13,7 +15,7 @@ import {
   ModelFeature
 } from '@cloud/app/@core'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { attrModel, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, XpI18nPipe, XpInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
@@ -46,6 +48,7 @@ import {
     ZardCheckboxComponent,
     ZardIconComponent,
     XpSelectComponent,
+    XpInputComponent,
     IconComponent,
     JSONSchemaFormComponent,
     CopilotModelSelectComponent,
@@ -70,7 +73,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
 
   // Input Models
   readonly documents = model<Partial<IKnowledgeDocument>[]>()
-  readonly parserConfig = model<DocumentTextParserConfig>()
+  readonly parserConfig = model<DocumentTextParserConfig & Partial<DocumentSheetParserConfig>>()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -83,6 +86,83 @@ export class KnowledgeDocumentCreateSettingsComponent {
   // Text Splitter
   readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', 'recursive-character')
   readonly textSplitter = attrModel(this.parserConfig, 'textSplitter')
+
+  // Spreadsheet parsing is a generic knowledge-document capability. Business apps choose
+  // the mode and persist it in parserConfig; the knowledge base only edits and executes it.
+  readonly spreadsheet = linkedModel<DocumentSpreadsheetParserConfig>({
+    initialValue: {},
+    compute: () => this.parserConfig()?.spreadsheet ?? {},
+    update: (value) => {
+      this.parserConfig.update((state) => ({ ...(state ?? {}), spreadsheet: value }))
+    }
+  })
+  readonly spreadsheetInterpretation = linkedModel<'records' | 'form_document'>({
+    initialValue: 'records',
+    compute: () => this.spreadsheet()?.interpretation ?? 'records',
+    update: (value) => {
+      this.spreadsheet.update((state) => ({
+        ...(state ?? {}),
+        interpretation: value,
+        contextUnit:
+          value === 'records'
+            ? 'row'
+            : state?.contextUnit === 'sheet' || state?.contextUnit === 'workbook'
+              ? state.contextUnit
+              : 'workbook'
+      }))
+    }
+  })
+  readonly spreadsheetContextUnit = linkedModel<'sheet' | 'workbook'>({
+    initialValue: 'workbook',
+    compute: () => (this.spreadsheet()?.contextUnit === 'sheet' ? 'sheet' : 'workbook'),
+    update: (value) => this.spreadsheet.update((state) => ({ ...(state ?? {}), contextUnit: value }))
+  })
+  readonly spreadsheetOversizePolicy = attrModel(this.spreadsheet, 'oversizePolicy', 'sheet')
+  readonly spreadsheetMaxChunkTokens = attrModel(this.spreadsheet, 'maxChunkTokens', 6000)
+  readonly spreadsheetIncludeHiddenSheets = attrModel(this.spreadsheet, 'includeHiddenSheets', false)
+  readonly spreadsheetPreserveMergedCells = attrModel(this.spreadsheet, 'preserveMergedCells', true)
+  readonly spreadsheetEmitCellAnchors = attrModel(this.spreadsheet, 'emitCellAnchors', true)
+  readonly spreadsheetIncludeSheets = linkedModel<string>({
+    initialValue: '*',
+    compute: () => this.spreadsheet()?.includeSheets?.join(', ') || '*',
+    update: (value) => {
+      const includeSheets = value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+      this.spreadsheet.update((state) => ({
+        ...(state ?? {}),
+        includeSheets: includeSheets.length ? includeSheets : ['*']
+      }))
+    }
+  })
+
+  readonly spreadsheetInterpretationOptions = [
+    {
+      value: 'records',
+      label: { en_US: 'Row records', zh_Hans: '行记录' },
+      description: {
+        en_US: 'Each row is an independently retrievable record.',
+        zh_Hans: '每一行作为可独立检索的记录。'
+      }
+    },
+    {
+      value: 'form_document',
+      label: { en_US: 'Form document', zh_Hans: '表单文档' },
+      description: {
+        en_US: 'Preserve workbook context, worksheet names and cell coordinates.',
+        zh_Hans: '保留工作簿上下文、工作表名称与单元格坐标。'
+      }
+    }
+  ]
+  readonly spreadsheetContextUnitOptions = [
+    { value: 'workbook', label: { en_US: 'Whole workbook', zh_Hans: '整份工作簿' } },
+    { value: 'sheet', label: { en_US: 'Per worksheet', zh_Hans: '按工作表' } }
+  ]
+  readonly spreadsheetOversizePolicyOptions = [
+    { value: 'sheet', label: { en_US: 'Split by worksheet', zh_Hans: '超限时按工作表拆分' } },
+    { value: 'reject', label: { en_US: 'Reject oversized workbook', zh_Hans: '超限时拒绝处理' } }
+  ]
 
   readonly textSplitterStrategies = computed(() =>
     this.#textSplitterStrategies()?.map((strategy) => ({

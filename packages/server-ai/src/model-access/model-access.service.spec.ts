@@ -210,6 +210,51 @@ describe('ModelAccessService organization model configuration', () => {
 })
 
 describe('ModelAccessService model resolution', () => {
+    it('disables a selected model removed from the provider catalog', async () => {
+        const { copilotRepository, input, membershipService, providersService, service } = createFixture()
+        const removedModel = 'deepseek-coder'
+        copilotRepository.findOne.mockResolvedValue({
+            id: 'copilot-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            name: 'Primary',
+            enabled: true,
+            copilotModel: {
+                model: removedModel,
+                modelType: AiModelTypeEnum.LLM
+            },
+            modelProvider: {
+                id: 'provider-1',
+                providerName: 'deepseek',
+                isValid: true
+            }
+        })
+        providersService.getProvider.mockReturnValue({
+            getProviderModels: jest.fn().mockReturnValue([]),
+            getProviderSchema: jest.fn().mockReturnValue({
+                provider: 'deepseek',
+                label: { en_US: 'DeepSeek', zh_Hans: 'DeepSeek' }
+            })
+        })
+        const plan = { id: 'plan-1' }
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: null,
+            membership: { planId: 'plan-1', plan }
+        })
+        membershipService.isModelAllowed.mockReturnValue(true)
+
+        await expect(
+            service.resolveModelAccess({
+                ...input,
+                organizationId: null,
+                copilotModelId: removedModel
+            })
+        ).resolves.toMatchObject({
+            allowed: false,
+            unavailableReason: ModelAccessUnavailableReasonEnum.ModelDisabled
+        })
+    })
+
     it('allows an organization model directly when the billable user cannot manage memberships', async () => {
         const { copilotRepository, input, membershipService, service, userRepository } = createFixture()
         copilotRepository.findOne.mockResolvedValue({
@@ -491,6 +536,91 @@ describe('ModelAccessService model resolution', () => {
         })
         expect(result.grantId).toBeUndefined()
         expect(membershipService.resolveModelMultiplierForPlan).toHaveBeenCalledWith(plan, 'openai', 'gpt-4.1')
+    })
+
+    it('resolves a catalog batch with one shared access context and bulk target loading', async () => {
+        const {
+            copilotRepository,
+            grantRepository,
+            membershipService,
+            providerModelRepository,
+            providersService,
+            service
+        } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                name: 'Primary',
+                enabled: true,
+                modelProvider: {
+                    id: 'provider-1',
+                    providerName: 'openai',
+                    isValid: true
+                }
+            }
+        ])
+        providersService.getProvider.mockReturnValue({
+            getProviderModels: jest.fn().mockReturnValue([
+                {
+                    model: 'gpt-4.1',
+                    model_type: AiModelTypeEnum.LLM,
+                    label: { en_US: 'GPT-4.1', zh_Hans: 'GPT-4.1' }
+                },
+                {
+                    model: 'gpt-4.2',
+                    model_type: AiModelTypeEnum.LLM,
+                    label: { en_US: 'GPT-4.2', zh_Hans: 'GPT-4.2' }
+                }
+            ]),
+            getProviderSchema: jest.fn().mockReturnValue({
+                provider: 'openai',
+                label: { en_US: 'OpenAI', zh_Hans: 'OpenAI' }
+            })
+        })
+        const plan = { id: 'plan-1' }
+        membershipService.findModelAccess.mockResolvedValue({
+            organizationId: null,
+            membership: { planId: 'plan-1', plan }
+        })
+        membershipService.isModelAllowed.mockReturnValue(true)
+
+        await expect(
+            service.canUseCatalogModels({
+                tenantId: 'tenant-1',
+                organizationId: null,
+                userId: 'runtime-user',
+                xpertId: 'xpert-1',
+                models: [
+                    {
+                        copilotId: 'copilot-1',
+                        copilotModelId: 'gpt-4.1',
+                        modelType: AiModelTypeEnum.LLM
+                    },
+                    {
+                        copilotId: 'copilot-1',
+                        copilotModelId: 'gpt-4.2',
+                        modelType: AiModelTypeEnum.LLM
+                    }
+                ]
+            })
+        ).resolves.toEqual([true, true])
+
+        expect(membershipService.resolveBillableUserId).toHaveBeenCalledTimes(1)
+        expect(service.processDueGrants).toHaveBeenCalledTimes(1)
+        expect(service.processDueGrants).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            userId: 'creator-user',
+            modelType: AiModelTypeEnum.LLM
+        })
+        expect(membershipService.findModelAccess).toHaveBeenCalledTimes(1)
+        expect(membershipService.hasConsumableBalance).toHaveBeenCalledTimes(1)
+        expect(copilotRepository.find).toHaveBeenCalledTimes(1)
+        expect(copilotRepository.findOne).not.toHaveBeenCalled()
+        expect(providerModelRepository.find).toHaveBeenCalledTimes(1)
+        expect(providerModelRepository.findOne).not.toHaveBeenCalled()
+        expect(grantRepository.createQueryBuilder).toHaveBeenCalledTimes(1)
     })
 
     it('uses an organization catalog membership for tenant catalog models', async () => {

@@ -6,20 +6,12 @@ import { FormsModule } from '@angular/forms'
 
 import { TChatApp } from '@xpert-ai/contracts'
 import { SlideUpAnimation } from '@xpert-ai/headless-ui'
-import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
 import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    TranslateModule,
-    ...ZardTooltipImports,
-    ZardButtonComponent,
-    XpButtonGroupDirective,
-    ZardSwitchComponent
-  ],
+  imports: [FormsModule, TranslateModule, ...ZardTooltipImports, ZardButtonComponent, ZardSwitchComponent],
   selector: 'xpert-develop-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',

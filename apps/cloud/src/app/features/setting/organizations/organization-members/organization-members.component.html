@@ -17,8 +17,8 @@
     </div>
 
     @if (canEdit) {
-      <div xpButtonGroup>
-        <button z-button zType="default" displayDensity="cosy" (click)="openMemberSelect()">
+      <div class="flex items-center gap-1">
+        <button z-button zType="default" zSize="sm" (click)="openMemberSelect()">
           <z-icon zType="add"></z-icon>
           {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
         </button>
@@ -115,16 +115,7 @@
 <ng-template #actionTempl let-id="id">
   @let membership = membershipById(id);
   @if (membership && canEdit && canRemoveMembership(membership)) {
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      xpAppearance="danger"
-      displayDensity="cosy"
-      class="text-text-quaternary"
-      (click)="removeMember(membership)"
-    >
+    <button z-button zType="destructive" zSize="icon-sm" zShape="circle" (click)="removeMember(membership)">
       <div class="flex items-center justify-center">
         <z-icon zType="delete"></z-icon>
       </div>

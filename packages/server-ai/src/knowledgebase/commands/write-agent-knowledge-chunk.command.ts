@@ -20,6 +20,12 @@ export class WriteAgentKnowledgeChunkCommand implements ICommand {
             title?: string
             metadata?: TAgentKnowledgeChunkInputMetadata
             writeKey: string
+            document?: {
+                key: string
+                name: string
+                parentId?: string | null
+                metadata?: TAgentKnowledgeChunkInputMetadata
+            }
             executionId?: string
             threadId?: string
         }

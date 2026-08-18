@@ -82,7 +82,7 @@ export class XpertPrincipalService {
             username: this.normalizeString(xpert.slug) || xpertId
         })
 
-        await this.xpertService.update(xpertId, {
+        await this.xpertService.updateXpert(xpertId, {
             user,
             userId: user.id
         } as Partial<Xpert>)

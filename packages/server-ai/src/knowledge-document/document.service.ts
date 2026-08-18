@@ -38,8 +38,7 @@ import {
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash'
-import { DataSource, DeepPartial, FindOptionsWhere, In, Repository } from 'typeorm'
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository } from 'typeorm'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeWorkAreaResolver, LoadStorageFileCommand } from '../shared'
@@ -62,6 +61,10 @@ type OriginalFileDownloadTarget = {
     mimeType: string
 }
 
+function includesChunk(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[], targetChunkId: string) {
+    return chunks.some((chunk) => chunk.id === targetChunkId || String(chunk.metadata?.chunkId ?? '') === targetChunkId)
+}
+
 type IncrementalChunkOperation = 'unchanged' | 'changed' | 'added'
 
 type IncrementalChunkMatch = {
@@ -79,6 +82,10 @@ type VersionedKnowledgeDocumentInput = {
 type VersionedKnowledgeDocument = {
     id: string
     version: number
+}
+
+type ShallowKnowledgeDocumentUpdater = {
+    update(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<unknown>
 }
 
 export type IncrementalDocumentSyncItemResult = {
@@ -567,7 +574,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                     )
                 }
                 if (!knowledgebase.structure) {
-                    await this.knowledgebaseService.update(knowledgebase.id, { structure })
+                    await this.knowledgebaseService.updateKnowledgebase(knowledgebase.id, { structure })
                 }
             }
         }
@@ -723,7 +730,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         if (!entities?.length) {
             return
         }
-        await Promise.all(entities.map((entity) => this.update(entity.id, entity)))
+        await Promise.all(entities.map((entity) => this.updateDocument(entity.id, entity)))
     }
 
     async updateBulkWithVersion(entities: Partial<IKnowledgeDocument>[]): Promise<void> {
@@ -852,7 +859,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...changes,
             id,
             updatedById: RequestContext.currentUserId()
-        } as QueryDeepPartialEntity<KnowledgeDocument>
+        }
         const oldPrefix =
             current.sourceType === KDocumentSourceType.FOLDER
                 ? path.posix.join(current.folder ?? '', current.name ?? '')
@@ -894,6 +901,135 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             await this.syncMilvusFilterAttributes(uniq(affectedDocumentIds))
         }
         return result
+    }
+
+    async getFolderChildCounts(input: { knowledgebaseId: string; folderIds: string[] }) {
+        const knowledgebaseId = input.knowledgebaseId?.trim()
+        const requestedFolderIds = uniq((input.folderIds ?? []).map((id) => id?.trim()).filter(Boolean))
+        if (!knowledgebaseId || !requestedFolderIds.length) {
+            return []
+        }
+
+        // Resolve the requested folders through the scoped CRUD service first. This prevents
+        // aggregate queries from exposing counts for folders outside the active tenant/organization.
+        const { items: folders } = await this.findAll({
+            where: {
+                id: In(requestedFolderIds),
+                knowledgebaseId,
+                sourceType: KDocumentSourceType.FOLDER
+            },
+            select: { id: true }
+        })
+        const folderIds = folders.map((folder) => folder.id)
+        if (!folderIds.length) {
+            return []
+        }
+
+        const rows: Array<{ folderId: string; documentCount: string; folderCount: string }> = await this.repo
+            .createQueryBuilder('document')
+            .innerJoin('document.parent', 'parent')
+            .select('parent.id', 'folderId')
+            .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 0 ELSE 1 END)', 'documentCount')
+            .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 1 ELSE 0 END)', 'folderCount')
+            .where('document.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+            .andWhere('parent.id IN (:...folderIds)', { folderIds })
+            .setParameter('folderType', KDocumentSourceType.FOLDER)
+            .groupBy('parent.id')
+            .getRawMany()
+        const countsByFolderId = new Map(rows.map((row) => [row.folderId, row]))
+
+        return folderIds.map((folderId) => {
+            const row = countsByFolderId.get(folderId)
+            return {
+                folderId,
+                documentCount: Number(row?.documentCount ?? 0),
+                folderCount: Number(row?.folderCount ?? 0)
+            }
+        })
+    }
+
+    async moveDocument(input: {
+        knowledgebaseId: string
+        documentId: string
+        parentId?: string | null
+        expectedVersion?: number
+    }) {
+        const knowledgebaseId = input.knowledgebaseId?.trim()
+        const documentId = input.documentId?.trim()
+        if (!knowledgebaseId || !documentId) {
+            throw new BadRequestException('knowledgebaseId and documentId are required')
+        }
+        await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
+        const document = await this.findOne(documentId, { relations: ['parent'] })
+        if (document.knowledgebaseId !== knowledgebaseId) {
+            throw new BadRequestException('Document is not in the selected knowledgebase')
+        }
+        if (input.expectedVersion !== undefined && document.version !== input.expectedVersion) {
+            throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
+        }
+        const parent = input.parentId ? await this.findOne(input.parentId, { relations: ['parent'] }) : null
+        if (
+            parent &&
+            (parent.knowledgebaseId !== knowledgebaseId || parent.sourceType !== KDocumentSourceType.FOLDER)
+        ) {
+            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+        }
+        if (parent) {
+            const ancestors = await this.findAncestors(parent.id)
+            if (ancestors.some((ancestor) => ancestor.id === document.id)) {
+                throw new BadRequestException('A folder cannot be moved into itself or one of its descendants')
+            }
+        }
+
+        const oldFolder = normalizeLogicalFolderPath(document.folder ?? '')
+        const newFolder = normalizeLogicalFolderPath(
+            parent ? path.posix.join(parent.folder ?? '', parent.name ?? '') : ''
+        )
+        if ((document.parent?.id ?? null) === (parent?.id ?? null) && oldFolder === newFolder) {
+            return { document, affectedDocumentIds: [document.id] }
+        }
+
+        const oldPrefix =
+            document.sourceType === KDocumentSourceType.FOLDER
+                ? normalizeLogicalFolderPath(path.posix.join(oldFolder, document.name ?? ''))
+                : null
+        const newPrefix =
+            document.sourceType === KDocumentSourceType.FOLDER
+                ? normalizeLogicalFolderPath(path.posix.join(newFolder, document.name ?? ''))
+                : null
+        const affectedDocumentIds = [document.id]
+
+        await this.dataSource.transaction(async (manager) => {
+            const treeRepository = manager.getTreeRepository(KnowledgeDocument)
+            document.parent = parent
+            document.folder = newFolder
+            document.updatedById = RequestContext.currentUserId()
+            await treeRepository.save(document)
+            if (oldPrefix && newPrefix && oldPrefix !== newPrefix) {
+                const descendants: Array<{ id: string }> = await manager.query(
+                    `SELECT "id" FROM "knowledge_document"
+                     WHERE "knowledgebaseId" = $1
+                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
+                    [knowledgebaseId, oldPrefix]
+                )
+                affectedDocumentIds.push(...descendants.map((item) => item.id))
+                await manager.query(
+                    `UPDATE "knowledge_document"
+                     SET "folder" = $1 || substring("folder" from char_length($2) + 1),
+                         "updatedAt" = CURRENT_TIMESTAMP,
+                         "version" = "version" + 1
+                     WHERE "knowledgebaseId" = $3
+                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
+                    [newPrefix, oldPrefix, knowledgebaseId]
+                )
+            }
+        })
+        const uniqueAffectedIds = uniq(affectedDocumentIds)
+        await this.syncMilvusFilterAttributes(uniqueAffectedIds)
+        return {
+            document: await this.findOne(document.id, { relations: ['parent'] }),
+            affectedDocumentIds: uniqueAffectedIds
+        }
     }
 
     private async syncMilvusFilterAttributes(documentIds: string[]) {
@@ -957,6 +1093,57 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async getChunks(id: string, params: TVectorSearchParams) {
+        const targetChunkId = params.targetChunkId?.trim()
+        if (targetChunkId) {
+            const page = await this.getChunks(id, { ...params, targetChunkId: undefined })
+            const stored = await this.chunkService.findAll({
+                where: [
+                    { documentId: id, id: targetChunkId },
+                    {
+                        documentId: id,
+                        metadata: Raw((alias) => `${alias} ->> 'chunkId' = :targetChunkId`, { targetChunkId })
+                    }
+                ] as FindOptionsWhere<IKnowledgeDocumentChunk<TDocChunkMetadata>>[],
+                relations: ['document'],
+                select: {
+                    document: {
+                        id: true,
+                        name: true,
+                        sourceType: true,
+                        type: true,
+                        category: true,
+                        fileUrl: true
+                    }
+                },
+                take: 1,
+                skip: 0
+            })
+            if (stored.items.length) {
+                const target = stored.items[0] as IKnowledgeDocumentChunk<TDocChunkMetadata>
+                return {
+                    ...page,
+                    items: includesChunk(page.items, targetChunkId) ? page.items : [target, ...page.items]
+                }
+            }
+
+            const document = await this.findOne(id, {
+                relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+            })
+            const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, true)
+            const vectorResult = await vectorStore.getChunks(id, {
+                take: 1,
+                skip: 0,
+                filter: { chunkId: targetChunkId }
+            })
+            const items = await this.attachStoredChunkState(
+                vectorResult.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+            )
+            return {
+                ...page,
+                items: items[0] && !includesChunk(page.items, targetChunkId) ? [items[0], ...page.items] : page.items
+            }
+        }
+
         if (!params.search) {
             const chunks = await this.chunkService.findAll({
                 where: {
@@ -1109,7 +1296,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
             const chunk = await this.mergeChunkUpdate(id, entity)
             validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
-            const result = await this.chunkService.update(id, chunk)
+            const result = await this.chunkService.updateChunk(id, chunk)
             if (requiresChunkReembedding(entity)) {
                 await vectorStore.updateChunk(
                     id,
@@ -1203,10 +1390,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...chunk,
             contentHash: chunk.contentHash ?? computeKnowledgeDocumentChunkHash(chunk)
         }))
-        await this.update(documentId, {
+        await this.updateDocument(documentId, {
             contentHash: computeKnowledgeDocumentContentHash(chunks),
             chunkNum: chunks.length
         })
+    }
+
+    private async updateDocument(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<void> {
+        // Keep TypeORM's recursive QueryDeepPartialEntity out of concrete call sites; ts-node/ts-jest can
+        // otherwise exhaust the instantiation budget while expanding KnowledgeDocument relations.
+        await (this as unknown as ShallowKnowledgeDocumentUpdater).update(id, entity)
     }
 
     /**
@@ -1690,7 +1883,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             document.knowledgebase.documents.filter(isCountableDocument).length -
             (isCountableDocument(document) ? 1 : 0)
         document.knowledgebase.documentNum = nextDocumentNum
-        await this.knowledgebaseService.update(document.knowledgebaseId, {
+        await this.knowledgebaseService.updateKnowledgebase(document.knowledgebaseId, {
             documentNum: document.knowledgebase.documentNum
         })
     }

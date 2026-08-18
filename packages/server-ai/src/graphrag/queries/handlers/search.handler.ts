@@ -48,7 +48,11 @@ export class KnowledgeGraphSearchHandler implements IQueryHandler<KnowledgeGraph
                 input.knowledgebase,
                 input.query,
                 config.entityTopK,
-                scope
+                scope,
+                {
+                    xpertId: input.xpertId,
+                    threadId: input.threadId
+                }
             )
             const entityScores = seedResult.entityScores
             Object.assign(diagnostics, seedResult.diagnostics)
@@ -176,7 +180,11 @@ export class KnowledgeGraphSearchHandler implements IQueryHandler<KnowledgeGraph
         knowledgebase: IKnowledgebase,
         query: string,
         entityTopK: number,
-        scope: KnowledgeGraphFilterScope
+        scope: KnowledgeGraphFilterScope,
+        modelContext?: {
+            xpertId?: string
+            threadId?: string
+        }
     ) {
         const target = Math.min(100, Math.max(1, Math.trunc(entityTopK)))
         const maximum = Math.min(MAX_ENTITY_CANDIDATES, Math.max(target, target * 16))
@@ -188,7 +196,7 @@ export class KnowledgeGraphSearchHandler implements IQueryHandler<KnowledgeGraph
         let entityScores: Array<{ entityId: string; score: number }> = []
         let exhausted = false
         let continueScanning: boolean
-        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true)
+        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true, modelContext)
 
         do {
             rounds += 1

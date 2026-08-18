@@ -4,7 +4,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, HostBinding, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { XpButtonGroupDirective, EditorThemeMap, XpThemeService } from '@xpert-ai/headless-ui'
+import { EditorThemeMap, XpThemeService } from '@xpert-ai/headless-ui'
 import { isBlank } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -19,14 +19,7 @@ export interface ConfirmCodeEditorData {
 
 @Component({
   standalone: true,
-  imports: [
-    FormsModule,
-    TranslateModule,
-    DragDropModule,
-    ZardButtonComponent,
-    MonacoEditorModule,
-    XpButtonGroupDirective
-  ],
+  imports: [FormsModule, TranslateModule, DragDropModule, ZardButtonComponent, MonacoEditorModule],
   selector: 'xp-confirm-code-editor',
   templateUrl: './confirm-code-editor.component.html',
   styleUrls: ['./confirm-code-editor.component.scss']

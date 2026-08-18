@@ -1,9 +1,12 @@
+import { NgxPermissionsGuard } from 'ngx-permissions'
+
 jest.mock('../../../@core', () => ({
   AiFeatureEnum: {
     FEATURE_COPILOT_MONITORING: 'FEATURE_COPILOT_MONITORING'
   },
   AIPermissionsEnum: {
-    COPILOT_EDIT: 'COPILOT_EDIT'
+    COPILOT_EDIT: 'COPILOT_EDIT',
+    MODEL_USAGE_MONITOR: 'MODEL_USAGE_MONITOR'
   },
   RequestScopeLevel: {
     TENANT: 'tenant',
@@ -29,19 +32,28 @@ describe('copilot setting routes', () => {
     expect(childPaths).not.toContain('examples')
   })
 
-  it('guards monitoring routes with the scope-aware copilot monitoring gate', () => {
+  it('guards overview by feature and usage center by feature and model usage permission', () => {
     const copilotRoute = routes.find((route) => route.path === '')
     const children = copilotRoute?.children ?? []
     const overviewRoute = children.find((route) => route.path === 'overview')
     const usageRoute = children.find((route) => route.path === 'usage')
 
-    ;[overviewRoute, usageRoute].forEach((route) => {
-      expect(route).toEqual(
-        expect.objectContaining({
-          canActivate: expect.arrayContaining([copilotMonitoringGate])
+    expect(overviewRoute).toEqual(
+      expect.objectContaining({
+        canActivate: [copilotMonitoringGate]
+      })
+    )
+    expect(overviewRoute?.data).toBeUndefined()
+    expect(usageRoute).toEqual(
+      expect.objectContaining({
+        canActivate: expect.arrayContaining([NgxPermissionsGuard, copilotMonitoringGate]),
+        data: expect.objectContaining({
+          permissions: expect.objectContaining({
+            only: ['MODEL_USAGE_MONITOR']
+          })
         })
-      )
-    })
+      })
+    )
     ;['usages', 'users'].forEach((path) => {
       expect(children.find((route) => route.path === path)).toEqual(
         expect.objectContaining({

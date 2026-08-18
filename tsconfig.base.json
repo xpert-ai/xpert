@@ -29,7 +29,6 @@
       "@xpert-ai/server-core": ["packages/server/src/index.ts"],
       "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
       "@xpert-ai/plugin-draft": ["packages/plugins/draft/src/index.ts"],
-      "@xpert-ai/plugin-integration-lark": ["packages/plugins/integration-lark/src/index.ts"],
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
       "@xpert-ai/plugin-sdk/connector": ["packages/plugin-sdk/src/connector.ts"],
       "@xpert-ai/plugin-vlm-default": ["packages/plugins/vlm-default/src/index.ts"],

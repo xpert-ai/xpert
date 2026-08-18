@@ -3,6 +3,7 @@ import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-cli
 import {
   registerWorkbenchNavigationOpenCommand,
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
 } from './workbench-navigation-open-client-command'
 
@@ -30,13 +31,113 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       context
     )
 
-    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-1', 'documents'])
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-1', 'documents'], undefined)
     expect(result).toEqual({
       success: true,
       status: 'opened',
       target: WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
       knowledgebaseId: 'kb-1'
     })
+  })
+
+  it('opens a knowledgebase folder or a concrete document', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
+        knowledgebaseId: 'kb-1',
+        documentId: 'doc-1',
+        parentId: 'folder-1'
+      },
+      context
+    )
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-1', 'documents', 'doc-1'], {
+      queryParams: { parentId: 'folder-1' }
+    })
+    expect(result).toEqual(expect.objectContaining({ documentId: 'doc-1', parentId: 'folder-1' }))
+  })
+
+  it('opens exact knowledge evidence without exposing the source excerpt in the URL', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
+        knowledgebaseId: 'kb-1',
+        documentId: 'doc-1',
+        chunkId: 'chunk-17',
+        page: 8,
+        sourceBlockIds: ['block-3', 'block-4'],
+        evidenceText: 'Motor power factor shall be at least 0.85.'
+      },
+      context
+    )
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-1', 'documents', 'doc-1'], {
+      queryParams: {
+        chunkId: 'chunk-17',
+        view: 'analysis',
+        page: '8',
+        block: 'block-3'
+      },
+      state: {
+        knowledgeEvidence: {
+          text: 'Motor power factor shall be at least 0.85.',
+          chunkId: 'chunk-17',
+          page: 8,
+          sourceBlockIds: ['block-3', 'block-4']
+        }
+      }
+    })
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        documentId: 'doc-1',
+        chunkId: 'chunk-17',
+        page: 8,
+        sourceBlockIds: ['block-3', 'block-4']
+      })
+    )
+    expect(JSON.stringify((navigate.mock.calls[0]?.[1] as any)?.queryParams)).not.toContain('power factor')
+  })
+
+  it('opens a fixed workbench view with a selected business record', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openWorkbenchView = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { openWorkbenchView })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_EXTENSION_VIEW_TARGET,
+        viewKey: 'bom_lifecycle_super_bom',
+        selectionId: 'version-1',
+        parameters: { section: 'features' }
+      },
+      context
+    )
+
+    expect(openWorkbenchView).toHaveBeenCalledWith({
+      viewKey: 'bom_lifecycle_super_bom',
+      selectionId: 'version-1',
+      parameters: { section: 'features' }
+    })
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        target: WORKBENCH_EXTENSION_VIEW_TARGET,
+        viewKey: 'bom_lifecycle_super_bom',
+        selectionId: 'version-1'
+      })
+    )
   })
 
   it('rejects missing knowledgebase id', async () => {

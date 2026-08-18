@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/contracts",
-  "version": "3.15.18",
+  "version": "3.17.1",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
   "dependencies": {
     "@octokit/types": "13.10.0",
     "@types/json-schema": "^7.0.15",
-    "@xpert-ai/chatkit-types": "~0.4.6",
+    "@xpert-ai/chatkit-types": "~0.5.0",
     "zod-to-json-schema": "^3.25.2"
   }
 }

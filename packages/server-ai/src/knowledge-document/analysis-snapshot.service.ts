@@ -18,7 +18,7 @@ import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { createHash, randomUUID } from 'node:crypto'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
-import { KnowledgeWorkAreaResolver } from '../shared'
+import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { computeKnowledgeDocumentTransformFingerprint } from './document-hash'
 
 const ANALYSIS_SCHEMA_VERSION = 1 as const
@@ -72,6 +72,19 @@ type AnalysisAssetTarget = {
     absolutePath: string
     fileName: string
     mimeType: string
+}
+
+export type KnowledgeDocumentAnalysisVisualAsset = {
+    visualAssetId: string
+    page?: number
+    order: number
+    sourceBlockIds: string[]
+    summary?: string
+}
+
+export type KnowledgeDocumentAnalysisVisualCatalog = {
+    snapshotFingerprint: string
+    assets: KnowledgeDocumentAnalysisVisualAsset[]
 }
 
 type AnalysisWorkAreaResolver = {
@@ -232,6 +245,49 @@ export class KnowledgeDocumentAnalysisSnapshotService {
     ): Promise<AnalysisPageRecord['raw']> {
         const loaded = await this.loadManifest(document)
         return (await this.readPageRecord(loaded, pageNumber)).raw
+    }
+
+    /**
+     * Returns only opaque image identifiers and stable source anchors. Storage paths remain inside
+     * the snapshot service and can only be resolved again through the manifest allow-list.
+     */
+    async getVisualCatalog(
+        document: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>
+    ): Promise<KnowledgeDocumentAnalysisVisualCatalog> {
+        const loaded = await this.loadManifest(document)
+        const imageAssetIds = new Set(
+            loaded.manifest.assets
+                .filter((asset) => asset.type === 'image' && isSupportedImageFileName(asset.fileName))
+                .map((asset) => asset.id)
+        )
+        const assets: KnowledgeDocumentAnalysisVisualAsset[] = []
+        const anchoredAssetIds = new Set<string>()
+
+        for (const page of loaded.manifest.pages) {
+            const record = await this.readPageRecord(loaded, page.page)
+            for (const block of record.blocks) {
+                if (!block.assetId || !imageAssetIds.has(block.assetId)) continue
+                anchoredAssetIds.add(block.assetId)
+                assets.push({
+                    visualAssetId: block.assetId,
+                    page: record.page,
+                    order: block.order,
+                    sourceBlockIds: [block.id],
+                    ...(block.markdown.trim() ? { summary: block.markdown.trim().slice(0, 1000) } : {})
+                })
+            }
+        }
+
+        for (const assetId of imageAssetIds) {
+            if (!anchoredAssetIds.has(assetId)) {
+                assets.push({ visualAssetId: assetId, order: assets.length, sourceBlockIds: [] })
+            }
+        }
+
+        return {
+            snapshotFingerprint: loaded.manifest.transformFingerprint,
+            assets
+        }
     }
 
     /** Resolves an opaque asset id through the manifest allow-list and tenant-scoped work area. */
@@ -759,6 +815,11 @@ function assetMimeType(asset: AnalysisAssetManifestItem) {
     if (extension === '.bmp') return 'image/bmp'
     if (extension === '.tif' || extension === '.tiff') return 'image/tiff'
     return asset.type === 'image' ? 'application/octet-stream' : 'application/octet-stream'
+}
+
+function isSupportedImageFileName(fileName: string) {
+    const extension = path.extname(fileName).toLowerCase()
+    return ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'].includes(extension)
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

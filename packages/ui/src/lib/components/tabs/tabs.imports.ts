@@ -5,8 +5,9 @@ import {
   ZardTabLabelDirective,
   ZardTabNavBarDirective,
   ZardTabNavLinkDirective,
-  ZardTabNavPanelComponent,
-} from './tabs.component';
+  ZardTabNavPanelComponent
+} from './tabs.component'
+import { ZardTabNavScrollComponent } from './tab-nav-scroll.component'
 
 export const ZardTabsImports = [
   ZardTabGroupComponent,
@@ -16,4 +17,5 @@ export const ZardTabsImports = [
   ZardTabNavBarDirective,
   ZardTabNavLinkDirective,
   ZardTabNavPanelComponent,
-] as const;
+  ZardTabNavScrollComponent
+] as const

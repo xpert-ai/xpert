@@ -1,7 +1,19 @@
 import { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
+import { AiModelTypeEnum } from '../agent'
 import { ModelAccessSourceEnum } from './model-access.model'
 import { ModelGatewayUsageChannelEnum } from './model-gateway.model'
+import type { LLMPriceAuthority, LLMPriceBreakdownItem } from './ai-model.model'
+import type {
+  ModelUsageMetric,
+  ModelUsageMetricComponent,
+  ModelUsageLedgerModality,
+  ModelUsageLedgerOperation,
+  ModelUsageOriginType,
+  ModelUsagePriceRule,
+  ModelUsagePricingDimensions,
+  ModelUsagePricingStatus
+} from './model-usage.model'
 
 export enum MembershipPlanStatusEnum {
   Active = 'active',
@@ -38,9 +50,8 @@ export enum MembershipPeriodStatusEnum {
   Cancelled = 'cancelled'
 }
 
-export const DEFAULT_MEMBERSHIP_TOKENS_PER_POINT = 1000
-export const MEMBERSHIP_TOKENS_PER_POINT_SETTING = 'membershipTokensPerPoint'
-export const MEMBERSHIP_TOKENS_PER_POINT_OPTIONS = [1000, 10000, 100000, 1000000] as const
+export const DEFAULT_MEMBERSHIP_CNY_PER_POINT = 0.1
+export const MEMBERSHIP_CNY_PER_POINT_SETTING = 'membershipCnyPerPoint'
 
 export enum MembershipLedgerSourceEnum {
   Assignment = 'assignment',
@@ -51,7 +62,8 @@ export enum MembershipLedgerSourceEnum {
   Adjustment = 'adjustment',
   StatusChange = 'status_change',
   PersonalAdjustment = 'personal_adjustment',
-  PersonalUsage = 'personal_usage'
+  PersonalUsage = 'personal_usage',
+  ModelUsage = 'model_usage'
 }
 
 export enum MembershipAdminUserStatusEnum {
@@ -74,6 +86,7 @@ export type TMembershipRateLimitPeriod = 'hour' | 'day' | 'week' | 'cycle'
 export interface IMembershipModelMultiplier {
   provider?: string | null
   model?: string | null
+  /** Applied to the CNY settlement amount before it is converted to membership points. */
   multiplier: number
 }
 
@@ -99,8 +112,9 @@ export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityMode
   isDefault?: boolean
   period: MembershipPeriodEnum
   includedPoints: number | null
-  tokensPerPoint: number
+  /** @deprecated Sale pricing is owned by the Pro billing product. Retained temporarily for migration only. */
   priceAmount?: number | null
+  /** @deprecated Sale pricing is owned by the Pro billing product. Retained temporarily for migration only. */
   priceCurrency?: string | null
   allowedModels?: IMembershipAllowedModel[]
   modelMultipliers?: IMembershipModelMultiplier[]
@@ -116,7 +130,6 @@ export interface IMembershipPlanSnapshot {
   catalogSourcePlanId?: string | null
   period: MembershipPeriodEnum
   includedPoints: number | null
-  tokensPerPoint: number
   allowedModels?: IMembershipAllowedModel[]
   modelMultipliers?: IMembershipModelMultiplier[]
   rateLimits?: IMembershipRateLimit[]
@@ -161,7 +174,7 @@ export interface IUserMembershipPeriod extends IBasePerTenantAndOrganizationEnti
 }
 
 export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
-  userId: string
+  userId?: string | null
   user?: IUser
   actorId?: string | null
   actor?: IUser
@@ -189,6 +202,41 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   gatewayApiKeyId?: string | null
   chargedPoints?: number | null
   excessPoints?: number | null
+  requestId?: string | null
+  revision?: number | null
+  originType?: ModelUsageOriginType | null
+  originId?: string | null
+  originExecutionId?: string | null
+  providerScopeId?: string | null
+  modelType?: AiModelTypeEnum | null
+  toolName?: string | null
+  modality?: ModelUsageLedgerModality | null
+  operation?: ModelUsageLedgerOperation | null
+  metricKey?: string | null
+  component?: ModelUsageMetricComponent | null
+  pricingDimensions?: ModelUsagePricingDimensions | null
+  unit?: ModelUsageMetric['unit'] | null
+  authority?: ModelUsageMetric['authority'] | null
+  quantity?: number | null
+  promptTokens?: number | null
+  completionTokens?: number | null
+  totalTokens?: number | null
+  recordedAt?: Date | string | null
+  pricingStatus?: ModelUsagePricingStatus | null
+  pricingRuleId?: string | null
+  pricingRuleVersion?: string | null
+  priceQuantity?: number | null
+  unitSize?: number | null
+  unitPrice?: number | null
+  priceCurrency?: string | null
+  priceAmount?: number | null
+  priceAuthority?: LLMPriceAuthority | null
+  pricingRule?: ModelUsagePriceRule | null
+  pricingBreakdown?: LLMPriceBreakdownItem[] | null
+  chargedAt?: Date | string | null
+  settlementCurrency?: string | null
+  settlementAmount?: number | null
+  exchangeRate?: number | null
 }
 
 export interface IMembershipMe {

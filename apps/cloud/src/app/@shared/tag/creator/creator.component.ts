@@ -2,7 +2,6 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
-import { XpButtonGroupDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { getErrorMessage, TagCategoryEnum, TagService, ToastrService } from '../../../@core'
@@ -11,14 +10,7 @@ import { SharedUiModule } from '../../ui.module'
 import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    TranslateModule,
-    SharedUiModule,
-    CdkListboxModule,
-    NgxFloatUiModule,
-    XpButtonGroupDirective
-  ],
+  imports: [ReactiveFormsModule, TranslateModule, SharedUiModule, CdkListboxModule, NgxFloatUiModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-creator',
   templateUrl: './creator.component.html',

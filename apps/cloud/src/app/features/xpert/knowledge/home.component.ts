@@ -6,7 +6,6 @@ import { FormControl } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/headless-ui'
-import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {
@@ -36,7 +35,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardButtonComponent,
     ZardIconComponent,
-    XpAppearanceDirective,
     XpDynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent

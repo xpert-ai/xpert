@@ -4,6 +4,8 @@ import {
   FetchFrom,
   ICopilot,
   ILLMUsage,
+  LLMPriceContext,
+  LLMReportedPrice,
   ModelPropertyKey,
   ParameterRule,
   ParameterType,
@@ -11,15 +13,26 @@ import {
   TTokenUsage
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
-import { AIMessage } from '@langchain/core/messages'
+import { AIMessage, isAIMessageChunk } from '@langchain/core/messages'
 import { AIModel } from './ai-model'
-import { CommonParameterRules, TChatModelOptions } from './types/'
+import { calculateLLMUsagePrice, isModelUsagePricingConfig } from './pricing'
+import { CommonParameterRules, TChatModelOptions, TLLMUsage, TModelUsageType } from './types/'
 
 export type CommonChatModelParameters = {
   temperature: number
   maxRetries?: number | null
 }
+
+export type LLMUsagePricingOptions = {
+  context?: LLMPriceContext
+  resolveContext?: (output: LLMResult) => LLMPriceContext
+  resolveReportedPrice?: (output: LLMResult) => LLMReportedPrice | undefined
+  reportedPriceRequired?: boolean
+}
+
+export type LLMUsagePricingConfiguration = LLMPriceContext | LLMUsagePricingOptions
 
 export class LLMUsage implements ILLMUsage {
   /**
@@ -120,8 +133,50 @@ export abstract class LargeLanguageModel extends AIModel {
     model: string,
     credentials: Record<string, any>,
     promptTokens: number,
-    completionTokens: number
+    completionTokens: number,
+    startedAt = this.startedAt,
+    tokenUsage?: TTokenUsage,
+    pricingContext: LLMPriceContext = {}
   ): ILLMUsage {
+    const resolvedTokenUsage = tokenUsage ?? {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens
+    }
+    const pricing = this.getModelSchema(model, credentials)?.pricing
+    if (pricing && !isModelUsagePricingConfig(pricing)) {
+      const calculation = calculateLLMUsagePrice(pricing, resolvedTokenUsage, pricingContext)
+      const promptBreakdown = calculation.breakdown.filter((item) =>
+        ['input', 'cache_read_input', 'cache_write_input'].includes(item.component)
+      )
+      const completionBreakdown = calculation.breakdown.filter((item) => item.component === 'output')
+      const promptRate = promptBreakdown.find((item) => item.component === 'input') ?? promptBreakdown[0]
+      const completionRate = completionBreakdown[0]
+      return {
+        promptTokens,
+        promptUnitPrice: promptRate?.unitPrice ?? 0,
+        promptPriceUnit: promptRate?.unit ?? 0,
+        promptPrice: Number(promptBreakdown.reduce((total, item) => total + (item.amount ?? 0), 0).toFixed(7)),
+        completionTokens,
+        completionUnitPrice: completionRate?.unitPrice ?? 0,
+        completionPriceUnit: completionRate?.unit ?? 0,
+        completionPrice: Number(completionBreakdown.reduce((total, item) => total + (item.amount ?? 0), 0).toFixed(7)),
+        totalTokens: resolvedTokenUsage.totalTokens,
+        totalPrice: calculation.totalAmount,
+        currency: calculation.currency,
+        latency: performance.now() - startedAt,
+        ...(resolvedTokenUsage.cacheReadInputTokens
+          ? { cacheReadInputTokens: resolvedTokenUsage.cacheReadInputTokens }
+          : {}),
+        ...(resolvedTokenUsage.cacheWriteInputTokens
+          ? { cacheWriteInputTokens: resolvedTokenUsage.cacheWriteInputTokens }
+          : {}),
+        pricingStatus: calculation.pricingStatus,
+        priceAuthority: 'catalog',
+        pricingBreakdown: calculation.breakdown
+      }
+    }
+
     const promptPriceInfo = this.getPrice(model, credentials, PriceType.INPUT, promptTokens, promptTokens)
     const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens, promptTokens)
     const totalPrice = Number((promptPriceInfo.totalAmount + completionPriceInfo.totalAmount).toFixed(7))
@@ -139,7 +194,9 @@ export abstract class LargeLanguageModel extends AIModel {
       totalTokens: promptTokens + completionTokens,
       totalPrice,
       currency: promptPriceInfo.currency,
-      latency: performance.now() - this.startedAt
+      latency: performance.now() - startedAt,
+      pricingStatus: totalPrice === 0 ? 'free' : 'priced',
+      priceAuthority: 'catalog'
     }
 
     return usage
@@ -149,33 +206,117 @@ export abstract class LargeLanguageModel extends AIModel {
     copilot: ICopilot,
     model: string,
     credentials: any,
-    handleLLMTokens: TChatModelOptions['handleLLMTokens']
+    handleLLMTokens: TChatModelOptions['handleLLMTokens'],
+    pricingConfiguration: LLMUsagePricingConfiguration = {}
   ) {
-    return [
-      {
-        handleLLMStart: () => {
-          this.startedAt = performance.now()
-        },
-        handleLLMEnd: (output) => {
-          const tokenUsage = resolveTokenUsage(output)
-          if (handleLLMTokens) {
-            const usage = this.calcResponseUsage(
-              model,
-              credentials,
-              tokenUsage.promptTokens,
-              tokenUsage.completionTokens
-            )
-            usage.totalTokens = tokenUsage.totalTokens
-            handleLLMTokens({
-              copilot,
-              model,
-              usage,
-              tokenUsed: tokenUsage.totalTokens
-            })
-          }
-        }
+    const pricingOptions = normalizeUsagePricingOptions(pricingConfiguration)
+    const basePricingContext = pricingOptions.context ?? {}
+    const runs = new Map<
+      string,
+      { startedAt: DOMHighResTimeStamp; pricingTime: Date; prompts: string[]; completion: string }
+    >()
+    const reportUsage = async (
+      requestId: string,
+      tokenUsage: TTokenUsage,
+      startedAt: DOMHighResTimeStamp,
+      pricingTime: Date,
+      type?: TModelUsageType,
+      output?: LLMResult
+    ) => {
+      const pricingContext = {
+        ...basePricingContext,
+        ...(output && pricingOptions.resolveContext ? pricingOptions.resolveContext(output) : {}),
+        pricingTime
       }
-    ]
+      const normalizedTokenUsage = normalizeCacheTokenAccounting(tokenUsage, pricingContext)
+      if (!handleLLMTokens || normalizedTokenUsage.totalTokens <= 0) {
+        return
+      }
+
+      let usage: TLLMUsage = {
+        ...this.calcResponseUsage(
+          model,
+          credentials,
+          normalizedTokenUsage.promptTokens,
+          normalizedTokenUsage.completionTokens,
+          startedAt,
+          normalizedTokenUsage,
+          { ...pricingContext, inputTokensIncludeCache: true }
+        ),
+        ...(type ? { type } : {})
+      }
+      const reportedPrice = output ? pricingOptions.resolveReportedPrice?.(output) : undefined
+      if (reportedPrice) {
+        usage = applyProviderReportedPrice(usage, reportedPrice)
+      } else if (pricingOptions.reportedPriceRequired) {
+        usage = markUsagePriceUnpriced(usage, 'provider')
+      }
+      usage.totalTokens = normalizedTokenUsage.totalTokens
+      await handleLLMTokens({
+        copilot,
+        model,
+        requestId,
+        usage,
+        tokenUsed: normalizedTokenUsage.totalTokens
+      })
+    }
+    const callback = BaseCallbackHandler.fromMethods({
+      handleLLMStart: (_llm, prompts, runId) => {
+        runs.set(runId, {
+          startedAt: performance.now(),
+          pricingTime: new Date(),
+          prompts,
+          completion: ''
+        })
+      },
+      handleLLMNewToken: (token, _idx, runId, _parentRunId, _tags, fields) => {
+        const run = runs.get(runId)
+        if (run) {
+          run.completion += token + readToolCallChunkText(fields?.chunk)
+        }
+      },
+      handleLLMEnd: async (output, runId) => {
+        const run = runs.get(runId)
+        runs.delete(runId)
+        const resolved = resolveTokenUsageWithAuthority(output)
+        if (resolved.usage.totalTokens > 0) {
+          await reportUsage(
+            runId,
+            resolved.usage,
+            run?.startedAt ?? performance.now(),
+            run?.pricingTime ?? new Date(),
+            resolved.type,
+            output
+          )
+        } else {
+          await reportUsage(
+            runId,
+            estimateFallbackUsage(run?.prompts, run?.completion || readCompletionText(output)),
+            run?.startedAt ?? performance.now(),
+            run?.pricingTime ?? new Date(),
+            'estimated',
+            output
+          )
+        }
+      },
+      handleLLMError: async (error, runId) => {
+        const run = runs.get(runId)
+        runs.delete(runId)
+        if (!run?.completion && !isAbortError(error)) {
+          return
+        }
+        await reportUsage(
+          runId,
+          estimateFallbackUsage(run?.prompts, run?.completion),
+          run?.startedAt ?? performance.now(),
+          run?.pricingTime ?? new Date(),
+          'estimated'
+        )
+      }
+    })
+    callback.awaitHandlers = true
+    callback.raiseError = true
+    return [callback]
   }
 
   createHandleLLMErrorCallbacks(fields, logger?: Logger) {
@@ -324,8 +465,100 @@ export abstract class LargeLanguageModel extends AIModel {
   }
 }
 
+function normalizeUsagePricingOptions(configuration: LLMUsagePricingConfiguration): LLMUsagePricingOptions {
+  if (
+    'context' in configuration ||
+    'resolveContext' in configuration ||
+    'resolveReportedPrice' in configuration ||
+    'reportedPriceRequired' in configuration
+  ) {
+    return configuration
+  }
+  return { context: configuration as LLMPriceContext }
+}
+
+function applyProviderReportedPrice(usage: TLLMUsage, reportedPrice: LLMReportedPrice): TLLMUsage {
+  const amount = Number(reportedPrice.amount)
+  const currency = reportedPrice.currency?.trim()
+  if (!Number.isFinite(amount) || amount < 0 || !currency) {
+    throw new Error('Provider-reported price requires a non-negative amount and currency')
+  }
+  return {
+    ...usage,
+    totalPrice: amount,
+    currency: currency.toUpperCase(),
+    pricingStatus: amount === 0 ? 'free' : 'priced',
+    priceAuthority: 'provider',
+    pricingBreakdown: undefined
+  }
+}
+
+function markUsagePriceUnpriced(usage: TLLMUsage, priceAuthority?: TLLMUsage['priceAuthority']): TLLMUsage {
+  return {
+    ...usage,
+    totalPrice: 0,
+    pricingStatus: 'unpriced',
+    priceAuthority,
+    pricingBreakdown: undefined
+  }
+}
+
+function estimateFallbackUsage(prompts?: string[], completion?: string): TTokenUsage {
+  if (!prompts) {
+    return { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  }
+
+  const promptTokens = estimateTokens(prompts.join('\n'))
+  const completionTokens = estimateTokens(completion ?? '')
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens
+  }
+}
+
+function readCompletionText(output: LLMResult) {
+  return output.generations
+    ?.flat()
+    .map((generation) => generation.text)
+    .filter(Boolean)
+    .join('\n')
+}
+
+function estimateTokens(text: string) {
+  const estimatedText = text.replace(/data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/_=-]+/g, '[image]')
+  let cjkCharacters = 0
+  let otherCharacters = 0
+  for (const character of estimatedText) {
+    if (/\p{Script=Han}/u.test(character)) {
+      cjkCharacters++
+    } else {
+      otherCharacters++
+    }
+  }
+  return Math.ceil(cjkCharacters / 1.5 + otherCharacters / 4)
+}
+
+function readToolCallChunkText(chunk?: unknown) {
+  if (!(chunk instanceof ChatGenerationChunk) || !isAIMessageChunk(chunk.message)) {
+    return ''
+  }
+  return (chunk.message.tool_call_chunks ?? [])
+    .map((toolCall) => `${toolCall.name ?? ''}${toolCall.args ?? ''}`)
+    .join('')
+}
+
+function isAbortError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  return error.name === 'AbortError' || /\babort(?:ed)?\b/i.test(error.message)
+}
+
 export function calcTokenUsage(output: LLMResult) {
   const tokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 } as TTokenUsage
+  let cacheReadInputTokens = 0
+  let cacheWriteInputTokens = 0
   output.generations?.forEach((generation) => {
     generation.forEach((item) => {
       const message = (<ChatGenerationChunk>item).message as AIMessage
@@ -333,23 +566,37 @@ export function calcTokenUsage(output: LLMResult) {
         tokenUsage.promptTokens += message.usage_metadata.input_tokens
         tokenUsage.completionTokens += message.usage_metadata.output_tokens
         tokenUsage.totalTokens += message.usage_metadata.total_tokens
+        cacheReadInputTokens += message.usage_metadata.input_token_details?.cache_read ?? 0
+        cacheWriteInputTokens += message.usage_metadata.input_token_details?.cache_creation ?? 0
       }
     })
   })
+  if (cacheReadInputTokens > 0) tokenUsage.cacheReadInputTokens = cacheReadInputTokens
+  if (cacheWriteInputTokens > 0) tokenUsage.cacheWriteInputTokens = cacheWriteInputTokens
   return tokenUsage
 }
 
 export function resolveTokenUsage(output: LLMResult): TTokenUsage {
-  return (
+  return resolveTokenUsageWithAuthority(output).usage
+}
+
+function resolveTokenUsageWithAuthority(output: LLMResult): { usage: TTokenUsage; type?: TModelUsageType } {
+  const actualUsage =
     normalizeTokenUsage(calcTokenUsage(output)) ??
     normalizeTokenUsage(output.llmOutput?.['tokenUsage']) ??
-    normalizeTokenUsage(output.llmOutput?.['estimatedTokenUsage']) ??
-    normalizeTokenUsage({ totalTokens: output.llmOutput?.['totalTokens'] }) ?? {
-      promptTokens: 0,
-      completionTokens: 0,
-      totalTokens: 0
-    }
-  )
+    normalizeTokenUsage({ totalTokens: output.llmOutput?.['totalTokens'] })
+  if (actualUsage) {
+    return { usage: actualUsage }
+  }
+
+  const estimatedUsage = normalizeTokenUsage(output.llmOutput?.['estimatedTokenUsage'])
+  if (estimatedUsage) {
+    return { usage: estimatedUsage, type: 'estimated' }
+  }
+
+  return {
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  }
 }
 
 function normalizeTokenUsage(candidate?: Partial<TTokenUsage> | null): TTokenUsage | null {
@@ -373,11 +620,34 @@ function normalizeTokenUsage(candidate?: Partial<TTokenUsage> | null): TTokenUsa
     return null
   }
 
-  return { promptTokens, completionTokens, totalTokens }
+  const cacheReadInputTokens = candidate.cacheReadInputTokens ?? 0
+  const cacheWriteInputTokens = candidate.cacheWriteInputTokens ?? 0
+  if (!isValidTokenCount(cacheReadInputTokens) || !isValidTokenCount(cacheWriteInputTokens)) {
+    return null
+  }
+
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    ...(cacheReadInputTokens > 0 ? { cacheReadInputTokens } : {}),
+    ...(cacheWriteInputTokens > 0 ? { cacheWriteInputTokens } : {})
+  }
 }
 
 function isValidTokenCount(value?: number): boolean {
   return value === undefined || (Number.isFinite(value) && value >= 0)
+}
+
+function normalizeCacheTokenAccounting(tokenUsage: TTokenUsage, context: LLMPriceContext): TTokenUsage {
+  if (context.inputTokensIncludeCache !== false) return tokenUsage
+  const cacheTokens = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheWriteInputTokens ?? 0)
+  if (!cacheTokens) return tokenUsage
+  return {
+    ...tokenUsage,
+    promptTokens: tokenUsage.promptTokens + cacheTokens,
+    totalTokens: tokenUsage.totalTokens + cacheTokens
+  }
 }
 
 /**

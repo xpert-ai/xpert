@@ -13,9 +13,8 @@ import { FeatureOrganization, RequestContext, User } from '@xpert-ai/server-core
 import {
     AIPermissionsEnum,
     AiModelTypeEnum,
-    DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
-    MEMBERSHIP_TOKENS_PER_POINT_SETTING,
-    MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
+    DEFAULT_MEMBERSHIP_CNY_PER_POINT,
+    MEMBERSHIP_CNY_PER_POINT_SETTING,
     MembershipLedgerSourceEnum,
     MembershipPeriodEnum,
     MembershipPeriodStatusEnum,
@@ -62,7 +61,7 @@ describe('MembershipService', () => {
         acquireMembershipAssignmentLock: (...args: unknown[]) => Promise<void>
         acquireGatewayRequestLock: (...args: unknown[]) => Promise<void>
         findModelAccessWithOrganizationSelfHeal: (...args: unknown[]) => Promise<unknown>
-        resolveTenantTokensPerPoint: (...args: unknown[]) => Promise<number>
+        resolveTenantCnyPerPoint: (...args: unknown[]) => Promise<number>
         synchronizeCurrentPeriodProjection: (...args: unknown[]) => Promise<void>
     }
 
@@ -111,7 +110,6 @@ describe('MembershipService', () => {
                 status: MembershipPlanStatusEnum.Active,
                 period: MembershipPeriodEnum.Monthly,
                 includedPoints: 100,
-                tokensPerPoint: 1000,
                 modelMultipliers: [],
                 rateLimits: []
             },
@@ -130,7 +128,6 @@ describe('MembershipService', () => {
             isDefault: true,
             period: MembershipPeriodEnum.Monthly,
             includedPoints: 1000,
-            tokensPerPoint: 1000,
             modelMultipliers: [],
             rateLimits: [],
             ...overrides
@@ -426,12 +423,11 @@ describe('MembershipService', () => {
         expect(queryBuilder.andWhere).not.toHaveBeenCalledWith('ledger.organizationId IS NULL')
     })
 
-    it('calculates fractional points directly from token usage without rounding per call', () => {
+    it('maps one CNY of settled model cost to ten existing membership points', () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
-        const plan = createPlan({ tokensPerPoint: 100000 })
 
-        expect(service.calculatePoints(28_868_663, plan, 'tongyi', 'qwen3.6-plus', 100000)).toBe(288.68663)
-        expect(service.calculatePoints(1, plan, 'tongyi', 'qwen3.6-plus', 100000)).toBe(0.00001)
+        expect(service.calculatePointsFromCny(1)).toBe(10)
+        expect(service.calculatePointsFromCny(0.125)).toBe(1.25)
     })
 
     it('settles due active memberships in a transaction', async () => {
@@ -534,7 +530,7 @@ describe('MembershipService', () => {
     })
 
     function createScopeInitializationHarness(
-        tokensPerPointSetting?: string,
+        cnyPerPointSetting?: string,
         resolveFeatureRows: (
             organizationId: string | null
         ) => FeatureToggleFixture[] | Promise<FeatureToggleFixture[]> = () => [{ isEnabled: true }]
@@ -565,11 +561,11 @@ describe('MembershipService', () => {
         const featureOrganizationRepository = createMembershipFeatureRepository(resolveFeatureRows).repository
         const tenantSettingRepository = {
             findOne: jest.fn().mockResolvedValue(
-                tokensPerPointSetting
+                cnyPerPointSetting
                     ? {
                           tenantId: 'tenant-1',
-                          name: MEMBERSHIP_TOKENS_PER_POINT_SETTING,
-                          value: tokensPerPointSetting
+                          name: MEMBERSHIP_CNY_PER_POINT_SETTING,
+                          value: cnyPerPointSetting
                       }
                     : null
             )
@@ -1100,20 +1096,6 @@ describe('MembershipService', () => {
             )
         }
     }
-
-    it('uses the tenant-wide tokens-per-point setting when saving plans', async () => {
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
-        const { plans, service } = createScopeInitializationHarness('100000')
-
-        const firstPlan = await service.createPlan({ code: 'first', name: 'First', tokensPerPoint: 1000000 })
-        await service.createPlan({ code: 'second', name: 'Second', tokensPerPoint: 100 })
-        await service.updatePlan(firstPlan.id, { tokensPerPoint: 1000000 })
-
-        expect(DEFAULT_MEMBERSHIP_TOKENS_PER_POINT).toBe(1000)
-        expect(MEMBERSHIP_TOKENS_PER_POINT_OPTIONS).toEqual([1000, 10000, 100000, 1000000])
-        expect(plans.map((plan) => plan.tokensPerPoint)).toEqual([100000])
-    })
 
     it('deletes only archived plans that are not assigned to users', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -2641,7 +2623,6 @@ describe('MembershipService', () => {
                 isDefault: true,
                 period: MembershipPeriodEnum.Monthly,
                 includedPoints: 1000,
-                tokensPerPoint: DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
                 allowedModels: [],
                 modelMultipliers: [],
                 rateLimits: []
@@ -2703,7 +2684,6 @@ describe('MembershipService', () => {
                 isDefault: true,
                 period: MembershipPeriodEnum.Monthly,
                 includedPoints: 1000,
-                tokensPerPoint: DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
                 allowedModels: [],
                 modelMultipliers: [],
                 rateLimits: []
@@ -2911,7 +2891,6 @@ describe('MembershipService', () => {
             isDefault: false,
             period: MembershipPeriodEnum.Monthly,
             includedPoints: null,
-            tokensPerPoint: 1000,
             modelMultipliers: [],
             rateLimits: []
         } as MembershipPlan)
@@ -3054,7 +3033,6 @@ describe('MembershipService', () => {
             isDefault: false,
             period: MembershipPeriodEnum.Monthly,
             includedPoints: 1000,
-            tokensPerPoint: 1000,
             allowedModels: [],
             modelMultipliers: [],
             rateLimits: []
@@ -3128,7 +3106,6 @@ describe('MembershipService', () => {
             isDefault: false,
             period: MembershipPeriodEnum.Monthly,
             includedPoints: 500,
-            tokensPerPoint: 1000,
             allowedModels: [],
             modelMultipliers: [],
             rateLimits: []
@@ -3174,7 +3151,6 @@ describe('MembershipService', () => {
             isDefault: false,
             period: MembershipPeriodEnum.Monthly,
             includedPoints: 500,
-            tokensPerPoint: 1000,
             modelMultipliers: [],
             rateLimits: []
         } as MembershipPlan)
@@ -3207,7 +3183,6 @@ describe('MembershipService', () => {
             code: 'custom',
             name: 'Custom',
             includedPoints: 500,
-            tokensPerPoint: 1000,
             isDefault: true,
             status: MembershipPlanStatusEnum.Active
         })
@@ -3308,7 +3283,9 @@ describe('MembershipService', () => {
             copilotId: 'copilot-1',
             provider: 'tongyi',
             model: 'qwen3.6-plus',
-            tokenUsed: 2500
+            tokenUsed: 2500,
+            settlementAmount: 0.25,
+            settlementCurrency: 'CNY'
         })
 
         expect(xpertRepository.findOne).toHaveBeenCalledWith({
@@ -3474,7 +3451,9 @@ describe('MembershipService', () => {
             userId: 'assistant-tech-user',
             provider: 'tongyi',
             model: 'qwen3.6-plus',
-            tokenUsed: 1000
+            tokenUsed: 1000,
+            settlementAmount: 0.1,
+            settlementCurrency: 'CNY'
         })
 
         expect(xpertRepository.findOne).not.toHaveBeenCalled()
@@ -3522,7 +3501,9 @@ describe('MembershipService', () => {
                 userId: 'assistant-tech-user',
                 provider: 'tongyi',
                 model: 'qwen3.6-plus',
-                tokenUsed: 1000
+                tokenUsed: 1000,
+                settlementAmount: 0.1,
+                settlementCurrency: 'CNY'
             })
         ).rejects.toThrow('Membership plan is required to use Copilot models.')
 
@@ -3771,7 +3752,7 @@ describe('MembershipService', () => {
         expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsGranted: null }))
     })
 
-    it('records usage with the tenant-wide conversion for unlimited memberships', async () => {
+    it('records monetary usage for unlimited memberships', async () => {
         const membershipRepository = {
             save: jest.fn().mockImplementation(async (membership) => membership)
         }
@@ -3789,8 +3770,8 @@ describe('MembershipService', () => {
         const tenantSettingRepository = {
             findOne: jest.fn().mockResolvedValue({
                 tenantId: 'tenant-1',
-                name: MEMBERSHIP_TOKENS_PER_POINT_SETTING,
-                value: '10000'
+                name: MEMBERSHIP_CNY_PER_POINT_SETTING,
+                value: '0.25'
             })
         }
         const service = createMembershipService(
@@ -3811,7 +3792,8 @@ describe('MembershipService', () => {
             pointsUsed: 99,
             plan: {
                 ...createMembership().plan,
-                includedPoints: null
+                includedPoints: null,
+                modelMultipliers: [{ provider: 'tongyi', model: 'qwen3.6-plus', multiplier: 2 }]
             }
         } as never)
         jest.spyOn(service, 'findModelAccess').mockResolvedValue({
@@ -3830,19 +3812,22 @@ describe('MembershipService', () => {
             userId: 'assistant-tech-user',
             provider: 'tongyi',
             model: 'qwen3.6-plus',
-            tokenUsed: 2500
+            tokenUsed: 2500,
+            settlementAmount: 0.025,
+            settlementCurrency: 'CNY'
         })
 
-        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 99.25 }))
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 99.2 }))
         expect(createLedger).toHaveBeenCalledWith(
             manager,
             expect.objectContaining({
-                pointsDelta: -0.25,
+                pointsDelta: -0.2,
                 tokenUsed: 2500,
-                organizationId: 'org-1'
+                organizationId: 'org-1',
+                settlementAmount: 0.05
             })
         )
-        expect(ledger).toMatchObject({ pointsDelta: -0.25, tokenUsed: 2500 })
+        expect(ledger).toMatchObject({ pointsDelta: -0.2, tokenUsed: 2500, settlementAmount: 0.05 })
     })
 
     it('consumes membership points before personal points', async () => {
@@ -3878,7 +3863,9 @@ describe('MembershipService', () => {
             userId: membership.userId,
             provider: 'tongyi',
             model: 'qwen3.6-plus',
-            tokenUsed: 1000
+            tokenUsed: 1000,
+            settlementAmount: 0.1,
+            settlementCurrency: 'CNY'
         })
 
         expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 10 }))
@@ -3938,7 +3925,9 @@ describe('MembershipService', () => {
                 userId: membership.userId,
                 provider: 'tongyi',
                 model: 'qwen3.6-plus',
-                tokenUsed: 1000
+                tokenUsed: 1000,
+                settlementAmount: 0.1,
+                settlementCurrency: 'CNY'
             })
         ).rejects.toThrow('Membership points limit exceeded.')
 
@@ -4201,7 +4190,9 @@ describe('MembershipService', () => {
             userId: membership.userId,
             provider: 'tongyi',
             model: 'qwen3.6-plus',
-            tokenUsed: 1000
+            tokenUsed: 1000,
+            settlementAmount: 0.1,
+            settlementCurrency: 'CNY'
         })
 
         expect(membershipRepository.save).not.toHaveBeenCalled()
@@ -4475,7 +4466,6 @@ describe('MembershipService', () => {
                 description: null,
                 period: oldPlan.period,
                 includedPoints: oldPlan.includedPoints,
-                tokensPerPoint: oldPlan.tokensPerPoint,
                 allowedModels: oldPlan.allowedModels,
                 modelMultipliers: oldPlan.modelMultipliers,
                 rateLimits: oldPlan.rateLimits
@@ -4702,7 +4692,6 @@ describe('MembershipService', () => {
             catalogSourcePlanId: paidPlan.catalogSourcePlanId,
             period: paidPlan.period,
             includedPoints: paidPlan.includedPoints,
-            tokensPerPoint: paidPlan.tokensPerPoint,
             allowedModels: [],
             modelMultipliers: [],
             rateLimits: []
@@ -4801,7 +4790,6 @@ describe('MembershipService', () => {
             catalogSourcePlanId: paidPlan.catalogSourcePlanId,
             period: paidPlan.period,
             includedPoints: paidPlan.includedPoints,
-            tokensPerPoint: paidPlan.tokensPerPoint,
             allowedModels: [],
             modelMultipliers: [],
             rateLimits: []
@@ -4974,7 +4962,6 @@ describe('MembershipService', () => {
                 catalogSourcePlanId: plan.catalogSourcePlanId,
                 period: plan.period,
                 includedPoints: plan.includedPoints,
-                tokensPerPoint: plan.tokensPerPoint,
                 allowedModels: plan.allowedModels,
                 modelMultipliers: plan.modelMultipliers,
                 rateLimits: plan.rateLimits
@@ -5354,7 +5341,7 @@ describe('MembershipService', () => {
         }
     })
 
-    it('rejects invalid model multiplier and rate-limit plan rules', async () => {
+    it('rejects invalid settlement amount multiplier and rate-limit plan rules', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
         const { service } = createScopeInitializationHarness()
@@ -5365,7 +5352,7 @@ describe('MembershipService', () => {
                 name: 'Bad multiplier',
                 modelMultipliers: [{ model: '*', multiplier: Number.NaN }]
             })
-        ).rejects.toThrow('Each model multiplier must be a non-negative number.')
+        ).rejects.toThrow('Each settlement amount multiplier must be a non-negative number.')
         await expect(
             service.createPlan({
                 code: 'bad-limit',
@@ -5431,7 +5418,7 @@ describe('MembershipService', () => {
         )
         const access = getMembershipServiceTestAccess(service)
         jest.spyOn(access, 'acquireGatewayRequestLock').mockResolvedValue(undefined)
-        jest.spyOn(access, 'resolveTenantTokensPerPoint').mockResolvedValue(1000)
+        jest.spyOn(access, 'resolveTenantCnyPerPoint').mockResolvedValue(DEFAULT_MEMBERSHIP_CNY_PER_POINT)
         const findModelAccessSpy = jest.spyOn(access, 'findModelAccessWithOrganizationSelfHeal').mockResolvedValue({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -5458,6 +5445,8 @@ describe('MembershipService', () => {
             provider: 'openai',
             model: 'gpt-4.1',
             tokenUsed: 2000,
+            settlementAmount: 0.2,
+            settlementCurrency: 'CNY',
             copilotId: 'copilot-1',
             gatewayRequestId: 'request-1',
             gatewayApiKeyId: 'key-1',
@@ -5471,7 +5460,7 @@ describe('MembershipService', () => {
                 modelType: AiModelTypeEnum.LLM,
                 model: 'gpt-4.1',
                 accessSource: ModelAccessSourceEnum.Grant,
-                multiplier: 1,
+                multiplier: 2,
                 scope: ModelAccessOwnershipScopeEnum.Organization,
                 organizationId: 'org-1',
                 grantId: 'grant-1'
@@ -5489,13 +5478,13 @@ describe('MembershipService', () => {
             manager,
             true
         )
-        expect(result).toMatchObject({ chargedPoints: 0.75, excessPoints: 1.25 })
+        expect(result).toMatchObject({ chargedPoints: 0.75, excessPoints: 3.25 })
         expect(membership.pointsUsed).toBe(10)
         expect(createdLedgers).toEqual([
             expect.objectContaining({
                 pointsDelta: -0.5,
                 chargedPoints: 0.5,
-                excessPoints: 1.25,
+                excessPoints: 3.25,
                 usageChannel: ModelGatewayUsageChannelEnum.ExternalApi,
                 gatewayRequestId: 'request-1'
             }),

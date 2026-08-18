@@ -38,7 +38,12 @@
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large max-w-sm" @overlayAnimation1>
     <div class="sticky top-0 z-10 mb-1 w-full border-b border-solid border-divider-deep bg-components-card-bg">
-      <xp-search class="w-full mb-1 rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
+      <z-search-input
+        class="mb-1 w-full"
+        [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        [(ngModel)]="searchTerm"
+      />
     </div>
 
     @if (organizationsLoading()) {

@@ -5,20 +5,24 @@ import { CreateToolsetCommand } from '../create-toolset.command'
 
 @CommandHandler(CreateToolsetCommand)
 export class CreateToolsetHandler implements ICommandHandler<CreateToolsetCommand> {
-	readonly #logger = new Logger(CreateToolsetHandler.name)
+    readonly #logger = new Logger(CreateToolsetHandler.name)
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly toolsetRegistry: ToolsetRegistry
-	) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly toolsetRegistry: ToolsetRegistry
+    ) {}
 
-	public async execute(command: CreateToolsetCommand): Promise<BuiltinToolset> {
-		const strategy = this.toolsetRegistry.get(command.toolset.type)
-		if (!strategy) {
-			return null
-		}
+    public async execute(command: CreateToolsetCommand): Promise<BuiltinToolset> {
+        const strategy = this.toolsetRegistry.get(command.toolset.type)
+        if (!strategy) {
+            return null
+        }
 
-		return strategy.create(command.toolset, command.params)
-	}
+        const source = this.toolsetRegistry.getSource(strategy)
+        return strategy.create(command.toolset, {
+            ...command.params,
+            pluginScopeKey: source.scopeKey
+        })
+    }
 }

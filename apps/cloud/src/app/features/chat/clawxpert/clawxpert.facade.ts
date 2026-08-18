@@ -193,6 +193,8 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   })
   readonly assistantId = computed(() => this.resolvedPreference()?.assistantId ?? null)
   readonly xpertId = computed(() => this.currentXpert()?.id ?? this.resolvedPreference()?.assistantId ?? null)
+  readonly initialLayout = computed(() => this.currentXpert()?.options?.workbench?.initialLayout ?? null)
+  readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly currentWorkspaceId = computed(() => {
     return this.triggerDraftSource()?.workspaceId ?? this.currentXpert()?.workspaceId ?? null
   })

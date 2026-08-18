@@ -51,6 +51,20 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     })
   }
 
+  move(id: string, input: { knowledgebaseId: string; parentId: string | null; version: number }) {
+    return this.httpClient.post<{ document: IKnowledgeDocument; affectedDocumentIds: string[] }>(
+      this.apiBaseUrl + `/${id}/move`,
+      input
+    )
+  }
+
+  getFolderChildCounts(knowledgebaseId: string, folderIds: string[]) {
+    return this.httpClient.post<Array<{ folderId: string; documentCount: number; folderCount: number }>>(
+      this.apiBaseUrl + '/folder-child-counts',
+      { knowledgebaseId, folderIds }
+    )
+  }
+
   startParsing(id: string | string[], mode: KnowledgeDocumentProcessingMode = 'full') {
     return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/process', {
       ids: Array.isArray(id) ? id : id ? [id] : [],
@@ -150,7 +164,7 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.delete(this.apiBaseUrl + `/${kd.id}/page/${page.id}`)
   }
 
-  getChunks(id: string, params: { take: number; skip: number; search?: string }) {
+  getChunks(id: string, params: { take: number; skip: number; search?: string; targetChunkId?: string }) {
     return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(
       this.apiBaseUrl + `/${id}` + '/chunk',
       {

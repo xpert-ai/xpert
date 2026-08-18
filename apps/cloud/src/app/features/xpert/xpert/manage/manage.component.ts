@@ -65,6 +65,35 @@ export class XpertBasicManageComponent {
     const exportedAt = this.exportedTemplate()?.exportedAt
     return exportedAt ? new Date(exportedAt).toLocaleString() : null
   })
+  readonly sourceTemplate = computed(() => {
+    const xpert = this.xpert()
+    const optionsList = [xpert?.draft?.team?.options, xpert?.options]
+    for (const options of optionsList) {
+      const tracked = options?.templateSource
+      if (tracked?.templateId) {
+        return {
+          id: tracked.templateId,
+          label: tracked.pluginDisplayName
+            ? `${tracked.pluginDisplayName} / ${tracked.templateKey}`
+            : tracked.templateId
+        }
+      }
+    }
+
+    for (const options of optionsList) {
+      const templateKey = options?.bootstrap?.templateKey || options?.dataXpert?.templateKey || options?.templateKey
+      if (!templateKey) {
+        continue
+      }
+      const pluginName = options?.dataXpert?.requiredPlugin || options?.dataXpert?.requiredPlugins?.[0]
+      return {
+        id: pluginName ? `${pluginName}:${templateKey}` : templateKey,
+        label: pluginName ? `${pluginName} / ${templateKey}` : templateKey
+      }
+    }
+
+    return null
+  })
 
   readonly loading = signal(false)
 
@@ -236,6 +265,49 @@ export class XpertBasicManageComponent {
             getErrorMessage(error)
         )
       }
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  async syncFromTemplate() {
+    const xpert = this.xpert()
+    const sourceTemplate = this.sourceTemplate()
+    if (!xpert || !sourceTemplate || this.loading()) {
+      return
+    }
+
+    const confirm = await firstValueFrom(
+      this.#toastr.confirm({
+        code: 'XP.Xpert.SyncFromTemplateConfirm',
+        params: {
+          template: sourceTemplate.label,
+          Default:
+            `Update the current draft from the latest '${sourceTemplate.label}' template? ` +
+            'This replaces the draft DSL; the published version remains unchanged.'
+        }
+      })
+    )
+    if (!confirm) {
+      return
+    }
+
+    this.loading.set(true)
+    try {
+      const result = await firstValueFrom(this.#xpertService.syncFromTemplate(xpert.id))
+      this.xpertComponent.xpertService.refresh()
+      this.#toastr.success('XP.Xpert.SyncFromTemplateSuccess', {
+        template: result.templateTitle,
+        Default: `Draft updated from '${result.templateTitle}'. Publish is still required for it to take effect.`
+      })
+    } catch (error) {
+      this.#toastr.error(
+        this.#translate.instant('XP.Xpert.SyncFromTemplateError', {
+          Default: 'Failed to update from template'
+        }) +
+          ': ' +
+          getErrorMessage(error)
+      )
     } finally {
       this.loading.set(false)
     }

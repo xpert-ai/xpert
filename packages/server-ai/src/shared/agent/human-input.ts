@@ -16,39 +16,41 @@ type CodeReferenceLike = Omit<ChatKitCodeReference, 'type'> & {
 
 type QuoteReferenceLike = ChatKitQuoteReference
 
-type ImageReferenceLike = ChatKitImageReference
+type ImageReferenceLike = ChatKitImageReference & {
+    workspacePath?: string
+}
 
 type ElementReferenceLike = TChatElementReference
 
 type FileElementReferenceLike = TChatFileElementReference
 
-type ReferenceLike = TChatReference
+type ReferenceLike = Exclude<TChatReference, ChatKitImageReference> | ImageReferenceLike
 
 type ReferenceCompositionMode = 'compose' | 'preserve'
 
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
-    "Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
+    'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 
 type ReferenceCandidate = TChatElementReferenceCandidateFields &
     TChatFileElementReferenceCandidateFields & {
-    endLine?: unknown
-    label?: unknown
-    language?: unknown
-    messageId?: unknown
-    type?: unknown
-    path?: unknown
-    source?: unknown
-    fileId?: unknown
-    url?: unknown
-    mimeType?: unknown
-    name?: unknown
-    size?: unknown
-    width?: unknown
-    height?: unknown
-    startLine?: unknown
-    taskId?: unknown
-    text?: unknown
-}
+        endLine?: unknown
+        label?: unknown
+        language?: unknown
+        messageId?: unknown
+        type?: unknown
+        path?: unknown
+        source?: unknown
+        fileId?: unknown
+        url?: unknown
+        mimeType?: unknown
+        name?: unknown
+        size?: unknown
+        width?: unknown
+        height?: unknown
+        startLine?: unknown
+        taskId?: unknown
+        text?: unknown
+    }
 
 type CodeReferenceCandidate = ReferenceCandidate & {
     path: string
@@ -325,7 +327,7 @@ function toQuoteReference(reference: QuoteReferenceCandidate): ChatKitQuoteRefer
     }
 }
 
-function toImageReference(reference: ImageReferenceCandidate): ChatKitImageReference {
+function toImageReference(reference: ImageReferenceCandidate): ImageReferenceLike {
     const fileId = toOptionalString(reference.fileId)
     const url = toOptionalString(reference.url)
     const name = toOptionalString(reference.name)
@@ -413,14 +415,14 @@ export function normalizeReferenceLike(value: unknown): ReferenceLike | null {
     return null
 }
 
-export function normalizeReferences(value: unknown): TChatReference[] {
+export function normalizeReferences(value: unknown): ReferenceLike[] {
     if (!Array.isArray(value)) {
         return []
     }
 
     return value
         .map((reference) => normalizeReferenceLike(reference))
-        .filter((reference): reference is TChatReference => reference !== null)
+        .filter((reference): reference is ReferenceLike => reference !== null)
 }
 
 function getCodeReferenceRange(reference: CodeReferenceLike): string {
@@ -465,6 +467,7 @@ function formatImageReference(reference: ImageReferenceLike): string {
     return [
         `[Image] ${reference.label?.trim() || reference.name?.trim() || 'Pasted image'}`,
         ...(summary.length ? [`Metadata: ${summary.join(', ')}`] : []),
+        ...(reference.workspacePath?.trim() ? [`Workspace Path: ${reference.workspacePath.trim()}`] : []),
         ...(reference.url?.trim() ? [`URL: ${reference.url.trim()}`] : []),
         ...(reference.fileId?.trim() ? [`File ID: ${reference.fileId.trim()}`] : []),
         `Text: ${reference.text}`

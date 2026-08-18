@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
-import { XpHighlightDirective, XpSearchComponent } from '@xpert-ai/headless-ui'
+import { XpHighlightDirective, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IToolProvider, IXpertToolset, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
@@ -33,7 +33,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     OverlayModule,
     ...ZardTooltipImports,
 
-    XpSearchComponent,
+    ZardSearchInputComponent,
     XpHighlightDirective,
     XpI18nPipe,
     EmojiAvatarComponent,

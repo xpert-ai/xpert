@@ -25,6 +25,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
 import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
@@ -64,7 +65,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     /**
      * To solve the problem that Update cannot create OneToOne relation, it is uncertain whether using save to update might pose risks
      */
-    async update(id: string, entity: Partial<Xpert>) {
+    // Isolate TypeORM's recursive update type; business callers use the shallow method to keep ts-node inference bounded.
+    async update(id: string, entity: QueryDeepPartialEntity<Xpert> & Partial<Xpert>) {
+        return this.updateXpert(id, entity)
+    }
+
+    async updateXpert(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
         return await super.save(_entity)
@@ -319,6 +325,13 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async saveDraft(id: string, draft: TXpertTeamDraft) {
         const xpert = await this.findOne(id)
+        const templateSource = draft.team?.options?.templateSource
+        if (templateSource) {
+            xpert.options = {
+                ...(xpert.options ?? {}),
+                templateSource
+            }
+        }
         xpert.draft = {
             ...draft,
             nodes: normalizeMiddlewareNodes(draft.nodes),
@@ -468,6 +481,49 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return (xpert.userGroups ?? []).filter((group) => group.organizationId === resolvedOrganizationId)
     }
 
+    async getUserGroupAuthorizations(groupId?: string, organizationId?: string) {
+        const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
+        if (groupId) {
+            await this.findAuthorizationGroup(groupId, resolvedOrganizationId)
+        }
+
+        const xperts = await this.findPublishedOrganizationXpertsForAuthorization(resolvedOrganizationId)
+        return this.buildUserGroupAuthorizationResult(xperts, groupId)
+    }
+
+    async updateUserGroupAuthorizations(groupId: string, xpertIds: string[], organizationId?: string) {
+        const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
+        const group = await this.findAuthorizationGroup(groupId, resolvedOrganizationId)
+        const xperts = await this.findPublishedOrganizationXpertsForAuthorization(resolvedOrganizationId)
+        const selectedIds = new Set((xpertIds ?? []).filter(Boolean))
+        const availableIds = new Set(xperts.map((xpert) => xpert.id))
+
+        if ([...selectedIds].some((id) => !availableIds.has(id))) {
+            throw new NotFoundException(
+                'Some XPERTs were not found among published assistants in the current organization.'
+            )
+        }
+
+        const changedXperts = xperts.filter((xpert) => {
+            const isSelected = selectedIds.has(xpert.id)
+            const isCurrentlySelected = xpert.userGroups?.some((userGroup) => userGroup.id === groupId) ?? false
+            if (isSelected === isCurrentlySelected) {
+                return false
+            }
+
+            xpert.userGroups = isSelected
+                ? [...(xpert.userGroups ?? []), group]
+                : (xpert.userGroups ?? []).filter((userGroup) => userGroup.id !== groupId)
+            return true
+        })
+
+        if (changedXperts.length) {
+            await this.repository.save(changedXperts)
+        }
+
+        return this.buildUserGroupAuthorizationResult(xperts, groupId)
+    }
+
     async updateUserGroups(id: string, ids: string[], organizationId?: string) {
         const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
         const xpert = await this.findOne(id, {
@@ -490,6 +546,49 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         xpert.userGroups = [...preservedGroups, ...groups]
         await this.repository.save(xpert)
         return this.getUserGroups(id, resolvedOrganizationId)
+    }
+
+    private async findAuthorizationGroup(groupId: string, organizationId: string) {
+        const groups = await this.userGroupService.findByIdsInOrganization(organizationId, [groupId])
+        if (groups.length !== 1) {
+            throw new NotFoundException('The requested user group was not found in the current organization.')
+        }
+
+        return groups[0]
+    }
+
+    private async findPublishedOrganizationXpertsForAuthorization(organizationId: string) {
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId) {
+            throw new HttpException(
+                'Tenant context is required for XPERT user group authorization.',
+                HttpStatus.BAD_REQUEST
+            )
+        }
+
+        return this.repository.find({
+            where: {
+                tenantId,
+                organizationId,
+                latest: true,
+                publishAt: Not(IsNull())
+            },
+            relations: ['userGroups'],
+            order: {
+                updatedAt: 'DESC'
+            }
+        })
+    }
+
+    private buildUserGroupAuthorizationResult(xperts: Xpert[], groupId?: string) {
+        return {
+            items: xperts,
+            selectedXpertIds: groupId
+                ? xperts
+                      .filter((xpert) => xpert.userGroups?.some((userGroup) => userGroup.id === groupId))
+                      .map((xpert) => xpert.id)
+                : []
+        }
     }
 
     async findBySlug(slug: string, relations?: string[]) {

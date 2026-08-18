@@ -202,6 +202,39 @@ describe('KnowledgeDocumentService logical folder paths', () => {
     })
 })
 
+describe('KnowledgeDocumentService folder child counts', () => {
+    it('returns direct document and child-folder counts, including empty folders', async () => {
+        const getRawMany = jest.fn(async () => [{ folderId: 'folder-a', documentCount: '3', folderCount: '2' }])
+        const queryBuilder = {
+            innerJoin: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            setParameter: jest.fn().mockReturnThis(),
+            groupBy: jest.fn().mockReturnThis(),
+            getRawMany
+        }
+        const service = createService(
+            [
+                { id: 'folder-a', knowledgebaseId: 'kb-1', sourceType: DocumentTypeEnum.FOLDER },
+                { id: 'folder-empty', knowledgebaseId: 'kb-1', sourceType: DocumentTypeEnum.FOLDER }
+            ],
+            { repo: { createQueryBuilder: jest.fn(() => queryBuilder) } }
+        )
+
+        await expect(
+            service.getFolderChildCounts({ knowledgebaseId: 'kb-1', folderIds: ['folder-a', 'folder-empty'] })
+        ).resolves.toEqual([
+            { folderId: 'folder-a', documentCount: 3, folderCount: 2 },
+            { folderId: 'folder-empty', documentCount: 0, folderCount: 0 }
+        ])
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('parent.id IN (:...folderIds)', {
+            folderIds: ['folder-a', 'folder-empty']
+        })
+    })
+})
+
 describe('KnowledgeDocumentService original file downloads', () => {
     it('selects uploaded workspace files with original file paths', async () => {
         const service = createService([
@@ -375,7 +408,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                             deleteKnowledgeDocument
                         }) as unknown as KnowledgeDocumentStore
                 ),
-                update: updateKnowledgebase
+                updateKnowledgebase
             },
             commandBus: {
                 execute: clearGraph
@@ -419,7 +452,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                             deleteKnowledgeDocument
                         }) as unknown as KnowledgeDocumentStore
                 ),
-                update: updateKnowledgebase
+                updateKnowledgebase
             },
             commandBus: {
                 execute: jest.fn()
@@ -979,6 +1012,47 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             })
         )
         expect(result.items.map((chunk) => chunk.id)).toEqual(['chunk-1', 'chunk-2'])
+    })
+
+    it('includes an exact evidence chunk outside the current document page', async () => {
+        const service = createService([])
+        const findAll = jest
+            .fn()
+            .mockResolvedValueOnce({
+                items: [{ id: 'chunk-1', pageContent: 'first page chunk', metadata: { chunkIndex: 0 } }],
+                total: 25
+            })
+            .mockResolvedValueOnce({
+                items: [
+                    {
+                        id: 'row-25',
+                        pageContent: 'exact cited evidence',
+                        metadata: { chunkId: 'evidence-chunk-25', chunkIndex: 24 }
+                    }
+                ],
+                total: 1
+            })
+        Object.assign(service, { chunkService: { findAll } })
+
+        const result = await service.getChunks('doc-1', {
+            skip: 0,
+            take: 20,
+            targetChunkId: 'evidence-chunk-25'
+        })
+
+        expect(result.total).toBe(25)
+        expect(result.items.map((chunk) => chunk.metadata?.chunkId ?? chunk.id)).toEqual([
+            'evidence-chunk-25',
+            'chunk-1'
+        ])
+        expect(findAll).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                take: 1,
+                skip: 0,
+                where: expect.any(Array)
+            })
+        )
     })
 
     it('checks all bulk versions before updating any document', async () => {

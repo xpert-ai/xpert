@@ -119,7 +119,12 @@
 <ng-template #xpertsMenu>
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
     <div class="w-full sticky -top-1 z-10 bg-components-card-bg">
-      <xp-search class="" [(ngModel)]="search" />
+      <z-search-input
+        class="w-full"
+        [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+        [(ngModel)]="search"
+      />
     </div>
 
     @for (item of myXperts(); track item.id) {

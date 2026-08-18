@@ -2,7 +2,7 @@ import { AiModelTypeEnum } from '../agent/index'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'
-
+import type { ModelUsagePricingConfig, ModelUsagePricingStatus } from './model-usage.model'
 
 export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
   /**
@@ -61,17 +61,17 @@ export interface ICopilotWithProvider extends ICopilot {
 }
 
 export interface IAiProviderEntity {
-  provider: string;
-  label: I18nObject;
-  description: I18nObject;
-  icon_small: I18nObject;
-  icon_large: I18nObject;
-  background: string;
-  help: ProviderHelpInfo;
-  supported_model_types: AiModelTypeEnum[];
-  configurate_methods: ConfigurateMethod[];
-  model_credential_schema: ModelCredentialSchema;
-  provider_credential_schema: ProviderCredentialSchema;
+  provider: string
+  label: I18nObject
+  description: I18nObject
+  icon_small: I18nObject
+  icon_large: I18nObject
+  background: string
+  help: ProviderHelpInfo
+  supported_model_types: AiModelTypeEnum[]
+  configurate_methods: ConfigurateMethod[]
+  model_credential_schema: ModelCredentialSchema
+  provider_credential_schema: ProviderCredentialSchema
   models: ProviderModel[]
   /**
    * Not yet implemented, your contribution is needed
@@ -80,48 +80,48 @@ export interface IAiProviderEntity {
 }
 
 export interface ProviderHelpInfo {
-  title: I18nObject;
-  url: I18nObject;
+  title: I18nObject
+  url: I18nObject
 }
 
 export interface ProviderModel {
-  model: string;
-  label: I18nObject;
-  model_type: AiModelTypeEnum;
-  features?: ModelFeature[];
-  fetch_from: FetchFrom;
-  model_properties: Partial<Record<ModelPropertyKey, any>>;
-  deprecated?: boolean;
-  modelConfig?: any;
+  model: string
+  label: I18nObject
+  model_type: AiModelTypeEnum
+  features?: ModelFeature[]
+  fetch_from: FetchFrom
+  model_properties: Partial<Record<ModelPropertyKey, any>>
+  deprecated?: boolean
+  modelConfig?: any
 }
 
 export interface ProviderCredentialSchema {
-  credential_form_schemas: CredentialFormSchema[];
+  credential_form_schemas: CredentialFormSchema[]
 }
 
 /**
  * @todo Use JSON Schema to implement
  */
 export enum CredentialFormTypeEnum {
-  TEXT_INPUT = "text-input",
-  SECRET_INPUT = "secret-input",
-  SELECT = "select",
-  RADIO = "radio",
+  TEXT_INPUT = 'text-input',
+  SECRET_INPUT = 'secret-input',
+  SELECT = 'select',
+  RADIO = 'radio'
   // SWITCH = "switch", // use ParameterType.BOOLEAN
 }
 
 export interface CredentialFormSchema {
-  variable: string;
-  label: I18nObject;
+  variable: string
+  label: I18nObject
   type: CredentialFormTypeEnum | ParameterType
-  required: boolean;
+  required: boolean
   default?: number | string | boolean
   options?: {
     label: I18nObject
     value: number | string | boolean
     show_on?: FormShowOnObject[]
   }[]
-  placeholder: I18nObject;
+  placeholder: I18nObject
 
   max_length?: number
   show_on?: FormShowOnObject[]
@@ -133,32 +133,32 @@ export interface FormShowOnObject {
 }
 
 export enum FetchFrom {
-  PREDEFINED_MODEL = "predefined-model",
-  CUSTOMIZABLE_MODEL = "customizable-model"
+  PREDEFINED_MODEL = 'predefined-model',
+  CUSTOMIZABLE_MODEL = 'customizable-model'
 }
 
 export enum ModelFeature {
-  TOOL_CALL = "tool-call",
-  MULTI_TOOL_CALL = "multi-tool-call",
-  AGENT_THOUGHT = "agent-thought",
-  VISION = "vision",
-  STREAM_TOOL_CALL = "stream-tool-call",
-  VIDEO = "video",
-  STRUCTURED_OUTPUT = "structured-output"
+  TOOL_CALL = 'tool-call',
+  MULTI_TOOL_CALL = 'multi-tool-call',
+  AGENT_THOUGHT = 'agent-thought',
+  VISION = 'vision',
+  STREAM_TOOL_CALL = 'stream-tool-call',
+  VIDEO = 'video',
+  STRUCTURED_OUTPUT = 'structured-output'
 }
 
 export enum ModelPropertyKey {
-  MODE = "mode",
-  CONTEXT_SIZE = "context_size",
-  MAX_CHUNKS = "max_chunks",
-  FILE_UPLOAD_LIMIT = "file_upload_limit",
-  SUPPORTED_FILE_EXTENSIONS = "supported_file_extensions",
-  MAX_CHARACTERS_PER_CHUNK = "max_characters_per_chunk",
-  DEFAULT_VOICE = "default_voice",
-  VOICES = "voices",
-  WORD_LIMIT = "word_limit",
-  AUDIO_TYPE = "audio_type",
-  MAX_WORKERS = "max_workers"
+  MODE = 'mode',
+  CONTEXT_SIZE = 'context_size',
+  MAX_CHUNKS = 'max_chunks',
+  FILE_UPLOAD_LIMIT = 'file_upload_limit',
+  SUPPORTED_FILE_EXTENSIONS = 'supported_file_extensions',
+  MAX_CHARACTERS_PER_CHUNK = 'max_characters_per_chunk',
+  DEFAULT_VOICE = 'default_voice',
+  VOICES = 'voices',
+  WORD_LIMIT = 'word_limit',
+  AUDIO_TYPE = 'audio_type',
+  MAX_WORKERS = 'max_workers'
 }
 
 export enum ConfigurateMethod {
@@ -170,70 +170,248 @@ export enum ConfigurateMethod {
  * @todo Use JSON Schema to implement
  */
 export enum ParameterType {
-  FLOAT = "float",
-  INT = "int",
-  STRING = "string",
-  BOOLEAN = "boolean",
-  TEXT = "text"
+  FLOAT = 'float',
+  INT = 'int',
+  STRING = 'string',
+  BOOLEAN = 'boolean',
+  TEXT = 'text'
 }
 
 /**
  * @todo Use JSON Schema to implement
  */
 export interface ParameterRule {
-  name?: string;
-  useTemplate?: string;
-  label: I18nObject;
-  type: ParameterType;
-  help?: I18nObject;
-  required?: boolean;
-  default?: any;
-  min?: number;
-  max?: number;
-  precision?: number;
-  options?: string[];
+  name?: string
+  useTemplate?: string
+  label: I18nObject
+  type: ParameterType
+  help?: I18nObject
+  required?: boolean
+  default?: any
+  min?: number
+  max?: number
+  precision?: number
+  options?: string[]
+}
+
+export function normalizeModelParameterValue(value: unknown, rule: ParameterRule): unknown | undefined {
+  switch (rule.type) {
+    case ParameterType.FLOAT:
+    case ParameterType.INT: {
+      if (value === '' || value === null || value === undefined) {
+        return undefined
+      }
+
+      const numericValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+      if (!Number.isFinite(numericValue)) {
+        return undefined
+      }
+
+      let normalizedValue = rule.type === ParameterType.INT ? Math.trunc(numericValue) : numericValue
+      if (typeof rule.min === 'number' && Number.isFinite(rule.min)) {
+        normalizedValue = Math.max(normalizedValue, rule.min)
+      }
+      if (typeof rule.max === 'number' && Number.isFinite(rule.max)) {
+        normalizedValue = Math.min(normalizedValue, rule.max)
+      }
+      return rule.type === ParameterType.INT ? Math.trunc(normalizedValue) : normalizedValue
+    }
+    case ParameterType.BOOLEAN:
+      if (typeof value === 'boolean') {
+        return value
+      }
+      if (typeof value === 'string') {
+        const normalizedValue = value.trim().toLowerCase()
+        if (normalizedValue === 'true') {
+          return true
+        }
+        if (normalizedValue === 'false') {
+          return false
+        }
+      }
+      if (value === 1) {
+        return true
+      }
+      if (value === 0) {
+        return false
+      }
+      return undefined
+    case ParameterType.STRING:
+    case ParameterType.TEXT:
+      if (typeof value !== 'string') {
+        return undefined
+      }
+      if (rule.options?.length && !rule.options.includes(value)) {
+        return undefined
+      }
+      return value
+    default:
+      return value === undefined ? undefined : value
+  }
+}
+
+export function resolveModelParameterOptions(
+  modelOptions: Record<string, unknown> | undefined,
+  rules: ParameterRule[],
+  config: { preserveUnknown?: boolean } = {}
+): Record<string, unknown> | undefined {
+  const preserveUnknown = config.preserveUnknown ?? true
+  const resolvedOptions: Record<string, unknown> = preserveUnknown ? { ...(modelOptions ?? {}) } : {}
+
+  for (const rule of rules) {
+    if (!rule.name) {
+      continue
+    }
+
+    const hasSavedValue = Object.prototype.hasOwnProperty.call(modelOptions ?? {}, rule.name)
+    let resolvedValue = hasSavedValue ? normalizeModelParameterValue(modelOptions?.[rule.name], rule) : undefined
+    if (resolvedValue === undefined && rule.default !== undefined) {
+      resolvedValue = normalizeModelParameterValue(rule.default, rule)
+    }
+
+    if (resolvedValue === undefined) {
+      delete resolvedOptions[rule.name]
+    } else {
+      resolvedOptions[rule.name] = resolvedValue
+    }
+  }
+
+  return Object.keys(resolvedOptions).length ? resolvedOptions : undefined
 }
 
 export interface PriceTierConfig {
-  input: number;
-  output?: number;
-  max_tokens: number;
+  input: number
+  output?: number
+  max_tokens: number
+}
+
+export type LLMPriceComponent =
+  | 'input'
+  | 'output'
+  | 'cache_read_input'
+  | 'cache_write_input'
+  | 'request'
+  | 'cache_storage'
+
+export type LLMPriceAddOn = 'web_search' | 'grounding'
+
+export type LLMCacheWriteTtl = '5m' | '1h'
+
+export interface LLMPriceRule {
+  component: LLMPriceComponent
+  unit_price: number
+  unit_size: number
+  currency?: string
+  min_input_tokens?: number
+  max_input_tokens?: number
+  min_output_tokens?: number
+  max_output_tokens?: number
+  mode?: string
+  region?: string
+  service_tier?: string
+  add_on?: LLMPriceAddOn
+  cache_ttl?: LLMCacheWriteTtl
+  daily_time_window?: ModelPriceDailyTimeWindow
+}
+
+export interface LLMPriceAddOnUsage {
+  type: LLMPriceAddOn
+  quantity: number
+}
+
+export interface LLMUnpricedAddOnUsage extends LLMPriceAddOnUsage {
+  authority: 'request'
+}
+
+export type LLMPriceAuthority = 'catalog' | 'provider'
+
+export interface ModelPriceDailyTimeWindow {
+  /** IANA time zone, for example Asia/Shanghai. */
+  time_zone: string
+  /** Inclusive local wall-clock time in HH:mm or HH:mm:ss format. */
+  start_time: string
+  /** Exclusive local wall-clock time in HH:mm or HH:mm:ss format. */
+  end_time: string
+}
+
+export interface LLMReportedPrice {
+  amount: number
+  currency: string
+}
+
+export interface LLMPriceContext {
+  mode?: string
+  region?: string
+  serviceTier?: string
+  cacheWriteTtl?: LLMCacheWriteTtl
+  /** Provider-reported cache write token counts when one response contains multiple TTLs. */
+  cacheWriteInputTokensByTtl?: Partial<Record<LLMCacheWriteTtl, number>>
+  /** Whether promptTokens already includes cache read and write tokens. */
+  inputTokensIncludeCache?: boolean
+  addOns?: LLMPriceAddOnUsage[]
+  /** Requested add-ons whose actual provider usage is unavailable in the response. */
+  unpricedAddOns?: LLMUnpricedAddOnUsage[]
+  /** Stored cache volume multiplied by storage duration in hours. */
+  cacheStorageTokenHours?: number
+  /** Wall-clock instant used to select recurring price windows. */
+  pricingTime?: Date | string
+}
+
+export interface LLMPriceBreakdownItem {
+  component: LLMPriceComponent
+  quantity: number
+  pricingStatus: ModelUsagePricingStatus
+  unitPrice?: number
+  unit?: number
+  amount?: number
+  currency?: string
+  addOn?: LLMPriceAddOn
+  addOnAuthority?: LLMUnpricedAddOnUsage['authority']
+  cacheTtl?: LLMCacheWriteTtl
+  rule?: LLMPriceRule
+}
+
+export interface LLMPriceCalculation {
+  pricingStatus: ModelUsagePricingStatus
+  totalAmount: number
+  currency: string
+  breakdown: LLMPriceBreakdownItem[]
 }
 
 export interface PriceConfig {
-  input: number;
-  output?: number;
-  unit: number;
-  currency: string;
-  tiered_pricing?: PriceTierConfig[];
+  input: number
+  output?: number
+  unit: number
+  currency: string
+  tiered_pricing?: PriceTierConfig[]
+  rules?: LLMPriceRule[]
 }
 
 export interface AIModelEntity extends ProviderModel {
   parameter_rules?: ParameterRule[]
-  pricing?: PriceConfig
+  pricing?: PriceConfig | ModelUsagePricingConfig
 }
 
 export interface FieldModelSchema {
   label: I18nObject
   placeholder?: I18nObject
 }
-    
 
 export interface ModelCredentialSchema {
   model: FieldModelSchema
   credential_form_schemas: CredentialFormSchema[]
 }
 
-export const AI_MODEL_TYPE_VARIABLE = "__model_type"
+export const AI_MODEL_TYPE_VARIABLE = '__model_type'
 
 export enum PriceType {
-  INPUT = "input",
-  OUTPUT = "output"
+  INPUT = 'input',
+  OUTPUT = 'output'
 }
 
 export interface PriceInfo {
-  unitPrice: number;
-  unit: number;
-  totalAmount: number;
-  currency: string;
+  unitPrice: number
+  unit: number
+  totalAmount: number
+  currency: string
 }

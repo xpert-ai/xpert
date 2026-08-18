@@ -68,6 +68,16 @@ jest.mock('@xpert-ai/headless-ui', () => {
   })
   class ZardTabNavPanelComponent {}
 
+  @Component({
+    standalone: true,
+    selector: 'z-tab-nav-scroll',
+    template: '<ng-content />'
+  })
+  class ZardTabNavScrollComponent {
+    @Input() previousLabel?: string
+    @Input() nextLabel?: string
+  }
+
   @Directive({
     standalone: true,
     selector: '[z-menu]'
@@ -101,7 +111,12 @@ jest.mock('@xpert-ai/headless-ui', () => {
     ZardButtonComponent,
     ZardIconComponent,
     ZardMenuImports: [ZardMenuDirective, ZardMenuContentDirective, ZardMenuItemDirective],
-    ZardTabsImports: [ZardTabNavBarDirective, ZardTabLinkDirective, ZardTabNavPanelComponent],
+    ZardTabsImports: [
+      ZardTabNavBarDirective,
+      ZardTabLinkDirective,
+      ZardTabNavPanelComponent,
+      ZardTabNavScrollComponent
+    ],
     ZardTooltipImports: [ZardTooltipDirective]
   }
 })
@@ -221,6 +236,7 @@ jest.mock('../../../@shared/view-extension', () => {
     @Input() hostId?: string | null
     @Input() slot?: string
     @Input() viewKey?: string | null
+    @Input() query?: object | null
     @Input() fillAvailableHeight?: boolean
   }
 
@@ -241,7 +257,8 @@ import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   type IconDefinition,
-  type XpertExtensionViewManifest
+  type XpertExtensionViewManifest,
+  XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
 import {
@@ -260,6 +277,8 @@ import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-fi
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertSkillTrialIntentService } from './clawxpert-skill-trial-intent.service'
+import { getClawXpertWorkbenchLayoutStorageKey } from './clawxpert-workbench-layout-storage.service'
+import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 const TEST_LAYOUT_ICON = {
@@ -279,6 +298,14 @@ const TEST_FILE_LIST_ICON = {
   value: 'ri-file-list-3-line',
   alt: 'BOM Review'
 } satisfies IconDefinition
+
+const WORKBENCH_LAYOUT_TEST_ASSISTANT_IDS = ['assistant-1', 'assistant-2']
+
+function clearWorkbenchLayoutTestStorage() {
+  WORKBENCH_LAYOUT_TEST_ASSISTANT_IDS.forEach((assistantId) => {
+    localStorage.removeItem(getClawXpertWorkbenchLayoutStorageKey(assistantId))
+  })
+}
 
 jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   const { signal } = jest.requireActual('@angular/core')
@@ -393,6 +420,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
     xpertId: ReturnType<typeof signal<string | null>>
+    initialLayout: ReturnType<typeof signal<XpertWorkbenchInitialLayoutEnum | null>>
+    defaultViewKey: ReturnType<typeof signal<string | null>>
     currentWorkspaceId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
@@ -428,14 +457,27 @@ describe('ClawXpertConversationDetailComponent', () => {
     set: jest.Mock
     clear: jest.Mock
   }
+  let workbenchViewUrlState: {
+    viewKey: ReturnType<typeof signal<string | null>>
+    setViewKey: jest.Mock
+  }
   let hostEvents: ViewHostEventBus
 
   beforeEach(async () => {
+    clearWorkbenchLayoutTestStorage()
     skillTrialIntent = {
       peek: jest.fn(() => null),
       consume: jest.fn(() => null),
       set: jest.fn(),
       clear: jest.fn()
+    }
+    const viewKey = signal<string | null>(null)
+    workbenchViewUrlState = {
+      viewKey,
+      setViewKey: jest.fn((nextViewKey: string | null) => {
+        viewKey.set(nextViewKey)
+        return Promise.resolve(true)
+      })
     }
     const activeConversation = signal<IChatConversation | null>(null)
     facade = {
@@ -450,6 +492,8 @@ describe('ClawXpertConversationDetailComponent', () => {
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       xpertId: signal('assistant-1'),
+      initialLayout: signal(null),
+      defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
@@ -554,6 +598,10 @@ describe('ClawXpertConversationDetailComponent', () => {
         {
           provide: ClawXpertSkillTrialIntentService,
           useValue: skillTrialIntent
+        },
+        {
+          provide: ClawXpertWorkbenchViewUrlState,
+          useValue: workbenchViewUrlState
         }
       ]
     }).compileComponents()
@@ -564,10 +612,11 @@ describe('ClawXpertConversationDetailComponent', () => {
   afterEach(() => {
     jest.useRealTimers()
     TestBed.resetTestingModule()
+    clearWorkbenchLayoutTestStorage()
     jest.clearAllMocks()
   })
 
-  it('keeps the detail panel closed by default while resolving the current conversation context', async () => {
+  it('uses the two-column layout by default while resolving the current conversation context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -575,21 +624,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
-    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
-    expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
-    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-0')
-    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('pointer-events-none')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
+    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-100')
 
     const hiddenFilesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(hiddenFilesPanel).not.toBeNull()
     expect((hiddenFilesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe(
       'conversation-1'
     )
-    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
-    await settle(fixture)
-
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-100')
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
@@ -931,10 +976,87 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).toBeNull()
   })
 
+  it('selects the extension view requested by the view query parameter before the configured default', async () => {
+    facade.defaultViewKey.set('review')
+    workbenchViewUrlState.viewKey.set('metrics')
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' },
+          order: 10
+        }),
+        buildFixedViewManifest('metrics', {
+          title: { en_US: 'Metrics', zh_Hans: '指标' },
+          order: 20
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'metrics'
+      })
+    )
+    expect(workbenchViewUrlState.setViewKey).toHaveBeenCalledWith('metrics', { replaceUrl: true })
+  })
+
+  it('keeps extension view selection synchronized with URL changes and browser history state', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' },
+          order: 10
+        }),
+        buildFixedViewManifest('metrics', {
+          title: { en_US: 'Metrics', zh_Hans: '指标' },
+          order: 20
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    workbenchViewUrlState.setViewKey.mockClear()
+
+    const metricsTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'metrics')
+    expect(metricsTab).toBeDefined()
+    if (!metricsTab) {
+      throw new Error('Metrics fixed view tab was not created')
+    }
+
+    fixture.componentInstance.selectTab(metricsTab.id)
+    await settle(fixture)
+
+    expect(workbenchViewUrlState.viewKey()).toBe('metrics')
+    expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith('metrics', { replaceUrl: false })
+
+    const filesTab = fixture.componentInstance.addWorkspaceTab('files')
+    await settle(fixture)
+
+    expect(workbenchViewUrlState.viewKey()).toBeNull()
+    expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith(null, { replaceUrl: false })
+
+    workbenchViewUrlState.viewKey.set('review')
+    await settle(fixture)
+    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('review')
+
+    workbenchViewUrlState.viewKey.set('metrics')
+    await settle(fixture)
+    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('metrics')
+
+    workbenchViewUrlState.viewKey.set(null)
+    await settle(fixture)
+    expect(fixture.componentInstance.activeTabId()).toBe(filesTab.id)
+    expect(fixture.componentInstance.activeFixedViewTab()).toBeNull()
+  })
+
   it('opens fixed views as reusable workspace tabs rendered through the extension host outlet', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(
       of([
-        buildFixedViewManifest('bom_document_intake__review', {
+        buildFixedViewManifest('bom_document_intake_provider__bom_document_intake__review', {
           title: {
             en_US: 'BOM Review',
             zh_Hans: 'BOM 审核台'
@@ -955,7 +1077,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.activeTab()).toEqual(
       expect.objectContaining({
         kind: 'fixed-view',
-        viewKey: 'bom_document_intake__review',
+        viewKey: 'bom_document_intake_provider__bom_document_intake__review',
         title: 'BOM Review',
         icon: TEST_FILE_LIST_ICON
       })
@@ -968,7 +1090,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         hostType: 'agent',
         hostId: 'assistant-1',
         slot: 'agent.workbench.fixed',
-        viewKey: 'bom_document_intake__review',
+        viewKey: 'bom_document_intake_provider__bom_document_intake__review',
         fillAvailableHeight: true
       })
     )
@@ -979,7 +1101,85 @@ describe('ClawXpertConversationDetailComponent', () => {
     fixedViewTabs = fixture.componentInstance.workspaceTabs().filter((tab) => tab.kind === 'fixed-view')
     outlet = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent))
     expect(fixedViewTabs).toHaveLength(1)
-    expect(outlet.componentInstance.viewKey).toBe('bom_document_intake__review')
+    expect(outlet.componentInstance.viewKey).toBe('bom_document_intake_provider__bom_document_intake__review')
+
+    fixture.componentInstance.openWorkbenchView({
+      viewKey: 'bom_document_intake__review',
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'bom_document_intake_provider__bom_document_intake__review',
+        query: { selectionId: 'record-1', parameters: { section: 'features' } }
+      })
+    )
+    expect(fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance.query).toEqual({
+      selectionId: 'record-1',
+      parameters: { section: 'features' }
+    })
+  })
+
+  it('keeps visited extension views mounted while switching workspace tabs', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' },
+          order: 10
+        }),
+        buildFixedViewManifest('metrics', {
+          title: { en_US: 'Metrics', zh_Hans: '指标' },
+          order: 20
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const findOutlet = (viewKey: string) =>
+      fixture.debugElement
+        .queryAll(By.directive(ExtensionHostOutletComponent))
+        .find((outlet) => outlet.componentInstance.viewKey === viewKey)
+
+    const reviewOutlet = findOutlet('review')
+    expect(reviewOutlet).toBeDefined()
+    expect(findOutlet('metrics')).toBeUndefined()
+
+    const metricsTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'metrics')
+    expect(metricsTab).toBeDefined()
+    if (!metricsTab) {
+      throw new Error('Metrics fixed view tab was not created')
+    }
+    fixture.componentInstance.selectTab(metricsTab.id)
+    await settle(fixture)
+
+    const preservedReviewOutlet = findOutlet('review')
+    const metricsOutlet = findOutlet('metrics')
+    expect(preservedReviewOutlet?.componentInstance).toBe(reviewOutlet?.componentInstance)
+    expect(preservedReviewOutlet?.nativeElement.classList.contains('hidden')).toBe(true)
+    expect(metricsOutlet?.nativeElement.classList.contains('hidden')).toBe(false)
+
+    const reviewTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'review')
+    expect(reviewTab).toBeDefined()
+    if (!reviewTab) {
+      throw new Error('Review fixed view tab was not created')
+    }
+    fixture.componentInstance.selectTab(reviewTab.id)
+    await settle(fixture)
+
+    expect(findOutlet('review')?.componentInstance).toBe(reviewOutlet?.componentInstance)
+    expect(findOutlet('metrics')?.componentInstance).toBe(metricsOutlet?.componentInstance)
+    expect(findOutlet('review')?.nativeElement.classList.contains('hidden')).toBe(false)
+    expect(findOutlet('metrics')?.nativeElement.classList.contains('hidden')).toBe(true)
+
+    fixture.componentInstance.closeWorkspaceTab(new Event('click'), metricsTab.id)
+    await settle(fixture)
+
+    expect(findOutlet('review')?.componentInstance).toBe(reviewOutlet?.componentInstance)
+    expect(findOutlet('metrics')).toBeUndefined()
   })
 
   it('renders a fixed view even when the thread conversation context cannot be resolved', async () => {
@@ -1417,13 +1617,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
     expect(chatSurface?.className).toContain('border-l')
-    expect(tabHeader?.className).toContain('py-1.5')
+    expect(tabHeader?.className).toContain('py-0.5')
     expect(tabHeader?.className).toContain('items-center')
     expect(tabHeader?.className).not.toContain('pt-4')
     expect(tabHeader?.className).not.toContain('flex-col')
     expect(tabNav).not.toBeNull()
     expect(tabNav?.className).not.toContain('flex-1')
-    expect(tabNav?.className).toContain('min-w-0')
+    expect(tabNav?.className).toContain('min-w-full')
+    expect(tabNav?.className).toContain('!overflow-visible')
     expect(tabNav?.contains(addTabButton)).toBe(false)
     expect(tabButton?.className).toContain('rounded-lg')
     expect(tabButton?.className).toContain('bg-hover-bg')
@@ -1476,6 +1677,127 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).not.toBeNull()
   })
 
+  it('persists and restores the workspace layout independently for each assistant', async () => {
+    const assistantOneKey = getClawXpertWorkbenchLayoutStorageKey('assistant-1')
+    const assistantTwoKey = getClawXpertWorkbenchLayoutStorageKey('assistant-2')
+    const firstFixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(firstFixture)
+
+    firstFixture.componentInstance.openDetailPanel()
+    firstFixture.componentInstance.toggleWorkspaceMaximized()
+    await settle(firstFixture)
+
+    expect(localStorage.getItem(assistantOneKey)).toBe('maximized')
+    firstFixture.destroy()
+
+    const reopenedFixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(reopenedFixture)
+
+    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(true)
+
+    facade.assistantId.set('assistant-2')
+    facade.xpertId.set('assistant-2')
+    await settle(reopenedFixture)
+
+    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(localStorage.getItem(assistantTwoKey)).toBeNull()
+
+    reopenedFixture.componentInstance.closeDetailPanel()
+    await settle(reopenedFixture)
+    expect(localStorage.getItem(assistantTwoKey)).toBe('minimized')
+
+    facade.assistantId.set('assistant-1')
+    facade.xpertId.set('assistant-1')
+    await settle(reopenedFixture)
+
+    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(true)
+
+    facade.assistantId.set('assistant-2')
+    facade.xpertId.set('assistant-2')
+    await settle(reopenedFixture)
+
+    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(false)
+  })
+
+  it('uses the xpert Workbench initial layout when the user has no saved preference', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('assistant-1'))).toBeNull()
+  })
+
+  it('uses the configured extension view as the initial Workbench tab', async () => {
+    facade.defaultViewKey.set('metrics')
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([buildFixedViewManifest('review', { order: 10 }), buildFixedViewManifest('metrics', { order: 20 })])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('metrics')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+  })
+
+  it('waits for the bound xpert configuration before applying its initial layout', async () => {
+    facade.viewState.set('wizard')
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    facade.viewState.set('ready')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
+  })
+
+  it('keeps ChatKit maximized when configured as the initial layout and fixed views load', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' }
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.fixedViewTabs()).toHaveLength(1)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+  })
+
+  it('keeps a stored minimized workspace closed after fixed views load', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    localStorage.setItem(getClawXpertWorkbenchLayoutStorageKey('assistant-1'), 'minimized')
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('review', {
+          title: { en_US: 'Review', zh_Hans: '审核' }
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.fixedViewTabs()).toHaveLength(1)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('assistant-1'))).toBe('minimized')
+  })
+
   it('resizes the ChatKit panel from its left edge and clamps the width', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -1511,6 +1833,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   })
 
   it('opens the workspace panel and hides its close button when ChatKit minimizes into the pet overlay', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -1971,6 +2294,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('passes the file list reload key to the files panel and refreshes it after relevant log events', async () => {
     jest.useFakeTimers()
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settleWithFakeTimers(fixture)
 
@@ -2040,6 +2364,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   })
 
   it('opens a browser tab when a structured sandbox preview event arrives', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -2072,6 +2397,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('debounces multiple relevant log events into a single file list refresh', async () => {
     jest.useFakeTimers()
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settleWithFakeTimers(fixture)
 
@@ -2115,6 +2441,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('ignores unrelated log events, read-only file tools, and empty effect allowlists', async () => {
     jest.useFakeTimers()
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settleWithFakeTimers(fixture)
 
@@ -2161,6 +2488,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('ignores legacy Bash execute log events for file list refresh', async () => {
     jest.useFakeTimers()
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settleWithFakeTimers(fixture)
 

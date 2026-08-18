@@ -156,6 +156,33 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         return await this.service.deleteBulkWithVersion(body.documents ?? [])
     }
 
+    @Post('folder-child-counts')
+    async getFolderChildCounts(@Body() body: { knowledgebaseId?: string; folderIds?: string[] }) {
+        if (!body.knowledgebaseId) {
+            throw new BadRequestException('knowledgebaseId is required')
+        }
+        return await this.service.getFolderChildCounts({
+            knowledgebaseId: body.knowledgebaseId,
+            folderIds: body.folderIds ?? []
+        })
+    }
+
+    @Post(':id/move')
+    async move(
+        @Param('id') id: string,
+        @Body() body: { knowledgebaseId?: string; parentId?: string | null; version?: number }
+    ) {
+        if (!body.knowledgebaseId) {
+            throw new BadRequestException('knowledgebaseId is required')
+        }
+        return await this.service.moveDocument({
+            knowledgebaseId: body.knowledgebaseId,
+            documentId: id,
+            parentId: body.parentId ?? null,
+            expectedVersion: parseExpectedVersion(body.version)
+        })
+    }
+
     @Put(':id')
     async update(@Param('id') id: string, @Body() entity: IKnowledgeDocumentUpdateInput) {
         return await this.service.updateWithVersion(id, entity, parseExpectedVersion(entity.version))

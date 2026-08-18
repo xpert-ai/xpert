@@ -9,8 +9,16 @@ import { AIModel } from './ai-model'
 import { AI_MODEL_PROVIDER } from './ai-model-provider.decorator'
 import { IAIModelProviderStrategy } from './ai-model-provider.interface'
 import { AiModelNotFoundException } from './errors'
-import { TChatModelOptions, TextEmbeddingModelManager, IRerank, RerankModel, TextToSpeechModel, SpeechToTextModel } from './types/'
-
+import {
+  AIGCModelClient,
+  AsyncAIGCModelClient,
+  TChatModelOptions,
+  TextEmbeddingModelManager,
+  IRerank,
+  RerankModel,
+  TextToSpeechModel,
+  SpeechToTextModel
+} from './types/'
 
 @Injectable()
 export abstract class ModelProvider implements IAIModelProviderStrategy {
@@ -71,11 +79,20 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
 
   async getModels(modelType: AiModelTypeEnum): Promise<AIModelEntity[]> {
     const providerSchema = this.getProviderSchema()
-    if (!providerSchema.supported_model_types.includes(modelType)) {
+    const supported =
+      providerSchema.supported_model_types.includes(modelType) ||
+      (modelType === AiModelTypeEnum.IMAGE && providerSchema.supported_model_types.includes(AiModelTypeEnum.TEXT2IMG))
+    if (!supported) {
       return []
     }
 
-    const modelInstance = this.getModelManager(modelType)
+    const modelInstance =
+      modelType === AiModelTypeEnum.IMAGE
+        ? (this.modelManagers.get(AiModelTypeEnum.IMAGE) ?? this.modelManagers.get(AiModelTypeEnum.TEXT2IMG))
+        : this.modelManagers.get(modelType)
+    if (!modelInstance) {
+      throw new AiModelNotFoundException(`Missing AIModel instance for model type ${modelType}`)
+    }
     return modelInstance.predefinedModels()
   }
 
@@ -120,7 +137,10 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
   getSystemProviderModels(modelTypes: AiModelTypeEnum[]) {
     const models = []
     modelTypes?.forEach((modelType) => {
-      const modelManager = this.modelManagers.get(modelType)
+      const modelManager =
+        modelType === AiModelTypeEnum.IMAGE
+          ? (this.modelManagers.get(AiModelTypeEnum.IMAGE) ?? this.modelManagers.get(AiModelTypeEnum.TEXT2IMG))
+          : this.modelManagers.get(modelType)
       if (modelManager) {
         models.push(...modelManager.predefinedModels())
       }
@@ -136,7 +156,7 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
     type: AiModelTypeEnum,
     copilotModel: ICopilotModel,
     options?: TChatModelOptions
-  ): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank> {
+  ): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank | AIGCModelClient | AsyncAIGCModelClient> {
     switch (type) {
       case AiModelTypeEnum.LLM:
         return this.getModelManager(type)?.getChatModel(copilotModel, options)
@@ -153,6 +173,13 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
         return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
       case AiModelTypeEnum.RERANK:
         return this.getModelManager<RerankModel>(type)?.getReranker(copilotModel, options)
+      case AiModelTypeEnum.IMAGE:
+        return (
+          this.modelManagers.get(AiModelTypeEnum.IMAGE) ?? this.modelManagers.get(AiModelTypeEnum.TEXT2IMG)
+        )?.getAIGCModel(copilotModel, options)
+      case AiModelTypeEnum.TEXT2IMG:
+      case AiModelTypeEnum.VIDEO:
+        return this.getModelManager(type)?.getAIGCModel(copilotModel, options)
     }
 
     return null
