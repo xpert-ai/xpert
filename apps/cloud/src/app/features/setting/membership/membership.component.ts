@@ -363,7 +363,9 @@ export class MembershipAdminComponent implements OnInit {
   pointsLabel(points?: number | null) {
     return points === null
       ? this.#translate.instant('XP.Membership.Unlimited', { Default: 'Unlimited' })
-      : String(points ?? 0)
+      : new Intl.NumberFormat(this.#translate.currentLang || this.#translate.getDefaultLang() || 'en', {
+          maximumFractionDigits: 2
+        }).format(points ?? 0)
   }
 
   scopeDefaultPlanLabel(status: IMembershipScopeStatus | null) {

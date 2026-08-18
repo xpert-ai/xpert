@@ -236,7 +236,7 @@
                       @if (plan.includedPoints === null) {
                         {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                       } @else {
-                        {{ plan.includedPoints | number }}
+                        {{ plan.includedPoints | number: '1.0-2' }}
                       }
                     </div>
                   </div>
@@ -774,7 +774,7 @@
                     @if (plan.includedPoints === null) {
                       {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                     } @else {
-                      {{ plan.includedPoints | number }}
+                      {{ plan.includedPoints | number: '1.0-2' }}
                     }
                   </div>
                 </div>
@@ -1203,7 +1203,7 @@
                   } @else if (member.membership.pointsGranted === null) {
                     {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                   } @else {
-                    {{ adminMemberRemainingPoints(member) | number: '1.0-10' }}
+                    {{ adminMemberRemainingPoints(member) | number: '1.0-2' }}
                   }
                 </div>
                 <div class="text-sm text-text-secondary">
