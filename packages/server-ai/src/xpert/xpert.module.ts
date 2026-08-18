@@ -14,6 +14,7 @@ import { XpertAgentModule } from '../xpert-agent'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
+import { CopilotUsageModule } from '../copilot-usage/copilot-usage.module'
 import { AnonymousStrategy } from './auth/anonymous.strategy'
 import { EnvironmentModule } from '../environment'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
@@ -68,6 +69,7 @@ import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
+        CopilotUsageModule,
         HandoffQueueModule,
         ChatConversationModule,
         SseStreamModule

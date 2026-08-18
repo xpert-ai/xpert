@@ -1,10 +1,14 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply flex flex-col justify-start items-stretch h-full w-full px-12 py-6 overflow-auto bg-components-panel-bg;
+  @apply flex h-full w-full flex-col items-stretch justify-start overflow-auto bg-components-panel-bg p-8;
 }
 
 .download {
-  position: relative;
-  color: #155eef;
-  @apply text-sm;
+  @apply relative text-sm text-primary-600;
+}
+
+@media (max-width: 639px) {
+  :host {
+    @apply p-4;
+  }
 }

@@ -6,49 +6,49 @@ import { XpertToolset } from '../../xpert-toolset.entity'
 import { CreateToolsetHandler } from './create-toolset.handler'
 
 describe('CreateToolsetHandler', () => {
-	it('passes runtime params to plugin toolset strategies', async () => {
-		const createdToolset = {}
-		const strategy = {
-			create: jest.fn().mockResolvedValue(createdToolset)
-		}
-		const testingModule = await Test.createTestingModule({
-			providers: [
-				CreateToolsetHandler,
-				{
-					provide: CommandBus,
-					useValue: {}
-				},
-				{
-					provide: QueryBus,
-					useValue: {}
-				},
-				{
-					provide: ToolsetRegistry,
-					useValue: {
-						get: jest.fn().mockReturnValue(strategy),
-						getSource: jest.fn().mockReturnValue({ scopeKey: 'organization-1' })
-					}
-				}
-			]
-		}).compile()
-		const handler = testingModule.get(CreateToolsetHandler)
-		const commandBus = testingModule.get(CommandBus)
-		const queryBus = testingModule.get(QueryBus)
-		const toolset = Object.assign(new XpertToolset(), { type: 'seedream_aigc' })
-		const params: TBuiltinToolsetParams = {
-			tenantId: 'tenant-1',
-			xpertId: 'xpert-1',
-			env: {},
-			commandBus,
-			queryBus
-		}
+    it('passes runtime params to plugin toolset strategies', async () => {
+        const createdToolset = {}
+        const strategy = {
+            create: jest.fn().mockResolvedValue(createdToolset)
+        }
+        const testingModule = await Test.createTestingModule({
+            providers: [
+                CreateToolsetHandler,
+                {
+                    provide: CommandBus,
+                    useValue: {}
+                },
+                {
+                    provide: QueryBus,
+                    useValue: {}
+                },
+                {
+                    provide: ToolsetRegistry,
+                    useValue: {
+                        get: jest.fn().mockReturnValue(strategy),
+                        getSource: jest.fn().mockReturnValue({ scopeKey: 'organization-1' })
+                    }
+                }
+            ]
+        }).compile()
+        const handler = testingModule.get(CreateToolsetHandler)
+        const commandBus = testingModule.get(CommandBus)
+        const queryBus = testingModule.get(QueryBus)
+        const toolset = Object.assign(new XpertToolset(), { type: 'seedream_aigc' })
+        const params: TBuiltinToolsetParams = {
+            tenantId: 'tenant-1',
+            xpertId: 'xpert-1',
+            env: {},
+            commandBus,
+            queryBus
+        }
 
-		const result = await handler.execute(new CreateToolsetCommand(toolset, params))
+        const result = await handler.execute(new CreateToolsetCommand(toolset, params))
 
-		expect(result).toBe(createdToolset)
-		expect(strategy.create).toHaveBeenCalledWith(toolset, {
-			...params,
-			pluginScopeKey: 'organization-1'
-		})
-	})
+        expect(result).toBe(createdToolset)
+        expect(strategy.create).toHaveBeenCalledWith(toolset, {
+            ...params,
+            pluginScopeKey: 'organization-1'
+        })
+    })
 })

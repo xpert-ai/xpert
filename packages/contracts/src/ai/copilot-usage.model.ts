@@ -58,6 +58,50 @@ export interface ICopilotUsageTotals {
   priceGrandTotal: number
 }
 
+export interface ICopilotUsageOverviewBucket {
+  date: string
+  provider?: string | null
+  model?: string | null
+  tokenUsed: number
+  membershipPointsUsed: number
+  callCount: number
+}
+
+export interface ICopilotUsageOverviewDaily {
+  date: string
+  tokenUsed: number
+  membershipPointsUsed: number
+  callCount: number
+  activeUsers: number
+  conversationCount: number
+}
+
+export interface ICopilotUsageOverviewModel {
+  provider?: string | null
+  model?: string | null
+  tokenUsed: number
+  membershipPointsUsed: number
+  callCount: number
+}
+
+export interface ICopilotUsageOverviewModelOption {
+  provider?: string | null
+  model: string
+}
+
+export interface ICopilotUsageOverview {
+  totalTokens: number
+  totalMembershipPoints: number
+  totalCalls: number
+  activeUsers: number
+  totalConversations: number
+  activeDays: number
+  buckets: ICopilotUsageOverviewBucket[]
+  daily: ICopilotUsageOverviewDaily[]
+  modelUsage: ICopilotUsageOverviewModel[]
+  availableModels: ICopilotUsageOverviewModelOption[]
+}
+
 export interface ICopilotUsageQuery {
   dimension?: TCopilotUsageDimension
   start?: string
@@ -65,6 +109,7 @@ export interface ICopilotUsageQuery {
   provider?: string
   model?: string
   userId?: string
+  xpertId?: string
   organizationId?: string
   currency?: string
 }

@@ -1,0 +1,253 @@
+@reference "../../../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply flex w-full flex-col;
+}
+
+.monitor-header {
+  @apply mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between;
+}
+
+.monitor-kicker,
+.monitor-section-kicker {
+  @apply flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-text-tertiary;
+}
+
+.monitor-section-kicker i {
+  @apply text-base text-primary-600;
+}
+
+.monitor-period-chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-divider-regular bg-components-card-bg px-2.5 py-1 text-xs font-medium text-text-secondary shadow-sm;
+}
+
+.monitor-period-chip i {
+  @apply text-sm text-text-tertiary;
+}
+
+.monitor-source-badge {
+  @apply flex max-w-full items-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 shadow-sm lg:max-w-[300px];
+}
+
+.monitor-source-icon {
+  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-lg text-text-secondary;
+}
+
+.monitor-summary-grid {
+  @apply mb-8 w-full;
+}
+
+.monitor-primary-summary {
+  @apply relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg p-6 shadow-sm transition-shadow duration-200 hover:shadow-md;
+}
+
+.monitor-primary-summary::after {
+  content: '';
+  @apply absolute inset-y-0 left-0 w-1 bg-primary-600;
+}
+
+.monitor-summary-header {
+  @apply flex items-start justify-between gap-4;
+}
+
+.monitor-summary-status {
+  @apply inline-flex shrink-0 items-center gap-2 rounded-full border border-divider-subtle bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-tertiary;
+}
+
+.monitor-primary-metrics {
+  @apply mt-7 grid grid-cols-1 gap-7 sm:grid-cols-2;
+}
+
+.monitor-primary-metric {
+  @apply min-w-0 border-l-2 border-primary-600 pl-4;
+}
+
+.monitor-primary-metric--points {
+  @apply border-text-warning;
+}
+
+.monitor-metric-label {
+  @apply flex min-w-0 items-center gap-2 text-sm font-medium text-text-secondary;
+}
+
+.monitor-metric-label > span:not(.monitor-help-icon) {
+  @apply truncate;
+}
+
+.monitor-metric-label > i {
+  @apply shrink-0 text-base;
+}
+
+.monitor-primary-value {
+  @apply mt-3 truncate text-4xl font-semibold tracking-tight text-text-primary;
+}
+
+.monitor-summary-stats {
+  @apply mt-7 flex w-full overflow-hidden rounded-xl border border-divider-subtle bg-background-default-subtle/60;
+}
+
+.monitor-summary-stat {
+  @apply flex min-h-[104px] min-w-0 flex-1 items-center gap-4 px-5 py-4;
+}
+
+.monitor-summary-stat + .monitor-summary-stat {
+  @apply border-l border-divider-subtle;
+}
+
+.monitor-secondary-icon {
+  @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-divider-subtle text-lg;
+}
+
+.monitor-secondary-copy {
+  @apply min-w-0 flex-1;
+}
+
+.monitor-secondary-value {
+  @apply mt-1.5 truncate text-3xl font-semibold tracking-tight text-text-primary;
+}
+
+.monitor-kpi-label {
+  @apply flex min-w-0 max-w-full items-center gap-1.5 text-sm font-medium text-text-secondary;
+}
+
+.monitor-help-icon {
+  @apply inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full text-text-tertiary transition-colors duration-150 hover:bg-background-default-subtle hover:text-text-secondary;
+}
+
+.monitor-help-icon i {
+  @apply text-sm;
+}
+
+.monitor-analysis-section {
+  @apply mb-5;
+}
+
+.monitor-section-heading {
+  @apply mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between;
+}
+
+.monitor-section-meta {
+  @apply inline-flex w-fit items-center gap-2 rounded-full border border-divider-subtle bg-components-card-bg px-3 py-1.5 text-xs font-medium text-text-tertiary;
+}
+
+.monitor-filter-bar {
+  @apply flex flex-col gap-3 rounded-2xl border border-divider-regular bg-background-default-subtle/70 p-3 sm:flex-row sm:items-center;
+}
+
+.monitor-filter-label {
+  @apply flex shrink-0 items-center gap-2 px-1 text-sm font-medium text-text-secondary;
+}
+
+.monitor-filter-label i {
+  @apply text-base text-text-tertiary;
+}
+
+.monitor-filter-controls {
+  @apply flex min-w-0 flex-1 flex-col gap-2 sm:flex-row;
+}
+
+.monitor-chart-grid {
+  @apply mb-4 grid w-full grid-cols-1 gap-4;
+}
+
+.monitor-chart-grid--distribution {
+  @apply xl:grid-cols-2;
+}
+
+.monitor-chart-grid--trends {
+  @apply lg:grid-cols-2 2xl:grid-cols-3;
+}
+
+.monitor-chart-card {
+  @apply flex min-h-0 flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg shadow-sm transition-shadow duration-200 hover:shadow-md;
+}
+
+.monitor-panel-header {
+  @apply flex min-h-[76px] items-start justify-between gap-3 border-b border-divider-subtle px-5 py-4;
+}
+
+.monitor-panel-title-group {
+  @apply flex min-w-0 items-center gap-3;
+}
+
+.monitor-panel-icon {
+  @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base;
+}
+
+.monitor-panel-title {
+  @apply truncate text-sm font-semibold text-text-primary;
+}
+
+.monitor-panel-subtitle {
+  @apply mt-1 truncate text-xs text-text-tertiary;
+}
+
+.monitor-chart-body {
+  @apply flex min-h-[300px] flex-1 flex-col px-5 pb-5 pt-2;
+}
+
+.monitor-chart-body--trend {
+  @apply min-h-[270px] px-4 pb-4 pt-1;
+}
+
+.monitor-empty-state {
+  @apply flex min-h-[240px] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-divider-subtle bg-background-default-subtle/50 px-4 text-center text-sm text-text-tertiary;
+}
+
+.monitor-empty-state i {
+  @apply text-2xl text-text-quaternary;
+}
+
+.monitor-token-card {
+  @apply mb-4;
+}
+
+.monitor-token-body {
+  @apply min-h-[350px] px-5 pb-5 pt-2;
+}
+
+.monitor-legend {
+  @apply flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-xs text-text-tertiary;
+}
+
+.monitor-legend span {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.monitor-legend i {
+  @apply h-2 w-2 rounded-full;
+}
+
+@media (max-width: 639px) {
+  .monitor-header {
+    @apply mb-6;
+  }
+
+  .monitor-source-badge {
+    @apply w-full;
+  }
+
+  .monitor-summary-stats {
+    @apply flex-col;
+  }
+
+  .monitor-summary-stat {
+    @apply min-h-[88px] w-full;
+  }
+
+  .monitor-summary-stat + .monitor-summary-stat {
+    @apply border-l-0 border-t;
+  }
+
+  .monitor-panel-header {
+    @apply px-4;
+  }
+
+  .monitor-panel-title {
+    @apply whitespace-normal;
+  }
+
+  .monitor-legend {
+    @apply justify-start px-4 pb-3;
+  }
+}
