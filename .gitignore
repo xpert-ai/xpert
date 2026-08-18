@@ -72,6 +72,9 @@ Thumbs.db
 .angular/
 .workflow/
 
+# Pi workspace files
+/.pi-glla/
+
 .angular
 .deploy/k8s/secret.prod.yaml
 /apps/api/public
