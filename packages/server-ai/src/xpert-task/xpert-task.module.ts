@@ -16,6 +16,7 @@ import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
+import { ScheduledTaskExecution } from './scheduled-task-execution.entity'
 import { XpertModule } from '../xpert/xpert.module'
 
 @Module({
@@ -27,7 +28,8 @@ import { XpertModule } from '../xpert/xpert.module'
             ChatConversation,
             AutoTask,
             AutoTaskTemplate,
-            XpertTaskTemplate
+            XpertTaskTemplate,
+            ScheduledTaskExecution
         ]),
         TenantModule,
         ActorTokenModule,

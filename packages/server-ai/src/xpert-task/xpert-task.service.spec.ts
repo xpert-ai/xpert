@@ -24,7 +24,8 @@ import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ScheduleNote } from './schedule-note.entity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
-import { XpertTaskService } from './xpert-task.service'
+import { buildScheduleOccurrenceKey, resolveScheduledOccurrence, XpertTaskService } from './xpert-task.service'
+import { ScheduledTaskExecution, ScheduledTaskExecutionStatus } from './scheduled-task-execution.entity'
 
 type CommandBusMock = {
     execute: jest.Mock<Promise<unknown>, [unknown]>
@@ -35,6 +36,108 @@ type AgentMiddlewareRegistryMock = {
 }
 
 describe('XpertTaskService', () => {
+    it('builds one occurrence key for a normalized scheduled slot', () => {
+        const task = createTaskFixture({
+            options: {
+                frequency: TaskFrequency.Daily,
+                time: '09:50'
+            }
+        })
+        const scheduledAt = resolveScheduledOccurrence(task, new Date('2026-08-19T01:52:30.000Z'))
+
+        expect(buildScheduleOccurrenceKey(task, scheduledAt)).toBe('xpert-task:task-1:2026-08-19T01:50')
+    })
+
+    it('reclaims an expired scheduled execution through the periodic recovery scan', async () => {
+        const commandBus = createCommandBusMock()
+        const repository = createRepositoryMock<XpertTask>()
+        const task = createTaskFixture()
+        const expiredExecution = {
+            id: 'scheduled-execution-1',
+            taskId: task.id,
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            occurrenceKey: 'xpert-task:task-1:2026-08-19T01:50',
+            scheduledAt: new Date('2026-08-19T01:50:00.000Z'),
+            status: ScheduledTaskExecutionStatus.RUNNING,
+            ownerId: 'api-1',
+            leaseExpiresAt: new Date('2026-08-19T01:55:00.000Z'),
+            attempt: 1,
+            conversationId: 'conversation-1',
+            executionId: 'run-1'
+        } as ScheduledTaskExecution
+        const taskQuery = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getOne: jest.fn().mockResolvedValue(task)
+        }
+        const createQueryBuilder = repository.createQueryBuilder as jest.Mock
+        createQueryBuilder.mockReturnValue(taskQuery)
+        const service = createService(commandBus, undefined, undefined, repository)
+        const coordinator = {
+            findExpired: jest.fn().mockResolvedValue([expiredExecution]),
+            claim: jest.fn().mockResolvedValue(expiredExecution)
+        }
+        Reflect.set(service, 'scheduledTaskExecutionCoordinator', coordinator)
+        const executeTask = jest.spyOn(service, 'executeTask').mockResolvedValue({
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            runId: 'run-1'
+        })
+
+        await service.recoverExpiredScheduledTaskExecutions()
+
+        expect(coordinator.claim).toHaveBeenCalledWith(
+            task,
+            expiredExecution.occurrenceKey,
+            expiredExecution.scheduledAt
+        )
+        expect(executeTask).toHaveBeenCalledWith(
+            task.id,
+            { timeZone: task.timeZone },
+            expiredExecution.scheduledAt,
+            expiredExecution
+        )
+    })
+
+    it('pauses a once task after its scheduled execution succeeds', async () => {
+        const commandBus = createCommandBusMock()
+        const repository = createRepositoryMock<XpertTask>()
+        const task = createTaskFixture()
+        const scheduledExecution = {
+            id: 'scheduled-execution-1',
+            taskId: task.id,
+            occurrenceKey: 'xpert-task:task-1:2026-08-19T01:50',
+            scheduledAt: new Date('2026-08-19T01:50:00.000Z'),
+            status: ScheduledTaskExecutionStatus.PENDING,
+            ownerId: 'api-1',
+            leaseExpiresAt: new Date('2026-08-19T01:55:00.000Z'),
+            attempt: 1,
+            conversationId: 'conversation-1',
+            executionId: 'run-1'
+        } as ScheduledTaskExecution
+        const service = createService(commandBus, undefined, undefined, repository)
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+        const coordinator = {
+            markRunning: jest.fn().mockResolvedValue(undefined),
+            bindRun: jest.fn().mockResolvedValue(undefined),
+            refreshLease: jest.fn().mockResolvedValue(undefined),
+            finish: jest.fn().mockResolvedValue(undefined)
+        }
+        Reflect.set(service, 'scheduledTaskExecutionCoordinator', coordinator)
+
+        await service.executeTask('task-1', { timeZone: 'UTC' }, scheduledExecution.scheduledAt, scheduledExecution)
+        await new Promise<void>((resolve) => setImmediate(resolve))
+
+        expect(coordinator.finish).toHaveBeenCalledWith(
+            scheduledExecution,
+            ScheduledTaskExecutionStatus.SUCCEEDED,
+            undefined
+        )
+        expect(repository.update).toHaveBeenCalledWith(task.id, { status: ScheduleTaskStatus.PAUSED })
+    })
+
     it('creates a joinable persisted chat run for scheduled task execution', async () => {
         const commandBus = createCommandBusMock()
         const service = createService(commandBus)
@@ -280,12 +383,13 @@ function createService(
     commandBus: CommandBusMock,
     xpertService = createXpertServiceMock(),
     agentMiddlewareRegistry = createAgentMiddlewareRegistryMock(),
-    repository = createRepositoryMock<XpertTask>()
+    repository = createRepositoryMock<XpertTask>(),
+    conversationRepository = createRepositoryMock<ChatConversation>()
 ) {
     return new XpertTaskService(
         repository,
         createRepositoryMock<ScheduleNote>(),
-        createRepositoryMock<ChatConversation>(),
+        conversationRepository,
         createRepositoryMock<AutoTask>(),
         createRepositoryMock<AutoTaskTemplate>(),
         createRepositoryMock<XpertTaskTemplate>(),
