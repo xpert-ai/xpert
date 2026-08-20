@@ -2,7 +2,7 @@ import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { ParameterRule, ParameterType } from '@xpert-ai/contracts'
+import { isOutputTokenParameter, ParameterRule, ParameterType } from '@xpert-ai/contracts'
 
 /**
  * @todo Use JSON Schema to implement
@@ -32,6 +32,21 @@ export class ModelParameterInputComponent {
     this.updateValue(this.normalizeNumericValue(value, type))
   }
 
+  sliderMaximum(): number | undefined {
+    const parameter = this.parameter()
+    const configuredMax = this.finiteNumber(parameter?.max)
+    if (!isOutputTokenParameter(parameter) || configuredMax === undefined) {
+      return configuredMax
+    }
+
+    const currentValue = this.finiteNumber(this.value$())
+    if (currentValue === undefined) {
+      return configuredMax
+    }
+
+    return Math.max(configuredMax, currentValue)
+  }
+
   private normalizeNumericValue(value: unknown, type: ParameterType.FLOAT | ParameterType.INT): number | undefined {
     if (value === '' || value === null || value === undefined) {
       return undefined
@@ -47,5 +62,10 @@ export class ModelParameterInputComponent {
     }
 
     return undefined
+  }
+
+  private finiteNumber(value: unknown): number | undefined {
+    const numericValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+    return Number.isFinite(numericValue) ? numericValue : undefined
   }
 }

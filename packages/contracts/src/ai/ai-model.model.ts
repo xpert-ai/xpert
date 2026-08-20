@@ -194,6 +194,17 @@ export interface ParameterRule {
   options?: string[]
 }
 
+const OUTPUT_TOKEN_PARAMETER_NAMES = new Set([
+  'max_tokens',
+  'max_output_tokens',
+  'max_completion_tokens',
+  'max_tokens_to_sample'
+])
+
+export function isOutputTokenParameter(rule: Pick<ParameterRule, 'name'> | null | undefined): boolean {
+  return !!rule?.name && OUTPUT_TOKEN_PARAMETER_NAMES.has(rule.name)
+}
+
 export function normalizeModelParameterValue(value: unknown, rule: ParameterRule): unknown | undefined {
   switch (rule.type) {
     case ParameterType.FLOAT:
@@ -211,7 +222,7 @@ export function normalizeModelParameterValue(value: unknown, rule: ParameterRule
       if (typeof rule.min === 'number' && Number.isFinite(rule.min)) {
         normalizedValue = Math.max(normalizedValue, rule.min)
       }
-      if (typeof rule.max === 'number' && Number.isFinite(rule.max)) {
+      if (!isOutputTokenParameter(rule) && typeof rule.max === 'number' && Number.isFinite(rule.max)) {
         normalizedValue = Math.min(normalizedValue, rule.max)
       }
       return rule.type === ParameterType.INT ? Math.trunc(normalizedValue) : normalizedValue

@@ -35,6 +35,7 @@ type ComponentData = {
     file?: unknown
     input?: unknown
     tool?: unknown
+    output?: unknown
     url?: unknown
 }
 
@@ -48,11 +49,16 @@ type ArtifactCandidate = {
     kind?: unknown
     title?: unknown
     description?: unknown
+    files?: unknown
     workspacePath?: unknown
+    filePath?: unknown
     fileAssetId?: unknown
     storageFileId?: unknown
     name?: unknown
     originalName?: unknown
+    fileName?: unknown
+    mimeType?: unknown
+    extension?: unknown
 }
 
 type TaskSummaryResourceCandidate = {
@@ -454,14 +460,20 @@ function artifactOutput(value: unknown, messageId?: string, updatedAt?: string):
     }
     const artifact = value as ArtifactCandidate
     const artifactId = readString(artifact.artifactId) ?? readString(artifact.id)
-    const workspacePath = readString(artifact.workspacePath)
+    const workspacePath = readString(artifact.workspacePath) ?? readString(artifact.filePath)
     const fileId = readString(artifact.fileAssetId) ?? readString(artifact.storageFileId)
     const id = artifactId ?? fileId ?? workspacePath
-    const title = readString(artifact.title) ?? readString(artifact.originalName) ?? readString(artifact.name) ?? id
+    const title =
+        readString(artifact.title) ??
+        readString(artifact.originalName) ??
+        readString(artifact.name) ??
+        readString(artifact.fileName) ??
+        fileNameFromPath(workspacePath) ??
+        id
     if (!id || !title) {
         return undefined
     }
-    const kind = mapArtifactKind(artifact.kind) ?? 'file'
+    const kind = artifactKind(artifact)
     if (!artifactId && !workspacePath) {
         return undefined
     }
@@ -483,6 +495,132 @@ function artifactOutput(value: unknown, messageId?: string, updatedAt?: string):
         ...(messageId ? { messageId } : {}),
         ...(updatedAt ? { updatedAt } : {})
     }
+}
+
+function artifactOutputs(value: unknown, messageId?: string, updatedAt?: string): ChatTaskSummaryOutput[] {
+    if (!isObjectValue(value)) {
+        return []
+    }
+    const artifact = value as ArtifactCandidate
+    const output = artifactOutput(value, messageId, updatedAt)
+    const files = Array.isArray(artifact.files)
+        ? artifact.files.flatMap((file) => artifactOutput(file, messageId, updatedAt) ?? [])
+        : []
+    return [...(output ? [output] : []), ...files]
+}
+
+function parseStructuredOutput(value: unknown): Record<string, unknown> | undefined {
+    if (isObjectValue(value)) {
+        return value as Record<string, unknown>
+    }
+    if (typeof value !== 'string' || !value.trim()) {
+        return undefined
+    }
+    try {
+        const parsed = JSON.parse(value)
+        return isObjectValue(parsed) ? (parsed as Record<string, unknown>) : undefined
+    } catch {
+        return undefined
+    }
+}
+
+function structuredToolOutputs(data: ComponentData, messageId?: string, updatedAt?: string) {
+    const payload = parseStructuredOutput(data.output)
+    if (!payload) {
+        return []
+    }
+
+    const tool = readString(data.tool)
+    const outputs: ChatTaskSummaryOutput[] = []
+    if (tool === 'drawio_publish_artifact_link' && readString(payload.artifactId)) {
+        const output = artifactOutput(
+            {
+                ...payload,
+                kind: 'html',
+                title: readString(payload.title) ?? 'draw.io diagram'
+            },
+            messageId,
+            updatedAt
+        )
+        if (output) {
+            outputs.push(output)
+        }
+    }
+
+    if (!outputs.length) {
+        outputs.push(...artifactOutputs(payload, messageId, updatedAt))
+        outputs.push(...artifactOutputs(payload.artifact, messageId, updatedAt))
+        outputs.push(...artifactOutputs(payload.file, messageId, updatedAt))
+    }
+    return outputs
+}
+
+function artifactKind(artifact: ArtifactCandidate): ChatTaskSummaryOutputKind {
+    const explicitKind = mapArtifactKind(artifact.kind)
+    if (explicitKind) {
+        return explicitKind
+    }
+    const mimeType = readString(artifact.mimeType)?.toLowerCase()
+    if (mimeType) {
+        if (mimeType === 'text/html') {
+            return 'site'
+        }
+        if (mimeType.startsWith('image/')) {
+            return 'image'
+        }
+        if (mimeType === 'text/csv' || mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+            return 'spreadsheet'
+        }
+        if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
+            return 'presentation'
+        }
+        if (
+            mimeType === 'application/pdf' ||
+            mimeType === 'text/markdown' ||
+            mimeType === 'text/plain' ||
+            mimeType.includes('wordprocessingml') ||
+            mimeType.includes('msword') ||
+            mimeType.includes('opendocument.text')
+        ) {
+            return 'document'
+        }
+    }
+    const extension = artifactExtension(artifact)
+    if (['html', 'htm'].includes(extension)) {
+        return 'site'
+    }
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(extension)) {
+        return 'image'
+    }
+    if (['csv', 'xls', 'xlsx', 'ods'].includes(extension)) {
+        return 'spreadsheet'
+    }
+    if (['ppt', 'pptx', 'odp'].includes(extension)) {
+        return 'presentation'
+    }
+    if (['pdf', 'doc', 'docx', 'md', 'markdown', 'txt', 'rtf', 'odt'].includes(extension)) {
+        return 'document'
+    }
+    return 'file'
+}
+
+function artifactExtension(artifact: ArtifactCandidate) {
+    const explicit = readString(artifact.extension)?.replace(/^\./, '').toLowerCase()
+    if (explicit) {
+        return explicit
+    }
+    const fileName =
+        readString(artifact.fileName) ??
+        readString(artifact.originalName) ??
+        readString(artifact.name) ??
+        readString(artifact.workspacePath) ??
+        readString(artifact.filePath)
+    const match = fileName?.match(/\.([^./\\]+)$/)
+    return match?.[1]?.toLowerCase() ?? ''
+}
+
+function fileNameFromPath(value: string | undefined) {
+    return value?.split(/[/\\]/).filter(Boolean).at(-1)
 }
 
 function mapArtifactKind(value: unknown): ChatTaskSummaryOutputKind | undefined {
@@ -550,18 +688,10 @@ function partOutputs(part: MessageContentPart, messageId?: string, updatedAt?: s
             ...(updatedAt ? { updatedAt } : {})
         })
     }
-    const legacyArtifact = artifactOutput(data.artifact, messageId, updatedAt)
-    if (legacyArtifact) {
-        outputs.push(legacyArtifact)
-    }
-    const artifactLink = artifactOutput(data.artifactLink, messageId, updatedAt)
-    if (artifactLink) {
-        outputs.push(artifactLink)
-    }
-    const file = artifactOutput(data.file, messageId, updatedAt)
-    if (file) {
-        outputs.push(file)
-    }
+    outputs.push(...artifactOutputs(data.artifact, messageId, updatedAt))
+    outputs.push(...artifactOutputs(data.artifactLink, messageId, updatedAt))
+    outputs.push(...artifactOutputs(data.file, messageId, updatedAt))
+    outputs.push(...structuredToolOutputs(data, messageId, updatedAt))
     return outputs
 }
 

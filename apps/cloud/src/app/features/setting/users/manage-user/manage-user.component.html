@@ -198,13 +198,19 @@
 
               <td z-table-cell class="px-4 py-3">
                 @if (user.displayOrganizations.length) {
-                  <div class="flex max-w-60 flex-wrap gap-1">
+                  <div class="flex min-w-0 max-w-60 flex-wrap gap-1">
                     @for (
                       organization of user.displayOrganizations.slice(0, 2);
                       track organization.id || organization.name
                     ) {
-                      <z-badge zType="secondary" zShape="pill" class="max-w-36 truncate">
-                        {{ organization.name }}
+                      <z-badge
+                        zType="secondary"
+                        zShape="pill"
+                        class="min-w-0 max-w-full"
+                        [zTooltip]="organization.name"
+                        zTooltipClass="max-w-80 break-all whitespace-normal"
+                      >
+                        <span class="min-w-0 max-w-full truncate">{{ organization.name }}</span>
                       </z-badge>
                     }
 
