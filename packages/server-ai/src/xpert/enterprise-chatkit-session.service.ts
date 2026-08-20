@@ -27,6 +27,7 @@ import { DataSource } from 'typeorm'
 const ENTERPRISE_CHATKIT_SESSION_TTL_SECONDS = 600
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+/** Published Xpert fields safe to expose through the anonymous H5 bootstrap endpoint. */
 export type EnterpriseH5Xpert = Pick<
     IXpert,
     | 'id'
@@ -46,12 +47,14 @@ export type EnterpriseH5Xpert = Pick<
     | 'app'
 >
 
+/** Bootstrap response returned before enterprise identity verification. */
 export type EnterpriseH5ChatAppBootstrap = {
     xpert: EnterpriseH5Xpert
     platform: TEnterpriseH5Platform
     clientConfig: Record<string, unknown>
 }
 
+/** Non-null provider capability required to serve an enterprise H5 platform. */
 type EnterpriseH5IdentityCapability = NonNullable<TIntegrationProvider['enterpriseH5']>
 
 @Injectable()

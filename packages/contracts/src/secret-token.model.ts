@@ -1,6 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import type { TEnterpriseH5Platform } from './ai/xpert.model'
 
+/** Enterprise channel and integration to which an H5 session token is bound. */
 export type TEnterpriseH5TokenScope = {
   platform: TEnterpriseH5Platform
   integrationId: string

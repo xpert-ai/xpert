@@ -18,13 +18,16 @@ export type IntegrationTestResult = {
   probe?: IntegrationTestProbe
 } & Record<string, unknown>
 
+/** Identity proof accepted by an integration strategy for enterprise H5 exchange. */
 export type IntegrationIdentityGrant = TEnterpriseH5IdentityGrant
 
+/** Public integration data required before the browser requests an identity grant. */
 export type IntegrationIdentityBootstrap = {
   externalOrganizationId: string
   clientConfig: Record<string, unknown>
 }
 
+/** Enterprise identity verified by an integration, with optional Xpert account binding. */
 export type IntegrationExternalIdentity = {
   provider: string
   externalOrganizationId: string

@@ -2,6 +2,7 @@ import { InjectionToken, Provider } from '@angular/core'
 import { isEnterpriseH5Platform, TEnterpriseH5IdentityGrant, TEnterpriseH5Platform } from '@xpert-ai/contracts'
 import { DingTalkH5Service } from './dingtalk-h5.service'
 
+/** Converts platform-specific client configuration into an identity grant. */
 export type EnterpriseH5ClientAdapter = {
   readonly platform: TEnterpriseH5Platform
   requestIdentityGrant(clientConfig: Record<string, unknown>): Promise<TEnterpriseH5IdentityGrant>

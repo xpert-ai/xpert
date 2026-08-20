@@ -1,5 +1,6 @@
 import { TEnterpriseH5Platform } from '@xpert-ai/contracts'
 
+/** UI labels and configuration metadata for a supported enterprise H5 platform. */
 type EnterpriseH5PlatformDefinition = {
   platform: TEnterpriseH5Platform
   appLabel: {

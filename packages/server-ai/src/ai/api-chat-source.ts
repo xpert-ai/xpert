@@ -2,6 +2,7 @@ import { SecretTokenBindingType, TEnterpriseH5Platform } from '@xpert-ai/contrac
 import { UnauthorizedException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
+/** Server-derived attribution for a direct API or verified enterprise H5 chat request. */
 export type TrustedApiChatSource =
     | {
           from: 'api'
@@ -14,6 +15,7 @@ export type TrustedApiChatSource =
           channelType: 'enterprise_h5'
       }
 
+/** Conversation attribution derived from the same trusted request principal. */
 export type TrustedApiConversationSource =
     | {
           from: 'api'

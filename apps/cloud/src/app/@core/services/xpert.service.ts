@@ -83,13 +83,16 @@ export type TPublicChatkitSession = {
   organizationId?: string | null
 }
 
+/** Indicates that the verified enterprise identity must be linked to an Xpert account. */
 export type TEnterpriseH5AccountBindingRequired = {
   status: 'account_binding_required'
   accountBindingProvider: string
 }
 
+/** Result of exchanging an enterprise H5 identity for a ChatKit session. */
 export type TEnterpriseH5ChatkitSession = TPublicChatkitSession | TEnterpriseH5AccountBindingRequired
 
+/** SSO provider metadata displayed when enterprise account binding is required. */
 export type TSSOProviderDescriptor = {
   provider: string
   displayName: string
@@ -98,6 +101,7 @@ export type TSSOProviderDescriptor = {
   startUrl: string
 }
 
+/** Public bootstrap data used to initialize an enterprise H5 ChatKit client. */
 export type TEnterpriseH5ChatAppBootstrap = {
   xpert: IXpert
   platform: TEnterpriseH5Platform

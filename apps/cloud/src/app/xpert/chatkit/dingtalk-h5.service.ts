@@ -1,5 +1,6 @@
 import { inject, Injectable, InjectionToken } from '@angular/core'
 
+/** Minimum DingTalk JSAPI surface supported across current and legacy clients. */
 export type DingTalkH5Sdk = {
   ready(callback: () => void): void
   error?(callback: (error: unknown) => void): void
@@ -16,6 +17,7 @@ export type DingTalkH5Sdk = {
   }
 }
 
+/** Authorization-code response shape returned by current and legacy DingTalk APIs. */
 type DingTalkAuthorizationResult = {
   code?: string
   authCode?: string
@@ -23,6 +25,7 @@ type DingTalkAuthorizationResult = {
 
 const DEFAULT_AUTHORIZATION_TIMEOUT_MS = 10_000
 
+/** Lazily loads the DingTalk JSAPI module for enterprise H5 authorization. */
 export type DingTalkH5SdkLoader = () => Promise<unknown>
 
 export const DINGTALK_H5_SDK_LOADER = new InjectionToken<DingTalkH5SdkLoader>('DingTalk H5 SDK loader', {
