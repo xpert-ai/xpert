@@ -1,3 +1,5 @@
+import { isEnterpriseH5Platform } from '@xpert-ai/contracts'
+
 export function isPublicXpertRequest(method: string, url: string): boolean {
   try {
     const normalizedMethod = method.toUpperCase()
@@ -23,6 +25,14 @@ export function isPublicXpertRequest(method: string, url: string): boolean {
         }
 
         return normalizedMethod === 'GET' && segments.length === 6 && segments[5] === 'feedbacks'
+      case 'enterprise-h5':
+        if (!isEnterpriseH5Platform(segments[4])) {
+          return false
+        }
+        if (segments[5] === 'bootstrap') {
+          return normalizedMethod === 'GET' && segments.length === 6
+        }
+        return normalizedMethod === 'POST' && segments.length === 6 && segments[5] === 'session'
       default:
         return false
     }

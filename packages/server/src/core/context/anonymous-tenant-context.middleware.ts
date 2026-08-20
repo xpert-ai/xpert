@@ -40,6 +40,10 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
 			return true
 		}
 
+		if (this.isEnterpriseH5Request(request)) {
+			return true
+		}
+
 		if (request.method !== 'GET') {
 			return false
 		}
@@ -59,6 +63,15 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
 		}
 
 		return /^\/(?:api\/)?[^/]+\/login\/start$/.test(path)
+	}
+
+	private isEnterpriseH5Request(request: Request) {
+		if (request.method !== 'GET' && request.method !== 'POST') {
+			return false
+		}
+
+		const path = getNormalizedRequestPath(request)
+		return /^\/(?:api\/)?xpert\/[^/]+\/enterprise-h5\/[^/]+\/(?:bootstrap|session)$/.test(path)
 	}
 
 	private isPasswordLoginRequest(request: Request) {

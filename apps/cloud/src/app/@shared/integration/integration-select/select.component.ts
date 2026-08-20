@@ -29,6 +29,7 @@ export class IntegrationSelectComponent {
   readonly provider = input<string | null>(null)
   readonly placeholder = input<string | null>(null)
   readonly features = input<IntegrationFeatureEnum[] | null>(null)
+  readonly enterpriseH5Platform = input<string | null>(null)
 
   // States
   readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
@@ -56,15 +57,25 @@ export class IntegrationSelectComponent {
 
   readonly integrations = derivedAsync(() => {
     const where = {}
+    const providers = this.#providers()
     if (this.provider()) {
       Object.assign(where, { provider: this.provider() })
     }
     if (this.features()?.length) {
       Object.assign(where, { features: { $contains: this.features() } })
     }
-    return this.integrationAPI
-      .getAllInOrg({ where, order: { createdAt: OrderTypeEnum.DESC } })
-      .pipe(map(({ items }) => items))
+    return this.integrationAPI.getAllInOrg({ where, order: { createdAt: OrderTypeEnum.DESC } }).pipe(
+      map(({ items }) => {
+        const enterpriseH5Platform = this.enterpriseH5Platform()
+        return items.filter((item) => {
+          if (enterpriseH5Platform) {
+            const provider = providers.find((candidate) => candidate.name === item.provider)
+            return provider?.enterpriseH5?.platform === enterpriseH5Platform
+          }
+          return true
+        })
+      })
+    )
   })
 
   readonly integration = computed(() => {

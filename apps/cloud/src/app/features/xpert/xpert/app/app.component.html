@@ -87,6 +87,31 @@
         </div>
       </div>
     </div>
+    @for (link of enterpriseH5Links(); track link.platform) {
+      <div class="py-1">
+        <div class="pb-1 text-sm text-text-tertiary">
+          {{ link.linkLabel.key | translate: { Default: link.linkLabel.default } }}
+        </div>
+        <div
+          class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-components-input-bg-normal rounded-lg border border-(--border) justify-start items-center inline-flex"
+        >
+          <div class="px-2 justify-start items-start gap-2 flex flex-1 min-w-0">
+            <div class="text-text-secondary text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap">
+              {{ link.url }}
+            </div>
+          </div>
+          <div class="border-r border-solid mx-2 border-divider-deep !h-3.5 shrink-0"></div>
+          <div
+            class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
+            [zTooltip]="'XP.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+            zPosition="top"
+            (click)="copy(link.url)"
+          >
+            <i class="ri-clipboard-line text-lg"></i>
+          </div>
+        </div>
+      </div>
+    }
   </div>
   <div class="pt-2 flex flex-row items-center flex-wrap gap-y-2">
     <button

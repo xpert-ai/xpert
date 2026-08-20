@@ -965,12 +965,31 @@ describe('XpertChatHandler', () => {
                     }
                 },
                 {
-                    xpertId: 'xpert-1'
-                } as any
+                    xpertId: 'xpert-1',
+                    from: 'dingtalk',
+                    fromEndUserId: 'user-1',
+                    sourceIntegrationId: 'integration-1',
+                    channelType: 'enterprise_h5'
+                }
             )
         )
 
         await lastValueFrom(stream.pipe(toArray()))
+
+        const sourceAttributionUpdate = commands.find(
+            (command) =>
+                command instanceof ChatConversationUpsertCommand && command.entity.sourceAudit?.sourceIntegrationId
+        ) as ChatConversationUpsertCommand
+        expect(sourceAttributionUpdate.entity).toEqual(
+            expect.objectContaining({
+                from: 'dingtalk',
+                fromEndUserId: 'user-1',
+                sourceAudit: {
+                    sourceIntegrationId: 'integration-1',
+                    channelType: 'enterprise_h5'
+                }
+            })
+        )
 
         const agentCommand = commands.find(
             (command) => command instanceof XpertAgentChatCommand

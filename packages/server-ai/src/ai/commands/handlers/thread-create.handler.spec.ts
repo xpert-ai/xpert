@@ -151,6 +151,46 @@ describe('ThreadCreateHandler', () => {
         expect(result.metadata.assistant_id).toBe('xpert-1')
     })
 
+    it('attributes an enterprise H5 thread to the verified DingTalk user and integration', async () => {
+        jest.mocked(RequestContext.currentApiPrincipal).mockReturnValue({
+            id: 'employee-1',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            apiKey: {
+                id: 'secret-1',
+                token: '',
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-1'
+            },
+            enterpriseH5Scope: {
+                platform: 'dingtalk',
+                integrationId: 'integration-1'
+            }
+        })
+        jest.mocked(RequestContext.currentUserId).mockReturnValue('employee-1')
+
+        await handler.execute(
+            new ThreadCreateCommand({
+                assistant_id: 'xpert-1',
+                if_exists: 'raise'
+            })
+        )
+
+        const upsert = commandBus.execute.mock.calls[0]?.[0]
+        expect(upsert).toBeInstanceOf(ChatConversationUpsertCommand)
+        if (!(upsert instanceof ChatConversationUpsertCommand)) {
+            throw new Error('Expected a conversation upsert command')
+        }
+        expect(upsert.entity).toMatchObject({
+            from: 'dingtalk',
+            fromEndUserId: 'employee-1',
+            sourceAudit: {
+                sourceIntegrationId: 'integration-1',
+                channelType: 'enterprise_h5'
+            }
+        })
+    })
+
     it('checks for an existing thread before switching to the assistant scope', async () => {
         const request = mockOrganizationRequestForTenantAssistant()
         queryBus.execute.mockImplementation(async () => {

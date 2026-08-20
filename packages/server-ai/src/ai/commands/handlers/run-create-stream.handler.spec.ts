@@ -35,6 +35,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
             currentApiPrincipal: jest.fn(),
             currentRequest: jest.fn(),
             currentUser: jest.fn(),
+            currentUserId: jest.fn(),
             isOrganizationScope: jest.fn()
         }
     }
@@ -834,8 +835,27 @@ describe('RunCreateStreamHandler execute', () => {
         ;(RequestContext.isOrganizationScope as jest.Mock).mockReturnValue(false)
     })
 
-    it('forwards the full runCreate.context and merged environment to Xpert chat', async () => {
-        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+    it('forwards the full context, environment and enterprise attribution to Xpert chat', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'xpert-1'
+        })
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            id: 'employee-1',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            apiKey: {
+                id: 'secret-1',
+                token: '',
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-1'
+            },
+            enterpriseH5Scope: {
+                platform: 'dingtalk',
+                integrationId: 'integration-1'
+            }
+        })
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('employee-1')
         const commandBus = {
             execute: jest.fn(async (command) => {
                 if (command instanceof XpertAgentExecutionUpsertCommand) {
@@ -861,6 +881,7 @@ describe('RunCreateStreamHandler execute', () => {
                     return {
                         id: 'conversation-1',
                         threadId: 'thread-1',
+                        createdById: 'employee-1',
                         xpertId: 'xpert-1',
                         options: {}
                     }
@@ -923,6 +944,11 @@ describe('RunCreateStreamHandler execute', () => {
         expect(publishedXpertAccessService.getPublishedXpertInTenant).not.toHaveBeenCalled()
         expect(xpertChatCommand).toBeInstanceOf(XpertChatCommand)
         expect(xpertChatCommand.options).toMatchObject({
+            from: 'dingtalk',
+            fromEndUserId: 'employee-1',
+            sourceIntegrationId: 'integration-1',
+            integrationId: 'integration-1',
+            channelType: 'enterprise_h5',
             context: {
                 scope: 'workspace',
                 target: {

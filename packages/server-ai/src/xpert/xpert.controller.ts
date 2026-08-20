@@ -1,6 +1,7 @@
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
+    isEnterpriseH5Platform,
     IChatConversation,
     IIntegration,
     IXpert,
@@ -1005,6 +1006,11 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/app')
     async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
         const xpert = await this.service.findOne(id)
+        for (const platform of Object.keys(app.channels ?? {})) {
+            if (!isEnterpriseH5Platform(platform)) {
+                throw new BadRequestException(t('server-ai:Error.EnterpriseH5PlatformUnsupported'))
+            }
+        }
         await this.service.updateXpert(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)

@@ -24,6 +24,7 @@ import { KnowledgebaseModule } from './knowledgebase/index'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { SandboxModule } from './sandbox/sandbox.module'
 import { XpertModule } from './xpert'
+import { EnterpriseChatkitModule } from './xpert/enterprise-chatkit.module'
 import { XpertAgentExecutionModule } from './xpert-agent-execution'
 import { XpertAgentModule } from './xpert-agent/index'
 import { XpertMiddlewareModule } from './xpert-middleware'
@@ -93,6 +94,7 @@ import { AgentEvolutionModule } from './agent-evolution'
         ModelGatewayModule,
         MobileModule,
         XpertModule,
+        EnterpriseChatkitModule,
         XpertAgentModule,
         XpertMiddlewareModule,
         XpertMarketplaceModule,

@@ -4665,6 +4665,12 @@
       }
     },
     "Xpert": {
+      "EnterpriseH5AppUnavailable": "目前企業數位專家無法使用或尚未設定。",
+      "EnterpriseH5SessionUnavailable": "無法驗證目前企業身分，暫時無法使用該數位專家。",
+      "DingTalkChatApp": "釘釘工作台應用",
+      "SelectDingTalkIntegration": "選擇釘釘整合",
+      "DingTalkChatAppHint": "所選整合必須包含同一企業的 Corp ID。員工可從釘釘開啟專屬連結，無需 Xpert 帳號。",
+      "DingTalkWorkbenchURL": "釘釘工作台 URL",
       "AgentRunStatusReplied": "已回覆",
       "ExportXpertDSL": "導出數字專家 DSL",
       "UseDraft": "使用草稿",

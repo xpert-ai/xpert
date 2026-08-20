@@ -110,6 +110,15 @@ export type TIntegrationProvider = {
   webhook?: boolean
   schema?: TParameterSchema
   features?: IntegrationFeatureEnum[]
+  /**
+   * Declares that this integration can exchange an enterprise H5 employee identity.
+   * The host uses these stable discriminators instead of matching provider names.
+   */
+  enterpriseH5?: {
+    platform: string
+    externalIdentityProvider: string
+    accountBindingProvider?: string
+  }
   helpUrl?: string
   helpLabel?: I18nObject
   helpLinks?: Array<{

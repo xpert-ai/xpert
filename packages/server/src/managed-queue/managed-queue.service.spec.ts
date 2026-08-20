@@ -1,4 +1,5 @@
 import { ManagedQueueService } from './managed-queue.service'
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 describe('ManagedQueueService', () => {
@@ -94,6 +95,11 @@ describe('ManagedQueueService', () => {
 			apiKeyUserId: 'assistant-user-1',
 			requestedUserId: 'business-user-1',
 			requestedOrganizationId: 'org-1',
+			clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+			enterpriseH5Scope: {
+				platform: 'dingtalk',
+				integrationId: 'integration-1'
+			},
 			apiKey: {
 				token: 'must-not-enter-redis',
 				type: 'assistant',
@@ -126,6 +132,11 @@ describe('ManagedQueueService', () => {
 				organizationId: 'org-1',
 				ownerUserId: 'owner-user-1',
 				requestedUserId: 'business-user-1',
+				clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+				enterpriseH5Scope: {
+					platform: 'dingtalk',
+					integrationId: 'integration-1'
+				},
 				apiKey: {
 					type: 'assistant',
 					entityId: 'xpert-1',

@@ -20,6 +20,7 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { XpertProjectService } from '../../../xpert-project'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
+import { getTrustedApiChatSource } from '../../api-chat-source'
 import { serializeRunStreamPayload } from '../../../shared/stream/'
 import {
     applyAssistantScope,
@@ -347,6 +348,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     }
 
     public async execute(command: RunCreateStreamCommand) {
+        const chatSource = getTrustedApiChatSource()
         const threadId = command.threadId
         const runCreate = command.runCreate
 
@@ -425,7 +427,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const stream = await this.commandBus.execute(
             new XpertChatCommand(chatRequest, {
                 xpertId: xpert.id,
-                from: 'api',
+                ...chatSource,
                 execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
                 ...(runtimeContext ? { context: runtimeContext } : {}),
                 environment,
