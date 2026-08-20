@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
+    AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     OperatorValue,
     Public,
@@ -28,6 +29,7 @@ import {
     IChatConversation,
     IChatMessage,
     IChatMessageFeedback,
+    SecretTokenBindingType,
     TThreadGoalPatchRequest,
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
@@ -74,6 +76,7 @@ type FeedbackMutationRequest = Partial<Pick<IChatMessageFeedback, 'rating' | 'co
 @ApiTags('AI/Conversations')
 @ApiBearerAuth()
 @Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('conversations')

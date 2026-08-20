@@ -1,6 +1,17 @@
 import { Assistant } from '@langchain/langgraph-sdk'
-import { ICopilotModel, IXpert, ModelPropertyKey, resolveRuntimeXpert } from '@xpert-ai/contracts'
-import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
+import {
+    ICopilotModel,
+    IXpert,
+    ModelPropertyKey,
+    resolveRuntimeXpert,
+    SecretTokenBindingType
+} from '@xpert-ai/contracts'
+import {
+    AllowClientSecretBindings,
+    ApiKeyOrClientSecretAuthGuard,
+    Public,
+    TransformInterceptor
+} from '@xpert-ai/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
@@ -18,6 +29,7 @@ const ASSISTANT_RELATIONS = RUNTIME_CAPABILITY_XPERT_RELATIONS
 @ApiTags('AI/Assistants')
 @ApiBearerAuth()
 @Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('assistants')

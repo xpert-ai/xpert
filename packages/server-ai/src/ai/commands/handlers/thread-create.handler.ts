@@ -10,6 +10,7 @@ import {
 	bindConversationAssistantIfUnbound,
 	resolveAssistantForRequest
 } from '../../assistant-request-context'
+import { getTrustedApiConversationSource } from '../../api-chat-source'
 import { ThreadDTO } from '../../dto'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { ThreadCreateCommand } from '../thread-create.command'
@@ -48,6 +49,7 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 
 	public async execute(command: ThreadCreateCommand): Promise<ThreadDTO> {
 		const input = command.input
+		const conversationSource = getTrustedApiConversationSource()
 		const assistantId = resolveThreadCreateAssistantId(input)
 		const xpert = assistantId
 			? await resolveAssistantForRequest(
@@ -99,7 +101,7 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 				new ChatConversationUpsertCommand({
 					threadId: input.thread_id ?? uuidv4(),
 					title: input.metadata?.title,
-					from: 'api',
+					...conversationSource,
 					xpertId: xpert?.id
 				})
 			)

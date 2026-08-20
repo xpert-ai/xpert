@@ -19,6 +19,7 @@ import {
 } from 'typeorm'
 import { Xpert } from './xpert.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
@@ -109,6 +110,33 @@ export class PublishedXpertAccessService {
         }
 
         return apiKey.entityId.trim()
+    }
+
+    private currentEnterpriseXpertScope() {
+        const apiPrincipal = this.currentApiPrincipal() as IApiPrincipal | null
+        if (
+            apiPrincipal?.principalType !== 'client_secret' ||
+            apiPrincipal.clientSecretBindingType !== SecretTokenBindingType.ENTERPRISE_XPERT
+        ) {
+            return null
+        }
+
+        const apiKey = apiPrincipal.apiKey
+        if (apiKey?.type !== ApiKeyBindingType.ASSISTANT || !apiKey.entityId?.trim()) {
+            throw new ForbiddenException(t('server-ai:Error.EnterpriseAssistantBindingRequired'))
+        }
+
+        const platform = apiPrincipal.enterpriseH5Scope?.platform
+        const integrationId = apiPrincipal.enterpriseH5Scope?.integrationId?.trim()
+        if (!platform || !integrationId) {
+            throw new ForbiddenException(t('server-ai:Error.EnterpriseAssistantBindingRequired'))
+        }
+
+        return {
+            xpertId: apiKey.entityId.trim(),
+            platform,
+            integrationId
+        }
     }
 
     private currentRequestedUserId() {
@@ -246,10 +274,82 @@ export class PublishedXpertAccessService {
         }
     }
 
+    private buildEnterpriseXpertBoundQuery(
+        enterpriseScope: NonNullable<ReturnType<PublishedXpertAccessService['currentEnterpriseXpertScope']>>,
+        options?: PublishedXpertQueryOptions
+    ) {
+        const tenantId = this.currentTenantId()
+        const organizationId = this.currentOrganizationId()
+        const qb = this.repository
+            .createQueryBuilder('xpert')
+            .where('xpert.tenantId = :tenantId', { tenantId })
+            .andWhere('xpert.organizationId = :organizationId', { organizationId })
+            .andWhere('xpert.publishAt IS NOT NULL')
+            .andWhere('xpert.id = :enterpriseXpertId', { enterpriseXpertId: enterpriseScope.xpertId })
+
+        this.applyEnterpriseChatAppFilter(qb, enterpriseScope)
+        this.applyPublishedFilters(qb, options?.where)
+        this.applySearchFilter(qb, options?.search)
+
+        if (options?.order) {
+            Object.entries(options.order).forEach(([name, direction]) => {
+                qb.addOrderBy(`xpert.${name}`, direction?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC')
+            })
+        }
+        if (options?.take != null) {
+            qb.take(options.take)
+        }
+        if (options?.skip != null) {
+            qb.skip(options.skip)
+        }
+
+        return qb
+    }
+
+    private applyEnterpriseChatAppFilter(
+        qb: SelectQueryBuilder<Xpert>,
+        scope: NonNullable<ReturnType<PublishedXpertAccessService['currentEnterpriseXpertScope']>>
+    ) {
+        return qb
+            .andWhere(`COALESCE((xpert.app)::jsonb ->> 'enabled', 'false') = 'true'`)
+            .andWhere(
+                `COALESCE(jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :enterpriseH5Platform, 'enabled'), 'false') = 'true'`,
+                { enterpriseH5Platform: scope.platform }
+            )
+            .andWhere(
+                `jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :enterpriseH5Platform, 'integrationId') = :enterpriseH5IntegrationId`,
+                {
+                    enterpriseH5Platform: scope.platform,
+                    enterpriseH5IntegrationId: scope.integrationId
+                }
+            )
+    }
+
+    private assertEnterpriseChatAppXpert(xpert: Xpert) {
+        const organizationId = this.currentOrganizationId()
+        const enterpriseScope = this.currentEnterpriseXpertScope()
+        const channel = enterpriseScope ? xpert.app?.channels?.[enterpriseScope.platform] : null
+        if (
+            !enterpriseScope ||
+            !xpert.app?.enabled ||
+            !channel?.enabled ||
+            channel.integrationId !== enterpriseScope.integrationId ||
+            !xpert.organizationId ||
+            xpert.organizationId !== organizationId
+        ) {
+            throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        }
+    }
+
     private buildAccessibleQuery(options?: PublishedXpertQueryOptions) {
         const publicXpertId = this.currentPublicXpertId()
         if (publicXpertId) {
             return this.buildPublicXpertBoundQuery(publicXpertId, options)
+        }
+
+        const enterpriseScope = this.currentEnterpriseXpertScope()
+        if (enterpriseScope) {
+            return this.buildEnterpriseXpertBoundQuery(enterpriseScope, options)
         }
 
         const workspaceId = this.currentWorkspaceApiKeyWorkspaceId()
@@ -446,6 +546,17 @@ export class PublishedXpertAccessService {
 
             const xpert = await this.getPublishedXpertInTenant(id, options)
             this.assertPublicChatAppXpert(xpert)
+            return xpert
+        }
+
+        const enterpriseScope = this.currentEnterpriseXpertScope()
+        if (enterpriseScope) {
+            if (enterpriseScope.xpertId !== id) {
+                throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            }
+
+            const xpert = await this.getPublishedXpertInTenant(id, options)
+            this.assertEnterpriseChatAppXpert(xpert)
             return xpert
         }
 

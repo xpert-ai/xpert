@@ -6,6 +6,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	}
 }))
 
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { runWithRequestContext, type ManagedQueueJob } from '@xpert-ai/plugin-sdk'
 import { runWithRequestContext as runWithLegacyRequestContext } from '../core/context/request-context.middleware'
 import { ManagedQueueHandlerRegistryService } from './managed-queue-handler-registry.service'
@@ -76,6 +77,11 @@ describe('ManagedQueueProcessor', () => {
 					ownerUserId: 'owner-user-1',
 					apiKeyUserId: 'assistant-user-1',
 					requestedUserId: 'business-user-1',
+					clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+					enterpriseH5Scope: {
+						platform: 'dingtalk',
+						integrationId: 'integration-1'
+					},
 					apiKey: {
 						type: 'assistant',
 						entityId: 'xpert-1',
@@ -103,6 +109,11 @@ describe('ManagedQueueProcessor', () => {
 					tenantId: 'tenant-1',
 					ownerUserId: 'owner-user-1',
 					requestedUserId: 'business-user-1',
+					clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+					enterpriseH5Scope: {
+						platform: 'dingtalk',
+						integrationId: 'integration-1'
+					},
 					apiKey: expect.objectContaining({
 						token: '[managed-queue-delegation]',
 						type: 'assistant',

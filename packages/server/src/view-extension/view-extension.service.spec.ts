@@ -1,4 +1,6 @@
+import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
+import { ApiKeyBindingType, type IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
 
 describe('ViewExtensionService file actions', () => {
@@ -132,6 +134,26 @@ describe('ViewExtensionService file actions', () => {
 			}),
 			'remote',
 			remoteManifest.view.component
+		)
+	})
+
+	it('restricts enterprise Xpert sessions to the bound agent view host', async () => {
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+			id: 'employee-1',
+			principalType: 'client_secret',
+			clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+			apiKey: {
+				id: 'secret-1',
+				token: 'cs-x-test',
+				type: ApiKeyBindingType.ASSISTANT,
+				entityId: 'assistant-1'
+			}
+		} as IApiPrincipal)
+		const { service } = createService()
+
+		await expect(service.listSlotViews('agent', 'assistant-2', 'main')).rejects.toBeInstanceOf(ForbiddenException)
+		await expect(service.listSlotViews('integration', 'assistant-1', 'main')).rejects.toBeInstanceOf(
+			ForbiddenException
 		)
 	})
 

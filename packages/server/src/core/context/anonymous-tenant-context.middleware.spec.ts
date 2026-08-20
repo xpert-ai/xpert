@@ -74,6 +74,25 @@ describe('AnonymousTenantContextMiddleware', () => {
     expect(next).toHaveBeenCalledWith()
   })
 
+	it.each([
+		['GET', '/api/xpert/sales/enterprise-h5/dingtalk/bootstrap'],
+		['POST', '/api/xpert/sales/enterprise-h5/dingtalk/session']
+	])('injects tenant context for enterprise H5 %s requests', async (method, originalUrl) => {
+		const request = {
+			method,
+			originalUrl,
+			headers: {}
+		} as MiddlewareRequest
+		const next = jest.fn()
+
+		await middleware.use(request, {} as MiddlewareResponse, next)
+
+		expect(resolver.resolve).toHaveBeenCalledWith(request)
+		expect(request.headers['tenant-id']).toBe('tenant-1')
+		expect(request.headers['organization-id']).toBe('org-1')
+		expect(next).toHaveBeenCalledWith()
+	})
+
   it('injects fallback tenant headers for password login requests', async () => {
     const fallbackResolution = {
       ...resolution,

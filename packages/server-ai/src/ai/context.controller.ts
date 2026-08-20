@@ -1,4 +1,5 @@
 import {
+    AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
     UploadFileCommand,
@@ -7,12 +8,13 @@ import {
     StorageFileService,
     TransformInterceptor
 } from '@xpert-ai/server-core'
-import { IFileAssetDestination, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
+import { IFileAssetDestination, IStorageFile, IUploadFileTarget, SecretTokenBindingType } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     Body,
     Controller,
     Delete,
+    ForbiddenException,
     Logger,
     Param,
     Post,
@@ -33,6 +35,11 @@ import {
     FileParseMode,
     GetFileAssetByStorageFileQuery
 } from '../file-understanding'
+import { GetChatConversationQuery } from '../chat-conversation'
+import {
+    assertPublicXpertSessionConversationAccess,
+    getPublicXpertSessionConversationScope
+} from './public-xpert-principal'
 
 /**
  * Context APIs for AI (files, documents, etc.)
@@ -40,6 +47,7 @@ import {
 @ApiTags('AI/Contexts')
 @ApiBearerAuth()
 @Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('contexts')
@@ -85,6 +93,20 @@ export class ContextsController {
         @Body('workspacePath') workspacePath?: string
     ): Promise<AgentFile | IFileAssetDestination> {
         const target = this.resolveUploadTarget(targetValue)
+        const publicScope = getPublicXpertSessionConversationScope()
+        if (publicScope) {
+            if (target.kind !== 'storage' || projectId) {
+                throw new ForbiddenException()
+            }
+            if (xpertId?.trim() && xpertId.trim() !== publicScope.xpertId) {
+                throw new ForbiddenException()
+            }
+            await this.ensurePublicConversationReference(conversationId, threadId)
+            xpertId = publicScope.xpertId
+            // Restricted clients cannot choose a logical Agent Workspace path.
+            // The trusted projection layer derives it later from the FileAsset id.
+            workspacePath = undefined
+        }
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -142,10 +164,35 @@ export class ContextsController {
         const fileAsset = await this.queryBus.execute<GetFileAssetByStorageFileQuery, FileAsset | null>(
             new GetFileAssetByStorageFileQuery(id)
         )
+        this.assertPublicFileAccess(fileAsset)
         if (fileAsset?.id) {
             await this.commandBus.execute(new DeleteFileAssetCommand(fileAsset.id))
         }
         return await this.storageFileService.deleteStorageFile(id)
+    }
+
+    private async ensurePublicConversationReference(conversationId?: string, threadId?: string) {
+        if (!getPublicXpertSessionConversationScope()) {
+            return
+        }
+        if (conversationId) {
+            const conversation = await this.queryBus.execute(new GetChatConversationQuery({ id: conversationId }))
+            assertPublicXpertSessionConversationAccess(conversation)
+        }
+        if (threadId) {
+            const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+            assertPublicXpertSessionConversationAccess(conversation)
+        }
+    }
+
+    private assertPublicFileAccess(fileAsset: FileAsset | null) {
+        const scope = getPublicXpertSessionConversationScope()
+        if (!scope) {
+            return
+        }
+        if (!fileAsset || fileAsset.userId !== scope.createdById || fileAsset.xpertId !== scope.xpertId) {
+            throw new ForbiddenException()
+        }
     }
 
     private resolveUploadTarget(targetValue?: string): IUploadFileTarget {

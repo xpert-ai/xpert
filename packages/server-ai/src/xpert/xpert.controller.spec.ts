@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AiModelTypeEnum, LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
@@ -99,6 +99,10 @@ jest.mock('./xpert-workspace-files.service', () => ({
 
 jest.mock('../copilot-store/copilot-store.service', () => ({
     CopilotStoreService: class {}
+}))
+
+jest.mock('../copilot-usage/copilot-usage.service', () => ({
+    CopilotUsageService: class {}
 }))
 
 jest.mock('../environment', () => ({
@@ -203,7 +207,6 @@ describe('XpertController', () => {
     let queryBus: {
         execute: jest.Mock
     }
-
     beforeEach(() => {
         xpertService = {
             findByPrincipalUserId: jest.fn(),
@@ -436,6 +439,25 @@ describe('XpertController', () => {
             }
         })
         expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
+    })
+
+    it('rejects unknown enterprise H5 platform keys in Chat App settings', async () => {
+        xpertService.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            app: { enabled: true }
+        })
+
+        await expect(
+            controller.updateChatApp('xpert-1', {
+                channels: {
+                    unknown: {
+                        enabled: true,
+                        integrationId: 'integration-1'
+                    }
+                }
+            } as never)
+        ).rejects.toThrow(BadRequestException)
+        expect(xpertService.updateXpert).not.toHaveBeenCalled()
     })
 
     it('initializes the xpert principal user on demand', async () => {

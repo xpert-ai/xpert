@@ -119,6 +119,7 @@
     "clipboard": "^2.0.11",
     "cytoscape": "3.33.1",
     "date-fns": "^3.0.4",
+    "dingtalk-jsapi": "3.2.9",
     "docx-preview": "^0.3.7",
     "echarts": "5.5.0",
     "elkjs": "^0.9.3",
