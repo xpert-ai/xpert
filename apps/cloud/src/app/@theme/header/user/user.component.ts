@@ -48,6 +48,7 @@ const THEMES = [
   imports: [FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
   selector: 'xp-header-user',
   templateUrl: './user.component.html',
+  styleUrl: './user.component.scss',
   animations: [OverlayAnimation1]
 })
 export class HeaderUserComponent {
@@ -69,6 +70,7 @@ export class HeaderUserComponent {
   readonly user = input<IUser>()
   readonly compact = input(false)
   readonly fullWidth = input(false)
+  readonly sidebar = input(false)
 
   readonly entryGuideClick = output<void>()
 

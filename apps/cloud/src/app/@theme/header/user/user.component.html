@@ -1,6 +1,7 @@
 <button
   type="button"
-  class="inline-flex items-center rounded-lg p-1.5 text-sm text-text-primary cursor-pointer hover:rounded-lg hover:bg-hover-bg"
+  class="header-user-trigger inline-flex items-center rounded-lg p-1.5 text-sm text-text-primary cursor-pointer hover:rounded-lg hover:bg-hover-bg"
+  [class.is-sidebar]="sidebar() && !compact()"
   [class.m-1.5]="!fullWidth()"
   [class.w-full]="fullWidth()"
   [cdkMenuTriggerFor]="menu"
@@ -46,19 +47,29 @@
     }
   }
   @if (!compact()) {
-    {{ user() | user }}
-    <i class="ri-arrow-drop-down-line"></i>
+    @if (sidebar()) {
+      <span class="header-user-trigger__copy">
+        <span class="header-user-trigger__name">{{ user() | user }}</span>
+        @if (user().email) {
+          <span class="header-user-trigger__email">{{ user().email }}</span>
+        }
+      </span>
+      <i class="ri-expand-up-down-line header-user-trigger__chevron"></i>
+    } @else {
+      {{ user() | user }}
+      <i class="ri-arrow-drop-down-line"></i>
+    }
   }
 </button>
 
 <ng-template #menu>
-  <div class="z-50 text-text-primary" cdkMenu @overlayAnimation1>
-    <div class="p-2 border-b flex items-center border-divider-subtle rounded-t-lg">
+  <div class="header-user-menu z-50 text-text-primary" cdkMenu @overlayAnimation1>
+    <div class="header-user-menu__profile p-2 border-b flex items-center border-divider-subtle rounded-t-lg">
       <xp-user-profile-inline [user]="user()" />
     </div>
 
     @if (user()) {
-      <div class="w-[220px] flex flex-col justify-start items-stretch gap-1 p-1">
+      <div class="header-user-menu__items flex flex-col justify-start items-stretch gap-1 p-1">
         <div
           class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem

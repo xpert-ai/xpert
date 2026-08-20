@@ -49,7 +49,7 @@ describe('model parameter options', () => {
       normalizeModelParameterValue(
         '12.8',
         rule({
-          name: 'max_tokens',
+          name: 'top_k',
           type: ParameterType.INT,
           min: 1,
           max: 10
@@ -68,6 +68,23 @@ describe('model parameter options', () => {
       )
     ).toBe(0)
   })
+
+  it.each(['max_tokens', 'max_output_tokens', 'max_completion_tokens', 'max_tokens_to_sample'])(
+    'allows %s to expand beyond the configured slider maximum',
+    (name) => {
+      expect(
+        normalizeModelParameterValue(
+          65536,
+          rule({
+            name,
+            type: ParameterType.INT,
+            min: 1,
+            max: 32768
+          })
+        )
+      ).toBe(65536)
+    }
+  )
 
   it('preserves options that are not described by parameter rules', () => {
     const options = resolveModelParameterOptions({ context_size: 128000, provider_option: 'value' }, [
