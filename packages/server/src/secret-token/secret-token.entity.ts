@@ -1,4 +1,4 @@
-import { ISecretToken, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { ISecretToken, SecretTokenBindingType, TEnterpriseH5TokenScope } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { differenceInMinutes } from 'date-fns'
 import { AfterLoad, Column, Entity, Index } from 'typeorm'
@@ -23,6 +23,10 @@ export class SecretToken extends TenantOrganizationBaseEntity implements ISecret
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
 	entityId?: string
+
+	@ApiProperty({ required: false, type: Object })
+	@Column({ type: 'jsonb', nullable: true })
+	enterpriseH5Scope?: TEnterpriseH5TokenScope | null
 
 	@ApiProperty({
 		type: 'string',

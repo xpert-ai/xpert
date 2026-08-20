@@ -26,8 +26,8 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		return providers
 	}
 
-	getIntegrationStrategy(type: string) {
-		return this.strategyRegistry.get(type, RequestContext.getOrganizationId())
+	getIntegrationStrategy(type: string, organizationId?: string | null) {
+		return this.strategyRegistry.get(type, organizationId ?? RequestContext.getOrganizationId())
 	}
 
 	async applyStrategyValidation<T extends Partial<IIntegration>>(integration: T): Promise<T> {

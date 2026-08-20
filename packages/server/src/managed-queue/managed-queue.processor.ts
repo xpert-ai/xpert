@@ -214,7 +214,8 @@ export class ManagedQueueProcessor extends WorkerHost {
 			requestedUserId: snapshot.requestedUserId ?? null,
 			requestedOrganizationId: snapshot.requestedOrganizationId ?? null,
 			clientSecretBindingType: snapshot.clientSecretBindingType ?? null,
-			clientSecretId: snapshot.clientSecretId ?? null
+			clientSecretId: snapshot.clientSecretId ?? null,
+			enterpriseH5Scope: snapshot.enterpriseH5Scope ?? null
 		}
 	}
 }

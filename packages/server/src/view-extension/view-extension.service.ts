@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import {
 	XpertExtensionViewManifest,
@@ -11,8 +11,11 @@ import {
 	XpertViewFileAccessRequest,
 	XpertViewParameterOptionsQuery,
 	XpertViewParameterOptionsResult,
-	XpertViewQuery
+	XpertViewQuery,
+	ApiKeyBindingType,
+	SecretTokenBindingType
 } from '@xpert-ai/contracts'
+import { RequestContext } from '../core/context'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
@@ -329,6 +332,7 @@ export class ViewExtensionService {
 	}
 
 	private async resolveHostContext(hostType: string, hostId: string) {
+		this.assertEnterpriseXpertViewHost(hostType, hostId)
 		const definition = this.hostDefinitionRegistry.get(hostType)
 		if (!definition) {
 			throw new NotFoundException(`Unknown view host '${hostType}'`)
@@ -351,6 +355,20 @@ export class ViewExtensionService {
 			workspaceId: resolution.workspaceId ?? null,
 			hostSnapshot: resolution.hostSnapshot,
 			slots: [...definition.slots].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+		}
+	}
+
+	private assertEnterpriseXpertViewHost(hostType: string, hostId: string) {
+		const principal = RequestContext.currentApiPrincipal()
+		if (principal?.clientSecretBindingType !== SecretTokenBindingType.ENTERPRISE_XPERT) {
+			return
+		}
+		if (
+			hostType !== 'agent' ||
+			principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT ||
+			principal.apiKey.entityId?.trim() !== hostId
+		) {
+			throw new ForbiddenException()
 		}
 	}
 

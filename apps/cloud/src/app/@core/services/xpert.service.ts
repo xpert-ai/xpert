@@ -33,6 +33,8 @@ import {
   OrderTypeEnum,
   TChatApi,
   TChatApp,
+  TEnterpriseH5IdentityGrant,
+  TEnterpriseH5Platform,
   TChatConversationLog,
   TChatOptions,
   TChatRequest,
@@ -79,6 +81,27 @@ export type TPublicChatkitSession = {
   xpertId: string
   assistantId: string
   organizationId?: string | null
+}
+
+export type TEnterpriseH5AccountBindingRequired = {
+  status: 'account_binding_required'
+  accountBindingProvider: string
+}
+
+export type TEnterpriseH5ChatkitSession = TPublicChatkitSession | TEnterpriseH5AccountBindingRequired
+
+export type TSSOProviderDescriptor = {
+  provider: string
+  displayName: string
+  icon: string
+  order: number
+  startUrl: string
+}
+
+export type TEnterpriseH5ChatAppBootstrap = {
+  xpert: IXpert
+  platform: TEnterpriseH5Platform
+  clientConfig: Record<string, unknown>
 }
 
 type TXpertGetMyAllRequestOptions = {
@@ -414,6 +437,25 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       this.apiBaseUrl + `/${encodeURIComponent(identifier)}/chatkit-session`,
       { currentClientSecret },
       { withCredentials: true }
+    )
+  }
+
+  getEnterpriseH5Bootstrap(identifier: string, platform: TEnterpriseH5Platform) {
+    return this.httpClient.get<TEnterpriseH5ChatAppBootstrap>(
+      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/enterprise-h5/${encodeURIComponent(platform)}/bootstrap`
+    )
+  }
+
+  createEnterpriseH5Session(identifier: string, platform: TEnterpriseH5Platform, grant: TEnterpriseH5IdentityGrant) {
+    return this.httpClient.post<TEnterpriseH5ChatkitSession>(
+      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/enterprise-h5/${encodeURIComponent(platform)}/session`,
+      { grant }
+    )
+  }
+
+  getSsoProviders() {
+    return this.httpClient.get<{ fallbackApplied: boolean; providers: TSSOProviderDescriptor[] }>(
+      '/api/auth/sso/providers'
     )
   }
 

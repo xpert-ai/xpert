@@ -9,13 +9,16 @@ import {
 	Query,
 	Res,
 	UploadedFile,
+	UseGuards,
 	UseInterceptors
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { IsObject, IsOptional, IsString } from 'class-validator'
 import type { Response } from 'express'
-import type { XpertViewScalar } from '@xpert-ai/contracts'
+import { SecretTokenBindingType, type XpertViewScalar } from '@xpert-ai/contracts'
 import { TransformInterceptor } from '../core/interceptors'
+import { AllowClientSecretBindings, Public } from '../shared/decorators'
+import { ApiKeyOrClientSecretAuthGuard } from '../shared/guards'
 import { UseValidationPipe } from '../shared/pipes'
 import { ViewExtensionService } from './view-extension.service'
 import { parseParameterOptionsQuery, parseViewQuery } from './view-extension.utils'
@@ -43,6 +46,9 @@ type UploadedViewActionFile = {
 
 @ApiTags('ViewExtension')
 @ApiBearerAuth()
+@Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class ViewExtensionController {

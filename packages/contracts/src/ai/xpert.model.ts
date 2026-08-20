@@ -571,6 +571,25 @@ export type TXpertParameter = {
 export type TChatApp = {
   enabled?: boolean
   public?: boolean
+  channels?: Partial<Record<TEnterpriseH5Platform, TEnterpriseH5ChannelConfig>>
+}
+
+export const ENTERPRISE_H5_PLATFORMS = ['dingtalk'] as const
+
+export type TEnterpriseH5Platform = (typeof ENTERPRISE_H5_PLATFORMS)[number]
+
+export function isEnterpriseH5Platform(value: unknown): value is TEnterpriseH5Platform {
+  return typeof value === 'string' && (ENTERPRISE_H5_PLATFORMS as readonly string[]).includes(value)
+}
+
+export type TEnterpriseH5ChannelConfig = {
+  enabled?: boolean
+  integrationId?: string
+}
+
+export type TEnterpriseH5IdentityGrant = {
+  type: 'authorization_code'
+  code: string
 }
 
 export type TChatApi = {

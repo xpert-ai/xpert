@@ -375,11 +375,16 @@ export class XpertWorkspaceAccessService {
         const entityId = apiKey?.entityId?.trim()
         const userId = user?.id
         const tenantId = user?.tenantId
+        const clientSecretBindingType = apiPrincipal?.clientSecretBindingType
         const isPublicXpertClientSecret =
             apiPrincipal?.principalType === 'client_secret' &&
-            apiPrincipal.clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT
+            clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT
+        const isEnterpriseXpertClientSecret =
+            apiPrincipal?.principalType === 'client_secret' &&
+            clientSecretBindingType === SecretTokenBindingType.ENTERPRISE_XPERT
+        const isRestrictedXpertClientSecret = isPublicXpertClientSecret || isEnterpriseXpertClientSecret
 
-        if (!isPublicXpertClientSecret && apiKey?.type === ApiKeyBindingType.WORKSPACE) {
+        if (!isRestrictedXpertClientSecret && apiKey?.type === ApiKeyBindingType.WORKSPACE) {
             return entityId || null
         }
 
@@ -387,7 +392,16 @@ export class XpertWorkspaceAccessService {
             return null
         }
 
-        if (!isPublicXpertClientSecret && !userId) {
+        if (!isRestrictedXpertClientSecret && !userId) {
+            return null
+        }
+
+        const enterpriseOrganizationId = apiPrincipal?.requestedOrganizationId?.trim()
+        const enterpriseH5Scope = apiPrincipal?.enterpriseH5Scope
+        if (
+            isEnterpriseXpertClientSecret &&
+            (!enterpriseOrganizationId || !enterpriseH5Scope?.platform || !enterpriseH5Scope.integrationId?.trim())
+        ) {
             return null
         }
 
@@ -399,11 +413,30 @@ export class XpertWorkspaceAccessService {
             .where('xpert.id = :xpertId', { xpertId: entityId })
             .andWhere('xpert."tenantId" = :tenantId', { tenantId })
 
-        if (isPublicXpertClientSecret) {
+        if (isRestrictedXpertClientSecret) {
             query
                 .andWhere('xpert."publishAt" IS NOT NULL')
                 .andWhere(`COALESCE((xpert.app)::jsonb ->> 'enabled', 'false') = 'true'`)
-                .andWhere(`COALESCE((xpert.app)::jsonb ->> 'public', 'false') = 'true'`)
+        }
+        if (isPublicXpertClientSecret) {
+            query.andWhere(`COALESCE((xpert.app)::jsonb ->> 'public', 'false') = 'true'`)
+        }
+        if (isEnterpriseXpertClientSecret) {
+            query
+                .andWhere('xpert."organizationId" = :organizationId', {
+                    organizationId: enterpriseOrganizationId
+                })
+                .andWhere(
+                    `COALESCE(jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :enterpriseH5Platform, 'enabled'), 'false') = 'true'`,
+                    { enterpriseH5Platform: enterpriseH5Scope!.platform }
+                )
+                .andWhere(
+                    `jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :enterpriseH5Platform, 'integrationId') = :enterpriseH5IntegrationId`,
+                    {
+                        enterpriseH5Platform: enterpriseH5Scope!.platform,
+                        enterpriseH5IntegrationId: enterpriseH5Scope!.integrationId.trim()
+                    }
+                )
         }
 
         const xpert = await query.limit(1).getRawOne<{ workspaceId?: string | null; userId?: string | null }>()
@@ -413,7 +446,7 @@ export class XpertWorkspaceAccessService {
 
         const apiKeyUserId = apiPrincipal?.apiKeyUserId ?? apiKey.userId ?? null
         const principalUserId = xpert.userId || apiKeyUserId
-        if (!isPublicXpertClientSecret && (!principalUserId || principalUserId !== userId)) {
+        if (!isRestrictedXpertClientSecret && (!principalUserId || principalUserId !== userId)) {
             return null
         }
 

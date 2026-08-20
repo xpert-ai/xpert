@@ -174,6 +174,110 @@ describe('PublishedXpertAccessService', () => {
         expect(repository.findOne).not.toHaveBeenCalled()
     })
 
+    it('allows an enterprise xpert principal to access only its bound enterprise H5 assistant', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            requestedOrganizationId: 'org-requested',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            enterpriseH5Scope: {
+                platform: 'dingtalk',
+                integrationId: 'integration-dingtalk-1'
+            },
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-enterprise-1'
+            }
+        })
+
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-enterprise-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-requested',
+                publishAt: new Date(),
+                app: {
+                    enabled: true,
+                    channels: {
+                        dingtalk: {
+                            enabled: true,
+                            integrationId: 'integration-dingtalk-1'
+                        }
+                    }
+                }
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpert('xpert-enterprise-1')).resolves.toMatchObject({
+            id: 'xpert-enterprise-1'
+        })
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it('rejects an enterprise token after its exact integration channel is replaced', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            requestedOrganizationId: 'org-requested',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            enterpriseH5Scope: {
+                platform: 'dingtalk',
+                integrationId: 'integration-original'
+            },
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-enterprise-1'
+            }
+        })
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-enterprise-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-requested',
+                publishAt: new Date(),
+                app: {
+                    enabled: true,
+                    channels: {
+                        dingtalk: {
+                            enabled: true,
+                            integrationId: 'integration-replacement'
+                        }
+                    }
+                }
+            }),
+            createQueryBuilder: jest.fn()
+        }
+
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpert('xpert-enterprise-1')).rejects.toThrow(ForbiddenException)
+    })
+
+    it('rejects an enterprise xpert principal for another assistant before loading it', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            requestedOrganizationId: 'org-requested',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            enterpriseH5Scope: {
+                platform: 'dingtalk',
+                integrationId: 'integration-dingtalk-1'
+            },
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-enterprise-1'
+            }
+        })
+
+        const repository = {
+            findOne: jest.fn(),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpert('xpert-enterprise-2')).rejects.toThrow(ForbiddenException)
+        expect(repository.findOne).not.toHaveBeenCalled()
+    })
+
     it('rejects a user xpert session for another assistant', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             id: 'user-1',

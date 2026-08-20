@@ -468,7 +468,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         new ChatConversationUpsertCommand(
                             {
                                 id: conversation.id,
-                                sourceAudit: buildChatConversationSourceAudit(options, conversation.sourceAudit)
+                                sourceAudit: buildChatConversationSourceAudit(options, conversation.sourceAudit),
+                                ...(from ? { from } : {}),
+                                ...(fromEndUserId ? { fromEndUserId } : {})
                             },
                             messageRelations()
                         )

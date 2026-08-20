@@ -240,6 +240,7 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			requestedOrganizationId: this.normalizeId(principal.requestedOrganizationId),
 			clientSecretBindingType: principal.clientSecretBindingType ?? null,
 			clientSecretId: this.normalizeId(principal.clientSecretId),
+			enterpriseH5Scope: principal.enterpriseH5Scope ?? null,
 			apiKey: {
 				...(apiKey.type ? { type: apiKey.type } : {}),
 				entityId: this.normalizeId(apiKey.entityId),

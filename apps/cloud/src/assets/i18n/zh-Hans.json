@@ -5997,6 +5997,12 @@
       }
     },
     "Xpert": {
+      "EnterpriseH5AppUnavailable": "当前企业数字专家不可用或尚未配置。",
+      "EnterpriseH5SessionUnavailable": "无法验证当前企业身份，暂时不能使用该数字专家。",
+      "DingTalkChatApp": "钉钉工作台应用",
+      "SelectDingTalkIntegration": "选择钉钉集成",
+      "DingTalkChatAppHint": "所选集成必须包含同一企业的 Corp ID。员工可从钉钉打开专属链接，无需 Xpert 账号。",
+      "DingTalkWorkbenchURL": "钉钉工作台 URL",
       "AgentRunStatusReplied": "已回复",
       "DefaultWorkspace": "默认",
       "SetDefaultWorkspace": "设为默认",

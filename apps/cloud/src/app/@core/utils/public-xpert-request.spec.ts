@@ -22,4 +22,13 @@ describe('isPublicXpertRequest', () => {
     expect(isPublicXpertRequest('GET', '/api/xpert/demo/conversation/conv-1/feedbacks')).toBe(true)
     expect(isPublicXpertRequest('POST', '/api/xpert/demo/conversation/conv-1')).toBe(false)
   })
+
+  it('matches only the enterprise H5 bootstrap and session routes', () => {
+    expect(isPublicXpertRequest('GET', '/api/xpert/sales/enterprise-h5/dingtalk/bootstrap')).toBe(true)
+    expect(isPublicXpertRequest('POST', '/api/xpert/sales/enterprise-h5/dingtalk/session')).toBe(true)
+    expect(isPublicXpertRequest('POST', '/api/xpert/sales/enterprise-h5/dingtalk/bootstrap')).toBe(false)
+    expect(isPublicXpertRequest('GET', '/api/xpert/sales/enterprise-h5/dingtalk/session')).toBe(false)
+    expect(isPublicXpertRequest('POST', '/api/xpert/sales/enterprise-h5/dingtalk/extra/session')).toBe(false)
+    expect(isPublicXpertRequest('GET', '/api/xpert/sales/enterprise-h5/unknown/bootstrap')).toBe(false)
+  })
 })
