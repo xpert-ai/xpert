@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.17.3
+
+### Patch Changes
+
+- 754866e: Add reusable enterprise H5 identity and single-assistant session contracts.
+- Updated dependencies [754866e]
+  - @xpert-ai/contracts@3.17.3
+
 ## 3.17.2
 
 ### Patch Changes
