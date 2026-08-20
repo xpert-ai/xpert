@@ -1,5 +1,10 @@
 import type { ManagedQueueExecutionPool } from '@xpert-ai/plugin-sdk'
-import type { ApiKeyBindingType, ApiPrincipalType, SecretTokenBindingType } from '@xpert-ai/contracts'
+import type {
+	ApiKeyBindingType,
+	ApiPrincipalType,
+	SecretTokenBindingType,
+	TEnterpriseH5TokenScope
+} from '@xpert-ai/contracts'
 
 export const MANAGED_QUEUE_PHYSICAL_QUEUE_NAME = 'plugin-jobs'
 export const MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME = 'plugin-jobs-sandbox-browser'
@@ -49,6 +54,7 @@ export type ManagedQueueDelegationSnapshot = {
 	requestedOrganizationId?: string | null
 	clientSecretBindingType?: SecretTokenBindingType | null
 	clientSecretId?: string | null
+	enterpriseH5Scope?: TEnterpriseH5TokenScope | null
 	apiKey: {
 		type?: ApiKeyBindingType
 		entityId?: string | null

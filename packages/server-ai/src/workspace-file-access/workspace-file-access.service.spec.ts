@@ -110,6 +110,8 @@ describe('WorkspaceFileAccessService', () => {
         expect(() =>
             service.assertRequestOrigin(authorization.session, { headers: { origin: 'https://attacker.example' } })
         ).toThrow()
+        expect(service.assertRequestOrigin(authorization.session, { headers: {} }, 'download')).toBeNull()
+        expect(() => service.assertRequestOrigin(authorization.session, { headers: {} }, 'preview')).toThrow()
         expect(cache.set).toHaveBeenCalledTimes(2)
         expect(viewExtensions.resolveViewFileResource).toHaveBeenCalledWith('agent', 'assistant-1', 'cut__workbench', {
             fileKey: 'asset-1',

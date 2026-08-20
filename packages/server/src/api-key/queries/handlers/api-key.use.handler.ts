@@ -1,4 +1,5 @@
 import { IApiKey } from '@xpert-ai/contracts'
+import { UnauthorizedException } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -20,6 +21,10 @@ export class UseApiKeyHandler implements IQueryHandler<UseApiKeyQuery> {
 			where: { token: token },
 			relations: ['createdBy', 'user']
 		})
+
+		if (!apiKey) {
+			throw new UnauthorizedException()
+		}
 
 		await this.service.update(apiKey.id, { lastUsedAt: new Date() })
 

@@ -211,9 +211,7 @@ describe('FindCopilotModelsHandler', () => {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
         })
 
-        await expect(
-            handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
-        ).resolves.toEqual([])
+        await expect(handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))).resolves.toEqual([])
     })
 
     it('shows models allowed by the unified plan-or-grant resolver', async () => {
@@ -367,11 +365,7 @@ describe('FindCopilotModelsHandler', () => {
         })
 
         await handler.execute(
-            new FindCopilotModelsQuery(
-                AiModelTypeEnum.LLM,
-                CopilotModelCatalogMode.Available,
-                'creator-user'
-            )
+            new FindCopilotModelsQuery(AiModelTypeEnum.LLM, CopilotModelCatalogMode.Available, 'creator-user')
         )
 
         expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledWith({

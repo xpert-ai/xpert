@@ -39,7 +39,6 @@ import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash'
 import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository } from 'typeorm'
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeWorkAreaResolver, LoadStorageFileCommand } from '../shared'
@@ -83,6 +82,10 @@ type VersionedKnowledgeDocumentInput = {
 type VersionedKnowledgeDocument = {
     id: string
     version: number
+}
+
+type ShallowKnowledgeDocumentUpdater = {
+    update(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<unknown>
 }
 
 export type IncrementalDocumentSyncItemResult = {
@@ -571,7 +574,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                     )
                 }
                 if (!knowledgebase.structure) {
-                    await this.knowledgebaseService.update(knowledgebase.id, { structure })
+                    await this.knowledgebaseService.updateKnowledgebase(knowledgebase.id, { structure })
                 }
             }
         }
@@ -727,7 +730,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         if (!entities?.length) {
             return
         }
-        await Promise.all(entities.map((entity) => this.update(entity.id, entity)))
+        await Promise.all(entities.map((entity) => this.updateDocument(entity.id, entity)))
     }
 
     async updateBulkWithVersion(entities: Partial<IKnowledgeDocument>[]): Promise<void> {
@@ -856,7 +859,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...changes,
             id,
             updatedById: RequestContext.currentUserId()
-        } as QueryDeepPartialEntity<KnowledgeDocument>
+        }
         const oldPrefix =
             current.sourceType === KDocumentSourceType.FOLDER
                 ? path.posix.join(current.folder ?? '', current.name ?? '')
@@ -1293,7 +1296,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
             const chunk = await this.mergeChunkUpdate(id, entity)
             validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
-            const result = await this.chunkService.update(id, chunk)
+            const result = await this.chunkService.updateChunk(id, chunk)
             if (requiresChunkReembedding(entity)) {
                 await vectorStore.updateChunk(
                     id,
@@ -1387,10 +1390,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...chunk,
             contentHash: chunk.contentHash ?? computeKnowledgeDocumentChunkHash(chunk)
         }))
-        await this.update(documentId, {
+        await this.updateDocument(documentId, {
             contentHash: computeKnowledgeDocumentContentHash(chunks),
             chunkNum: chunks.length
         })
+    }
+
+    private async updateDocument(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<void> {
+        // Keep TypeORM's recursive QueryDeepPartialEntity out of concrete call sites; ts-node/ts-jest can
+        // otherwise exhaust the instantiation budget while expanding KnowledgeDocument relations.
+        await (this as unknown as ShallowKnowledgeDocumentUpdater).update(id, entity)
     }
 
     /**
@@ -1874,7 +1883,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             document.knowledgebase.documents.filter(isCountableDocument).length -
             (isCountableDocument(document) ? 1 : 0)
         document.knowledgebase.documentNum = nextDocumentNum
-        await this.knowledgebaseService.update(document.knowledgebaseId, {
+        await this.knowledgebaseService.updateKnowledgebase(document.knowledgebaseId, {
             documentNum: document.knowledgebase.documentNum
         })
     }

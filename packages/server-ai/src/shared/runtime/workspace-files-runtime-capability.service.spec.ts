@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { GetFileUnderstandingStatusQuery, ListProjectFilesQuery, SearchFileChunksQuery } from '../../file-understanding'
 import { VolumeHandle } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtime-capability.service'
 
@@ -112,6 +113,80 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         })
 
         await expect(scoped.readRuntimeBuffer(fileAsset.id)).rejects.toThrow('Workspace file not found')
+    })
+
+    it('lists and searches only chunks from a visible Project FileAsset', async () => {
+        const serverRoot = await temporaryRoot()
+        const fileAssetId = '8d70766b-c87b-465e-b06c-c900eb18f79a'
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileUnderstandingStatusQuery) {
+                    return Promise.resolve({ fileAssetId, status: 'ready' })
+                }
+                if (query instanceof ListProjectFilesQuery) {
+                    return Promise.resolve([{ id: fileAssetId }])
+                }
+                if (query instanceof SearchFileChunksQuery) {
+                    return Promise.resolve([
+                        {
+                            id: '36d672e4-063d-4e75-89ca-b39ca14588f1',
+                            fileAssetId,
+                            orderNo: 2,
+                            anchor: { chunk: 2 },
+                            content: '质量保证与施工进度措施'
+                        }
+                    ])
+                }
+                return Promise.resolve([])
+            })
+        }
+        const service = createService(serverRoot, '/host/project-1', queryBus)
+
+        await expect(
+            service.searchUnderstandingChunks({
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1',
+                projectId: 'project-1',
+                fileAssetId,
+                query: '质量保证',
+                limit: 8
+            })
+        ).resolves.toEqual([
+            {
+                fileAssetId,
+                chunkId: '36d672e4-063d-4e75-89ca-b39ca14588f1',
+                orderNo: 2,
+                anchor: { chunk: 2 },
+                content: '质量保证与施工进度措施'
+            }
+        ])
+
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListProjectFilesQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(SearchFileChunksQuery))
+    })
+
+    it('normalizes an invisible Project FileAsset to a scoped not-found error', async () => {
+        const serverRoot = await temporaryRoot()
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileUnderstandingStatusQuery) {
+                    return Promise.resolve({ fileAssetId: 'file-1', status: 'ready' })
+                }
+                if (query instanceof ListProjectFilesQuery) {
+                    return Promise.resolve([])
+                }
+                return Promise.resolve([])
+            })
+        }
+        const service = createService(serverRoot, '/host/project-1', queryBus)
+
+        await expect(
+            service.listUnderstandingChunks({
+                tenantId: 'tenant-1',
+                projectId: 'project-1',
+                fileAssetId: 'file-1'
+            })
+        ).rejects.toThrow('not found in the current workspace')
     })
 
     function createService(serverRoot: string, hostRoot: string, queryBus?: { execute: jest.Mock }) {

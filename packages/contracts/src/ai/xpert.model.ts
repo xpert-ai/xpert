@@ -326,6 +326,11 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Declares how an Assistant resolves the workspace used by files and Agent runs. */
+  workspaceScope?: {
+    /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
+    mode: 'project-required' | 'project-preferred'
+  }
   /** Legacy template key retained for existing plugin-authored DSL files. */
   templateKey?: string
   /** Legacy Agentic App descriptor retained for backward-compatible source discovery. */
@@ -571,6 +576,28 @@ export type TXpertParameter = {
 export type TChatApp = {
   enabled?: boolean
   public?: boolean
+  channels?: Partial<Record<TEnterpriseH5Platform, TEnterpriseH5ChannelConfig>>
+}
+
+export const ENTERPRISE_H5_PLATFORMS = ['dingtalk'] as const
+
+/** Allowlisted enterprise platforms that can host an Xpert ChatKit application. */
+export type TEnterpriseH5Platform = (typeof ENTERPRISE_H5_PLATFORMS)[number]
+
+export function isEnterpriseH5Platform(value: unknown): value is TEnterpriseH5Platform {
+  return typeof value === 'string' && (ENTERPRISE_H5_PLATFORMS as readonly string[]).includes(value)
+}
+
+/** Per-platform publishing configuration for an enterprise H5 ChatKit channel. */
+export type TEnterpriseH5ChannelConfig = {
+  enabled?: boolean
+  integrationId?: string
+}
+
+/** Short-lived proof supplied by an enterprise H5 client for identity exchange. */
+export type TEnterpriseH5IdentityGrant = {
+  type: 'authorization_code'
+  code: string
 }
 
 export type TChatApi = {

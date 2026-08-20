@@ -1,258 +1,531 @@
-<div class="my-2">
-  <span class="text-lg mr-2">
-    {{ 'XP.Xpert.Analysis' | translate: { Default: 'Analysis' } }}
-  </span>
-
-  <xp-select
-    class="inline-block w-48"
-    placeholder="Select time range"
-    icon="ri-calendar-line"
-    [selectOptions]="TimeRanges"
-    [(ngModel)]="timeRangeValue"
-  />
-</div>
-
-<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-    <div class="mb-3">
-      <div class="flex items-start p-1">
-        <div class="group">
-          <div
-            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
-          >
-            {{ 'XP.Xpert.TotalConversations' | translate: { Default: 'Total Conversations' } }}
-            <div
-              class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
-              [zTooltip]="
-                'XP.Xpert.TotalConversationsTooltip'
-                  | translate: { Default: 'Daily xpert conversations count; Xpert author and debugger excluded' }
-              "
-              zPosition="top"
-            >
-              <i class="ri-question-line text-text-secondary text-lg"></i>
-            </div>
-          </div>
-          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-            {{ selectedTimeOption() | i18n }}
-          </div>
-          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
-        </div>
-      </div>
+<div class="monitor-header">
+  <div class="min-w-0">
+    <div class="monitor-kicker">
+      <span class="h-1.5 w-1.5 rounded-full bg-primary-600"></span>
+      <span>{{ 'XP.Xpert.Monitoring' | translate: { Default: 'Monitoring' } }}</span>
+      <span class="text-text-quaternary">/</span>
+      <span class="text-text-secondary">{{ xpertLabel() }}</span>
     </div>
-
-    <xp-statistics-chart
-      [data]="dailyConv()"
-      [measureLabel]="'XP.Xpert.Conversations' | translate: { Default: 'Conversations' }"
-    />
+    <div class="mt-2 flex flex-wrap items-center gap-3">
+      <h1 class="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+        {{ 'XP.Copilot.ModelUsageOverview' | translate: { Default: 'Model usage overview' } }}
+      </h1>
+      <span class="monitor-period-chip">
+        <i class="ri-calendar-line"></i>
+        {{ selectedTimeOption() | i18n }}
+      </span>
+    </div>
+    <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
+      {{
+        'XP.Copilot.OverviewDescription'
+          | translate: { Default: 'Token usage, membership points, and model activity at a glance.' }
+      }}
+    </p>
   </div>
 
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-    <div class="mb-3">
-      <div class="flex items-start p-1">
-        <div class="group">
-          <div
-            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
-          >
-            {{ 'XP.Xpert.ActiveUsers' | translate: { Default: 'Active Users' } }}
-            <div
-              class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
-              [zTooltip]="
-                'XP.Xpert.ActiveUsersTooltip'
-                  | translate: { Default: 'Unique users who interacted with xpert; Xpert author and debugger excluded' }
-              "
-              zPosition="top"
-            >
-              <i class="ri-question-line text-text-secondary text-lg"></i>
-            </div>
-          </div>
-          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-            {{ selectedTimeOption() | i18n }}
-          </div>
-          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
-        </div>
+  <div class="monitor-source-badge">
+    <div class="monitor-source-icon">
+      <i class="ri-database-2-line"></i>
+    </div>
+    <div class="min-w-0">
+      <div class="text-xs font-medium uppercase tracking-[0.12em] text-text-tertiary">
+        {{ 'XP.Copilot.UsageLedger' | translate: { Default: 'Usage ledger' } }}
+      </div>
+      <div class="mt-1 truncate text-sm font-medium text-text-primary">
+        {{ 'XP.Copilot.LedgerDescription' | translate: { Default: 'Membership points and Token records' } }}
       </div>
     </div>
-
-    <xp-statistics-chart
-      [data]="dailyEndUsers()"
-      [measureLabel]="'XP.Xpert.ActiveUsers' | translate: { Default: 'Active Users' }"
-    />
   </div>
 </div>
 
-<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-    <div class="mb-3">
-      <div class="flex items-start p-1">
-        <div class="group">
-          <div
-            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
-          >
-            {{ 'XP.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' } }}
-            <div
-              class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
-              [zTooltip]="
-                'XP.Xpert.AvgSessionInteractionsTooltip'
-                  | translate: { Default: 'User interactions per session with xpert' }
-              "
-              zPosition="top"
-            >
-              <i class="ri-question-line text-text-secondary text-lg"></i>
-            </div>
-          </div>
-          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-            {{ selectedTimeOption() | i18n }}
-          </div>
-          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+<div class="monitor-summary-grid">
+  <article class="monitor-primary-summary">
+    <div class="monitor-summary-header">
+      <div>
+        <div class="monitor-section-kicker">
+          <i class="ri-pulse-line"></i>
+          <span>{{ 'XP.Copilot.UsageSummary' | translate: { Default: 'Usage summary' } }}</span>
         </div>
+        <p class="mt-1 text-sm text-text-tertiary">
+          {{ selectedTimeOption() | i18n }} ·
+          {{ 'XP.Copilot.FilteredLedger' | translate: { Default: 'Filtered ledger data' } }}
+        </p>
+      </div>
+      <div class="monitor-summary-status">
+        <span class="h-1.5 w-1.5 rounded-full bg-text-success"></span>
+        {{ 'XP.Copilot.LedgerActive' | translate: { Default: 'Active' } }}
       </div>
     </div>
 
-    <xp-statistics-chart
-      [data]="averageSessionInteractions()"
-      totalType="avg"
-      [measureLabel]="'XP.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' }"
-    />
-  </div>
-
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-    <div class="mb-3">
-      <div class="flex items-start p-1">
-        <div class="group">
-          <div
-            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
+    <div class="monitor-primary-metrics">
+      <div class="monitor-primary-metric">
+        <div class="monitor-metric-label">
+          <i class="ri-bar-chart-grouped-line text-primary-600"></i>
+          <span>{{ 'XP.Copilot.TotalTokens' | translate: { Default: 'Total Tokens' } }}</span>
+          <span
+            class="monitor-help-icon"
+            [zTooltip]="'XP.Copilot.TotalTokensTooltip' | translate: { Default: 'Tokens used in the selected period.' }"
+            zPosition="top"
           >
-            {{ 'XP.Xpert.TotalMessages' | translate: { Default: 'Total Messages' } }}
-            <div
-              class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
-              [zTooltip]="
-                'XP.Xpert.TotalMessagesTooltip' | translate: { Default: 'Daily interactions count with xpert' }
-              "
-              zPosition="top"
-            >
-              <i class="ri-question-line text-text-secondary text-lg"></i>
-            </div>
-          </div>
-          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-            {{ selectedTimeOption() | i18n }}
-          </div>
-          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+            <i class="ri-question-line"></i>
+          </span>
         </div>
+        <div class="monitor-primary-value">{{ usageOverview()?.totalTokens ?? 0 | number: '1.0-0' }}</div>
       </div>
-    </div>
 
-    <xp-statistics-chart
-      [data]="dailyMessages()"
-      [measureLabel]="'XP.Xpert.TotalMessages' | translate: { Default: 'Total Messages' }"
-    />
-  </div>
-</div>
-
-<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-    <div class="mb-3">
-      <div class="flex items-start p-1">
-        <div class="group">
-          <div
-            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
-          >
-            {{ 'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' } }}
-            <div
-              class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
-              [zTooltip]="
-                'XP.Xpert.UserSatisfactionRateTooltip'
-                  | translate
-                    : {
-                        Default:
-                          'The number of likes per 1,000 messages. This indicates the proportion of answers that users are highly satisfied with.'
-                      }
-              "
-              zPosition="top"
-            >
-              <i class="ri-question-line text-text-secondary text-lg"></i>
-            </div>
-          </div>
-          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-            {{ selectedTimeOption() | i18n }}
-          </div>
-          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
-        </div>
-      </div>
-    </div>
-
-    <xp-statistics-chart
-      [data]="userSatisfactionRate()"
-      [measureLabel]="'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' }"
-    />
-  </div>
-
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-    <div class="mb-3">
-      <div class="flex items-start p-1">
-        <div class="group">
-          <div
-            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
-          >
-            {{ 'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' } }}
-            <div
-              class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
-              [zTooltip]="
-                'XP.Xpert.TokenOutputSpeedTooltip'
-                  | translate
-                    : {
-                        Default:
-                          'Measure the performance of the LLM. Count the Tokens output speed of LLM from the beginning of the request to the completion of the output.'
-                      }
-              "
-              zPosition="top"
-            >
-              <i class="ri-question-line text-text-secondary text-lg"></i>
-            </div>
-          </div>
-          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-            {{ selectedTimeOption() | i18n }}
-          </div>
-          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
-        </div>
-      </div>
-    </div>
-
-    <xp-statistics-chart
-      [data]="tokensPerSecond()"
-      totalType="avg"
-      unit="Token/s"
-      [measureLabel]="'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' }"
-    />
-  </div>
-</div>
-
-<div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
-  <div class="mb-3">
-    <div class="flex items-start p-1">
-      <div class="group">
-        <div
-          class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
-        >
-          {{ 'XP.Xpert.TokenUsage' | translate: { Default: 'Token Usage' } }}
-          <div
-            class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+      <div class="monitor-primary-metric monitor-primary-metric--points">
+        <div class="monitor-metric-label">
+          <i class="ri-coin-line text-text-warning"></i>
+          <span>{{ 'XP.Copilot.MembershipPointsUsed' | translate: { Default: 'Membership Points Used' } }}</span>
+          <span
+            class="monitor-help-icon"
             [zTooltip]="
-              'XP.Xpert.TokenUsageTooltip'
-                | translate
-                  : { Default: 'Reflects the daily token usage of this expert request ai model, used for cost control' }
+              'XP.Copilot.MembershipPointsUsedTooltip'
+                | translate: { Default: 'Membership points consumed in the selected period.' }
             "
             zPosition="top"
           >
-            <i class="ri-question-line text-text-secondary text-lg"></i>
-          </div>
+            <i class="ri-question-line"></i>
+          </span>
         </div>
-        <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-          {{ selectedTimeOption() | i18n }}
-        </div>
-        <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+        <div class="monitor-primary-value">{{ usageOverview()?.totalMembershipPoints ?? 0 | number: '1.0-10' }}</div>
       </div>
+    </div>
+
+    <div class="monitor-summary-stats">
+      <div class="monitor-summary-stat">
+        <div class="monitor-secondary-icon bg-primary-600/10 text-primary-600"><i class="ri-send-plane-line"></i></div>
+        <div class="monitor-secondary-copy">
+          <div class="monitor-kpi-label">
+            {{ 'XP.Copilot.ModelCalls' | translate: { Default: 'Model calls' } }}
+            <span
+              class="monitor-help-icon"
+              [zTooltip]="
+                'XP.Copilot.ModelCallsTooltip' | translate: { Default: 'Model requests with recorded Token usage.' }
+              "
+              zPosition="top"
+              ><i class="ri-question-line"></i
+            ></span>
+          </div>
+          <div class="monitor-secondary-value">{{ usageOverview()?.totalCalls ?? 0 | number: '1.0-0' }}</div>
+        </div>
+      </div>
+
+      <div class="monitor-summary-stat">
+        <div class="monitor-secondary-icon bg-text-success/10 text-text-success"><i class="ri-user-star-line"></i></div>
+        <div class="monitor-secondary-copy">
+          <div class="monitor-kpi-label">
+            {{ 'XP.Copilot.ActiveUsageUsers' | translate: { Default: 'Active usage users' } }}
+            <span
+              class="monitor-help-icon"
+              [zTooltip]="
+                'XP.Copilot.ActiveUsageUsersTooltip'
+                  | translate: { Default: 'Unique users with model usage in the selected period.' }
+              "
+              zPosition="top"
+              ><i class="ri-question-line"></i
+            ></span>
+          </div>
+          <div class="monitor-secondary-value">{{ usageOverview()?.activeUsers ?? 0 | number: '1.0-0' }}</div>
+        </div>
+      </div>
+
+      <div class="monitor-summary-stat">
+        <div class="monitor-secondary-icon bg-text-accent/10 text-text-accent"><i class="ri-chat-3-line"></i></div>
+        <div class="monitor-secondary-copy">
+          <div class="monitor-kpi-label">
+            {{ 'XP.Copilot.UsageConversations' | translate: { Default: 'Usage conversations' } }}
+            <span
+              class="monitor-help-icon"
+              [zTooltip]="
+                'XP.Copilot.UsageConversationsTooltip'
+                  | translate: { Default: 'Unique conversation threads with recorded model usage.' }
+              "
+              zPosition="top"
+              ><i class="ri-question-line"></i
+            ></span>
+          </div>
+          <div class="monitor-secondary-value">{{ usageOverview()?.totalConversations ?? 0 | number: '1.0-0' }}</div>
+        </div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<section class="monitor-analysis-section">
+  <div class="monitor-section-heading">
+    <div>
+      <div class="monitor-section-kicker">
+        <i class="ri-line-chart-line"></i>
+        <span>{{ 'XP.Xpert.Analysis' | translate: { Default: 'Analysis' } }}</span>
+      </div>
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{
+          'XP.Copilot.AnalysisDescription'
+            | translate: { Default: 'Explore model mix and daily activity for the selected scope.' }
+        }}
+      </div>
+    </div>
+    <div class="monitor-section-meta">
+      <span class="h-1.5 w-1.5 rounded-full bg-text-success"></span>
+      {{ 'XP.Copilot.FilteredLedger' | translate: { Default: 'Filtered ledger data' } }}
     </div>
   </div>
 
-  <xp-statistics-token-usage class="w-full" [tokenCost]="tokenCost()" />
+  <div class="monitor-filter-bar">
+    <div class="monitor-filter-label">
+      <i class="ri-equalizer-2-line"></i>
+      <span>{{ 'XP.Copilot.ModelFilters' | translate: { Default: 'Filters' } }}</span>
+    </div>
+    <div class="monitor-filter-controls">
+      <xp-select
+        class="w-full sm:w-48"
+        placeholder="Select time range"
+        icon="ri-calendar-line"
+        [selectOptions]="TimeRanges"
+        [(ngModel)]="timeRangeValue"
+      />
+      <xp-select
+        class="w-full sm:w-64"
+        [placeholder]="'XP.Copilot.AllModels' | translate: { Default: 'All models' }"
+        icon="ri-brain-line"
+        searchable
+        [selectOptions]="modelOptions()"
+        [(ngModel)]="selectedModel"
+      />
+    </div>
+  </div>
+</section>
+
+<section class="monitor-chart-card monitor-token-card">
+  <div class="monitor-panel-header">
+    <div class="monitor-panel-title-group">
+      <div class="monitor-panel-icon bg-primary-600/10 text-primary-600">
+        <i class="ri-bar-chart-horizontal-line"></i>
+      </div>
+      <div class="min-w-0">
+        <h2 class="monitor-panel-title">
+          {{ 'XP.Copilot.TokenAndPointsUsage' | translate: { Default: 'Token and membership point usage' } }}
+        </h2>
+        <p class="monitor-panel-subtitle">
+          {{ selectedTimeOption() | i18n }} ·
+          {{ 'XP.Copilot.TokenAndPointsUsageTooltip' | translate: { Default: 'Daily usage trend' } }}
+        </p>
+      </div>
+    </div>
+    <div class="monitor-legend">
+      <span><i class="bg-primary-600"></i>{{ 'XP.Copilot.Tokens' | translate: { Default: 'Tokens' } }}</span>
+      <span
+        ><i class="bg-text-warning"></i
+        >{{ 'XP.Copilot.MembershipPoints' | translate: { Default: 'Membership points' } }}</span
+      >
+    </div>
+  </div>
+  <div class="monitor-token-body">
+    @if (usageOverview()?.buckets?.length) {
+      <xp-statistics-token-usage class="w-full" [tokenCost]="usageOverview()?.buckets" displayMode="membership" />
+    } @else {
+      <div class="monitor-empty-state">
+        <i class="ri-bar-chart-horizontal-line"></i>
+        <span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No usage data for this scope' } }}</span>
+      </div>
+    }
+  </div>
+</section>
+
+<div class="monitor-chart-grid monitor-chart-grid--distribution">
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-primary-600/10 text-primary-600"><i class="ri-pie-chart-2-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">
+            {{ 'XP.Copilot.ModelUsageByTokens' | translate: { Default: 'Token usage by provider and model' } }}
+          </h2>
+          <p class="monitor-panel-subtitle">
+            {{ selectedTimeOption() | i18n }} · {{ 'XP.Copilot.Tokens' | translate: { Default: 'Tokens' } }}
+          </p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Copilot.ModelUsageByTokensTooltip' | translate: { Default: 'Token usage grouped by provider and model.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body">
+      @if (modelTokenUsage().length) {
+        <xp-statistics-pie-chart
+          [data]="modelTokenUsage()"
+          measure="token"
+          [measureLabel]="'XP.Copilot.Tokens' | translate: { Default: 'Tokens' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-pie-chart-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No usage data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-text-warning/10 text-text-warning"><i class="ri-donut-chart-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">
+            {{
+              'XP.Copilot.ModelUsageByPoints' | translate: { Default: 'Membership point usage by provider and model' }
+            }}
+          </h2>
+          <p class="monitor-panel-subtitle">
+            {{ selectedTimeOption() | i18n }} ·
+            {{ 'XP.Copilot.MembershipPoints' | translate: { Default: 'Membership points' } }}
+          </p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Copilot.ModelUsageByPointsTooltip'
+            | translate: { Default: 'Membership points grouped by provider and model.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body">
+      @if (modelPointUsage().length) {
+        <xp-statistics-pie-chart
+          [data]="modelPointUsage()"
+          [measureLabel]="'XP.Copilot.MembershipPoints' | translate: { Default: 'Membership points' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-donut-chart-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No usage data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+</div>
+
+<div class="monitor-chart-grid monitor-chart-grid--trends">
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-primary-600/10 text-primary-600"><i class="ri-send-plane-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">{{ 'XP.Copilot.ModelCalls' | translate: { Default: 'Model calls' } }}</h2>
+          <p class="monitor-panel-subtitle">{{ selectedTimeOption() | i18n }}</p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Copilot.ModelCallsTooltip' | translate: { Default: 'Daily model requests with recorded Token usage.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body monitor-chart-body--trend">
+      @if (dailyCalls().length) {
+        <xp-statistics-chart
+          [data]="dailyCalls()"
+          [totalValue]="usageOverview()?.totalCalls"
+          [measureLabel]="'XP.Copilot.ModelCalls' | translate: { Default: 'Model calls' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-line-chart-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No usage data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-text-success/10 text-text-success"><i class="ri-user-star-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">
+            {{ 'XP.Copilot.ActiveUsageUsers' | translate: { Default: 'Active usage users' } }}
+          </h2>
+          <p class="monitor-panel-subtitle">{{ selectedTimeOption() | i18n }}</p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Copilot.ActiveUsageUsersTooltip'
+            | translate: { Default: 'Unique users with model usage in the selected period.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body monitor-chart-body--trend">
+      @if (dailyUsageUsers().length) {
+        <xp-statistics-chart
+          [data]="dailyUsageUsers()"
+          [totalValue]="usageOverview()?.activeUsers"
+          [measureLabel]="'XP.Copilot.ActiveUsageUsers' | translate: { Default: 'Active usage users' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-user-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No usage data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-text-accent/10 text-text-accent"><i class="ri-chat-3-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">
+            {{ 'XP.Copilot.UsageConversations' | translate: { Default: 'Usage conversations' } }}
+          </h2>
+          <p class="monitor-panel-subtitle">{{ selectedTimeOption() | i18n }}</p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Copilot.UsageConversationsTooltip'
+            | translate: { Default: 'Unique conversation threads with recorded model usage.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body monitor-chart-body--trend">
+      @if (dailyUsageConversations().length) {
+        <xp-statistics-chart
+          [data]="dailyUsageConversations()"
+          [totalValue]="usageOverview()?.totalConversations"
+          [measureLabel]="'XP.Copilot.UsageConversations' | translate: { Default: 'Usage conversations' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-chat-3-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No usage data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-text-warning/10 text-text-warning"><i class="ri-message-3-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">{{ 'XP.Xpert.TotalMessages' | translate: { Default: 'Total messages' } }}</h2>
+          <p class="monitor-panel-subtitle">{{ selectedTimeOption() | i18n }}</p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Xpert.TotalMessagesTooltip' | translate: { Default: 'Human and AI messages exchanged with this expert.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body monitor-chart-body--trend">
+      @if (dailyMessages()?.length) {
+        <xp-statistics-chart
+          [data]="dailyMessages()"
+          [measureLabel]="'XP.Xpert.TotalMessages' | translate: { Default: 'Total messages' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-message-3-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No activity data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-text-success/10 text-text-success"><i class="ri-thumb-up-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">
+            {{ 'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'Feedback index' } }}
+          </h2>
+          <p class="monitor-panel-subtitle">{{ selectedTimeOption() | i18n }}</p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Xpert.UserSatisfactionRateTooltip' | translate: { Default: 'Likes minus dislikes per 1,000 AI messages.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body monitor-chart-body--trend">
+      @if (userSatisfactionRate()?.length) {
+        <xp-statistics-chart
+          [data]="userSatisfactionRate()"
+          [measureLabel]="'XP.Xpert.UserSatisfactionRate' | translate: { Default: 'Feedback index' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-thumb-up-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No feedback data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="monitor-chart-card">
+    <div class="monitor-panel-header">
+      <div class="monitor-panel-title-group">
+        <div class="monitor-panel-icon bg-primary-600/10 text-primary-600"><i class="ri-speed-line"></i></div>
+        <div class="min-w-0">
+          <h2 class="monitor-panel-title">
+            {{ 'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token output speed' } }}
+          </h2>
+          <p class="monitor-panel-subtitle">{{ selectedTimeOption() | i18n }}</p>
+        </div>
+      </div>
+      <span
+        class="monitor-help-icon"
+        [zTooltip]="
+          'XP.Xpert.TokenOutputSpeedTooltip'
+            | translate: { Default: 'Average output speed based on generated Tokens and response latency.' }
+        "
+        zPosition="top"
+        ><i class="ri-question-line"></i
+      ></span>
+    </div>
+    <div class="monitor-chart-body monitor-chart-body--trend">
+      @if (tokensPerSecond()?.length) {
+        <xp-statistics-chart
+          [data]="tokensPerSecond()"
+          totalType="avg"
+          unit=" Token/s"
+          [measureLabel]="'XP.Xpert.TokenOutputSpeed' | translate: { Default: 'Token output speed' }"
+        />
+      } @else {
+        <div class="monitor-empty-state">
+          <i class="ri-speed-line"></i
+          ><span>{{ 'XP.Copilot.NoUsageData' | translate: { Default: 'No performance data for this scope' } }}</span>
+        </div>
+      }
+    </div>
+  </section>
 </div>

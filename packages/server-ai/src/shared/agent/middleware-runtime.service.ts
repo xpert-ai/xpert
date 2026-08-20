@@ -76,6 +76,9 @@ import {
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     KnowledgebaseProvisioningRuntimeCapability,
+    ProjectProvisioningRuntimeCapability,
+    ProjectEnsureInput,
+    ProjectEnsureResult,
     KnowledgebaseEnsureInput,
     KnowledgebaseEnsureResult,
     KnowledgebaseConnectAgentInput,
@@ -121,6 +124,7 @@ import { applicationMetrics } from '../../metrics'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
+import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { CollaborationService } from '../../collaboration/collaboration.service'
@@ -480,6 +484,11 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new EnsureKnowledgebasesCommand(input))
     }
 
+    /** Expose idempotent Chat Project provisioning through the plugin runtime. */
+    async ensureProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
+        return this.commandBus.execute(new EnsureXpertProjectCommand(input))
+    }
+
     async connectAgentKnowledgebases(input: KnowledgebaseConnectAgentInput): Promise<KnowledgebaseConnectAgentResult> {
         return this.commandBus.execute(new ConnectAgentKnowledgebasesCommand(input))
     }
@@ -683,6 +692,7 @@ export class AgentMiddlewareRuntimeService {
                 status: 'busy',
                 xpertId,
                 from: 'job',
+                projectId: normalizeOptionalString(input.projectId),
                 options: {
                     parameters: {
                         input: prompt
@@ -722,6 +732,7 @@ export class AgentMiddlewareRuntimeService {
         const stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
             new XpertChatCommand(request, {
                 xpertId,
+                agentKey: normalizeOptionalString(input.agentKey),
                 from: 'job',
                 ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
                 projectId: normalizeOptionalString(input.projectId) ?? undefined,
@@ -843,7 +854,15 @@ export class AgentMiddlewareRuntimeService {
             [ArtifactsRuntimeCapability, artifactsApi],
             [CollaborationRuntimeCapability, collaborationApi],
             [WorkspaceFilesRuntimeCapability, workspaceFilesApi],
-            [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssetsApi]
+            [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssetsApi],
+            // Provisioning is host-authorized and deliberately separate from
+            // Agent-visible tools; plugins access it through runtime capabilities.
+            [
+                ProjectProvisioningRuntimeCapability,
+                {
+                    ensure: (input) => this.ensureProject(input)
+                }
+            ]
         ])
 
         return {

@@ -28,7 +28,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Cron, SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'
-import { CronJob } from 'cron'
+import { CronJob, CronTime } from 'cron'
 import { lastValueFrom, toArray } from 'rxjs'
 import { Between, Repository, SelectQueryBuilder } from 'typeorm'
 import { XpertChatCommand } from '../xpert/commands'
@@ -43,7 +43,14 @@ import { applyScheduledTaskOidcContext } from './scheduled-task-oidc-token'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
+import { ScheduledTaskExecution, ScheduledTaskExecutionStatus } from './scheduled-task-execution.entity'
+import {
+    ScheduledTaskExecutionCoordinator,
+    TypeOrmScheduledTaskExecutionStore
+} from './scheduled-task-execution.coordinator'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
+
+const SCHEDULED_TASK_HEARTBEAT_MS = 60 * 1000
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -72,10 +79,20 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         @Optional()
-        private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
+        private readonly outboundActorTokenProvider?: OutboundActorTokenProvider,
+        @Optional()
+        @InjectRepository(ScheduledTaskExecution)
+        private readonly scheduledTaskExecutionRepository?: Repository<ScheduledTaskExecution>
     ) {
         super(repository)
+        if (scheduledTaskExecutionRepository) {
+            this.scheduledTaskExecutionCoordinator = new ScheduledTaskExecutionCoordinator(
+                new TypeOrmScheduledTaskExecutionStore(scheduledTaskExecutionRepository)
+            )
+        }
     }
+
+    private readonly scheduledTaskExecutionCoordinator?: ScheduledTaskExecutionCoordinator
 
     async onModuleInit() {
         const { items: jobs, total } = await this.getActiveJobs()
@@ -89,37 +106,87 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
     }
 
-    async executeTask(id: string, options: TChatOptions) {
-        const task = await this.findOne(id, { relations: ['xpert', 'createdBy', 'createdBy.role'] })
-        const chatOptions = applyScheduledTaskOidcContext(
-            task,
-            RequestContext.currentUser() ?? task.createdBy,
-            options,
-            this.outboundActorTokenProvider
-        )
-        const runtimeState = await this.resolveTaskRuntimeState(task)
-        const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
-            prompt: task.prompt,
-            xpertId: task.xpertId,
-            taskId: task.id,
-            conversationTaskId: task.id,
-            timeZone: task.timeZone || options.timeZone,
-            runtimeState,
-            chatOptions
-        })
-        observable.subscribe({
-            next: (message) => {
-                // console.log('Test message:', message)
-            },
-            error: (err) => {
-                this.#logger.error('Test error:', getErrorMessage(err))
+    async executeTask(
+        id: string,
+        options: TChatOptions,
+        scheduledAt?: Date,
+        scheduledExecution?: ScheduledTaskExecution
+    ) {
+        try {
+            const task = await this.findOne(id, { relations: ['xpert', 'createdBy', 'createdBy.role'] })
+            const chatOptions = applyScheduledTaskOidcContext(
+                task,
+                RequestContext.currentUser() ?? task.createdBy,
+                options,
+                this.outboundActorTokenProvider
+            )
+            if (scheduledExecution) {
+                await this.requireScheduledTaskExecutionCoordinator().markRunning(scheduledExecution)
             }
-        })
+            const runtimeState = await this.resolveTaskRuntimeState(task, scheduledAt)
+            const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
+                prompt: task.prompt,
+                xpertId: task.xpertId,
+                taskId: task.id,
+                conversationTaskId: task.id,
+                conversationId: scheduledExecution?.conversationId,
+                executionId: scheduledExecution?.executionId,
+                timeZone: task.timeZone || options.timeZone,
+                runtimeState,
+                chatOptions
+            })
+            if (scheduledExecution) {
+                await this.requireScheduledTaskExecutionCoordinator().bindRun(
+                    scheduledExecution,
+                    conversation.id,
+                    execution.id
+                )
+            }
 
-        return {
-            conversationId: conversation.id,
-            threadId: conversation.threadId,
-            runId: execution.id
+            const heartbeat = scheduledExecution
+                ? setInterval(() => {
+                      void this.requireScheduledTaskExecutionCoordinator()
+                          .refreshLease(scheduledExecution)
+                          .catch((error) => {
+                              this.#logger.warn(`Scheduled task lease refresh failed: ${getErrorMessage(error)}`)
+                          })
+                  }, SCHEDULED_TASK_HEARTBEAT_MS)
+                : undefined
+            const finish = (status: ScheduledTaskExecutionStatus, error?: unknown) => {
+                if (heartbeat) {
+                    clearInterval(heartbeat)
+                }
+                if (scheduledExecution) {
+                    void this.finishScheduledTaskExecution(task, scheduledExecution, status, error)
+                        .catch((finishError) => {
+                            this.#logger.error(`Scheduled task state update failed: ${getErrorMessage(finishError)}`)
+                        })
+                }
+            }
+
+            observable.subscribe({
+                next: () => undefined,
+                error: (error) => {
+                    this.#logger.error('Scheduled task execution failed:', getErrorMessage(error))
+                    finish(ScheduledTaskExecutionStatus.FAILED, error)
+                },
+                complete: () => finish(ScheduledTaskExecutionStatus.SUCCEEDED)
+            })
+
+            return {
+                conversationId: conversation.id,
+                threadId: conversation.threadId,
+                runId: execution.id
+            }
+        } catch (error) {
+            if (scheduledExecution) {
+                await this.requireScheduledTaskExecutionCoordinator().finish(
+                    scheduledExecution,
+                    ScheduledTaskExecutionStatus.FAILED,
+                    error
+                )
+            }
+            throw error
         }
     }
 
@@ -128,12 +195,15 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         xpertId?: string | null
         taskId?: string | null
         conversationTaskId?: string | null
+        conversationId?: string | null
+        executionId?: string | null
         timeZone?: string | null
         runtimeState?: TXpertChatState | null
         chatOptions?: TChatOptions
     }) {
-        const conversation = await this.commandBus.execute(
+        const conversation = await this.commandBus.execute<ChatConversationUpsertCommand, ChatConversation>(
             new ChatConversationUpsertCommand({
+                id: params.conversationId ?? undefined,
                 status: 'busy',
                 taskId: params.conversationTaskId ?? undefined,
                 xpertId: params.xpertId ?? undefined,
@@ -147,6 +217,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         )
         const execution = await this.commandBus.execute(
             new XpertAgentExecutionUpsertCommand({
+                id: params.executionId ?? undefined,
                 xpertId: params.xpertId ?? undefined,
                 status: XpertAgentExecutionStatusEnum.RUNNING,
                 threadId: conversation.threadId
@@ -195,25 +266,34 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const scheduleJob = () => {
             const job = CronJob.from({
                 cronTime: cronTime,
-                timeZone: task.timeZone,
+                timeZone: task.timeZone || 'UTC',
 
                 onTick: () => {
+                    const scheduledAt = resolveScheduledOccurrence(task)
                     void this.runWithTaskRequestContext(task, user, () => {
-                        runs += 1
-                        this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
-                        if (task.xpertId) {
-                            // Trial account limit
-                            if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
-                                this.pause(task.id).catch((err) => {
+                        if (!task.xpertId) {
+                            return
+                        }
+                        if (RequestContext.hasRole(RolesEnum.TRIAL) && runs >= MaximumRuns) {
+                            return this.pause(task.id).then(() => undefined)
+                        }
+                        return this.requireScheduledTaskExecutionCoordinator()
+                            .claim(task, buildScheduleOccurrenceKey(task, scheduledAt), scheduledAt)
+                            .then((scheduledExecution) => {
+                                if (!scheduledExecution) {
+                                    return
+                                }
+                                runs += 1
+                                this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
+                                void this.executeTask(
+                                    task.id,
+                                    { timeZone: task.timeZone },
+                                    scheduledAt,
+                                    scheduledExecution
+                                ).catch((err) => {
                                     this.#logger.error(err)
                                 })
-                                return
-                            }
-
-                            this.executeTask(task.id, { timeZone: task.timeZone }).catch((err) => {
-                                this.#logger.error(err)
                             })
-                        }
                     }).catch((err) => {
                         this.#logger.error(err)
                     })
@@ -241,6 +321,68 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         }
 
         this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
+    }
+
+    @Cron('30 * * * * *')
+    async recoverExpiredScheduledTaskExecutions() {
+        if (!this.scheduledTaskExecutionCoordinator) {
+            return
+        }
+
+        const expiredExecutions = await this.scheduledTaskExecutionCoordinator.findExpired()
+        for (const expiredExecution of expiredExecutions) {
+            const task = await this.repository
+                .createQueryBuilder('task')
+                .leftJoinAndSelect('task.createdBy', 'createdBy')
+                .leftJoinAndSelect('createdBy.role', 'createdByRole')
+                .where('task.id = :taskId', { taskId: expiredExecution.taskId })
+                .andWhere('task.tenantId = :tenantId', { tenantId: expiredExecution.tenantId })
+                .andWhere('task.status = :status', { status: ScheduleTaskStatus.SCHEDULED })
+                .getOne()
+            if (!task?.createdBy || !task.xpertId) {
+                continue
+            }
+
+            await this.runWithTaskRequestContext(task, task.createdBy, async () => {
+                const claimed = await this.requireScheduledTaskExecutionCoordinator().claim(
+                    task,
+                    expiredExecution.occurrenceKey,
+                    expiredExecution.scheduledAt
+                )
+                if (claimed) {
+                    await this.executeTask(
+                        task.id,
+                        { timeZone: task.timeZone },
+                        expiredExecution.scheduledAt,
+                        claimed
+                    )
+                }
+            }).catch((error) => {
+                this.#logger.error(
+                    `Scheduled task recovery failed: ${expiredExecution.id} ${getErrorMessage(error)}`
+                )
+            })
+        }
+    }
+
+    private requireScheduledTaskExecutionCoordinator() {
+        if (!this.scheduledTaskExecutionCoordinator) {
+            throw new Error('Scheduled task execution coordinator is not configured')
+        }
+        return this.scheduledTaskExecutionCoordinator
+    }
+
+    private async finishScheduledTaskExecution(
+        task: IXpertTask,
+        execution: ScheduledTaskExecution,
+        status: ScheduledTaskExecutionStatus,
+        error?: unknown
+    ) {
+        await this.requireScheduledTaskExecutionCoordinator().finish(execution, status, error)
+        if (status === ScheduledTaskExecutionStatus.SUCCEEDED && task.options.frequency === TaskFrequency.Once) {
+            this.deleteJob(task.id)
+            await this.repository.update(task.id, { status: ScheduleTaskStatus.PAUSED })
+        }
     }
 
     private runWithTaskRequestContext(task: IXpertTask, user: IUser, callback: () => void | Promise<void>) {
@@ -357,9 +499,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         return await this.executeTask(id, options)
     }
 
-    private async resolveTaskRuntimeState(task: IXpertTask): Promise<TXpertChatState | null> {
+    private async resolveTaskRuntimeState(task: IXpertTask, scheduledAt?: Date): Promise<TXpertChatState | null> {
         const state: TXpertChatState = task.runtimeState ? { ...task.runtimeState } : {}
-        const idempotencyKey = buildScheduleIdempotencyKey(task)
+        const idempotencyKey = buildScheduleIdempotencyKey(task, scheduledAt)
 
         return {
             ...state,
@@ -2246,8 +2388,10 @@ const XPERT_TASK_MUTATION_KEYS = [
     'agentKey'
 ] satisfies (keyof IXpertTask)[]
 
-function sanitizeTaskMutationInput(entity: Partial<IXpertTask>): Partial<IXpertTask> {
-    const result: Partial<IXpertTask> = {}
+type XpertTaskMutation = Partial<Pick<IXpertTask, (typeof XPERT_TASK_MUTATION_KEYS)[number]>>
+
+function sanitizeTaskMutationInput(entity: Partial<IXpertTask>): XpertTaskMutation {
+    const result: XpertTaskMutation = {}
     const source = entity as Record<string, unknown>
     const target = result as Record<string, unknown>
 
@@ -2370,9 +2514,39 @@ function applyJsonSchemaDescriptionTitles(schema: unknown) {
     applyJsonSchemaDescriptionTitles(Reflect.get(schema, 'items'))
 }
 
-function buildScheduleIdempotencyKey(task: IXpertTask) {
-    const fireWindow = new Date().toISOString().slice(0, 16)
+export function buildScheduleOccurrenceKey(task: IXpertTask, scheduledAt = new Date()) {
+    const fireWindow = scheduledAt.toISOString().slice(0, 16)
     return `xpert-task:${task.id}:${fireWindow}`
+}
+
+function buildScheduleIdempotencyKey(task: IXpertTask, scheduledAt = new Date()) {
+    return buildScheduleOccurrenceKey(task, scheduledAt)
+}
+
+export function resolveScheduledOccurrence(task: IXpertTask, reference = new Date()) {
+    const timeZone = task.timeZone || 'UTC'
+    const cronTime = new CronTime(generateCronExpression(task.options), timeZone)
+    const lookbackDays =
+        task.options.frequency === TaskFrequency.Daily
+            ? 3
+            : task.options.frequency === TaskFrequency.Weekly
+              ? 14
+              : task.options.frequency === TaskFrequency.Monthly
+                ? 62
+                : 750
+    let cursor = new Date(reference.getTime() - lookbackDays * 24 * 60 * 60 * 1000)
+    let latest: Date | undefined
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+        const candidate = cronTime.getNextDateFrom(cursor, timeZone).toJSDate()
+        if (candidate > reference) {
+            break
+        }
+        latest = candidate
+        cursor = candidate
+    }
+
+    return latest ?? reference
 }
 
 function normalizeOptionalString(value: unknown) {

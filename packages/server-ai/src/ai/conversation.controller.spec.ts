@@ -2,6 +2,7 @@ jest.mock('@xpert-ai/server-core', () => {
     const { In } = jest.requireActual('typeorm')
 
     return {
+        AllowClientSecretBindings: () => () => undefined,
         ApiKeyOrClientSecretAuthGuard: class {},
         Public: () => () => undefined,
         TransformInterceptor: class {},

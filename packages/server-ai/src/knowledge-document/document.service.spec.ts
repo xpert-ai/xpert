@@ -408,7 +408,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                             deleteKnowledgeDocument
                         }) as unknown as KnowledgeDocumentStore
                 ),
-                update: updateKnowledgebase
+                updateKnowledgebase
             },
             commandBus: {
                 execute: clearGraph
@@ -452,7 +452,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                             deleteKnowledgeDocument
                         }) as unknown as KnowledgeDocumentStore
                 ),
-                update: updateKnowledgebase
+                updateKnowledgebase
             },
             commandBus: {
                 execute: jest.fn()

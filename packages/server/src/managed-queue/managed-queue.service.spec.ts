@@ -1,4 +1,5 @@
 import { ManagedQueueService } from './managed-queue.service'
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 describe('ManagedQueueService', () => {
@@ -94,6 +95,11 @@ describe('ManagedQueueService', () => {
 			apiKeyUserId: 'assistant-user-1',
 			requestedUserId: 'business-user-1',
 			requestedOrganizationId: 'org-1',
+			clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+			enterpriseH5Scope: {
+				platform: 'dingtalk',
+				integrationId: 'integration-1'
+			},
 			apiKey: {
 				token: 'must-not-enter-redis',
 				type: 'assistant',
@@ -126,6 +132,11 @@ describe('ManagedQueueService', () => {
 				organizationId: 'org-1',
 				ownerUserId: 'owner-user-1',
 				requestedUserId: 'business-user-1',
+				clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+				enterpriseH5Scope: {
+					platform: 'dingtalk',
+					integrationId: 'integration-1'
+				},
 				apiKey: {
 					type: 'assistant',
 					entityId: 'xpert-1',
@@ -168,6 +179,34 @@ describe('ManagedQueueService', () => {
 		})
 		expect(envelope).not.toHaveProperty('delegation')
 		expect(envelope).not.toHaveProperty('principal')
+	})
+
+	it('uses an explicitly scoped organization when the request context is tenant-only', async () => {
+		const { queue } = createQueue()
+		const service = new ManagedQueueService(queue as never)
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+
+		await service.enqueue({
+			pluginName: 'plugin-cut',
+			queueName: 'analysis',
+			jobName: 'transcribe',
+			payload: {},
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'user-1'
+		})
+
+		expect(queue.add.mock.calls[0]?.[1]).toMatchObject({
+			organizationId: 'org-1',
+			actor: {
+				userId: 'user-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				type: 'user'
+			}
+		})
 	})
 
 	it('rejects a delegated principal that does not match the requested queue scope', async () => {

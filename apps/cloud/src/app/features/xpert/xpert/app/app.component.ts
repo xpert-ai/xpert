@@ -11,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { EMPTY, switchMap, tap } from 'rxjs'
 import {
+  ENTERPRISE_H5_PLATFORM_DEFINITIONS,
   getErrorMessage,
   injectApiBaseUrl,
   injectToastr,
@@ -61,6 +62,14 @@ export class XpertAppComponent {
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly appUrl = computed(() => window.location.origin + '/x-chatkit/x/' + this.xpert()?.slug)
   readonly app = computed(() => this.xpert()?.app)
+  readonly enterpriseH5Links = computed(() =>
+    ENTERPRISE_H5_PLATFORM_DEFINITIONS.filter(({ platform }) => this.app()?.channels?.[platform]?.enabled).map(
+      (definition) => ({
+        ...definition,
+        url: `${window.location.origin}/x-chatkit/h5/${definition.platform}/${this.xpert()?.slug}`
+      })
+    )
+  )
   readonly published = computed(() => !!this.xpert()?.publishAt)
   readonly enabledApp = computed(() => this.app()?.enabled)
 

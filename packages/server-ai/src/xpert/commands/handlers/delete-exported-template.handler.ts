@@ -5,17 +5,17 @@ import { XpertDeleteExportedTemplateCommand } from '../delete-exported-template.
 
 @CommandHandler(XpertDeleteExportedTemplateCommand)
 export class XpertDeleteExportedTemplateHandler implements ICommandHandler<XpertDeleteExportedTemplateCommand> {
-	constructor(
-		private readonly xpertService: XpertService,
-		private readonly xpertTemplateService: XpertTemplateService
-	) {}
+    constructor(
+        private readonly xpertService: XpertService,
+        private readonly xpertTemplateService: XpertTemplateService
+    ) {}
 
-	public async execute(command: XpertDeleteExportedTemplateCommand): Promise<void> {
-		const xpert = await this.xpertService.findOne(command.id)
-		await this.xpertTemplateService.deleteExportedXpertTemplate(xpert.exportedTemplate)
+    public async execute(command: XpertDeleteExportedTemplateCommand): Promise<void> {
+        const xpert = await this.xpertService.findOne(command.id)
+        await this.xpertTemplateService.deleteExportedXpertTemplate(xpert.exportedTemplate)
 
-		if (xpert.exportedTemplate) {
-			await this.xpertService.update(command.id, { exportedTemplate: null })
-		}
-	}
+        if (xpert.exportedTemplate) {
+            await this.xpertService.updateXpert(command.id, { exportedTemplate: null })
+        }
+    }
 }

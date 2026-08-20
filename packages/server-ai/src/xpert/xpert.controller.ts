@@ -1,6 +1,7 @@
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
+    isEnterpriseH5Platform,
     IChatConversation,
     IIntegration,
     IXpert,
@@ -107,6 +108,7 @@ import {
     StatisticsXpertTokensQuery
 } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
+import { CopilotUsageService } from '../copilot-usage/copilot-usage.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
 import {
@@ -164,6 +166,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly frequentQuestionsService: XpertFrequentQuestionsService,
         private readonly templateWorkspaceInitializer: XpertTemplateWorkspaceInitializer,
         private readonly workspaceFilesService: XpertWorkspaceFilesService,
+        private readonly copilotUsageService: CopilotUsageService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -994,7 +997,7 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/api')
     async updateChatApi(@Param('id') id: string, @Body() api: Partial<TChatApi>) {
         const xpert = await this.service.findOne(id)
-        await this.service.update(id, { api: { ...(xpert.api ?? {}), ...api } })
+        await this.service.updateXpert(id, { api: { ...(xpert.api ?? {}), ...api } })
         if (!api.disabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
@@ -1003,7 +1006,12 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/app')
     async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
         const xpert = await this.service.findOne(id)
-        await this.service.update(id, { app: { ...(xpert.app ?? {}), ...app } })
+        for (const platform of Object.keys(app.channels ?? {})) {
+            if (!isEnterpriseH5Platform(platform)) {
+                throw new BadRequestException(t('server-ai:Error.EnterpriseH5PlatformUnsupported'))
+            }
+        }
+        await this.service.updateXpert(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
@@ -1422,15 +1430,39 @@ export class XpertController extends CrudController<Xpert> {
     }
 
     @UseGuards(XpertGuard)
+    @Get(':id/statistics/usage-overview')
+    async getUsageOverview(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
+    ) {
+        return await this.copilotUsageService.findOverview({ start, end, model, userId, xpertId: id })
+    }
+
+    @UseGuards(XpertGuard)
     @Get(':id/statistics/daily-conversations')
-    async getDailyConversations(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsDailyConvQuery(start, end, id))
+    async getDailyConversations(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
+    ) {
+        return await this.queryBus.execute(new StatisticsDailyConvQuery(start, end, id, { model, userId }))
     }
 
     @UseGuards(XpertGuard)
     @Get(':id/statistics/daily-end-users')
-    async getDailyEndUsers(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(start, end, id))
+    async getDailyEndUsers(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
+    ) {
+        return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(start, end, id, { model, userId }))
     }
 
     @UseGuards(XpertGuard)
@@ -1438,9 +1470,13 @@ export class XpertController extends CrudController<Xpert> {
     async getAverageSessionInteractions(
         @Param('id') id: string,
         @Query('start') start: string,
-        @Query('end') end: string
+        @Query('end') end: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
     ) {
-        return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(start, end, id))
+        return await this.queryBus.execute(
+            new StatisticsAverageSessionInteractionsQuery(start, end, id, { model, userId })
+        )
     }
 
     @UseGuards(XpertGuard)
@@ -1449,17 +1485,28 @@ export class XpertController extends CrudController<Xpert> {
         @Param('id') id: string,
         @Query('start') start: string,
         @Query('end') end: string,
-        @Query('currentUserOnly') currentUserOnly?: string
+        @Query('currentUserOnly') currentUserOnly?: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
     ) {
         return await this.queryBus.execute(
-            new StatisticsDailyMessagesQuery(start, end, id, currentUserOnly === 'true' || currentUserOnly === '1')
+            new StatisticsDailyMessagesQuery(start, end, id, currentUserOnly === 'true' || currentUserOnly === '1', {
+                model,
+                userId
+            })
         )
     }
 
     @UseGuards(XpertGuard)
     @Get(':id/statistics/tokens-per-second')
-    async getTokensPerSecond(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(start, end, id))
+    async getTokensPerSecond(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
+    ) {
+        return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(start, end, id, { model, userId }))
     }
 
     @UseGuards(XpertGuard)
@@ -1470,7 +1517,13 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Get(':id/statistics/user-satisfaction-rate')
-    async getUserSatisfactionRate(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end, id))
+    async getUserSatisfactionRate(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model?: string,
+        @Query('userId') userId?: string
+    ) {
+        return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end, id, { model, userId }))
     }
 }

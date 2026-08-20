@@ -29,7 +29,6 @@ import { useContainer } from 'class-validator'
 import chalk from 'chalk'
 import cookieParser from 'cookie-parser'
 import { json, Request, Response, text, urlencoded } from 'express'
-import expressSession from 'express-session'
 import i18next from 'i18next'
 import * as middleware from 'i18next-http-middleware'
 import { Logger } from 'nestjs-pino'
@@ -38,6 +37,9 @@ import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
 import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
+import { configureSession } from './session'
+import { configureTrustProxy } from './trust-proxy'
+import { withSchemaSyncProtection } from './schema-sync-bootstrap'
 
 export async function bootstrap(options: { title: string; version: string }) {
   // Pre-bootstrap the application configuration
@@ -57,6 +59,11 @@ export async function bootstrap(options: { title: string; version: string }) {
 
   app.useLogger(app.get(Logger))
   NestLogger.overrideLogger(resolveNestLogLevels())
+
+  configureTrustProxy(app, {
+    value: env.env?.TRUST_PROXY,
+    cloudDeployment: env.deploymentTarget === 'cloud'
+  })
 
   const metricsService = app.get(MetricsService)
   app.getHttpAdapter().get('/metrics', (_req: Request, res: Response) => {
@@ -107,15 +114,10 @@ export async function bootstrap(options: { title: string; version: string }) {
   })
 
   // Sessions
-  app.use(
-    // this runs in memory, so we lose sessions on restart of server/pod
-    expressSession({
-      secret: env.EXPRESS_SESSION_SECRET,
-      resave: true, // we use this because Memory store does not support 'touch' method
-      saveUninitialized: true,
-      cookie: { secure: env.production } // TODO
-    })
-  )
+  configureSession(app, {
+    secret: env.EXPRESS_SESSION_SECRET,
+    secure: env.production
+  })
 
   const globalPrefix = 'api'
   app.setGlobalPrefix(globalPrefix, { exclude: ['artifacts/share', 'artifacts/share/(.*)'] })
@@ -161,7 +163,10 @@ export async function bootstrap(options: { title: string; version: string }) {
  * @param applicationConfig - The initial application configuration.
  * @returns A promise that resolves to the final application configuration after pre-bootstrap operations.
  */
-export async function preBootstrapApplicationConfig(applicationConfig: Partial<IPluginConfig>) {
+export async function preBootstrapApplicationConfig(
+  applicationConfig: Partial<IPluginConfig>,
+  options: { failOnPluginRegistrationError?: boolean } = {}
+) {
   console.time(chalk.yellow('✔ Pre Bootstrap Application Config Time'))
 
   if (Object.keys(applicationConfig).length > 0) {
@@ -169,17 +174,19 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
     setConfig(applicationConfig)
   }
 
-  await preBootstrapPlugins()
+  await withSchemaSyncProtection(async () => {
+    await preBootstrapPlugins(options)
 
-  // Register core and plugin entities and subscribers
-  const entities = await preBootstrapRegisterEntities(applicationConfig)
-  const subscribers = await preBootstrapRegisterSubscribers(applicationConfig)
+    // Register core and plugin entities and subscribers
+    const entities = await preBootstrapRegisterEntities(applicationConfig)
+    const subscribers = await preBootstrapRegisterSubscribers(applicationConfig)
 
-  setConfig({
-    dbConnectionOptions: {
-      entities: entities as Array<Type<any>>, // Core and plugin entities
-      subscribers: subscribers as Array<Type<EntitySubscriberInterface>> // Core and plugin subscribers
-    }
+    setConfig({
+      dbConnectionOptions: {
+        entities: entities as Array<Type<any>>, // Core and plugin entities
+        subscribers: subscribers as Array<Type<EntitySubscriberInterface>> // Core and plugin subscribers
+      }
+    })
   })
 
   const config = getConfig()
@@ -188,7 +195,7 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
   return config
 }
 
-export async function preBootstrapPlugins() {
+export async function preBootstrapPlugins(options: { failOnPluginRegistrationError?: boolean } = {}) {
   type BootstrapPlugin = NonNullable<Parameters<typeof registerPluginsAsync>[0]['plugins']>[number]
 
   const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
@@ -285,6 +292,9 @@ export async function preBootstrapPlugins() {
     } catch (error) {
       console.error(error)
       NestLogger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
+      if (options.failOnPluginRegistrationError) {
+        throw error
+      }
     }
   }
 

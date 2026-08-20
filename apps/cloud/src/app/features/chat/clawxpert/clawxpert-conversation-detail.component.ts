@@ -771,6 +771,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
       workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
+      projectId: getOptionalSignalValue(this.facade, 'projectId'),
       xpertId: this.facade.xpertId(),
       contexts: this.#assistantWorkbenchContexts()
     })
@@ -780,6 +781,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.facade.assistantId,
+    projectId: this.facade.projectId,
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
     initialThread: this.facade.threadId,
@@ -1005,6 +1007,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
+      openAssistantProject: (request) => this.openWorkbenchAssistantProject(request.projectId),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
@@ -1580,6 +1583,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.markConversationRead(request.conversationId)
   }
 
+  /** Switch to the canonical workbench route for a Project-scoped Assistant. */
+  private async openWorkbenchAssistantProject(projectId: string) {
+    const slug = getOptionalSignalValue(this.facade, 'slug') ?? this.facade.xpertId()
+    if (!slug) throw new Error('The current Assistant route is unavailable.')
+    // Preserve the active extension view while changing only the Assistant's
+    // Project workspace route.
+    await this.#router.navigate(['/chat/x', slug, 'p', projectId, 'c'], { queryParamsHandling: 'preserve' })
+  }
+
   private revealChatkitForConversationOpen() {
     this.workspaceMaximized.set(false)
     if (this.isChatMinimizedToPet()) {
@@ -1622,6 +1634,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (!existing) {
       this.workspaceTabs.update((tabs) => tabs.map((tab) => (tab.id === opened.id ? { ...tab, query } : tab)))
     }
+    // Keep the selected business record and view parameters recoverable after
+    // a refresh; the fixed-view tab itself is reconstructed from the manifest.
+    void this.#workbenchViewUrlState.setViewState(resolvedViewKey, query)
     return opened
   }
 
@@ -1862,23 +1877,30 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   private syncFixedViewTabs(items: ClawXpertFixedViewMenuItem[], defaultViewKey: string | null) {
     const itemByViewKey = new Map(items.map((item) => [item.viewKey, item]))
     const tabs = this.workspaceTabs()
+    const requestedViewKey = this.#workbenchViewUrlState.viewKey()
+    const requestedViewQuery = this.#workbenchViewUrlState.viewQuery()
     const fixedTabsByViewKey = new Map(
       tabs.filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view').map((tab) => [tab.viewKey, tab])
     )
     const nextFixedTabs = items.map((item) => {
       const tab = fixedTabsByViewKey.get(item.viewKey)
       if (!tab) {
-        return this.createFixedViewTab(item)
+        const created = this.createFixedViewTab(item)
+        // Restore URL state only for the requested fixed view; other fixed
+        // views retain their in-memory query when manifests are resynchronized.
+        return item.viewKey === requestedViewKey ? { ...created, query: requestedViewQuery } : created
       }
 
-      if (tab.title === item.title && tab.icon === item.icon) {
+      const restoredQuery = item.viewKey === requestedViewKey ? requestedViewQuery : tab.query
+      if (tab.title === item.title && tab.icon === item.icon && tab.query === restoredQuery) {
         return tab
       }
 
       return {
         ...tab,
         title: item.title,
-        icon: item.icon
+        icon: item.icon,
+        query: restoredQuery
       }
     })
     const nextNonFixedTabs = tabs.filter(
@@ -1899,7 +1921,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const initialSelectionKey = `${this.#fixedViewsHostId ?? ''}:${defaultViewKey ?? ''}`
     const shouldApplyInitialSelection =
       nextFixedTabs.length > 0 && this.#appliedDefaultFixedViewSelection !== initialSelectionKey
-    const requestedViewKey = this.#workbenchViewUrlState.viewKey()
     const requestedTab = findFixedViewTab(nextFixedTabs, requestedViewKey)
 
     if (shouldApplyInitialSelection) {
@@ -2338,6 +2359,7 @@ function getOptionalSignalValue<T extends string>(facade: WorkbenchChatFacade, k
 
 function buildAssistantRequestContext(input: {
   workspaceId: string | null
+  projectId: string | null
   xpertId: string | null
   contexts: Record<string, AssistantWorkbenchRequestContext>
 }) {
@@ -2347,6 +2369,9 @@ function buildAssistantRequestContext(input: {
   }
   if (input.xpertId) {
     env['xpertId'] = input.xpertId
+  }
+  if (input.projectId) {
+    env['projectId'] = input.projectId
   }
 
   const requestContext: Record<string, unknown> = {}

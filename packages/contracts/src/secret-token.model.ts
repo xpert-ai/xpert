@@ -1,4 +1,11 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import type { TEnterpriseH5Platform } from './ai/xpert.model'
+
+/** Enterprise channel and integration to which an H5 session token is bound. */
+export type TEnterpriseH5TokenScope = {
+  platform: TEnterpriseH5Platform
+  integrationId: string
+}
 
 /**
  * Selects how an opaque client secret is authorized and how entityId is
@@ -13,6 +20,11 @@ export enum SecretTokenBindingType {
    * as the acting business user for the interactive ChatKit run.
    */
   USER_XPERT = 'user_xpert',
+  /**
+   * entityId is the only Xpert this verified enterprise identity may access;
+   * createdById is the AccountBinding-resolved Xpert user.
+   */
+  ENTERPRISE_XPERT = 'enterprise_xpert',
   /** entityId is a public Xpert id and public-app access rules apply. */
   PUBLIC_XPERT = 'public_xpert'
 }
@@ -23,6 +35,8 @@ export interface ISecretToken extends IBasePerTenantAndOrganizationEntityModel {
   /** Explicit grant/binding semantics for this opaque token. */
   type?: SecretTokenBindingType
   token: string
+  /** Exact enterprise channel that issued an ENTERPRISE_XPERT token. */
+  enterpriseH5Scope?: TEnterpriseH5TokenScope | null
   validUntil?: Date
   expired?: boolean
 }

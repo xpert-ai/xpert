@@ -1,5 +1,10 @@
 import { SecretTokenStrategy } from './secret-token.strategy'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
+import { UnauthorizedException } from '@nestjs/common'
+import type { DataSource } from 'typeorm'
+import type { ApiKeyService } from '../api-key/api-key.service'
+import type { UserService } from '../user'
+import type { SecretTokenService } from './secret-token.service'
 
 jest.mock('../api-key/api-key.service', () => ({
 	ApiKeyService: class ApiKeyService {}
@@ -45,12 +50,32 @@ describe('SecretTokenStrategy', () => {
 				type: 'communication'
 			})
 		}
+		const queryBuilder = {
+			select: jest.fn(),
+			from: jest.fn(),
+			where: jest.fn(),
+			andWhere: jest.fn(),
+			getRawOne: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+		}
+		queryBuilder.select.mockReturnValue(queryBuilder)
+		queryBuilder.from.mockReturnValue(queryBuilder)
+		queryBuilder.where.mockReturnValue(queryBuilder)
+		queryBuilder.andWhere.mockReturnValue(queryBuilder)
+		const dataSource = {
+			createQueryBuilder: jest.fn().mockReturnValue(queryBuilder)
+		}
 
 		return {
-			strategy: new SecretTokenStrategy(secretTokenService as any, apiKeyService as any, userService as any),
+			strategy: new SecretTokenStrategy(
+				secretTokenService as unknown as SecretTokenService,
+				apiKeyService as unknown as ApiKeyService,
+				userService as unknown as UserService,
+				dataSource as unknown as DataSource
+			),
 			secretTokenService,
 			apiKeyService,
-			userService
+			userService,
+			queryBuilder
 		}
 	}
 
@@ -218,5 +243,116 @@ describe('SecretTokenStrategy', () => {
 			'organization-id': 'org-1',
 			'x-scope-level': ORGANIZATION_SCOPE
 		})
+	})
+
+	it('resolves enterprise xpert client secrets as an assistant-scoped bound user', async () => {
+		const { strategy, secretTokenService, apiKeyService, userService, queryBuilder } = createStrategy(null)
+		secretTokenService.findOneByOptions.mockResolvedValue({
+			id: 'secret-token-enterprise-1',
+			type: SecretTokenBindingType.ENTERPRISE_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			enterpriseH5Scope: {
+				platform: 'dingtalk',
+				integrationId: 'integration-1'
+			},
+			createdById: 'dingtalk-user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false
+		})
+		userService.findOneByIdWithinTenant.mockResolvedValue({
+			id: 'dingtalk-user-1',
+			tenantId: 'tenant-1',
+			type: 'user'
+		})
+		const req = {
+			headers: {
+				'x-client-secret': 'cs-x-enterprise',
+				'organization-id': 'org-other'
+			}
+		}
+
+		const principal = await authenticate(strategy, req)
+
+		expect(apiKeyService.findOneOrFailByIdString).not.toHaveBeenCalled()
+		expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+			`jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :platform, 'integrationId') = :integrationId`,
+			{ platform: 'dingtalk', integrationId: 'integration-1' }
+		)
+		expect(principal).toMatchObject({
+			id: 'dingtalk-user-1',
+			tenantId: 'tenant-1',
+			principalType: 'client_secret',
+			clientSecretBindingType: 'enterprise_xpert',
+			clientSecretId: 'secret-token-enterprise-1',
+			enterpriseH5Scope: {
+				platform: 'dingtalk',
+				integrationId: 'integration-1'
+			},
+			requestedUserId: 'dingtalk-user-1',
+			requestedOrganizationId: 'org-1',
+			apiKey: {
+				type: 'assistant',
+				entityId: 'xpert-1',
+				userId: 'dingtalk-user-1'
+			}
+		})
+		expect(req.headers).toMatchObject({
+			'organization-id': 'org-1',
+			'x-scope-level': ORGANIZATION_SCOPE
+		})
+	})
+
+	it('rejects legacy enterprise xpert secrets without an exact enterprise H5 channel scope', async () => {
+		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
+		secretTokenService.findOneByOptions.mockResolvedValue({
+			id: 'secret-token-enterprise-legacy',
+			type: SecretTokenBindingType.ENTERPRISE_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			createdById: 'dingtalk-user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false
+		})
+
+		await expect(
+			authenticate(strategy, {
+				headers: {
+					'x-client-secret': 'cs-x-enterprise-legacy'
+				}
+			})
+		).rejects.toBeInstanceOf(UnauthorizedException)
+		expect(apiKeyService.findOneOrFailByIdString).not.toHaveBeenCalled()
+		expect(userService.findOneByIdWithinTenant).not.toHaveBeenCalled()
+	})
+
+	it('rejects enterprise xpert secrets after their exact channel is disabled or changed', async () => {
+		const { strategy, secretTokenService, userService, queryBuilder } = createStrategy(null)
+		secretTokenService.findOneByOptions.mockResolvedValue({
+			id: 'secret-token-enterprise-disabled',
+			type: SecretTokenBindingType.ENTERPRISE_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			enterpriseH5Scope: {
+				platform: 'dingtalk',
+				integrationId: 'integration-1'
+			},
+			createdById: 'dingtalk-user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false
+		})
+		queryBuilder.getRawOne.mockResolvedValue(null)
+
+		await expect(
+			authenticate(strategy, {
+				headers: {
+					'x-client-secret': 'cs-x-enterprise-disabled'
+				}
+			})
+		).rejects.toBeInstanceOf(UnauthorizedException)
+		expect(userService.findOneByIdWithinTenant).not.toHaveBeenCalled()
 	})
 })

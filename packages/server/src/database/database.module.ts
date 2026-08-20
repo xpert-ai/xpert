@@ -4,6 +4,8 @@ import { Global, Logger, Module, OnApplicationShutdown } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Pool } from 'pg'
+import { DataSource } from 'typeorm'
+import { initializeApplicationDataSource } from './application-data-source'
 
 export const DATABASE_POOL_TOKEN = 'DATABASE_POOL'
 
@@ -39,6 +41,12 @@ const databasePoolFactory = async (configService: ConfigService) => {
 		TypeOrmModule.forRootAsync({
 			imports: [ConfigModule],
 			inject: [ConfigService],
+			dataSourceFactory: async (options) => {
+				if (!options) {
+					throw new Error('Database connection options are required')
+				}
+				return initializeApplicationDataSource(options, (dataSourceOptions) => new DataSource(dataSourceOptions))
+			},
 			// Use useFactory, useClass, or useExisting
 			useFactory: async (configService: ConfigService) => {
 				const { dbConnectionOptions } = configService.config

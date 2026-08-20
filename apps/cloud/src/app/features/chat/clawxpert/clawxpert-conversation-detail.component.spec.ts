@@ -258,6 +258,7 @@ import {
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   type IconDefinition,
   type XpertExtensionViewManifest,
+  type XpertViewQuery,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
@@ -459,7 +460,9 @@ describe('ClawXpertConversationDetailComponent', () => {
   }
   let workbenchViewUrlState: {
     viewKey: ReturnType<typeof signal<string | null>>
+    viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
     setViewKey: jest.Mock
+    setViewState: jest.Mock
   }
   let hostEvents: ViewHostEventBus
 
@@ -472,10 +475,17 @@ describe('ClawXpertConversationDetailComponent', () => {
       clear: jest.fn()
     }
     const viewKey = signal<string | null>(null)
+    const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
       viewKey,
+      viewQuery,
       setViewKey: jest.fn((nextViewKey: string | null) => {
         viewKey.set(nextViewKey)
+        return Promise.resolve(true)
+      }),
+      setViewState: jest.fn((nextViewKey: string | null, nextQuery: XpertViewQuery | null) => {
+        viewKey.set(nextViewKey)
+        viewQuery.set(nextQuery)
         return Promise.resolve(true)
       })
     }

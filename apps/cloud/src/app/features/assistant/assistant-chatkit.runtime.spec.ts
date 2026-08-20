@@ -136,6 +136,7 @@ describe('assistant chatkit runtime helpers', () => {
     const workbench = {
       enabled: true
     }
+    const projectId = signal('project-1')
 
     TestBed.configureTestingModule({
       providers: [
@@ -179,6 +180,7 @@ describe('assistant chatkit runtime helpers', () => {
       injectHostedAssistantChatkitControl({
         identity: signal('xpert_shared'),
         assistantId: signal('assistant-1'),
+        projectId,
         frameUrl: signal('/chatkit'),
         requestContext,
         displayMode: 'pet',
@@ -197,6 +199,10 @@ describe('assistant chatkit runtime helpers', () => {
         layout,
         pet,
         workbench,
+        api: expect.objectContaining({
+          xpertId: 'assistant-1',
+          projectId: 'project-1'
+        }),
         messageNavigation: {
           enabled: true
         },
@@ -222,6 +228,7 @@ describe('assistant chatkit runtime helpers', () => {
         }
       }
     })
+    projectId.set('project-2')
     flushAngularEffects()
 
     expect(setOptions).toHaveBeenCalledWith(
@@ -230,6 +237,10 @@ describe('assistant chatkit runtime helpers', () => {
         layout,
         pet,
         workbench,
+        api: expect.objectContaining({
+          xpertId: 'assistant-1',
+          projectId: 'project-2'
+        }),
         messageNavigation: {
           enabled: true
         },

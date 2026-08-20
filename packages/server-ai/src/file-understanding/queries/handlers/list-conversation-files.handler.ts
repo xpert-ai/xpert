@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { In, IsNull, Repository } from 'typeorm'
+import { RequestContext } from '@xpert-ai/server-core'
 import { ConversationFileLink, FileAsset } from '../../entities'
 import { ListConversationFilesQuery } from '../list-conversation-files.query'
 
@@ -14,13 +15,18 @@ export class ListConversationFilesHandler implements IQueryHandler<ListConversat
     ) {}
 
     async execute(query: ListConversationFilesQuery) {
-        const links = await this.linkRepository.find({ where: { conversationId: query.conversationId } })
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        // File links and assets are filtered independently so a leaked link id
+        // cannot cross tenant or organization boundaries.
+        const scope = { tenantId, organizationId: organizationId ?? IsNull() }
+        const links = await this.linkRepository.find({ where: { ...scope, conversationId: query.conversationId } })
         const ids = links.map((link) => link.fileAssetId)
         if (!ids.length) {
             return []
         }
         return this.fileAssetRepository.find({
-            where: { id: In(ids) },
+            where: { ...scope, id: In(ids) },
             order: { createdAt: 'DESC' }
         })
     }

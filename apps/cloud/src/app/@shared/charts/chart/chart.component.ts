@@ -34,11 +34,13 @@ export class StatisticsChartComponent {
   readonly measure = input<string>('count')
   readonly unit = input<string>('')
   readonly totalType = input<'sum' | 'avg'>('sum')
+  readonly totalValue = input<number | null>()
 
   readonly total = computed(() => {
     const total = this.data()?.reduce((acc, curr) => acc + (Number(curr[this.measure()]) ?? 0), 0)
     return this.totalType() === 'avg' ? total / this.data()?.length : total
   })
+  readonly displayedTotal = computed(() => this.totalValue() ?? this.total())
   readonly options = computed(() => {
     const items = this.data()
     const max = maxBy(items, this.measure())?.[this.measure()]

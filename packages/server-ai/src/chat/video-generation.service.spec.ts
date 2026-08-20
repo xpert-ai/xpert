@@ -98,6 +98,9 @@ describe('VideoGenerationService', () => {
         const harness = createHarness()
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1' } as never)
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         const invoke = jest
             .fn()
             .mockResolvedValueOnce({
@@ -116,6 +119,7 @@ describe('VideoGenerationService', () => {
 
         await harness.service.submit({
             xpertId: 'xpert-1',
+            projectId: 'project-1',
             toolsetId: 'seedance-linked',
             prompt: 'Generate a clip',
             model: 'seedance-model',
@@ -140,6 +144,25 @@ describe('VideoGenerationService', () => {
             name: 'query_video',
             args: { download_video: 'true' }
         })
+        expect(harness.modelRuntime.createScopedApi).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1'
+        })
+        expect(createBuiltinToolset).toHaveBeenCalledWith(
+            'seedance_type',
+            expect.objectContaining({ id: 'seedance-linked' }),
+            expect.objectContaining({
+                managedQueue: harness.managedQueue,
+                modelRuntime: {
+                    createModelClient: harness.scopedModelRuntime.createModelClient,
+                    getModelProvider: harness.scopedModelRuntime.getModelProvider
+                }
+            })
+        )
     })
 
     it('routes multiple reference images through a protocol v2 reference tool', async () => {
@@ -346,14 +369,24 @@ function createHarness() {
             return { meta: {} }
         })
     }
+    const scopedModelRuntime = {
+        createModelClient: jest.fn(),
+        getModelProvider: jest.fn()
+    }
+    const modelRuntime = {
+        createScopedApi: jest.fn(() => scopedModelRuntime)
+    }
+    const managedQueue = { enqueue: jest.fn() }
     const service = new VideoGenerationService(
         xpertAccess as never,
         toolsets as never,
         registry as never,
         {} as never,
-        {} as never
+        {} as never,
+        modelRuntime as never,
+        managedQueue as never
     )
-    return { service, xpertAccess, toolsets, registry }
+    return { service, xpertAccess, toolsets, registry, scopedModelRuntime, modelRuntime, managedQueue }
 }
 
 function capability(family: 'seedance' | 'veo'): VideoGenerationToolsetCapability {
@@ -424,6 +457,7 @@ function toolset(
         id,
         name: id,
         type,
+        workspaceId: 'workspace-1',
         category: XpertToolsetCategoryEnum.BUILTIN,
         tools: enabledTools.map((name) => ({ name, enabled: true }))
     }

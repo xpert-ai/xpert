@@ -182,9 +182,27 @@ function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | 
 }
 
 function xpertWorkbenchConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {
-  if (segments[0]?.path !== 'x' || !segments[1]?.path || segments[2]?.path !== 'c') {
+  if (segments[0]?.path !== 'x' || !segments[1]?.path) {
     return null
   }
+
+  // Project routes keep the Project id ahead of the conversation marker:
+  // /chat/x/:slug/p/:projectId/c/:threadId?.
+  if (segments[2]?.path === 'p' && segments[3]?.path && segments[4]?.path === 'c') {
+    if (segments.length === 5 || segments.length === 6) {
+      return {
+        consumed: segments,
+        posParams: {
+          name: segments[1],
+          projectId: segments[3],
+          ...(segments[5] ? { threadId: segments[5] } : {})
+        }
+      }
+    }
+    return null
+  }
+
+  if (segments[2]?.path !== 'c') return null
 
   if (segments.length === 3) {
     return {

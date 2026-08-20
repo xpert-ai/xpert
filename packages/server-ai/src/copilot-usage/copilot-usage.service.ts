@@ -1,5 +1,6 @@
 import {
     ICopilotUsageGroupKey,
+    ICopilotUsageOverview,
     ICopilotUsageQuery,
     ICopilotUsageSummary,
     ICopilotUsageTotals,
@@ -190,6 +191,131 @@ export class CopilotUsageService {
                 priceGrandTotal: priceUsed + priceTotalUsed
             }
         })
+    }
+
+    async findOverview(query: ICopilotUsageQuery): Promise<ICopilotUsageOverview> {
+        const scope = this.resolveScope(query.organizationId)
+        const qb = this.createMembershipUsageQuery('ledger')
+            .select("DATE_TRUNC('day', ledger.createdAt)", 'day')
+            .addSelect('ledger.provider', 'provider')
+            .addSelect('ledger.model', 'model')
+            .addSelect('COALESCE(SUM(ledger.tokenUsed), 0)', 'tokenUsed')
+            .addSelect('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'membershipPointsUsed')
+            .addSelect('COUNT(ledger.id) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)', 'callCount')
+            .groupBy("DATE_TRUNC('day', ledger.createdAt)")
+            .addGroupBy('ledger.provider')
+            .addGroupBy('ledger.model')
+            .orderBy("DATE_TRUNC('day', ledger.createdAt)", 'ASC')
+
+        const dailyQb = this.createMembershipUsageQuery('ledger')
+            .select("DATE_TRUNC('day', ledger.createdAt)", 'day')
+            .addSelect('COALESCE(SUM(ledger.tokenUsed), 0)', 'tokenUsed')
+            .addSelect('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'membershipPointsUsed')
+            .addSelect('COUNT(ledger.id) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)', 'callCount')
+            .addSelect('COUNT(DISTINCT ledger.userId) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)', 'activeUsers')
+            .addSelect(
+                'COUNT(DISTINCT ledger.threadId) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)',
+                'conversationCount'
+            )
+            .groupBy("DATE_TRUNC('day', ledger.createdAt)")
+            .orderBy("DATE_TRUNC('day', ledger.createdAt)", 'ASC')
+
+        const totalsQb = this.createMembershipUsageQuery('ledger')
+            .select('COUNT(ledger.id) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)', 'totalCalls')
+            .addSelect('COUNT(DISTINCT ledger.userId) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)', 'activeUsers')
+            .addSelect(
+                'COUNT(DISTINCT ledger.threadId) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)',
+                'totalConversations'
+            )
+
+        const availableModelsQb = this.createMembershipUsageQuery('ledger')
+            .select('ledger.provider', 'provider')
+            .addSelect('ledger.model', 'model')
+            .andWhere('ledger.model IS NOT NULL')
+            .groupBy('ledger.provider')
+            .addGroupBy('ledger.model')
+
+        this.applyMembershipLedgerFilters(qb, 'ledger', scope, query)
+        this.applyMembershipLedgerFilters(dailyQb, 'ledger', scope, query)
+        this.applyMembershipLedgerFilters(totalsQb, 'ledger', scope, query)
+        this.applyMembershipLedgerFilters(availableModelsQb, 'ledger', scope, { ...query, model: undefined })
+
+        const [rows, dailyRows, totalsRow, availableModelRows] = await Promise.all([
+            qb.getRawMany<{
+                day?: Date | string
+                provider?: string | null
+                model?: string | null
+                tokenUsed?: string | number
+                membershipPointsUsed?: string | number
+                callCount?: string | number
+            }>(),
+            dailyQb.getRawMany<{
+                day?: Date | string
+                tokenUsed?: string | number
+                membershipPointsUsed?: string | number
+                callCount?: string | number
+                activeUsers?: string | number
+                conversationCount?: string | number
+            }>(),
+            totalsQb.getRawOne<{
+                totalCalls?: string | number
+                activeUsers?: string | number
+                totalConversations?: string | number
+            }>(),
+            availableModelsQb.getRawMany<{ provider?: string | null; model?: string | null }>()
+        ])
+        const buckets = rows.map((row) => ({
+            date: row.day ? formatInUTC0(new Date(row.day), 'yyyy-MM-dd') : 'N/A',
+            provider: row.provider ?? null,
+            model: row.model ?? null,
+            tokenUsed: toNumber(row.tokenUsed),
+            membershipPointsUsed: toNumber(row.membershipPointsUsed),
+            callCount: toNumber(row.callCount)
+        }))
+        const daily = dailyRows.map((row) => ({
+            date: row.day ? formatInUTC0(new Date(row.day), 'yyyy-MM-dd') : 'N/A',
+            tokenUsed: toNumber(row.tokenUsed),
+            membershipPointsUsed: toNumber(row.membershipPointsUsed),
+            callCount: toNumber(row.callCount),
+            activeUsers: toNumber(row.activeUsers),
+            conversationCount: toNumber(row.conversationCount)
+        }))
+        const modelUsage = Array.from(
+            buckets
+                .reduce((groups, bucket) => {
+                    const key = `${bucket.provider ?? ''}\u0000${bucket.model ?? ''}`
+                    const current = groups.get(key) ?? {
+                        provider: bucket.provider,
+                        model: bucket.model,
+                        tokenUsed: 0,
+                        membershipPointsUsed: 0,
+                        callCount: 0
+                    }
+                    current.tokenUsed += bucket.tokenUsed
+                    current.membershipPointsUsed += bucket.membershipPointsUsed
+                    current.callCount += bucket.callCount
+                    groups.set(key, current)
+                    return groups
+                }, new Map<string, ICopilotUsageOverview['modelUsage'][number]>())
+                .values()
+        )
+
+        return {
+            totalTokens: daily.reduce((total, bucket) => total + bucket.tokenUsed, 0),
+            totalMembershipPoints: daily.reduce((total, bucket) => total + bucket.membershipPointsUsed, 0),
+            totalCalls: toNumber(totalsRow?.totalCalls),
+            activeUsers: toNumber(totalsRow?.activeUsers),
+            totalConversations: toNumber(totalsRow?.totalConversations),
+            activeDays: daily.filter(
+                (bucket) => bucket.callCount > 0 || bucket.tokenUsed > 0 || bucket.membershipPointsUsed > 0
+            ).length,
+            buckets,
+            daily,
+            modelUsage,
+            availableModels: availableModelRows
+                .filter((row): row is { provider?: string | null; model: string } => !!row.model)
+                .map((row) => ({ provider: row.provider ?? null, model: row.model }))
+        }
     }
 
     async findDetails(groupKey: ICopilotUsageGroupKey): Promise<CopilotUser[]> {
@@ -907,6 +1033,14 @@ export class CopilotUsageService {
             .join(GROUP_ID_SEPARATOR)
     }
 
+    private createMembershipUsageQuery(alias: string) {
+        return this.membershipPointLedgerRepository
+            .createQueryBuilder(alias)
+            .where(`${alias}.source IN (:...membershipUsageSources)`, {
+                membershipUsageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
+            })
+    }
+
     private applyMembershipLedgerFilters(
         qb: WhereQueryBuilder,
         alias: string,
@@ -927,6 +1061,9 @@ export class CopilotUsageService {
         }
         if (query.userId) {
             qb.andWhere(`${alias}.userId = :membershipUserId`, { membershipUserId: query.userId })
+        }
+        if (query.xpertId) {
+            qb.andWhere(`${alias}.xpertId = :membershipXpertId`, { membershipXpertId: query.xpertId })
         }
         if (query.provider) {
             qb.andWhere(`${alias}.provider = :provider`, { provider: query.provider })

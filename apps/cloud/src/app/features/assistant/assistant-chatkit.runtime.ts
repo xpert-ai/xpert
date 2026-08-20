@@ -51,6 +51,8 @@ type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api' | 'work
     api: {
       apiUrl: string
       xpertId?: string
+      /** Pins every hosted ChatKit conversation and run to one Chat Project. */
+      projectId?: string
       getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
     }
     workbench?: AssistantChatKitWorkbenchOptions
@@ -83,6 +85,8 @@ type AssistantBindingRuntimeInput = {
 type AssistantHostedRuntimeInput = {
   identity: Signal<string | null>
   assistantId: Signal<string | null>
+  /** Reactive Project scope; changing it recreates the hosted ChatKit binding. */
+  projectId?: Signal<string | null>
   frameUrl: Signal<string | null>
   getClientSecret?: AssistantHostedChatKitOptions['api']['getClientSecret']
   requestContext?: Signal<Record<string, unknown> | null>
@@ -278,12 +282,23 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const identity = input.identity()
     const assistantId = input.assistantId()
     const frameUrl = input.frameUrl()
+    const projectId = input.projectId?.() ?? null
 
     if (!identity || !assistantId || !frameUrl) {
       return null
     }
 
-    return [identity, assistantId, frameUrl, fixedApiUrl, authToken() ?? '', organizationId() ?? ''].join(':')
+    // Project identity participates in the binding key so switching projects
+    // cannot reuse a ChatKit instance, client secret, or conversation history.
+    return [
+      identity,
+      assistantId,
+      projectId ?? '',
+      frameUrl,
+      fixedApiUrl,
+      authToken() ?? '',
+      organizationId() ?? ''
+    ].join(':')
   })
 
   effect(() => {
@@ -296,6 +311,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const currentOrganizationId = organizationId()
     const initialThread = input.initialThread?.() ?? null
     const requestContext = input.requestContext?.() ?? null
+    const projectId = input.projectId?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
 
@@ -310,6 +326,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       api: {
         apiUrl: fixedApiUrl,
         xpertId: assistantId,
+        ...(projectId ? { projectId } : {}),
         getClientSecret: async (currentClientSecret) =>
           input.getClientSecret
             ? input.getClientSecret(currentClientSecret)

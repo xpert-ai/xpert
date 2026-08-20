@@ -1,10 +1,12 @@
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
     Get,
     HttpCode,
     HttpStatus,
+    Optional,
     Param,
     Patch,
     Post,
@@ -15,6 +17,7 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
+    AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     OperatorValue,
     Public,
@@ -28,6 +31,7 @@ import {
     IChatConversation,
     IChatMessage,
     IChatMessageFeedback,
+    SecretTokenBindingType,
     TThreadGoalPatchRequest,
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
@@ -46,6 +50,7 @@ import {
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
 import { XpertService } from '../xpert'
+import { XpertProjectService } from '../xpert-project'
 
 type ConversationSearchRequest = {
     where?: Record<string, OperatorValue>
@@ -74,6 +79,7 @@ type FeedbackMutationRequest = Partial<Pick<IChatMessageFeedback, 'rating' | 'co
 @ApiTags('AI/Conversations')
 @ApiBearerAuth()
 @Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('conversations')
@@ -85,12 +91,22 @@ export class ConversationsController {
         private readonly messageService: ChatMessageService,
         private readonly feedbackService: ChatMessageFeedbackService,
         private readonly commandBus: CommandBus,
-        private readonly xpertService: XpertService
+        private readonly xpertService: XpertService,
+        @Optional() private readonly projectService?: XpertProjectService
     ) {}
 
     @Post()
     async createConversation(@Body() body: Partial<IChatConversation>) {
         const publicScope = getPublicXpertSessionConversationScope()
+        const xpertId = publicScope?.xpertId ?? this.normalizeString(body.xpertId)
+        const projectId = this.normalizeString(body.projectId)
+        if (projectId) {
+            // Validate the Project/Assistant/user tuple before projectId reaches
+            // persistence; the client cannot create a conversation in another workspace.
+            if (!xpertId) throw new BadRequestException('xpertId is required for a Project conversation')
+            if (!this.projectService) throw new BadRequestException('Project conversations are unavailable')
+            await this.projectService.assertRuntimeAccess(projectId, xpertId)
+        }
         const conversation = await this.commandBus.execute(
             new ChatConversationUpsertCommand({
                 ...body,

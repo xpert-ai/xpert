@@ -76,6 +76,7 @@ import {
     QueryFailedError,
     Repository
 } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import {
     CopilotModelGetChatModelQuery,
     CopilotModelGetEmbeddingsQuery,
@@ -383,7 +384,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             )
         }
 
-        await this.xpertService.update(pipeline.id, {
+        await this.xpertService.updateXpert(pipeline.id, {
             active: false,
             publishAt: null,
             deletedAt: new Date()
@@ -439,7 +440,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     /**
      * To solve the problem that Update cannot create OneToOne relation, it is uncertain whether using save to update might pose risks
      */
-    async update(id: string, entity: Partial<Knowledgebase>) {
+    // Isolate TypeORM's recursive update type; business callers use the shallow method to keep ts-node inference bounded.
+    async update(id: string, entity: QueryDeepPartialEntity<Knowledgebase> & Partial<Knowledgebase>) {
+        return this.updateKnowledgebase(id, entity)
+    }
+
+    async updateKnowledgebase(id: string, entity: Partial<Knowledgebase>) {
         const _entity = await super.findOne(id, {
             relations: [
                 'copilotModel',
@@ -1503,7 +1509,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             knowledgebase.copilotModelId,
             modelContext
         )
-        const patch: Partial<Knowledgebase> = {
+        const patch = {
             embeddingCollectionName: knowledgebase.id,
             embeddingModelFingerprint: target.fingerprint,
             embeddingDimensions: target.dimensions,

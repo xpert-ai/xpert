@@ -15,6 +15,8 @@ const bigintNumberTransformer = {
 @Entity('file_asset')
 @Index(['storageFileId'])
 @Index(['conversationId'])
+// Supports tenant-safe Project workspace listing without scanning conversation links.
+@Index(['tenantId', 'organizationId', 'projectId'])
 @Index(['threadId'])
 @Index(['sha256'])
 export class FileAsset extends TenantOrganizationBaseEntity {

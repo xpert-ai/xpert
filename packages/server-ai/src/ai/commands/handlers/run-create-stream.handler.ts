@@ -5,7 +5,7 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
-import { BadRequestException, Logger } from '@nestjs/common'
+import { BadRequestException, Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -17,11 +17,14 @@ import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpe
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { XpertProjectService } from '../../../xpert-project'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
+import { getTrustedApiChatSource } from '../../api-chat-source'
 import { serializeRunStreamPayload } from '../../../shared/stream/'
 import {
     applyAssistantScope,
+    bindConversationProjectIfUnbound,
     bindConversationAssistantIfUnbound,
     resolveAssistantForRequest
 } from '../../assistant-request-context'
@@ -325,7 +328,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
-        private readonly xpertPrincipalService?: XpertPrincipalService
+        private readonly xpertPrincipalService?: XpertPrincipalService,
+        @Optional() private readonly projectService?: XpertProjectService
     ) {}
 
     private async resolveRequestEnvironment(
@@ -344,6 +348,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     }
 
     public async execute(command: RunCreateStreamCommand) {
+        const chatSource = getTrustedApiChatSource()
         const threadId = command.threadId
         const runCreate = command.runCreate
 
@@ -362,6 +367,20 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         // Backfill legacy threads independently with a compare-and-set update.
         conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
+        // Project scope is persisted before streaming and then treated as the
+        // sole trusted source for runtime files and nested Agent execution.
+        const requestedProjectId = chatRequest.action === 'send' ? chatRequest.projectId : undefined
+        conversation = await bindConversationProjectIfUnbound(this.commandBus, conversation, requestedProjectId)
+        if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
+            throw new BadRequestException('This Assistant requires a Project workspace')
+        }
+        if (conversation.projectId && this.projectService) {
+            await this.projectService.assertRuntimeAccess(conversation.projectId, xpert.id)
+        }
+        if (chatRequest.action === 'send' && conversation.projectId) {
+            // Replace transient request scope with the authorized persisted id.
+            chatRequest.projectId = conversation.projectId
+        }
 
         // Persist the sandbox option only when the request changes it.
         if (
@@ -408,11 +427,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const stream = await this.commandBus.execute(
             new XpertChatCommand(chatRequest, {
                 xpertId: xpert.id,
-                from: 'api',
+                ...chatSource,
                 execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
                 ...(runtimeContext ? { context: runtimeContext } : {}),
                 environment,
                 sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
+                projectId: conversation.projectId,
                 streamPersistence: {
                     transport: 'redis-stream',
                     threadId,

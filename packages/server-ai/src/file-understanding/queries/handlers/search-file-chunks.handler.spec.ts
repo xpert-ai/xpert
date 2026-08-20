@@ -5,9 +5,17 @@ function createHandler(options?: {
     asset?: Record<string, unknown> | null
     vectorChunkIds?: string[]
     chunks?: Array<Record<string, unknown>>
+    textChunks?: Array<Record<string, unknown>>
 }) {
     const fileAssetRepository = {
         findOne: jest.fn().mockResolvedValue(options?.asset ?? { id: 'file-1', tenantId: 'tenant-1' })
+    }
+    const textQuery = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(options?.textChunks ?? [])
     }
     const repository = {
         find: jest.fn().mockResolvedValue(
@@ -15,7 +23,8 @@ function createHandler(options?: {
                 { id: 'chunk-1', fileAssetId: 'file-1', orderNo: 0, content: 'first' },
                 { id: 'chunk-2', fileAssetId: 'file-1', orderNo: 1, content: 'second' }
             ]
-        )
+        ),
+        createQueryBuilder: jest.fn().mockReturnValue(textQuery)
     }
     const fileVectorService = {
         searchChunkIds: jest.fn().mockResolvedValue(options?.vectorChunkIds ?? [])
@@ -48,7 +57,7 @@ describe('SearchFileChunksHandler', () => {
         expect(fileVectorService.searchChunkIds).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'file-1' }),
             'risk',
-            2
+            4
         )
         expect(result.map((chunk) => chunk.id)).toEqual(['chunk-2', 'chunk-1'])
         expect(repository.find).toHaveBeenCalledWith(
@@ -63,26 +72,14 @@ describe('SearchFileChunksHandler', () => {
     it('falls back to text matching when vector search has no hydrated chunks', async () => {
         const { handler, repository } = createHandler({
             vectorChunkIds: ['missing-chunk'],
-            chunks: []
+            chunks: [],
+            textChunks: [{ id: 'chunk-3', fileAssetId: 'file-1', orderNo: 2, content: 'risk text' }]
         })
-        repository.find
-            .mockResolvedValueOnce([])
-            .mockResolvedValueOnce([{ id: 'chunk-3', fileAssetId: 'file-1', orderNo: 2, content: 'risk text' }])
 
         const result = await handler.execute(new SearchFileChunksQuery({ fileId: 'file-1', query: 'risk', limit: 5 }))
 
         expect(result.map((chunk) => chunk.id)).toEqual(['chunk-3'])
-        expect(repository.find).toHaveBeenCalledTimes(2)
-        expect(repository.find.mock.calls[1][0]).toEqual(
-            expect.objectContaining({
-                where: expect.objectContaining({
-                    fileAssetId: 'file-1',
-                    content: expect.any(Object)
-                }),
-                order: { orderNo: 'ASC' },
-                take: 5
-            })
-        )
+        expect(repository.createQueryBuilder).toHaveBeenCalledWith('chunk')
     })
 
     it('keeps empty query behavior as orderNo preview reads', async () => {
@@ -95,6 +92,7 @@ describe('SearchFileChunksHandler', () => {
         expect(repository.find).toHaveBeenCalledWith({
             where: { fileAssetId: 'file-1' },
             order: { orderNo: 'ASC' },
+            skip: 0,
             take: 3
         })
     })

@@ -24,7 +24,7 @@ type RequestUser = {
 }
 
 type KnowledgebaseRepositoryMock = Pick<Repository<Knowledgebase>, 'findOne' | 'delete'>
-type XpertServiceMock = Pick<XpertService, 'update'>
+type XpertServiceMock = Pick<XpertService, 'updateXpert'>
 type CommandBusMock = Pick<CommandBus, 'execute'>
 type QueryBusMock = Pick<QueryBus, 'execute'>
 type WorkspaceAccessServiceMock = Pick<XpertWorkspaceAccessService, 'assertCan'>
@@ -145,7 +145,7 @@ describe('KnowledgebaseService', () => {
             repository,
             commandBus,
             queryBus,
-            xpertService: { update: jest.fn() }
+            xpertService: { updateXpert: jest.fn() }
         })
 
         await runInRequestContext(() =>
@@ -229,7 +229,7 @@ describe('KnowledgebaseService', () => {
             execute: jest.fn().mockResolvedValue(undefined)
         }
         const xpertService: jest.Mocked<XpertServiceMock> = {
-            update: jest.fn().mockResolvedValue({
+            updateXpert: jest.fn().mockResolvedValue({
                 id: pipeline.id
             } as IXpert)
         }
@@ -256,7 +256,7 @@ describe('KnowledgebaseService', () => {
             strict: false,
             previousGraph: graph
         })
-        expect(xpertService.update).toHaveBeenCalledWith(
+        expect(xpertService.updateXpert).toHaveBeenCalledWith(
             pipeline.id,
             expect.objectContaining({
                 active: false,
@@ -267,7 +267,7 @@ describe('KnowledgebaseService', () => {
         expect(commandBus.execute.mock.invocationCallOrder[0]).toBeLessThan(
             repository.delete.mock.invocationCallOrder[0]
         )
-        expect(xpertService.update.mock.invocationCallOrder[0]).toBeLessThan(
+        expect(xpertService.updateXpert.mock.invocationCallOrder[0]).toBeLessThan(
             repository.delete.mock.invocationCallOrder[0]
         )
     })
@@ -371,7 +371,7 @@ describe('KnowledgebaseService', () => {
                 execute: jest.fn()
             },
             xpertService: {
-                update: jest.fn()
+                updateXpert: jest.fn()
             },
             workspaceAccessService
         })

@@ -376,6 +376,62 @@ describe('XpertWorkspaceAccessService', () => {
         )
     })
 
+    it('allows enterprise xpert client secrets to read and run only their bound enterprise H5 workspace', async () => {
+        const principal = {
+            id: 'dingtalk-user-1',
+            tenantId: 'tenant-1',
+            requestedOrganizationId: 'org-1',
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-1'
+            },
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            enterpriseH5Scope: {
+                platform: 'dingtalk',
+                integrationId: 'integration-dingtalk-1'
+            }
+        } as IApiPrincipal
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
+        xpertQueryBuilder.getRawOne.mockResolvedValue({
+            workspaceId: 'workspace-1'
+        })
+
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId: 'owner-1',
+            settings: { access: { visibility: 'private' } },
+            members: []
+        })
+
+        await expect(service.getCapabilities(workspace)).resolves.toEqual({
+            canRead: true,
+            canRun: true,
+            canWrite: false,
+            canManage: false
+        })
+        expect(xpertQueryBuilder.andWhere).toHaveBeenCalledWith('xpert."organizationId" = :organizationId', {
+            organizationId: 'org-1'
+        })
+        expect(xpertQueryBuilder.andWhere).toHaveBeenCalledWith(
+            `COALESCE(jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :enterpriseH5Platform, 'enabled'), 'false') = 'true'`,
+            { enterpriseH5Platform: 'dingtalk' }
+        )
+        expect(xpertQueryBuilder.andWhere).toHaveBeenCalledWith(
+            `jsonb_extract_path_text((xpert.app)::jsonb, 'channels', :enterpriseH5Platform, 'integrationId') = :enterpriseH5IntegrationId`,
+            {
+                enterpriseH5Platform: 'dingtalk',
+                enterpriseH5IntegrationId: 'integration-dingtalk-1'
+            }
+        )
+        expect(xpertQueryBuilder.andWhere).not.toHaveBeenCalledWith(
+            `COALESCE((xpert.app)::jsonb ->> 'public', 'false') = 'true'`
+        )
+    })
+
     it('allows workspace api keys to read and run their bound workspace', async () => {
         const principal = {
             id: 'owner-1',

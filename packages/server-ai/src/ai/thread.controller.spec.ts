@@ -1,4 +1,5 @@
 jest.mock('@xpert-ai/server-core', () => ({
+    AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,
     Public: () => () => undefined,
@@ -28,12 +29,24 @@ jest.mock('../chat-conversation', () => ({
     GetChatConversationQuery: class GetChatConversationQuery {}
 }))
 
+jest.mock('./public-xpert-principal', () => ({
+    assertPublicXpertSessionConversationAccess: jest.fn(),
+    getPublicXpertSessionConversationScope: jest.fn()
+}))
+
 import { EventEmitter } from 'events'
+import { ForbiddenException } from '@nestjs/common'
 import { EMPTY } from 'rxjs'
 import { RunCreateStreamCommand } from './commands'
+import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
 import { ThreadsController } from './thread.controller'
 
 describe('ThreadsController', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
+    })
+
     it('returns direct follow-up streams without waiting on Redis SSE replay', async () => {
         const stream = EMPTY
         const commandBus = {
@@ -232,5 +245,21 @@ describe('ThreadsController', () => {
 
         secondResponse.emit('close')
         expect(redisSseStreamService.releaseConnection).toHaveBeenCalledWith('thread-1', 'run-1', 'connection-2')
+    })
+
+    it('rejects a run id that belongs to another restricted-assistant thread', async () => {
+        ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue({
+            createdById: 'employee-1',
+            xpertId: 'xpert-1'
+        })
+        const queryBus = {
+            execute: jest
+                .fn()
+                .mockResolvedValueOnce({ createdById: 'employee-1', xpertId: 'xpert-1' })
+                .mockResolvedValueOnce({ id: 'run-other', threadId: 'thread-other' })
+        }
+        const controller = new ThreadsController({} as never, queryBus as never, {} as never, {} as never)
+
+        await expect(controller.getThreadRun('thread-1', 'run-other')).rejects.toBeInstanceOf(ForbiddenException)
     })
 })

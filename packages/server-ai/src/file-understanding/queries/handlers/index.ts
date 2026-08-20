@@ -5,6 +5,7 @@ import { GetFileUnderstandingStatusHandler } from './get-file-understanding-stat
 import { GetFilePreviewHandler } from './get-file-preview.handler'
 import { GetFileWorkspacePathHandler } from './get-file-workspace-path.handler'
 import { ListConversationFilesHandler } from './list-conversation-files.handler'
+import { ListProjectFilesHandler } from './list-project-files.handler'
 import { ListFilePageImagesHandler } from './list-file-page-images.handler'
 import { ReadFileChunkHandler } from './read-file-chunk.handler'
 import { SearchFileChunksHandler } from './search-file-chunks.handler'
@@ -18,6 +19,7 @@ export const QueryHandlers = [
     GetFilePreviewHandler,
     GetFileWorkspacePathHandler,
     ListConversationFilesHandler,
+    ListProjectFilesHandler,
     ListFilePageImagesHandler,
     ReadFileChunkHandler,
     SearchFileChunksHandler,

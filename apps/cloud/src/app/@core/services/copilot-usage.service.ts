@@ -4,6 +4,7 @@ import { PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import {
   ICopilotOrganization,
   ICopilotUsageGroupKey,
+  ICopilotUsageOverview,
   ICopilotUsageQuery,
   ICopilotUsageSummary,
   ICopilotUsageTotals,
@@ -39,6 +40,12 @@ export class CopilotUsageService {
 
   getUsageTotals(params: ICopilotUsageQuery) {
     return this.httpClient.get<ICopilotUsageTotals[]>(API_COPILOT_USAGE + '/totals', {
+      params: this.toUsageHttpParams(params)
+    })
+  }
+
+  getUsageOverview(params: ICopilotUsageQuery) {
+    return this.httpClient.get<ICopilotUsageOverview>(API_COPILOT_USAGE + '/overview', {
       params: this.toUsageHttpParams(params)
     })
   }
@@ -138,6 +145,7 @@ export class CopilotUsageService {
     append('provider', params?.provider)
     append('model', params?.model)
     append('userId', params?.userId)
+    append('xpertId', params?.xpertId)
     append('organizationId', params?.organizationId)
     append('currency', params?.currency)
     append('$take', params?.take)

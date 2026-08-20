@@ -29,28 +29,28 @@ type ReferenceLike = Exclude<TChatReference, ChatKitImageReference> | ImageRefer
 type ReferenceCompositionMode = 'compose' | 'preserve'
 
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
-    "Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
+    'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 
 type ReferenceCandidate = TChatElementReferenceCandidateFields &
     TChatFileElementReferenceCandidateFields & {
-    endLine?: unknown
-    label?: unknown
-    language?: unknown
-    messageId?: unknown
-    type?: unknown
-    path?: unknown
-    source?: unknown
-    fileId?: unknown
-    url?: unknown
-    mimeType?: unknown
-    name?: unknown
-    size?: unknown
-    width?: unknown
-    height?: unknown
-    startLine?: unknown
-    taskId?: unknown
-    text?: unknown
-}
+        endLine?: unknown
+        label?: unknown
+        language?: unknown
+        messageId?: unknown
+        type?: unknown
+        path?: unknown
+        source?: unknown
+        fileId?: unknown
+        url?: unknown
+        mimeType?: unknown
+        name?: unknown
+        size?: unknown
+        width?: unknown
+        height?: unknown
+        startLine?: unknown
+        taskId?: unknown
+        text?: unknown
+    }
 
 type CodeReferenceCandidate = ReferenceCandidate & {
     path: string

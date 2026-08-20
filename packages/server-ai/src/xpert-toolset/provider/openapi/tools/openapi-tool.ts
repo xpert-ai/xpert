@@ -3,327 +3,325 @@ import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
 import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import axios, { AxiosResponse } from 'axios'
-import type { OperationObject, ParameterObject } from "openapi-typescript/src/types";
+import type { OperationObject, ParameterObject } from 'openapi-typescript/src/types'
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
 import { ApiBasedToolSchemaParser } from '../../../utils/parser'
 import { BaseTool, type TToolModelUsageReporter } from '../../../../shared'
 
 const API_TOOL_DEFAULT_TIMEOUT = [
-	parseInt(process.env.API_TOOL_DEFAULT_CONNECT_TIMEOUT || '10'),
-	parseInt(process.env.API_TOOL_DEFAULT_READ_TIMEOUT || '60')
+    parseInt(process.env.API_TOOL_DEFAULT_CONNECT_TIMEOUT || '10'),
+    parseInt(process.env.API_TOOL_DEFAULT_READ_TIMEOUT || '60')
 ]
 
 export class OpenAPITool extends BaseTool {
-	public name: string
-	public description: string
+    public name: string
+    public description: string
 
-	providerType = XpertToolsetCategoryEnum.API
+    providerType = XpertToolsetCategoryEnum.API
 
-	protected api_bundle: ApiToolBundle
+    protected api_bundle: ApiToolBundle
 
-	constructor(
-		protected xpertTool: IXpertTool,
-		fields?: ToolParams,
-		private readonly reportUsage?: TToolModelUsageReporter
-	) {
-		super(fields)
+    constructor(
+        protected xpertTool: IXpertTool,
+        fields?: ToolParams,
+        private readonly reportUsage?: TToolModelUsageReporter
+    ) {
+        super(fields)
 
         this.name = xpertTool.name
         this.description = xpertTool.description
-		this.api_bundle = xpertTool.options?.api_bundle
-		this.schema = xpertTool.schema || {
-			type: 'object',
-			properties: {},
-			required: []
-		}
+        this.api_bundle = xpertTool.options?.api_bundle
+        this.schema = xpertTool.schema || {
+            type: 'object',
+            properties: {},
+            required: []
+        }
 
-		// if (xpertTool.schema) {
-		// 	const operationObject = xpertTool.schema as OperationObject
-		// 	// Support OpenAPI v3 schema and legacy parameters schema
-		// 	if (Array.isArray(operationObject.parameters)) {
-		// 		this.schema = ApiBasedToolSchemaParser.parseParametersToZod(operationObject.parameters as ParameterObject[])
-		// 	} else {
-		// 		this.schema = ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(operationObject)
-		// 	}
-		// }
-	}
+        // if (xpertTool.schema) {
+        // 	const operationObject = xpertTool.schema as OperationObject
+        // 	// Support OpenAPI v3 schema and legacy parameters schema
+        // 	if (Array.isArray(operationObject.parameters)) {
+        // 		this.schema = ApiBasedToolSchemaParser.parseParametersToZod(operationObject.parameters as ParameterObject[])
+        // 	} else {
+        // 		this.schema = ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(operationObject)
+        // 	}
+        // }
+    }
 
-	async validate_credentials(credentials: Record<string, any>, parameters: Record<string, any>, format_only = false) {
-		const headers = this.assembling_request(parameters, credentials)
+    async validate_credentials(credentials: Record<string, any>, parameters: Record<string, any>, format_only = false) {
+        const headers = this.assembling_request(parameters, credentials)
 
-		if (format_only) {
-			return ''
-		}
+        if (format_only) {
+            return ''
+        }
 
-		const response = await this.do_http_request(
-			this.api_bundle.server_url,
-			this.api_bundle.method,
-			headers,
-			parameters
-		)
-		return this.validate_and_parse_response(response)
-	}
+        const response = await this.do_http_request(
+            this.api_bundle.server_url,
+            this.api_bundle.method,
+            headers,
+            parameters
+        )
+        return this.validate_and_parse_response(response)
+    }
 
-	assembling_request(parameters: Record<string, any>, _credentials?): Record<string, any> {
-		const headers: Record<string, any> = {}
-		const credentials = _credentials || this.xpertTool.toolset?.credentials || {}
+    assembling_request(parameters: Record<string, any>, _credentials?): Record<string, any> {
+        const headers: Record<string, any> = {}
+        const credentials = _credentials || this.xpertTool.toolset?.credentials || {}
 
-		// if (!credentials.auth_type) {
-		// 	throw new ToolProviderCredentialValidationError('Missing auth_type')
-		// }
+        // if (!credentials.auth_type) {
+        // 	throw new ToolProviderCredentialValidationError('Missing auth_type')
+        // }
 
-		if (credentials.auth_type === ApiAuthType.API_KEY) {
-			let api_key_header = ApiAuthType.API_KEY
+        if (credentials.auth_type === ApiAuthType.API_KEY) {
+            let api_key_header = ApiAuthType.API_KEY
 
-			if (credentials.api_key_header) {
-				api_key_header = credentials.api_key_header
-			}
+            if (credentials.api_key_header) {
+                api_key_header = credentials.api_key_header
+            }
 
-			if (!credentials.api_key_value) {
-				throw new ToolProviderCredentialValidationError('Missing api_key_value')
-			} else if (typeof credentials.api_key_value !== 'string') {
-				throw new ToolProviderCredentialValidationError('api_key_value must be a string')
-			}
+            if (!credentials.api_key_value) {
+                throw new ToolProviderCredentialValidationError('Missing api_key_value')
+            } else if (typeof credentials.api_key_value !== 'string') {
+                throw new ToolProviderCredentialValidationError('api_key_value must be a string')
+            }
 
-			if (credentials.api_key_header_prefix) {
-				const api_key_header_prefix = credentials.api_key_header_prefix
-				if (api_key_header_prefix === 'basic' && credentials.api_key_value) {
-					credentials.api_key_value = `Basic ${credentials.api_key_value}`
-				} else if (api_key_header_prefix === 'bearer' && credentials.api_key_value) {
-					credentials.api_key_value = `Bearer ${credentials.api_key_value}`
-				} else if (api_key_header_prefix === 'custom') {
-					// Do nothing
-				}
-			}
+            if (credentials.api_key_header_prefix) {
+                const api_key_header_prefix = credentials.api_key_header_prefix
+                if (api_key_header_prefix === 'basic' && credentials.api_key_value) {
+                    credentials.api_key_value = `Basic ${credentials.api_key_value}`
+                } else if (api_key_header_prefix === 'bearer' && credentials.api_key_value) {
+                    credentials.api_key_value = `Bearer ${credentials.api_key_value}`
+                } else if (api_key_header_prefix === 'custom') {
+                    // Do nothing
+                }
+            }
 
-			headers[api_key_header] = credentials.api_key_value
-		}
+            headers[api_key_header] = credentials.api_key_value
+        }
 
-		const needed_parameters = this.api_bundle.parameters.filter((parameter) => parameter.required)
-		for (const parameter of needed_parameters) {
-			if (parameter.required && !(parameter.name in parameters)) {
-				throw new ToolParameterValidationError(`Missing required parameter ${parameter.name}`)
-			}
+        const needed_parameters = this.api_bundle.parameters.filter((parameter) => parameter.required)
+        for (const parameter of needed_parameters) {
+            if (parameter.required && !(parameter.name in parameters)) {
+                throw new ToolParameterValidationError(`Missing required parameter ${parameter.name}`)
+            }
 
-			if (parameter.default !== undefined && !(parameter.name in parameters)) {
-				parameters[parameter.name] = parameter.default
-			}
-		}
+            if (parameter.default !== undefined && !(parameter.name in parameters)) {
+                parameters[parameter.name] = parameter.default
+            }
+        }
 
-		return headers
-	}
+        return headers
+    }
 
-	validate_and_parse_response(response: AxiosResponse): string {
-		/**
-		 * validate the response
-		 */
-		if (response instanceof Object) {
-			if (response.status >= 400) {
-				throw new Error(`Request failed with status code ${response.status} and ${response.statusText}`)
-			}
-			if (!response.data) {
-				return 'Empty response from the tool, please check your parameters and try again.'
-			}
-			try {
-				const responseData = response.data
-				try {
-					return JSON.stringify(responseData)
-				} catch (e) {
-					return JSON.stringify(responseData)
-				}
-			} catch (e) {
-				return response.data
-			}
-		} else {
-			throw new Error(`Invalid response type ${typeof response}`)
-		}
-	}
+    validate_and_parse_response(response: AxiosResponse): string {
+        /**
+         * validate the response
+         */
+        if (response instanceof Object) {
+            if (response.status >= 400) {
+                throw new Error(`Request failed with status code ${response.status} and ${response.statusText}`)
+            }
+            if (!response.data) {
+                return 'Empty response from the tool, please check your parameters and try again.'
+            }
+            try {
+                const responseData = response.data
+                try {
+                    return JSON.stringify(responseData)
+                } catch (e) {
+                    return JSON.stringify(responseData)
+                }
+            } catch (e) {
+                return response.data
+            }
+        } else {
+            throw new Error(`Invalid response type ${typeof response}`)
+        }
+    }
 
-	static get_parameter_value(parameter: any, parameters: Record<string, any>): any {
-		if (parameter.name in parameters) {
-			return parameters[parameter.name]
-		} else if (parameter.required) {
-			throw new ToolParameterValidationError(`Missing required parameter ${parameter.name}`)
-		} else {
-			return (parameter.schema || {}).default || ''
-		}
-	}
+    static get_parameter_value(parameter: any, parameters: Record<string, any>): any {
+        if (parameter.name in parameters) {
+            return parameters[parameter.name]
+        } else if (parameter.required) {
+            throw new ToolParameterValidationError(`Missing required parameter ${parameter.name}`)
+        } else {
+            return (parameter.schema || {}).default || ''
+        }
+    }
 
-	async do_http_request(
-		url: string,
-		method: string,
-		headers: Record<string, any>,
-		parameters: Record<string, any>
-	): Promise<AxiosResponse> {
-		method = method.toLowerCase()
+    async do_http_request(
+        url: string,
+        method: string,
+        headers: Record<string, any>,
+        parameters: Record<string, any>
+    ): Promise<AxiosResponse> {
+        method = method.toLowerCase()
 
-		const params: Record<string, any> = {}
-		const pathParams: Record<string, any> = {}
-		let body: any = {}
-		const cookies: Record<string, any> = {}
+        const params: Record<string, any> = {}
+        const pathParams: Record<string, any> = {}
+        let body: any = {}
+        const cookies: Record<string, any> = {}
 
-		for (const parameter of this.api_bundle.openapi.parameters || []) {
-			const value = OpenAPITool.get_parameter_value(parameter, parameters)
-			if (parameter.in === 'path') {
-				pathParams[parameter.name] = value
-			} else if (parameter.in === 'query') {
-				if (value !== '') {
-					params[parameter.name] = value
-				}
-			} else if (parameter.in === 'cookie') {
-				cookies[parameter.name] = value
-			} else if (parameter.in === 'header') {
-				headers[parameter.name] = value
-			}
-		}
+        for (const parameter of this.api_bundle.openapi.parameters || []) {
+            const value = OpenAPITool.get_parameter_value(parameter, parameters)
+            if (parameter.in === 'path') {
+                pathParams[parameter.name] = value
+            } else if (parameter.in === 'query') {
+                if (value !== '') {
+                    params[parameter.name] = value
+                }
+            } else if (parameter.in === 'cookie') {
+                cookies[parameter.name] = value
+            } else if (parameter.in === 'header') {
+                headers[parameter.name] = value
+            }
+        }
 
-		if (this.api_bundle.openapi.requestBody) {
-			const requestBody = this.api_bundle.openapi.requestBody
-			if (requestBody.content) {
-				for (const contentType in requestBody.content) {
-					headers['Content-Type'] = contentType
-					const bodySchema = requestBody.content[contentType].schema
-					const required = bodySchema.required || []
-					const properties = bodySchema.properties || {}
-					for (const name in properties) {
-						if (name in parameters) {
-							body[name] = ApiBasedToolSchemaParser.convertPropertyValueType(properties[name], parameters[name])
-						} else if (required.includes(name)) {
-							throw new ToolParameterValidationError(
-								`Missing required parameter ${name} in operation ${this.api_bundle.operation_id}`
-							)
-						} else if ('default' in properties[name]) {
-							body[name] = properties[name].default
-						} else {
-							body[name] = null
-						}
-					}
-					break
-				}
-			}
-		}
+        if (this.api_bundle.openapi.requestBody) {
+            const requestBody = this.api_bundle.openapi.requestBody
+            if (requestBody.content) {
+                for (const contentType in requestBody.content) {
+                    headers['Content-Type'] = contentType
+                    const bodySchema = requestBody.content[contentType].schema
+                    const required = bodySchema.required || []
+                    const properties = bodySchema.properties || {}
+                    for (const name in properties) {
+                        if (name in parameters) {
+                            body[name] = ApiBasedToolSchemaParser.convertPropertyValueType(
+                                properties[name],
+                                parameters[name]
+                            )
+                        } else if (required.includes(name)) {
+                            throw new ToolParameterValidationError(
+                                `Missing required parameter ${name} in operation ${this.api_bundle.operation_id}`
+                            )
+                        } else if ('default' in properties[name]) {
+                            body[name] = properties[name].default
+                        } else {
+                            body[name] = null
+                        }
+                    }
+                    break
+                }
+            }
+        }
 
-		for (const name in pathParams) {
-			url = url.replace(`{${name}}`, `${pathParams[name]}`)
-		}
+        for (const name in pathParams) {
+            url = url.replace(`{${name}}`, `${pathParams[name]}`)
+        }
 
-		if (headers['Content-Type']) {
-			if (headers['Content-Type'] === 'application/json') {
-				body = JSON.stringify(body)
-			} else if (headers['Content-Type'] === 'application/x-www-form-urlencoded') {
-				body = new URLSearchParams(body).toString()
-			}
-		}
+        if (headers['Content-Type']) {
+            if (headers['Content-Type'] === 'application/json') {
+                body = JSON.stringify(body)
+            } else if (headers['Content-Type'] === 'application/x-www-form-urlencoded') {
+                body = new URLSearchParams(body).toString()
+            }
+        }
 
-		if (['get', 'head', 'post', 'put', 'delete', 'patch'].includes(method)) {
-			try {
-				const response = await axios({
-					method: method as any, // Type assertion to satisfy TypeScript
-					url: url,
-					params: params,
-					headers: headers,
-					data: body,
-					withCredentials: true, // To include cookies in the request
-					timeout: 60000, // Example timeout, adjust as needed
-					maxRedirects: 5 // Example follow redirects, adjust as needed
-				})
+        if (['get', 'head', 'post', 'put', 'delete', 'patch'].includes(method)) {
+            try {
+                const response = await axios({
+                    method: method as any, // Type assertion to satisfy TypeScript
+                    url: url,
+                    params: params,
+                    headers: headers,
+                    data: body,
+                    withCredentials: true, // To include cookies in the request
+                    timeout: 60000, // Example timeout, adjust as needed
+                    maxRedirects: 5 // Example follow redirects, adjust as needed
+                })
 
-				return response
-			} catch (error) {
-				throw new Error(`HTTP request failed: ${error}`)
-			}
-		} else {
-			throw new Error(`Invalid HTTP method ${method}`)
-		}
-	}
+                return response
+            } catch (error) {
+                throw new Error(`HTTP request failed: ${error}`)
+            }
+        } else {
+            throw new Error(`Invalid HTTP method ${method}`)
+        }
+    }
 
-	getBaseUrl() {
-		return this.xpertTool.toolset.options?.baseUrl
-	}
+    getBaseUrl() {
+        return this.xpertTool.toolset.options?.baseUrl
+    }
 
-	protected async _call(
-		toolParameters: any,
-		runManager?: CallbackManagerForToolRun,
-		parentConfig?: RunnableConfig
-	): Promise<any> {
-		// assemble request
-		const headers = this.assembling_request(toolParameters)
+    protected async _call(
+        toolParameters: any,
+        runManager?: CallbackManagerForToolRun,
+        parentConfig?: RunnableConfig
+    ): Promise<any> {
+        // assemble request
+        const headers = this.assembling_request(toolParameters)
 
-		let url = this.api_bundle.server_url
-		const baseUrl = this.getBaseUrl()
-		if (baseUrl) {
-			url = (baseUrl.endsWith('/') ? baseUrl.slice(0, baseUrl.length - 1) : baseUrl) + url
-		}
+        let url = this.api_bundle.server_url
+        const baseUrl = this.getBaseUrl()
+        if (baseUrl) {
+            url = (baseUrl.endsWith('/') ? baseUrl.slice(0, baseUrl.length - 1) : baseUrl) + url
+        }
 
-		// do http request
-		const response = await this.do_http_request(
-			url,
-			this.api_bundle.method,
-			headers,
-			toolParameters
-		)
-		await this.reportModelUsage(response)
+        // do http request
+        const response = await this.do_http_request(url, this.api_bundle.method, headers, toolParameters)
+        await this.reportModelUsage(response)
 
-		// validate response
-		const validatedResponse = this.validate_and_parse_response(response)
+        // validate response
+        const validatedResponse = this.validate_and_parse_response(response)
 
-		// assemble invoke message
-		return validatedResponse
-	}
+        // assemble invoke message
+        return validatedResponse
+    }
 
-	private async reportModelUsage(response: AxiosResponse) {
-		const usage = readOpenApiModelUsage(response.data)
-		const requestId = readRequestId(response)
-		if (!this.reportUsage || !usage || !requestId) {
-			return
-		}
+    private async reportModelUsage(response: AxiosResponse) {
+        const usage = readOpenApiModelUsage(response.data)
+        const requestId = readRequestId(response)
+        if (!this.reportUsage || !usage || !requestId) {
+            return
+        }
 
-		await this.reportUsage({
-			requestId,
-			provider: this.xpertTool.toolset?.name?.trim() || 'openapi',
-			model: readStringProperty(response.data, 'model'),
-			...usage
-		})
-	}
+        await this.reportUsage({
+            requestId,
+            provider: this.xpertTool.toolset?.name?.trim() || 'openapi',
+            model: readStringProperty(response.data, 'model'),
+            ...usage
+        })
+    }
 }
 
 function readOpenApiModelUsage(value: unknown) {
-	const usage = readObjectProperty(value, 'usage')
-	if (!usage) {
-		return null
-	}
-	const promptTokens = readTokenCount(usage, 'prompt_tokens') ?? readTokenCount(usage, 'promptTokens')
-	const completionTokens = readTokenCount(usage, 'completion_tokens') ?? readTokenCount(usage, 'completionTokens')
-	const totalTokens = readTokenCount(usage, 'total_tokens') ?? readTokenCount(usage, 'totalTokens')
-	return promptTokens !== undefined && completionTokens !== undefined && totalTokens !== undefined
-		? { promptTokens, completionTokens, totalTokens }
-		: null
+    const usage = readObjectProperty(value, 'usage')
+    if (!usage) {
+        return null
+    }
+    const promptTokens = readTokenCount(usage, 'prompt_tokens') ?? readTokenCount(usage, 'promptTokens')
+    const completionTokens = readTokenCount(usage, 'completion_tokens') ?? readTokenCount(usage, 'completionTokens')
+    const totalTokens = readTokenCount(usage, 'total_tokens') ?? readTokenCount(usage, 'totalTokens')
+    return promptTokens !== undefined && completionTokens !== undefined && totalTokens !== undefined
+        ? { promptTokens, completionTokens, totalTokens }
+        : null
 }
 
 function readRequestId(response: AxiosResponse) {
-	return (
-		readStringProperty(response.data, 'id') ??
-		readStringProperty(response.data, 'request_id') ??
-		readStringProperty(response.headers, 'x-request-id') ??
-		readStringProperty(response.headers, 'request-id')
-	)
+    return (
+        readStringProperty(response.data, 'id') ??
+        readStringProperty(response.data, 'request_id') ??
+        readStringProperty(response.headers, 'x-request-id') ??
+        readStringProperty(response.headers, 'request-id')
+    )
 }
 
 function readTokenCount(value: unknown, key: string) {
-	const property = readProperty(value, key)
-	return typeof property === 'number' && Number.isInteger(property) && property >= 0 ? property : undefined
+    const property = readProperty(value, key)
+    return typeof property === 'number' && Number.isInteger(property) && property >= 0 ? property : undefined
 }
 
 function readObjectProperty(value: unknown, key: string) {
-	const property = readProperty(value, key)
-	return property && typeof property === 'object' && !Array.isArray(property) ? property : null
+    const property = readProperty(value, key)
+    return property && typeof property === 'object' && !Array.isArray(property) ? property : null
 }
 
 function readStringProperty(value: unknown, key: string) {
-	const property = readProperty(value, key)
-	return typeof property === 'string' && property.trim() ? property.trim() : undefined
+    const property = readProperty(value, key)
+    return typeof property === 'string' && property.trim() ? property.trim() : undefined
 }
 
 function readProperty(value: unknown, key: string): unknown {
-	return value && typeof value === 'object' && !Array.isArray(value) ? Reflect.get(value, key) : undefined
+    return value && typeof value === 'object' && !Array.isArray(value) ? Reflect.get(value, key) : undefined
 }

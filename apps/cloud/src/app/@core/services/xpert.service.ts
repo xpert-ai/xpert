@@ -23,6 +23,7 @@ import { injectApiBaseUrl, injectLanguage } from '../providers'
 import {
   IChatConversation,
   IChatMessageFeedback,
+  ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
   IUserGroup,
@@ -32,6 +33,8 @@ import {
   OrderTypeEnum,
   TChatApi,
   TChatApp,
+  TEnterpriseH5IdentityGrant,
+  TEnterpriseH5Platform,
   TChatConversationLog,
   TChatOptions,
   TChatRequest,
@@ -78,6 +81,31 @@ export type TPublicChatkitSession = {
   xpertId: string
   assistantId: string
   organizationId?: string | null
+}
+
+/** Indicates that the verified enterprise identity must be linked to an Xpert account. */
+export type TEnterpriseH5AccountBindingRequired = {
+  status: 'account_binding_required'
+  accountBindingProvider: string
+}
+
+/** Result of exchanging an enterprise H5 identity for a ChatKit session. */
+export type TEnterpriseH5ChatkitSession = TPublicChatkitSession | TEnterpriseH5AccountBindingRequired
+
+/** SSO provider metadata displayed when enterprise account binding is required. */
+export type TSSOProviderDescriptor = {
+  provider: string
+  displayName: string
+  icon: string
+  order: number
+  startUrl: string
+}
+
+/** Public bootstrap data used to initialize an enterprise H5 ChatKit client. */
+export type TEnterpriseH5ChatAppBootstrap = {
+  xpert: IXpert
+  platform: TEnterpriseH5Platform
+  clientConfig: Record<string, unknown>
 }
 
 type TXpertGetMyAllRequestOptions = {
@@ -416,6 +444,25 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
+  getEnterpriseH5Bootstrap(identifier: string, platform: TEnterpriseH5Platform) {
+    return this.httpClient.get<TEnterpriseH5ChatAppBootstrap>(
+      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/enterprise-h5/${encodeURIComponent(platform)}/bootstrap`
+    )
+  }
+
+  createEnterpriseH5Session(identifier: string, platform: TEnterpriseH5Platform, grant: TEnterpriseH5IdentityGrant) {
+    return this.httpClient.post<TEnterpriseH5ChatkitSession>(
+      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/enterprise-h5/${encodeURIComponent(platform)}/session`,
+      { grant }
+    )
+  }
+
+  getSsoProviders() {
+    return this.httpClient.get<{ fallbackApplied: boolean; providers: TSSOProviderDescriptor[] }>(
+      '/api/auth/sso/providers'
+    )
+  }
+
   updateChatApi(id: string, api: Partial<TChatApi>) {
     return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/api`, api)
   }
@@ -508,35 +555,41 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   // Statistics
 
-  getDailyConversations(id: string, timeRange: string[]) {
+  getDailyConversations(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/daily-conversations`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getDailyEndUsers(id: string, timeRange: string[]) {
+  getUsageOverview(id: string, timeRange: string[], filters?: StatisticsFilters) {
+    return this.httpClient.get<ICopilotUsageOverview>(`${this.apiBaseUrl}/${id}/statistics/usage-overview`, {
+      params: this.statisticsParams(timeRange, filters)
+    })
+  }
+
+  getDailyEndUsers(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/daily-end-users`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getAverageSessionInteractions(id: string, timeRange: string[]) {
+  getAverageSessionInteractions(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/average-session-interactions`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getDailyMessages(id: string, timeRange: string[], options?: { currentUserOnly?: boolean }) {
-    let params = timeRangeToParams(new HttpParams(), timeRange)
+  getDailyMessages(id: string, timeRange: string[], options?: StatisticsFilters & { currentUserOnly?: boolean }) {
+    let params = this.statisticsParams(timeRange, options)
     if (options?.currentUserOnly != null) {
       params = params.append('currentUserOnly', String(options.currentUserOnly))
     }
@@ -549,11 +602,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
-  getStatisticsTokensPerSecond(id: string, timeRange: string[]) {
+  getStatisticsTokensPerSecond(id: string, timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/tokens-per-second`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
@@ -567,11 +620,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
-  getStatisticsUserSatisfactionRate(id: string, timeRange: string[]) {
-    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string }[]>(
+  getStatisticsUserSatisfactionRate(id: string, timeRange: string[], filters?: StatisticsFilters) {
+    return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/user-satisfaction-rate`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }

@@ -1,5 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
-import { SecretTokenBindingType } from './secret-token.model'
+import { SecretTokenBindingType, TEnterpriseH5TokenScope } from './secret-token.model'
 import { IUser } from './user.model'
 
 /**
@@ -68,6 +68,8 @@ export interface IApiPrincipal extends IUser {
    */
   clientSecretBindingType?: SecretTokenBindingType | null
   clientSecretId?: string | null
+  /** Exact enterprise H5 channel carried by an enterprise client secret. */
+  enterpriseH5Scope?: TEnterpriseH5TokenScope | null
   /**
    * Resource owner / key creator. Used for audit and ownership metadata.
    */

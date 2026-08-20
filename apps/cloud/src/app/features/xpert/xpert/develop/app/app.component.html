@@ -25,6 +25,33 @@
       </div>
     }
   </div>
+
+  @for (definition of enterpriseH5Platforms; track definition.platform) {
+    <div class="my-3 border-t border-divider-regular pt-4">
+      <z-switch
+        [ngModel]="isEnterpriseH5Enabled(definition.platform)"
+        (ngModelChange)="setEnterpriseH5Enabled(definition.platform, $event)"
+      >
+        {{ definition.appLabel.key | translate: { Default: definition.appLabel.default } }}
+      </z-switch>
+
+      @if (isEnterpriseH5Enabled(definition.platform)) {
+        <div class="mt-4 flex flex-col gap-2" @slideUpAnimation>
+          <xp-integration-select
+            [enterpriseH5Platform]="definition.platform"
+            [placeholder]="
+              definition.integrationPlaceholder.key | translate: { Default: definition.integrationPlaceholder.default }
+            "
+            [ngModel]="getEnterpriseH5IntegrationId(definition.platform)"
+            (ngModelChange)="setEnterpriseH5IntegrationId(definition.platform, $event)"
+          />
+          <p class="text-sm text-text-tertiary">
+            {{ definition.hint.key | translate: { Default: definition.hint.default } }}
+          </p>
+        </div>
+      }
+    </div>
+  }
 </div>
 
 <div class="flex justify-end p-4">
@@ -32,7 +59,7 @@
     <button z-button zType="secondary" (click)="close()">
       {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" (click)="apply()">
+    <button z-button zType="default" [disabled]="!canApply()" (click)="apply()">
       {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
     </button>
   </div>

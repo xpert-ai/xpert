@@ -790,7 +790,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             // created through the normal middleware path so its tools enter
             // toolMap, tracing, and runtime filtering consistently.
             const fileUnderstandingMiddleware = await fileUnderstandingStrategy.createMiddleware(
-                { conversationId: options.conversationId },
+                { conversationId: options.conversationId, projectId: options.projectId },
                 {
                     ...middlewareContext,
                     node: {

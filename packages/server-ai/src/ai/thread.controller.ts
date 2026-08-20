@@ -6,13 +6,21 @@ import {
     createMessageAppendContextTracker,
     IUser,
     IXpertAgentExecution,
+    SecretTokenBindingType,
     USAGE_HOUR_FORMAT
 } from '@xpert-ai/contracts'
-import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@xpert-ai/server-core'
+import {
+    AllowClientSecretBindings,
+    ApiKeyOrClientSecretAuthGuard,
+    CurrentUser,
+    Public,
+    TransformInterceptor
+} from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
     Delete,
+    ForbiddenException,
     Get,
     Header,
     Headers,
@@ -78,6 +86,7 @@ function startSseHeartbeat(res: Response) {
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
 @Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('threads')
@@ -319,6 +328,7 @@ export class ThreadsController {
         @Param('run_id') run_id: string,
         @Headers('last-event-id') lastEventId?: string
     ) {
+        await this.ensurePublicThreadRunAccess(thread_id, run_id)
         const owner = buildSseConnectionOwner(req, {
             mode: 'join',
             lastEventId
@@ -341,12 +351,15 @@ export class ThreadsController {
 
     @Get(':thread_id/runs/:run_id')
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-        const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id))
+        const execution =
+            (await this.ensurePublicThreadRunAccess(thread_id, run_id)) ??
+            (await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id)))
         return transformRun(execution)
     }
 
     @Post(':thread_id/runs/:run_id/cancel')
     async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
+        await this.ensurePublicThreadRunAccess(thread_id, run_id)
         // Cancel the run
         try {
             return await this.commandBus.execute(
@@ -364,6 +377,7 @@ export class ThreadsController {
     // Others
     @Get(':thread_id/context-usage')
     async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
+        await this.ensurePublicThreadAccess(threadId)
         return await this.queryBus.execute(new GetThreadContextUsageQuery(threadId, agentKey))
     }
 
@@ -373,6 +387,7 @@ export class ThreadsController {
         @Query('start') start: string,
         @Query('end') end?: string
     ) {
+        await this.ensurePublicThreadAccess(threadId)
         const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
         return await this.queryBus.execute(new CopilotUserUsageQuery({ start, end: endHour, threadId }))
     }
@@ -384,6 +399,20 @@ export class ThreadsController {
 
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         assertPublicXpertSessionConversationAccess(conversation)
+    }
+
+    private async ensurePublicThreadRunAccess(threadId: string, runId: string) {
+        if (!getPublicXpertSessionConversationScope()) {
+            return null
+        }
+        await this.ensurePublicThreadAccess(threadId)
+        const execution = await this.queryBus.execute<XpertAgentExecutionOneQuery, IXpertAgentExecution>(
+            new XpertAgentExecutionOneQuery(runId)
+        )
+        if (execution.threadId !== threadId) {
+            throw new ForbiddenException()
+        }
+        return execution
     }
 }
 

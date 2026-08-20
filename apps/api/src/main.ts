@@ -6,6 +6,7 @@ import { runTenantAdminCli } from './tenant-admin-cli'
 import { bootstrap } from './bootstrap'
 import { prepare } from './prepare'
 import { runKnowledgeFilterV2MigrationCli } from './knowledge-filter-v2-migration-cli'
+import { runSchemaSync } from './schema-sync'
 
 // if (process.env.NODE_ENV !== 'production') {
 //   installPlugins()
@@ -38,6 +39,13 @@ if (command === 'seedModule') {
   runKnowledgeFilterV2MigrationCli(argv)
     .then(() => process.exit(process.exitCode ?? 0))
     .catch((error: any) => {
+      console.error(error)
+      process.exit(1)
+    })
+} else if (command === 'schema-sync') {
+  runSchemaSync(pluginConfig)
+    .then(() => process.exit(0))
+    .catch((error: unknown) => {
       console.error(error)
       process.exit(1)
     })

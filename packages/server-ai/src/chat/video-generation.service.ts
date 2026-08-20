@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
     RequestContext,
@@ -13,11 +13,14 @@ import {
     type VideoGenerationReferenceInput,
     type VideoGenerationToolsetCapability,
     type VideoGeneratorSummary,
-    type WorkspacePortableFileReference
+    type WorkspacePortableFileReference,
+    MANAGED_QUEUE_SERVICE_TOKEN,
+    type ManagedQueueService
 } from '@xpert-ai/plugin-sdk'
 import { SecretTokenBindingType, XpertToolsetCategoryEnum, type IXpertToolset } from '@xpert-ai/contracts'
 import { createBuiltinToolset, XpertToolsetService } from '../xpert-toolset'
 import { PublishedXpertAccessService } from '../xpert'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 
 const COMPLETED_STATUSES = new Set(['completed', 'done', 'succeeded', 'success'])
 const FAILED_STATUSES = new Set(['failed', 'error', 'cancelled', 'canceled', 'expired'])
@@ -31,7 +34,10 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
         private readonly toolsets: XpertToolsetService,
         private readonly registry: ToolsetRegistry,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly modelRuntime: AgentMiddlewareRuntimeService,
+        @Inject(MANAGED_QUEUE_SERVICE_TOKEN)
+        private readonly managedQueue: ManagedQueueService
     ) {}
 
     async listGenerators(input: { xpertId: string }) {
@@ -216,15 +222,31 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
         toolName: string,
         input: Record<string, unknown>
     ): Promise<unknown> {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+        const scopedModelRuntime = this.modelRuntime.createScopedApi({
+            tenantId,
+            organizationId,
+            userId,
+            workspaceId: toolset.workspaceId,
+            projectId,
+            xpertId
+        })
         const controller = await createBuiltinToolset(toolset.type, toolset, {
-            tenantId: RequestContext.currentTenantId(),
-            organizationId: RequestContext.getOrganizationId(),
-            userId: RequestContext.currentUserId(),
+            tenantId,
+            organizationId,
+            userId,
             xpertId,
             ...(projectId ? { projectId } : {}),
             env: {},
             commandBus: this.commandBus,
-            queryBus: this.queryBus
+            queryBus: this.queryBus,
+            managedQueue: this.managedQueue,
+            modelRuntime: {
+                createModelClient: scopedModelRuntime.createModelClient,
+                getModelProvider: scopedModelRuntime.getModelProvider
+            }
         })
         try {
             await controller.initTools()
@@ -239,9 +261,9 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
                 },
                 {
                     configurable: {
-                        tenantId: RequestContext.currentTenantId(),
-                        organizationId: RequestContext.getOrganizationId(),
-                        userId: RequestContext.currentUserId()
+                        tenantId,
+                        organizationId,
+                        userId
                     }
                 }
             )

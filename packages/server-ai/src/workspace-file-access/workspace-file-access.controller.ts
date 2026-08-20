@@ -102,7 +102,7 @@ export class WorkspaceFileAccessController {
                 t('server-ai:Error.WorkspaceFileAccessNotFound', { defaultValue: 'Workspace file was not found.' })
             )
         }
-        const origin = this.service.assertRequestOrigin(authorization.session, request)
+        const origin = this.service.assertRequestOrigin(authorization.session, request, authorization.grant.purpose)
         const resolved = this.service.resolveAuthorizedFile(authorization)
         const fileStat = await stat(resolved.filePath).catch(() => null)
         if (!fileStat?.isFile()) {
