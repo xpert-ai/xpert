@@ -87,6 +87,7 @@ import {
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     KnowledgebaseProvisioningRuntimeCapability,
+    ProjectProvisioningRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
     ArtifactsRuntimeCapability,
@@ -121,6 +122,7 @@ import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../kn
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
 import { CollaborationService } from '../../collaboration'
 import { CopilotService } from '../../copilot/copilot.service'
 import { applicationMetrics } from '../../metrics'
@@ -1146,6 +1148,36 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(ConnectAgentKnowledgebasesCommand)
     })
 
+    it('exposes idempotent platform Project provisioning through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof EnsureXpertProjectCommand) {
+                return {
+                    projectId: command.input.projectId,
+                    workspaceId: command.input.workspaceId,
+                    xpertIds: [command.input.xpertId],
+                    operation: 'created'
+                }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(ProjectProvisioningRuntimeCapability).ensure({
+            projectId: 'project-1',
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1',
+            name: 'Tender project',
+            status: 'active'
+        })
+
+        expect(result).toEqual({
+            projectId: 'project-1',
+            workspaceId: 'workspace-1',
+            xpertIds: ['xpert-1'],
+            operation: 'created'
+        })
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(EnsureXpertProjectCommand)
+    })
+
     it('exposes knowledgebase chunk write through the runtime facade', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
             if (command instanceof WriteAgentKnowledgeChunkCommand) {
@@ -1784,6 +1816,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             taskId: 'task-1',
             conversationId: 'conversation-1',
             executionId: 'execution-1',
+            projectId: 'project-1',
             prompt: '重新解析合同',
             files: [
                 {
@@ -1831,9 +1864,11 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(command.options).toEqual(
             expect.objectContaining({
                 xpertId: 'assistant-1',
+                agentKey: 'agent-main',
                 from: 'job',
                 taskId: 'task-1',
                 context: { source: 'test' },
+                projectId: 'project-1',
                 execution: { id: 'execution-1' },
                 streamPersistence: {
                     transport: 'redis-stream',
@@ -1850,6 +1885,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 status: 'busy',
                 taskId: 'task-1',
                 xpertId: 'assistant-1',
+                projectId: 'project-1',
                 from: 'job'
             })
         )

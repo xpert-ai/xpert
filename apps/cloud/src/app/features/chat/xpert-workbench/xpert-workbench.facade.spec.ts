@@ -166,7 +166,9 @@ describe('XpertWorkbenchFacade', () => {
         updatedAt: 'DESC'
       }
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'], {
+      queryParamsHandling: 'preserve'
+    })
     expect(control.focusComposer).not.toHaveBeenCalled()
   })
 
@@ -187,13 +189,59 @@ describe('XpertWorkbenchFacade', () => {
     await settle()
     facade.onChatThreadChange('thread-2')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'], {
+      queryParamsHandling: 'preserve'
+    })
 
     setRoute('/chat/x/sales/c/thread-2')
     facade.onChatThreadChange(null)
 
     expect(facade.suppressAutoResume()).toBe(true)
-    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'])
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('isolates project history and preserves the project route', async () => {
+    router.url = '/chat/x/sales/p/project-1/c'
+    conversationService.findAllByXpert.mockReturnValue(
+      of({
+        items: [
+          {
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            projectId: 'project-1'
+          } as IChatConversation
+        ]
+      })
+    )
+
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    const control = createMockChatKitControl()
+
+    await settle()
+    await facade.ensureConversationEntry(control)
+
+    expect(facade.projectId()).toBe('project-1')
+    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1:project-1')
+    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-1', {
+      take: 1,
+      order: {
+        updatedAt: 'DESC'
+      },
+      where: {
+        projectId: 'project-1'
+      }
+    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c', 'thread-1'], {
+      queryParamsHandling: 'preserve'
+    })
+
+    facade.onChatThreadChange('thread-2')
+
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c', 'thread-2'], {
+      queryParamsHandling: 'preserve'
+    })
   })
 
   function setRoute(url: string) {

@@ -326,6 +326,11 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Declares how an Assistant resolves the workspace used by files and Agent runs. */
+  workspaceScope?: {
+    /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
+    mode: 'project-required' | 'project-preferred'
+  }
   /** Legacy template key retained for existing plugin-authored DSL files. */
   templateKey?: string
   /** Legacy Agentic App descriptor retained for backward-compatible source discovery. */

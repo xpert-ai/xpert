@@ -16,6 +16,11 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
         public readonly options?: TChatOptions &
             TChatSourceAuditOptions & {
                 xpertId?: string
+                /**
+                 * Start this chat run at a specific Agent in the Assistant graph.
+                 * When omitted, the published Assistant's primary Agent is used.
+                 */
+                agentKey?: string
                 // Use xpert's draft
                 isDraft?: boolean
                 fromEndUserId?: string

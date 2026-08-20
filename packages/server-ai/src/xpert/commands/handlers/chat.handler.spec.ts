@@ -51,6 +51,7 @@ describe('XpertChatHandler', () => {
     let queryBus: { execute: jest.Mock }
     let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
     let redisSseStreamService: { wrapChatStream: jest.Mock }
+    let projectService: { assertRuntimeAccess: jest.Mock }
     let handler: XpertChatHandler
 
     const xpert = {
@@ -104,6 +105,9 @@ describe('XpertChatHandler', () => {
         redisSseStreamService = {
             wrapChatStream: jest.fn((stream) => stream)
         }
+        projectService = {
+            assertRuntimeAccess: jest.fn().mockResolvedValue({ id: 'project-1' })
+        }
 
         handler = new XpertChatHandler(
             xpertService as any,
@@ -111,7 +115,8 @@ describe('XpertChatHandler', () => {
             commandBus as any,
             queryBus as any,
             goalService as unknown as ChatConversationGoalService,
-            redisSseStreamService as any
+            redisSseStreamService as any,
+            projectService as any
         )
     })
 
@@ -197,6 +202,7 @@ describe('XpertChatHandler', () => {
                 },
                 {
                     xpertId: 'xpert-1',
+                    agentKey: 'agent-specialist',
                     from: 'wechat',
                     fromEndUserId: 'wxid-user',
                     runtimePrincipal: {
@@ -275,6 +281,7 @@ describe('XpertChatHandler', () => {
                 command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
         ) as XpertAgentExecutionUpsertCommand
         expect(runningExecutionCommand).toBeDefined()
+        expect(runningExecutionCommand.execution.agentKey).toBe('agent-specialist')
         expect(runningExecutionCommand.execution.metadata).toEqual(
             expect.objectContaining({
                 triggerSource: 'integration',
@@ -301,6 +308,7 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.options.resume).toBeUndefined()
+        expect(agentCommand.agentKey).toBe('agent-specialist')
         expect(agentCommand.state.sys).toEqual(
             expect.objectContaining({
                 soul: '# Rules',
@@ -1440,6 +1448,7 @@ describe('XpertChatHandler', () => {
 
         expect(agentCommand.options.projectId).toBe('project-1')
         expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
+        expect(projectService.assertRuntimeAccess).toHaveBeenCalledWith('project-1', 'xpert-1')
     })
 
     it('persists steer follow-ups while an interrupted conversation has a waiting operation', async () => {

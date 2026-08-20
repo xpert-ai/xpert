@@ -53,6 +53,28 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
     const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
 
     expect(state.viewKey()).toBe('review')
+    expect(state.viewQuery()).toBeNull()
+  })
+
+  it('persists the selected record and view parameters for refresh recovery', async () => {
+    const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+
+    await state.setViewState('review', {
+      selectionId: 'project-1',
+      parameters: { view: 'project-review', section: 'quality', page: 2 }
+    })
+
+    expect(router.parseUrl(router.url).queryParams).toEqual(
+      expect.objectContaining({
+        view: 'review',
+        viewSelection: 'project-1',
+        viewParameters: JSON.stringify({ view: 'project-review', section: 'quality', page: 2 })
+      })
+    )
+    expect(state.viewQuery()).toEqual({
+      selectionId: 'project-1',
+      parameters: { view: 'project-review', section: 'quality', page: 2 }
+    })
   })
 
   it('updates the view query parameter while preserving the route, other parameters, and fragment', async () => {
@@ -84,8 +106,13 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
     navigationEvents.next(new NavigationEnd(2, router.url, router.url))
     expect(state.viewKey()).toBe('metrics')
 
-    router.url = '/chat/clawxpert/c/thread-1'
+    router.url = `/chat/clawxpert/c/thread-1?view=metrics&viewSelection=row-2&viewParameters=${encodeURIComponent(JSON.stringify({ section: 'history' }))}`
     navigationEvents.next(new NavigationEnd(3, router.url, router.url))
+    expect(state.viewQuery()).toEqual({ selectionId: 'row-2', parameters: { section: 'history' } })
+
+    router.url = '/chat/clawxpert/c/thread-1'
+    navigationEvents.next(new NavigationEnd(4, router.url, router.url))
     expect(state.viewKey()).toBeNull()
+    expect(state.viewQuery()).toBeNull()
   })
 })

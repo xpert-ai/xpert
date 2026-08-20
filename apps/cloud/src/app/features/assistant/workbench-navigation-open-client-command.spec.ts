@@ -3,6 +3,7 @@ import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-cli
 import {
   registerWorkbenchNavigationOpenCommand,
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
 } from './workbench-navigation-open-client-command'
@@ -193,6 +194,46 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       threadId: 'thread-1',
       executionId: 'execution-1'
     })
+  })
+
+  it('opens the assistant in the requested project workspace', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantProject = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantProject })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+        projectId: 'project-1'
+      },
+      context
+    )
+
+    expect(openAssistantProject).toHaveBeenCalledWith({ projectId: 'project-1' })
+    expect(result).toEqual({
+      success: true,
+      status: 'opened',
+      target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+      projectId: 'project-1'
+    })
+  })
+
+  it('rejects assistant project navigation without a project id', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantProject = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantProject })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_PROJECT_TARGET
+      },
+      context
+    )
+
+    expect(openAssistantProject).not.toHaveBeenCalled()
+    expect(result).toEqual(expect.objectContaining({ success: false, code: 'bad_request' }))
   })
 
   it('does not fall back to the legacy chat route when the host has no embedded chatkit opener', async () => {

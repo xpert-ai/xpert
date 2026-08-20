@@ -1,9 +1,11 @@
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   type WorkbenchAssistantConversationOpenRequest,
+  type WorkbenchAssistantProjectOpenRequest,
   type WorkbenchExtensionViewOpenRequest,
   type XpertViewScalar
 } from '@xpert-ai/contracts'
@@ -11,9 +13,11 @@ import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-cli
 
 export {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
   type WorkbenchAssistantConversationOpenRequest,
+  type WorkbenchAssistantProjectOpenRequest,
   type WorkbenchExtensionViewOpenRequest,
   type WorkbenchNavigationOpenPayload,
   type WorkbenchNavigationOpenTarget
@@ -25,6 +29,8 @@ type WorkbenchNavigationOpenCommandOptions = {
     options?: { queryParams?: Record<string, string>; state?: Record<string, unknown> }
   ) => Promise<unknown> | unknown
   openAssistantConversation?: (request: WorkbenchAssistantConversationOpenRequest) => Promise<unknown> | unknown
+  /** Host-owned navigation for selecting an Assistant Project workspace. */
+  openAssistantProject?: (request: WorkbenchAssistantProjectOpenRequest) => Promise<unknown> | unknown
   openWorkbenchView?: (request: WorkbenchExtensionViewOpenRequest) => Promise<unknown> | unknown
 }
 
@@ -45,6 +51,7 @@ export function registerWorkbenchNavigationOpenCommand(
     if (
       target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET &&
       target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET &&
+      target !== WORKBENCH_ASSISTANT_PROJECT_TARGET &&
       target !== WORKBENCH_EXTENSION_VIEW_TARGET
     ) {
       return {
@@ -57,9 +64,11 @@ export function registerWorkbenchNavigationOpenCommand(
     const resourceId =
       target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
         ? getString(payload, 'conversationId')
-        : target === WORKBENCH_EXTENSION_VIEW_TARGET
-          ? getString(payload, 'viewKey')
-          : getString(payload, 'knowledgebaseId')
+        : target === WORKBENCH_ASSISTANT_PROJECT_TARGET
+          ? getString(payload, 'projectId')
+          : target === WORKBENCH_EXTENSION_VIEW_TARGET
+            ? getString(payload, 'viewKey')
+            : getString(payload, 'knowledgebaseId')
     if (!resourceId) {
       return {
         success: false,
@@ -67,9 +76,11 @@ export function registerWorkbenchNavigationOpenCommand(
         message:
           target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
             ? 'Conversation id is required.'
-            : target === WORKBENCH_EXTENSION_VIEW_TARGET
-              ? 'Workbench view key is required.'
-              : 'Knowledgebase id is required.'
+            : target === WORKBENCH_ASSISTANT_PROJECT_TARGET
+              ? 'Project id is required.'
+              : target === WORKBENCH_EXTENSION_VIEW_TARGET
+                ? 'Workbench view key is required.'
+                : 'Knowledgebase id is required.'
       }
     }
 
@@ -124,6 +135,23 @@ export function registerWorkbenchNavigationOpenCommand(
         conversationId: resourceId,
         ...(threadId ? { threadId } : {}),
         ...(executionId ? { executionId } : {})
+      }
+    }
+
+    if (target === WORKBENCH_ASSISTANT_PROJECT_TARGET) {
+      if (!options.openAssistantProject) {
+        return {
+          success: false,
+          code: 'unsupported',
+          message: 'Assistant Project opening is not available in this host.'
+        }
+      }
+      await options.openAssistantProject({ projectId: resourceId })
+      return {
+        success: true,
+        status: 'opened',
+        target,
+        projectId: resourceId
       }
     }
 

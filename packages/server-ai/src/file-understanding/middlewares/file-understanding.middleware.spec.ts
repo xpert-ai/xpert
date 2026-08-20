@@ -6,7 +6,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
-import { ListConversationFilesQuery } from '../queries'
+import { ListConversationFilesQuery, ListProjectFilesQuery } from '../queries'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME, FileUnderstandingMiddleware } from './file-understanding.middleware'
 
 function createContext(conversationId = 'conversation-context'): IAgentMiddlewareContext {
@@ -75,5 +75,20 @@ describe('FileUnderstandingMiddleware', () => {
 
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListConversationFilesQuery))
         expect(queryBus.execute.mock.calls[0][0].conversationId).toBe('conversation-option')
+    })
+
+    it('passes the trusted runtime Project scope to every parsed-file tool', async () => {
+        const queryBus = { execute: jest.fn().mockResolvedValue([]) }
+        const context = { ...createContext(), projectId: 'project-context' }
+        const middleware = await Promise.resolve(
+            new FileUnderstandingMiddleware(queryBus as any).createMiddleware(undefined, context)
+        )
+
+        await middleware.tools?.find((item) => item.name === 'parsed_file_list')?.invoke({})
+
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListProjectFilesQuery))
+        expect(queryBus.execute.mock.calls[0][0]).toEqual(
+            expect.objectContaining({ projectId: 'project-context', conversationId: 'conversation-context' })
+        )
     })
 })

@@ -1,18 +1,22 @@
 import { tool } from '@langchain/core/tools'
 import { QueryBus } from '@nestjs/cqrs'
-import { ForbiddenException } from '@nestjs/common'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { z } from 'zod'
 import type { FilePageImageResult } from '../queries'
 import {
     GetFilePreviewQuery,
     ListConversationFilesQuery,
+    ListProjectFilesQuery,
     ListFilePageImagesQuery,
     ReadFileChunkQuery,
     SearchFileChunksQuery
 } from '../queries'
 
 type CreateFileUnderstandingToolsOptions = {
+    /** Conversation attachments used alone or as a Project visibility supplement. */
     conversationId?: string
+    /** Trusted Project id injected by middleware runtime, never supplied by the model. */
+    projectId?: string
 }
 
 const SEARCH_RESULT_LIMIT = 8
@@ -20,18 +24,21 @@ const SEARCH_SNIPPET_LIMIT = 800
 const READ_CONTENT_LIMIT = 4_000
 
 export function createFileUnderstandingTools(queryBus: QueryBus, options?: CreateFileUnderstandingToolsOptions) {
-    const listConversationFiles = async () => {
-        return options?.conversationId
-            ? await queryBus.execute(new ListConversationFilesQuery(options.conversationId))
-            : []
+    // Project files become the primary visible set whenever a trusted Project
+    // exists; legacy Assistants keep conversation-only behavior unchanged.
+    const listVisibleFiles = async () => {
+        if (options?.projectId) {
+            return queryBus.execute(new ListProjectFilesQuery(options.projectId, options.conversationId))
+        }
+        return options?.conversationId ? queryBus.execute(new ListConversationFilesQuery(options.conversationId)) : []
     }
 
     const resolveFileIds = async (fileIds?: string[]) => {
-        const files = await listConversationFiles()
+        const files = await listVisibleFiles()
         const allowedIds = new Set(files.map((file) => file.id))
         const ids = fileIds?.length ? [...new Set(fileIds)] : files.map((file) => file.id)
         if (ids.some((fileId) => !allowedIds.has(fileId))) {
-            throw new ForbiddenException('The requested file is not linked to this Assistant Task conversation')
+            throw new ForbiddenException('The requested file is not visible in the current workspace')
         }
         return { ids, files }
     }
@@ -74,7 +81,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             return null
         }
         const normalizedPath = workspacePath.trim()
-        const files = await listConversationFiles()
+        const files = await listVisibleFiles()
         return (
             files.find((file) => file.workspacePath === normalizedPath) ??
             files.find((file) => file.workspacePath?.endsWith(normalizedPath)) ??
@@ -82,14 +89,14 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         )
     }
 
-    // Parsed-file tools are scoped by ConversationFileLink through
-    // ListConversationFilesQuery, so agents cannot discover unrelated uploads.
+    // Parsed-file tools use the trusted runtime Project plus explicit conversation
+    // attachments. The model cannot select or override the Project scope.
     const fileSearch = tool(
         async ({ fileIds, query, limit }) => JSON.stringify(await searchConversationFiles(fileIds, query, limit)),
         {
             name: 'parsed_file_search',
             description:
-                'Search parsed files linked to this conversation by query. Returns matching parsed chunks with page, sheet, slide, path, or chunk anchors for citation.',
+                'Search parsed files visible in the current workspace by query. Returns matching parsed chunks with page, sheet, slide, path, or chunk anchors for citation.',
             schema: z
                 .object({
                     fileIds: z.array(z.string().uuid()).min(1).max(12).optional(),
@@ -110,22 +117,21 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         async ({ fileId, chunkId, orderNo }) => {
             await requireConversationFile(fileId)
             const chunk = await queryBus.execute(new ReadFileChunkQuery({ fileId, chunkId, orderNo }))
-            return JSON.stringify(
-                chunk
-                    ? {
-                          fileId,
-                          chunkId: chunk.id,
-                          orderNo: chunk.orderNo,
-                          anchor: chunk.anchor,
-                          content: compactText(chunk.content, READ_CONTENT_LIMIT)
-                      }
-                    : null
-            )
+            if (!chunk) {
+                throw parsedChunkNotFound({ fileId, chunkId, orderNo })
+            }
+            return JSON.stringify({
+                fileId,
+                chunkId: chunk.id,
+                orderNo: chunk.orderNo,
+                anchor: chunk.anchor,
+                content: compactText(chunk.content, READ_CONTENT_LIMIT)
+            })
         },
         {
             name: 'parsed_file_read',
             description:
-                'Read a parsed file chunk by chunkId or orderNo. Use after parsed_file_search when exact surrounding text is needed.',
+                'Read exactly one parsed file chunk by a chunkId or orderNo returned by parsed_file_search. Never enumerate or increment orderNo to scan a file; a missing chunk is a terminal not-found error.',
             schema: z
                 .object({
                     fileId: z.string().uuid(),
@@ -226,7 +232,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
 
     const workspaceList = tool(
         async () => {
-            const files = await listConversationFiles()
+            const files = await listVisibleFiles()
             return JSON.stringify(
                 files.map((file) => ({
                     fileId: file.id,
@@ -240,7 +246,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         {
             name: 'parsed_file_list',
             description:
-                'List compact metadata for parsed files linked to this conversation. Use a dedicated tool to search, read, or list page images.',
+                'List compact metadata for parsed files visible in the current workspace. Use a dedicated tool to search, read, or list page images.',
             schema: z.object({}).strict(),
             verboseParsingErrors: true
         }
@@ -253,26 +259,27 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             const file = fileId ? null : await findConversationFileByPath(path)
             const resolvedFileId = fileId ?? file?.id
             if (!resolvedFileId) {
-                return JSON.stringify(null)
+                throw new NotFoundException(
+                    'PARSED_FILE_NOT_FOUND: No parsed file matches the requested workspacePath. Call parsed_file_list and use an exact returned fileId or workspacePath.'
+                )
             }
             await requireConversationFile(resolvedFileId)
             const chunk = await queryBus.execute(new ReadFileChunkQuery({ fileId: resolvedFileId, chunkId, orderNo }))
-            return JSON.stringify(
-                chunk
-                    ? {
-                          fileId: resolvedFileId,
-                          chunkId: chunk.id,
-                          orderNo: chunk.orderNo,
-                          anchor: chunk.anchor,
-                          content: compactText(chunk.content, READ_CONTENT_LIMIT)
-                      }
-                    : null
-            )
+            if (!chunk) {
+                throw parsedChunkNotFound({ fileId: resolvedFileId, chunkId, orderNo })
+            }
+            return JSON.stringify({
+                fileId: resolvedFileId,
+                chunkId: chunk.id,
+                orderNo: chunk.orderNo,
+                anchor: chunk.anchor,
+                content: compactText(chunk.content, READ_CONTENT_LIMIT)
+            })
         },
         {
             name: 'parsed_file_read_by_path',
             description:
-                'Read a parsed chunk from the conversation-linked parsed file index by fileId or workspacePath. This does not read raw file bytes; use sandbox_read_file with the returned workspacePath for original files, or sandbox_shell only when command execution is necessary.',
+                'Read exactly one parsed chunk from the current workspace index by fileId or workspacePath, using a chunkId or orderNo returned by parsed_file_search. Never enumerate orderNo; a missing file or chunk is a terminal not-found error. This does not read raw file bytes.',
             schema: z
                 .object({
                     fileId: z.string().uuid().optional(),
@@ -301,7 +308,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         async ({ query, limit }) => JSON.stringify(await searchConversationFiles(undefined, query, limit)),
         {
             name: 'parsed_file_search_all',
-            description: 'Search every parsed file linked to this conversation.',
+            description: 'Search every parsed file visible in the current workspace.',
             schema: z
                 .object({
                     query: z.string().trim().min(1).max(500),
@@ -322,6 +329,14 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         workspaceRead,
         workspaceSearch
     ]
+}
+
+/** Return a terminal diagnostic that prevents Agents from probing sequential chunk ids. */
+function parsedChunkNotFound(input: { fileId: string; chunkId?: string; orderNo?: number }) {
+    const selector = input.chunkId ? `chunkId '${input.chunkId}'` : `orderNo '${input.orderNo}'`
+    return new NotFoundException(
+        `PARSED_FILE_CHUNK_NOT_FOUND: File '${input.fileId}' has no parsed chunk for ${selector}. Do not increment or enumerate orderNo. Call parsed_file_search and read only a returned chunkId or orderNo; stop when search returns no result.`
+    )
 }
 
 function compactText(value: string, maxLength: number) {

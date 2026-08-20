@@ -13,7 +13,8 @@ import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { DeepPartial, Repository } from 'typeorm'
+import { DeepPartial, FindOptionsWhere, Repository, UpdateResult } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { resolveFileAssetWorkspaceRelativePath } from '../file-understanding/domain/workspace-file'
@@ -53,6 +54,27 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             )
         })
         return conversation
+    }
+
+    /** Reject attempts to move an existing conversation across Project boundaries. */
+    override async update(
+        id: string | number | FindOptionsWhere<ChatConversation>,
+        partialEntity: QueryDeepPartialEntity<ChatConversation>,
+        ...options: any[]
+    ): Promise<UpdateResult | ChatConversation> {
+        if (Object.prototype.hasOwnProperty.call(partialEntity, 'projectId')) {
+            const conversationId = typeof id === 'string' ? id : typeof id === 'object' ? id.id : undefined
+            if (typeof conversationId === 'string') {
+                const existing = await this.repository.findOne({
+                    where: { id: conversationId },
+                    select: { id: true, projectId: true }
+                })
+                if (existing && existing.projectId !== partialEntity.projectId) {
+                    throw new BadRequestException('A conversation cannot be moved to another Project')
+                }
+            }
+        }
+        return super.update(id, partialEntity, ...options)
     }
 
     async findAllByXpert(xpertId: string, options: PaginationParams<ChatConversation>) {

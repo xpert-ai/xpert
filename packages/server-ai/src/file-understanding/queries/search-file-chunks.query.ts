@@ -9,6 +9,8 @@ export class SearchFileChunksQuery extends Query<FileChunk[]> {
             fileId: string
             query?: string
             limit?: number
+            /** Zero-based parser-order offset used only for bounded chunk paging. */
+            offset?: number
         }
     ) {
         super()

@@ -208,6 +208,53 @@ export type WorkspaceValidatedUnderstandingReference = {
   excerpt: string
 }
 
+/** Scoped, bounded FileChunk DTO for plugin-owned evidence mapping. */
+export type WorkspaceUnderstandingChunk = {
+  /** FileAsset that owns the parsed chunk. */
+  fileAssetId: string
+  /** Stable FileChunk identifier suitable for evidence references. */
+  chunkId: string
+  /** Parser order within the source document. */
+  orderNo: number
+  /** Parser-specific page, sheet, slide, or block location. */
+  anchor?: Record<string, unknown>
+  /** Bounded source text; callers must not assume it contains the whole file. */
+  content: string
+}
+
+/** Input for paging an already parsed FileAsset without creating a second index. */
+export type WorkspaceListUnderstandingChunksInput = WorkspaceFileScope & {
+  fileAssetId: string
+  /** One-based page number. */
+  page?: number
+  /** Page size clamped by the host. */
+  pageSize?: number
+  /** Maximum characters returned for each chunk. */
+  contentLength?: number
+}
+
+/** One bounded page from the FileAsset's existing FileChunk index. */
+export type WorkspaceUnderstandingChunkPage = {
+  fileAssetId: string
+  /** Chunks in parser order for the requested page. */
+  items: WorkspaceUnderstandingChunk[]
+  page: number
+  pageSize: number
+  /** True when another bounded page can be requested. */
+  hasMore: boolean
+}
+
+/** Input for hybrid search over a FileAsset's existing FileChunk index. */
+export type WorkspaceSearchUnderstandingChunksInput = WorkspaceFileScope & {
+  fileAssetId: string
+  /** Natural-language or keyword query evaluated by the platform hybrid index. */
+  query: string
+  /** Result count clamped by the host. */
+  limit?: number
+  /** Maximum characters returned for each matching chunk. */
+  contentLength?: number
+}
+
 /**
  * Runtime capability contract for reading, writing, uploading, deleting, and
  * understanding files in Xpert workspace Volumes.
@@ -229,6 +276,12 @@ export interface WorkspaceFilesApi {
   validateUnderstandingReferences(
     input: WorkspaceValidateUnderstandingReferencesInput
   ): Promise<WorkspaceValidatedUnderstandingReference[]>
+
+  /** List one bounded page of parsed chunks after enforcing FileAsset workspace scope. */
+  listUnderstandingChunks(input: WorkspaceListUnderstandingChunksInput): Promise<WorkspaceUnderstandingChunkPage>
+
+  /** Search the existing FileChunk hybrid index without creating another embedding index. */
+  searchUnderstandingChunks(input: WorkspaceSearchUnderstandingChunksInput): Promise<WorkspaceUnderstandingChunk[]>
 
   /**
    * Resolve metadata and an openable URL for an explicitly scoped workspace
@@ -275,5 +328,5 @@ export type WorkspaceMediaFilesApi<TLocator extends WorkspaceFileLocator = Works
 }
 
 export const WorkspaceFilesRuntimeCapability = createRuntimeCapability<WorkspaceFilesApi>('platform.workspace.files', {
-  description: 'Upload, understand, resolve, read, and delete raw files in Xpert workspace volumes.'
+  description: 'Upload, understand, search parsed chunks, resolve, read, and delete files in Xpert workspace volumes.'
 })

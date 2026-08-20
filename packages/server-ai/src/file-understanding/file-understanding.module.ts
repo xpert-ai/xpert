@@ -13,6 +13,7 @@ import { FileParsers } from './parsers'
 import { QueryHandlers } from './queries/handlers'
 import { RagVStoreModule } from '../rag-vstore'
 import { VolumeModule } from '../shared/volume'
+import { XpertProject } from '../xpert-project/entities/project.entity'
 
 @Module({
     imports: [
@@ -23,7 +24,8 @@ import { VolumeModule } from '../shared/volume'
             FileChunk,
             FileCitationAnchor,
             FileEmbedding,
-            ConversationFileLink
+            ConversationFileLink,
+            XpertProject
         ]),
         CqrsModule,
         TenantModule,

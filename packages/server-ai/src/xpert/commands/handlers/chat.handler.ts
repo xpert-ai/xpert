@@ -33,7 +33,7 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { BadRequestException, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Logger, NotFoundException, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING, RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
@@ -72,6 +72,7 @@ import { AssistantBindingService } from '../../../assistant-binding/assistant-bi
 import { RedisSseStreamService } from '../../../shared/stream'
 import { applicationMetrics } from '../../../metrics'
 import { applicationTracing } from '../../../tracing'
+import { XpertProjectService } from '../../../xpert-project/project.service'
 import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
@@ -128,7 +129,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly goalService: ChatConversationGoalService,
-        private readonly redisSseStreamService?: RedisSseStreamService
+        private readonly redisSseStreamService?: RedisSseStreamService,
+        @Optional() private readonly projectService?: XpertProjectService
     ) {}
 
     /**
@@ -369,6 +371,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
         ])
         const latestXpert = figureOutXpert(xpert, options?.isDraft)
+        // Assistant Tasks may target a named sub-Agent directly; ordinary chat
+        // runs continue to start at the published primary Agent.
+        const runtimeAgentKey = options?.agentKey?.trim() || xpert.agent.key
         const forceWorkspaceSkillBlacklistMode = clawXpertBinding?.assistantId === xpertId
         const abortController = new AbortController()
         /**
@@ -507,7 +512,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     new ChatConversationUpsertCommand(
                         {
                             status: 'busy',
-                            projectId: request.projectId,
+                            projectId: resolveRequestProjectId(request) ?? options?.projectId,
                             taskId,
                             xpert,
                             options: {
@@ -531,6 +536,19 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 if (memory?.enabled && memory.profile?.enabled && memoryStore) {
                     memories = await getLongTermMemory(memoryStore, xpertId, input.input)
                 }
+            }
+
+            // Once created, conversation.projectId is the trusted runtime scope;
+            // reject any transient route/job value that attempts to cross it.
+            const requestedProjectId = options.projectId ?? resolveRequestProjectId(request)
+            if (conversation.projectId && requestedProjectId && conversation.projectId !== requestedProjectId) {
+                throw new BadRequestException('The requested Project does not match the conversation Project')
+            }
+            if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
+                throw new BadRequestException('This Assistant requires a Project workspace')
+            }
+            if (conversation.projectId && this.projectService) {
+                await this.projectService.assertRuntimeAccess(conversation.projectId, xpert.id)
             }
 
             const attachmentSandboxScope = resolveAgentSandboxScope(request, conversation, options)
@@ -679,7 +697,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 new XpertAgentExecutionUpsertCommand({
                     ...(execution ?? {}),
                     xpert: { id: xpert.id } as IXpert,
-                    agentKey: xpert.agent.key,
+                    agentKey: runtimeAgentKey,
                     inputs: input,
                     status: XpertAgentExecutionStatusEnum.RUNNING,
                     threadId: conversation.threadId,
@@ -887,7 +905,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         XpertAgentChatCommand,
                         Promise<Observable<MessageEvent>>
                     >(
-                        new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
+                        new XpertAgentChatCommand(state, runtimeAgentKey, xpert, {
                             ...(options ?? {}),
                             projectId: sandboxProjectId,
                             sandboxEnvironmentId,

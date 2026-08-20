@@ -30,6 +30,7 @@ import { RuntimeCommandService } from './runtime-command.service'
 import { PromptWorkflowModule } from '../prompt-workflow'
 import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { SseStreamModule } from '../shared/stream'
+import { XpertProjectModule } from '../xpert-project'
 
 @Module({
     imports: [
@@ -58,7 +59,8 @@ import { SseStreamModule } from '../shared/stream'
         forwardRef(() => ChatConversationModule),
         forwardRef(() => ChatMessageModule),
         forwardRef(() => ChatMessageFeedbackModule),
-        SseStreamModule
+        SseStreamModule,
+        XpertProjectModule
     ],
     controllers: [
         AIController,

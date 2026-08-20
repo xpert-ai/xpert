@@ -20,7 +20,10 @@ export class SearchFileChunksHandler implements IQueryHandler<SearchFileChunksQu
 
     async execute(query: SearchFileChunksQuery) {
         const search = query.input.query?.trim()
-        const limit = Math.min(Math.max(query.input.limit ?? 8, 1), 30)
+        // Semantic search stays tightly bounded; ordered listing may request one
+        // look-ahead row so callers can expose hasMore without a count query.
+        const limit = Math.min(Math.max(query.input.limit ?? 8, 1), search ? 30 : 101)
+        const offset = Math.max(query.input.offset ?? 0, 0)
         this.#logger.debug(
             `[FILE_VECTOR_DEBUG][search-handler:called] fileAssetId=${query.input.fileId} hasQuery=${Boolean(search)} limit=${limit}`
         )
@@ -33,6 +36,7 @@ export class SearchFileChunksHandler implements IQueryHandler<SearchFileChunksQu
                     fileAssetId: query.input.fileId
                 },
                 order: { orderNo: 'ASC' },
+                skip: offset,
                 take: limit
             })
         }

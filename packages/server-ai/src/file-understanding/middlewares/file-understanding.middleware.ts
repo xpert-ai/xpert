@@ -13,7 +13,10 @@ import { createFileUnderstandingTools } from '../tools'
 export const FILE_UNDERSTANDING_MIDDLEWARE_NAME = 'FileUnderstandingMiddleware'
 
 export type FileUnderstandingMiddlewareOptions = {
+    /** Explicit attachment scope retained for non-Project Assistants. */
     conversationId?: string
+    /** Trusted runtime Project scope; never accepted from Agent tool arguments. */
+    projectId?: string
 }
 
 /**
@@ -55,7 +58,8 @@ export class FileUnderstandingMiddleware implements IAgentMiddlewareStrategy<Fil
         return {
             name: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
             tools: createFileUnderstandingTools(this.queryBus, {
-                conversationId: options?.conversationId ?? context.conversationId
+                conversationId: options?.conversationId ?? context.conversationId,
+                projectId: options?.projectId ?? context.projectId
             })
         }
     }

@@ -13,6 +13,7 @@ import { ForbiddenException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ChatConversationBindXpertCommand } from '../chat-conversation/commands/bind-xpert.command'
+import { ChatConversationBindProjectCommand } from '../chat-conversation/commands/bind-project.command'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../xpert'
 
 /**
@@ -105,6 +106,29 @@ export async function bindConversationAssistantIfUnbound(
     const persisted = await commandBus.execute(new ChatConversationBindXpertCommand(conversation.id, assistantId))
     assertConversationAssistantBinding(persisted, assistantId)
     return persisted
+}
+
+/** Bind a conversation to the requested Project once and reject later scope changes. */
+export async function bindConversationProjectIfUnbound(
+    commandBus: CommandBus,
+    conversation: IChatConversation,
+    requestedProjectId?: string
+): Promise<IChatConversation> {
+    if (!requestedProjectId) {
+        return conversation
+    }
+    // A persisted conversation is a Project security boundary. A route or
+    // request may initialize that boundary once, but can never move it later.
+    if (conversation.projectId && conversation.projectId !== requestedProjectId) {
+        throw new ForbiddenException('The route Project does not match the conversation Project')
+    }
+    if (conversation.projectId) {
+        return conversation
+    }
+
+    // The command performs a compare-and-set update so concurrent first sends
+    // cannot bind the same conversation to different Projects.
+    return commandBus.execute(new ChatConversationBindProjectCommand(conversation.id, requestedProjectId))
 }
 
 function applyAssistantScopeToCurrentRequest(organizationId?: string | null) {

@@ -19,6 +19,10 @@ import {
     WorkspaceUnderstandingStatus,
     WorkspaceUnderstandingStatusInput,
     WorkspaceRetryUnderstandingInput,
+    WorkspaceListUnderstandingChunksInput,
+    WorkspaceSearchUnderstandingChunksInput,
+    WorkspaceUnderstandingChunk,
+    WorkspaceUnderstandingChunkPage,
     WorkspaceValidateUnderstandingReferencesInput,
     WorkspaceValidatedUnderstandingReference
 } from '@xpert-ai/plugin-sdk'
@@ -29,12 +33,15 @@ import {
     GetFileAssetByStorageFileQuery,
     GetFileAssetQuery,
     GetFileUnderstandingStatusQuery,
+    ListProjectFilesQuery,
+    SearchFileChunksQuery,
     ValidateFileUnderstandingReferencesQuery,
     isWorkspaceFileCatalog,
     resolveFileAssetWorkspaceRelativePath,
     resolveWorkspaceFileCatalog,
     resolveWorkspaceVolumeScope,
     type FileAsset,
+    type FileChunk,
     type WorkspaceVolumeScopeResolution
 } from '../../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
@@ -95,6 +102,10 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             retryUnderstanding: (input) => this.retryUnderstanding(applyRuntimeScopeDefaults(input, defaults)),
             validateUnderstandingReferences: (input) =>
                 this.validateUnderstandingReferences(applyRuntimeScopeDefaults(input, defaults)),
+            listUnderstandingChunks: (input) =>
+                this.listUnderstandingChunks(applyRuntimeScopeDefaults(input, defaults)),
+            searchUnderstandingChunks: (input) =>
+                this.searchUnderstandingChunks(applyRuntimeScopeDefaults(input, defaults)),
             resolveFile: (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
             readBuffer: (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
             deleteFile: (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
@@ -243,6 +254,46 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         )
     }
 
+    /** Page the existing parsed chunks after verifying FileAsset workspace visibility. */
+    async listUnderstandingChunks(
+        input: WorkspaceListUnderstandingChunksInput
+    ): Promise<WorkspaceUnderstandingChunkPage> {
+        await this.assertUnderstandingAssetVisible(input)
+        const page = Math.max(input.page ?? 1, 1)
+        const pageSize = Math.min(Math.max(input.pageSize ?? 50, 1), 100)
+        const chunks = await this.requireQueryBus().execute(
+            new SearchFileChunksQuery({
+                fileId: input.fileAssetId,
+                limit: pageSize + 1,
+                offset: (page - 1) * pageSize
+            })
+        )
+        const hasMore = chunks.length > pageSize
+        return {
+            fileAssetId: input.fileAssetId,
+            items: chunks.slice(0, pageSize).map((chunk) => this.toUnderstandingChunk(chunk, input.contentLength)),
+            page,
+            pageSize,
+            hasMore
+        }
+    }
+
+    /** Search the platform FileChunk index; no plugin-side embeddings are created. */
+    async searchUnderstandingChunks(
+        input: WorkspaceSearchUnderstandingChunksInput
+    ): Promise<WorkspaceUnderstandingChunk[]> {
+        const query = normalizeOptionalString(input.query)
+        if (!query) {
+            throw new BadRequestException('query is required for file understanding search')
+        }
+        await this.assertUnderstandingAssetVisible(input)
+        const limit = Math.min(Math.max(input.limit ?? 8, 1), 30)
+        const chunks = await this.requireQueryBus().execute(
+            new SearchFileChunksQuery({ fileId: input.fileAssetId, query, limit })
+        )
+        return chunks.map((chunk) => this.toUnderstandingChunk(chunk, input.contentLength))
+    }
+
     /** Resolve a locator without Agent-specific defaults. Prefer scoped APIs in middleware runtimes. */
     async resolveRuntimeReference(input: WorkspaceFileLocator): Promise<WorkspacePortableFileReference> {
         return this.resolveRuntimeReferenceWithDefaults(input, {})
@@ -382,6 +433,9 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             filePath,
             workspacePath,
             tenantId: volumeScope.tenantId,
+            ...(normalizeOptionalString(scopedInput.organizationId)
+                ? { organizationId: normalizeOptionalString(scopedInput.organizationId) }
+                : {}),
             ...(volumeScope.userId ? { userId: volumeScope.userId } : {}),
             catalog,
             ...(scopeId ? { scopeId } : {}),
@@ -554,6 +608,34 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         }
     }
 
+    /** Normalize unauthorized Project assets to the same scoped not-found failure. */
+    private async assertUnderstandingAssetVisible(input: WorkspaceUnderstandingStatusInput) {
+        const scope = this.resolveUnderstandingScope(input)
+        await this.requireQueryBus().execute(new GetFileUnderstandingStatusQuery(input.fileAssetId, scope))
+        if (!scope.projectId) {
+            return
+        }
+        const files = await this.requireQueryBus().execute(new ListProjectFilesQuery(scope.projectId))
+        if (!files.some((file) => file.id === input.fileAssetId)) {
+            throw new BadRequestException('File understanding asset was not found in the current workspace')
+        }
+    }
+
+    /** Convert a persisted chunk to the bounded plugin-facing DTO. */
+    private toUnderstandingChunk(chunk: FileChunk, requestedLength?: number): WorkspaceUnderstandingChunk {
+        if (!chunk.id) {
+            throw new InternalServerErrorException('File understanding chunk is missing its persisted identifier')
+        }
+        const contentLength = Math.min(Math.max(requestedLength ?? 12_000, 320), 12_000)
+        return {
+            fileAssetId: chunk.fileAssetId,
+            chunkId: chunk.id,
+            orderNo: chunk.orderNo,
+            ...(chunk.anchor ? { anchor: chunk.anchor } : {}),
+            content: chunk.content.slice(0, contentLength)
+        }
+    }
+
     private requireQueryBus() {
         if (!this.queryBus) {
             throw new InternalServerErrorException('File understanding queries are unavailable')
@@ -599,6 +681,7 @@ function readRuntimeFilePath(descriptor: Record<string, unknown>, required = tru
 function readRuntimeScope(descriptor: Record<string, unknown>): WorkspaceFileScope {
     return {
         tenantId: normalizeOptionalString(descriptor.tenantId),
+        organizationId: normalizeOptionalString(descriptor.organizationId),
         userId: normalizeOptionalString(descriptor.userId),
         catalog: normalizeOptionalString(descriptor.catalog) as WorkspaceFileScope['catalog'],
         scopeId: normalizeOptionalString(descriptor.scopeId),
@@ -618,6 +701,10 @@ function readRuntimeScope(descriptor: Record<string, unknown>): WorkspaceFileSco
 function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defaults: WorkspaceFilesRuntimeDefaults): T {
     const scoped = { ...input } as T & WorkspaceFileScope
     scoped.tenantId = normalizeOptionalString(scoped.tenantId) ?? normalizeOptionalString(defaults.tenantId)
+    // Organization is part of the same trusted runtime boundary as tenant and
+    // must survive portable-reference replay and delayed jobs.
+    scoped.organizationId =
+        normalizeOptionalString(scoped.organizationId) ?? normalizeOptionalString(defaults.organizationId)
     scoped.userId = normalizeOptionalString(scoped.userId) ?? normalizeOptionalString(defaults.userId)
 
     if (!hasExplicitWorkspaceScope(scoped)) {

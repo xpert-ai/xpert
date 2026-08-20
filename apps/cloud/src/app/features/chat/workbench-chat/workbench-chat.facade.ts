@@ -19,6 +19,8 @@ export type WorkbenchChatFacade = {
   defaultViewKey: Signal<string | null>
   chatkitFrameUrl: Signal<string | null>
   threadId: Signal<string | null>
+  /** Current Chat Project route scope when this workbench supports Project isolation. */
+  projectId?: Signal<string | null>
   loading: Signal<boolean>
   loadingUserPreference: Signal<boolean>
   viewState: Signal<WorkbenchChatViewState>

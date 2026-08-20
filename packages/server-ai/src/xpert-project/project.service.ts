@@ -1,29 +1,31 @@
 import {
-	IKnowledgebase,
-	IStorageFile,
-	IUser,
-	IXpertProject,
-	IXpertProjectTask,
-	IXpertProjectVCS,
-	IXpertToolset,
-	OrderTypeEnum,
+    IKnowledgebase,
+    IStorageFile,
+    IUser,
+    IXpertProject,
+    IXpertProjectTask,
+    IXpertProjectVCS,
+    IXpertToolset,
+    IXpert,
+    OrderTypeEnum
 } from '@xpert-ai/contracts'
+import type { ProjectEnsureInput, ProjectEnsureResult } from '@xpert-ai/plugin-sdk'
 import {
-	applyWhereToQueryBuilder,
-	EventNameIntegrationAuthorized,
-	IntegrationAuthorizedEvent,
-	PaginationParams,
-	RequestContext,
-	StorageFileDeleteCommand,
-	TenantOrganizationAwareCrudService
+    applyWhereToQueryBuilder,
+    EventNameIntegrationAuthorized,
+    IntegrationAuthorizedEvent,
+    PaginationParams,
+    RequestContext,
+    StorageFileDeleteCommand,
+    TenantOrganizationAwareCrudService
 } from '@xpert-ai/server-core'
 import { yaml } from '@xpert-ai/server-common'
-import { Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
 import { assign, omit } from 'lodash'
-import { Brackets, Repository, UpdateResult } from 'typeorm'
+import { Brackets, IsNull, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
@@ -38,399 +40,493 @@ import { ExportProjectCommand } from './commands'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
-	readonly #logger = new Logger(XpertProjectService.name)
+    readonly #logger = new Logger(XpertProjectService.name)
 
-	constructor(
-		@InjectRepository(XpertProject)
-		repository: Repository<XpertProject>,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly taskService: XpertProjectTaskService,
-	) {
-		super(repository)
-	}
+    constructor(
+        @InjectRepository(XpertProject)
+        repository: Repository<XpertProject>,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly taskService: XpertProjectTaskService
+    ) {
+        super(repository)
+    }
 
-	public async update(
-		id: string,
-		partialEntity: QueryDeepPartialEntity<XpertProject>
-	): Promise<UpdateResult | XpertProject> {
-		const project = await this.findOne(id)
-		if (partialEntity.copilotModel) {
-			project.copilotModel ??= {}
-			assign(project.copilotModel, partialEntity.copilotModel)
-		}
-		assign(project, omit(partialEntity, 'copilotModel'))
-		return await this.repository.save(project)
-	}
+    /**
+     * Create or reconcile a caller-idempotent Chat Project and Assistant link.
+     * The authenticated user remains the owner and the caller-supplied id is never replaced.
+     */
+    async ensureManagedProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
+        const projectId = requiredProjectText(input.projectId, 'projectId', 100)
+        const workspaceId = requiredProjectText(input.workspaceId, 'workspaceId', 100)
+        const xpertId = requiredProjectText(input.xpertId, 'xpertId', 100)
+        const name = requiredProjectText(input.name, 'name', 240)
+        const user = RequestContext.currentUser()
+        if (!user?.id || !user.tenantId) {
+            throw new ForbiddenException('An authenticated user is required')
+        }
 
-	/**
-	 * Query all projects I have permission to view.
-	 *
-	 * @param options
-	 * @returns
-	 */
-	async findAllMy(options: PaginationParams<XpertProject>) {
-		const user = RequestContext.currentUser()
-		const organizationId = RequestContext.getOrganizationId()
+        const organizationId = RequestContext.getOrganizationId()
+        const xpert: IXpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
+        if (xpert.workspaceId !== workspaceId) {
+            throw new BadRequestException('The Assistant does not belong to the requested workspace')
+        }
 
-		const orderBy = options?.order
-			? Object.keys(options.order).reduce((order, name) => {
-					order[`project.${name}`] = options.order[name]
-					return order
-				}, {})
-			: {}
+        // Tenant and organization participate in lookup so retries cannot adopt
+        // a same-id Project from a different security boundary.
+        let project = await this.repository.findOne({
+            where: {
+                id: projectId,
+                tenantId: user.tenantId,
+                organizationId: organizationId ?? IsNull()
+            },
+            relations: ['xperts']
+        })
+        const operation = project ? 'updated' : 'created'
+        if (project && project.ownerId !== user.id) {
+            throw new ForbiddenException('Only the Project owner can synchronize this Project')
+        }
 
-		const query = this.repository
-			.createQueryBuilder('project')
-			.leftJoinAndSelect('project.members', 'member')
-			.where('project.tenantId = :tenantId')
-			.andWhere(
-				new Brackets((qb) => {
-					qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
-				})
-			)
-			.andWhere(
-				new Brackets((qb) => {
-					qb.where('project.ownerId = :userId')
-						.orWhere('project.createdById = :userId')
-						.orWhere('member.id = :userId')
-				})
-			)
-			.orderBy(orderBy)
-			.setParameters({
-				tenantId: user.tenantId,
-				userId: user.id
-			})
+        if (!project) {
+            project = await this.create({
+                id: projectId,
+                name,
+                status: input.status,
+                workspaceId,
+                ownerId: user.id,
+                xperts: [xpert]
+            })
+        } else {
+            // Bid/business state is authoritative while existing Assistant
+            // connections are preserved and de-duplicated.
+            project.name = name
+            project.status = input.status
+            project.workspaceId = workspaceId
+            project.xperts ??= []
+            if (!project.xperts.some((item) => item.id === xpertId)) {
+                project.xperts.push(xpert)
+            }
+            project = await this.repository.save(project)
+        }
 
-		if (organizationId) {
-			query.andWhere('project.organizationId = :organizationId', { organizationId })
-		} else {
-			query.andWhere('project.organizationId IS NULL')
-		}
+        return {
+            projectId: project.id,
+            workspaceId,
+            xpertIds: project.xperts?.map((item) => item.id) ?? [xpertId],
+            operation
+        }
+    }
 
-		if (options?.where) {
-			applyWhereToQueryBuilder(query, 'project', options.where)
-		}
-		
-		if (options?.skip) {
-			query.skip(options.skip)
-		}
-		if (options?.take) {
-			query.take(options.take)
-		}
+    /** Require active Project membership and an explicit Assistant connection. */
+    async assertRuntimeAccess(projectId: string, xpertId: string): Promise<XpertProject> {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+        const project = await this.repository
+            .createQueryBuilder('project')
+            .leftJoinAndSelect('project.xperts', 'xpert')
+            .leftJoin('project.members', 'member')
+            .where('project.id = :projectId', { projectId })
+            .andWhere('project.tenantId = :tenantId', { tenantId })
+            .andWhere(organizationId ? 'project.organizationId = :organizationId' : 'project.organizationId IS NULL', {
+                organizationId
+            })
+            .andWhere('(project.ownerId = :userId OR project.createdById = :userId OR member.id = :userId)', { userId })
+            .andWhere('xpert.id = :xpertId', { xpertId })
+            .andWhere("project.status <> 'archived'")
+            .getOne()
+        if (!project) {
+            throw new ForbiddenException('The requested Project is not available')
+        }
+        return project
+    }
 
-		const projects = await query.getMany()
+    public async update(
+        id: string,
+        partialEntity: QueryDeepPartialEntity<XpertProject>
+    ): Promise<UpdateResult | XpertProject> {
+        const project = await this.findOne(id)
+        if (partialEntity.copilotModel) {
+            project.copilotModel ??= {}
+            assign(project.copilotModel, partialEntity.copilotModel)
+        }
+        assign(project, omit(partialEntity, 'copilotModel'))
+        return await this.repository.save(project)
+    }
 
-		return {
-			items: projects.map((item) => new XpertProjectIdentiDto(item)),
-			total: projects.length
-		}
-	}
+    /**
+     * Query all projects I have permission to view.
+     *
+     * @param options
+     * @returns
+     */
+    async findAllMy(options: PaginationParams<XpertProject>) {
+        const user = RequestContext.currentUser()
+        const organizationId = RequestContext.getOrganizationId()
 
-	async getXperts(id: string, params: PaginationParams<IXpertProject>) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['xperts', ...(params?.relations?.map((relation) => `xperts.${relation}`) ?? [])]
-		})
+        const orderBy = options?.order
+            ? Object.keys(options.order).reduce((order, name) => {
+                  order[`project.${name}`] = options.order[name]
+                  return order
+              }, {})
+            : {}
 
-		const total = project.xperts.length
-		const xperts = params?.take ? project.xperts.slice(params.skip, params.skip + params.take) : project.xperts
+        const query = this.repository
+            .createQueryBuilder('project')
+            .leftJoinAndSelect('project.members', 'member')
+            .where('project.tenantId = :tenantId')
+            .andWhere(
+                new Brackets((qb) => {
+                    qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
+                })
+            )
+            .andWhere(
+                new Brackets((qb) => {
+                    qb.where('project.ownerId = :userId')
+                        .orWhere('project.createdById = :userId')
+                        .orWhere('member.id = :userId')
+                })
+            )
+            .orderBy(orderBy)
+            .setParameters({
+                tenantId: user.tenantId,
+                userId: user.id
+            })
 
-		return {
-			items: xperts.map((_) => new XpertIdentiDto(_)),
-			total
-		}
-	}
+        if (organizationId) {
+            query.andWhere('project.organizationId = :organizationId', { organizationId })
+        } else {
+            query.andWhere('project.organizationId IS NULL')
+        }
 
-	async addXpert(id: string, xpertId: string) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['xperts']
-		})
+        if (options?.where) {
+            applyWhereToQueryBuilder(query, 'project', options.where)
+        }
 
-		const xpertExists = project.xperts.some((xpert) => xpert.id === xpertId)
-		if (xpertExists) {
-			this.#logger.warn(`Xpert with id ${xpertId} already exists in project ${id}`)
-			return project
-		}
+        if (options?.skip) {
+            query.skip(options.skip)
+        }
+        if (options?.take) {
+            query.take(options.take)
+        }
 
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
+        const projects = await query.getMany()
 
-		project.xperts.push(xpert) // Assuming xpert is an entity with at least an id field
-		await this.repository.save(project)
+        return {
+            items: projects.map((item) => new XpertProjectIdentiDto(item)),
+            total: projects.length
+        }
+    }
 
-		return project
-	}
+    async getXperts(id: string, params: PaginationParams<IXpertProject>) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['xperts', ...(params?.relations?.map((relation) => `xperts.${relation}`) ?? [])]
+        })
 
-	async removeXpert(id: string, xpertId: string) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['xperts']
-		})
+        const total = project.xperts.length
+        const xperts = params?.take ? project.xperts.slice(params.skip, params.skip + params.take) : project.xperts
 
-		const xpertIndex = project.xperts.findIndex((xpert) => xpert.id === xpertId)
-		if (xpertIndex === -1) {
-			this.#logger.warn(`Xpert with id ${xpertId} does not exist in project ${id}`)
-			return project
-		}
+        return {
+            items: xperts.map((_) => new XpertIdentiDto(_)),
+            total
+        }
+    }
 
-		project.xperts.splice(xpertIndex, 1)
-		await this.repository.save(project)
+    async addXpert(id: string, xpertId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['xperts']
+        })
 
-		return project
-	}
+        const xpertExists = project.xperts.some((xpert) => xpert.id === xpertId)
+        if (xpertExists) {
+            this.#logger.warn(`Xpert with id ${xpertId} already exists in project ${id}`)
+            return project
+        }
 
-	async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['toolsets', ...(params?.relations?.map((relation) => `toolsets.${relation}`) ?? [])]
-		})
+        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
 
-		const total = project.toolsets.length
-		const toolsets = params?.take
-			? project.toolsets.slice(params.skip, params.skip + params.take)
-			: project.toolsets
+        project.xperts.push(xpert) // Assuming xpert is an entity with at least an id field
+        await this.repository.save(project)
 
-		return {
-			items: toolsets.map((_) => new ToolsetPublicDTO(_)),
-			total
-		}
-	}
+        return project
+    }
 
-	async addToolset(id: string, toolsetId: string) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['toolsets']
-		})
+    async removeXpert(id: string, xpertId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['xperts']
+        })
 
-		const exists = project.toolsets.some((_) => _.id === toolsetId)
-		if (exists) {
-			this.#logger.warn(`Toolset with id ${toolsetId} already exists in project ${id}`)
-			return project
-		}
+        const xpertIndex = project.xperts.findIndex((xpert) => xpert.id === xpertId)
+        if (xpertIndex === -1) {
+            this.#logger.warn(`Xpert with id ${xpertId} does not exist in project ${id}`)
+            return project
+        }
 
-		const toolsets = await this.queryBus.execute(new FindXpertToolsetsQuery([toolsetId]))
+        project.xperts.splice(xpertIndex, 1)
+        await this.repository.save(project)
 
-		project.toolsets.push(...toolsets) // Assuming toolset is an entity with at least an id field
-		await this.repository.save(project)
+        return project
+    }
 
-		return project
-	}
+    async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['toolsets', ...(params?.relations?.map((relation) => `toolsets.${relation}`) ?? [])]
+        })
 
-	async removeToolset(id: string, toolsetId: string) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['toolsets']
-		})
+        const total = project.toolsets.length
+        const toolsets = params?.take
+            ? project.toolsets.slice(params.skip, params.skip + params.take)
+            : project.toolsets
 
-		const index = project.toolsets.findIndex((_) => _.id === toolsetId)
-		if (index === -1) {
-			this.#logger.warn(`Toolset with id ${toolsetId} does not exist in project ${id}`)
-			return project
-		}
+        return {
+            items: toolsets.map((_) => new ToolsetPublicDTO(_)),
+            total
+        }
+    }
 
-		project.toolsets.splice(index, 1)
-		await this.repository.save(project)
+    async addToolset(id: string, toolsetId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['toolsets']
+        })
 
-		return project
-	}
+        const exists = project.toolsets.some((_) => _.id === toolsetId)
+        if (exists) {
+            this.#logger.warn(`Toolset with id ${toolsetId} already exists in project ${id}`)
+            return project
+        }
 
-	async getKnowledges(id: string, params: PaginationParams<IKnowledgebase>) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['knowledges', ...(params?.relations?.map((relation) => `knowledges.${relation}`) ?? [])]
-		})
+        const toolsets = await this.queryBus.execute(new FindXpertToolsetsQuery([toolsetId]))
 
-		const total = project.knowledges.length
-		const knowledges = params?.take
-			? project.knowledges.slice(params.skip, params.skip + params.take)
-			: project.knowledges
+        project.toolsets.push(...toolsets) // Assuming toolset is an entity with at least an id field
+        await this.repository.save(project)
 
-		return {
-			items: knowledges.map((_) => new KnowledgebasePublicDTO(_)),
-			total
-		}
-	}
+        return project
+    }
 
-	async addKnowledge(id: string, knowledgebaseId: string) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['knowledges']
-		})
+    async removeToolset(id: string, toolsetId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['toolsets']
+        })
 
-		const exists = project.knowledges.some((_) => _.id === knowledgebaseId)
-		if (exists) {
-			this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} already exists in project ${id}`)
-			return project
-		}
+        const index = project.toolsets.findIndex((_) => _.id === toolsetId)
+        if (index === -1) {
+            this.#logger.warn(`Toolset with id ${toolsetId} does not exist in project ${id}`)
+            return project
+        }
 
-		const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({id: knowledgebaseId}))
+        project.toolsets.splice(index, 1)
+        await this.repository.save(project)
 
-		project.knowledges.push(knowledgebase)
-		await this.repository.save(project)
+        return project
+    }
 
-		return project
-	}
+    async getKnowledges(id: string, params: PaginationParams<IKnowledgebase>) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['knowledges', ...(params?.relations?.map((relation) => `knowledges.${relation}`) ?? [])]
+        })
 
-	async removeKnowledgebase(id: string, knowledgebaseId: string) {
-		const project = await this.findOne({
-			where: { id },
-			relations: ['knowledges']
-		})
+        const total = project.knowledges.length
+        const knowledges = params?.take
+            ? project.knowledges.slice(params.skip, params.skip + params.take)
+            : project.knowledges
 
-		const index = project.knowledges.findIndex((_) => _.id === knowledgebaseId)
-		if (index === -1) {
-			this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} does not exist in project ${id}`)
-			return project
-		}
+        return {
+            items: knowledges.map((_) => new KnowledgebasePublicDTO(_)),
+            total
+        }
+    }
 
-		project.knowledges.splice(index, 1)
-		await this.repository.save(project)
+    async addKnowledge(id: string, knowledgebaseId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['knowledges']
+        })
 
-		return project
-	}
+        const exists = project.knowledges.some((_) => _.id === knowledgebaseId)
+        if (exists) {
+            this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} already exists in project ${id}`)
+            return project
+        }
 
-	async updateMembers(id: string, members: string[]) {
-		const project = await this.findOne(id)
-		project.members = members.map((id) => ({ id }) as IUser)
-		await this.repository.save(project)
+        const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({ id: knowledgebaseId }))
 
-		return await this.findOne(id, { relations: ['members'] })
-	}
+        project.knowledges.push(knowledgebase)
+        await this.repository.save(project)
 
-	async getTasks(id: string, params: PaginationParams<IXpertProjectTask>) {
-		return this.taskService.findAll({
-			...(params ?? {}),
-			where: {
-				...(params?.where ?? {}),
-				projectId: id
-			},
-			order: { createdAt: OrderTypeEnum.ASC }
-		})
-	}
+        return project
+    }
 
-	// async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
-	// 	const project = await this.findOne(id, { relations: ['files', 'attachments'] })
+    async removeKnowledgebase(id: string, knowledgebaseId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['knowledges']
+        })
 
-	// 	return [
-	// 		...project.files,
-	// 		...project.attachments.map(
-	// 			(storageFile) =>
-	// 				({
-	// 					filePath: `attachments/` + storageFile.originalName,
-	// 					url: storageFile.fileUrl,
-	// 					storageFileId: storageFile.id
-	// 				}) as TFile
-	// 		)
-	// 	]
-	// }
+        const index = project.knowledges.findIndex((_) => _.id === knowledgebaseId)
+        if (index === -1) {
+            this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} does not exist in project ${id}`)
+            return project
+        }
 
-	// async getFileByPath(projectId: string, path: string) {
-	// 	if (path.startsWith('attachments/')) {
-	// 		const project = await this.findOne(projectId, { relations: ['attachments'] })
-	// 		const storageFile = project.attachments.find((_) => _.originalName === path.replace(/^attachments\//, ''))
-	// 		if (storageFile) {
-	// 			const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
-	// 				new LoadStorageFileCommand(storageFile.id)
-	// 			)
-	// 			return {
-	// 				filePath: path,
-	// 				contents: docs.map((doc) => doc.pageContent).join('\n\n'),
-	// 				url: storageFile.fileUrl,
-	// 				fileType: storageFile.mimetype,
-	// 				size: storageFile.size,
-	// 				description: ''
-	// 			}
-	// 		}
-	// 	}
-	// 	const result = await this.fileService.findOneOrFail({ where: { projectId, filePath: path } })
-	// 	return result.record
-	// }
+        project.knowledges.splice(index, 1)
+        await this.repository.save(project)
 
-	async addAttachments(id: string, files: string[]) {
-		const project = await this.findOne(id, { relations: ['attachments'] })
-		const existingAttachmentIds = new Set(project.attachments.map((attachment) => attachment.id))
+        return project
+    }
 
-		const newAttachments = files
-			.filter((fileId) => !existingAttachmentIds.has(fileId))
-			.map((fileId) => ({ id: fileId }) as IStorageFile)
+    async updateMembers(id: string, members: string[]) {
+        const project = await this.findOne(id)
+        project.members = members.map((id) => ({ id }) as IUser)
+        await this.repository.save(project)
 
-		project.attachments = [...project.attachments, ...newAttachments]
-		await this.repository.save(project)
-	}
+        return await this.findOne(id, { relations: ['members'] })
+    }
 
-	async removeAttachments(id: string, files: string[]) {
-		const project = await this.findOne(id, { relations: ['attachments'] })
-		project.attachments = project.attachments.filter((attachment) => !files.includes(attachment.id))
-		await this.repository.save(project)
-	}
+    async getTasks(id: string, params: PaginationParams<IXpertProjectTask>) {
+        return this.taskService.findAll({
+            ...(params ?? {}),
+            where: {
+                ...(params?.where ?? {}),
+                projectId: id
+            },
+            order: { createdAt: OrderTypeEnum.ASC }
+        })
+    }
 
-	async delAttachment(id: string, fileId: string) {
-		const project = await this.findOne(id, { relations: ['attachments'] })
-		const index = project.attachments.findIndex((_) => _.id === fileId)
-		if (index > -1) {
-			const files = project.attachments.splice(index, 1)
-			await this.repository.save(project)
-			await this.commandBus.execute(new StorageFileDeleteCommand(fileId))
-		}
-	}
+    // async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
+    // 	const project = await this.findOne(id, { relations: ['files', 'attachments'] })
 
-	async duplicate(id: string): Promise<XpertProject> {
-		const project = await this.findOne(id, {
-			relations: [
-				'copilotModel',
-				'xperts',
-				'toolsets',
-				'knowledges',
-				'attachments'
-			]
-		})
-		
-		return await this.create({
-			...project,
-			id: undefined, // Clear the ID to create a new project
-			tenantId: undefined,
-			organizationId: undefined,
-			createdAt: undefined,
-			updatedAt: undefined,
-			createdById: undefined,
-			updatedById: undefined,
-			name: `${project.name} - Copy`,
-			status: 'active',
-			xperts: project.xperts.map((xpert) => ({ id: xpert.id })),
-			toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
-			knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
-			attachments: project.attachments.map((_) => ({ id: _.id })),
-		})
-	}
+    // 	return [
+    // 		...project.files,
+    // 		...project.attachments.map(
+    // 			(storageFile) =>
+    // 				({
+    // 					filePath: `attachments/` + storageFile.originalName,
+    // 					url: storageFile.fileUrl,
+    // 					storageFileId: storageFile.id
+    // 				}) as TFile
+    // 		)
+    // 	]
+    // }
 
-	async exportProject(id: string) {
-		const projectDsl = await this.commandBus.execute(new ExportProjectCommand(id))
-		return yaml.stringify(projectDsl)
-	}
+    // async getFileByPath(projectId: string, path: string) {
+    // 	if (path.startsWith('attachments/')) {
+    // 		const project = await this.findOne(projectId, { relations: ['attachments'] })
+    // 		const storageFile = project.attachments.find((_) => _.originalName === path.replace(/^attachments\//, ''))
+    // 		if (storageFile) {
+    // 			const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
+    // 				new LoadStorageFileCommand(storageFile.id)
+    // 			)
+    // 			return {
+    // 				filePath: path,
+    // 				contents: docs.map((doc) => doc.pageContent).join('\n\n'),
+    // 				url: storageFile.fileUrl,
+    // 				fileType: storageFile.mimetype,
+    // 				size: storageFile.size,
+    // 				description: ''
+    // 			}
+    // 		}
+    // 	}
+    // 	const result = await this.fileService.findOneOrFail({ where: { projectId, filePath: path } })
+    // 	return result.record
+    // }
 
-	// VCS
-	async updateVCS(id: string, entity: Partial<IXpertProjectVCS>) {
-		const project = await this.findOne(id, { relations: ['vcs'] })
-		if (project) {
-			project.vcs = { ...(project.vcs ?? {}), ...entity }
-			await this.repository.save(project)
-		}
+    async addAttachments(id: string, files: string[]) {
+        const project = await this.findOne(id, { relations: ['attachments'] })
+        const existingAttachmentIds = new Set(project.attachments.map((attachment) => attachment.id))
 
-		return project?.vcs
-	}
+        const newAttachments = files
+            .filter((fileId) => !existingAttachmentIds.has(fileId))
+            .map((fileId) => ({ id: fileId }) as IStorageFile)
 
-	@OnEvent(EventNameIntegrationAuthorized)
-	async handleIntegrationAuthorizedEvent(event: IntegrationAuthorizedEvent) {
-		console.log('Integration Authorized:', event)
-		if (!event.payload.projectId) return
-		const project = await this.findOne(event.payload.projectId, {relations: ['vcs']})
-		if (project) {
-			const entity: Partial<IXpertProjectVCS> = { auth: {...(project.vcs.auth ?? {}), ...omit(event.payload, ['projectId'])} }
-			if (event.payload.installation_id) {
-				entity.installationId = event.payload.installation_id
-			}
-			await this.updateVCS(event.payload.projectId, entity)
-		}
-	}
+        project.attachments = [...project.attachments, ...newAttachments]
+        await this.repository.save(project)
+    }
+
+    async removeAttachments(id: string, files: string[]) {
+        const project = await this.findOne(id, { relations: ['attachments'] })
+        project.attachments = project.attachments.filter((attachment) => !files.includes(attachment.id))
+        await this.repository.save(project)
+    }
+
+    async delAttachment(id: string, fileId: string) {
+        const project = await this.findOne(id, { relations: ['attachments'] })
+        const index = project.attachments.findIndex((_) => _.id === fileId)
+        if (index > -1) {
+            const files = project.attachments.splice(index, 1)
+            await this.repository.save(project)
+            await this.commandBus.execute(new StorageFileDeleteCommand(fileId))
+        }
+    }
+
+    async duplicate(id: string): Promise<XpertProject> {
+        const project = await this.findOne(id, {
+            relations: ['copilotModel', 'xperts', 'toolsets', 'knowledges', 'attachments']
+        })
+
+        return await this.create({
+            ...project,
+            id: undefined, // Clear the ID to create a new project
+            tenantId: undefined,
+            organizationId: undefined,
+            createdAt: undefined,
+            updatedAt: undefined,
+            createdById: undefined,
+            updatedById: undefined,
+            name: `${project.name} - Copy`,
+            status: 'active',
+            xperts: project.xperts.map((xpert) => ({ id: xpert.id })),
+            toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
+            knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
+            attachments: project.attachments.map((_) => ({ id: _.id }))
+        })
+    }
+
+    async exportProject(id: string) {
+        const projectDsl = await this.commandBus.execute(new ExportProjectCommand(id))
+        return yaml.stringify(projectDsl)
+    }
+
+    // VCS
+    async updateVCS(id: string, entity: Partial<IXpertProjectVCS>) {
+        const project = await this.findOne(id, { relations: ['vcs'] })
+        if (project) {
+            project.vcs = { ...(project.vcs ?? {}), ...entity }
+            await this.repository.save(project)
+        }
+
+        return project?.vcs
+    }
+
+    @OnEvent(EventNameIntegrationAuthorized)
+    async handleIntegrationAuthorizedEvent(event: IntegrationAuthorizedEvent) {
+        console.log('Integration Authorized:', event)
+        if (!event.payload.projectId) return
+        const project = await this.findOne(event.payload.projectId, { relations: ['vcs'] })
+        if (project) {
+            const entity: Partial<IXpertProjectVCS> = {
+                auth: { ...(project.vcs.auth ?? {}), ...omit(event.payload, ['projectId']) }
+            }
+            if (event.payload.installation_id) {
+                entity.installationId = event.payload.installation_id
+            }
+            await this.updateVCS(event.payload.projectId, entity)
+        }
+    }
+}
+
+/** Normalize provisioning text before it reaches Project persistence. */
+function requiredProjectText(value: string, field: string, maxLength: number): string {
+    const normalized = value?.trim()
+    if (!normalized || normalized.length > maxLength) {
+        throw new BadRequestException(`${field} is required and must not exceed ${maxLength} characters`)
+    }
+    return normalized
 }

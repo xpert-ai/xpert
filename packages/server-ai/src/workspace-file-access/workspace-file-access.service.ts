@@ -257,12 +257,26 @@ export class WorkspaceFileAccessService {
         }
     }
 
-    assertRequestOrigin(session: WorkspaceFileAccessSessionRecord, request: Pick<Request, 'headers'>): string | null {
+    assertRequestOrigin(
+        session: WorkspaceFileAccessSessionRecord,
+        request: Pick<Request, 'headers'>,
+        purpose?: XpertViewFileAccessPurpose
+    ): string | null {
         const origin = readRequestOrigin(request)
-        if (origin !== session.origin) {
-            throw new ForbiddenException(errorMessage('WorkspaceFileAccessDenied', 'Workspace file access was denied.'))
+        if (origin === session.origin) {
+            return origin
         }
-        return origin
+
+        // A sandboxed Remote View has an opaque origin. When it follows the
+        // one-time download URL, browsers intentionally omit both Origin and
+        // Referer even though the parent host created the authenticated,
+        // HttpOnly-cookie-bound session. Permit only that attachment flow;
+        // previews and any explicit mismatched origin remain denied.
+        if (!origin && purpose === 'download') {
+            return null
+        }
+
+        throw new ForbiddenException(errorMessage('WorkspaceFileAccessDenied', 'Workspace file access was denied.'))
     }
 
     buildCookiePath(sessionId: string): string {

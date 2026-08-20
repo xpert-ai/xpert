@@ -214,13 +214,16 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		if (currentOrganizationId && jobOrganizationId && jobOrganizationId !== currentOrganizationId) {
 			throw new Error('ManagedQueue actor organization does not match the job organization')
 		}
+		// Delayed plugin jobs may restore organization only from the signed job
+		// scope; propagate it to both actor and delegation snapshots consistently.
+		const effectiveOrganizationId = currentOrganizationId || jobOrganizationId
 
 		const actor =
 			actorUserId && currentTenantId
 				? ({
 						userId: actorUserId,
 						tenantId: currentTenantId,
-						organizationId: currentOrganizationId || null,
+						organizationId: effectiveOrganizationId || null,
 						type: principal ? (principal.requestedUserId ? 'delegated_user' : 'service') : 'user'
 					} satisfies ManagedQueueActorSnapshot)
 				: undefined
@@ -232,7 +235,7 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 
 		const delegation: ManagedQueueDelegationSnapshot = {
 			tenantId: currentTenantId,
-			organizationId: currentOrganizationId || null,
+			organizationId: effectiveOrganizationId || null,
 			principalType: principal.principalType,
 			ownerUserId: this.normalizeId(principal.ownerUserId),
 			apiKeyUserId: this.normalizeId(principal.apiKeyUserId),
