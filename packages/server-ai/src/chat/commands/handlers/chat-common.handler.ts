@@ -653,7 +653,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             // 	...mute,
                             // 	[GRAPH_NODE_TITLE_CONVERSATION]
                             // ],
-                            unmutes: []
+                            unmutes: [],
+                            language: languageCode
                         })
                         for await (const event of stream) {
                             const messageContent = transformGraphEvent(event)

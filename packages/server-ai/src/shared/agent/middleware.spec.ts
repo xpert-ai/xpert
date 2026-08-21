@@ -17,16 +17,28 @@ import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 
 describe('getAgentMiddlewares', () => {
     it('filters middleware tools by xpert config and user preference for the matching node', async () => {
+        const middlewareIcon = {
+            type: 'svg',
+            value: '<svg viewBox="0 0 24 24" data-icon="middleware"></svg>'
+        }
+        const toolIcon = {
+            type: 'svg',
+            value: '<svg viewBox="0 0 24 24" data-icon="tool"></svg>'
+        }
         const runtime = {
             createModelClient: jest.fn(),
             wrapWorkflowNodeExecution: jest.fn()
         }
         const createMiddleware = jest.fn(async () => ({
             name: 'provider-a',
-            tools: [{ name: 'shared' }, { name: 'xpertOff' }, { name: 'userOff' }]
+            tools: [{ name: 'shared', metadata: { toolIcon } }, { name: 'xpertOff' }, { name: 'userOff' }]
         }))
         const registry = {
             get: jest.fn(() => ({
+                meta: {
+                    name: 'provider-a',
+                    icon: middlewareIcon
+                },
                 createMiddleware
             }))
         }
@@ -111,6 +123,11 @@ describe('getAgentMiddlewares', () => {
         )
         expect(middlewares[0].tools.map((tool) => tool.name)).toEqual(['shared'])
         expect(middlewares[1].tools.map((tool) => tool.name)).toEqual(['shared', 'xpertOff', 'userOff'])
+        expect(middlewares[0].tools[0].metadata).toEqual({
+            toolIcon,
+            middlewareIcon
+        })
+        expect(middlewares[1].tools[1].metadata).toEqual({ middlewareIcon })
     })
 
     it('filters middleware nodes by runtime plugin allow-list', async () => {

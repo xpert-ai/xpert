@@ -405,7 +405,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             map(
                 createMapStreamEvents(this.#logger, subscriber, {
                     unmutes,
-                    agent
+                    agent,
+                    language: languageCode
                 })
             ),
             catchError((err) =>

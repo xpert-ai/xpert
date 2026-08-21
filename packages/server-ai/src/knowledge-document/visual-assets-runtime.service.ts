@@ -34,6 +34,21 @@ const MAX_IMAGE_INPUT_BYTES = 20 * 1024 * 1024
 const MAX_IMAGE_OUTPUT_BYTES = 10 * 1024 * 1024
 const MAX_LEGACY_SIDECAR_BYTES = 12 * 1024 * 1024
 const MAX_LEGACY_CHUNKS = 1000
+const PDF_PAGE_FALLBACK_SCALE = 2
+
+type PdfToImgDocument = {
+    length: number
+    getPage(pageNumber: number): Promise<Buffer>
+    destroy(): Promise<void>
+}
+
+type PdfToImgModule = {
+    pdf(input: string, options?: { scale?: number }): Promise<PdfToImgDocument>
+}
+
+const importPdfToImg = new Function('specifier', 'return import(specifier)') as (
+    specifier: string
+) => Promise<PdfToImgModule>
 
 type RequiredExecutionBinding = {
     tenantId: string
@@ -126,7 +141,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
 
         const document = await this.requireDocument(input.knowledgeDocumentId, input.knowledgebaseId, binding)
         const warnings: string[] = []
-        const catalog = await this.buildCatalog(document, binding, warnings)
+        const catalog = await this.buildCatalog(document, binding, warnings, input.textAnchors, maxAssets)
         const ranked = rankVisualAssets(catalog.assets, input.textAnchors, input.query).slice(0, maxAssets)
         const candidates: KnowledgeDocumentVisualCandidate[] = []
 
@@ -293,26 +308,121 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
     private async buildCatalog(
         document: KnowledgeDocument,
         binding: RequiredExecutionBinding,
-        warnings: string[]
+        warnings: string[],
+        textAnchors: KnowledgeDocumentVisualCandidateRequest['textAnchors'],
+        maxAssets: number
     ): Promise<{ documentFingerprint: string; assets: CatalogAsset[] }> {
         try {
             const catalog = await this.snapshots.getVisualCatalog(document)
-            return {
-                documentFingerprint: documentFingerprint(document),
-                assets: catalog.assets.map((asset) => ({
-                    ...asset,
-                    locator: { kind: 'snapshot', assetId: asset.visualAssetId }
-                }))
+            if (catalog.assets.length) {
+                return {
+                    documentFingerprint: documentFingerprint(document),
+                    assets: catalog.assets.map((asset) => ({
+                        ...asset,
+                        locator: { kind: 'snapshot', assetId: asset.visualAssetId }
+                    }))
+                }
             }
+            warnings.push(
+                'The immutable analysis snapshot contains no image assets; visual candidates use a guarded source fallback.'
+            )
         } catch {
             warnings.push(
                 'The immutable analysis snapshot is unavailable; visual candidates use a guarded legacy work-area allow-list.'
             )
         }
 
+        const legacyAssets = await this.buildLegacyCatalog(document, binding)
+        if (legacyAssets.length) {
+            return {
+                documentFingerprint: documentFingerprint(document),
+                assets: legacyAssets
+            }
+        }
+
         return {
             documentFingerprint: documentFingerprint(document),
-            assets: await this.buildLegacyCatalog(document, binding)
+            assets: await this.buildPdfPageFallbackCatalog(document, binding, textAnchors, maxAssets, warnings)
+        }
+    }
+
+    /**
+     * Some OCR pipelines intentionally retain only text/layout blocks. A governed drawing rule still needs the
+     * model to inspect the original PDF, so materialize only the few source pages relevant to the current exact
+     * search. The rendered files stay inside the Knowledge work area and are exposed solely through the same
+     * execution-scoped logical allow-list as parser-produced images.
+     */
+    private async buildPdfPageFallbackCatalog(
+        document: KnowledgeDocument,
+        binding: RequiredExecutionBinding,
+        textAnchors: KnowledgeDocumentVisualCandidateRequest['textAnchors'],
+        maxAssets: number,
+        warnings: string[]
+    ): Promise<CatalogAsset[]> {
+        if (!isPdfKnowledgeDocument(document) || !document.knowledgebaseId) return []
+        const sourcePath = document.filePath?.trim()
+        if (!sourcePath || !isSafeRelativePath(sourcePath)) return []
+
+        const workArea = await this.workAreaResolver.resolve({
+            tenantId: binding.tenantId,
+            userId: binding.userId,
+            knowledgebaseId: document.knowledgebaseId,
+            documentId: document.id
+        })
+        const sourceAbsolutePath = workArea.volume.path(sourcePath)
+        const sourceStat = await fsPromises.stat(sourceAbsolutePath).catch(() => null)
+        if (!sourceStat?.isFile()) return []
+
+        const { pdf } = await importPdfToImg('pdf-to-img')
+        const pdfDocument = await pdf(sourceAbsolutePath, { scale: PDF_PAGE_FALLBACK_SCALE })
+        try {
+            const pageNumbers = selectPdfFallbackPages(textAnchors, pdfDocument.length, maxAssets)
+            if (!pageNumbers.length) return []
+            const fingerprint = documentFingerprint(document)
+            const relativeFolder = path.posix.join(
+                '.knowledge',
+                'visual-page-fallback',
+                document.id,
+                fingerprint.slice(0, 24)
+            )
+            const absoluteFolder = workArea.volume.path(relativeFolder)
+            await fsPromises.mkdir(absoluteFolder, { recursive: true })
+
+            const assets: CatalogAsset[] = []
+            for (const pageNumber of pageNumbers) {
+                const fileName = `page-${String(pageNumber).padStart(6, '0')}.png`
+                const relativePath = path.posix.join(relativeFolder, fileName)
+                const absolutePath = workArea.volume.path(relativePath)
+                const existing = await fsPromises.stat(absolutePath).catch(() => null)
+                if (!existing?.isFile()) {
+                    const temporaryPath = `${absolutePath}.${randomUUID()}.tmp`
+                    await fsPromises.writeFile(temporaryPath, await pdfDocument.getPage(pageNumber))
+                    await fsPromises.rename(temporaryPath, absolutePath).catch(async (error) => {
+                        await fsPromises.rm(temporaryPath, { force: true })
+                        const published = await fsPromises.stat(absolutePath).catch(() => null)
+                        if (!published?.isFile()) throw error
+                    })
+                }
+                const anchor = textAnchors.find((item) => item.page === pageNumber)
+                assets.push({
+                    visualAssetId: createHash('sha256')
+                        .update(`${fingerprint}:pdf-page:${pageNumber}`)
+                        .digest('hex')
+                        .slice(0, 24),
+                    page: pageNumber,
+                    order: pageNumber - 1,
+                    sourceBlockIds: anchor?.sourceBlockIds ?? [],
+                    ...(anchor?.chunkId ? { chunkId: anchor.chunkId } : {}),
+                    summary: `Rendered original PDF page ${pageNumber} from ${document.name || 'KnowledgeDocument'}`,
+                    locator: { kind: 'legacy', relativePath }
+                })
+            }
+            warnings.push(
+                `The governed source PDF supplied ${assets.length} rendered page candidate${assets.length === 1 ? '' : 's'} for visual confirmation.`
+            )
+            return assets
+        } finally {
+            await pdfDocument.destroy().catch(() => undefined)
         }
     }
 
@@ -502,6 +612,31 @@ function rankVisualAssets(
                 left.asset.order - right.asset.order ||
                 left.index - right.index
         )
+}
+
+function isPdfKnowledgeDocument(document: KnowledgeDocument) {
+    return (
+        document.mimeType?.toLowerCase() === 'application/pdf' ||
+        document.type?.toLowerCase() === 'pdf' ||
+        document.filePath?.toLowerCase().endsWith('.pdf') === true
+    )
+}
+
+function selectPdfFallbackPages(
+    textAnchors: KnowledgeDocumentVisualCandidateRequest['textAnchors'],
+    pageCount: number,
+    maxAssets: number
+) {
+    if (!Number.isInteger(pageCount) || pageCount < 1) return []
+    const limit = Math.min(MAX_VISUAL_CANDIDATES, Math.max(1, maxAssets), pageCount)
+    const pages = new Set<number>()
+    for (const anchor of textAnchors) {
+        const page = anchor.page
+        if (Number.isInteger(page) && page! >= 1 && page! <= pageCount) pages.add(page!)
+        if (pages.size >= limit) break
+    }
+    for (let page = 1; pages.size < limit && page <= pageCount; page++) pages.add(page)
+    return [...pages]
 }
 
 function requireExecutionBinding(scope: AgentMiddlewareRuntimeScope): RequiredExecutionBinding {

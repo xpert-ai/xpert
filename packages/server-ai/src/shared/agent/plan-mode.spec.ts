@@ -29,6 +29,13 @@ describe('plan mode middleware helpers', () => {
         const createMiddleware = jest.fn().mockResolvedValue(clientToolMiddleware)
         const registry = {
             get: jest.fn().mockReturnValue({
+                meta: {
+                    name: 'ClientToolMiddleware',
+                    icon: {
+                        type: 'svg',
+                        value: '<svg viewBox="0 0 24 24" data-icon="client-tool"></svg>'
+                    }
+                },
                 createMiddleware
             })
         }
@@ -66,6 +73,14 @@ describe('plan mode middleware helpers', () => {
                     minItems: 1,
                     maxItems: 3
                 }
+            }
+        })
+
+        const clientToolEntry = entries.find((entry) => entry.key === '__xpert_plan_mode_client_tool__')
+        expect(clientToolEntry?.middleware.tools?.[0]?.metadata).toMatchObject({
+            middlewareIcon: {
+                type: 'svg',
+                value: expect.stringContaining('data-icon="client-tool"')
             }
         })
 
