@@ -17,6 +17,8 @@ export interface CloudMenuData {
   subtitleDefault?: string
   badge?: string | number
   onboardingTarget?: string
+  workspaceSection?: 'skills' | 'connectors' | 'files' | 'knowledges' | 'settings'
+  action?: 'newClawXpertConversation'
   [key: string]: unknown
 }
 

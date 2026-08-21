@@ -244,9 +244,12 @@ describe('ClawXpertToolPreferencesComponent', () => {
     })
 
     expect(toolsetService.getOneById).toHaveBeenCalledWith('toolset-1', { relations: ['tools'] })
-    expect(agentService.getAgentMiddleware).toHaveBeenCalledWith('scheduler', {})
+    expect(agentService.getAgentMiddleware).toHaveBeenCalledWith('scheduler', {}, 'xpert-1')
     expect(component.toolItems()).toHaveLength(2)
-    expect(fixture.nativeElement.textContent).toContain('2 tools')
+
+    component.selectTab('tools')
+    fixture.detectChanges()
+
     expect(fixture.nativeElement.textContent).toContain('Search the web')
     expect(fixture.nativeElement.textContent).toContain('Create scheduled tasks')
     expect(fixture.nativeElement.textContent).not.toContain('Should not be listed')
@@ -361,7 +364,7 @@ describe('ClawXpertToolPreferencesComponent', () => {
     fixture.detectChanges()
 
     expect(skillPackageService.getAllByWorkspace).not.toHaveBeenCalled()
-    expect(fixture.nativeElement.textContent).toContain('This ClawXpert is not attached to a workspace yet')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.WorkspaceRequiredForSkillsTitle')
   })
 
   it('shows workspace skill load errors inside the skills tab', async () => {
@@ -377,7 +380,7 @@ describe('ClawXpertToolPreferencesComponent', () => {
     component.selectTab('skills')
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('Failed to load workspace skills')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.WorkspaceSkillsLoadFailed')
     expect(fixture.nativeElement.textContent).toContain('skills failed')
   })
 
@@ -406,12 +409,34 @@ describe('ClawXpertToolPreferencesComponent', () => {
       )
     }
 
-    const { fixture } = await configureComponent({
+    const { component, fixture } = await configureComponent({
       toolsetService,
       agentService
     })
 
+    component.selectTab('tools')
+    fixture.detectChanges()
+
     expect(fixture.nativeElement.textContent).toContain('toolset failed')
     expect(fixture.nativeElement.textContent).toContain('Create scheduled tasks')
+  })
+
+  it('renders only the Claw Xpert skill preferences when embedded from the workspace menu', async () => {
+    const skillPackageService = {
+      getAllByWorkspace: jest.fn(() => of({ items: [createSkillPackage()] })),
+      installPackage: jest.fn(() => of({ id: 'installed-skill-package' }))
+    }
+    const { component, fixture } = await configureComponent({ skillPackageService })
+
+    component.skillsOnly = true
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('nav')).toBeNull()
+    expect(fixture.nativeElement.querySelector('h1')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Workspace Search')
+    expect(fixture.nativeElement.textContent).toContain('XP.Skill.UploadSkills')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.InstallOrRefreshSkills')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.InstallWorkspaceSkillsTitle')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Common.Tools')
   })
 })

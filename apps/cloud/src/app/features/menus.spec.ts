@@ -164,12 +164,21 @@ describe('getFeatureMenus', () => {
     expect(plugins?.data?.onboardingTarget).toBe('plugins-marketplace')
   })
 
-  it('keeps tasks as the only static chat sidebar entry', () => {
+  it('keeps scheduled tasks as a static chat sidebar entry', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const chat = menus.find((item) => item.link === '/chat')
     const tasks = menus.find((item) => item.link === '/chat/tasks')
+    const newTask = menus.find((item) => item.link === '/chat/clawxpert/c')
 
     expect(chat).toBeUndefined()
+    expect(newTask).toMatchObject({
+      title: 'New task',
+      icon: 'ri-add-circle-line',
+      pathMatch: 'full',
+      data: {
+        action: 'newClawXpertConversation'
+      }
+    })
     expect(tasks).toMatchObject({
       title: 'Scheduled',
       icon: 'ri-time-line',

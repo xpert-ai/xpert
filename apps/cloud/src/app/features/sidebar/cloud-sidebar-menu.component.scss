@@ -7,26 +7,36 @@
 .cloud-sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 0.25rem 0.5rem 1rem;
+  gap: 0;
+  padding: 0;
 }
 
 .cloud-sidebar-menu.is-collapsed {
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.25rem 0.5rem 0.75rem;
+  gap: 0;
+  padding: 0;
 }
 
 .cloud-sidebar-menu__group {
   width: 100%;
+  padding: 0.5rem;
+}
+
+.cloud-sidebar-menu__group:first-child > .cloud-sidebar-menu__group-label {
+  display: none;
 }
 
 .cloud-sidebar-menu__group-label {
-  margin: 0 0.55rem 0.5rem;
+  display: flex;
+  height: 2rem;
+  align-items: center;
+  margin: 0;
   color: var(--color-text-tertiary);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1.15rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  padding: 0 0.5rem;
+  letter-spacing: 0;
 }
 
 .cloud-sidebar-menu__list,
@@ -61,11 +71,12 @@
 
 .cloud-sidebar-menu__item {
   display: flex;
-  min-height: 2.75rem;
+  height: 2rem;
+  min-height: 2rem;
   align-items: center;
-  gap: 0.75rem;
-  border-radius: 0.5rem;
-  padding: 0.25rem 0.625rem;
+  gap: 0.5rem;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
 }
 
 .cloud-sidebar-menu.is-collapsed .cloud-sidebar-menu__item {
@@ -81,15 +92,15 @@
 .cloud-sidebar-menu__item:hover,
 .cloud-sidebar-menu__subitem:hover,
 .cloud-sidebar-menu__flyout-item:hover {
-  background: var(--color-hover-bg);
+  background: var(--color-components-list-option-hover-bg);
   color: var(--color-text-primary);
 }
 
 .cloud-sidebar-menu__item.is-active {
-  border: 1px solid var(--color-divider-regular);
-  background: var(--color-components-card-bg);
+  border-color: transparent;
+  background: var(--color-components-list-option-active-bg);
   color: var(--color-text-primary);
-  @apply shadow-sm;
+  box-shadow: none;
 }
 
 .cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__item.is-active {
@@ -104,19 +115,19 @@
 
 .cloud-sidebar-menu__icon {
   display: inline-flex;
-  width: 1.375rem;
-  height: 1.375rem;
-  flex: 0 0 1.375rem;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
   align-items: center;
   justify-content: center;
   color: inherit;
-  font-size: 1.375rem;
+  font-size: 1rem;
 }
 
 .cloud-sidebar-menu__icon z-icon {
-  width: 1.375rem;
-  height: 1.375rem;
-  font-size: 1.375rem;
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
 }
 
 .cloud-sidebar-menu__content {
@@ -131,8 +142,8 @@
   min-width: 0;
   overflow: hidden;
   color: inherit;
-  font-size: 0.9375rem;
-  font-weight: 650;
+  font-size: 0.875rem;
+  font-weight: 500;
   line-height: 1.25rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -178,17 +189,18 @@
 }
 
 .cloud-sidebar-menu__submenu {
-  margin: 0.25rem 0 0 1.55rem;
+  margin: 0.25rem 0 0 1.5rem;
   border-left: 1px solid var(--color-divider-regular);
 }
 
 .cloud-sidebar-menu__subitem {
   display: flex;
-  min-height: 2.125rem;
+  height: 2rem;
+  min-height: 2rem;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 0.45rem;
-  padding: 0.35rem 0.6rem;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .cloud-sidebar-menu__subitem.is-active {
@@ -214,8 +226,32 @@
 }
 
 .cloud-sidebar-menu__flyout {
-  min-width: 13rem;
-  padding: 0.4rem;
+  min-width: 14rem;
+  padding: 0.25rem;
+}
+
+.cloud-sidebar-menu__assistant-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cloud-sidebar-menu__assistant-section-label {
+  display: flex;
+  height: 2rem;
+  align-items: center;
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  padding: 0 0.5rem;
+}
+
+.cloud-sidebar-menu__assistant-list {
+  display: block;
+  min-width: 0;
 }
 
 .cloud-sidebar-menu__flyout-title {
@@ -230,12 +266,20 @@
 }
 
 .cloud-sidebar-menu__flyout-item.is-active {
-  background: var(--color-accent);
-  color: var(--color-accent-foreground);
+  background: var(--color-components-list-option-active-bg);
+  color: var(--color-text-primary);
 }
 
 .cloud-sidebar-menu__flyout-icon {
   width: 1rem;
   height: 1rem;
   flex: 0 0 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-sidebar-menu__item,
+  .cloud-sidebar-menu__subitem,
+  .cloud-sidebar-menu__chevron {
+    transition: none;
+  }
 }

@@ -53,6 +53,7 @@ import {
 } from '../../xpert/draft/index'
 import { WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
+import { ClawXpertConversationStartIntentService } from './clawxpert-conversation-start-intent.service'
 
 export type ClawXpertViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
 
@@ -104,10 +105,11 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
   #preferenceLoadRequestId = 0
   #triggerDraftLoadRequestId = 0
-  #conversationEntryRequestId = 0
   #lastConversationEntryKey: string | null = null
   #lastPersistedThreadKey: string | null = null
+  #awaitingBlankConversationReset = false
   #pendingWizardConversationXpertId: string | null = null
+  #consumedConversationStartIntentId = 0
   #nullThreadChangeGuard: { threadId: string | null; expiresAt: number } = {
     threadId: null,
     expiresAt: 0
@@ -123,6 +125,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly #taskService = inject(XpertTaskService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #bootstrap = inject(ClawXpertBootstrapService)
+  readonly #conversationStartIntent = inject(ClawXpertConversationStartIntentService)
 
   readonly definition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)!
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
@@ -407,6 +410,13 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     effect(() => {
       const currentUrl = this.currentUrl()
 
+      if (currentUrl === '/chat/clawxpert/c' && !this.threadId()) {
+        this.#awaitingBlankConversationReset = true
+        this.suppressAutoResume.set(true)
+      } else {
+        this.#awaitingBlankConversationReset = false
+      }
+
       if (currentUrl !== '/chat/clawxpert/c') {
         this.#lastConversationEntryKey = null
         this.#bootstrap.clearPendingCreatedClawXpert()
@@ -415,6 +425,22 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       if (!this.threadId()) {
         this.#lastPersistedThreadKey = null
       }
+    })
+
+    effect(() => {
+      const requestId = this.#conversationStartIntent.requestId()
+      if (
+        !requestId ||
+        requestId === this.#consumedConversationStartIntentId ||
+        this.currentUrl() !== '/chat/clawxpert/c'
+      ) {
+        return
+      }
+
+      this.#consumedConversationStartIntentId = requestId
+      this.#lastConversationEntryKey = null
+      this.suppressAutoResume.set(true)
+      this.pendingConversationStartId.update((value) => value + 1)
     })
 
     effect(() => {
@@ -938,7 +964,19 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
   async continueConversation() {
     this.suppressAutoResume.set(false)
-    await this.navigateToChat()
+    const xpertId = this.xpertId()
+    if (!xpertId) {
+      await this.navigateToChat()
+      return
+    }
+
+    const threadId = await this.resolvePreferredThreadId(xpertId)
+    if (threadId) {
+      this.navigateToThread(threadId)
+      return
+    }
+
+    await this.startConversation()
   }
 
   refreshTaskSummaries() {
@@ -975,10 +1013,12 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     }
 
     try {
+      this.#awaitingBlankConversationReset = true
       await control.setThreadId(null)
       await control.setRuntimeCapabilities(null)
       await control.focusComposer()
     } finally {
+      this.#awaitingBlankConversationReset = false
       if (this.pendingConversationStartId() === startId) {
         this.pendingConversationStartId.set(0)
       }
@@ -996,34 +1036,21 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       return
     }
 
-    const entryKey = `${xpertId}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
+    const entryKey = `${xpertId}:blank`
     if (this.#lastConversationEntryKey === entryKey) {
       return
     }
 
     this.#lastConversationEntryKey = entryKey
-    const requestId = ++this.#conversationEntryRequestId
-
-    if (this.suppressAutoResume()) {
+    this.suppressAutoResume.set(true)
+    this.#awaitingBlankConversationReset = true
+    try {
+      await control.setThreadId(null)
+      await control.setRuntimeCapabilities(null)
       await control.focusComposer()
-      return
+    } finally {
+      this.#awaitingBlankConversationReset = false
     }
-
-    const threadId = await this.resolvePreferredThreadId(xpertId)
-    if (
-      requestId !== this.#conversationEntryRequestId ||
-      this.currentUrl() !== '/chat/clawxpert/c' ||
-      this.threadId()
-    ) {
-      return
-    }
-
-    if (threadId) {
-      this.navigateToThread(threadId)
-      return
-    }
-
-    await control.focusComposer()
   }
 
   setActiveConversation(conversation: IChatConversation | null) {
@@ -1150,6 +1177,9 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     }
 
     if (threadId) {
+      if (this.currentUrl() === '/chat/clawxpert/c' && this.#awaitingBlankConversationReset) {
+        return
+      }
       this.suppressAutoResume.set(false)
       this.armNullThreadChangeGuard(threadId)
       this.navigateToThread(threadId)

@@ -5,7 +5,6 @@ import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
-import { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type {
   IconDefinition,
   I18nObject,
@@ -761,8 +760,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #activeWorkbenchLayoutAssistantId: string | null = null
   #initializedWorkbenchLayoutAssistantId: string | null = null
   #pendingWorkbenchLayoutRestore: { assistantId: string | null; state: ClawXpertWorkbenchLayoutState } | null = null
-  #hasInitialWorkbenchLayoutPreference = false
-  #appliedDefaultFixedViewSelection: string | null = null
+  #activeConversationEntryKey: string | null = null
   #lastNonFixedTabId: string | null = INITIAL_WORKSPACE_TAB.id
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
@@ -771,7 +769,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
       workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
-      projectId: getOptionalSignalValue(this.facade, 'projectId'),
       xpertId: this.facade.xpertId(),
       contexts: this.#assistantWorkbenchContexts()
     })
@@ -781,7 +778,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.facade.assistantId,
-    projectId: this.facade.projectId,
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
     initialThread: this.facade.threadId,
@@ -813,11 +809,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (citationEvent) {
         this.publishKnowledgebaseCitationEvent(citationEvent)
       }
-      if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
+      if (this.facade.threadId() && shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
       const previewTarget = getSandboxPreviewTargetFromEffectEvent(event)
-      if (previewTarget) {
+      if (this.facade.threadId() && previewTarget) {
         this.openBrowserTabFromSandboxEvent(previewTarget)
       }
     },
@@ -836,11 +832,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         })
         this.#hostEvents.publish(toolCompletedEvent)
       }
-      if (shouldRefreshWorkspaceFilesFromLogEvent(event)) {
+      if (this.facade.threadId() && shouldRefreshWorkspaceFilesFromLogEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
       const previewTarget = getSandboxPreviewTargetFromLogEvent(event)
-      if (previewTarget) {
+      if (this.facade.threadId() && previewTarget) {
         this.openBrowserTabFromSandboxEvent(previewTarget)
       }
     },
@@ -1007,21 +1003,18 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
-      openAssistantProject: (request) => this.openWorkbenchAssistantProject(request.projectId),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
     effect(() => {
       const assistantId = this.#workbenchLayoutAssistantId()
       const viewState = this.facade.viewState()
-      const configuredInitialLayout = this.facade.initialLayout()
       const currentState = this.#workbenchLayoutState()
 
       if (assistantId !== this.#activeWorkbenchLayoutAssistantId) {
         this.#activeWorkbenchLayoutAssistantId = assistantId
         this.#initializedWorkbenchLayoutAssistantId = null
         this.#pendingWorkbenchLayoutRestore = null
-        this.#hasInitialWorkbenchLayoutPreference = false
       }
 
       if (!assistantId || viewState !== 'ready') {
@@ -1030,10 +1023,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
       if (assistantId !== this.#initializedWorkbenchLayoutAssistantId) {
         this.#initializedWorkbenchLayoutAssistantId = assistantId
-        const restoredState = this.#workbenchLayoutStorage.load(assistantId)
-        const configuredState = toConfiguredWorkbenchLayoutState(configuredInitialLayout)
-        const nextState = restoredState ?? configuredState ?? 'minimized'
-        this.#hasInitialWorkbenchLayoutPreference = restoredState !== null || configuredState !== null
+        const nextState: ClawXpertWorkbenchLayoutState = 'minimized'
         this.#pendingWorkbenchLayoutRestore = { assistantId, state: nextState }
         this.applyWorkbenchLayoutState(nextState)
         return
@@ -1046,27 +1036,46 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       this.#pendingWorkbenchLayoutRestore = null
-      this.#hasInitialWorkbenchLayoutPreference = this.#workbenchLayoutStorage.save(assistantId, currentState)
+      this.#workbenchLayoutStorage.save(assistantId, currentState)
+    })
+
+    effect(() => {
+      const viewState = this.facade.viewState()
+      const threadId = this.facade.threadId()
+      const pendingStartId = this.facade.pendingConversationStartId()
+      const requestedViewKey = this.#workbenchViewUrlState.viewKey()
+
+      if (viewState !== 'ready') {
+        this.#activeConversationEntryKey = null
+        return
+      }
+
+      const entryKey = threadId ? `thread:${threadId}` : pendingStartId ? `new:${pendingStartId}` : 'new'
+      if (entryKey === this.#activeConversationEntryKey) {
+        return
+      }
+
+      this.#activeConversationEntryKey = entryKey
+      if (!requestedViewKey) {
+        this.applyWorkbenchLayoutState('minimized')
+      }
     })
 
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
-      const defaultViewKey = this.facade.defaultViewKey()
       if (!hostId) {
         this.#fixedViewsHostId = null
-        this.#appliedDefaultFixedViewSelection = null
         this.resetFixedViews(true)
         return
       }
 
       if (this.#fixedViewsHostId !== hostId) {
         this.#fixedViewsHostId = hostId
-        this.#appliedDefaultFixedViewSelection = null
         this.resetFixedViews(true)
       }
 
       let cancelled = false
-      void this.loadFixedViews(hostId, defaultViewKey, () => cancelled)
+      void this.loadFixedViews(hostId, () => cancelled)
 
       onCleanup(() => {
         cancelled = true
@@ -1583,15 +1592,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.markConversationRead(request.conversationId)
   }
 
-  /** Switch to the canonical workbench route for a Project-scoped Assistant. */
-  private async openWorkbenchAssistantProject(projectId: string) {
-    const slug = getOptionalSignalValue(this.facade, 'slug') ?? this.facade.xpertId()
-    if (!slug) throw new Error('The current Assistant route is unavailable.')
-    // Preserve the active extension view while changing only the Assistant's
-    // Project workspace route.
-    await this.#router.navigate(['/chat/x', slug, 'p', projectId, 'c'], { queryParamsHandling: 'preserve' })
-  }
-
   private revealChatkitForConversationOpen() {
     this.workspaceMaximized.set(false)
     if (this.isChatMinimizedToPet()) {
@@ -1634,9 +1634,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (!existing) {
       this.workspaceTabs.update((tabs) => tabs.map((tab) => (tab.id === opened.id ? { ...tab, query } : tab)))
     }
-    // Keep the selected business record and view parameters recoverable after
-    // a refresh; the fixed-view tab itself is reconstructed from the manifest.
-    void this.#workbenchViewUrlState.setViewState(resolvedViewKey, query)
     return opened
   }
 
@@ -1817,7 +1814,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
-  private async loadFixedViews(hostId: string, defaultViewKey: string | null, isCancelled: () => boolean) {
+  private async loadFixedViews(hostId: string, isCancelled: () => boolean) {
     const version = ++this.#fixedViewsLoadVersion
     this.loadingFixedViews.set(true)
     this.fixedViewError.set(null)
@@ -1836,7 +1833,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         .sort((a, b) => a.order - b.order)
 
       this.fixedViewMenuItems.set(items)
-      this.syncFixedViewTabs(items, defaultViewKey)
+      this.syncFixedViewTabs(items)
     } catch (error) {
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
@@ -1874,40 +1871,30 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
   }
 
-  private syncFixedViewTabs(items: ClawXpertFixedViewMenuItem[], defaultViewKey: string | null) {
+  private syncFixedViewTabs(items: ClawXpertFixedViewMenuItem[]) {
     const itemByViewKey = new Map(items.map((item) => [item.viewKey, item]))
     const tabs = this.workspaceTabs()
-    const requestedViewKey = this.#workbenchViewUrlState.viewKey()
-    const requestedViewQuery = this.#workbenchViewUrlState.viewQuery()
     const fixedTabsByViewKey = new Map(
       tabs.filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view').map((tab) => [tab.viewKey, tab])
     )
     const nextFixedTabs = items.map((item) => {
       const tab = fixedTabsByViewKey.get(item.viewKey)
       if (!tab) {
-        const created = this.createFixedViewTab(item)
-        // Restore URL state only for the requested fixed view; other fixed
-        // views retain their in-memory query when manifests are resynchronized.
-        return item.viewKey === requestedViewKey ? { ...created, query: requestedViewQuery } : created
+        return this.createFixedViewTab(item)
       }
 
-      const restoredQuery = item.viewKey === requestedViewKey ? requestedViewQuery : tab.query
-      if (tab.title === item.title && tab.icon === item.icon && tab.query === restoredQuery) {
+      if (tab.title === item.title && tab.icon === item.icon) {
         return tab
       }
 
       return {
         ...tab,
         title: item.title,
-        icon: item.icon,
-        query: restoredQuery
+        icon: item.icon
       }
     })
-    const nextNonFixedTabs = tabs.filter(
-      (tab) => tab.kind !== 'fixed-view' && !(items.length > 0 && isInitialWorkspaceTab(tab))
-    )
-    const nextTabs: ClawXpertWorkspaceTab[] =
-      items.length > 0 ? [...nextFixedTabs, ...nextNonFixedTabs] : tabs.filter((tab) => tab.kind !== 'fixed-view')
+    const nextNonFixedTabs = tabs.filter((tab) => tab.kind !== 'fixed-view')
+    const nextTabs: ClawXpertWorkspaceTab[] = [...nextNonFixedTabs, ...nextFixedTabs]
     const changed =
       nextTabs.length !== tabs.length ||
       nextTabs.some((tab, index) => tab !== tabs[index]) ||
@@ -1918,34 +1905,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     const activeTabId = this.activeTabId()
-    const initialSelectionKey = `${this.#fixedViewsHostId ?? ''}:${defaultViewKey ?? ''}`
-    const shouldApplyInitialSelection =
-      nextFixedTabs.length > 0 && this.#appliedDefaultFixedViewSelection !== initialSelectionKey
+    const requestedViewKey = this.#workbenchViewUrlState.viewKey()
     const requestedTab = findFixedViewTab(nextFixedTabs, requestedViewKey)
 
-    if (shouldApplyInitialSelection) {
-      const defaultTab = defaultViewKey ? nextFixedTabs.find((tab) => tab.viewKey === defaultViewKey) : null
-      const selectedTab = requestedTab ?? defaultTab ?? nextFixedTabs[0] ?? nextTabs[0]
+    if (requestedTab) {
+      this.activeTabId.set(requestedTab.id)
+    } else if (!nextTabs.some((tab) => tab.id === activeTabId)) {
+      const selectedTab = nextNonFixedTabs[0] ?? nextTabs[0]
       this.activeTabId.set(selectedTab?.id ?? '')
-      if (selectedTab?.kind === 'fixed-view') {
-        void this.#workbenchViewUrlState.setViewKey(selectedTab.viewKey, { replaceUrl: true })
-      }
-      this.#appliedDefaultFixedViewSelection = initialSelectionKey
-    } else if (
-      !nextTabs.some((tab) => tab.id === activeTabId) ||
-      isInitialWorkspaceTab(tabs.find((tab) => tab.id === activeTabId))
-    ) {
-      const selectedTab = requestedTab ?? nextFixedTabs[0] ?? nextTabs[0]
-      this.activeTabId.set(selectedTab?.id ?? '')
-      if (selectedTab?.kind === 'fixed-view') {
-        void this.#workbenchViewUrlState.setViewKey(selectedTab.viewKey, { replaceUrl: true })
-      }
     }
 
-    if (
-      nextFixedTabs.length > 0 &&
-      (Boolean(requestedViewKey) || !this.#hasInitialWorkbenchLayoutPreference || this.detailPanelVisible())
-    ) {
+    if (requestedTab) {
       this.openDetailPanel()
     } else if (nextFixedTabs.length === 0 && requestedViewKey) {
       void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: true })
@@ -2257,21 +2227,6 @@ function clampChatkitWidth(width: number) {
   return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
 }
 
-function toConfiguredWorkbenchLayoutState(
-  layout: XpertWorkbenchInitialLayoutEnum | null
-): ClawXpertWorkbenchLayoutState | null {
-  if (layout === null || layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
-    return 'normal'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
-    return 'minimized'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized) {
-    return 'maximized'
-  }
-  return null
-}
-
 function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {
   if (typeof target.serviceId === 'string' && target.serviceId.trim() && tab.serviceId === target.serviceId) {
     return true
@@ -2330,10 +2285,6 @@ function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
   return manifest.workbench?.menu?.enabled !== false
 }
 
-function isInitialWorkspaceTab(tab: ClawXpertWorkspaceTab | undefined) {
-  return tab?.kind === INITIAL_WORKSPACE_TAB.kind && tab.id === INITIAL_WORKSPACE_TAB.id
-}
-
 function findFixedViewTab(tabs: ClawXpertFixedViewTab[], viewKey: string | null | undefined) {
   const normalizedViewKey = viewKey?.trim()
   if (!normalizedViewKey) {
@@ -2359,7 +2310,6 @@ function getOptionalSignalValue<T extends string>(facade: WorkbenchChatFacade, k
 
 function buildAssistantRequestContext(input: {
   workspaceId: string | null
-  projectId: string | null
   xpertId: string | null
   contexts: Record<string, AssistantWorkbenchRequestContext>
 }) {
@@ -2369,9 +2319,6 @@ function buildAssistantRequestContext(input: {
   }
   if (input.xpertId) {
     env['xpertId'] = input.xpertId
-  }
-  if (input.projectId) {
-    env['projectId'] = input.projectId
   }
 
   const requestContext: Record<string, unknown> = {}

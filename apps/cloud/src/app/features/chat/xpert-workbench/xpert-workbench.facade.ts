@@ -48,8 +48,6 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     { initialValue: normalizeWorkbenchPath(this.#router.url) }
   )
   readonly slug = computed(() => parseWorkbenchSlug(this.currentUrl()))
-  /** Project encoded by the route; null preserves legacy Assistant workbenches. */
-  readonly projectId = computed(() => parseWorkbenchProjectId(this.currentUrl()))
   readonly threadId = computed(() => parseWorkbenchThreadId(this.currentUrl()))
   readonly availableXperts = signal<IXpert[]>([])
   readonly loading = signal(false)
@@ -73,10 +71,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly identity = computed(() => {
     const xpertId = this.xpertId()
-    const projectId = this.projectId()
-    // Project-scoped identities prevent hosted ChatKit from carrying a thread
-    // or client secret across Project workspaces for the same Assistant.
-    return xpertId ? `chat-xpert-workbench:${xpertId}${projectId ? `:${projectId}` : ''}` : null
+    return xpertId ? `chat-xpert-workbench:${xpertId}` : null
   })
   readonly viewState = computed<WorkbenchChatViewState>(() => {
     if (!this.organizationId()) {
@@ -165,7 +160,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const entryKey = `${xpertId}:${this.projectId() ?? ''}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
+    const entryKey = `${xpertId}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
     if (this.#lastConversationEntryKey === entryKey) {
       return
     }
@@ -178,7 +173,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const threadId = await this.getLatestConversationThreadId(xpertId, this.projectId())
+    const threadId = await this.getLatestConversationThreadId(xpertId)
     if (requestId !== this.#conversationEntryRequestId || !this.isConversationEntryRoute() || this.threadId()) {
       return
     }
@@ -273,51 +268,52 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
   private async navigateToChat() {
     const slug = this.currentXpert()?.slug ?? this.slug()
-    const projectId = this.projectId()
-    const destination = projectId
-      ? `/chat/x/${encodeURIComponent(slug ?? '')}/p/${encodeURIComponent(projectId)}/c`
-      : `/chat/x/${encodeURIComponent(slug ?? '')}/c`
-    if (!slug || this.currentUrl() === destination) {
+    if (!slug || this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c`) {
       return
     }
-    await this.#router.navigate(projectId ? ['/chat/x', slug, 'p', projectId, 'c'] : ['/chat/x', slug, 'c'], {
-      queryParamsHandling: 'preserve'
-    })
+
+    const queryParams = this.currentViewQueryParams()
+    if (queryParams) {
+      await this.#router.navigate(['/chat/x', slug, 'c'], { queryParams })
+    } else {
+      await this.#router.navigate(['/chat/x', slug, 'c'])
+    }
   }
 
   private navigateToThread(threadId: string) {
     const slug = this.currentXpert()?.slug ?? this.slug()
-    const projectId = this.projectId()
     if (!slug) {
       return
     }
 
     if (
       this.threadId() === threadId &&
-      this.currentUrl() ===
-        (projectId
-          ? `/chat/x/${encodeURIComponent(slug)}/p/${encodeURIComponent(projectId)}/c/${encodeURIComponent(threadId)}`
-          : `/chat/x/${encodeURIComponent(slug)}/c/${encodeURIComponent(threadId)}`)
+      this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c/${encodeURIComponent(threadId)}`
     ) {
       return
     }
 
-    void this.#router.navigate(
-      projectId ? ['/chat/x', slug, 'p', projectId, 'c', threadId] : ['/chat/x', slug, 'c', threadId],
-      { queryParamsHandling: 'preserve' }
-    )
+    const queryParams = this.currentViewQueryParams()
+    if (queryParams) {
+      void this.#router.navigate(['/chat/x', slug, 'c', threadId], { queryParams })
+    } else {
+      void this.#router.navigate(['/chat/x', slug, 'c', threadId])
+    }
   }
 
-  /** Restore only history that belongs to the Assistant and current Project together. */
-  private async getLatestConversationThreadId(xpertId: string, projectId: string | null) {
+  private currentViewQueryParams() {
+    const view = this.#router.parseUrl(this.#router.url).queryParams['view']
+    return typeof view === 'string' && view.trim() ? { view: view.trim() } : undefined
+  }
+
+  private async getLatestConversationThreadId(xpertId: string) {
     const result = (await firstValueFrom(
       this.#conversationService
         .findAllByXpert(xpertId, {
           take: 1,
           order: {
             updatedAt: OrderTypeEnum.DESC
-          },
-          ...(projectId ? { where: { projectId } } : {})
+          }
         })
         .pipe(catchError(() => of({ items: [] as IChatConversation[] })))
     )) as { items?: IChatConversation[] } | null
@@ -327,14 +323,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
   private isConversationEntryRoute() {
     const slug = this.slug()
-    const projectId = this.projectId()
-    return (
-      !!slug &&
-      this.currentUrl() ===
-        (projectId
-          ? `/chat/x/${encodeURIComponent(slug)}/p/${encodeURIComponent(projectId)}/c`
-          : `/chat/x/${encodeURIComponent(slug)}/c`)
-    )
+    return !!slug && this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c`
   }
 }
 
@@ -348,18 +337,12 @@ function normalizeWorkbenchPath(url: string) {
 }
 
 function parseWorkbenchSlug(url: string) {
-  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/([^/]+)\/(?:p\/[^/]+\/)?c(?:\/|$)/)
+  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/([^/]+)\/c(?:\/|$)/)
   return match?.[1] ? safeDecodeURIComponent(match[1]) : null
 }
 
 function parseWorkbenchThreadId(url: string) {
-  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/[^/]+\/(?:p\/[^/]+\/)?c\/([^/]+)$/)
-  return match?.[1] ? safeDecodeURIComponent(match[1]) : null
-}
-
-/** Extract the optional Project scope from the canonical Assistant workbench route. */
-function parseWorkbenchProjectId(url: string) {
-  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/[^/]+\/p\/([^/]+)\/c(?:\/|$)/)
+  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/[^/]+\/c\/([^/]+)$/)
   return match?.[1] ? safeDecodeURIComponent(match[1]) : null
 }
 

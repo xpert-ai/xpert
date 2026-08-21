@@ -17,7 +17,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@cloud/app/@core/state'
 import { injectConfirmUnique, XpCommonModule, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
@@ -29,7 +29,7 @@ import { concat } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
-import { debounceTime, map, startWith, tap } from 'rxjs/operators'
+import { debounceTime, filter, map, startWith, tap } from 'rxjs/operators'
 import {
   getErrorMessage,
   injectTags,
@@ -106,6 +106,17 @@ export class XpertWorkspaceHomeComponent {
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
+  readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+      startWith(this.router.url)
+    ),
+    { initialValue: this.router.url }
+  )
+  readonly isStandaloneWorkspaceRoute = computed(() =>
+    /\/(?:connectors|skills|files|knowledges|settings)(?:\/|$)/.test(this.currentUrl())
+  )
 
   readonly loading = signal(true)
   readonly loadingDefaultWorkspace = signal(true)
@@ -130,8 +141,7 @@ export class XpertWorkspaceHomeComponent {
   #defaultWorkspaceQueryVersion = 0
 
   // Xpert or tool type filter
-  readonly types =
-    model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow' | 'connectors'>>(null)
+  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow'>>(null)
   readonly type = computed(() => this.types()?.[0])
 
   // TagFilter's state
@@ -382,10 +392,17 @@ export class XpertWorkspaceHomeComponent {
     const nextSegments =
       primarySegments.length >= 3
         ? ['xpert', 'w', workspace.id, ...primarySegments.slice(3)]
-        : ['xpert', 'w', workspace.id]
+        : [
+            'xpert',
+            'w',
+            workspace.id,
+            ...(urlTree.queryParams['section'] === 'skills' || urlTree.queryParams['section'] === 'connectors'
+              ? [urlTree.queryParams['section']]
+              : [])
+          ]
 
     await this.router.navigate(nextSegments, {
-      queryParams: urlTree.queryParams,
+      queryParams: Object.fromEntries(Object.entries(urlTree.queryParams).filter(([key]) => key !== 'section')),
       fragment: urlTree.fragment ?? undefined
     })
   }

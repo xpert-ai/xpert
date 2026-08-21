@@ -26,6 +26,8 @@ import {
   ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
+  TFile,
+  TFileDirectory,
   IUserGroup,
   IXpert,
   IXpertAgentExecution,
@@ -33,8 +35,6 @@ import {
   OrderTypeEnum,
   TChatApi,
   TChatApp,
-  TEnterpriseH5IdentityGrant,
-  TEnterpriseH5Platform,
   TChatConversationLog,
   TChatOptions,
   TChatRequest,
@@ -81,31 +81,6 @@ export type TPublicChatkitSession = {
   xpertId: string
   assistantId: string
   organizationId?: string | null
-}
-
-/** Indicates that the verified enterprise identity must be linked to an Xpert account. */
-export type TEnterpriseH5AccountBindingRequired = {
-  status: 'account_binding_required'
-  accountBindingProvider: string
-}
-
-/** Result of exchanging an enterprise H5 identity for a ChatKit session. */
-export type TEnterpriseH5ChatkitSession = TPublicChatkitSession | TEnterpriseH5AccountBindingRequired
-
-/** SSO provider metadata displayed when enterprise account binding is required. */
-export type TSSOProviderDescriptor = {
-  provider: string
-  displayName: string
-  icon: string
-  order: number
-  startUrl: string
-}
-
-/** Public bootstrap data used to initialize an enterprise H5 ChatKit client. */
-export type TEnterpriseH5ChatAppBootstrap = {
-  xpert: IXpert
-  platform: TEnterpriseH5Platform
-  clientConfig: Record<string, unknown>
 }
 
 type TXpertGetMyAllRequestOptions = {
@@ -198,6 +173,42 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
     return this.httpClient.get<IAiAssistantRuntimeCapabilities>(this.apiBaseUrl + `/${id}/runtime-capabilities`, {
       params
+    })
+  }
+
+  getWorkspaceFiles(id: string, path = '') {
+    return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/workspace/files`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
+  getWorkspaceFile(id: string, path: string) {
+    return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
+  downloadWorkspaceFile(id: string, path: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/workspace/file/download`, {
+      params: createOptionalQueryParams({ path }),
+      responseType: 'blob'
+    })
+  }
+
+  saveWorkspaceFile(id: string, path: string, content: string) {
+    return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, { path, content })
+  }
+
+  uploadWorkspaceFileToFolder(id: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/workspace/file/upload`, formData)
+  }
+
+  deleteWorkspaceFile(id: string, path: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/workspace/file`, {
+      params: createOptionalQueryParams({ path })
     })
   }
 
@@ -441,25 +452,6 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       this.apiBaseUrl + `/${encodeURIComponent(identifier)}/chatkit-session`,
       { currentClientSecret },
       { withCredentials: true }
-    )
-  }
-
-  getEnterpriseH5Bootstrap(identifier: string, platform: TEnterpriseH5Platform) {
-    return this.httpClient.get<TEnterpriseH5ChatAppBootstrap>(
-      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/enterprise-h5/${encodeURIComponent(platform)}/bootstrap`
-    )
-  }
-
-  createEnterpriseH5Session(identifier: string, platform: TEnterpriseH5Platform, grant: TEnterpriseH5IdentityGrant) {
-    return this.httpClient.post<TEnterpriseH5ChatkitSession>(
-      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/enterprise-h5/${encodeURIComponent(platform)}/session`,
-      { grant }
-    )
-  }
-
-  getSsoProviders() {
-    return this.httpClient.get<{ fallbackApplied: boolean; providers: TSSOProviderDescriptor[] }>(
-      '/api/auth/sso/providers'
     )
   }
 

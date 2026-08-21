@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, inject, Input, signal } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
@@ -34,6 +35,7 @@ import {
   XpertToolsetService
 } from '../../../@core'
 import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from '../../../@shared/skills'
+import { XpertSkillUploadDialogComponent } from '../../xpert/workspace/skills/skill-upload-dialog.component'
 import {
   ClawXpertFacade,
   ClawXpertToolPreferenceSourceMetadata,
@@ -123,39 +125,52 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
           </div>
         } @else if (facade.loadingTriggerDraft()) {
           <div class="flex min-h-[20rem] flex-1 items-center justify-center px-6 text-sm text-text-secondary">
-            {{ 'XP.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
+            @if (skillsOnly) {
+              {{ 'XP.Chat.ClawXpert.LoadingWorkspaceSkills' | translate: { Default: 'Loading workspace skills…' } }}
+            } @else {
+              {{ 'XP.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
+            }
           </div>
         } @else if (facade.triggerDraftErrorMessage()) {
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
             <div class="mt-4 text-lg font-semibold text-text-primary">
-              {{
-                'XP.Chat.ClawXpert.ToolPreferencesLoadFailed'
-                  | translate: { Default: 'Failed to load skills and tools.' }
-              }}
+              @if (skillsOnly) {
+                {{
+                  'XP.Chat.ClawXpert.WorkspaceSkillsLoadFailed'
+                    | translate: { Default: 'Failed to load workspace skills' }
+                }}
+              } @else {
+                {{
+                  'XP.Chat.ClawXpert.ToolPreferencesLoadFailed'
+                    | translate: { Default: 'Failed to load skills and tools.' }
+                }}
+              }
             </div>
             <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
               {{ facade.triggerDraftErrorMessage() }}
             </p>
           </div>
         } @else {
-          <nav
-            z-tab-nav-bar
-            [tabPanel]="tabPanel"
-            color="accent"
-            alignTabs="start"
-            stretchTabs="false"
-            disableRipple
-            zSize="default"
-            class="border-b border-divider-regular px-5 pt-3"
-          >
-            <button z-tab-link type="button" [active]="activeTab() === 'skills'" (click)="selectTab('skills')">
-              {{ 'XP.Workflow.Skill' | translate: { Default: 'Skill' } }}
-            </button>
-            <button z-tab-link type="button" [active]="activeTab() === 'tools'" (click)="selectTab('tools')">
-              {{ 'XP.Common.Tools' | translate: { Default: 'Tools' } }}
-            </button>
-          </nav>
+          @if (!skillsOnly) {
+            <nav
+              z-tab-nav-bar
+              [tabPanel]="tabPanel"
+              color="accent"
+              alignTabs="start"
+              stretchTabs="false"
+              disableRipple
+              zSize="default"
+              class="border-b border-divider-regular px-5 pt-3"
+            >
+              <button z-tab-link type="button" [active]="activeTab() === 'skills'" (click)="selectTab('skills')">
+                {{ 'XP.Workflow.Skill' | translate: { Default: 'Skill' } }}
+              </button>
+              <button z-tab-link type="button" [active]="activeTab() === 'tools'" (click)="selectTab('tools')">
+                {{ 'XP.Common.Tools' | translate: { Default: 'Tools' } }}
+              </button>
+            </nav>
+          }
 
           <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
             @if (activeTab() === 'skills') {
@@ -163,33 +178,75 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                 <div class="border-b border-divider-regular px-5 py-4">
                   <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div class="text-sm font-medium text-text-primary">
-                        {{ 'XP.Chat.ClawXpert.SkillPreferencesTitle' | translate: { Default: 'Skill preferences' } }}
-                      </div>
+                      @if (skillsOnly) {
+                        <h1 class="text-2xl font-semibold text-text-primary">
+                          {{ 'XP.KEY_WORDS.Skills' | translate: { Default: '技能' } }}
+                        </h1>
+                      } @else {
+                        <div class="text-sm font-medium text-text-primary">
+                          {{ 'XP.Chat.ClawXpert.SkillPreferencesTitle' | translate: { Default: 'Skill preferences' } }}
+                        </div>
+                      }
                       <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-                        {{
-                          'XP.Chat.ClawXpert.SkillPreferencesDesc'
-                            | translate
-                              : {
-                                  Default:
-                                    'Choose which installed workspace skills stay available to this ClawXpert. Preferences are saved per user and used by runtime skill filtering.'
-                                }
-                        }}
+                        @if (skillsOnly) {
+                          {{
+                            'XP.Chat.ClawXpert.WorkspaceSkillsPageDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Upload team skill packages, or install and refresh built-in platform skills. These actions do not republish the business assistant.'
+                                  }
+                          }}
+                        } @else {
+                          {{
+                            'XP.Chat.ClawXpert.SkillPreferencesDesc'
+                              | translate
+                                : {
+                                    Default:
+                                      'Choose which installed workspace skills stay available to this ClawXpert. Preferences are saved per user and used by runtime skill filtering.'
+                                  }
+                          }}
+                        }
                       </p>
                     </div>
 
-                    <span
-                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
-                    >
-                      {{
-                        'XP.Chat.ClawXpert.SkillCount'
-                          | translate
-                            : {
-                                Default: '{count} skills',
-                                count: skillItems().length
-                              }
-                      }}
-                    </span>
+                    @if (skillsOnly) {
+                      <div class="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          z-button
+                          zType="outline"
+                          type="button"
+                          [disabled]="busy() || !skillWorkspaceId()"
+                          (click)="openSkillUploadDialog()"
+                        >
+                          <i class="ri-upload-2-line" aria-hidden="true"></i>
+                          {{ 'XP.Skill.UploadSkills' | translate: { Default: '上传技能' } }}
+                        </button>
+                        <button
+                          z-button
+                          zType="default"
+                          type="button"
+                          [disabled]="busy() || !skillWorkspaceId()"
+                          (click)="openSkillInstallDialog()"
+                        >
+                          <i class="ri-box-3-line" aria-hidden="true"></i>
+                          {{ 'XP.Chat.ClawXpert.InstallOrRefreshSkills' | translate: { Default: '安装/刷新内置技能' } }}
+                        </button>
+                      </div>
+                    } @else {
+                      <span
+                        class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                      >
+                        {{
+                          'XP.Chat.ClawXpert.SkillCount'
+                            | translate
+                              : {
+                                  Default: '{count} skills',
+                                  count: skillItems().length
+                                }
+                        }}
+                      </span>
+                    }
                   </div>
                 </div>
 
@@ -327,53 +384,55 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         </div>
                       }
 
-                      <div class="mt-6 rounded-2xl border border-divider-regular bg-background-default p-4">
-                        <div class="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div class="text-sm font-medium text-text-primary">
-                              {{
-                                'XP.Chat.ClawXpert.InstallWorkspaceSkillsTitle'
-                                  | translate: { Default: 'Install skills into this workspace' }
-                              }}
+                      @if (!skillsOnly) {
+                        <div class="mt-6 rounded-2xl border border-divider-regular bg-background-default p-4">
+                          <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div class="text-sm font-medium text-text-primary">
+                                {{
+                                  'XP.Chat.ClawXpert.InstallWorkspaceSkillsTitle'
+                                    | translate: { Default: 'Install skills into this workspace' }
+                                }}
+                              </div>
+                              <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                                {{
+                                  'XP.Chat.ClawXpert.InstallWorkspaceSkillsDesc'
+                                    | translate
+                                      : {
+                                          Default:
+                                            'Open the install dialog to browse repositories and add skills to the bound workspace. New skills appear above with the switch enabled by default.'
+                                        }
+                                }}
+                              </p>
                             </div>
-                            <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-                              {{
-                                'XP.Chat.ClawXpert.InstallWorkspaceSkillsDesc'
-                                  | translate
-                                    : {
-                                        Default:
-                                          'Open the install dialog to browse repositories and add skills to the bound workspace. New skills appear above with the switch enabled by default.'
-                                      }
-                              }}
-                            </p>
-                          </div>
 
-                          @if (installingSkillPackage()) {
-                            <span
-                              class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                            @if (installingSkillPackage()) {
+                              <span
+                                class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                              >
+                                {{ 'XP.Chat.ClawXpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
+                              </span>
+                            }
+                            <button
+                              z-button
+                              zType="default"
+                              type="button"
+                              [disabled]="busy() || !skillWorkspaceId()"
+                              (click)="openSkillInstallDialog()"
                             >
-                              {{ 'XP.Chat.ClawXpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
-                            </span>
-                          }
-                          <button
-                            z-button
-                            zType="default"
-                            type="button"
-                            [disabled]="busy() || !skillWorkspaceId()"
-                            (click)="openSkillInstallDialog()"
-                          >
-                            {{
-                              'XP.Chat.ClawXpert.BrowseWorkspaceSkills'
-                                | translate: { Default: 'Browse & install skills' }
-                            }}
-                          </button>
+                              {{
+                                'XP.Chat.ClawXpert.BrowseWorkspaceSkills'
+                                  | translate: { Default: 'Browse & install skills' }
+                              }}
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      }
                     }
                   }
                 </div>
               </div>
-            } @else {
+            } @else if (!skillsOnly) {
               <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div class="border-b border-divider-regular px-5 py-4">
                   <div class="flex flex-wrap items-start justify-between gap-3">
@@ -518,7 +577,20 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
   `
 })
 export class ClawXpertToolPreferencesComponent {
+  /** Render only the ClawXpert skill preferences when embedded from the workspace menu. */
+  readonly #skillsOnly = signal(false)
+
+  @Input()
+  set skillsOnly(value: boolean) {
+    this.#skillsOnly.set(value)
+  }
+
+  get skillsOnly() {
+    return this.#skillsOnly()
+  }
+
   readonly facade = inject(ClawXpertFacade)
+  readonly #uploadDialog = inject(Dialog, { optional: true })
   readonly #dialog = inject(ZardDialogService)
   readonly #toolsetService = inject(XpertToolsetService)
   readonly #xpertAgentService = inject(XpertAgentService)
@@ -644,6 +716,33 @@ export class ClawXpertToolPreferencesComponent {
   })
   readonly isBlocked = computed(() => this.facade.viewState() !== 'ready' || !this.facade.xpertId())
   readonly blockedState = computed(() => {
+    if (this.skillsOnly) {
+      if (!this.facade.organizationId()) {
+        return {
+          titleKey: 'XP.Chat.ClawXpert.SkillPreferenceOrganizationRequiredTitle',
+          defaultTitle: 'Choose an organization first',
+          descKey: 'XP.Chat.ClawXpert.SkillPreferenceOrganizationRequiredDesc',
+          defaultDesc: 'Select an organization and finish the ClawXpert setup before managing skills.'
+        }
+      }
+
+      if (!this.facade.resolvedPreference()) {
+        return {
+          titleKey: 'XP.Chat.ClawXpert.SkillPreferenceBindingRequiredTitle',
+          defaultTitle: 'Bind ClawXpert before managing skills',
+          descKey: 'XP.Chat.ClawXpert.SkillPreferenceBindingRequiredDesc',
+          defaultDesc: 'Once the ClawXpert binding is ready, this page will load skills from its workspace.'
+        }
+      }
+
+      return {
+        titleKey: 'XP.Chat.ClawXpert.SkillPreferenceUnavailableTitle',
+        defaultTitle: 'Skill preferences are temporarily unavailable',
+        descKey: 'XP.Chat.ClawXpert.SkillPreferenceUnavailableDesc',
+        defaultDesc: 'The ClawXpert shell must be ready before skills can be managed.'
+      }
+    }
+
     if (!this.facade.organizationId()) {
       return {
         titleKey: 'XP.Chat.ClawXpert.ToolPreferenceOrganizationRequiredTitle',
@@ -722,6 +821,24 @@ export class ClawXpertToolPreferencesComponent {
       .subscribe((result) => {
         if (result) {
           this.handleSkillInstallDialogResult(result)
+        }
+      })
+  }
+
+  openSkillUploadDialog() {
+    const workspaceId = this.skillWorkspaceId()
+    if (!workspaceId || this.busy() || !this.#uploadDialog) {
+      return
+    }
+
+    this.#uploadDialog
+      .open(XpertSkillUploadDialogComponent, {
+        data: { workspaceId }
+      })
+      .closed.pipe(take(1))
+      .subscribe((result) => {
+        if (result) {
+          this.refreshSkills()
         }
       })
   }

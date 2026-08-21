@@ -1,5 +1,10 @@
 import {
+  addWorkspaceConnectorMenuItem,
+  addWorkspaceMoreMenuItem,
+  addWorkspaceSkillMenuItem,
+  buildWorkspaceModuleMenuLink,
   buildCloudSidebarMenuGroups,
+  getWorkspaceModuleSection,
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
   isExternalCloudMenuItem
@@ -42,7 +47,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       groups
         .find((group) => group.key === 'work')
         ?.entries.map((entry) => (entry.item ? entry.item.link : 'assistants'))
-    ).toEqual(['/chat/clawxpert', 'assistants', '/chat/tasks'])
+    ).toEqual(['/chat/clawxpert', '/chat/tasks', 'assistants'])
     expect(groups.find((group) => group.key === 'modules')?.items.map((item) => item.link)).toEqual([
       '/data',
       '/explore'
@@ -70,19 +75,149 @@ describe('buildCloudSidebarMenuGroups', () => {
     })
   })
 
-  it('places the scheduled task menu below the assistant slot when it is the only work entry', () => {
+  it('places the scheduled task menu above the assistant slot when it is the only work entry', () => {
     const groups = buildCloudSidebarMenuGroups([menu({ title: 'Scheduled', link: '/chat/tasks' })])
 
     expect(groups).toHaveLength(1)
     expect(groups[0].key).toBe('work')
     expect(groups[0].entries.map((entry) => (entry.item ? entry.item.link : 'assistants'))).toEqual([
-      'assistants',
+      '/chat/tasks',
+      'assistants'
+    ])
+  })
+
+  it('adds the current workspace connector entry after new task', () => {
+    const groups = buildCloudSidebarMenuGroups([
+      menu({ title: 'New task', link: '/chat/clawxpert/c' }),
+      menu({ title: 'Scheduled', link: '/chat/tasks' }),
+      menu({ title: 'Workspace', link: '/xpert' }),
+      menu({ title: 'Explore', link: '/explore' })
+    ])
+
+    const updated = addWorkspaceConnectorMenuItem(groups, 'workspace/1')
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.link)).toEqual([
+      '/chat/clawxpert/c',
+      '/xpert/w/workspace%2F1/connectors',
       '/chat/tasks'
+    ])
+    expect(work?.items[1]).toMatchObject({
+      title: '连接器',
+      icon: 'ri-share-line',
+      pathMatch: 'prefix',
+      data: { translationKey: 'Connectors', workspaceSection: 'connectors' }
+    })
+  })
+
+  it('keeps the connector entry visible while the selected workspace is loading', () => {
+    const groups = buildCloudSidebarMenuGroups([menu({ title: 'New task', link: '/chat/clawxpert/c' })])
+
+    expect(addWorkspaceConnectorMenuItem(groups).find((group) => group.key === 'work')?.items).toMatchObject([
+      {
+        title: 'New task',
+        link: '/chat/clawxpert/c'
+      },
+      {
+        title: '连接器',
+        link: '/xpert/w?section=connectors'
+      }
+    ])
+  })
+
+  it('keeps skills and connectors visible before a workspace has been selected', () => {
+    const withConnector = addWorkspaceConnectorMenuItem([])
+    const updated = addWorkspaceSkillMenuItem(withConnector)
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.link)).toEqual(['/xpert/w?section=skills', '/xpert/w?section=connectors'])
+    expect(work?.entries.at(-1)).toEqual({ kind: 'assistants', item: null })
+  })
+
+  it('keeps workspace modules visible when the work menu has no permission-gated entries', () => {
+    const groups = buildCloudSidebarMenuGroups([])
+
+    const withConnector = addWorkspaceConnectorMenuItem(groups, 'workspace/1')
+    const updated = addWorkspaceSkillMenuItem(withConnector, 'workspace/1')
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.link)).toEqual([
+      '/xpert/w/workspace%2F1/skills',
+      '/xpert/w/workspace%2F1/connectors'
+    ])
+    expect(work?.entries.at(-1)).toEqual({ kind: 'assistants', item: null })
+  })
+
+  it('adds the current workspace skills entry before the connector entry', () => {
+    const groups = buildCloudSidebarMenuGroups([
+      menu({ title: 'New task', link: '/chat/clawxpert/c' }),
+      menu({ title: 'Scheduled', link: '/chat/tasks' })
+    ])
+
+    const withConnector = addWorkspaceConnectorMenuItem(groups, 'workspace/1')
+    const updated = addWorkspaceSkillMenuItem(withConnector, 'workspace/1')
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.link)).toEqual([
+      '/chat/clawxpert/c',
+      '/xpert/w/workspace%2F1/skills',
+      '/xpert/w/workspace%2F1/connectors',
+      '/chat/tasks'
+    ])
+    expect(work?.items[0]).toMatchObject({
+      title: 'New task',
+      link: '/chat/clawxpert/c'
+    })
+    expect(work?.items[1]).toMatchObject({
+      title: '技能',
+      icon: 'ri-pencil-ruler-line',
+      pathMatch: 'prefix',
+      data: { translationKey: 'Skills', workspaceSection: 'skills' }
+    })
+  })
+
+  it('adds the Data Xpert-style more section with independent workspace pages', () => {
+    const groups = buildCloudSidebarMenuGroups([
+      menu({ title: 'New task', link: '/chat/clawxpert/c' }),
+      menu({ title: 'Scheduled', link: '/chat/tasks' })
+    ])
+
+    const updated = addWorkspaceMoreMenuItem(
+      addWorkspaceSkillMenuItem(addWorkspaceConnectorMenuItem(groups, 'workspace/1'), 'workspace/1'),
+      'workspace/1'
+    )
+    const work = updated.find((group) => group.key === 'work')
+    const more = work?.items.find((item) => item.data?.translationKey === 'More')
+
+    expect(work?.items.map((item) => item.data?.workspaceSection ?? item.data?.translationKey ?? item.link)).toEqual([
+      '/chat/clawxpert/c',
+      'skills',
+      'connectors',
+      '/chat/tasks',
+      'More'
+    ])
+    expect(more?.children).toMatchObject([
+      { title: '我的文件', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
+      { title: '我的知识库', link: '/xpert/w/workspace%2F1/knowledges', data: { workspaceSection: 'knowledges' } },
+      { title: '工作区设置', link: '/xpert/w/workspace%2F1/settings', data: { workspaceSection: 'settings' } }
     ])
   })
 })
 
 describe('cloud sidebar menu helpers', () => {
+  it('builds independent workspace module links without using task or conversation routes', () => {
+    expect(buildWorkspaceModuleMenuLink('skills', 'workspace/1')).toBe('/xpert/w/workspace%2F1/skills')
+    expect(buildWorkspaceModuleMenuLink('connectors', 'workspace/1')).toBe('/xpert/w/workspace%2F1/connectors')
+    expect(buildWorkspaceModuleMenuLink('skills')).toBe('/xpert/w?section=skills')
+    expect(buildWorkspaceModuleMenuLink('connectors')).toBe('/xpert/w?section=connectors')
+    expect(buildWorkspaceModuleMenuLink('files', 'workspace/1')).toBe('/xpert/w/workspace%2F1/files')
+    expect(buildWorkspaceModuleMenuLink('knowledges', 'workspace/1')).toBe('/xpert/w/workspace%2F1/knowledges')
+    expect(buildWorkspaceModuleMenuLink('settings', 'workspace/1')).toBe('/xpert/w/workspace%2F1/settings')
+    expect(getWorkspaceModuleSection(menu({ data: { workspaceSection: 'skills' }, link: '/chat/clawxpert/c' }))).toBe(
+      'skills'
+    )
+  })
+
   it('detects external links from either the flag or URL', () => {
     expect(isExternalCloudMenuItem(menu({ link: '/chat' }))).toBe(false)
     expect(isExternalCloudMenuItem(menu({ link: '/x', external: true }))).toBe(true)
