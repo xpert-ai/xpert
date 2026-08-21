@@ -17,6 +17,7 @@ export interface RuntimePluginStateItem {
 	pluginName: string
 	packageName?: string
 	version?: string
+	runtimeRevision?: string
 }
 
 export interface RuntimePluginFailureItem {

@@ -20,8 +20,14 @@ export interface PendingPluginRuntimeRestart {
   pluginNames: string[]
   requestedAt: string
   restartId?: string
+  generation?: number
   runtimeRequirements?: IRuntimePluginRequirement[]
   error?: string
+}
+
+interface RuntimeRestartInProgressPayload {
+  errorCode: 'RUNTIME_RESTART_IN_PROGRESS'
+  restartId: string
 }
 
 interface PendingPluginRuntimeConvergence {
@@ -43,14 +49,18 @@ export class PluginRuntimeRestartService {
   readonly convergence = signal<PendingPluginRuntimeConvergence | null>(this.readConvergence())
   readonly restartCapability = signal<IRuntimeRestartCapability | null>(null)
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
-  readonly requiresManualRestart = computed(() => !!this.pending() && !this.pending()?.restartId)
-  readonly isApplyingInBackground = computed(() => !!this.convergence() || !!this.pending()?.restartId)
+  readonly requiresManualRestart = computed(
+    () => !!this.pending() && !this.pending()?.restartId && !this.pending()?.generation
+  )
+  readonly isApplyingInBackground = computed(
+    () => !!this.convergence() || !!this.pending()?.restartId || !!this.pending()?.generation
+  )
   readonly lastError = computed(() => this.pending()?.error ?? null)
   readonly backgroundPluginNames = computed(() =>
     Array.from(
       new Set([
         ...(this.convergence()?.pluginNames ?? []),
-        ...(this.pending()?.restartId ? (this.pending()?.pluginNames ?? []) : [])
+        ...(this.pending()?.restartId || this.pending()?.generation ? (this.pending()?.pluginNames ?? []) : [])
       ])
     )
   )
@@ -122,7 +132,7 @@ export class PluginRuntimeRestartService {
   }
 
   async prompt() {
-    if (!this.canRestart() || this.#prompting || this.pending()?.restartId) {
+    if (!this.canRestart() || this.#prompting || this.pending()?.restartId || this.pending()?.generation) {
       return
     }
 
@@ -147,7 +157,7 @@ export class PluginRuntimeRestartService {
   }
 
   async confirmAndRestart() {
-    if (!this.canRestart() || this.pending()?.restartId) {
+    if (!this.canRestart() || this.pending()?.restartId || this.pending()?.generation) {
       return
     }
 
@@ -173,7 +183,7 @@ export class PluginRuntimeRestartService {
       await this.startRestartInBackground()
     } catch (error) {
       const activeRestartId = this.restartInProgressId(error)
-      if (activeRestartId) {
+      if (activeRestartId && !this.pending()?.runtimeRequirements?.length) {
         this.trackRestart(activeRestartId, 0)
         return
       }
@@ -190,8 +200,22 @@ export class PluginRuntimeRestartService {
       })
     )
 
-    this.trackRestart(restart.restartId, Math.max(RESTART_POLL_MS, restart.signalAfterMs + 500))
+    if (restart.pluginGeneration) {
+      this.trackPendingGeneration(restart.pluginGeneration)
+    } else {
+      this.trackRestart(restart.restartId, Math.max(RESTART_POLL_MS, restart.signalAfterMs + 500))
+    }
     return restart
+  }
+
+  private trackPendingGeneration(generation: number) {
+    const pending = this.pending()
+    if (pending) {
+      const current = { ...pending }
+      delete current.error
+      this.setPending({ ...current, generation })
+    }
+    void this.monitorPendingGeneration(generation)
   }
 
   private trackRestart(restartId: string, initialDelay: number) {
@@ -216,6 +240,8 @@ export class PluginRuntimeRestartService {
     }
     if (pending.restartId) {
       void this.monitorRestart(pending.restartId, 0)
+    } else if (pending.generation) {
+      void this.monitorPendingGeneration(pending.generation)
     }
   }
 
@@ -245,6 +271,22 @@ export class PluginRuntimeRestartService {
           runtimeRequirements: current.runtimeRequirements,
           error: getErrorMessage(error)
         })
+      }
+    }
+  }
+
+  private async monitorPendingGeneration(generation: number) {
+    try {
+      await this.pollPluginConvergence(generation)
+      if (this.pending()?.generation === generation) {
+        this.clearPending()
+      }
+    } catch (error) {
+      const current = this.pending()
+      if (current?.generation === generation) {
+        const retryable = { ...current, error: getErrorMessage(error) }
+        delete retryable.generation
+        this.setPending(retryable)
       }
     }
   }
@@ -327,18 +369,22 @@ export class PluginRuntimeRestartService {
   }
 
   private restartInProgressId(error: unknown): string | null {
-    if (
-      !(error instanceof HttpErrorResponse) ||
-      error.status !== 409 ||
-      !error.error ||
-      typeof error.error !== 'object'
-    ) {
+    if (!(error instanceof HttpErrorResponse) || error.status !== 409) {
       return null
     }
-    const response = error.error as Record<string, unknown>
-    return response.errorCode === 'RUNTIME_RESTART_IN_PROGRESS' && typeof response.restartId === 'string'
-      ? response.restartId
-      : null
+    return this.isRuntimeRestartInProgressPayload(error.error) ? error.error.restartId : null
+  }
+
+  private isRuntimeRestartInProgressPayload(value: unknown): value is RuntimeRestartInProgressPayload {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'errorCode' in value &&
+      value.errorCode === 'RUNTIME_RESTART_IN_PROGRESS' &&
+      'restartId' in value &&
+      typeof value.restartId === 'string' &&
+      value.restartId.length > 0
+    )
   }
 
   private restartDescription() {
@@ -397,6 +443,7 @@ export class PluginRuntimeRestartService {
         pluginNames: parsed.pluginNames.filter((name): name is string => typeof name === 'string'),
         requestedAt: parsed.requestedAt,
         ...(typeof parsed.restartId === 'string' ? { restartId: parsed.restartId } : {}),
+        ...(typeof parsed.generation === 'number' ? { generation: parsed.generation } : {}),
         ...(typeof parsed.error === 'string' ? { error: parsed.error } : {}),
         ...(Array.isArray(parsed.runtimeRequirements)
           ? { runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[] }

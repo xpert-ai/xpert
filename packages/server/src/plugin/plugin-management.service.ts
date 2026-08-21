@@ -78,7 +78,7 @@ import {
 	resolveLoadedPluginBundleRoot
 } from './plugin-bundle-manifest'
 import { RuntimeControlService } from '../runtime-control/runtime-control.service'
-import { PluginRuntimeStateService } from './plugin-runtime-state.service'
+import { PluginRuntimeStateService, resolvePluginRuntimeRevision } from './plugin-runtime-state.service'
 
 @Injectable()
 export class PluginManagementService {
@@ -365,16 +365,8 @@ export class PluginManagementService {
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const runtimePluginName =
-				source === 'code'
-					? isRestartRequiredPluginLevel(level)
-						? this.createCodeRuntimePluginName(packageName)
-						: (getCodeRuntimeName(sourceConfig) ?? this.createCodeRuntimePluginName(packageName))
-					: packageNameWithVersion
-			if (
-				source === 'code' &&
-				(packageDir || isRestartRequiredPluginLevel(level)) &&
-				getCodeRuntimeName(sourceConfig) !== runtimePluginName
-			) {
+				source === 'code' ? this.createCodeRuntimePluginName(packageName) : packageNameWithVersion
+			if (source === 'code' && getCodeRuntimeName(sourceConfig) !== runtimePluginName) {
 				sourceConfig = {
 					...sourceConfig,
 					runtimeName: runtimePluginName
@@ -488,6 +480,7 @@ export class PluginManagementService {
 							...((stagedCompatibility.version ?? body.version)
 								? { version: stagedCompatibility.version ?? body.version }
 								: {}),
+							...(source === 'code' ? { runtimeRevision: `runtime:${runtimePluginName}` } : {}),
 							state: 'loaded'
 						}
 					]
@@ -722,17 +715,24 @@ export class PluginManagementService {
 			})
 			clearPluginLoadFailure(scope.scopeKey, pluginName, packageName)
 			await this.runtimeState.report()
-			const convergence = await this.runtimeControl.recordPluginRuntimeChange({
-				pluginName,
-				version: plugin.meta?.version,
-				scopeKey: scope.scopeKey
+			const runtimeRevision = resolvePluginRuntimeRevision({
+				source,
+				sourceConfig,
+				baseDir: pluginBaseDir
 			})
 			const runtimeRequirement = {
 				scopeKey: scope.scopeKey,
 				pluginName,
 				...(plugin.meta?.version ? { version: plugin.meta.version } : {}),
+				...(runtimeRevision ? { runtimeRevision } : {}),
 				state: 'loaded' as const
 			}
+			const convergence = await this.runtimeControl.recordPluginRuntimeChange({
+				pluginName,
+				version: plugin.meta?.version,
+				runtimeRevision,
+				scopeKey: scope.scopeKey
+			})
 
 			return {
 				success: true,
