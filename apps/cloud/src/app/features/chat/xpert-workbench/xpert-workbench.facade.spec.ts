@@ -32,6 +32,7 @@ describe('XpertWorkbenchFacade', () => {
   let router: {
     events: Subject<NavigationEnd>
     navigate: jest.Mock
+    parseUrl: jest.Mock
     url: string
   }
   let store: {
@@ -53,6 +54,7 @@ describe('XpertWorkbenchFacade', () => {
     router = {
       events: routerEvents,
       navigate: jest.fn().mockResolvedValue(true),
+      parseUrl: jest.fn((url: string) => ({ queryParams: parseQueryParams(url) })),
       url: '/chat/x/sales/c'
     }
     store = {
@@ -166,9 +168,7 @@ describe('XpertWorkbenchFacade', () => {
         updatedAt: 'DESC'
       }
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'], {
-      queryParamsHandling: 'preserve'
-    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'])
     expect(control.focusComposer).not.toHaveBeenCalled()
   })
 
@@ -189,58 +189,27 @@ describe('XpertWorkbenchFacade', () => {
     await settle()
     facade.onChatThreadChange('thread-2')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'], {
-      queryParamsHandling: 'preserve'
-    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'])
 
     setRoute('/chat/x/sales/c/thread-2')
     facade.onChatThreadChange(null)
 
     expect(facade.suppressAutoResume()).toBe(true)
-    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
-      queryParamsHandling: 'preserve'
-    })
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'])
   })
 
-  it('isolates project history and preserves the project route', async () => {
-    router.url = '/chat/x/sales/p/project-1/c'
+  it('preserves the selected assistant view while resuming a thread', async () => {
     conversationService.findAllByXpert.mockReturnValue(
-      of({
-        items: [
-          {
-            id: 'conversation-1',
-            threadId: 'thread-1',
-            projectId: 'project-1'
-          } as IChatConversation
-        ]
-      })
+      of({ items: [{ id: 'conversation-1', threadId: 'thread-1' } as IChatConversation] })
     )
-
+    router.url = '/chat/x/sales/c?view=sales-orders'
     const facade = TestBed.inject(XpertWorkbenchFacade)
-    const control = createMockChatKitControl()
 
     await settle()
-    await facade.ensureConversationEntry(control)
+    await facade.ensureConversationEntry(createMockChatKitControl())
 
-    expect(facade.projectId()).toBe('project-1')
-    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1:project-1')
-    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-1', {
-      take: 1,
-      order: {
-        updatedAt: 'DESC'
-      },
-      where: {
-        projectId: 'project-1'
-      }
-    })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c', 'thread-1'], {
-      queryParamsHandling: 'preserve'
-    })
-
-    facade.onChatThreadChange('thread-2')
-
-    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c', 'thread-2'], {
-      queryParamsHandling: 'preserve'
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'], {
+      queryParams: { view: 'sales-orders' }
     })
   })
 
@@ -260,6 +229,16 @@ describe('XpertWorkbenchFacade', () => {
       fetchUpdates: jest.fn().mockResolvedValue(undefined),
       sendCustomAction: jest.fn().mockResolvedValue(undefined)
     } satisfies ChatKitControl
+  }
+
+  function parseQueryParams(url: string) {
+    const query = url.split('?')[1] ?? ''
+    return Object.fromEntries(
+      query
+        .split('&')
+        .filter(Boolean)
+        .map((entry) => entry.split('=').map((part) => decodeURIComponent(part)))
+    )
   }
 })
 

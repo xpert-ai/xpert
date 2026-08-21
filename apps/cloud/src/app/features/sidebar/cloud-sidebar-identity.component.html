@@ -11,12 +11,13 @@
         (cdkMenuOpened)="loadOrganizations()"
         (closed)="resetSearch()"
       >
-        <img class="cloud-sidebar-identity__logo" src="/assets/icon.png" alt="Xpert AI" />
+        <span class="cloud-sidebar-identity__logo" aria-hidden="true">{{ scopeMark() }}</span>
         <span class="cloud-sidebar-identity__copy">
-          <span class="cloud-sidebar-identity__title">{{ scopeLabel() }}</span>
-          <span class="cloud-sidebar-identity__subtitle">{{ scopeEyebrow() }} · Xpert AI</span>
+          <span class="cloud-sidebar-identity__eyebrow">
+            {{ scopeContextLabel() }}
+          </span>
+          <span class="cloud-sidebar-identity__title">{{ scopeDisplayName() }}</span>
         </span>
-        <i class="ri-arrow-down-s-line cloud-sidebar-identity__chevron"></i>
       </button>
 
       <button

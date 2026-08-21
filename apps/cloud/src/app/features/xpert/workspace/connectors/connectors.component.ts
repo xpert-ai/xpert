@@ -19,7 +19,7 @@ import type {
   ConnectorInstance,
   ConnectorStrategyDefinition
 } from '@xpert-ai/plugin-sdk/connector'
-import { Link2Off } from 'lucide-angular'
+import { AlertCircle, Cable, Link2Off, LoaderCircle, RefreshCw, Unplug } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
@@ -60,11 +60,18 @@ export class XpertConnectorsComponent {
   readonly definitions = signal<ConnectorStrategyDefinition[]>([])
   readonly connectors = signal<ConnectorInstance[]>([])
   readonly loading = signal(false)
+  readonly errorMessage = signal<string | null>(null)
   readonly connectingProvider = signal<string | null>(null)
   readonly pollingConnectorId = signal<string | null>(null)
   readonly disconnectingConnectorId = signal<string | null>(null)
   readonly pendingAuthorizationUrls = signal<Record<string, string>>({})
   readonly reloadKey = signal(0)
+  readonly skeletonCards = [0, 1, 2, 3]
+  readonly connectorIcon = Cable
+  readonly refreshIcon = RefreshCw
+  readonly disconnectActionIcon = Unplug
+  readonly errorIcon = AlertCircle
+  readonly loadingIcon = LoaderCircle
   readonly disconnectIcon = Link2Off
   #authorizationPollTimer: ReturnType<typeof setTimeout> | null = null
   #authorizationPopup: Window | null = null
@@ -90,6 +97,7 @@ export class XpertConnectorsComponent {
 
   async load(workspaceId: string) {
     this.loading.set(true)
+    this.errorMessage.set(null)
     try {
       const [definitions, connectors] = await Promise.all([
         firstValueFrom(this.#connectorService.definitions(workspaceId)),
@@ -101,9 +109,17 @@ export class XpertConnectorsComponent {
       this.prepareConnectorForms(definitions, connectors)
       await this.recoverPendingAuthorizations(workspaceId, connectors)
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
+      const message = getErrorMessage(error)
+      this.errorMessage.set(message)
+      this.#toastr.error(message)
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  refresh() {
+    if (this.workspaceId()) {
+      this.reloadKey.update((value) => value + 1)
     }
   }
 
@@ -184,7 +200,9 @@ export class XpertConnectorsComponent {
   }
 
   connectorFor(definition: ConnectorStrategyDefinition) {
-    return this.connectors().find((item) => item.provider === definition.provider) ?? null
+    return (
+      this.connectors().find((item) => item.provider === definition.provider && item.status !== 'disconnected') ?? null
+    )
   }
 
   authMethodsFor(definition: ConnectorStrategyDefinition): ConnectorAuthMethodDefinition[] {
@@ -254,6 +272,15 @@ export class XpertConnectorsComponent {
 
   iconImageUrl(definition: ConnectorStrategyDefinition) {
     return definition.icon?.type === 'image' && typeof definition.icon.value === 'string' ? definition.icon.value : null
+  }
+
+  descriptionFor(definition: ConnectorStrategyDefinition) {
+    return definition.description ?? definition.provider
+  }
+
+  profileLabel(connector: ConnectorInstance) {
+    const profile = connector.profile
+    return profile?.name || profile?.email || profile?.openId || connector.id
   }
 
   isConnecting(definition: ConnectorStrategyDefinition) {

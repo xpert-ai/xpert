@@ -5,6 +5,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { Observable, combineLatest, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
@@ -20,7 +21,8 @@ import {
   RequestScopeLevel,
   ScopeService,
   Store,
-  XpertAPIService
+  XpertAPIService,
+  ViewExtensionApiService
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
@@ -53,6 +55,26 @@ const ALL_ASSISTANT_CATEGORY = 'all'
 const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
+const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
+
+type AssistantMenuItem = {
+  viewKey: string
+  title: string
+  icon: IconDefinition | null
+  order: number
+}
+
+type AssistantMenuState = {
+  loading: boolean
+  items: AssistantMenuItem[]
+  error: boolean
+}
+
+const EMPTY_ASSISTANT_MENU_STATE: AssistantMenuState = {
+  loading: false,
+  items: [],
+  error: false
+}
 
 @Component({
   standalone: true,
@@ -73,9 +95,12 @@ export class CloudSidebarAssistantsComponent {
   readonly collapsed = input(false)
   readonly enabled = input(true)
   readonly mode = input<CloudSidebarAssistantsMode>('list')
+  readonly embedded = input(false)
 
   readonly expanded = signal(true)
   readonly moreExpanded = signal(false)
+  readonly expandedAssistantId = signal<string | null>(null)
+  readonly assistantMenus = signal<Record<string, AssistantMenuState>>({})
   readonly query = signal('')
   readonly category = signal(ALL_ASSISTANT_CATEGORY)
 
@@ -85,6 +110,7 @@ export class CloudSidebarAssistantsComponent {
   readonly #router = inject(Router)
   readonly #scopeService = inject(ScopeService)
   readonly #store = inject(Store)
+  readonly #viewExtensionApi = inject(ViewExtensionApiService, { optional: true })
   readonly #xpertAPI = inject(XpertAPIService)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
   readonly #unreadPoll$ = new Observable<void>((subscriber) =>
@@ -410,6 +436,50 @@ export class CloudSidebarAssistantsComponent {
     void this.#router.navigate(unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c'])
   }
 
+  toggleAssistantExpanded(event: Event, xpert: IXpert) {
+    event.stopPropagation()
+    const assistantId = xpert.id?.trim()
+    if (!assistantId) {
+      return
+    }
+
+    if (this.expandedAssistantId() === assistantId) {
+      this.expandedAssistantId.set(null)
+      return
+    }
+
+    this.expandedAssistantId.set(assistantId)
+    this.loadAssistantMenu(xpert)
+  }
+
+  isAssistantExpanded(xpert: IXpert) {
+    return !!xpert.id && this.expandedAssistantId() === xpert.id
+  }
+
+  assistantMenuId(xpert: IXpert) {
+    return `cloud-sidebar-assistant-menu-${xpert.id || 'unknown'}`
+  }
+
+  assistantMenuState(xpert: IXpert) {
+    return xpert.id ? (this.assistantMenus()[xpert.id] ?? EMPTY_ASSISTANT_MENU_STATE) : EMPTY_ASSISTANT_MENU_STATE
+  }
+
+  openAssistantMenuItem(event: Event, xpert: IXpert, item: AssistantMenuItem) {
+    event.stopPropagation()
+    const routeId = getAssistantRouteId(xpert)
+    if (!routeId) {
+      return
+    }
+
+    const unreadThreadId = this.getLatestUnreadThreadId(xpert.id)
+    const commands = unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c']
+    void this.#router.navigate(commands, {
+      queryParams: {
+        view: item.viewKey
+      }
+    })
+  }
+
   openAssistantSettings(event: Event, xpert: IXpert) {
     event.stopPropagation()
     if (!this.canEditAssistant(xpert)) {
@@ -501,6 +571,50 @@ export class CloudSidebarAssistantsComponent {
 
   toggleExpanded() {
     this.expanded.update((expanded) => !expanded)
+  }
+
+  private loadAssistantMenu(xpert: IXpert) {
+    const assistantId = xpert.id?.trim()
+    if (!assistantId || !this.#viewExtensionApi) {
+      return
+    }
+
+    const current = this.assistantMenus()[assistantId]
+    if (current?.loading || current?.items.length) {
+      return
+    }
+
+    this.updateAssistantMenu(assistantId, {
+      loading: true,
+      items: current?.items ?? [],
+      error: false
+    })
+
+    this.#viewExtensionApi
+      .getSlotViews('agent', assistantId, AGENT_WORKBENCH_FIXED_SLOT)
+      .pipe(
+        map((manifests) =>
+          manifests
+            .filter(shouldShowAssistantMenuItem)
+            .map((manifest) => toAssistantMenuItem(manifest))
+            .sort((left, right) => left.order - right.order)
+        ),
+        catchError(() => of(null as AssistantMenuItem[] | null))
+      )
+      .subscribe((items) => {
+        this.updateAssistantMenu(assistantId, {
+          loading: false,
+          items: items ?? [],
+          error: items === null
+        })
+      })
+  }
+
+  private updateAssistantMenu(assistantId: string, state: AssistantMenuState) {
+    this.assistantMenus.update((menus) => ({
+      ...menus,
+      [assistantId]: state
+    }))
   }
 
   toggleMore(event: Event) {
@@ -653,4 +767,47 @@ function getLocalStorage() {
   } catch {
     return null
   }
+}
+
+function shouldShowAssistantMenuItem(manifest: XpertExtensionViewManifest) {
+  return (
+    manifest.visible !== false && manifest.workbench?.fixed !== false && manifest.workbench?.menu?.enabled !== false
+  )
+}
+
+function toAssistantMenuItem(manifest: XpertExtensionViewManifest): AssistantMenuItem {
+  const menu = manifest.workbench?.menu
+
+  return {
+    viewKey: manifest.key,
+    title: resolveAssistantMenuText(menu?.label ?? manifest.title, manifest.key),
+    icon: menu?.icon ?? manifest.icon ?? null,
+    order: menu?.order ?? manifest.order ?? Number.MAX_SAFE_INTEGER
+  }
+}
+
+function resolveAssistantMenuText(value: unknown, fallback: string) {
+  if (typeof value === 'string') {
+    return value.trim() || fallback
+  }
+
+  if (!value || typeof value !== 'object') {
+    return fallback
+  }
+
+  const languageKeys = ['zh_Hans', 'zh-Hans', 'en_US', 'en-US', 'en']
+  for (const key of languageKeys) {
+    const candidate = Reflect.get(value, key)
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  for (const candidate of Object.values(value)) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return fallback
 }

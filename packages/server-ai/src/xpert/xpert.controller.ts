@@ -1,7 +1,6 @@
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
-    isEnterpriseH5Platform,
     IChatConversation,
     IIntegration,
     IXpert,
@@ -72,6 +71,8 @@ import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
+import { createReadStream } from 'fs'
+import archiver from 'archiver'
 import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -652,6 +653,82 @@ export class XpertController extends CrudController<Xpert> {
     }
 
     @UseGuards(XpertGuard)
+    @Get(':id/workspace/files')
+    async listWorkspaceFiles(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string,
+        @Query('deepth') deepth: number
+    ) {
+        return this.workspaceFilesService.list(id, path, deepth)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/workspace/file')
+    async readWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        return this.workspaceFilesService.read(id, path)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/workspace/file/download')
+    async downloadWorkspaceFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string,
+        @Res() res: Response
+    ) {
+        const file = await this.workspaceFilesService.download(id, path)
+        const encodedFilename = encodeURIComponent(file.fileName)
+        res.setHeader('Content-Type', file.mimeType)
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+        )
+
+        if (file.type === 'directory') {
+            const archive = archiver('zip', { zlib: { level: 9 } })
+            archive.on('error', (error) => res.destroy(error))
+            archive.pipe(res)
+            archive.directory(file.absolutePath, false)
+            await archive.finalize()
+            return
+        }
+
+        createReadStream(file.absolutePath).pipe(res)
+    }
+
+    @UseGuards(XpertGuard)
+    @Put(':id/workspace/file')
+    async saveWorkspaceFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body() body: { path: string; content: string }
+    ) {
+        return this.workspaceFilesService.save(id, body?.path, body?.content ?? '')
+    }
+
+    @UseGuards(XpertGuard)
+    @Post(':id/workspace/file/upload')
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
+    async uploadWorkspaceFileToFolder(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body('path') path: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileUploadRequired', {
+                    defaultValue: 'Workspace file is required.'
+                })
+            )
+        }
+        return this.workspaceFilesService.uploadToFolder(id, path, file)
+    }
+
+    @UseGuards(XpertGuard)
+    @Delete(':id/workspace/file')
+    async deleteWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        return this.workspaceFilesService.delete(id, path)
+    }
+
+    @UseGuards(XpertGuard)
     @Post(':id/workspace/files/upload')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async uploadWorkspaceFile(
@@ -1006,11 +1083,6 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/app')
     async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
         const xpert = await this.service.findOne(id)
-        for (const platform of Object.keys(app.channels ?? {})) {
-            if (!isEnterpriseH5Platform(platform)) {
-                throw new BadRequestException(t('server-ai:Error.EnterpriseH5PlatformUnsupported'))
-            }
-        }
         await this.service.updateXpert(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)

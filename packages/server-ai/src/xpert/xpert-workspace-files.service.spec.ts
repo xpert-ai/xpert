@@ -1,4 +1,5 @@
-jest.mock('@xpert-ai/server-core', () => ({
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
         currentUserId: jest.fn()
     }
@@ -13,8 +14,9 @@ jest.mock('./xpert.service', () => ({
 }))
 
 import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'node:crypto'
+import { VolumeSubtreeClient } from '../shared/volume'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 
 describe('XpertWorkspaceFilesService', () => {
@@ -40,7 +42,7 @@ describe('XpertWorkspaceFilesService', () => {
         const xpertService = {
             findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', tenantId: 'tenant-1' })
         }
-        const service = new XpertWorkspaceFilesService(xpertService, { createScopedApi })
+        const service = new XpertWorkspaceFilesService(xpertService, { createScopedApi }, { resolve: jest.fn() })
         const file = {
             originalname: 'report.html',
             mimetype: 'text/html',
@@ -81,7 +83,8 @@ describe('XpertWorkspaceFilesService', () => {
             {
                 findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', tenantId: 'tenant-1' })
             },
-            { createScopedApi }
+            { createScopedApi },
+            { resolve: jest.fn() }
         )
         const file = {
             originalname: 'report.html',
@@ -102,5 +105,30 @@ describe('XpertWorkspaceFilesService', () => {
                 catalog: expect.anything()
             })
         )
+    })
+
+    it('lists the bound xpert workspace without requiring a conversation', async () => {
+        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
+        const volume = { name: 'xpert-volume' }
+        const resolve = jest.fn().mockReturnValue(volume)
+        const list = jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
+        const service = new XpertWorkspaceFilesService(
+            {
+                findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', tenantId: 'tenant-1' })
+            },
+            { createScopedApi: jest.fn() },
+            { resolve }
+        )
+
+        await expect(service.list('xpert-1', 'files', 2)).resolves.toEqual([])
+
+        expect(resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            isolateByUser: false
+        })
+        expect(list).toHaveBeenCalledWith('', { path: 'files', deepth: 2 })
     })
 })

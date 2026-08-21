@@ -231,6 +231,7 @@ import {
 import type { WorkflowTriggerProviderOption } from '../../xpert/draft/workflow-trigger-provider-option'
 import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
 import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
+import { ClawXpertConversationStartIntentService } from './clawxpert-conversation-start-intent.service'
 
 const WorkflowNodeTypeEnum = {
   TRIGGER: 'trigger'
@@ -304,6 +305,20 @@ function createConversationPreferences(overrides?: { defaultThreadId?: string | 
       ? { defaultThreadId: overrides?.defaultThreadId ?? null }
       : {})
   }
+}
+
+function createChatKitControl() {
+  return {
+    element: null,
+    setOptions: jest.fn(),
+    setThreadId: jest.fn().mockResolvedValue(undefined),
+    setRuntimeCapabilities: jest.fn().mockResolvedValue(undefined),
+    focusComposer: jest.fn().mockResolvedValue(undefined),
+    sendUserMessage: jest.fn().mockResolvedValue(undefined),
+    setComposerValue: jest.fn().mockResolvedValue(undefined),
+    fetchUpdates: jest.fn().mockResolvedValue(undefined),
+    sendCustomAction: jest.fn().mockResolvedValue(undefined)
+  } satisfies ChatKitControl
 }
 
 function createToolPreferences() {
@@ -1520,7 +1535,7 @@ describe('ClawXpertFacade', () => {
     expect(facade.defaultThreadId()).toBe('thread-current')
   })
 
-  it('restores the saved default thread before falling back to a fresh lookup', async () => {
+  it('opens a blank conversation even when a saved default thread exists', async () => {
     router.url = '/chat/clawxpert/c'
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
@@ -1538,16 +1553,38 @@ describe('ClawXpertFacade', () => {
     const facade = TestBed.inject(ClawXpertFacade)
     await flushPromises()
 
-    await facade.ensureConversationEntry({
-      focusComposer: jest.fn()
-    } as any)
+    const control = createChatKitControl()
+    await facade.ensureConversationEntry(control)
 
-    expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-main')
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(control.setRuntimeCapabilities).toHaveBeenCalledWith(null)
+    expect(control.focusComposer).toHaveBeenCalled()
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
+    expect(router.navigate).not.toHaveBeenCalled()
   })
 
-  it('clears an invalid saved default thread and falls back to the latest updated conversation', async () => {
+  it('ignores the stale ChatKit thread emitted before the new-task reset completes', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    facade.onChatThreadChange('thread-stale')
+    await flushPromises()
+
+    expect(router.navigate).not.toHaveBeenCalled()
+
+    await facade.ensureConversationEntry(createChatKitControl())
+    facade.onChatThreadChange('thread-new')
+    await flushPromises()
+
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'])
+  })
+
+  it('does not resolve stale saved threads from the new-task route', async () => {
     router.url = '/chat/clawxpert/c'
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
@@ -1578,24 +1615,16 @@ describe('ClawXpertFacade', () => {
     const facade = TestBed.inject(ClawXpertFacade)
     await flushPromises()
 
-    await facade.ensureConversationEntry({
-      focusComposer: jest.fn()
-    } as any)
+    const control = createChatKitControl()
+    await facade.ensureConversationEntry(control)
 
-    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
-      scope: 'user',
-      conversationPreferences: null
-    })
-    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-threads', {
-      take: 1,
-      order: {
-        updatedAt: 'DESC'
-      }
-    })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+    expect(router.navigate).not.toHaveBeenCalled()
   })
 
-  it('falls back to the latest updated conversation when no saved thread exists', async () => {
+  it('does not auto-resume the latest conversation from the new-task route', async () => {
     router.url = '/chat/clawxpert/c'
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
@@ -1612,17 +1641,36 @@ describe('ClawXpertFacade', () => {
     const facade = TestBed.inject(ClawXpertFacade)
     await flushPromises()
 
-    await facade.ensureConversationEntry({
-      focusComposer: jest.fn()
-    } as any)
+    const control = createChatKitControl()
+    await facade.ensureConversationEntry(control)
 
-    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-threads', {
-      take: 1,
-      order: {
-        updatedAt: 'DESC'
-      }
-    })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-latest'])
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+    expect(router.navigate).not.toHaveBeenCalled()
+  })
+
+  it('resumes the saved default thread only through continue conversation', async () => {
+    router.url = '/chat/clawxpert'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        conversationPreferences: createConversationPreferences({
+          defaultThreadId: 'thread-main'
+        })
+      })
+    )
+    conversationService.getByThreadId.mockReturnValue(
+      of(createConversation('conversation-main', { threadId: 'thread-main', xpertId: 'xpert-threads' }))
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.continueConversation()
+
+    expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-main')
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
   })
 
   it('suppresses auto resume for explicit new conversations and focuses the composer instead', async () => {
@@ -1635,12 +1683,38 @@ describe('ClawXpertFacade', () => {
 
     await facade.startConversation()
 
-    const focusComposer = jest.fn()
-    await facade.ensureConversationEntry({
-      focusComposer
-    } as any)
+    const control = createChatKitControl()
+    await facade.ensureConversationEntry(control)
 
-    expect(focusComposer).toHaveBeenCalled()
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(control.setRuntimeCapabilities).toHaveBeenCalledWith(null)
+    expect(control.focusComposer).toHaveBeenCalled()
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
+    expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+  })
+
+  it('turns a sidebar new-task request into a blank conversation after leaving an existing thread', async () => {
+    router.url = '/chat/clawxpert/c/thread-active'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    const intent = TestBed.inject(ClawXpertConversationStartIntentService)
+    await flushPromises()
+
+    intent.requestNewConversation()
+    router.url = '/chat/clawxpert/c'
+    router.events.next(new NavigationEnd(1, router.url, router.url))
+    await flushPromises()
+
+    expect(facade.suppressAutoResume()).toBe(true)
+    expect(facade.pendingConversationStartId()).toBeGreaterThan(0)
+
+    const control = createChatKitControl()
+    await facade.ensureConversationEntry(control)
+
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(control.focusComposer).toHaveBeenCalled()
     expect(conversationService.getByThreadId).not.toHaveBeenCalled()
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
   })
@@ -1655,27 +1729,13 @@ describe('ClawXpertFacade', () => {
 
     await facade.startConversation()
     const startId = facade.pendingConversationStartId()
-    const setThreadId = jest.fn().mockResolvedValue(undefined)
-    const setRuntimeCapabilities = jest.fn().mockResolvedValue(undefined)
-    const focusComposer = jest.fn().mockResolvedValue(undefined)
-
-    const control = {
-      element: null,
-      setOptions: jest.fn(),
-      setThreadId,
-      setRuntimeCapabilities,
-      focusComposer,
-      sendUserMessage: jest.fn().mockResolvedValue(undefined),
-      setComposerValue: jest.fn().mockResolvedValue(undefined),
-      fetchUpdates: jest.fn().mockResolvedValue(undefined),
-      sendCustomAction: jest.fn().mockResolvedValue(undefined)
-    } satisfies ChatKitControl
+    const control = createChatKitControl()
 
     await facade.beginPendingConversation(startId, control)
 
-    expect(setThreadId).toHaveBeenCalledWith(null)
-    expect(setRuntimeCapabilities).toHaveBeenCalledWith(null)
-    expect(focusComposer).toHaveBeenCalled()
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(control.setRuntimeCapabilities).toHaveBeenCalledWith(null)
+    expect(control.focusComposer).toHaveBeenCalled()
     expect(facade.pendingConversationStartId()).toBe(0)
   })
 
@@ -1705,12 +1765,11 @@ describe('ClawXpertFacade', () => {
     router.events.next(new NavigationEnd(1, router.url, router.url))
     await flushPromises()
 
-    const focusComposer = jest.fn()
-    await facade.ensureConversationEntry({
-      focusComposer
-    } as any)
+    const control = createChatKitControl()
+    await facade.ensureConversationEntry(control)
 
-    expect(focusComposer).toHaveBeenCalled()
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+    expect(control.focusComposer).toHaveBeenCalled()
     expect(router.navigate).not.toHaveBeenCalled()
     expect(conversationService.getByThreadId).not.toHaveBeenCalled()
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()

@@ -10,7 +10,7 @@
   .cdk-menu-item,
   [z-menu-item],
   .xp-cdk-menu-item {
-    @apply relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-left text-sm
+    @apply relative flex min-h-9 w-full cursor-default select-none items-center rounded-lg px-3 py-2 text-left text-sm
       outline-none transition-colors hover:bg-hover-bg hover:text-text-primary
       focus:bg-components-list-option-active-bg focus:text-text-primary data-disabled:pointer-events-none data-disabled:opacity-50;
 
@@ -25,17 +25,6 @@
     &.active,
     &[aria-checked='true'] {
       @apply bg-components-list-option-active-bg text-text-primary font-medium;
-
-      &::before {
-        position: absolute;
-        top: 0.45rem;
-        bottom: 0.45rem;
-        left: 0.25rem;
-        width: 2px;
-        border-radius: 999px;
-        background: var(--color-components-accent-indicator-bg);
-        content: '';
-      }
 
       > i,
       > svg,
