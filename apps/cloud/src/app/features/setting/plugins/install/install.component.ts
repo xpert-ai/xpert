@@ -107,7 +107,7 @@ export class PluginInstallComponent {
 
   install() {
     if (!this.#store.token) {
-      const returnUrl = '/plugins?category=marketplace'
+      const returnUrl = this.resolveReturnUrl()
       this.#dialogRef.close()
       void this.#router.navigate(['/auth/login'], {
         queryParams: { returnUrl }
@@ -157,6 +157,11 @@ export class PluginInstallComponent {
 
   private hasInstalledPlugin() {
     return this.status() === 'installed' || !!this.installed()
+  }
+
+  private resolveReturnUrl(): string {
+    const currentUrl = this.#router.url
+    return currentUrl.startsWith('/') && !currentUrl.startsWith('//') ? currentUrl : '/plugins?category=marketplace'
   }
 
   private createInstallResult(): PluginInstallResult {
