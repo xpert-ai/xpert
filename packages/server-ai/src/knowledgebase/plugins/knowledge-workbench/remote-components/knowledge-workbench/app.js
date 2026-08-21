@@ -12547,20 +12547,18 @@
         return $c('executeAction', { actionKey: e, input: t, parameters: r }, 'actionResult')
     }
     function xL(e, t, r, n) {
-        return t
-            .arrayBuffer()
-            .then((a) =>
-                $c(
-                    'executeFileAction',
-                    {
-                        actionKey: e,
-                        input: r,
-                        parameters: n,
-                        file: { name: t.name, type: t.type, size: t.size, buffer: a }
-                    },
-                    'fileActionResult'
-                )
+        return t.arrayBuffer().then((a) =>
+            $c(
+                'executeFileAction',
+                {
+                    actionKey: e,
+                    input: r,
+                    parameters: n,
+                    file: { name: t.name, type: t.type, size: t.size, buffer: a }
+                },
+                'fileActionResult'
             )
+        )
     }
     function Qc(e, t) {
         return $c('invokeClientCommand', { commandKey: e, payload: t }, 'clientCommandResult')
@@ -16209,7 +16207,7 @@
         }
     }
     var Oh,
-        eP = E(() => {
+        e1 = E(() => {
             qt()
             ft()
             Oh = { name: 'htmlText', tokenize: W3 }
@@ -16419,7 +16417,7 @@
         }
     }
     var Nh,
-        tP = E(() => {
+        t1 = E(() => {
             bd()
             Nh = { name: 'labelStartImage', resolveAll: Fo.resolveAll, tokenize: tH }
         })
@@ -16441,7 +16439,7 @@
         }
     }
     var _h,
-        rP = E(() => {
+        r1 = E(() => {
             bd()
             _h = { name: 'labelStartLink', resolveAll: Fo.resolveAll, tokenize: rH }
         })
@@ -16452,7 +16450,7 @@
         }
     }
     var Al,
-        nP = E(() => {
+        n1 = E(() => {
             qt()
             Al = { name: 'lineEnding', tokenize: nH }
         })
@@ -16591,7 +16589,7 @@
     var xr,
         oH,
         iH,
-        aP = E(() => {
+        a1 = E(() => {
             qt()
             ft()
             dd()
@@ -16658,7 +16656,7 @@
         }
     }
     var Id,
-        oP = E(() => {
+        o1 = E(() => {
             qt()
             ft()
             Id = { name: 'setextUnderline', resolveTo: fH, tokenize: pH }
@@ -16678,13 +16676,13 @@
         YR()
         $R()
         JR()
-        eP()
+        e1()
         bd()
-        tP()
-        rP()
-        nP()
-        aP()
-        oP()
+        t1()
+        r1()
+        n1()
+        a1()
+        o1()
         Bh()
     })
     function mH(e) {
@@ -16720,14 +16718,14 @@
             return (e.enter('lineEnding'), e.consume(o), e.exit('lineEnding'), (t.currentConstruct = void 0), r)
         }
     }
-    var iP,
-        sP = E(() => {
+    var i1,
+        s1 = E(() => {
             wd()
             qt()
-            iP = { tokenize: mH }
+            i1 = { tokenize: mH }
         })
-    function dP(e) {
-        return { resolveAll: fP(e === 'text' ? gH : void 0), tokenize: t }
+    function d1(e) {
+        return { resolveAll: f1(e === 'text' ? gH : void 0), tokenize: t }
         function t(r) {
             let n = this,
                 a = this.parser.constructs[e],
@@ -16759,7 +16757,7 @@
             }
         }
     }
-    function fP(e) {
+    function f1(e) {
         return t
         function t(r, n) {
             let a = -1,
@@ -16816,11 +16814,11 @@
             }
         return e
     }
-    var lP,
-        uP,
-        cP,
+    var l1,
+        u1,
+        c1,
         Fh = E(() => {
-            ;((lP = { resolveAll: fP() }), (uP = dP('string')), (cP = dP('text')))
+            ;((l1 = { resolveAll: f1() }), (u1 = d1('string')), (c1 = d1('text')))
         })
     var zh = {}
     hn(zh, {
@@ -16843,7 +16841,7 @@
         wH,
         CH,
         TH,
-        pP = E(() => {
+        p1 = E(() => {
             wd()
             Fh()
             ;((hH = {
@@ -16880,11 +16878,11 @@
                     95: Ll,
                     96: Ch
                 }),
-                (wH = { null: [Ll, lP] }),
+                (wH = { null: [Ll, l1] }),
                 (CH = { null: [42, 95] }),
                 (TH = { null: [] }))
         })
-    function mP(e, t, r) {
+    function m1(e, t, r) {
         let n = {
                 _bufferIndex: -1,
                 _index: 0,
@@ -17087,7 +17085,7 @@
         }
         return n.join('')
     }
-    var gP = E(() => {
+    var g1 = E(() => {
         ft()
         En()
         El()
@@ -17098,27 +17096,27 @@
             content: a(RR),
             defined: [],
             document: a(MR),
-            flow: a(iP),
+            flow: a(i1),
             lazy: {},
-            string: a(uP),
-            text: a(cP)
+            string: a(u1),
+            text: a(c1)
         }
         return n
         function a(o) {
             return i
             function i(s) {
-                return mP(n, o, s)
+                return m1(n, o, s)
             }
         }
     }
-    var hP = E(() => {
+    var h1 = E(() => {
         Ih()
         PR()
         DR()
-        sP()
+        s1()
         Fh()
-        pP()
-        gP()
+        p1()
+        g1()
     })
     function Ml(e, t) {
         let r = 0
@@ -17126,7 +17124,7 @@
         else for (; r < t.length; ) (e.push(...t.slice(r, r + 1e4)), (r += 1e4))
     }
     var Cd,
-        vP = E(() => {
+        v1 = E(() => {
             Cd = class {
                 constructor(t) {
                     ;((this.left = t ? [...t] : []), (this.right = []))
@@ -17207,7 +17205,7 @@
                 }
             }
         })
-    function yP(e) {
+    function y1(e) {
         let t = {},
             r = -1,
             n,
@@ -17292,16 +17290,16 @@
         for (l.reverse(), f = -1; ++f < l.length; ) ((u[m + l[f][0]] = m + l[f][1]), (m += l[f][1] - l[f][0] - 1))
         return u
     }
-    var xP = E(() => {
+    var x1 = E(() => {
         En()
-        vP()
+        v1()
     })
     function Vh(e) {
-        for (; !yP(e); );
+        for (; !y1(e); );
         return e
     }
-    var bP = E(() => {
-        xP()
+    var b1 = E(() => {
+        x1()
     })
     function Gh() {
         let e = 1,
@@ -17324,8 +17322,8 @@
                 d < o.length;
             ) {
                 if (
-                    ((IP.lastIndex = d),
-                    (u = IP.exec(o)),
+                    ((I1.lastIndex = d),
+                    (u = I1.exec(o)),
                     (f = u && u.index !== void 0 ? u.index : o.length),
                     (p = o.charCodeAt(f)),
                     !u)
@@ -17356,16 +17354,16 @@
             return (s && (n && l.push(-5), t && l.push(t), l.push(null)), l)
         }
     }
-    var IP,
-        wP = E(() => {
-            IP = /[\0\t\n\r]/g
+    var I1,
+        w1 = E(() => {
+            I1 = /[\0\t\n\r]/g
         })
-    var CP = E(() => {
-        hP()
-        bP()
-        wP()
+    var C1 = E(() => {
+        h1()
+        b1()
+        w1()
     })
-    function TP(e, t) {
+    function T1(e, t) {
         let r = Number.parseInt(e, t)
         return r < 9 ||
             r === 11 ||
@@ -17379,8 +17377,8 @@
             ? '\uFFFD'
             : String.fromCodePoint(r)
     }
-    var SP = E(() => {})
-    function kP(e) {
+    var S1 = E(() => {})
+    function k1(e) {
         return e.replace(LH, RH)
     }
     function RH(e, t, r) {
@@ -17388,14 +17386,14 @@
         if (r.charCodeAt(0) === 35) {
             let a = r.charCodeAt(1),
                 o = a === 120 || a === 88
-            return TP(r.slice(o ? 2 : 1), o ? 16 : 10)
+            return T1(r.slice(o ? 2 : 1), o ? 16 : 10)
         }
         return Wi(r) || e
     }
     var LH,
-        EP = E(() => {
+        E1 = E(() => {
             ld()
-            SP()
+            S1()
             LH = /\\([!-/:-@[-`{-~])|&(#(?:\d{1,7}|x[\da-f]{1,6})|[\da-z]{1,31});/gi
         })
     function Hh(e, t, r) {
@@ -17509,7 +17507,7 @@
                 thematicBreak: l()
             }
         }
-        PP(t, (e || {}).mdastExtensions || [])
+        P1(t, (e || {}).mdastExtensions || [])
         let r = {}
         return n
         function n(Q) {
@@ -17526,12 +17524,12 @@
                     }
             for (Ie = -1; ++Ie < Q.length; ) {
                 let ve = t[Q[Ie][0]]
-                RP.call(ve, Q[Ie][1].type) &&
+                R1.call(ve, Q[Ie][1].type) &&
                     ve[Q[Ie][1].type].call(Object.assign({ sliceSerialize: Q[Ie][2].sliceSerialize }, Te), Q[Ie][1])
             }
             if (Te.tokenStack.length > 0) {
                 let ve = Te.tokenStack[Te.tokenStack.length - 1]
-                ;(ve[1] || LP).call(Te, void 0, ve[0])
+                ;(ve[1] || L1).call(Te, void 0, ve[0])
             }
             for (
                 ce.position = {
@@ -17636,7 +17634,7 @@
         function u(Q, ce) {
             let Te = this.stack.pop(),
                 ke = this.tokenStack.pop()
-            if (ke) ke[0].type !== Q.type && (ce ? ce.call(this, Q, ke[0]) : (ke[1] || LP).call(this, Q, ke[0]))
+            if (ke) ke[0].type !== Q.type && (ce ? ce.call(this, Q, ke[0]) : (ke[1] || L1).call(this, Q, ke[0]))
             else
                 throw new Error(
                     'Cannot close `' + Q.type + '` (' + ka({ start: Q.start, end: Q.end }) + '): it\u2019s not open'
@@ -17770,7 +17768,7 @@
         function F(Q) {
             let ce = this.sliceSerialize(Q),
                 Te = this.stack[this.stack.length - 2]
-            ;((Te.label = kP(ce)), (Te.identifier = yr(ce).toLowerCase()))
+            ;((Te.label = k1(ce)), (Te.identifier = yr(ce).toLowerCase()))
         }
         function V() {
             let Q = this.stack[this.stack.length - 1],
@@ -17884,17 +17882,17 @@
     function Ra(e) {
         return { line: e.line, column: e.column, offset: e.offset }
     }
-    function PP(e, t) {
+    function P1(e, t) {
         let r = -1
         for (; ++r < t.length; ) {
             let n = t[r]
-            Array.isArray(n) ? PP(e, n) : AH(e, n)
+            Array.isArray(n) ? P1(e, n) : AH(e, n)
         }
     }
     function AH(e, t) {
         let r
         for (r in t)
-            if (RP.call(t, r))
+            if (R1.call(t, r))
                 switch (r) {
                     case 'canContainEols': {
                         let n = t[r]
@@ -17914,7 +17912,7 @@
                     }
                 }
     }
-    function LP(e, t) {
+    function L1(e, t) {
         throw e
             ? new Error(
                   'Cannot close `' +
@@ -17935,19 +17933,19 @@
                       ') is still open'
               )
     }
-    var RP,
-        AP = E(() => {
+    var R1,
+        A1 = E(() => {
             sd()
-            CP()
+            C1()
             SR()
-            EP()
+            E1()
             Xi()
             ld()
             gh()
-            RP = {}.hasOwnProperty
+            R1 = {}.hasOwnProperty
         })
-    var MP = E(() => {
-        AP()
+    var M1 = E(() => {
+        A1()
     })
     function Td(e) {
         let t = this
@@ -17961,18 +17959,18 @@
             })
         }
     }
-    var DP = E(() => {
-        MP()
+    var D1 = E(() => {
+        M1()
     })
-    var OP = E(() => {
-        DP()
+    var O1 = E(() => {
+        D1()
     })
-    function NP(e, t) {
+    function N1(e, t) {
         let r = { type: 'element', tagName: 'blockquote', properties: {}, children: e.wrap(e.all(t), !0) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var _P = E(() => {})
-    function BP(e, t) {
+    var _1 = E(() => {})
+    function B1(e, t) {
         let r = { type: 'element', tagName: 'br', properties: {}, children: [] }
         return (
             e.patch(t, r),
@@ -17986,8 +17984,8 @@
             ]
         )
     }
-    var FP = E(() => {})
-    function zP(e, t) {
+    var F1 = E(() => {})
+    function z1(e, t) {
         let r = t.value
                 ? t.value +
                   `
@@ -18006,18 +18004,18 @@
             o
         )
     }
-    var UP = E(() => {})
-    function VP(e, t) {
+    var U1 = E(() => {})
+    function V1(e, t) {
         let r = { type: 'element', tagName: 'del', properties: {}, children: e.all(t) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var GP = E(() => {})
-    function HP(e, t) {
+    var G1 = E(() => {})
+    function H1(e, t) {
         let r = { type: 'element', tagName: 'em', properties: {}, children: e.all(t) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var qP = E(() => {})
-    function WP(e, t) {
+    var q1 = E(() => {})
+    function W1(e, t) {
         let r = typeof e.options.clobberPrefix == 'string' ? e.options.clobberPrefix : 'user-content-',
             n = String(t.identifier).toUpperCase(),
             a = $r(n.toLowerCase()),
@@ -18042,21 +18040,21 @@
         let u = { type: 'element', tagName: 'sup', properties: {}, children: [l] }
         return (e.patch(t, u), e.applyData(t, u))
     }
-    var XP = E(() => {
+    var X1 = E(() => {
         _o()
     })
-    function KP(e, t) {
+    function K1(e, t) {
         let r = { type: 'element', tagName: 'h' + t.depth, properties: {}, children: e.all(t) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var jP = E(() => {})
-    function YP(e, t) {
+    var j1 = E(() => {})
+    function Y1(e, t) {
         if (e.options.allowDangerousHtml) {
             let r = { type: 'raw', value: t.value }
             return (e.patch(t, r), e.applyData(t, r))
         }
     }
-    var $P = E(() => {})
+    var $1 = E(() => {})
     function Sd(e, t) {
         let r = t.referenceType,
             n = ']'
@@ -18072,7 +18070,7 @@
         return (i && i.type === 'text' ? (i.value += n) : a.push({ type: 'text', value: n }), a)
     }
     var qh = E(() => {})
-    function ZP(e, t) {
+    function Z1(e, t) {
         let r = String(t.identifier).toUpperCase(),
             n = e.definitionById.get(r)
         if (!n) return Sd(e, t)
@@ -18081,28 +18079,28 @@
         let o = { type: 'element', tagName: 'img', properties: a, children: [] }
         return (e.patch(t, o), e.applyData(t, o))
     }
-    var QP = E(() => {
+    var Q1 = E(() => {
         _o()
         qh()
     })
-    function JP(e, t) {
+    function J1(e, t) {
         let r = { src: $r(t.url) }
         ;(t.alt !== null && t.alt !== void 0 && (r.alt = t.alt),
             t.title !== null && t.title !== void 0 && (r.title = t.title))
         let n = { type: 'element', tagName: 'img', properties: r, children: [] }
         return (e.patch(t, n), e.applyData(t, n))
     }
-    var e1 = E(() => {
+    var eP = E(() => {
         _o()
     })
-    function t1(e, t) {
+    function tP(e, t) {
         let r = { type: 'text', value: t.value.replace(/\r?\n|\r/g, ' ') }
         e.patch(t, r)
         let n = { type: 'element', tagName: 'code', properties: {}, children: [r] }
         return (e.patch(t, n), e.applyData(t, n))
     }
-    var r1 = E(() => {})
-    function n1(e, t) {
+    var rP = E(() => {})
+    function nP(e, t) {
         let r = String(t.identifier).toUpperCase(),
             n = e.definitionById.get(r)
         if (!n) return Sd(e, t)
@@ -18111,22 +18109,22 @@
         let o = { type: 'element', tagName: 'a', properties: a, children: e.all(t) }
         return (e.patch(t, o), e.applyData(t, o))
     }
-    var a1 = E(() => {
+    var aP = E(() => {
         _o()
         qh()
     })
-    function o1(e, t) {
+    function oP(e, t) {
         let r = { href: $r(t.url) }
         t.title !== null && t.title !== void 0 && (r.title = t.title)
         let n = { type: 'element', tagName: 'a', properties: r, children: e.all(t) }
         return (e.patch(t, n), e.applyData(t, n))
     }
-    var i1 = E(() => {
+    var iP = E(() => {
         _o()
     })
-    function s1(e, t, r) {
+    function sP(e, t, r) {
         let n = e.all(t),
-            a = r ? MH(r) : l1(t),
+            a = r ? MH(r) : lP(t),
             o = {},
             i = []
         if (typeof t.checked == 'boolean') {
@@ -18172,16 +18170,16 @@
             t = e.spread || !1
             let r = e.children,
                 n = -1
-            for (; !t && ++n < r.length; ) t = l1(r[n])
+            for (; !t && ++n < r.length; ) t = lP(r[n])
         }
         return t
     }
-    function l1(e) {
+    function lP(e) {
         let t = e.spread
         return t ?? e.children.length > 1
     }
-    var u1 = E(() => {})
-    function c1(e, t) {
+    var uP = E(() => {})
+    function cP(e, t) {
         let r = {},
             n = e.all(t),
             a = -1
@@ -18201,23 +18199,23 @@
         let o = { type: 'element', tagName: t.ordered ? 'ol' : 'ul', properties: r, children: e.wrap(n, !0) }
         return (e.patch(t, o), e.applyData(t, o))
     }
-    var d1 = E(() => {})
-    function f1(e, t) {
+    var dP = E(() => {})
+    function fP(e, t) {
         let r = { type: 'element', tagName: 'p', properties: {}, children: e.all(t) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var p1 = E(() => {})
-    function m1(e, t) {
+    var pP = E(() => {})
+    function mP(e, t) {
         let r = { type: 'root', children: e.wrap(e.all(t)) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var g1 = E(() => {})
-    function h1(e, t) {
+    var gP = E(() => {})
+    function hP(e, t) {
         let r = { type: 'element', tagName: 'strong', properties: {}, children: e.all(t) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var v1 = E(() => {})
-    function y1(e, t) {
+    var vP = E(() => {})
+    function yP(e, t) {
         let r = e.all(t),
             n = r.shift(),
             a = []
@@ -18234,10 +18232,10 @@
         let o = { type: 'element', tagName: 'table', properties: {}, children: e.wrap(a, !0) }
         return (e.patch(t, o), e.applyData(t, o))
     }
-    var x1 = E(() => {
+    var xP = E(() => {
         id()
     })
-    function b1(e, t, r) {
+    function bP(e, t, r) {
         let n = r ? r.children : void 0,
             o = (n ? n.indexOf(t) : 1) === 0 ? 'th' : 'td',
             i = r && r.type === 'table' ? r.align : void 0,
@@ -18255,22 +18253,22 @@
         let c = { type: 'element', tagName: 'tr', properties: {}, children: e.wrap(u, !0) }
         return (e.patch(t, c), e.applyData(t, c))
     }
-    var I1 = E(() => {})
-    function w1(e, t) {
+    var IP = E(() => {})
+    function wP(e, t) {
         let r = { type: 'element', tagName: 'td', properties: {}, children: e.all(t) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var C1 = E(() => {})
-    function S1(e) {
+    var CP = E(() => {})
+    function SP(e) {
         let t = String(e),
             r = /\r?\n|\r/g,
             n = r.exec(t),
             a = 0,
             o = []
-        for (; n; ) (o.push(T1(t.slice(a, n.index), a > 0, !0), n[0]), (a = n.index + n[0].length), (n = r.exec(t)))
-        return (o.push(T1(t.slice(a), a > 0, !1)), o.join(''))
+        for (; n; ) (o.push(TP(t.slice(a, n.index), a > 0, !0), n[0]), (a = n.index + n[0].length), (n = r.exec(t)))
+        return (o.push(TP(t.slice(a), a > 0, !1)), o.join(''))
     }
-    function T1(e, t, r) {
+    function TP(e, t, r) {
         let n = 0,
             a = e.length
         if (t) {
@@ -18283,80 +18281,80 @@
         }
         return a > n ? e.slice(n, a) : ''
     }
-    var k1 = E(() => {})
-    function E1(e, t) {
-        let r = { type: 'text', value: S1(String(t.value)) }
+    var kP = E(() => {})
+    function EP(e, t) {
+        let r = { type: 'text', value: SP(String(t.value)) }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var L1 = E(() => {
-        k1()
+    var LP = E(() => {
+        kP()
     })
-    function R1(e, t) {
+    function RP(e, t) {
         let r = { type: 'element', tagName: 'hr', properties: {}, children: [] }
         return (e.patch(t, r), e.applyData(t, r))
     }
-    var P1 = E(() => {})
+    var PP = E(() => {})
     function kd() {}
-    var A1,
-        M1 = E(() => {
-            _P()
-            FP()
-            UP()
-            GP()
-            qP()
-            XP()
-            jP()
-            $P()
-            QP()
-            e1()
-            r1()
-            a1()
-            i1()
-            u1()
-            d1()
-            p1()
-            g1()
-            v1()
-            x1()
-            I1()
-            C1()
-            L1()
-            P1()
-            A1 = {
-                blockquote: NP,
-                break: BP,
-                code: zP,
-                delete: VP,
-                emphasis: HP,
-                footnoteReference: WP,
-                heading: KP,
-                html: YP,
-                imageReference: ZP,
-                image: JP,
-                inlineCode: t1,
-                linkReference: n1,
-                link: o1,
-                listItem: s1,
-                list: c1,
-                paragraph: f1,
-                root: m1,
-                strong: h1,
-                table: y1,
-                tableCell: w1,
-                tableRow: b1,
-                text: E1,
-                thematicBreak: R1,
+    var AP,
+        MP = E(() => {
+            _1()
+            F1()
+            U1()
+            G1()
+            q1()
+            X1()
+            j1()
+            $1()
+            Q1()
+            eP()
+            rP()
+            aP()
+            iP()
+            uP()
+            dP()
+            pP()
+            gP()
+            vP()
+            xP()
+            IP()
+            CP()
+            LP()
+            PP()
+            AP = {
+                blockquote: N1,
+                break: B1,
+                code: z1,
+                delete: V1,
+                emphasis: H1,
+                footnoteReference: W1,
+                heading: K1,
+                html: Y1,
+                imageReference: Z1,
+                image: J1,
+                inlineCode: tP,
+                linkReference: nP,
+                link: oP,
+                listItem: sP,
+                list: cP,
+                paragraph: fP,
+                root: mP,
+                strong: hP,
+                table: yP,
+                tableCell: wP,
+                tableRow: bP,
+                text: EP,
+                thematicBreak: RP,
                 toml: kd,
                 yaml: kd,
                 definition: kd,
                 footnoteDefinition: kd
             }
         })
-    var D1,
+    var DP,
         _H,
         Kh,
-        F1 = E(() => {
-            ;((D1 = typeof self == 'object' ? self : globalThis),
+        FP = E(() => {
+            ;((DP = typeof self == 'object' ? self : globalThis),
                 (_H = (e, t) => {
                     let r = (a, o) => (e.set(o, a), a),
                         n = (a) => {
@@ -18394,7 +18392,7 @@
                                 }
                                 case 7: {
                                     let { name: s, message: l } = i
-                                    return r(new D1[s](l), a)
+                                    return r(new DP[s](l), a)
                                 }
                                 case 8:
                                     return r(BigInt(i), a)
@@ -18407,7 +18405,7 @@
                                     return r(new DataView(s), i)
                                 }
                             }
-                            return r(new D1[o](i), a)
+                            return r(new DP[o](i), a)
                         }
                     return n
                 }),
@@ -18420,7 +18418,7 @@
         Ld,
         zH,
         jh,
-        z1 = E(() => {
+        zP = E(() => {
             ;((Ki = ''),
                 ({ toString: BH } = {}),
                 ({ keys: FH } = Object),
@@ -18534,8 +18532,8 @@
         })
     var ji,
         Yh = E(() => {
-            F1()
-            z1()
+            FP()
+            zP()
             ji =
                 typeof structuredClone == 'function'
                     ? (e, t) => (t && ('json' in t || 'lossy' in t) ? Kh(jh(e, t)) : structuredClone(e))
@@ -18557,7 +18555,7 @@
     function VH(e, t) {
         return 'Back to reference ' + (e + 1) + (t > 1 ? '-' + t : '')
     }
-    function U1(e) {
+    function UP(e) {
         let t = typeof e.options.clobberPrefix == 'string' ? e.options.clobberPrefix : 'user-content-',
             r = e.options.footnoteBackContent || UH,
             n = e.options.footnoteBackLabel || VH,
@@ -18626,7 +18624,7 @@
                 ]
             }
     }
-    var V1 = E(() => {
+    var VP = E(() => {
         Yh()
         _o()
     })
@@ -18670,7 +18668,7 @@
         return e !== null && typeof e == 'object' && 'type' in e
     }
     var Pa,
-        G1 = E(() => {
+        GP = E(() => {
             Pa = function (e) {
                 if (e == null) return WH
                 if (typeof e == 'function') return Rd(e)
@@ -18680,7 +18678,7 @@
             }
         })
     var Pd = E(() => {
-        G1()
+        GP()
     })
     function Ol(e, t, r, n) {
         let a
@@ -18696,7 +18694,7 @@
             }
             return f
             function f() {
-                let p = H1,
+                let p = HP,
                     m,
                     g,
                     h
@@ -18715,18 +18713,18 @@
         }
     }
     function KH(e) {
-        return Array.isArray(e) ? e : typeof e == 'number' ? [Ad, e] : e == null ? H1 : [e]
+        return Array.isArray(e) ? e : typeof e == 'number' ? [Ad, e] : e == null ? HP : [e]
     }
-    var H1,
+    var HP,
         Ad,
         Uo,
         Md,
-        q1 = E(() => {
+        qP = E(() => {
             Pd()
-            ;((H1 = []), (Ad = !0), (Uo = !1), (Md = 'skip'))
+            ;((HP = []), (Ad = !0), (Uo = !1), (Md = 'skip'))
         })
     var Dd = E(() => {
-        q1()
+        qP()
     })
     function Vo(e, t, r, n) {
         let a, o, i
@@ -18740,19 +18738,19 @@
             return i(l, d, c)
         }
     }
-    var W1 = E(() => {
+    var WP = E(() => {
         Dd()
         Dd()
     })
     var Od = E(() => {
-        W1()
+        WP()
     })
-    function K1(e, t) {
+    function KP(e, t) {
         let r = t || jH,
             n = new Map(),
             a = new Map(),
             o = new Map(),
-            i = { ...A1, ...r.handlers },
+            i = { ...AP, ...r.handlers },
             s = {
                 all: u,
                 applyData: $H,
@@ -18801,11 +18799,11 @@
                         if (
                             p &&
                             f[p - 1].type === 'break' &&
-                            (!Array.isArray(m) && m.type === 'text' && (m.value = X1(m.value)),
+                            (!Array.isArray(m) && m.type === 'text' && (m.value = XP(m.value)),
                             !Array.isArray(m) && m.type === 'element')
                         ) {
                             let g = m.children[0]
-                            g && g.type === 'text' && (g.value = X1(g.value))
+                            g && g.type === 'text' && (g.value = XP(g.value))
                         }
                         Array.isArray(m) ? d.push(...m) : d.push(m)
                     }
@@ -18872,7 +18870,7 @@
             r
         )
     }
-    function X1(e) {
+    function XP(e) {
         let t = 0,
             r = e.charCodeAt(t)
         for (; r === 9 || r === 32; ) (t++, (r = e.charCodeAt(t)))
@@ -18880,17 +18878,17 @@
     }
     var $h,
         jH,
-        j1 = E(() => {
+        jP = E(() => {
             Yh()
             Od()
             id()
-            M1()
+            MP()
             ;(($h = {}.hasOwnProperty), (jH = {}))
         })
     function Nd(e, t) {
-        let r = K1(e, t),
+        let r = KP(e, t),
             n = r.one(e, void 0),
-            a = U1(r),
+            a = UP(r),
             o = Array.isArray(n) ? { type: 'root', children: n } : n || { type: 'root', children: [] }
         return (
             a &&
@@ -18906,12 +18904,12 @@
             o
         )
     }
-    var Y1 = E(() => {
-        V1()
-        j1()
+    var YP = E(() => {
+        VP()
+        jP()
     })
-    var $1 = E(() => {
-        Y1()
+    var $P = E(() => {
+        YP()
     })
     function _d(e, t) {
         return e && 'run' in e
@@ -18923,16 +18921,16 @@
                   return Nd(r, { file: n, ...(e || t) })
               }
     }
-    var Z1 = E(() => {
-        $1()
+    var ZP = E(() => {
+        $P()
     })
-    var Q1 = E(() => {
-        Z1()
+    var QP = E(() => {
+        ZP()
     })
     function Zh(e) {
         if (e) throw e
     }
-    var J1 = E(() => {})
+    var JP = E(() => {})
     var lA = Ja((Hhe, sA) => {
         'use strict'
         var Bd = Object.prototype.hasOwnProperty,
@@ -19400,7 +19398,7 @@
         sv,
         lv,
         TA = E(() => {
-            J1()
+            JP()
             zd = ap(lA(), 1)
             uA()
             fA()
@@ -19649,8 +19647,8 @@
             yR()
             ge()
             Ge()
-            OP()
-            Q1()
+            O1()
+            QP()
             SA()
             Od()
             nv()
@@ -47643,22 +47641,20 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 e.evidence.length
                     ? w('div', {
                           className: 'grid gap-1 border-l-2 border-border pl-2 text-xs text-muted-foreground',
-                          children: e.evidence
-                              .slice(0, 3)
-                              .map((r, n) =>
-                                  Y(
-                                      'div',
-                                      {
-                                          children: [
-                                              r.quote || oe('evidence'),
-                                              typeof r.confidence == 'number'
-                                                  ? ` \xB7 ${oe('confidence')} ${jd(r.confidence)}`
-                                                  : ''
-                                          ]
-                                      },
-                                      r.id ?? n
-                                  )
+                          children: e.evidence.slice(0, 3).map((r, n) =>
+                              Y(
+                                  'div',
+                                  {
+                                      children: [
+                                          r.quote || oe('evidence'),
+                                          typeof r.confidence == 'number'
+                                              ? ` \xB7 ${oe('confidence')} ${jd(r.confidence)}`
+                                              : ''
+                                      ]
+                                  },
+                                  r.id ?? n
                               )
+                          )
                       })
                     : null
             ]
