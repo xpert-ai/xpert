@@ -1,30 +1,38 @@
-import { Dialog } from '@angular/cdk/dialog'
+import { HttpErrorResponse } from '@angular/common/http'
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
-import { injectUser } from '@cloud/app/@core'
+import { getErrorMessage, injectUser } from '@cloud/app/@core'
 import { injectActiveScope, injectRuntimeControlAPI } from '@cloud/app/@core/state'
 import {
+  type IPluginRuntimeConvergence,
+  type IRuntimePluginRequirement,
   RUNTIME_RESTART_CONFIRMATION,
-  type IRuntimeRestartCapability,
-  type IRuntimeRestartResponse
+  type IRuntimeRestartCapability
 } from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
-import { catchError, filter, firstValueFrom, map, of, switchMap, take, timeout, timer } from 'rxjs'
-import { PluginRuntimeRestartProgressComponent } from './plugin-runtime-restart-progress.component'
+import { catchError, filter, firstValueFrom, map, of, switchMap, take, throwError, timer } from 'rxjs'
 
 const STORAGE_KEY = 'xpert:plugins:runtime-restart-required:v1'
-const READINESS_TIMEOUT_MS = 120_000
-const READINESS_POLL_MS = 1_000
+const CONVERGENCE_STORAGE_KEY = 'xpert:plugins:runtime-convergence:v1'
+const RESTART_POLL_MS = 1_000
 
 export interface PendingPluginRuntimeRestart {
   pluginNames: string[]
   requestedAt: string
-  instanceId?: string
+  restartId?: string
+  runtimeRequirements?: IRuntimePluginRequirement[]
+  error?: string
+}
+
+interface PendingPluginRuntimeConvergence {
+  pluginNames: string[]
+  requestedAt: string
+  generation: number
+  runtimeRequirements: IRuntimePluginRequirement[]
 }
 
 @Injectable({ providedIn: 'root' })
 export class PluginRuntimeRestartService {
-  readonly #dialog = inject(Dialog)
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
   readonly #runtimeControlAPI = injectRuntimeControlAPI()
@@ -32,8 +40,20 @@ export class PluginRuntimeRestartService {
   readonly #activeScope = injectActiveScope()
 
   readonly pending = signal<PendingPluginRuntimeRestart | null>(this.readPending())
+  readonly convergence = signal<PendingPluginRuntimeConvergence | null>(this.readConvergence())
   readonly restartCapability = signal<IRuntimeRestartCapability | null>(null)
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
+  readonly requiresManualRestart = computed(() => !!this.pending() && !this.pending()?.restartId)
+  readonly isApplyingInBackground = computed(() => !!this.convergence() || !!this.pending()?.restartId)
+  readonly lastError = computed(() => this.pending()?.error ?? null)
+  readonly backgroundPluginNames = computed(() =>
+    Array.from(
+      new Set([
+        ...(this.convergence()?.pluginNames ?? []),
+        ...(this.pending()?.restartId ? (this.pending()?.pluginNames ?? []) : [])
+      ])
+    )
+  )
   readonly restartUnavailableMessageKey = computed(() => {
     switch (this.restartCapability()?.reason) {
       case 'default-tenant-required':
@@ -45,7 +65,6 @@ export class PluginRuntimeRestartService {
   readonly pendingPluginNames = computed(() => this.pending()?.pluginNames ?? [])
 
   #prompting = false
-  #progressOpen = false
 
   constructor() {
     effect((onCleanup) => {
@@ -58,10 +77,10 @@ export class PluginRuntimeRestartService {
         .subscribe((capability) => this.restartCapability.set(capability))
       onCleanup(() => subscription.unsubscribe())
     })
-    this.reconcilePendingRestart()
+    this.reconcilePendingState()
   }
 
-  markRequired(pluginName?: string | null) {
+  markRequired(pluginName?: string | null, runtimeRequirements: IRuntimePluginRequirement[] = []) {
     const normalizedName = pluginName?.trim()
     const existing = this.pending()
     const pluginNames = Array.from(
@@ -70,24 +89,32 @@ export class PluginRuntimeRestartService {
     const pending: PendingPluginRuntimeRestart = {
       pluginNames,
       requestedAt: existing?.requestedAt ?? new Date().toISOString(),
-      instanceId: existing?.instanceId
+      runtimeRequirements: this.mergeRuntimeRequirements([
+        ...(existing?.runtimeRequirements ?? []),
+        ...runtimeRequirements
+      ])
     }
     this.setPending(pending)
+  }
 
-    if (!pending.instanceId) {
-      this.#runtimeControlAPI
-        .readiness()
-        .pipe(
-          take(1),
-          catchError(() => of(null))
-        )
-        .subscribe((readiness) => {
-          const current = this.pending()
-          if (readiness && current && !current.instanceId) {
-            this.setPending({ ...current, instanceId: readiness.instanceId })
-          }
-        })
-    }
+  trackPluginConvergence(
+    convergence: IPluginRuntimeConvergence,
+    pluginName?: string | null,
+    runtimeRequirements: IRuntimePluginRequirement[] = []
+  ) {
+    const normalizedName = pluginName?.trim()
+    const existing = this.convergence()
+    this.setConvergence({
+      pluginNames: Array.from(new Set([...(existing?.pluginNames ?? []), ...(normalizedName ? [normalizedName] : [])])),
+      requestedAt: existing?.requestedAt ?? new Date().toISOString(),
+      generation: convergence.generation,
+      runtimeRequirements: this.mergeRuntimeRequirements([
+        ...(existing?.runtimeRequirements ?? []),
+        ...runtimeRequirements
+      ])
+    })
+
+    void this.monitorPluginConvergence(convergence.generation)
   }
 
   clearPending() {
@@ -95,7 +122,7 @@ export class PluginRuntimeRestartService {
   }
 
   async prompt() {
-    if (!this.canRestart() || this.#prompting || this.#progressOpen) {
+    if (!this.canRestart() || this.#prompting || this.pending()?.restartId) {
       return
     }
 
@@ -120,7 +147,7 @@ export class PluginRuntimeRestartService {
   }
 
   async confirmAndRestart() {
-    if (!this.canRestart() || this.#progressOpen) {
+    if (!this.canRestart() || this.pending()?.restartId) {
       return
     }
 
@@ -142,69 +169,176 @@ export class PluginRuntimeRestartService {
       return
     }
 
-    this.#progressOpen = true
-    const dialogRef = this.#dialog.open(PluginRuntimeRestartProgressComponent, {
-      disableClose: true,
-      backdropClass: 'backdrop-blur-sm-black',
-      width: 'min(440px, calc(100vw - 32px))',
-      data: {
-        run: () => this.restartAndWait(),
-        onRecovered: () => this.clearPending()
+    try {
+      await this.startRestartInBackground()
+    } catch (error) {
+      const activeRestartId = this.restartInProgressId(error)
+      if (activeRestartId) {
+        this.trackRestart(activeRestartId, 0)
+        return
       }
-    })
-    dialogRef.closed.subscribe(() => {
-      this.#progressOpen = false
-    })
+      this.setPendingError(getErrorMessage(error))
+    }
   }
 
-  async restartAndWait() {
+  private async startRestartInBackground() {
     const restart = await firstValueFrom(
       this.#runtimeControlAPI.restart({
         confirmation: RUNTIME_RESTART_CONFIRMATION,
-        reason: 'Activate staged process-level plugin changes'
+        reason: 'Activate staged process-level plugin changes',
+        runtimeRequirements: this.pending()?.runtimeRequirements
       })
     )
 
-    await this.waitUntilReady(restart)
+    this.trackRestart(restart.restartId, Math.max(RESTART_POLL_MS, restart.signalAfterMs + 500))
     return restart
   }
 
-  private async waitUntilReady(restart: IRuntimeRestartResponse) {
-    const initialDelay = Math.max(READINESS_POLL_MS, restart.signalAfterMs + 500)
-    await firstValueFrom(
-      timer(initialDelay, READINESS_POLL_MS).pipe(
+  private trackRestart(restartId: string, initialDelay: number) {
+    const pending = this.pending()
+    if (pending) {
+      const current = { ...pending }
+      delete current.error
+      this.setPending({ ...current, restartId })
+    }
+    void this.monitorRestart(restartId, initialDelay)
+  }
+
+  private reconcilePendingState() {
+    const convergence = this.convergence()
+    if (convergence) {
+      void this.monitorPluginConvergence(convergence.generation)
+    }
+
+    const pending = this.pending()
+    if (!pending) {
+      return
+    }
+    if (pending.restartId) {
+      void this.monitorRestart(pending.restartId, 0)
+    }
+  }
+
+  private async monitorPluginConvergence(generation: number) {
+    try {
+      await this.pollPluginConvergence(generation)
+      if (this.convergence()?.generation === generation) {
+        this.setConvergence(null)
+      }
+    } catch (error) {
+      this.convertConvergenceToManualRestart(generation, getErrorMessage(error))
+    }
+  }
+
+  private async monitorRestart(restartId: string, initialDelay: number) {
+    try {
+      await this.pollRestart(restartId, initialDelay)
+      if (this.pending()?.restartId === restartId) {
+        this.clearPending()
+      }
+    } catch (error) {
+      const current = this.pending()
+      if (current?.restartId === restartId) {
+        this.setPending({
+          pluginNames: current.pluginNames,
+          requestedAt: current.requestedAt,
+          runtimeRequirements: current.runtimeRequirements,
+          error: getErrorMessage(error)
+        })
+      }
+    }
+  }
+
+  private async pollPluginConvergence(generation: number) {
+    return await firstValueFrom(
+      timer(0, RESTART_POLL_MS).pipe(
         switchMap(() =>
-          this.#runtimeControlAPI.readiness().pipe(
-            map((readiness) =>
-              readiness.status === 'ready' && readiness.instanceId !== restart.instanceId ? readiness : null
-            ),
-            catchError(() => of(null))
-          )
+          this.#runtimeControlAPI
+            .pluginConvergenceStatus(generation)
+            .pipe(catchError((error: unknown) => (this.isNotFound(error) ? throwError(() => error) : of(null))))
         ),
-        filter((readiness) => readiness !== null),
-        take(1),
-        timeout({ first: READINESS_TIMEOUT_MS })
+        map((status) => {
+          if (status?.status === 'failed') {
+            throw new Error(status.error || 'Plugin runtime convergence failed')
+          }
+          return status?.status === 'completed' ? status : null
+        }),
+        filter((status) => status !== null),
+        take(1)
       )
     )
   }
 
-  private reconcilePendingRestart() {
-    const pending = this.pending()
-    if (!pending?.instanceId) {
+  private async pollRestart(restartId: string, initialDelay: number) {
+    return await firstValueFrom(
+      timer(initialDelay, RESTART_POLL_MS).pipe(
+        switchMap(() =>
+          this.#runtimeControlAPI
+            .restartStatus(restartId)
+            .pipe(catchError((error: unknown) => (this.isNotFound(error) ? throwError(() => error) : of(null))))
+        ),
+        map((status) => {
+          if (status?.status === 'failed') {
+            throw new Error(status.error || 'API replica restart failed')
+          }
+          return status?.status === 'completed' ? status : null
+        }),
+        filter((status) => status !== null),
+        take(1)
+      )
+    )
+  }
+
+  private convertConvergenceToManualRestart(generation: number, error: string) {
+    const current = this.convergence()
+    if (current?.generation !== generation) {
       return
     }
+    this.setConvergence(null)
+    const pending = this.pending()
+    this.setPending({
+      pluginNames: Array.from(new Set([...(pending?.pluginNames ?? []), ...current.pluginNames])),
+      requestedAt: pending?.requestedAt ?? current.requestedAt,
+      runtimeRequirements: this.mergeRuntimeRequirements([
+        ...(pending?.runtimeRequirements ?? []),
+        ...current.runtimeRequirements
+      ]),
+      error
+    })
+  }
 
-    this.#runtimeControlAPI
-      .readiness()
-      .pipe(
-        take(1),
-        catchError(() => of(null))
-      )
-      .subscribe((readiness) => {
-        if (readiness?.status === 'ready' && readiness.instanceId !== pending.instanceId) {
-          this.clearPending()
-        }
-      })
+  private setPendingError(error: string) {
+    const pending = this.pending()
+    if (pending) {
+      this.setPending({ ...pending, error })
+    }
+  }
+
+  private mergeRuntimeRequirements(requirements: IRuntimePluginRequirement[]) {
+    const merged = new Map<string, IRuntimePluginRequirement>()
+    requirements.forEach((requirement) => {
+      merged.set(`${requirement.scopeKey}\u0000${requirement.pluginName}`, requirement)
+    })
+    return Array.from(merged.values())
+  }
+
+  private isNotFound(error: unknown) {
+    return error instanceof HttpErrorResponse && error.status === 404
+  }
+
+  private restartInProgressId(error: unknown): string | null {
+    if (
+      !(error instanceof HttpErrorResponse) ||
+      error.status !== 409 ||
+      !error.error ||
+      typeof error.error !== 'object'
+    ) {
+      return null
+    }
+    const response = error.error as Record<string, unknown>
+    return response.errorCode === 'RUNTIME_RESTART_IN_PROGRESS' && typeof response.restartId === 'string'
+      ? response.restartId
+      : null
   }
 
   private restartDescription() {
@@ -212,8 +346,8 @@ export class PluginRuntimeRestartService {
     return this.t(
       'XP.Plugin.RestartRequiredDescription',
       pluginNames
-        ? `System plugin changes for ${pluginNames} are staged. Restart the API service to activate them.`
-        : 'System plugin changes are staged. Restart the API service to activate them.',
+        ? `Plugin changes for ${pluginNames} are waiting to converge. Restart all API replicas to activate them.`
+        : 'Plugin changes are waiting to converge. Restart all API replicas to activate them.',
       { pluginNames }
     )
   }
@@ -235,6 +369,19 @@ export class PluginRuntimeRestartService {
     }
   }
 
+  private setConvergence(value: PendingPluginRuntimeConvergence | null) {
+    this.convergence.set(value)
+    try {
+      if (value) {
+        localStorage.setItem(CONVERGENCE_STORAGE_KEY, JSON.stringify(value))
+      } else {
+        localStorage.removeItem(CONVERGENCE_STORAGE_KEY)
+      }
+    } catch {
+      // Storage may be unavailable in privacy-restricted contexts; the signal still preserves session state.
+    }
+  }
+
   private readPending(): PendingPluginRuntimeRestart | null {
     try {
       const value = localStorage.getItem(STORAGE_KEY)
@@ -249,7 +396,36 @@ export class PluginRuntimeRestartService {
       return {
         pluginNames: parsed.pluginNames.filter((name): name is string => typeof name === 'string'),
         requestedAt: parsed.requestedAt,
-        ...(typeof parsed.instanceId === 'string' ? { instanceId: parsed.instanceId } : {})
+        ...(typeof parsed.restartId === 'string' ? { restartId: parsed.restartId } : {}),
+        ...(typeof parsed.error === 'string' ? { error: parsed.error } : {}),
+        ...(Array.isArray(parsed.runtimeRequirements)
+          ? { runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[] }
+          : {})
+      }
+    } catch {
+      return null
+    }
+  }
+
+  private readConvergence(): PendingPluginRuntimeConvergence | null {
+    try {
+      const value = localStorage.getItem(CONVERGENCE_STORAGE_KEY)
+      if (!value) return null
+      const parsed = JSON.parse(value) as Partial<PendingPluginRuntimeConvergence>
+      if (
+        !Array.isArray(parsed.pluginNames) ||
+        typeof parsed.requestedAt !== 'string' ||
+        typeof parsed.generation !== 'number' ||
+        !Array.isArray(parsed.runtimeRequirements)
+      ) {
+        localStorage.removeItem(CONVERGENCE_STORAGE_KEY)
+        return null
+      }
+      return {
+        pluginNames: parsed.pluginNames.filter((name): name is string => typeof name === 'string'),
+        requestedAt: parsed.requestedAt,
+        generation: parsed.generation,
+        runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[]
       }
     } catch {
       return null

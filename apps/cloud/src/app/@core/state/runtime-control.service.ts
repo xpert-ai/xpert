@@ -1,10 +1,12 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
+  IPluginRuntimeConvergenceStatus,
   IRuntimeReadiness,
   IRuntimeRestartCapability,
   IRuntimeRestartRequest,
-  IRuntimeRestartResponse
+  IRuntimeRestartResponse,
+  IRuntimeRestartStatus
 } from '@xpert-ai/contracts'
 import { API_PREFIX } from './constants'
 
@@ -18,6 +20,16 @@ export class RuntimeControlAPIService {
 
   restartCapability() {
     return this.#httpClient.get<IRuntimeRestartCapability>(`${API_PREFIX}/system/runtime/restart-capability`)
+  }
+
+  restartStatus(restartId: string) {
+    return this.#httpClient.get<IRuntimeRestartStatus>(`${API_PREFIX}/system/runtime/restart/${restartId}`)
+  }
+
+  pluginConvergenceStatus(generation: number) {
+    return this.#httpClient.get<IPluginRuntimeConvergenceStatus>(
+      `${API_PREFIX}/system/runtime/plugin-convergence/${generation}`
+    )
   }
 
   readiness() {
