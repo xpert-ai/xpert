@@ -26,7 +26,11 @@
         <div class="truncate text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
           {{ scopeEyebrow() }}
         </div>
-        <div class="truncate text-sm font-medium text-text-primary">
+        <div
+          class="truncate text-sm font-medium text-text-primary"
+          [zTooltip]="scopeLabel()"
+          zTooltipClass="max-w-80 break-all whitespace-normal"
+        >
           {{ scopeLabel() }}
         </div>
       </div>

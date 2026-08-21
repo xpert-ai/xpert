@@ -250,6 +250,8 @@ export const devToggleFeatures: IPACFeatures = {
   FEATURE_COPILOT_MONITORING: process.env.FEATURE_COPILOT_MONITORING === 'false' ? false : true,
   FEATURE_MEMBERSHIP_PLAN: process.env.FEATURE_MEMBERSHIP_PLAN === 'true',
   FEATURE_XPERT: process.env.FEATURE_XPERT === 'false' ? false : true,
+  FEATURE_XPERT_PROJECT:
+    process.env.FEATURE_XPERT === 'false' || process.env.FEATURE_XPERT_PROJECT === 'false' ? false : true,
   FEATURE_XPERT_DATA_ONTOLOGY: process.env.FEATURE_XPERT_DATA_ONTOLOGY === 'false' ? false : true,
   FEATURE_XPERT_MARKETPLACE: process.env.FEATURE_XPERT_MARKETPLACE === 'true'
 }

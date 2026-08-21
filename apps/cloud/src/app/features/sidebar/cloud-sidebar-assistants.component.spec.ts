@@ -9,6 +9,7 @@ import {
   ChatConversationService,
   ScopeService,
   Store,
+  ViewExtensionApiService,
   XpertAPIService
 } from '../../@core'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
@@ -57,6 +58,7 @@ jest.mock('../../@core', () => {
   class ChatConversationService {}
   class Store {}
   class XpertAPIService {}
+  class ViewExtensionApiService {}
 
   return {
     AiFeatureEnum: {
@@ -84,7 +86,8 @@ jest.mock('../../@core', () => {
     ChatConversationService,
     ScopeService: class ScopeService {},
     Store,
-    XpertAPIService
+    XpertAPIService,
+    ViewExtensionApiService
   }
 })
 
@@ -263,6 +266,9 @@ describe('CloudSidebarAssistantsComponent', () => {
     getUnreadByXperts: jest.Mock
     unreadRefresh$: Subject<void>
   }
+  let viewExtensionApi: {
+    getSlotViews: jest.Mock
+  }
   let store: {
     user: { id: string }
     userId: string
@@ -334,6 +340,29 @@ describe('CloudSidebarAssistantsComponent', () => {
       getUnreadByXperts: jest.fn(() => of([])),
       unreadRefresh$: new Subject<void>()
     }
+    viewExtensionApi = {
+      getSlotViews: jest.fn(() =>
+        of([
+          {
+            key: 'sales-orders',
+            title: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
+            hostType: 'agent',
+            slot: 'agent.workbench.fixed',
+            source: { type: 'builtin' },
+            view: {},
+            dataSource: {},
+            workbench: {
+              fixed: true,
+              menu: {
+                enabled: true,
+                label: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
+                order: 10
+              }
+            }
+          }
+        ])
+      )
+    }
     store = {
       user: { id: 'user-1' },
       userId: 'user-1',
@@ -374,6 +403,10 @@ describe('CloudSidebarAssistantsComponent', () => {
         {
           provide: XpertAPIService,
           useValue: xpertAPI
+        },
+        {
+          provide: ViewExtensionApiService,
+          useValue: viewExtensionApi
         }
       ]
     }).compileComponents()
@@ -950,6 +983,63 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-unread'])
+  })
+
+  it('loads and opens assistant result items from the expandable menu', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
+    expect(toggle).not.toBeNull()
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+
+    toggle.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench.fixed')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-label').textContent).toContain(
+      'XP.Sidebar.Views'
+    )
+
+    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
+    expect(child.textContent).toContain('未清销售订单')
+    child.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'], {
+      queryParams: { view: 'sales-orders' }
+    })
+
+    toggle.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
+  })
+
+  it('shows the view empty state when an assistant has no fixed views', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-state').textContent).toContain(
+      'XP.Sidebar.NoAssistantViews'
+    )
   })
 
   it('routes normal assistant settings to the xpert studio page', async () => {

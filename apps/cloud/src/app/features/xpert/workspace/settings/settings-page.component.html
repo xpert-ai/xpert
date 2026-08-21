@@ -1,0 +1,71 @@
+<main class="workspace-overview" [attr.aria-busy]="overviewLoading()">
+  @if (workspace(); as currentWorkspace) {
+    <nav class="workspace-overview__breadcrumb" aria-label="工作区路径">
+      <i class="ri-layout-left-line" aria-hidden="true"></i>
+      <span class="workspace-overview__breadcrumb-divider" aria-hidden="true"></span>
+      <span>AI 工作空间</span>
+      <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      <span>{{ currentWorkspace.name }}</span>
+      <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      <strong>概览</strong>
+    </nav>
+
+    <header class="workspace-overview__header">
+      <div class="workspace-overview__title">
+        <i class="ri-dashboard-line" aria-hidden="true"></i>
+        <h1>概览</h1>
+      </div>
+      <p>查看当前 AI 工作空间的资源分布与运行状态。</p>
+    </header>
+
+    <section class="workspace-overview__resources" aria-labelledby="workspace-resource-title">
+      <h2 id="workspace-resource-title" class="sr-only">工作区资源</h2>
+      @for (resource of resourceModules; track resource.title) {
+        <article class="workspace-resource">
+          <div class="workspace-resource__title">
+            <i [class]="resource.icon" aria-hidden="true"></i>
+            <h3>{{ resource.title }}</h3>
+          </div>
+          <p>{{ resource.description }}</p>
+        </article>
+      }
+    </section>
+
+    <section class="workspace-overview__metrics" aria-labelledby="workspace-metric-title">
+      <h2 id="workspace-metric-title" class="sr-only">工作区资源统计</h2>
+      @for (metric of metrics(); track metric.label) {
+        <article class="workspace-metric">
+          <div class="workspace-metric__label">
+            <i [class]="metric.icon" aria-hidden="true"></i>
+            <span>{{ metric.label }}</span>
+          </div>
+          <strong>{{ overviewLoading() ? '...' : (metric.value ?? '—') }}</strong>
+        </article>
+      }
+    </section>
+
+    <section class="workspace-overview__details" aria-labelledby="workspace-detail-title">
+      <h2 id="workspace-detail-title" class="sr-only">工作区信息</h2>
+      <dl class="workspace-details">
+        <div class="workspace-details__item">
+          <dt>名称</dt>
+          <dd>{{ currentWorkspace.name }}</dd>
+        </div>
+        <div class="workspace-details__item">
+          <dt>工作空间状态</dt>
+          <dd>{{ workspaceStatus() }}</dd>
+        </div>
+        <div class="workspace-details__item">
+          <dt>更新时间</dt>
+          <dd>{{ currentWorkspace.updatedAt ? (currentWorkspace.updatedAt | date: 'yyyy/M/d HH:mm:ss') : '暂无' }}</dd>
+        </div>
+        <div class="workspace-details__item workspace-details__item--wide">
+          <dt>描述</dt>
+          <dd class="workspace-details__description">{{ currentWorkspace.description || '暂无描述' }}</dd>
+        </div>
+      </dl>
+    </section>
+  } @else {
+    <div class="workspace-overview__empty" role="status">正在加载工作区信息...</div>
+  }
+</main>

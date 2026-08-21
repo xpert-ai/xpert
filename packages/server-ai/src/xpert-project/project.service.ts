@@ -25,17 +25,22 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
 import { assign, omit } from 'lodash'
-import { Brackets, IsNull, Repository, UpdateResult } from 'typeorm'
+import { Brackets, IsNull, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertProject } from './entities/project.entity'
+import { XpertProjectTask } from './entities/project-task.entity'
+import { XpertProjectTaskStep } from './entities/project-task-step.entity'
+import { XpertProjectPlan } from './entities/project-plan.entity'
+import { XpertProjectMilestone } from './entities/project-milestone.entity'
+import { XpertProjectAsset } from './entities/project-asset.entity'
+import { XpertProjectAutomation } from './entities/project-automation.entity'
 import { XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
-import { XpertProjectIdentiDto } from './dto'
 import { ExportProjectCommand } from './commands'
 
 @Injectable()
@@ -141,10 +146,28 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return project
     }
 
-    public async update(
-        id: string,
-        partialEntity: QueryDeepPartialEntity<XpertProject>
-    ): Promise<UpdateResult | XpertProject> {
+    async assertProjectAccess(projectId: string): Promise<XpertProject> {
+        const userId = RequestContext.currentUserId()
+        const project = await this.repository
+            .createQueryBuilder('project')
+            .leftJoinAndSelect('project.members', 'member')
+            .where('project.id = :projectId', { projectId })
+            .andWhere('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
+            .andWhere(
+                RequestContext.getOrganizationId()
+                    ? 'project.organizationId = :organizationId'
+                    : 'project.organizationId IS NULL',
+                {
+                    organizationId: RequestContext.getOrganizationId()
+                }
+            )
+            .andWhere('(project.ownerId = :userId OR project.createdById = :userId OR member.id = :userId)', { userId })
+            .getOne()
+        if (!project) throw new ForbiddenException('The requested Project is not available')
+        return project
+    }
+
+    public async update(id: string, partialEntity: QueryDeepPartialEntity<XpertProject>): Promise<XpertProject> {
         const project = await this.findOne(id)
         if (partialEntity.copilotModel) {
             project.copilotModel ??= {}
@@ -152,6 +175,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
         assign(project, omit(partialEntity, 'copilotModel'))
         return await this.repository.save(project)
+    }
+
+    async archive(id: string): Promise<XpertProject> {
+        return this.update(id, { status: 'archived' })
     }
 
     /**
@@ -163,6 +190,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     async findAllMy(options: PaginationParams<XpertProject>) {
         const user = RequestContext.currentUser()
         const organizationId = RequestContext.getOrganizationId()
+        const requestedStatus = !Array.isArray(options?.where)
+            ? (options?.where as Record<string, unknown> | undefined)?.status
+            : undefined
 
         const orderBy = options?.order
             ? Object.keys(options.order).reduce((order, name) => {
@@ -177,11 +207,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             .where('project.tenantId = :tenantId')
             .andWhere(
                 new Brackets((qb) => {
-                    qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
-                })
-            )
-            .andWhere(
-                new Brackets((qb) => {
                     qb.where('project.ownerId = :userId')
                         .orWhere('project.createdById = :userId')
                         .orWhere('member.id = :userId')
@@ -193,6 +218,19 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 userId: user.id
             })
 
+        if (requestedStatus === 'all') {
+            // Explicitly requested by the Project workspace so archived projects
+            // can be filtered client-side without changing legacy callers.
+        } else if (typeof requestedStatus === 'string' && requestedStatus.length > 0) {
+            query.andWhere('project.status = :projectStatus', { projectStatus: requestedStatus })
+        } else {
+            query.andWhere(
+                new Brackets((qb) => {
+                    qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
+                })
+            )
+        }
+
         if (organizationId) {
             query.andWhere('project.organizationId = :organizationId', { organizationId })
         } else {
@@ -200,7 +238,12 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
 
         if (options?.where) {
-            applyWhereToQueryBuilder(query, 'project', options.where)
+            const where = Array.isArray(options.where)
+                ? options.where
+                : Object.fromEntries(Object.entries(options.where).filter(([key]) => key !== 'status'))
+            if (Array.isArray(where) ? where.length > 0 : Object.keys(where).length > 0) {
+                applyWhereToQueryBuilder(query, 'project', where)
+            }
         }
 
         if (options?.skip) {
@@ -213,7 +256,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const projects = await query.getMany()
 
         return {
-            items: projects.map((item) => new XpertProjectIdentiDto(item)),
+            items: projects,
             total: projects.length
         }
     }
@@ -389,7 +432,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return await this.findOne(id, { relations: ['members'] })
     }
 
-    async getTasks(id: string, params: PaginationParams<IXpertProjectTask>) {
+    async getTasks(id: string, params: PaginationParams<XpertProjectTask>) {
         return this.taskService.findAll({
             ...(params ?? {}),
             where: {
@@ -398,6 +441,30 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             },
             order: { createdAt: OrderTypeEnum.ASC }
         })
+    }
+
+    createTasks(id: string, task: Partial<IXpertProjectTask>) {
+        return this.taskService.createTask(id, task)
+    }
+
+    updateTask(id: string, taskId: string, task: Partial<IXpertProjectTask>) {
+        return this.taskService.updateTask(id, taskId, task)
+    }
+
+    batchUpdateTasks(
+        id: string,
+        input: {
+            ids: string[]
+            status?: IXpertProjectTask['status']
+            assigneeId?: string
+            priority?: IXpertProjectTask['priority']
+        }
+    ) {
+        return this.taskService.batchUpdate(id, input)
+    }
+
+    reorderTasks(id: string, items: Array<{ id: string; order: number; column?: string }>) {
+        return this.taskService.reorder(id, items)
     }
 
     // async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
@@ -460,7 +527,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const project = await this.findOne(id, { relations: ['attachments'] })
         const index = project.attachments.findIndex((_) => _.id === fileId)
         if (index > -1) {
-            const files = project.attachments.splice(index, 1)
+            project.attachments.splice(index, 1)
             await this.repository.save(project)
             await this.commandBus.execute(new StorageFileDeleteCommand(fileId))
         }
@@ -471,7 +538,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             relations: ['copilotModel', 'xperts', 'toolsets', 'knowledges', 'attachments']
         })
 
-        return await this.create({
+        const duplicate = await this.create({
             ...project,
             id: undefined, // Clear the ID to create a new project
             tenantId: undefined,
@@ -487,11 +554,298 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
             attachments: project.attachments.map((_) => ({ id: _.id }))
         })
+
+        const planRepository = this.repository.manager.getRepository(XpertProjectPlan)
+        const taskRepository = this.repository.manager.getRepository(XpertProjectTask)
+        const milestoneRepository = this.repository.manager.getRepository(XpertProjectMilestone)
+        const assetRepository = this.repository.manager.getRepository(XpertProjectAsset)
+        const automationRepository = this.repository.manager.getRepository(XpertProjectAutomation)
+        const plans = await planRepository.find({ where: { projectId: id }, relations: ['milestones'] })
+        const planIds = new Map<string, string>()
+        for (const plan of plans) {
+            const copiedPlan = await planRepository.save(
+                planRepository.create({
+                    projectId: duplicate.id,
+                    name: plan.name,
+                    description: plan.description,
+                    status: plan.status,
+                    view: plan.view,
+                    startDate: plan.startDate,
+                    dueDate: plan.dueDate,
+                    order: plan.order,
+                    tenantId: duplicate.tenantId,
+                    organizationId: duplicate.organizationId,
+                    createdById: duplicate.createdById
+                })
+            )
+            planIds.set(plan.id, copiedPlan.id)
+            for (const milestone of plan.milestones ?? []) {
+                await milestoneRepository.save(
+                    milestoneRepository.create({
+                        projectId: duplicate.id,
+                        planId: copiedPlan.id,
+                        name: milestone.name,
+                        description: milestone.description,
+                        status: milestone.status,
+                        dueDate: milestone.dueDate,
+                        order: milestone.order,
+                        tenantId: duplicate.tenantId,
+                        organizationId: duplicate.organizationId,
+                        createdById: duplicate.createdById
+                    })
+                )
+            }
+        }
+        const tasks = await taskRepository.find({ where: { projectId: id } })
+        for (const task of tasks) {
+            await taskRepository.save(
+                taskRepository.create({
+                    ...task,
+                    id: undefined,
+                    projectId: duplicate.id,
+                    planId: task.planId ? planIds.get(task.planId) : undefined,
+                    tenantId: duplicate.tenantId,
+                    organizationId: duplicate.organizationId,
+                    createdById: duplicate.createdById,
+                    updatedById: undefined
+                })
+            )
+        }
+        const assets = await assetRepository.find({ where: { projectId: id } })
+        for (const asset of assets) {
+            await assetRepository.save(
+                assetRepository.create({
+                    ...asset,
+                    id: undefined,
+                    projectId: duplicate.id,
+                    tenantId: duplicate.tenantId,
+                    organizationId: duplicate.organizationId,
+                    createdById: duplicate.createdById,
+                    updatedById: undefined
+                })
+            )
+        }
+        const automations = await automationRepository.find({ where: { projectId: id } })
+        for (const automation of automations) {
+            await automationRepository.save(
+                automationRepository.create({
+                    ...automation,
+                    id: undefined,
+                    projectId: duplicate.id,
+                    tenantId: duplicate.tenantId,
+                    organizationId: duplicate.organizationId,
+                    createdById: duplicate.createdById,
+                    updatedById: undefined,
+                    lastRunAt: undefined,
+                    nextRunAt: undefined
+                })
+            )
+        }
+        return duplicate
     }
 
     async exportProject(id: string) {
         const projectDsl = await this.commandBus.execute(new ExportProjectCommand(id))
-        return yaml.stringify(projectDsl)
+        const project = await this.findOne(id)
+        const [plans, tasks, milestones, assets, automations] = await Promise.all([
+            this.repository.manager.getRepository(XpertProjectPlan).find({ where: { projectId: id } }),
+            this.repository.manager.getRepository(XpertProjectTask).find({ where: { projectId: id } }),
+            this.repository.manager.getRepository(XpertProjectMilestone).find({ where: { projectId: id } }),
+            this.repository.manager.getRepository(XpertProjectAsset).find({ where: { projectId: id } }),
+            this.repository.manager.getRepository(XpertProjectAutomation).find({ where: { projectId: id } })
+        ])
+        return yaml.stringify({
+            version: 2,
+            project: projectDsl?.project ?? project,
+            plans,
+            tasks,
+            milestones,
+            assets,
+            automations
+        })
+    }
+
+    async importProject(input: unknown): Promise<XpertProject> {
+        const parsed = typeof input === 'string' ? yaml.parse(input) : input
+        if (!parsed || typeof parsed !== 'object') throw new BadRequestException('Invalid project DSL')
+        const root = parsed as Record<string, unknown>
+        const source =
+            root.project && typeof root.project === 'object' ? (root.project as Record<string, unknown>) : root
+        const name = typeof source.name === 'string' ? source.name.trim() : ''
+        if (!name) throw new BadRequestException('Project DSL requires a name')
+        const project = await this.create({
+            name,
+            description: typeof source.description === 'string' ? source.description : undefined,
+            avatar: source.avatar as XpertProject['avatar'],
+            status: 'active',
+            settings: source.settings as XpertProject['settings']
+        })
+        const planRepository = this.repository.manager.getRepository(XpertProjectPlan)
+        const milestoneRepository = this.repository.manager.getRepository(XpertProjectMilestone)
+        const taskRepository = this.repository.manager.getRepository(XpertProjectTask)
+        const taskStepRepository = this.repository.manager.getRepository(XpertProjectTaskStep)
+        const assetRepository = this.repository.manager.getRepository(XpertProjectAsset)
+        const automationRepository = this.repository.manager.getRepository(XpertProjectAutomation)
+        const planIdMap = new Map<string, string>()
+        const milestoneIdMap = new Map<string, string>()
+        const plans = (root.plans ?? source.plans) as Array<Record<string, unknown>> | undefined
+        for (const inputPlan of Array.isArray(plans) ? plans : []) {
+            const plan = await planRepository.save(
+                planRepository.create({
+                    projectId: project.id,
+                    name: typeof inputPlan.name === 'string' ? inputPlan.name : 'Untitled plan',
+                    description: typeof inputPlan.description === 'string' ? inputPlan.description : undefined,
+                    status: (inputPlan.status as XpertProjectPlan['status']) ?? 'active',
+                    view: (inputPlan.view as XpertProjectPlan['view']) ?? 'board',
+                    startDate: inputPlan.startDate ? new Date(String(inputPlan.startDate)) : undefined,
+                    dueDate: inputPlan.dueDate ? new Date(String(inputPlan.dueDate)) : undefined,
+                    order: typeof inputPlan.order === 'number' ? inputPlan.order : 0,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+            if (typeof inputPlan.id === 'string') planIdMap.set(inputPlan.id, plan.id)
+        }
+        if (!Array.isArray(plans) || plans.length === 0) {
+            const defaultPlan = await planRepository.save(
+                planRepository.create({
+                    projectId: project.id,
+                    name: 'Default plan',
+                    description: 'Project delivery plan',
+                    status: 'active',
+                    view: 'board',
+                    order: 0,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+            await milestoneRepository.save(
+                milestoneRepository.create({
+                    projectId: project.id,
+                    planId: defaultPlan.id,
+                    name: 'Uncategorized',
+                    status: 'planned',
+                    order: 0,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+        }
+        const milestones = (root.milestones ?? source.milestones) as Array<Record<string, unknown>> | undefined
+        for (const inputMilestone of Array.isArray(milestones) ? milestones : []) {
+            const rawPlanId = typeof inputMilestone.planId === 'string' ? inputMilestone.planId : undefined
+            const planId =
+                (rawPlanId && planIdMap.get(rawPlanId)) ||
+                (await planRepository.findOne({ where: { projectId: project.id }, order: { order: 'ASC' } }))?.id
+            if (!planId) continue
+            const milestone = await milestoneRepository.save(
+                milestoneRepository.create({
+                    projectId: project.id,
+                    planId,
+                    name: typeof inputMilestone.name === 'string' ? inputMilestone.name : 'Uncategorized',
+                    description:
+                        typeof inputMilestone.description === 'string' ? inputMilestone.description : undefined,
+                    status: (inputMilestone.status as 'planned' | 'in_progress' | 'completed' | 'blocked') ?? 'planned',
+                    dueDate: inputMilestone.dueDate ? new Date(String(inputMilestone.dueDate)) : undefined,
+                    order: typeof inputMilestone.order === 'number' ? inputMilestone.order : 0,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+            if (typeof inputMilestone.id === 'string') milestoneIdMap.set(inputMilestone.id, milestone.id)
+        }
+        const tasks = root.tasks as Array<Record<string, unknown>> | undefined
+        for (const inputTask of Array.isArray(tasks) ? tasks : []) {
+            const rawPlanId = typeof inputTask.planId === 'string' ? inputTask.planId : undefined
+            const rawMilestoneId = typeof inputTask.milestoneId === 'string' ? inputTask.milestoneId : undefined
+            const task = await taskRepository.save(
+                taskRepository.create({
+                    projectId: project.id,
+                    threadId: typeof inputTask.threadId === 'string' ? inputTask.threadId : undefined,
+                    name:
+                        typeof inputTask.name === 'string'
+                            ? inputTask.name
+                            : typeof inputTask.title === 'string'
+                              ? inputTask.title
+                              : 'Untitled task',
+                    title:
+                        typeof inputTask.title === 'string'
+                            ? inputTask.title
+                            : typeof inputTask.name === 'string'
+                              ? inputTask.name
+                              : 'Untitled task',
+                    description: typeof inputTask.description === 'string' ? inputTask.description : undefined,
+                    type: typeof inputTask.type === 'string' ? inputTask.type : undefined,
+                    status: normalizeImportedTaskStatus(inputTask.status),
+                    priority: (inputTask.priority as IXpertProjectTask['priority']) ?? 'medium',
+                    assigneeId: typeof inputTask.assigneeId === 'string' ? inputTask.assigneeId : undefined,
+                    dueDate: inputTask.dueDate ? new Date(String(inputTask.dueDate)) : undefined,
+                    planId: rawPlanId ? planIdMap.get(rawPlanId) : undefined,
+                    milestoneId: rawMilestoneId ? milestoneIdMap.get(rawMilestoneId) : undefined,
+                    column: typeof inputTask.column === 'string' ? inputTask.column : undefined,
+                    order: typeof inputTask.order === 'number' ? inputTask.order : 0,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+            const steps = inputTask.steps as Array<Record<string, unknown>> | undefined
+            if (Array.isArray(steps) && steps.length) {
+                await taskStepRepository.save(
+                    steps.map((inputStep, index) =>
+                        taskStepRepository.create({
+                            taskId: task.id,
+                            stepIndex: typeof inputStep.stepIndex === 'number' ? inputStep.stepIndex : index,
+                            description: typeof inputStep.description === 'string' ? inputStep.description : '',
+                            notes: typeof inputStep.notes === 'string' ? inputStep.notes : '',
+                            status: (inputStep.status as 'pending' | 'running' | 'done' | 'failed') ?? 'pending',
+                            tenantId: project.tenantId,
+                            organizationId: project.organizationId,
+                            createdById: project.createdById
+                        })
+                    )
+                )
+            }
+        }
+        const assets = (root.assets ?? source.assets) as Array<Record<string, unknown>> | undefined
+        for (const inputAsset of Array.isArray(assets) ? assets : []) {
+            await assetRepository.save(
+                assetRepository.create({
+                    projectId: project.id,
+                    name: typeof inputAsset.name === 'string' ? inputAsset.name : 'Untitled asset',
+                    path: typeof inputAsset.path === 'string' ? inputAsset.path : String(inputAsset.name ?? ''),
+                    kind: inputAsset.kind === 'folder' ? 'folder' : 'file',
+                    mimeType: typeof inputAsset.mimeType === 'string' ? inputAsset.mimeType : undefined,
+                    size: typeof inputAsset.size === 'number' ? inputAsset.size : undefined,
+                    source: (inputAsset.source as 'upload' | 'ai_output' | 'conversation' | 'import') ?? 'import',
+                    status: 'available',
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+        }
+        const automations = (root.automations ?? source.automations) as Array<Record<string, unknown>> | undefined
+        for (const inputAutomation of Array.isArray(automations) ? automations : []) {
+            if (!inputAutomation.trigger || !Array.isArray(inputAutomation.actions)) continue
+            await automationRepository.save(
+                automationRepository.create({
+                    projectId: project.id,
+                    name: typeof inputAutomation.name === 'string' ? inputAutomation.name : 'Imported automation',
+                    enabled: inputAutomation.enabled === true,
+                    trigger: inputAutomation.trigger,
+                    actions: inputAutomation.actions,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    createdById: project.createdById
+                })
+            )
+        }
+        return project
     }
 
     // VCS
@@ -529,4 +883,26 @@ function requiredProjectText(value: string, field: string, maxLength: number): s
         throw new BadRequestException(`${field} is required and must not exceed ${maxLength} characters`)
     }
     return normalized
+}
+
+function normalizeImportedTaskStatus(value: unknown): IXpertProjectTask['status'] {
+    switch (value) {
+        case 'pending':
+        case 'todo':
+            return 'todo'
+        case 'in_progress':
+            return 'in_progress'
+        case 'completed':
+        case 'done':
+            return 'done'
+        case 'failed':
+        case 'blocked':
+            return 'blocked'
+        case 'review':
+            return 'review'
+        case 'cancelled':
+            return 'cancelled'
+        default:
+            return 'todo'
+    }
 }

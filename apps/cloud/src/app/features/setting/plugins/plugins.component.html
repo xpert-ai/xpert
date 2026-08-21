@@ -90,7 +90,35 @@
   </div>
 </div>
 
-@if (runtimeRestart.pending()) {
+@if (runtimeRestart.isApplyingInBackground()) {
+  <div
+    class="mx-8 mb-3 flex items-center gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 shadow-sm"
+    role="status"
+  >
+    <div
+      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background-default-subtle text-text-accent"
+    >
+      <i class="ri-loader-4-line animate-spin text-lg"></i>
+    </div>
+    <div class="min-w-0">
+      <div class="system-sm-semibold text-text-primary">
+        {{ 'XP.Plugin.RuntimeApplyingTitle' | translate: { Default: 'Plugin changes are being applied' } }}
+      </div>
+      <div class="mt-0.5 text-sm text-text-secondary">
+        {{
+          'XP.Plugin.RuntimeApplyingDescription'
+            | translate
+              : {
+                  Default: 'API replicas are restarting in background batches. You can continue using this page.',
+                  pluginNames: runtimeRestart.backgroundPluginNames().join(', ')
+                }
+        }}
+      </div>
+    </div>
+  </div>
+}
+
+@if (runtimeRestart.requiresManualRestart()) {
   <div
     class="mx-8 mb-3 flex items-center justify-between gap-4 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 shadow-sm"
     role="status"
@@ -103,7 +131,11 @@
       </div>
       <div class="min-w-0">
         <div class="system-sm-semibold text-text-primary">
-          {{ 'XP.Plugin.RestartRequiredTitle' | translate: { Default: 'API restart required' } }}
+          @if (runtimeRestart.lastError()) {
+            {{ 'XP.Plugin.RestartFailedTitle' | translate: { Default: 'Restart could not be completed' } }}
+          } @else {
+            {{ 'XP.Plugin.RestartRequiredTitle' | translate: { Default: 'API restart required' } }}
+          }
         </div>
         <div class="mt-0.5 text-sm text-text-secondary">
           @if (runtimeRestart.pendingPluginNames().length) {
@@ -120,6 +152,9 @@
             }}
           }
         </div>
+        @if (runtimeRestart.lastError(); as error) {
+          <div class="mt-1 whitespace-pre-wrap break-words text-xs text-text-destructive" role="alert">{{ error }}</div>
+        }
         @if (!runtimeRestart.canRestart()) {
           <div class="mt-1 text-xs text-text-tertiary">
             {{

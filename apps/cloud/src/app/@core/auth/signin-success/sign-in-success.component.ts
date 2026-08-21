@@ -1,6 +1,7 @@
 import { Component } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { filter } from 'rxjs/operators'
+import { AppInitService } from '../../services/app-init-service'
 import { Store } from '../../services/store.service'
 
 @Component({
@@ -12,7 +13,8 @@ export class SignInSuccessComponent {
   constructor(
     private readonly _store: Store,
     private readonly _route: ActivatedRoute,
-    private readonly _router: Router
+    private readonly _router: Router,
+    private readonly _appInitService: AppInitService
   ) {
     this._route.queryParams
       .pipe(filter((params) => params.jwt))
@@ -20,6 +22,12 @@ export class SignInSuccessComponent {
         this._store.token = jwt
         this._store.userId = userId
         this._store.refreshToken = refreshToken
+        this._store.restoreRememberedScope(userId)
+
+        await this._appInitService.init()
+        if (this._store.user?.id !== userId) {
+          return
+        }
 
         if (typeof returnTo === 'string' && returnTo.trim().length > 0) {
           const normalizedReturnTo = returnTo.trim()

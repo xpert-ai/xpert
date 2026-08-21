@@ -130,7 +130,20 @@
                 </ul>
               }
             } @else if (group.key === 'work') {
-              <xp-cloud-sidebar-assistants [collapsed]="collapsed()" [enabled]="group.items.length > 0" />
+              <div class="cloud-sidebar-menu__assistant-stack">
+                <xp-cloud-sidebar-recent-tasks [collapsed]="collapsed()" />
+                @if (!collapsed()) {
+                  <div class="cloud-sidebar-menu__assistant-section-label">
+                    {{ 'XP.Sidebar.Assistants' | translate: { Default: 'Assistants' } }}
+                  </div>
+                }
+                <xp-cloud-sidebar-assistants
+                  class="cloud-sidebar-menu__assistant-list"
+                  [collapsed]="collapsed()"
+                  [enabled]="group.items.length > 0"
+                  [embedded]="true"
+                />
+              </div>
             }
           </li>
         }

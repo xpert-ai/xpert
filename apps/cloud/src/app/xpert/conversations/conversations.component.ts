@@ -132,6 +132,12 @@ export class ChatConversationsComponent {
 
   selectConversation(item: IChatConversation) {
     const basePath = item.projectId ? this.getProjectBasePath(item.projectId) : this.#basePath
+    if (basePath.startsWith('/project/')) {
+      const queryParams = this.xpertSlug() ? { xpert: this.xpertSlug(), threadId: item.id } : { threadId: item.id }
+      this.#router.navigate([basePath, 'conversations'], { queryParams })
+      this.#dialogRef.close()
+      return
+    }
     if (this.xpertSlug()) {
       this.#router.navigate([basePath, 'x', this.xpertSlug(), 'c', item.id])
     } else {
@@ -142,6 +148,15 @@ export class ChatConversationsComponent {
 
   newConversation() {
     let url = this.projectId() ? this.getProjectBasePath(this.projectId()) : this.#basePath
+
+    if (url.startsWith('/project/')) {
+      const queryParams = this.xpertSlug() ? { xpert: this.xpertSlug() } : {}
+      this.homeService.conversationId.set(null)
+      this.homeService.conversation.set(null)
+      this.#router.navigate([url, 'conversations'], { queryParams })
+      this.#dialogRef.close()
+      return
+    }
 
     if (this.xpertSlug()) {
       url += `/x/${this.xpertSlug()}`

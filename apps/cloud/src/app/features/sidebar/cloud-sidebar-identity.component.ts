@@ -122,26 +122,18 @@ export class CloudSidebarIdentityComponent {
     )
   })
 
-  readonly scopeEyebrow = computed(() =>
+  readonly scopeDisplayName = computed(() =>
     this.activeScope().level === RequestScopeLevel.TENANT
-      ? this.#i18nService.instant('XP.Scope.TenantEyebrow', {
-          Default: 'Tenant Console'
-        })
-      : this.#i18nService.instant('XP.Scope.OrganizationEyebrow', {
-          Default: 'Organization Scope'
-        })
-  )
-
-  readonly scopeLabel = computed(() =>
-    this.activeScope().level === RequestScopeLevel.TENANT
-      ? this.#i18nService.instant('XP.Scope.TenantLabel', {
-          Default: 'Tenant defaults and governance'
-        })
+      ? this.#i18nService.instant('XP.Scope.TenantShortLabel', { Default: 'Tenant' })
       : this.currentOrganization()?.name ||
-        this.#i18nService.instant('XP.Scope.SelectOrganization', {
-          Default: 'Select an organization'
-        })
+        this.#i18nService.instant('XP.Scope.SelectOrganization', { Default: 'Select an organization' })
   )
+  readonly scopeContextLabel = computed(() =>
+    this.activeScope().level === RequestScopeLevel.TENANT
+      ? this.#i18nService.instant('XP.Scope.CurrentTenant', { Default: 'Current tenant' })
+      : this.#i18nService.instant('XP.Scope.CurrentOrganization', { Default: 'Current organization' })
+  )
+  readonly scopeMark = computed(() => getScopeMark(this.scopeDisplayName()))
 
   readonly showTenantScopeItem = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
   readonly hasOrganizations = computed(() => this.#organizations().length > 0)
@@ -356,6 +348,28 @@ export class CloudSidebarIdentityComponent {
       }
     }
   }
+}
+
+function getScopeMark(label: string) {
+  const value = label.trim()
+  if (!value) {
+    return 'XP'
+  }
+
+  const cjkCharacters = value.match(/[\u3400-\u9fff]/g)
+  if (cjkCharacters?.length) {
+    return cjkCharacters.slice(0, 2).join('')
+  }
+
+  const words = value.split(/\s+/).filter(Boolean)
+  return (
+    words.length > 1
+      ? words
+          .slice(0, 2)
+          .map((word) => word[0])
+          .join('')
+      : value.slice(0, 2)
+  ).toUpperCase()
 }
 
 function getCurrentUserOrganizationsLoadKey(user: { id?: string | null; tenantId?: string | null } | null | undefined) {

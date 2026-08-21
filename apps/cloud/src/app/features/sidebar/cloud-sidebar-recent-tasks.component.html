@@ -1,0 +1,50 @@
+@if (shouldRender()) {
+  <section class="cloud-sidebar-recent-tasks" aria-labelledby="cloud-sidebar-recent-tasks-label">
+    <h2 id="cloud-sidebar-recent-tasks-label" class="cloud-sidebar-recent-tasks__heading">
+      <button
+        type="button"
+        class="cloud-sidebar-recent-tasks__trigger"
+        [attr.aria-expanded]="expanded()"
+        aria-controls="cloud-sidebar-recent-tasks-list"
+        (click)="toggleExpanded()"
+      >
+        <span>{{ 'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' } }}</span>
+        <i
+          class="ri-arrow-down-s-line cloud-sidebar-recent-tasks__chevron"
+          [class.is-open]="expanded()"
+          aria-hidden="true"
+        ></i>
+      </button>
+    </h2>
+
+    @if (expanded()) {
+      <div id="cloud-sidebar-recent-tasks-list">
+        @if (conversations().length > 0) {
+          <ul class="cloud-sidebar-recent-tasks__list">
+            @for (conversation of conversations(); track conversation.id) {
+              @if (taskRoute(conversation); as route) {
+                <li class="cloud-sidebar-recent-tasks__entry">
+                  <a
+                    class="cloud-sidebar-recent-tasks__item"
+                    [routerLink]="route"
+                    [attr.aria-label]="taskTitle(conversation)"
+                    [zTooltip]="taskTitle(conversation)"
+                    zPosition="right"
+                  >
+                    <i class="ri-file-text-line cloud-sidebar-recent-tasks__icon"></i>
+                    <span class="cloud-sidebar-recent-tasks__title">{{ taskTitle(conversation) }}</span>
+                    <span class="cloud-sidebar-recent-tasks__time">{{ conversation.updatedAt | relative }}</span>
+                  </a>
+                </li>
+              }
+            }
+          </ul>
+        } @else {
+          <p class="cloud-sidebar-recent-tasks__empty">
+            {{ 'XP.Sidebar.NoRecentTasks' | translate: { Default: 'No recent tasks' } }}
+          </p>
+        }
+      </div>
+    }
+  </section>
+}

@@ -187,6 +187,64 @@ describe('ChatTaskSummaryService', () => {
         expect(page.total).toBe(60)
         expect(page.items[0]).toMatchObject({ id: 'output-1', title: 'Newest output' })
     })
+
+    it('re-extracts outputs from messages with an incomplete persisted summary', async () => {
+        const messageService = {
+            findAllInOrganizationOrTenant: jest
+                .fn()
+                .mockResolvedValueOnce({ items: [], total: 0 })
+                .mockResolvedValueOnce({
+                    items: [
+                        {
+                            id: 'message-1',
+                            taskSummary: { version: 1 },
+                            content: [
+                                {
+                                    type: 'component',
+                                    data: {
+                                        artifact: {
+                                            files: [
+                                                {
+                                                    fileName: 'generated-video.mp4',
+                                                    workspacePath: 'files/videos/generated-video.mp4',
+                                                    mimeType: 'video/mp4'
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            createdAt: new Date('2026-07-13T05:00:00.000Z'),
+                            updatedAt: new Date('2026-07-13T05:00:00.000Z')
+                        }
+                    ],
+                    total: 1
+                }),
+            save: jest.fn()
+        }
+        const service = new ChatTaskSummaryService(
+            messageService as never,
+            { getByConversationId: jest.fn(() => Promise.resolve(null)) } as never,
+            { findAllInOrganizationOrTenant: jest.fn(() => Promise.resolve({ items: [], total: 0 })) } as never,
+            { find: jest.fn(() => Promise.resolve([])) } as never
+        )
+
+        const result = await service.getSnapshot(conversation())
+
+        expect(messageService.findAllInOrganizationOrTenant).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ select: expect.arrayContaining(['content', 'taskSummary']) })
+        )
+        expect(result.outputs).toEqual({
+            items: [
+                expect.objectContaining({
+                    id: 'artifact:files/videos/generated-video.mp4',
+                    title: 'generated-video.mp4'
+                })
+            ],
+            total: 1
+        })
+    })
 })
 
 function conversation(): ChatConversation {

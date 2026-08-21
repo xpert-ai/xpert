@@ -1,4 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
+import { ActivatedRoute } from '@angular/router'
 import { injectProjectService } from '@cloud/app/@core'
 import { IXpertProject } from '@cloud/app/@core/types'
 import {
@@ -20,7 +21,8 @@ export class ProjectService {
   readonly paramRole = injectParams('name')
   readonly paramId = injectParams('c')
 
-  readonly id = injectParams('id')
+  readonly #route = inject(ActivatedRoute)
+  readonly id = signal(this.findRouteParam('id'))
 
   readonly #project = derivedAsync(() =>
     this.id()
@@ -45,6 +47,16 @@ export class ProjectService {
         .filter(isChatAgentFile) ?? []
   )
   readonly project_attachments = attrModel(this.project, 'attachments')
+
+  private findRouteParam(name: string): string | null {
+    let route: ActivatedRoute | null = this.#route
+    while (route) {
+      const value = route.snapshot.paramMap.get(name)
+      if (value) return value
+      route = route.parent
+    }
+    return null
+  }
 
   onAttachCreated(file: ChatAgentFile) {
     const storageFileId = getChatStorageFileId(file)

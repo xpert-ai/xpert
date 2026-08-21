@@ -14,7 +14,12 @@ import { UserFormsModule } from '../../../@shared/user'
   imports: [FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'xp-account-profile',
   template: `<div class="flex flex-col items-center justify-start p-4">
-    <xp-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]" [(ngModel)]="user" />
+    <xp-user-basic-info-form
+      #form
+      class="block max-w-full md:max-w-[600px] lg:max-w-[900px]"
+      [emailDisabled]="true"
+      [(ngModel)]="user"
+    />
 
     <div class="w-full flex justify-center items-center gap-2">
       <button type="button" class="btn disabled:btn-disabled btn-large" (click)="reset()">

@@ -212,7 +212,7 @@ export class ChatProjectHomeComponent {
     const input = text || this.form.value.input
     if (!input) return
     const projectId = this.id()
-    this.#router.navigate(['/project', projectId, 'x', 'common'], { state: { input } })
+    this.#router.navigate(['/project', projectId], { queryParams: { chat: 'open', xpert: 'common' }, state: { input } })
   }
 
   triggerFun(event: KeyboardEvent) {

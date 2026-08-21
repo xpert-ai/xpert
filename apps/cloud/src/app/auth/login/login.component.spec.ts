@@ -143,4 +143,25 @@ describe('UserLoginComponent', () => {
 
     expect(component.errors).toEqual(['Feishu sign-in failed. Please try again.'])
   })
+
+  it('forwards the complete plugin URL to the SSO provider', async () => {
+    const returnUrl = '/plugins/marketplace/xpert-ai/plugin-dingtalk-sso?sourceId=platform#details'
+    const { component } = await createFixture({ returnUrl })
+    const redirectSpy = jest
+      .spyOn(component as unknown as { redirectToLocation(location: string): void }, 'redirectToLocation')
+      .mockImplementation()
+
+    component.openProvider({
+      provider: 'dingtalk',
+      displayName: 'DingTalk',
+      icon: '/dingtalk.svg',
+      order: 2,
+      startUrl: '/api/dingtalk-identity/login/start'
+    })
+
+    expect(redirectSpy).toHaveBeenCalledTimes(1)
+    const location = new URL(redirectSpy.mock.calls[0][0])
+    expect(location.pathname).toBe('/api/dingtalk-identity/login/start')
+    expect(location.searchParams.get('returnTo')).toBe(returnUrl)
+  })
 })

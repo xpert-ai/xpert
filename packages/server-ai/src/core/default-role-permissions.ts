@@ -25,6 +25,10 @@ const BILLING_ADMIN_PERMISSIONS = [
     AIPermissionsEnum.PAYMENT_PROVIDER_EDIT
 ]
 
+const PROJECT_VIEW_PERMISSIONS = [AIPermissionsEnum.XPERT_PROJECT_VIEW]
+const PROJECT_EDIT_PERMISSIONS = [AIPermissionsEnum.XPERT_PROJECT_CREATE, AIPermissionsEnum.XPERT_PROJECT_EDIT]
+const PROJECT_ADMIN_PERMISSIONS = [AIPermissionsEnum.XPERT_PROJECT_MANAGE]
+
 const VIEWER_AI_PERMISSIONS = [
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.CHAT_VIEW,
@@ -37,6 +41,9 @@ export const DEFAULT_ROLE_PERMISSIONS = [
         role: RolesEnum.SUPER_ADMIN,
         defaultEnabledPermissions: [
             ...FULL_AI_PERMISSIONS,
+            ...PROJECT_VIEW_PERMISSIONS,
+            ...PROJECT_EDIT_PERMISSIONS,
+            ...PROJECT_ADMIN_PERMISSIONS,
             ...MEMBERSHIP_ADMIN_PERMISSIONS,
             ...MODEL_ACCESS_ADMIN_PERMISSIONS,
             ...MODEL_GATEWAY_USER_PERMISSIONS,
@@ -49,6 +56,9 @@ export const DEFAULT_ROLE_PERMISSIONS = [
         role: RolesEnum.ADMIN,
         defaultEnabledPermissions: [
             ...FULL_AI_PERMISSIONS,
+            ...PROJECT_VIEW_PERMISSIONS,
+            ...PROJECT_EDIT_PERMISSIONS,
+            ...PROJECT_ADMIN_PERMISSIONS,
             ...MEMBERSHIP_ADMIN_PERMISSIONS,
             ...MODEL_ACCESS_ADMIN_PERMISSIONS,
             ...MODEL_GATEWAY_USER_PERMISSIONS,
@@ -63,15 +73,22 @@ export const DEFAULT_ROLE_PERMISSIONS = [
             AIPermissionsEnum.COPILOT_EDIT,
             AIPermissionsEnum.XPERT_EDIT,
             AIPermissionsEnum.CHAT_VIEW,
+            ...PROJECT_VIEW_PERMISSIONS,
+            ...PROJECT_EDIT_PERMISSIONS,
             ...MEMBERSHIP_USE_PERMISSIONS
         ]
     },
     {
         role: RolesEnum.AI_BUILDER,
-        defaultEnabledPermissions: [...FULL_AI_PERMISSIONS, ...MEMBERSHIP_USE_PERMISSIONS]
+        defaultEnabledPermissions: [
+            ...FULL_AI_PERMISSIONS,
+            ...PROJECT_VIEW_PERMISSIONS,
+            ...PROJECT_EDIT_PERMISSIONS,
+            ...MEMBERSHIP_USE_PERMISSIONS
+        ]
     },
     {
         role: RolesEnum.VIEWER,
-        defaultEnabledPermissions: [...VIEWER_AI_PERMISSIONS]
+        defaultEnabledPermissions: [...VIEWER_AI_PERMISSIONS, ...PROJECT_VIEW_PERMISSIONS]
     }
 ]

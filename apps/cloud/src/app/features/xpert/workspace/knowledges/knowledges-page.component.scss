@@ -1,0 +1,243 @@
+@reference "../../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block h-full min-h-0 w-full overflow-hidden bg-background-body;
+}
+
+.knowledge-workbench {
+  @apply flex h-full min-h-0 w-full flex-col overflow-hidden bg-background-body text-text-primary;
+}
+
+.knowledge-toolbar {
+  @apply flex h-16 shrink-0 items-center justify-between border-b border-divider-regular px-5;
+}
+
+.toolbar-tabs,
+.toolbar-actions,
+.documents-actions {
+  @apply flex items-center gap-2;
+}
+
+.toolbar-tab {
+  @apply inline-flex h-11 items-center gap-2 rounded-lg px-4 text-base font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary;
+}
+
+.toolbar-tab.active {
+  @apply bg-components-card-bg text-text-primary shadow-sm;
+}
+
+.toolbar-tab:disabled {
+  @apply cursor-default opacity-80;
+}
+
+.toolbar-tab i {
+  @apply text-xl;
+}
+
+.icon-button {
+  @apply inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-xl text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+.icon-button.active {
+  @apply bg-hover-bg text-text-primary;
+}
+
+.knowledge-content {
+  @apply min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-5;
+}
+
+.knowledge-selector-row {
+  @apply grid grid-cols-[auto_minmax(12rem,1fr)_auto] items-center gap-3;
+}
+
+.knowledge-selector-row > label {
+  @apply text-base font-medium text-text-secondary;
+}
+
+.knowledge-select-wrap {
+  @apply relative min-w-0;
+}
+
+.knowledge-select-wrap select {
+  @apply h-12 w-full appearance-none rounded-lg border border-divider-deep bg-components-card-bg px-4 pr-10 text-base text-text-primary shadow-xs outline-none transition-colors focus:border-primary-400;
+}
+
+.knowledge-select-wrap > i {
+  @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-lg text-text-tertiary;
+}
+
+.document-count {
+  @apply whitespace-nowrap rounded-lg bg-background-default-subtle px-3 py-2 text-sm font-medium text-text-primary;
+}
+
+.refresh-button {
+  @apply mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-divider-deep bg-components-card-bg px-3 text-sm font-medium text-text-primary shadow-xs hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.load-error {
+  @apply mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700;
+}
+
+.knowledge-summary {
+  @apply mt-6 flex items-center gap-4 border-b border-divider-regular px-5 pb-5;
+}
+
+.knowledge-avatar {
+  @apply flex size-14 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-3xl text-emerald-500;
+}
+
+.knowledge-summary h1 {
+  @apply truncate text-lg font-semibold text-text-primary;
+}
+
+.knowledge-summary p {
+  @apply mt-1 truncate text-sm text-text-tertiary;
+}
+
+.documents-section {
+  @apply mt-5;
+}
+
+.documents-heading {
+  @apply flex min-h-12 items-center justify-between gap-4 border-b border-divider-regular px-4;
+}
+
+.documents-heading h2 {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.document-search {
+  @apply flex h-9 w-44 items-center gap-2 rounded-lg bg-background-default-subtle px-3 text-text-tertiary focus-within:ring-1 focus-within:ring-primary-300;
+}
+
+.document-search input {
+  @apply min-w-0 flex-1 bg-transparent text-sm text-text-primary outline-none;
+}
+
+.documents-list {
+  @apply min-h-28;
+}
+
+.document-row {
+  @apply flex min-h-[76px] w-full items-center gap-4 border-b border-divider-regular px-4 text-left transition-colors hover:bg-hover-bg;
+}
+
+.document-row.selected {
+  @apply bg-background-default-subtle;
+}
+
+.document-icon {
+  @apply flex size-12 shrink-0 items-center justify-center rounded-lg text-2xl;
+}
+
+.document-main {
+  @apply min-w-0 flex-1;
+}
+
+.document-name {
+  @apply block truncate text-base font-medium text-text-primary;
+}
+
+.document-meta {
+  @apply mt-1 flex items-center gap-2 text-sm text-text-tertiary;
+}
+
+.row-arrow {
+  @apply text-xl text-text-tertiary opacity-0 transition-opacity;
+}
+
+.document-row:hover .row-arrow,
+.document-row.selected .row-arrow {
+  @apply opacity-100;
+}
+
+.list-state {
+  @apply flex min-h-36 items-center justify-center gap-2 text-sm text-text-tertiary;
+}
+
+.preview-section {
+  @apply mt-6 min-h-[22rem] overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg shadow-xs;
+}
+
+.preview-header {
+  @apply flex min-h-14 items-center justify-between gap-4 border-b border-divider-regular px-5;
+}
+
+.text-button {
+  @apply inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary hover:bg-hover-bg hover:text-text-primary;
+}
+
+.preview-body {
+  @apply min-h-[18rem];
+}
+
+.preview-body pre {
+  @apply max-h-[32rem] whitespace-pre-wrap break-words p-6 font-sans text-sm leading-7 text-text-primary;
+}
+
+.preview-placeholder {
+  @apply flex min-h-[22rem] items-center justify-center gap-2 px-6 text-center text-base text-text-tertiary;
+}
+
+.preview-header + .preview-body .preview-placeholder {
+  @apply min-h-[18rem];
+}
+
+.empty-knowledge {
+  @apply mx-auto flex min-h-[30rem] max-w-xl flex-col items-center justify-center px-6 text-center;
+}
+
+.empty-knowledge > i {
+  @apply text-4xl text-text-tertiary;
+}
+
+.empty-knowledge h1 {
+  @apply mt-4 text-xl font-semibold text-text-primary;
+}
+
+.empty-knowledge p {
+  @apply mt-2 text-sm leading-6 text-text-secondary;
+}
+
+.empty-knowledge .btn {
+  @apply mt-5 inline-flex items-center gap-2;
+}
+
+@media (max-width: 768px) {
+  .knowledge-toolbar,
+  .knowledge-content {
+    @apply px-3;
+  }
+
+  .toolbar-tab {
+    @apply px-3 text-sm;
+  }
+
+  .toolbar-actions .icon-button:nth-child(n + 2) {
+    @apply hidden;
+  }
+
+  .knowledge-selector-row {
+    @apply grid-cols-[1fr_auto];
+  }
+
+  .knowledge-selector-row > label {
+    @apply col-span-2;
+  }
+
+  .knowledge-summary {
+    @apply px-2;
+  }
+
+  .documents-heading {
+    @apply items-start px-2 py-2;
+  }
+
+  .document-search {
+    @apply hidden;
+  }
+
+  .document-row {
+    @apply px-2;
+  }
+}
