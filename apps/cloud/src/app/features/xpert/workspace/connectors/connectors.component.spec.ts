@@ -260,7 +260,7 @@ describe('XpertConnectorsComponent', () => {
     fixture.destroy()
   })
 
-  it('renders active connectors without description, profile text, or disconnect label', async () => {
+  it('renders active connectors with description, profile text, and disconnect label', async () => {
     const { component, fixture, workspace } = await setup({
       connectors: [activeConnector]
     })
@@ -271,15 +271,14 @@ describe('XpertConnectorsComponent', () => {
     fixture.detectChanges()
 
     const host = fixture.nativeElement as HTMLElement
-    expect(host.textContent).not.toContain('Connect an external workspace service')
-    expect(host.textContent).not.toContain('Example User')
-    expect(host.textContent).not.toContain('Disconnect')
+    expect(host.textContent).toContain('Connect an external workspace service')
+    expect(host.textContent).toContain('Example User')
+    expect(host.textContent).toContain('XP.Xpert.ConnectorDisconnect')
 
-    const button = host.querySelector('button')
-    expect(button?.textContent?.trim()).toBe('')
+    const button = host.querySelector('button[data-connector-action="disconnect"]')
+    expect(button?.textContent).toContain('XP.Xpert.ConnectorDisconnect')
     expect(button?.querySelector('lucide-angular')).not.toBeNull()
-    expect(host.querySelector('.w-full')).not.toBeNull()
-    expect(host.querySelector('.max-w-md')).toBeNull()
+    expect(host.querySelector('.rounded-xl')).not.toBeNull()
 
     fixture.destroy()
   })
@@ -456,8 +455,8 @@ describe('XpertConnectorsComponent', () => {
     const host = fixture.nativeElement as HTMLElement
     const form = component.formFor(githubDefinition)
     const tokenInput = host.querySelector<HTMLInputElement>('input[data-credential-field="token"]')
-    expect(host.querySelectorAll('button[aria-label]')).toHaveLength(1)
-    const connectButton = host.querySelector<HTMLButtonElement>('button[aria-label]')
+    expect(host.querySelectorAll('button[data-connector-action="connect"]')).toHaveLength(1)
+    const connectButton = host.querySelector<HTMLButtonElement>('button[data-connector-action="connect"]')
     if (!tokenInput || !connectButton) {
       throw new Error('Expected PAT input and connector action to be rendered')
     }

@@ -3,6 +3,7 @@
     class="cloud-sidebar-assistants"
     [class.is-collapsed]="collapsed()"
     [class.is-current-card]="isCurrentCardMode()"
+    [class.is-embedded]="embedded()"
   >
     @if (isCurrentCardMode()) {
       @if (collapsed()) {
@@ -54,6 +55,7 @@
                   }
                 </span>
               </span>
+              <i class="ri-arrow-right-s-line cloud-sidebar-assistants__current-chevron" aria-hidden="true"></i>
             </button>
             <button
               type="button"
@@ -65,16 +67,24 @@
             >
               <i class="ri-equalizer-2-line"></i>
             </button>
-          </div>
-
-          <div class="cloud-sidebar-assistants__current-actions">
             <button
               type="button"
               class="cloud-sidebar-assistants__current-action cloud-sidebar-assistants__current-action--primary"
+              [attr.aria-label]="
+                isClawXpertConfigured()
+                  ? ('XP.Assistant.NewConversation' | translate: { Default: 'New conversation' })
+                  : ('XP.Assistant.Configure' | translate: { Default: 'Configure' })
+              "
+              [zTooltip]="
+                isClawXpertConfigured()
+                  ? ('XP.Assistant.NewConversation' | translate: { Default: 'New conversation' })
+                  : ('XP.Assistant.Configure' | translate: { Default: 'Configure' })
+              "
+              zPosition="right"
               (click)="startClawXpertConversation($event)"
             >
               <z-icon [zType]="isClawXpertConfigured() ? 'message-circle-more' : 'settings'"></z-icon>
-              <span>
+              <span class="sr-only">
                 @if (isClawXpertConfigured()) {
                   {{ 'XP.Assistant.NewConversation' | translate: { Default: 'New conversation' } }}
                 } @else {
@@ -227,8 +237,63 @@
                       <i class="ri-equalizer-2-line"></i>
                     </button>
                   }
+                  @if (embedded()) {
+                    <button
+                      type="button"
+                      class="cloud-sidebar-assistants__item-toggle"
+                      [attr.aria-label]="
+                        (isAssistantExpanded(xpert) ? 'XP.Sidebar.CollapseAssistant' : 'XP.Sidebar.ExpandAssistant')
+                          | translate
+                            : { Default: isAssistantExpanded(xpert) ? 'Collapse assistant' : 'Expand assistant' }
+                      "
+                      [attr.aria-expanded]="isAssistantExpanded(xpert)"
+                      [attr.aria-controls]="assistantMenuId(xpert)"
+                      (click)="toggleAssistantExpanded($event, xpert)"
+                    >
+                      <i
+                        class="cloud-sidebar-assistants__item-chevron"
+                        [class.ri-arrow-right-s-line]="!isAssistantExpanded(xpert)"
+                        [class.ri-arrow-down-s-line]="isAssistantExpanded(xpert)"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+                  }
                 }
               </div>
+
+              @if (embedded() && !collapsed() && isAssistantExpanded(xpert)) {
+                <div
+                  class="cloud-sidebar-assistants__children"
+                  [id]="assistantMenuId(xpert)"
+                  role="group"
+                  [attr.aria-label]="'XP.Sidebar.AssistantViews' | translate: { Default: 'Assistant views' }"
+                >
+                  @if (assistantMenuState(xpert).loading) {
+                    <div class="cloud-sidebar-assistants__children-state">
+                      {{ 'XP.Sidebar.LoadingAssistantViews' | translate: { Default: 'Loading views...' } }}
+                    </div>
+                  } @else if (assistantMenuState(xpert).items.length) {
+                    <div class="cloud-sidebar-assistants__children-label">
+                      {{ 'XP.Sidebar.Views' | translate: { Default: 'Views' } }}
+                    </div>
+                    @for (item of assistantMenuState(xpert).items; track item.viewKey) {
+                      <button
+                        type="button"
+                        class="cloud-sidebar-assistants__child-item"
+                        [attr.aria-label]="item.title"
+                        (click)="openAssistantMenuItem($event, xpert, item)"
+                      >
+                        <i class="ri-file-list-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
+                        <span>{{ item.title }}</span>
+                      </button>
+                    }
+                  } @else {
+                    <div class="cloud-sidebar-assistants__children-state">
+                      {{ 'XP.Sidebar.NoAssistantViews' | translate: { Default: 'No views yet' } }}
+                    </div>
+                  }
+                </div>
+              }
             </li>
           } @empty {
             @if (!collapsed() && (query() || activeCategory() !== 'all')) {

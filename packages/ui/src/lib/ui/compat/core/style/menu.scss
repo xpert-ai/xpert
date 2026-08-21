@@ -9,8 +9,8 @@
 [z-menu-content] {
   .cdk-menu-item.active,
   [z-menu-item].active {
-    color: var(--sys-primary);
-    @apply font-bold bg-black/5 dark:bg-white/10;
+    color: var(--sys-text-primary);
+    @apply font-medium bg-components-list-option-active-bg;
   }
 
   z-radio {
@@ -70,8 +70,8 @@ button[z-menu].active,
 }
 
 .cdk-menu {
-  @apply mt-2 inline-flex flex-col rounded-xl shadow-lg overflow-auto border border-solid 
-    border-neutral-200 dark:border-neutral-700 dark:shadow-neutral-800;
+  @apply mt-1 inline-flex flex-col overflow-auto rounded-xl border border-solid shadow-xl;
+  border-color: var(--sys-outline-variant, var(--border));
   background-color: var(--sys-surface);
 
   .cdk-menu-item[role='menuitemradio'][aria-checked='true'] {
@@ -83,11 +83,11 @@ button[z-menu].active,
   // }
 
   .cdk-menu-item {
-    @apply flex items-center bg-transparent whitespace-nowrap cursor-pointer border-none select-none;
+    @apply flex min-h-9 items-center rounded-lg bg-transparent px-3 py-2 whitespace-nowrap cursor-pointer border-none select-none;
     min-width: 64px;
 
     &:hover {
-      @apply bg-gray-50 dark:bg-white/5;
+      @apply bg-hover-bg text-text-primary;
     }
 
     &.xp-cdk-menu-item__disabled {
@@ -99,7 +99,7 @@ button[z-menu].active,
     }
 
     &.xp-cdk-menu__danger:hover {
-      @apply bg-red-400 text-white;
+      @apply bg-destructive/10 text-destructive;
     }
 
     & + .z-icon {
@@ -128,21 +128,21 @@ button[z-menu].active,
   }
 
   &.cdk-menu__medium {
-    @apply p-2 rounded-xl;
+    @apply p-1.5 rounded-xl;
     .cdk-menu-item {
       @apply px-2 py-1 rounded-lg;
     }
   }
 
   &.cdk-menu__large {
-    @apply p-2 rounded-2xl;
+    @apply p-1.5 rounded-xl;
     .cdk-menu-item {
       @apply px-3 py-2 rounded-lg;
     }
   }
 
   .cdk-menu-item.danger:hover {
-    @apply bg-red-50 text-red-600 disabled:text-text-secondary dark:bg-red-500/10 dark:text-red-300 disabled:bg-gray-50 dark:disabled:bg-gray-100/10;
+    @apply bg-destructive/10 text-destructive disabled:text-text-secondary;
   }
 
   .cdk-menu-item:disabled {
@@ -150,7 +150,7 @@ button[z-menu].active,
   }
 
   .cdk-menu-item.active {
-    @apply text-primary-500;
+    @apply bg-components-list-option-active-bg text-text-primary font-medium;
   }
 }
 

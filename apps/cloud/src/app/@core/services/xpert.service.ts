@@ -26,6 +26,8 @@ import {
   ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
+  TFile,
+  TFileDirectory,
   IUserGroup,
   IXpert,
   IXpertAgentExecution,
@@ -198,6 +200,42 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
     return this.httpClient.get<IAiAssistantRuntimeCapabilities>(this.apiBaseUrl + `/${id}/runtime-capabilities`, {
       params
+    })
+  }
+
+  getWorkspaceFiles(id: string, path = '') {
+    return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/workspace/files`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
+  getWorkspaceFile(id: string, path: string) {
+    return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
+  downloadWorkspaceFile(id: string, path: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/workspace/file/download`, {
+      params: createOptionalQueryParams({ path }),
+      responseType: 'blob'
+    })
+  }
+
+  saveWorkspaceFile(id: string, path: string, content: string) {
+    return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, { path, content })
+  }
+
+  uploadWorkspaceFileToFolder(id: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/workspace/file/upload`, formData)
+  }
+
+  deleteWorkspaceFile(id: string, path: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/workspace/file`, {
+      params: createOptionalQueryParams({ path })
     })
   }
 

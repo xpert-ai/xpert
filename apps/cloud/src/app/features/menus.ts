@@ -211,6 +211,19 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
   const menus: ScopedMenuItem[] = [
     // Xpert AI Features
     {
+      title: 'New task',
+      icon: 'ri-add-circle-line',
+      link: '/chat/clawxpert/c',
+      pathMatch: 'full',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'New task',
+        action: 'newClawXpertConversation',
+        featureKey: AiFeatureEnum.FEATURE_XPERT,
+        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+      }
+    },
+    {
       title: 'Scheduled',
       icon: 'ri-time-line',
       link: '/chat/tasks',

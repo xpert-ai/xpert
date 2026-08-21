@@ -1,0 +1,205 @@
+@reference "../../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block h-full min-h-0 overflow-auto bg-background-body;
+}
+
+.workspace-overview {
+  @apply mx-auto box-border min-h-full w-full max-w-[1920px] px-6 py-6 text-text-primary lg:px-8 lg:py-8;
+}
+
+.workspace-overview__breadcrumb {
+  @apply flex min-h-9 items-center gap-3 overflow-hidden text-sm text-text-secondary;
+}
+
+.workspace-overview__breadcrumb > span,
+.workspace-overview__breadcrumb > strong {
+  @apply min-w-0 truncate tracking-normal;
+}
+
+.workspace-overview__breadcrumb > strong {
+  @apply font-medium text-text-primary;
+}
+
+.workspace-overview__breadcrumb > i:first-child {
+  @apply shrink-0 text-xl text-text-primary;
+}
+
+.workspace-overview__breadcrumb > i:not(:first-child) {
+  @apply shrink-0 text-base text-text-tertiary;
+}
+
+.workspace-overview__breadcrumb-divider {
+  @apply h-5 w-px shrink-0 bg-divider-regular;
+}
+
+.workspace-overview__header {
+  @apply border-b border-divider-regular pb-6 pt-6;
+}
+
+.workspace-overview__title {
+  @apply flex items-center gap-3;
+}
+
+.workspace-overview__title i {
+  @apply text-3xl;
+}
+
+.workspace-overview__title h1 {
+  @apply text-3xl font-semibold tracking-normal;
+}
+
+.workspace-overview__header > p {
+  @apply mt-2 text-base leading-6 text-text-secondary;
+}
+
+.workspace-overview__resources,
+.workspace-overview__metrics {
+  @apply grid gap-4;
+}
+
+.workspace-overview__resources {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  @apply mt-8;
+}
+
+.workspace-resource,
+.workspace-metric {
+  @apply rounded-lg border border-divider-regular bg-components-card-bg;
+}
+
+.workspace-resource {
+  @apply min-h-32 p-6;
+}
+
+.workspace-resource__title {
+  @apply flex items-center gap-3;
+}
+
+.workspace-resource__title i {
+  @apply text-xl;
+}
+
+.workspace-resource__title h3 {
+  @apply text-lg font-semibold tracking-normal;
+}
+
+.workspace-resource > p {
+  @apply mt-3 text-sm leading-5 text-text-secondary;
+}
+
+.workspace-overview__metrics {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  @apply mt-4;
+}
+
+.workspace-metric {
+  @apply min-h-32 p-5;
+}
+
+.workspace-metric__label {
+  @apply flex min-w-0 items-center gap-2 text-sm font-medium text-text-secondary;
+}
+
+.workspace-metric__label i {
+  @apply shrink-0 text-lg;
+}
+
+.workspace-metric__label span {
+  @apply min-w-0 truncate;
+}
+
+.workspace-metric > strong {
+  @apply mt-4 block text-3xl font-semibold tabular-nums tracking-normal text-text-primary;
+}
+
+.workspace-overview__details {
+  @apply mt-6 pb-8;
+}
+
+.workspace-details {
+  @apply grid grid-cols-2 gap-x-5 gap-y-5;
+}
+
+.workspace-details__item {
+  @apply min-w-0;
+}
+
+.workspace-details__item--wide {
+  @apply col-span-2;
+}
+
+.workspace-details__item dt {
+  @apply mb-2 text-sm font-semibold text-text-primary;
+}
+
+.workspace-details__item dd {
+  @apply m-0 min-h-11 rounded-lg border border-divider-regular bg-components-card-bg px-4 py-2.5 text-sm leading-5 text-text-primary;
+}
+
+.workspace-details__description {
+  @apply min-h-28 whitespace-pre-wrap break-words;
+}
+
+.workspace-overview__empty {
+  @apply flex min-h-80 items-center justify-center text-sm text-text-secondary;
+}
+
+@media (max-width: 1199px) {
+  .workspace-overview__resources {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-overview__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .workspace-overview {
+    @apply px-4 py-5;
+  }
+
+  .workspace-overview__breadcrumb {
+    @apply gap-2;
+  }
+
+  .workspace-overview__header {
+    @apply pb-5 pt-5;
+  }
+
+  .workspace-overview__title h1 {
+    @apply text-2xl;
+  }
+
+  .workspace-overview__title i {
+    @apply text-2xl;
+  }
+
+  .workspace-overview__resources,
+  .workspace-overview__metrics,
+  .workspace-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-resource,
+  .workspace-metric {
+    @apply min-h-0;
+  }
+
+  .workspace-overview__resources {
+    @apply mt-6;
+  }
+
+  .workspace-details__item--wide {
+    @apply col-span-1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

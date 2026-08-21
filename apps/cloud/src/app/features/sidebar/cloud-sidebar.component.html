@@ -7,8 +7,6 @@
     />
   </header>
 
-  <xp-cloud-sidebar-assistants class="cloud-sidebar__current-assistant" mode="current-card" [collapsed]="collapsed()" />
-
   <div class="cloud-sidebar__scroll">
     <xp-cloud-sidebar-menu
       [collapsed]="collapsed()"
@@ -25,6 +23,7 @@
         [user]="currentUser"
         [compact]="collapsed()"
         [fullWidth]="!collapsed()"
+        [sidebar]="true"
         (entryGuideClick)="entryGuideClick.emit()"
       />
     }

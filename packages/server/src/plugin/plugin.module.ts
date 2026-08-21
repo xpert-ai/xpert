@@ -35,11 +35,14 @@ import {
 	PluginUserPermissionService
 } from './permissions'
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens'
+import { RuntimeControlModule } from '../runtime-control/runtime-control.module'
+import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 
 @Global()
 @Module({
 	imports: [
 		ConfigModule,
+		RuntimeControlModule,
 		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
 		CqrsModule
 	],
@@ -90,6 +93,7 @@ import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens
 		PluginAccountBindingPermissionService,
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
+		PluginRuntimeStateService,
 		StrategyBus,
 		...CommandHandlers,
 		...QueryHandlers
@@ -113,7 +117,8 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 
 	constructor(
 		@Inject() private readonly moduleRef: ModuleRef,
-		@Inject() private readonly configService: ConfigService
+		@Inject() private readonly configService: ConfigService,
+		private readonly runtimeState: PluginRuntimeStateService
 	) {}
 
 	/**
@@ -124,20 +129,27 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 			item.ctx.module = this.moduleRef
 		}
 
-		await this.bootstrapPluginLifecycleMethods('onPluginBootstrap', (instance: Function) => {
-			const pluginName = instance.constructor.name || '(anonymous plugin)'
-			console.log(chalk.white(`Bootstrapped Plugin [${pluginName}]`))
-		})
+		await this.bootstrapPluginLifecycleMethods(
+			'onPluginBootstrap',
+			(instance: { constructor: { name?: string } }) => {
+				const pluginName = instance.constructor.name || '(anonymous plugin)'
+				console.log(chalk.white(`Bootstrapped Plugin [${pluginName}]`))
+			}
+		)
+		await this.runtimeState.report()
 	}
 
 	/**
 	 * Lifecycle hook called once the module is about to be destroyed.
 	 */
 	async onModuleDestroy() {
-		await this.bootstrapPluginLifecycleMethods('onPluginDestroy', (instance: Function) => {
-			const pluginName = instance.constructor.name || '(anonymous plugin)'
-			console.log(chalk.white(`Destroyed Plugin [${pluginName}]`))
-		})
+		await this.bootstrapPluginLifecycleMethods(
+			'onPluginDestroy',
+			(instance: { constructor: { name?: string } }) => {
+				const pluginName = instance.constructor.name || '(anonymous plugin)'
+				console.log(chalk.white(`Destroyed Plugin [${pluginName}]`))
+			}
+		)
 	}
 
 	/**
@@ -159,14 +171,9 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 
 		// Loop through each plugin module asynchronously
 		for await (const pluginModule of pluginsModules) {
-			let pluginInstance: ClassDecorator
-
-			try {
-				// Attempt to retrieve an instance of the current plugin module
-				pluginInstance = this.moduleRef.get(pluginModule, { strict: false })
-			} catch (e) {
-				console.error(`Error initializing plugin ${pluginModule.name}:`, e.stack)
-			}
+			// A process must not advertise its plugin runtime as ready when Nest could not resolve the module.
+			// Propagating the error keeps readiness closed and lets the restart coordinator fail the replacement.
+			const pluginInstance: ClassDecorator = this.moduleRef.get(pluginModule, { strict: false })
 
 			// If the plugin instance exists and it implements the specified lifecycle method, call it
 			if (pluginInstance && hasLifecycleMethod(pluginInstance, lifecycleMethod)) {

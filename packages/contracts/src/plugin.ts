@@ -3,6 +3,7 @@ import { JsonSchemaObjectType } from './ai/types'
 import type { IXpert } from './ai/xpert.model'
 import type { TMcpStdioRuntimePolicy } from './ai/xpert-tool-mcp.model'
 import type { JSONValue } from './core.model'
+import type { IPluginRuntimeConvergence, IRuntimePluginRequirement } from './runtime-control'
 import { IconDefinition, I18nObject } from './types'
 
 export type PluginName = string
@@ -627,11 +628,15 @@ export interface IPluginInstallResult {
   organizationId: string
   currentVersion?: string
   /**
-   * The plugin package was installed and persisted, but the running API process
-   * intentionally did not activate it. Process-level system and tenant plugins require a graceful
-   * API restart (or a blue-green process replacement) before this version takes effect.
+   * The plugin package was installed and persisted, but automatic runtime convergence is either
+   * intentionally deferred or unavailable. All API replicas must be gracefully replaced before
+   * this version is considered active.
    */
   restartRequired?: boolean
+  /** Automatic organization-level convergence that the client should wait for before refreshing runtime data. */
+  runtimeConvergence?: IPluginRuntimeConvergence
+  /** Expected runtime state used when an explicit restart is required. */
+  runtimeRequirements?: IRuntimePluginRequirement[]
 }
 
 export interface IPluginUpdateResult extends IPluginInstallResult {
@@ -647,6 +652,7 @@ export interface IPluginUninstallResult {
    * remain active until the API process is gracefully replaced.
    */
   restartRequired?: boolean
+  runtimeRequirements?: IRuntimePluginRequirement[]
 }
 
 export interface IPluginDescriptor {
