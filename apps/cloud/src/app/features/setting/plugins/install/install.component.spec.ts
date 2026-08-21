@@ -29,7 +29,7 @@ describe('PluginInstallComponent anonymous flow', () => {
     close: jest.fn()
   }
   const router = {
-    url: '/plugins/marketplace',
+    url: '/plugins/marketplace/xpert-ai/plugin-dingtalk-sso?sourceId=platform#details',
     navigate: jest.fn(() => Promise.resolve(true))
   }
   const runtimeRestartFactory = jest.fn(() => ({
@@ -126,7 +126,7 @@ describe('PluginInstallComponent anonymous flow', () => {
     expect(fixture.componentInstance.systemPluginUnavailableInCurrentScope()).toBe(false)
   })
 
-  it('redirects the final install action to login with the authenticated marketplace URL', () => {
+  it('redirects the final install action to login with the complete plugin URL', () => {
     const fixture = TestBed.createComponent(PluginInstallComponent)
 
     fixture.componentInstance.install()
@@ -135,7 +135,7 @@ describe('PluginInstallComponent anonymous flow', () => {
     expect(dialogRef.close).toHaveBeenCalledWith()
     expect(router.navigate).toHaveBeenCalledWith(['/auth/login'], {
       queryParams: {
-        returnUrl: '/plugins?category=marketplace'
+        returnUrl: '/plugins/marketplace/xpert-ai/plugin-dingtalk-sso?sourceId=platform#details'
       }
     })
   })

@@ -22,8 +22,8 @@ const target = resolveProxyTarget()
 const sharedProxy = {
   target,
   secure: false,
-  xfwd: true,
-  changeOrigin: true
+  changeOrigin: false,
+  xfwd: true
 }
 
 module.exports = {
