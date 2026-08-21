@@ -34,6 +34,8 @@ import {
   type I18nText,
   IPluginInstallResult,
   IPluginUninstallResult,
+  IPluginUpdateResult,
+  IRuntimePluginRequirement,
   PluginMarketplaceCategory,
   RolesEnum
 } from '@xpert-ai/contracts'
@@ -493,7 +495,7 @@ export class PluginsComponent {
         this.removing.set('')
         this.reloadInstalledPlugins()
         if ((result as IPluginUninstallResult).restartRequired) {
-          this.showRestartRequired(plugin.name)
+          this.showRestartRequired(plugin.name, (result as IPluginUninstallResult).runtimeRequirements)
         } else {
           this.refreshStrategyCaches()
         }
@@ -511,25 +513,7 @@ export class PluginsComponent {
 
     this.updating.set(plugin.name)
     this.pluginAPI.update(plugin.name).subscribe({
-      next: (result) => {
-        this.updating.set('')
-        this.reloadInstalledPlugins()
-        if (result.restartRequired) {
-          this.showRestartRequired(plugin.name)
-          return
-        }
-        this.refreshStrategyCaches()
-        if (result.updated) {
-          this.#toastr.success(
-            `${plugin.meta?.displayName || plugin.name} updated to ${result.currentVersion ?? 'latest'}`
-          )
-        } else {
-          this.#toastr.info({
-            code: `${plugin.meta?.displayName || plugin.name} is already on the latest version`,
-            default: `${plugin.meta?.displayName || plugin.name} is already on the latest version`
-          })
-        }
-      },
+      next: (result) => this.handleUpdateSuccess(plugin, result),
       error: (err) => {
         this.updating.set('')
         this.#toastr.error(getErrorMessage(err))
@@ -544,18 +528,7 @@ export class PluginsComponent {
 
     this.refreshing.set(plugin.name)
     this.pluginAPI.refresh(plugin.name).subscribe({
-      next: (result) => {
-        this.refreshing.set('')
-        this.reloadInstalledPlugins()
-        if (result.restartRequired) {
-          this.showRestartRequired(plugin.name)
-          return
-        }
-        this.refreshStrategyCaches()
-        this.#toastr.success('XP.Plugin.RefreshPluginSuccess', {
-          Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
-        })
-      },
+      next: (result) => this.handleRefreshSuccess(plugin, result),
       error: (err) => {
         this.refreshing.set('')
         this.#toastr.error(getErrorMessage(err))
@@ -647,8 +620,8 @@ export class PluginsComponent {
 
       .subscribe({
         next: (result) => {
-          this.npmInstalling.set(false)
           this.handleInstallSuccess(dialogRef, result)
+          this.npmInstalling.set(false)
         },
         error: (err) => {
           this.npmInstallError.set(getErrorMessage(err))
@@ -676,8 +649,8 @@ export class PluginsComponent {
       })
       .subscribe({
         next: (result) => {
-          this.localInstalling.set(false)
           this.handleInstallSuccess(dialogRef, result)
+          this.localInstalling.set(false)
         },
         error: (err) => {
           this.localInstallError.set(getErrorMessage(err))
@@ -696,8 +669,8 @@ export class PluginsComponent {
     this.archiveInstallError.set(null)
     this.pluginAPI.installArchive(file).subscribe({
       next: (result) => {
-        this.archiveInstalling.set(false)
         this.handleInstallSuccess(dialogRef, result)
+        this.archiveInstalling.set(false)
       },
       error: (err) => {
         this.archiveInstallError.set(getErrorMessage(err))
@@ -707,17 +680,61 @@ export class PluginsComponent {
   }
 
   private handleInstallSuccess(dialogRef: DialogRef, result: IPluginInstallResult) {
+    this.trackRuntimeConvergence(result, result.packageName || result.name)
     dialogRef.close()
     this.reloadInstalledPlugins()
     if (result.restartRequired) {
-      this.showRestartRequired(result.packageName || result.name)
+      this.showRestartRequired(result.packageName || result.name, result.runtimeRequirements)
     } else {
       this.refreshStrategyCaches()
     }
   }
 
-  private showRestartRequired(pluginName?: string | null) {
-    this.runtimeRestart.markRequired(pluginName)
+  private handleUpdateSuccess(plugin: TInstalledPlugin, result: IPluginUpdateResult) {
+    this.trackRuntimeConvergence(result, plugin.name)
+    this.updating.set('')
+    this.reloadInstalledPlugins()
+    if (result.restartRequired) {
+      this.showRestartRequired(plugin.name, result.runtimeRequirements)
+      return
+    }
+    this.refreshStrategyCaches()
+    if (result.updated) {
+      this.#toastr.success(`${plugin.meta?.displayName || plugin.name} updated to ${result.currentVersion ?? 'latest'}`)
+    } else {
+      this.#toastr.info({
+        code: `${plugin.meta?.displayName || plugin.name} is already on the latest version`,
+        default: `${plugin.meta?.displayName || plugin.name} is already on the latest version`
+      })
+    }
+  }
+
+  private handleRefreshSuccess(plugin: TInstalledPlugin, result: IPluginInstallResult) {
+    this.trackRuntimeConvergence(result, plugin.name)
+    this.refreshing.set('')
+    this.reloadInstalledPlugins()
+    if (result.restartRequired) {
+      this.showRestartRequired(plugin.name, result.runtimeRequirements)
+      return
+    }
+    this.refreshStrategyCaches()
+    this.#toastr.success('XP.Plugin.RefreshPluginSuccess', {
+      Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
+    })
+  }
+
+  private trackRuntimeConvergence(result: IPluginInstallResult, pluginName?: string | null) {
+    if (result.runtimeConvergence) {
+      this.runtimeRestart.trackPluginConvergence(
+        result.runtimeConvergence,
+        pluginName,
+        result.runtimeRequirements ?? []
+      )
+    }
+  }
+
+  private showRestartRequired(pluginName?: string | null, runtimeRequirements: IRuntimePluginRequirement[] = []) {
+    this.runtimeRestart.markRequired(pluginName, runtimeRequirements)
     void this.runtimeRestart.prompt()
   }
 

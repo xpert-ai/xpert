@@ -8,7 +8,12 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } f
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
-import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL, type PluginLevel } from '@xpert-ai/contracts'
+import {
+	IRuntimePluginRequirement,
+	PLUGIN_CONFIGURATION_STATUS,
+	PLUGIN_LEVEL,
+	type PluginLevel
+} from '@xpert-ai/contracts'
 import {
 	derivePluginArtifactNamespace,
 	getErrorMessage,
@@ -72,6 +77,8 @@ import {
 	readPluginBundleManifest,
 	resolveLoadedPluginBundleRoot
 } from './plugin-bundle-manifest'
+import { RuntimeControlService } from '../runtime-control/runtime-control.service'
+import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 
 @Injectable()
 export class PluginManagementService {
@@ -86,7 +93,9 @@ export class PluginManagementService {
 		private readonly lazyLoader: LazyModuleLoader,
 		private readonly moduleRef: ModuleRef,
 		private readonly dataSource: DataSource,
-		private readonly applicationConfig: ApplicationConfig
+		private readonly applicationConfig: ApplicationConfig,
+		private readonly runtimeControl: RuntimeControlService,
+		private readonly runtimeState: PluginRuntimeStateService
 	) {}
 
 	findLoadedPlugin(
@@ -462,7 +471,6 @@ export class PluginManagementService {
 					},
 					{ syncLoadedConfig: false }
 				)
-
 				this.logger.log(
 					`Staged ${level}-level plugin ${packageName}@${stagedCompatibility.version ?? body.version ?? 'latest'} in ${scope.scopeKey}; API restart required for activation`
 				)
@@ -472,7 +480,17 @@ export class PluginManagementService {
 					packageName: normalizePluginName(packageName),
 					organizationId: targetOrganizationId,
 					currentVersion: stagedCompatibility.version ?? body.version,
-					restartRequired: true
+					restartRequired: true,
+					runtimeRequirements: [
+						{
+							scopeKey: scope.scopeKey,
+							pluginName: normalizePluginName(packageName),
+							...((stagedCompatibility.version ?? body.version)
+								? { version: stagedCompatibility.version ?? body.version }
+								: {}),
+							state: 'loaded'
+						}
+					]
 				}
 			}
 
@@ -703,13 +721,29 @@ export class PluginManagementService {
 				configurationError: configInspection.error ?? null
 			})
 			clearPluginLoadFailure(scope.scopeKey, pluginName, packageName)
+			await this.runtimeState.report()
+			const convergence = await this.runtimeControl.recordPluginRuntimeChange({
+				pluginName,
+				version: plugin.meta?.version,
+				scopeKey: scope.scopeKey
+			})
+			const runtimeRequirement = {
+				scopeKey: scope.scopeKey,
+				pluginName,
+				...(plugin.meta?.version ? { version: plugin.meta.version } : {}),
+				state: 'loaded' as const
+			}
 
 			return {
 				success: true,
 				name: pluginName,
 				packageName,
 				organizationId: targetOrganizationId,
-				currentVersion: plugin.meta?.version
+				currentVersion: plugin.meta?.version,
+				runtimeRequirements: [runtimeRequirement],
+				...(convergence.scheduled
+					? { runtimeConvergence: { generation: convergence.generation } }
+					: { restartRequired: true })
 			}
 		} catch (error) {
 			let errorMessage = getErrorMessage(error)
@@ -774,7 +808,7 @@ export class PluginManagementService {
 		names: string[],
 		targetOrganizationId?: string,
 		targetScopeKey?: string
-	): Promise<{ restartRequired?: boolean }> {
+	): Promise<{ restartRequired?: boolean; runtimeRequirements?: IRuntimePluginRequirement[] }> {
 		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
 		const currentOrganizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
@@ -813,7 +847,14 @@ export class PluginManagementService {
 			this.logger.log(
 				`Deactivated persisted registrations for ${loadedRestartRequiredLevel ?? 'system'}-level plugins ${names.join(', ')}; API restart required for unload`
 			)
-			return { restartRequired: true }
+			return {
+				restartRequired: true,
+				runtimeRequirements: names.map((name) => ({
+					scopeKey,
+					pluginName: normalizePluginName(name),
+					state: 'absent'
+				}))
+			}
 		}
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, { scopeKey })
 		return {}

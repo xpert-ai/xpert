@@ -6,7 +6,7 @@ import { Router } from '@angular/router'
 import { getErrorMessage, injectHelpWebsite } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
 import { injectActiveScope, injectPluginAPI, injectScopeLevel, Store } from '@cloud/app/@core/state'
-import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
+import { IPluginInstallResult, PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -127,18 +127,7 @@ export class PluginInstallComponent {
         version: this.pluginVersion()
       })
       .subscribe({
-        next: (result) => {
-          this.status.set('installed')
-          this.restartRequired.set(result.restartRequired === true)
-          if (result.restartRequired) {
-            this.runtimeRestart.markRequired(result.packageName || result.name || this.pluginName())
-          }
-          this.#installedPlugin.reload()
-          this.#data.reload()
-          if (!result.restartRequired) {
-            this.#data.refreshStrategies?.()
-          }
-        },
+        next: (result) => void this.handleInstallSuccess(result),
         error: (err) => {
           this.error.set(getErrorMessage(err))
           this.status.set('error')
@@ -153,6 +142,27 @@ export class PluginInstallComponent {
 
   get runtimeRestart() {
     return this.#injector.get(PluginRuntimeRestartService)
+  }
+
+  private handleInstallSuccess(result: IPluginInstallResult) {
+    const pluginName = result.packageName || result.name || this.pluginName()
+    if (result.runtimeConvergence) {
+      this.runtimeRestart.trackPluginConvergence(
+        result.runtimeConvergence,
+        pluginName,
+        result.runtimeRequirements ?? []
+      )
+    }
+    this.status.set('installed')
+    this.restartRequired.set(result.restartRequired === true)
+    if (result.restartRequired) {
+      this.runtimeRestart.markRequired(pluginName, result.runtimeRequirements)
+    }
+    this.#installedPlugin.reload()
+    this.#data.reload()
+    if (!result.restartRequired) {
+      this.#data.refreshStrategies?.()
+    }
   }
 
   private hasInstalledPlugin() {

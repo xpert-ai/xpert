@@ -32,12 +32,16 @@ describe('PluginInstallComponent anonymous flow', () => {
     url: '/plugins/marketplace/xpert-ai/plugin-dingtalk-sso?sourceId=platform#details',
     navigate: jest.fn(() => Promise.resolve(true))
   }
-  const runtimeRestartFactory = jest.fn(() => ({
+  const runtimeRestart = {
     markRequired: jest.fn(),
+    trackPluginConvergence: jest.fn(),
     canRestart: jest.fn(() => false),
     restartUnavailableMessageKey: jest.fn(() => ''),
     confirmAndRestart: jest.fn()
-  }))
+  }
+  const runtimeRestartFactory = jest.fn(() => runtimeRestart)
+  const reload = jest.fn()
+  const refreshStrategies = jest.fn()
 
   beforeEach(async () => {
     store.token = null
@@ -75,7 +79,8 @@ describe('PluginInstallComponent anonymous flow', () => {
                 url: ''
               }
             },
-            reload: jest.fn()
+            reload,
+            refreshStrategies
           }
         },
         {
@@ -159,5 +164,45 @@ describe('PluginInstallComponent anonymous flow', () => {
       version: '1.0.0'
     })
     expect(router.navigate).not.toHaveBeenCalled()
+  })
+
+  it('reports installation success while runtime convergence continues in the background', async () => {
+    store.token = 'user-token'
+    pluginAPI.install.mockReturnValueOnce(
+      of({
+        success: true,
+        name: '@xpert-ai/plugin-test',
+        packageName: '@xpert-ai/plugin-test',
+        organizationId: 'org-1',
+        runtimeConvergence: { generation: 7 },
+        runtimeRequirements: [
+          {
+            scopeKey: 'org-1',
+            pluginName: '@xpert-ai/plugin-test',
+            version: '1.0.0',
+            state: 'loaded' as const
+          }
+        ]
+      })
+    )
+    const fixture = TestBed.createComponent(PluginInstallComponent)
+    fixture.componentInstance.plugin.update((plugin) => ({ ...plugin, level: PLUGIN_LEVEL.ORGANIZATION }))
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    fixture.componentInstance.install()
+    await fixture.whenStable()
+
+    expect(runtimeRestart.trackPluginConvergence).toHaveBeenCalledWith({ generation: 7 }, '@xpert-ai/plugin-test', [
+      {
+        scopeKey: 'org-1',
+        pluginName: '@xpert-ai/plugin-test',
+        version: '1.0.0',
+        state: 'loaded'
+      }
+    ])
+    expect(fixture.componentInstance.status()).toBe('installed')
+    expect(reload).toHaveBeenCalled()
+    expect(refreshStrategies).toHaveBeenCalled()
   })
 })
