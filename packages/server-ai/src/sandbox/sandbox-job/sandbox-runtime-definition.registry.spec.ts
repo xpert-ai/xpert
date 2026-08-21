@@ -1,6 +1,7 @@
 import {
     AI_BROWSER_RUNTIME_PROFILE,
     DEFAULT_BROWSER_RUNTIME_PROFILE,
+    DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
     VIDEO_BROWSER_RUNTIME_PROFILE,
     SandboxRuntimeDefinitionRegistry
 } from './sandbox-runtime-definition.registry'
@@ -30,6 +31,17 @@ describe('SandboxRuntimeDefinitionRegistry', () => {
         expect(definition.expectedManifest.ffmpegVersion).toBe('6.1')
         expect(definition.resources.tempDiskMb).toBe(16384)
         expect(definition.networkPolicy.mode).toBe('none')
+        expect(definition).not.toHaveProperty('provider')
+        expect(definition).not.toHaveProperty('image')
+    })
+
+    it('loads the network-isolated LibreOffice document Runtime Definition', () => {
+        const definition = new SandboxRuntimeDefinitionRegistry().require(DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE)
+        expect(definition.expectedManifest.imageFamily).toBe('document')
+        expect(definition.expectedManifest.libreOfficeMajorVersion).toBe('7')
+        expect(definition.resources.memoryMb).toBe(4096)
+        expect(definition.networkPolicy.mode).toBe('none')
+        expect(definition.security.readOnlyRootFilesystem).toBe(true)
         expect(definition).not.toHaveProperty('provider')
         expect(definition).not.toHaveProperty('image')
     })
