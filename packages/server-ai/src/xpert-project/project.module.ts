@@ -1,4 +1,4 @@
-import { IntegrationModule, TenantModule } from '@xpert-ai/server-core'
+import { Feature, FeatureOrganization, FeatureModule, IntegrationModule, TenantModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -9,21 +9,66 @@ import { XpertProjectService } from './project.service'
 import { XpertProjectTask } from './entities/project-task.entity'
 import { XpertProjectTaskStep } from './entities/project-task-step.entity'
 import { XpertProjectTaskLog } from './entities/project-task-log.entity'
+import { XpertProjectPlan } from './entities/project-plan.entity'
+import { XpertProjectMilestone } from './entities/project-milestone.entity'
+import { XpertProjectActivity } from './entities/project-activity.entity'
+import { XpertProjectAsset } from './entities/project-asset.entity'
+import { XpertProjectAutomation } from './entities/project-automation.entity'
+import { XpertProjectAutomationRun } from './entities/project-automation-run.entity'
 import { CommandHandlers } from './commands/handlers'
-import { XpertProjectTaskService } from './services'
+import {
+    XpertProjectActivityService,
+    XpertProjectAssetService,
+    XpertProjectAutomationService,
+    XpertProjectAutomationSchedulerService,
+    XpertProjectAutomationProcessor,
+    XpertProjectMigrationService,
+    XpertProjectPlanService,
+    XpertProjectTaskService
+} from './services'
 import { VcsService } from './services/vcs-service'
 import { ProjectViewHostDefinition } from '../view-extension/hosts/project-view-host.definition'
+import { XpertProjectFeatureGuard, XpertProjectPermissionGuard } from './guards'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
-        TypeOrmModule.forFeature([XpertProject, XpertProjectTask, XpertProjectTaskStep, XpertProjectTaskLog]),
+        TypeOrmModule.forFeature([
+            XpertProject,
+            XpertProjectTask,
+            XpertProjectTaskStep,
+            XpertProjectTaskLog,
+            XpertProjectPlan,
+            XpertProjectMilestone,
+            XpertProjectActivity,
+            XpertProjectAsset,
+            XpertProjectAutomation,
+            XpertProjectAutomationRun,
+            Feature,
+            FeatureOrganization
+        ]),
         TenantModule,
+        FeatureModule,
         CqrsModule,
         IntegrationModule
     ],
     controllers: [XpertProjectController],
-    providers: [XpertProjectService, XpertProjectTaskService, VcsService, ProjectViewHostDefinition, ...CommandHandlers],
+    providers: [
+        XpertProjectService,
+        XpertProjectTaskService,
+        XpertProjectPlanService,
+        XpertProjectActivityService,
+        XpertProjectAssetService,
+        XpertProjectAutomationService,
+        XpertProjectAutomationSchedulerService,
+        XpertProjectAutomationProcessor,
+        XpertProjectMigrationService,
+        VcsService,
+        ProjectViewHostDefinition,
+        XpertProjectFeatureGuard,
+        XpertProjectPermissionGuard,
+        ...CommandHandlers
+    ],
     exports: [XpertProjectService]
 })
 export class XpertProjectModule {}

@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { injectProjectService, IXpertProject } from '@cloud/app/@core'
+import { IXpertProject } from '@cloud/app/@core'
 import { ChatConversationsComponent, ChatService, XpertChatAppComponent, XpertHomeService } from '@cloud/app/xpert'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
@@ -27,19 +27,18 @@ import { readNavigationInput } from '@cloud/app/@shared/chat/references'
   providers: [ChatProjectService, { provide: ChatService, useExisting: ChatProjectService }]
 })
 export class ChatProjectConversationComponent {
-  readonly #projectComponent = inject(ChatProjectComponent)
-  readonly #projectsSercice = injectProjectService()
   readonly chatSercice = inject(ChatProjectService)
   readonly homeService = inject(XpertHomeService)
   readonly projectService = inject(ProjectService)
+  readonly #projectComponent = inject(ChatProjectComponent, { optional: true })
   readonly #router = inject(Router)
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
 
   readonly id = injectParams('c')
 
-  readonly project = this.#projectComponent.project
-  readonly projectId = this.#projectComponent.id
+  readonly project = computed(() => this.#projectComponent?.project() ?? this.projectService.project())
+  readonly projectId = computed(() => this.#projectComponent?.id() ?? this.projectService.id())
 
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
 
@@ -63,7 +62,7 @@ export class ChatProjectConversationComponent {
   }
 
   routeProject() {
-    this.#router.navigate(['/project', this.projectId()])
+    this.#router.navigate(['/project', this.projectId()], { queryParams: { chat: 'open' } })
   }
 
   openConversations() {

@@ -244,18 +244,18 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY]
       }
     },
-    // {
-    //   title: 'Project',
-    //   icon: 'ri-building-line',
-    //   link: '/project',
-    //   pathMatch: 'prefix',
-    //   scopeContext: 'dual-scope',
-    //   data: {
-    //     translationKey: 'Project',
-    //     featureKey: AiFeatureEnum.FEATURE_XPERT,
-    //     permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
-    //   }
-    // },
+    {
+      title: 'Project',
+      icon: 'ri-group-2-line',
+      link: '/project',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Project',
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_PROJECT],
+        permissionKeys: [AIPermissionsEnum.XPERT_PROJECT_VIEW]
+      }
+    },
     {
       title: 'Explore Xperts',
       icon: 'ri-book-shelf-line',

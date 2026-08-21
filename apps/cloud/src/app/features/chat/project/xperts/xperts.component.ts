@@ -200,7 +200,8 @@ export class ChatProjectXpertsComponent {
   }
 
   selectXpert(xpert: IXpert) {
-    this.#router.navigate(['/project', this.projectId(), 'x', xpert.slug])
+    if (!xpert) return
+    this.#router.navigate(['/project', this.projectId()], { queryParams: { chat: 'open', xpert: xpert.slug } })
     // this.chatService.conversationId.set(null)
   }
 

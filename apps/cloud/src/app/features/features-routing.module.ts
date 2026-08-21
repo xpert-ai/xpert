@@ -16,6 +16,11 @@ export const xpertMarketplaceRouteGate = featureGate(
   ['/explore']
 )
 
+export const xpertProjectRouteGate = featureGate(
+  [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_PROJECT],
+  ['/chat']
+)
+
 export const routes: Routes = [
   {
     path: '',
@@ -38,11 +43,15 @@ export const routes: Routes = [
       },
       {
         path: 'project',
-        loadChildren: () => import('./chat/project/routes').then((m) => m.routes),
-        canActivate: [authGuard],
+        loadChildren: () => import('./project/routes').then((m) => m.routes),
+        canActivate: [authGuard, NgxPermissionsGuard, xpertProjectRouteGate],
         data: {
           title: 'Project',
-          scopeContext: 'dual-scope'
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.XPERT_PROJECT_VIEW],
+            redirectTo
+          }
         }
       },
       {
