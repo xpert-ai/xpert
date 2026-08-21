@@ -290,6 +290,56 @@ describe('PluginRuntimeRestartService', () => {
     expect(dialog.open).not.toHaveBeenCalled()
   })
 
+  it('tracks staged changes by their queued generation instead of an unrelated active restart', async () => {
+    alertDialog.confirm.mockReturnValue(of(true))
+    runtimeControlAPI.restart.mockReturnValue(
+      of({
+        accepted: true,
+        restartId: 'restart-active',
+        pluginGeneration: 12,
+        mode: 'rolling-self-signal',
+        instanceId: 'api-1',
+        requestedAt: new Date().toISOString(),
+        signalAfterMs: 750,
+        drainTimeoutMs: 30_000
+      })
+    )
+    const status = new Subject<Record<string, unknown>>()
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(status)
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.restartCapability.set({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
+    service.markRequired('@xpert-ai/plugin-system-demo', [
+      {
+        scopeKey: 'system:global',
+        pluginName: '@xpert-ai/plugin-system-demo',
+        version: '1.0.0',
+        runtimeRevision: 'runtime:system-demo-next',
+        state: 'loaded'
+      }
+    ])
+
+    await service.confirmAndRestart()
+    await flushAsync()
+
+    expect(service.pending()).toMatchObject({ generation: 12 })
+    expect(service.isApplyingInBackground()).toBe(true)
+    expect(service.requiresManualRestart()).toBe(false)
+    expect(runtimeControlAPI.pluginConvergenceStatus).toHaveBeenCalledWith(12)
+    expect(runtimeControlAPI.restartStatus).not.toHaveBeenCalled()
+
+    status.next({
+      generation: 12,
+      status: 'completed',
+      restartId: 'restart-follow-up',
+      targetReplicaCount: 3,
+      completedReplicaCount: 3,
+      failedReplicaCount: 0
+    })
+    await flushAsync()
+
+    expect(service.pending()).toBeNull()
+  })
+
   it('continues tracking the active restart returned by a conflict', async () => {
     alertDialog.confirm.mockReturnValue(of(true))
     runtimeControlAPI.restart.mockReturnValue(
@@ -320,6 +370,40 @@ describe('PluginRuntimeRestartService', () => {
     expect(service.requiresManualRestart()).toBe(false)
     expect(service.lastError()).toBeNull()
     expect(runtimeControlAPI.restartStatus).toHaveBeenCalledWith('restart-active')
+  })
+
+  it('keeps staged requirements pending when an older backend returns a restart conflict', async () => {
+    alertDialog.confirm.mockReturnValue(of(true))
+    runtimeControlAPI.restart.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 409,
+            error: {
+              statusCode: 409,
+              errorCode: 'RUNTIME_RESTART_IN_PROGRESS',
+              message: 'An API runtime restart is already in progress',
+              restartId: 'restart-unrelated'
+            }
+          })
+      )
+    )
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.restartCapability.set({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
+    service.markRequired('@xpert-ai/plugin-system-demo', [
+      {
+        scopeKey: 'system:global',
+        pluginName: '@xpert-ai/plugin-system-demo',
+        state: 'loaded'
+      }
+    ])
+
+    await service.confirmAndRestart()
+    await flushAsync()
+
+    expect(service.pending()).not.toHaveProperty('restartId')
+    expect(service.requiresManualRestart()).toBe(true)
+    expect(runtimeControlAPI.restartStatus).not.toHaveBeenCalled()
   })
 })
 

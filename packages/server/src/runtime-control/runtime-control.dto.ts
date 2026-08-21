@@ -16,6 +16,11 @@ class RuntimePluginRequirementDto implements IRuntimePluginRequirement {
 	@MaxLength(100)
 	version?: string
 
+	@IsOptional()
+	@IsString()
+	@MaxLength(500)
+	runtimeRevision?: string
+
 	@IsIn(['loaded', 'absent'])
 	state: 'loaded' | 'absent'
 }

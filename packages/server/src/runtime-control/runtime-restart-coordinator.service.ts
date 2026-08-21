@@ -29,6 +29,7 @@ import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 
 const ACTIVE_RESTART_KEY = 'xpert:system:runtime:restart:active'
 const PLUGIN_GENERATION_KEY = 'xpert:system:plugin-runtime:generation'
+const PLUGIN_GENERATION_PREFIX = 'xpert:system:plugin-runtime:generation:'
 const RESTART_CHANNEL = 'xpert:system:runtime:restart:events'
 const DEFAULT_SIGNAL_DELAY_MS = 750
 const DEFAULT_DRAIN_TIMEOUT_MS = 30_000
@@ -68,11 +69,20 @@ end
 redis.call('psetex', KEYS[1], tonumber(ARGV[4]), ARGV[3])
 return 1
 `
+const PUBLISH_PLUGIN_GENERATION_SCRIPT = `
+-- xpert-publish-plugin-generation
+local generation = redis.call('incr', KEYS[1])
+local change = cjson.decode(ARGV[1])
+change['generation'] = generation
+local state = { generation = generation, status = 'in_progress' }
+redis.call('set', ARGV[2] .. generation .. ':change', cjson.encode(change), 'EX', tonumber(ARGV[3]))
+redis.call('set', ARGV[2] .. generation .. ':status', cjson.encode(state), 'EX', tonumber(ARGV[3]))
+return generation
+`
 
 type RuntimeRestartRedisClient = {
 	set: (key: string, value: string, options?: { NX?: boolean; PX?: number; EX?: number }) => Promise<string | null>
 	get: (key: string) => Promise<string | null>
-	incr: (key: string) => Promise<number>
 	hSet: (key: string, field: string, value: string) => Promise<number>
 	hGetAll: (key: string) => Promise<Record<string, string>>
 	expire: (key: string, seconds: number) => Promise<boolean | number>
@@ -120,7 +130,12 @@ type RestartTargetState = {
 
 type PluginGenerationChange = {
 	generation: number
-	requirement: IRuntimePluginRequirement
+	requirements: IRuntimePluginRequirement[]
+	source: 'interactive' | 'plugin-change'
+	reason?: string
+	actorUserId?: string
+	tenantId?: string
+	sourceIp?: string
 }
 
 type PluginGenerationState = {
@@ -144,6 +159,7 @@ type RestartOperationInput = {
 export interface PluginRuntimeChangeInput {
 	pluginName: string
 	version?: string | null
+	runtimeRevision?: string | null
 	scopeKey: string
 }
 
@@ -195,10 +211,43 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 		sourceIp?: string
 		runtimeRequirements?: IRuntimePluginRequirement[]
 	}): Promise<IRuntimeRestartResponse> {
+		const runtimeRequirements = this.mergeRuntimeRequirements(input.runtimeRequirements ?? [])
+		if (runtimeRequirements.length) {
+			const generation = await this.publishPluginGeneration({
+				generation: 0,
+				requirements: runtimeRequirements,
+				source: 'interactive',
+				reason: input.reason,
+				actorUserId: input.actorUserId,
+				tenantId: input.tenantId,
+				sourceIp: input.sourceIp
+			})
+			this.writeAuditLog('runtime.restart.queued', {
+				generation,
+				reason: input.reason,
+				actorUserId: input.actorUserId,
+				tenantId: input.tenantId,
+				sourceIp: input.sourceIp,
+				runtimeRequirements
+			})
+			await this.publish('plugin-generation-changed')
+			const restart = await this.ensurePendingPluginOperation()
+			if (!restart) {
+				throw new ServiceUnavailableException({
+					statusCode: 503,
+					errorCode: 'RUNTIME_RESTART_COORDINATION_UNAVAILABLE',
+					message: 'Runtime restart coordination is unavailable'
+				})
+			}
+			return { ...restart, pluginGeneration: generation }
+		}
+
 		const activeRestartId = await this.redis.get(ACTIVE_RESTART_KEY)
 		if (activeRestartId) {
 			throw this.restartInProgress(activeRestartId)
 		}
+		const pendingPluginChanges = await this.readPendingPluginChanges()
+		const pluginGeneration = pendingPluginChanges.at(-1)?.generation ?? (await this.currentPluginGeneration())
 
 		return await this.startOperation({
 			reason: input.reason,
@@ -206,61 +255,42 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 			actorUserId: input.actorUserId,
 			tenantId: input.tenantId,
 			sourceIp: input.sourceIp,
-			pluginGeneration: await this.currentPluginGeneration(),
-			pluginChanges: [],
-			runtimeRequirements: input.runtimeRequirements ?? []
+			pluginGeneration,
+			pluginChanges: pendingPluginChanges,
+			runtimeRequirements: []
 		})
 	}
 
 	async recordPluginChange(input: PluginRuntimeChangeInput): Promise<PluginRuntimeChangeResult> {
-		let generation = 0
+		let generation: number
 		try {
-			generation = await this.redis.incr(PLUGIN_GENERATION_KEY)
-			const change: PluginGenerationChange = {
-				generation,
-				requirement: {
-					scopeKey: input.scopeKey,
-					pluginName: input.pluginName,
-					...(input.version ? { version: input.version } : {}),
-					state: 'loaded'
-				}
-			}
-			await this.writePluginChange(change)
-			await this.writePluginGenerationState({ generation, status: 'in_progress' })
-
-			let restartId = await this.redis.get(ACTIVE_RESTART_KEY)
-			if (!restartId) {
-				try {
-					const restart = await this.startOperation({
-						reason: `Activate ${input.pluginName}@${input.version ?? 'latest'} in ${input.scopeKey}`,
-						source: 'plugin-change',
-						pluginGeneration: generation,
-						pluginChanges: [change],
-						runtimeRequirements: []
-					})
-					restartId = restart.restartId
-				} catch (error) {
-					if (!(error instanceof ConflictException)) {
-						throw error
+			generation = await this.publishPluginGeneration({
+				generation: 0,
+				requirements: [
+					{
+						scopeKey: input.scopeKey,
+						pluginName: input.pluginName,
+						...(input.version ? { version: input.version } : {}),
+						...(input.runtimeRevision ? { runtimeRevision: input.runtimeRevision } : {}),
+						state: 'loaded'
 					}
-					restartId = await this.redis.get(ACTIVE_RESTART_KEY)
-				}
-			}
-			if (restartId) {
-				await this.writePluginGenerationState({ generation, status: 'in_progress', restartId })
-			}
-			await this.publish(restartId ?? 'plugin-generation-changed')
-			return { scheduled: Boolean(restartId), generation }
+				],
+				source: 'plugin-change',
+				reason: `Activate ${input.pluginName}@${input.version ?? 'latest'} in ${input.scopeKey}`
+			})
 		} catch (error) {
 			const message = this.describeError(error)
-			this.logger.error(`Failed to schedule plugin runtime convergence: ${message}`)
-			if (generation > 0) {
-				await this.writePluginGenerationState({ generation, status: 'failed', error: message }).catch(
-					() => undefined
-				)
-			}
-			return { scheduled: false, generation }
+			this.logger.error(`Failed to publish plugin runtime convergence: ${message}`)
+			return { scheduled: false, generation: 0 }
 		}
+
+		await this.publish('plugin-generation-changed')
+		await this.ensurePendingPluginOperation().catch((error) => {
+			this.logger.warn(
+				`Plugin runtime generation ${generation} is durable but its rollout has not started yet: ${this.describeError(error)}`
+			)
+		})
+		return { scheduled: true, generation }
 	}
 
 	async getStatus(restartId: string): Promise<IRuntimeRestartStatus | null> {
@@ -318,13 +348,13 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 	private async startOperation(input: RestartOperationInput): Promise<IRuntimeRestartResponse> {
 		const metadata = this.buildOperationMetadata(input)
 		const { restartId } = metadata
+		await this.writeMetadata(metadata)
 		const claimed = await this.redis.set(ACTIVE_RESTART_KEY, restartId, { NX: true, PX: INITIAL_OPERATION_TTL_MS })
 		if (claimed !== 'OK') {
 			throw this.restartInProgress((await this.redis.get(ACTIVE_RESTART_KEY)) ?? undefined)
 		}
 
 		try {
-			await this.writeMetadata(metadata)
 			await this.activateOperation(metadata)
 
 			return this.operationResponse(metadata)
@@ -356,7 +386,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 			pluginGenerations: input.pluginChanges.map((change) => change.generation),
 			runtimeRequirements: this.mergeRuntimeRequirements([
 				...input.runtimeRequirements,
-				...input.pluginChanges.map((change) => change.requirement)
+				...input.pluginChanges.flatMap((change) => change.requirements)
 			]),
 			registrationDeadlineAt: new Date(Date.now() + REGISTRATION_WINDOW_MS).toISOString(),
 			phase: 'collecting',
@@ -404,7 +434,10 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 		this.processing = true
 		try {
 			const restartId = await this.redis.get(ACTIVE_RESTART_KEY)
-			if (!restartId) return
+			if (!restartId) {
+				await this.ensurePendingPluginOperation()
+				return
+			}
 			let metadata = await this.readMetadata(restartId)
 			if (!metadata) {
 				await this.releaseLock(ACTIVE_RESTART_KEY, restartId)
@@ -785,6 +818,12 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 					error: `Plugin ${requirement.pluginName} loaded ${plugin.version ?? 'unknown'} instead of ${requirement.version}`
 				}
 			}
+			if (requirement.runtimeRevision && plugin.runtimeRevision !== requirement.runtimeRevision) {
+				return {
+					status: 'failed',
+					error: `Plugin ${requirement.pluginName} loaded runtime revision ${plugin.runtimeRevision ?? 'unknown'} instead of ${requirement.runtimeRevision}`
+				}
+			}
 		}
 		return { status: 'satisfied' }
 	}
@@ -835,16 +874,82 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 		})
 	}
 
+	private async publishPluginGeneration(change: PluginGenerationChange): Promise<number> {
+		if (!this.redis.eval) {
+			throw new Error('Redis scripting is required for atomic plugin generation publication')
+		}
+		const generation = Number(
+			await this.redis.eval(PUBLISH_PLUGIN_GENERATION_SCRIPT, {
+				keys: [PLUGIN_GENERATION_KEY],
+				arguments: [JSON.stringify(change), PLUGIN_GENERATION_PREFIX, `${PLUGIN_GENERATION_TTL_SECONDS}`]
+			})
+		)
+		if (!Number.isInteger(generation) || generation <= 0) {
+			throw new Error('Redis returned an invalid plugin runtime generation')
+		}
+		return generation
+	}
+
+	private async ensurePendingPluginOperation(): Promise<IRuntimeRestartResponse | null> {
+		const activeRestartId = await this.redis.get(ACTIVE_RESTART_KEY)
+		if (activeRestartId) {
+			return await this.readOperationResponse(activeRestartId)
+		}
+
+		const changes = await this.readPendingPluginChanges()
+		if (!changes.length) return null
+
+		const latest = changes[changes.length - 1]
+		try {
+			return await this.startOperation({
+				reason: latest.reason ?? `Converge plugin runtime generation ${latest.generation}`,
+				source: latest.source,
+				actorUserId: latest.actorUserId,
+				tenantId: latest.tenantId,
+				sourceIp: latest.sourceIp,
+				pluginGeneration: latest.generation,
+				pluginChanges: changes,
+				runtimeRequirements: []
+			})
+		} catch (error) {
+			if (!(error instanceof ConflictException)) throw error
+			const restartId = await this.redis.get(ACTIVE_RESTART_KEY)
+			return restartId ? await this.readOperationResponse(restartId) : null
+		}
+	}
+
+	private async readPendingPluginChanges(): Promise<PluginGenerationChange[]> {
+		const currentGeneration = await this.currentPluginGeneration()
+		let firstGeneration = currentGeneration + 1
+		for (let generation = currentGeneration; generation > 0; generation -= 1) {
+			const state = await this.readPluginGenerationState(generation)
+			if (state?.status !== 'in_progress') break
+			firstGeneration = generation
+		}
+		return firstGeneration <= currentGeneration
+			? await this.readPluginChanges(firstGeneration, currentGeneration)
+			: []
+	}
+
+	private async readOperationResponse(restartId: string): Promise<IRuntimeRestartResponse> {
+		const metadata = await this.readMetadata(restartId)
+		if (metadata) return this.operationResponse(metadata)
+
+		return {
+			accepted: true,
+			restartId,
+			mode: 'rolling-self-signal',
+			instanceId: this.lifecycle.instanceId,
+			requestedAt: new Date().toISOString(),
+			signalAfterMs: this.signalDelayMs,
+			drainTimeoutMs: this.drainTimeoutMs
+		}
+	}
+
 	private async currentPluginGeneration(): Promise<number> {
 		const value = await this.redis.get(PLUGIN_GENERATION_KEY)
 		const parsed = Number.parseInt(value ?? '0', 10)
 		return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
-	}
-
-	private async writePluginChange(change: PluginGenerationChange): Promise<void> {
-		await this.redis.set(this.pluginChangeKey(change.generation), JSON.stringify(change), {
-			EX: PLUGIN_GENERATION_TTL_SECONDS
-		})
 	}
 
 	private async readPluginChanges(from: number, to: number): Promise<PluginGenerationChange[]> {
@@ -852,13 +957,60 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 		for (let generation = from; generation <= to; generation += 1) {
 			const value = await this.redis.get(this.pluginChangeKey(generation))
 			if (!value) throw new Error(`Plugin runtime generation ${generation} is missing`)
-			const parsed = JSON.parse(value) as PluginGenerationChange
-			if (parsed.generation !== generation || !parsed.requirement) {
+			const parsed = this.parsePluginGenerationChange(JSON.parse(value) as unknown)
+			if (!parsed || parsed.generation !== generation) {
 				throw new Error(`Plugin runtime generation ${generation} is invalid`)
 			}
 			changes.push(parsed)
 		}
 		return changes
+	}
+
+	private parsePluginGenerationChange(value: unknown): PluginGenerationChange | null {
+		if (typeof value !== 'object' || value === null || !('generation' in value)) return null
+		if (typeof value.generation !== 'number') return null
+
+		const requirements =
+			'requirements' in value && Array.isArray(value.requirements)
+				? value.requirements
+				: 'requirement' in value
+					? [value.requirement]
+					: []
+		if (
+			!requirements.length ||
+			!requirements.every((requirement) => this.isRuntimePluginRequirement(requirement))
+		) {
+			return null
+		}
+
+		return {
+			generation: value.generation,
+			requirements,
+			source: 'source' in value && value.source === 'interactive' ? 'interactive' : 'plugin-change',
+			...('reason' in value && typeof value.reason === 'string' ? { reason: value.reason } : {}),
+			...('actorUserId' in value && typeof value.actorUserId === 'string'
+				? { actorUserId: value.actorUserId }
+				: {}),
+			...('tenantId' in value && typeof value.tenantId === 'string' ? { tenantId: value.tenantId } : {}),
+			...('sourceIp' in value && typeof value.sourceIp === 'string' ? { sourceIp: value.sourceIp } : {})
+		}
+	}
+
+	private isRuntimePluginRequirement(value: unknown): value is IRuntimePluginRequirement {
+		return (
+			typeof value === 'object' &&
+			value !== null &&
+			'scopeKey' in value &&
+			typeof value.scopeKey === 'string' &&
+			'pluginName' in value &&
+			typeof value.pluginName === 'string' &&
+			'state' in value &&
+			(value.state === 'loaded' || value.state === 'absent') &&
+			(!('version' in value) || value.version === undefined || typeof value.version === 'string') &&
+			(!('runtimeRevision' in value) ||
+				value.runtimeRevision === undefined ||
+				typeof value.runtimeRevision === 'string')
+		)
 	}
 
 	private async writePluginGenerationState(state: PluginGenerationState): Promise<void> {
@@ -1008,10 +1160,10 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnModuleD
 		return `xpert:system:runtime:restart:${restartId}:registration`
 	}
 	private pluginChangeKey(generation: number) {
-		return `xpert:system:plugin-runtime:generation:${generation}:change`
+		return `${PLUGIN_GENERATION_PREFIX}${generation}:change`
 	}
 	private pluginGenerationStateKey(generation: number) {
-		return `xpert:system:plugin-runtime:generation:${generation}:status`
+		return `${PLUGIN_GENERATION_PREFIX}${generation}:status`
 	}
 
 	private restartInProgress(restartId?: string): ConflictException {

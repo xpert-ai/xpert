@@ -12,6 +12,7 @@ class FakeRedis {
 	readonly expiresAt = new Map<string, number>()
 	readonly listeners = new Map<string, Set<Listener>>()
 	onActiveReleased?: () => Promise<void>
+	onGenerationPublished?: (generation: number) => Promise<void>
 
 	async set(key: string, value: string, options?: { NX?: boolean; PX?: number; EX?: number }) {
 		this.expireKeyIfNeeded(key)
@@ -30,13 +31,6 @@ class FakeRedis {
 	async get(key: string) {
 		this.expireKeyIfNeeded(key)
 		return this.values.get(key) ?? null
-	}
-
-	async incr(key: string) {
-		this.expireKeyIfNeeded(key)
-		const next = Number.parseInt(this.values.get(key) ?? '0', 10) + 1
-		this.values.set(key, `${next}`)
-		return next
 	}
 
 	async hSet(key: string, field: string, value: string) {
@@ -61,6 +55,24 @@ class FakeRedis {
 	}
 
 	async eval(script: string, options: { keys: string[]; arguments: string[] }) {
+		if (script.includes('xpert-publish-plugin-generation')) {
+			const generationKey = options.keys[0]
+			const generation = Number.parseInt(this.values.get(generationKey) ?? '0', 10) + 1
+			this.values.set(generationKey, `${generation}`)
+			const change = JSON.parse(options.arguments[0])
+			change.generation = generation
+			const prefix = options.arguments[1]
+			const ttlMs = Number.parseInt(options.arguments[2], 10) * 1_000
+			const changeKey = `${prefix}${generation}:change`
+			const statusKey = `${prefix}${generation}:status`
+			this.values.set(changeKey, JSON.stringify(change))
+			this.values.set(statusKey, JSON.stringify({ generation, status: 'in_progress' }))
+			this.expiresAt.set(changeKey, Date.now() + ttlMs)
+			this.expiresAt.set(statusKey, Date.now() + ttlMs)
+			await this.onGenerationPublished?.(generation)
+			return generation
+		}
+
 		const [key] = options.keys
 		const [expected] = options.arguments
 		this.expireKeyIfNeeded(key)
@@ -271,6 +283,35 @@ describe('RuntimeRestartCoordinatorService', () => {
 		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
 	})
 
+	it('restarts replicas whose code revision is stale even when the package version matches', async () => {
+		const currentRevision = 'workspace:current-source'
+		nodes.push(await createNode(redis, 'api-1', 'api-1-boot-1', loadedPluginState(currentRevision)))
+		nodes.push(await createNode(redis, 'api-2', 'api-2-boot-1', loadedPluginState('workspace:old-source')))
+
+		const change = await nodes[0].coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			runtimeRevision: currentRevision,
+			scopeKey: requirement.scopeKey
+		})
+		await advance(2_750)
+
+		expect(nodes.find((node) => node.replicaId === 'api-1')?.signaler.signal).not.toHaveBeenCalled()
+		const staleNode = nodes.find((node) => node.replicaId === 'api-2')
+		expect(staleNode?.signaler.signal).toHaveBeenCalledWith('SIGTERM')
+		if (!staleNode) throw new Error('Expected the stale API replica')
+		await staleNode.coordinator.onModuleDestroy()
+		nodes = nodes.filter((node) => node !== staleNode)
+		nodes.push(await createNode(redis, 'api-2', 'api-2-boot-2', loadedPluginState(currentRevision)))
+		await advance(2_000)
+
+		await expect(nodes[0].coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'completed',
+			targetReplicaCount: 2,
+			completedReplicaCount: 2
+		})
+	})
+
 	it('keeps the hot-loaded API online while stale replicas restart in bounded batches', async () => {
 		nodes.push(await createNode(redis, 'api-1', 'api-1-boot-1', loadedPluginState()))
 		nodes.push(await createNode(redis, 'api-2', 'api-2-boot-1', emptyPluginState()))
@@ -399,6 +440,68 @@ describe('RuntimeRestartCoordinatorService', () => {
 			status: 'completed'
 		})
 	})
+
+	it('publishes concurrent generations atomically before selecting their rollout', async () => {
+		const node = await createNode(redis, 'api-1', 'api-1-boot-1', loadedPluginState())
+		nodes.push(node)
+		let releaseFirstPublication: (() => void) | undefined
+		const releaseFirst = new Promise<void>((resolve) => {
+			releaseFirstPublication = resolve
+		})
+		redis.onGenerationPublished = async (generation) => {
+			if (generation !== 1) return
+			await releaseFirst
+		}
+
+		const firstPromise = node.coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			scopeKey: requirement.scopeKey
+		})
+		await Promise.resolve()
+		await Promise.resolve()
+		const secondPromise = node.coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			scopeKey: requirement.scopeKey
+		})
+		releaseFirstPublication?.()
+		const [first, second] = await Promise.all([firstPromise, secondPromise])
+		expect(first.generation).toBe(1)
+		expect(second.generation).toBe(2)
+		await advance(8_000)
+
+		await expect(node.coordinator.getPluginConvergenceStatus(first.generation)).resolves.toMatchObject({
+			status: 'completed'
+		})
+		await expect(node.coordinator.getPluginConvergenceStatus(second.generation)).resolves.toMatchObject({
+			status: 'completed'
+		})
+	})
+
+	it('queues staged runtime requirements behind an active restart and completes their generation', async () => {
+		const node = await createNode(redis, 'api-1', 'api-1-boot-1', emptyPluginState())
+		nodes.push(node)
+		const active = await node.coordinator.requestRestart({ source: 'interactive' })
+		const queued = await node.coordinator.requestRestart({
+			source: 'interactive',
+			runtimeRequirements: [requirement]
+		})
+
+		expect(queued.restartId).toBe(active.restartId)
+		expect(queued.pluginGeneration).toBe(1)
+		await advance(2_750)
+		expect(node.signaler.signal).toHaveBeenCalledWith('SIGTERM')
+
+		await node.coordinator.onModuleDestroy()
+		nodes = []
+		nodes.push(await createNode(redis, 'api-1', 'api-1-boot-2', loadedPluginState()))
+		await advance(5_000)
+
+		await expect(nodes[0].coordinator.getPluginConvergenceStatus(1)).resolves.toMatchObject({
+			status: 'completed'
+		})
+	})
 })
 
 async function createNode(
@@ -429,14 +532,15 @@ function emptyPluginState(): RuntimePluginState {
 	return { reportedAt: new Date().toISOString(), plugins: [], failures: [] }
 }
 
-function loadedPluginState(): RuntimePluginState {
+function loadedPluginState(runtimeRevision?: string): RuntimePluginState {
 	return {
 		reportedAt: new Date().toISOString(),
 		plugins: [
 			{
 				scopeKey: requirement.scopeKey,
 				pluginName: requirement.pluginName,
-				version: requirement.version
+				version: requirement.version,
+				...(runtimeRevision ? { runtimeRevision } : {})
 			}
 		],
 		failures: []

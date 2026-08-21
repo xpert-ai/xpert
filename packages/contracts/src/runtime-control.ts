@@ -8,6 +8,8 @@ export interface IRuntimePluginRequirement {
   scopeKey: string
   pluginName: string
   version?: string
+  /** Immutable staged artifact or source revision required on every API replica. */
+  runtimeRevision?: string
   state: 'loaded' | 'absent'
 }
 
@@ -39,6 +41,8 @@ export interface IRuntimeRestartRequest {
 export interface IRuntimeRestartResponse {
   accepted: true
   restartId: string
+  /** Durable convergence generation when staged requirements were queued behind another rollout. */
+  pluginGeneration?: number
   mode: RuntimeRestartMode
   instanceId: string
   requestedAt: string
