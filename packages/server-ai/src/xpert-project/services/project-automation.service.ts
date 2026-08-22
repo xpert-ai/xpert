@@ -23,8 +23,12 @@ export class XpertProjectAutomationService extends TenantOrganizationAwareCrudSe
         super(repository)
     }
 
-    list(projectId: string) {
-        return this.findAll({ where: { projectId }, relations: ['runs'], order: { createdAt: 'DESC' } })
+    list(projectId: string, options: { includeRuns?: boolean } = {}) {
+        return this.findAll({
+            where: { projectId },
+            ...(options.includeRuns ? { relations: ['runs'] } : {}),
+            order: { createdAt: 'DESC' }
+        })
     }
 
     async createAutomation(projectId: string, input: Partial<IXpertProjectAutomation>) {

@@ -231,7 +231,7 @@ describe('assistant chatkit runtime helpers', () => {
     projectId.set('project-2')
     flushAngularEffects()
 
-    expect(setOptions).toHaveBeenCalledWith(
+    expect(createChatKitMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
         layout,

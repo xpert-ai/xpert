@@ -29,7 +29,10 @@ export class XpertProjectFacade {
   readonly automations = signal<IXpertProjectAutomation[]>([])
   readonly loading = signal(false)
   readonly error = signal<string | null>(null)
+  readonly projectLoading = signal(false)
+  readonly projectError = signal<string | null>(null)
   readonly hasProject = computed(() => Boolean(this.project()))
+  #projectLoadSequence = 0
 
   async loadProjects(query: { search?: string; status?: string } = {}) {
     this.loading.set(true)
@@ -47,17 +50,27 @@ export class XpertProjectFacade {
   }
 
   async loadProject(id: string) {
+    const sequence = ++this.#projectLoadSequence
+    this.projectLoading.set(true)
+    this.projectError.set(null)
     this.loading.set(true)
     this.error.set(null)
     try {
       const overview = await firstValueFrom(this.#api.overview(id))
+      if (sequence !== this.#projectLoadSequence) return null
       this.setOverview(overview)
       return overview
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Failed to load project')
+      if (sequence !== this.#projectLoadSequence) return null
+      const message = error instanceof Error ? error.message : 'Failed to load project'
+      this.projectError.set(message)
+      this.error.set(message)
       return null
     } finally {
-      this.loading.set(false)
+      if (sequence === this.#projectLoadSequence) {
+        this.projectLoading.set(false)
+        this.loading.set(false)
+      }
     }
   }
 
@@ -100,6 +113,24 @@ export class XpertProjectFacade {
     const task = await firstValueFrom(this.#api.createTask(project.id, input))
     this.tasks.update((items) => [...items, task])
     return task
+  }
+
+  async updateTask(taskId: string, input: Partial<IXpertProjectTask>) {
+    const project = this.project()
+    if (!project) return null
+    const task = await firstValueFrom(this.#api.updateTask(project.id, taskId, input))
+    this.tasks.update((items) => items.map((item) => (item.id === task.id ? { ...item, ...task } : item)))
+    return task
+  }
+
+  async createSprint(planId: string, input: Record<string, unknown>) {
+    const project = this.project()
+    if (!project) return null
+    const sprint = await firstValueFrom(this.#api.createSprint(project.id, planId, input))
+    this.plans.update((plans) =>
+      plans.map((plan) => (plan.id === planId ? { ...plan, sprints: [...(plan.sprints ?? []), sprint] } : plan))
+    )
+    return sprint
   }
 
   async createAsset(input: Partial<IXpertProjectAsset>) {

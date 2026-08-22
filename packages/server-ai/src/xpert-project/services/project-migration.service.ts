@@ -41,6 +41,10 @@ export class XpertProjectMigrationService implements OnApplicationBootstrap {
     }
 
     async ensureDefaults(project: XpertProject) {
+        if (!project.settings?.managementMode) {
+            project.settings = { ...(project.settings ?? { instruction: '' }), managementMode: 'simple' }
+            await this.projectRepository.save(project)
+        }
         let plan = await this.planRepository.findOne({ where: { projectId: project.id, name: 'Default plan' } })
         if (!plan) {
             plan = await this.planRepository.save(

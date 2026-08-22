@@ -57,6 +57,27 @@ import type { IXpertProject } from '@xpert-ai/contracts'
               [placeholder]="'XP.XProject.GoalPlaceholder' | translate"
             ></textarea>
           </z-form-field>
+          <z-form-field appearance="fill" class="w-full">
+            <z-form-label>{{ 'XP.XProject.ProjectMode' | translate }}</z-form-label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              @for (mode of modes; track mode.value) {
+                <button
+                  z-button
+                  type="button"
+                  [zType]="form.controls.managementMode.value === mode.value ? 'default' : 'outline'"
+                  class="h-auto justify-start whitespace-normal px-3 py-3 text-left"
+                  (click)="form.controls.managementMode.setValue(mode.value)"
+                >
+                  <span
+                    ><span class="block font-medium">{{ mode.label | translate }}</span
+                    ><span class="mt-1 block text-xs font-normal opacity-80">{{
+                      mode.description | translate
+                    }}</span></span
+                  >
+                </button>
+              }
+            </div>
+          </z-form-field>
         }
         @if (step() === 2) {
           <z-form-field appearance="fill" class="w-full">
@@ -113,8 +134,17 @@ export class XpertProjectCreateDialogComponent {
     description: [''],
     resources: [''],
     members: [''],
-    copilotModelId: ['']
+    copilotModelId: [''],
+    managementMode: ['simple' as 'simple' | 'advanced']
   })
+  readonly modes = [
+    { value: 'simple' as const, label: 'XP.XProject.SimpleMode', description: 'XP.XProject.SimpleModeDescription' },
+    {
+      value: 'advanced' as const,
+      label: 'XP.XProject.AdvancedMode',
+      description: 'XP.XProject.AdvancedModeDescription'
+    }
+  ]
   readonly data = inject<{ initial?: Partial<IXpertProject> }>(Z_MODAL_DATA, { optional: true })
 
   constructor() {
@@ -138,7 +168,12 @@ export class XpertProjectCreateDialogComponent {
     if (this.form.invalid) return
     const value = this.form.getRawValue()
     const copilotModelId = value.copilotModelId.trim()
-    const input: Partial<IXpertProject> = { name: value.name, description: value.description, status: 'active' }
+    const input: Partial<IXpertProject> = {
+      name: value.name,
+      description: value.description,
+      status: 'active',
+      settings: { instruction: value.description, managementMode: value.managementMode }
+    }
     // Model ids are UUID foreign keys. Keep the project on its default model
     // when the optional wizard field contains a display name or is blank.
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(copilotModelId)) {

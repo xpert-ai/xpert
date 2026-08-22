@@ -3,6 +3,8 @@ import {
     IStorageFile,
     IUser,
     IXpertProject,
+    IXpertProjectTaskConversation,
+    IXpertProjectTaskExecution,
     IXpertProjectTask,
     IXpertProjectVCS,
     IXpertToolset,
@@ -169,9 +171,19 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     public async update(id: string, partialEntity: QueryDeepPartialEntity<XpertProject>): Promise<XpertProject> {
         const project = await this.findOne(id)
+        const nextMode = (partialEntity.settings as IXpertProject['settings'] | undefined)?.managementMode
+        if (project.settings?.managementMode === 'advanced' && nextMode === 'simple') {
+            throw new BadRequestException('Advanced projects cannot be downgraded to simple mode')
+        }
         if (partialEntity.copilotModel) {
             project.copilotModel ??= {}
             assign(project.copilotModel, partialEntity.copilotModel)
+        }
+        if (partialEntity.settings) {
+            partialEntity.settings = {
+                ...(project.settings ?? { instruction: '' }),
+                ...(partialEntity.settings as IXpertProject['settings'])
+            }
         }
         assign(project, omit(partialEntity, 'copilotModel'))
         return await this.repository.save(project)
@@ -465,6 +477,27 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     reorderTasks(id: string, items: Array<{ id: string; order: number; column?: string }>) {
         return this.taskService.reorder(id, items)
+    }
+
+    getTaskRelations(id: string, taskId: string) {
+        return this.taskService.listTaskRelations(id, taskId)
+    }
+
+    linkTaskConversation(
+        id: string,
+        taskId: string,
+        input: Pick<IXpertProjectTaskConversation, 'conversationId' | 'relationType'> &
+            Partial<IXpertProjectTaskConversation>
+    ) {
+        return this.taskService.linkConversation(id, taskId, input)
+    }
+
+    createTaskExecution(id: string, taskId: string, input: Partial<IXpertProjectTaskExecution>) {
+        return this.taskService.createExecution(id, taskId, input)
+    }
+
+    updateTaskExecution(id: string, taskId: string, executionId: string, input: Partial<IXpertProjectTaskExecution>) {
+        return this.taskService.updateExecution(id, taskId, executionId, input)
     }
 
     // async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {

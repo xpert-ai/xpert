@@ -28,7 +28,7 @@ export class ProjectPlanInputDTO implements IXpertProjectPlanInput {
     status?: TXpertProjectPlanStatus
 
     @IsOptional()
-    @IsEnum(['board', 'table'])
+    @IsEnum(['board', 'table', 'gantt', 'calendar', 'list'])
     view?: TXpertProjectPlanView
 
     @IsOptional()

@@ -160,6 +160,28 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
           />
         </aside>
       }
+      @if (facade.projectLoading()) {
+        <div class="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-[1px]">
+          <div
+            class="flex items-center gap-2 rounded-md border border-divider-subtle bg-components-card-bg px-4 py-3 text-sm text-text-secondary shadow-sm"
+          >
+            <i class="ri-loader-4-line animate-spin text-primary"></i>
+            <span>{{ 'XP.XProject.LoadingProject' | translate }}</span>
+          </div>
+        </div>
+      } @else if (facade.projectError(); as error) {
+        <div class="absolute inset-0 z-40 flex items-center justify-center bg-background/80 px-4 backdrop-blur-[1px]">
+          <div
+            class="flex max-w-md flex-col items-center gap-3 rounded-md border border-text-destructive bg-components-card-bg px-5 py-4 text-center shadow-sm"
+          >
+            <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
+            <p class="text-sm text-text-destructive">{{ error }}</p>
+            <button z-button zType="outline" type="button" (click)="retryProject()">
+              {{ 'XP.XProject.RetryProject' | translate }}
+            </button>
+          </div>
+        </div>
+      }
     </div>
   `,
   host: { class: 'block min-h-full w-full min-w-0' }
@@ -227,6 +249,11 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
         takeUntilDestroyed(this.#destroyRef)
       )
       .subscribe((key) => this.chatAssistantKey.set(key))
+  }
+
+  retryProject() {
+    const projectId = this.id()
+    if (projectId) void this.facade.loadProject(projectId)
   }
 
   ngOnDestroy() {

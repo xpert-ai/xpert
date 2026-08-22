@@ -1,13 +1,23 @@
-import { IXpertProjectTask, mapTranslationLanguage, OrderTypeEnum } from '@xpert-ai/contracts'
+import {
+    IXpertProjectTask,
+    IXpertProjectTaskConversation,
+    IXpertProjectTaskExecution,
+    mapTranslationLanguage,
+    OrderTypeEnum
+} from '@xpert-ai/contracts'
 import { DeepPartial } from '@xpert-ai/server-common'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { I18nService } from 'nestjs-i18n'
 import { In, Repository } from 'typeorm'
 import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
+import { XpertProjectTaskConversation } from '../entities/project-task-conversation.entity'
+import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
+import { ChatConversation } from '../../chat-conversation/conversation.entity'
+import { XpertProject } from '../entities/project.entity'
 
 @Injectable()
 export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<XpertProjectTask> {
@@ -18,6 +28,14 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         repository: Repository<XpertProjectTask>,
         @InjectRepository(XpertProjectTaskStep)
         private stepRepository: Repository<XpertProjectTaskStep>,
+        @InjectRepository(XpertProjectTaskConversation)
+        private readonly conversationLinkRepository: Repository<XpertProjectTaskConversation>,
+        @InjectRepository(XpertProjectTaskExecution)
+        private readonly executionRepository: Repository<XpertProjectTaskExecution>,
+        @InjectRepository(ChatConversation)
+        private readonly conversationRepository: Repository<ChatConversation>,
+        @InjectRepository(XpertProject)
+        private readonly projectRepository: Repository<XpertProject>,
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
@@ -82,6 +100,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     }
 
     async createTask(projectId: string, input: Partial<IXpertProjectTask>) {
+        await this.validateTaskMode(projectId, input.status)
         const [task] = await this.saveAll({
             ...input,
             projectId,
@@ -95,26 +114,126 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     }
 
     async updateTask(projectId: string, taskId: string, input: Partial<IXpertProjectTask>) {
+        await this.validateTaskMode(projectId, input.status)
         const task = await this.findOne({ where: { id: taskId, projectId } })
         if (!task) throw new NotFoundException('Project task not found')
         Object.assign(task, input, { projectId })
         return this.save(task)
     }
 
+    private async validateTaskMode(projectId: string, status?: IXpertProjectTask['status']) {
+        if (!status) return
+        const project = await this.projectRepository.findOne({ where: { id: projectId } })
+        if (!project) throw new NotFoundException('Xpert project not found')
+        if (
+            project.settings?.managementMode !== 'advanced' &&
+            !['todo', 'in_progress', 'paused', 'done', 'blocked', 'cancelled'].includes(status)
+        ) {
+            throw new BadRequestException('Simple projects use the fixed task lanes')
+        }
+    }
+
+    async listTaskRelations(projectId: string, taskId: string) {
+        const task = await this.repository.findOne({ where: { id: taskId, projectId } })
+        if (!task) throw new NotFoundException('Project task not found')
+        const [conversations, executions] = await Promise.all([
+            this.conversationLinkRepository.find({
+                where: { projectId, taskId },
+                order: { createdAt: OrderTypeEnum.ASC }
+            }),
+            this.executionRepository.find({ where: { projectId, taskId }, order: { createdAt: OrderTypeEnum.DESC } })
+        ])
+        return { conversations, executions }
+    }
+
+    async linkConversation(
+        projectId: string,
+        taskId: string,
+        input: Pick<IXpertProjectTaskConversation, 'conversationId' | 'relationType'> &
+            Partial<IXpertProjectTaskConversation>
+    ) {
+        const task = await this.repository.findOne({ where: { id: taskId, projectId } })
+        if (!task) throw new NotFoundException('Project task not found')
+        const conversation = await this.conversationRepository.findOne({ where: { id: input.conversationId } })
+        if (!conversation || conversation.projectId !== projectId) {
+            throw new NotFoundException('Project conversation not found')
+        }
+        const existing = await this.conversationLinkRepository.findOne({
+            where: { projectId, taskId, conversationId: input.conversationId, relationType: input.relationType }
+        })
+        if (existing) return existing
+        return this.conversationLinkRepository.save(
+            this.conversationLinkRepository.create({
+                projectId,
+                taskId,
+                conversationId: input.conversationId,
+                relationType: input.relationType,
+                isPrimary: input.isPrimary ?? false,
+                sourceMessageId: input.sourceMessageId,
+                sourceExecutionId: input.sourceExecutionId,
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                createdById: RequestContext.currentUserId()
+            })
+        )
+    }
+
+    async createExecution(projectId: string, taskId: string, input: Partial<IXpertProjectTaskExecution>) {
+        const task = await this.repository.findOne({ where: { id: taskId, projectId } })
+        if (!task) throw new NotFoundException('Project task not found')
+        if (input.conversationId) {
+            const conversation = await this.conversationRepository.findOne({ where: { id: input.conversationId } })
+            if (!conversation || conversation.projectId !== projectId)
+                throw new NotFoundException('Project conversation not found')
+        }
+        const latest = await this.executionRepository.findOne({
+            where: { projectId, taskId },
+            order: { attempt: 'DESC' }
+        })
+        return this.executionRepository.save(
+            this.executionRepository.create({
+                projectId,
+                taskId,
+                ...input,
+                attempt: input.attempt ?? (latest?.attempt ?? 0) + 1,
+                status: input.status ?? 'queued',
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                createdById: RequestContext.currentUserId()
+            })
+        )
+    }
+
+    async updateExecution(
+        projectId: string,
+        taskId: string,
+        executionId: string,
+        input: Partial<IXpertProjectTaskExecution>
+    ) {
+        const execution = await this.executionRepository.findOne({ where: { id: executionId, projectId, taskId } })
+        if (!execution) throw new NotFoundException('Project task execution not found')
+        Object.assign(execution, input, { projectId, taskId })
+        if (input.status && ['succeeded', 'failed', 'cancelled'].includes(input.status))
+            execution.completedAt ??= new Date()
+        if (input.status === 'running') execution.startedAt ??= new Date()
+        return this.executionRepository.save(execution)
+    }
+
     async reorder(projectId: string, items: Array<{ id: string; order: number; column?: string }>) {
         if (!items.length) return []
-        const tasks = await this.repository.find({ where: { projectId, id: In(items.map((item) => item.id)) } })
-        const taskById = new Map(tasks.map((task) => [task.id, task]))
-        if (tasks.length !== items.length) {
-            throw new NotFoundException('One or more project tasks were not found')
-        }
-        for (const item of items) {
-            const task = taskById.get(item.id)
-            if (!task) continue
-            task.order = item.order
-            if (item.column !== undefined) task.column = item.column
-        }
-        return this.repository.save(tasks)
+        return this.repository.manager.transaction(async (manager) => {
+            const repository = manager.getRepository(XpertProjectTask)
+            const tasks = await repository.find({ where: { projectId, id: In(items.map((item) => item.id)) } })
+            const taskById = new Map(tasks.map((task) => [task.id, task]))
+            if (tasks.length !== items.length) throw new NotFoundException('One or more project tasks were not found')
+            for (const item of items) {
+                const task = taskById.get(item.id)
+                if (!task) continue
+                task.order = item.order
+                if (item.column !== undefined) task.column = item.column
+            }
+            return repository.save(tasks)
+        })
     }
 
     async batchUpdate(
@@ -126,16 +245,20 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             priority?: IXpertProjectTask['priority']
         }
     ) {
-        const result = []
-        for (const id of input.ids) {
-            result.push(
-                await this.updateTask(projectId, id, {
+        await this.validateTaskMode(projectId, input.status)
+        return this.repository.manager.transaction(async (manager) => {
+            const repository = manager.getRepository(XpertProjectTask)
+            const tasks = await repository.find({ where: { projectId, id: In(input.ids) } })
+            if (tasks.length !== input.ids.length)
+                throw new NotFoundException('One or more project tasks were not found')
+            for (const task of tasks) {
+                Object.assign(task, {
                     ...(input.status !== undefined ? { status: input.status } : {}),
                     ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
                     ...(input.priority !== undefined ? { priority: input.priority } : {})
                 })
-            )
-        }
-        return result
+            }
+            return repository.save(tasks)
+        })
     }
 }

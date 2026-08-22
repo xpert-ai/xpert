@@ -15,6 +15,11 @@ import { XpertProjectActivity } from './entities/project-activity.entity'
 import { XpertProjectAsset } from './entities/project-asset.entity'
 import { XpertProjectAutomation } from './entities/project-automation.entity'
 import { XpertProjectAutomationRun } from './entities/project-automation-run.entity'
+import { XpertProjectTaskConversation } from './entities/project-task-conversation.entity'
+import { XpertProjectTaskExecution } from './entities/project-task-execution.entity'
+import { XpertProjectSprint } from './entities/project-sprint.entity'
+import { XpertProjectSwimlane } from './entities/project-swimlane.entity'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { CommandHandlers } from './commands/handlers'
 import {
     XpertProjectActivityService,
@@ -44,6 +49,11 @@ import { XpertProjectFeatureGuard, XpertProjectPermissionGuard } from './guards'
             XpertProjectAsset,
             XpertProjectAutomation,
             XpertProjectAutomationRun,
+            XpertProjectTaskConversation,
+            XpertProjectTaskExecution,
+            XpertProjectSprint,
+            XpertProjectSwimlane,
+            ChatConversation,
             Feature,
             FeatureOrganization
         ]),

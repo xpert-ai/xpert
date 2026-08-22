@@ -13,13 +13,29 @@ import { IXpert, TXpertTeamDraft } from './xpert.model'
 export type TXpertProjectSettings = {
   instruction: string
   mode?: '' | 'plan'
+  managementMode?: TXpertProjectManagementMode
 }
+export type TXpertProjectManagementMode = 'simple' | 'advanced'
 export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'
 export type TXpertProjectPlanStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type TXpertProjectMilestoneStatus = 'planned' | 'in_progress' | 'completed' | 'blocked'
-export type TXpertProjectTaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'blocked' | 'cancelled'
+export type TXpertProjectTaskStatus = 'todo' | 'in_progress' | 'review' | 'paused' | 'done' | 'blocked' | 'cancelled'
 export type TXpertProjectTaskPriority = 'urgent' | 'high' | 'medium' | 'low'
-export type TXpertProjectPlanView = 'board' | 'table'
+export type TXpertProjectPlanView = 'board' | 'table' | 'gantt' | 'calendar' | 'list'
+export type TXpertProjectSprintStatus = 'planned' | 'running' | 'review' | 'done'
+export type TXpertProjectSprintStrategy = 'software_delivery' | 'data_analysis'
+export type TXpertProjectSwimlaneKind = 'backlog' | 'execution'
+export type TXpertProjectAgentRole =
+  | 'planner'
+  | 'coder'
+  | 'reviewer'
+  | 'operator'
+  | 'researcher'
+  | 'analyst'
+  | 'visualizer'
+export type TXpertProjectExecutionEnvironment = 'browser' | 'container' | 'terminal'
+export type TXpertProjectTaskConversationRelation = 'origin' | 'discussion' | 'execution' | 'review'
+export type TXpertProjectTaskExecutionStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 export type TXpertProjectAssetKind = 'file' | 'folder'
 export type TXpertProjectAssetSource = 'upload' | 'ai_output' | 'conversation' | 'import'
 export type TXpertProjectAutomationTrigger =
@@ -33,6 +49,7 @@ export enum XpertProjectTaskStatusEnum {
   TODO = 'todo',
   IN_PROGRESS = 'in_progress',
   REVIEW = 'review',
+  PAUSED = 'paused',
   DONE = 'done',
   BLOCKED = 'blocked',
   CANCELLED = 'cancelled'
@@ -47,7 +64,10 @@ export enum XpertProjectTaskPriorityEnum {
 
 export enum XpertProjectPlanViewEnum {
   BOARD = 'board',
-  TABLE = 'table'
+  TABLE = 'table',
+  GANTT = 'gantt',
+  CALENDAR = 'calendar',
+  LIST = 'list'
 }
 
 export enum XpertProjectAssetSourceEnum {
@@ -137,6 +157,34 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
   plan?: IXpertProjectPlan
   milestone?: IXpertProjectMilestone
   steps: IXpertProjectTaskStep[]
+  conversations?: IXpertProjectTaskConversation[]
+  executions?: IXpertProjectTaskExecution[]
+}
+
+export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntityModel {
+  taskId: string
+  conversationId: string
+  relationType: TXpertProjectTaskConversationRelation
+  isPrimary?: boolean
+  sourceMessageId?: string
+  sourceExecutionId?: string
+}
+
+export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
+  taskId: string
+  conversationId?: string
+  threadId?: string
+  agentExecutionId?: string
+  xpertId?: string
+  agentKey?: string
+  attempt: number
+  status: TXpertProjectTaskExecutionStatus
+  inputSummary?: string
+  outputSummary?: string
+  error?: string
+  artifactIds?: string[]
+  startedAt?: Date
+  completedAt?: Date
 }
 
 export interface IXpertProjectTaskStep extends IBasePerXpertProjectEntityModel {
@@ -189,6 +237,7 @@ export interface IXpertProjectPlan extends IBasePerXpertProjectEntityModel {
   dueDate?: Date
   order?: number
   milestones?: IXpertProjectMilestone[]
+  sprints?: IXpertProjectSprint[]
 }
 
 export interface IXpertProjectMilestone extends IBasePerXpertProjectEntityModel {
@@ -199,6 +248,34 @@ export interface IXpertProjectMilestone extends IBasePerXpertProjectEntityModel 
   status: TXpertProjectMilestoneStatus
   dueDate?: Date
   order?: number
+}
+
+export interface IXpertProjectSprint extends IBasePerXpertProjectEntityModel {
+  planId?: string
+  plan?: IXpertProjectPlan
+  goal: string
+  status: TXpertProjectSprintStatus
+  strategyType: TXpertProjectSprintStrategy
+  startAt?: Date
+  endAt?: Date
+  retrospective?: string
+  swimlanes?: IXpertProjectSwimlane[]
+}
+
+export interface IXpertProjectSwimlane extends IBasePerXpertProjectEntityModel {
+  sprintId: string
+  sprint?: IXpertProjectSprint
+  key: string
+  name: string
+  kind: TXpertProjectSwimlaneKind
+  priority: number
+  weight: number
+  concurrencyLimit: number
+  wipLimit: number
+  agentRole: TXpertProjectAgentRole
+  environmentType: TXpertProjectExecutionEnvironment
+  sortOrder: number
+  sourceStrategyType: TXpertProjectSprintStrategy
 }
 
 export interface IXpertProjectActivity extends IBasePerXpertProjectEntityModel {

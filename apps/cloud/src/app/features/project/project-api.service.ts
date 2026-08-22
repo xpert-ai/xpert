@@ -6,6 +6,8 @@ import type {
   IXpertProjectAsset,
   IXpertProjectAutomation,
   IXpertProjectPlan,
+  IXpertProjectSprint,
+  IXpertProjectSwimlane,
   IXpertProjectTask,
   IPagination
 } from '@xpert-ai/contracts'
@@ -119,6 +121,42 @@ export class XpertProjectApiService {
 
   createTask(id: string, input: Partial<IXpertProjectTask>) {
     return this.#http.post<IXpertProjectTask>(`${API_XPERT_PROJECT}/${id}/tasks`, input)
+  }
+
+  updateTask(id: string, taskId: string, input: Partial<IXpertProjectTask>) {
+    return this.#http.put<IXpertProjectTask>(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}`, input)
+  }
+
+  taskRelations(id: string, taskId: string) {
+    return this.#http.get(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/relations`)
+  }
+
+  linkTaskConversation(
+    id: string,
+    taskId: string,
+    input: { conversationId: string; relationType: string; isPrimary?: boolean }
+  ) {
+    return this.#http.post(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/conversations`, input)
+  }
+
+  createTaskExecution(id: string, taskId: string, input: Record<string, unknown>) {
+    return this.#http.post(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/executions`, input)
+  }
+
+  updateTaskExecution(id: string, taskId: string, executionId: string, input: Record<string, unknown>) {
+    return this.#http.put(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/executions/${executionId}`, input)
+  }
+
+  createSprint(id: string, planId: string, input: Record<string, unknown>) {
+    return this.#http.post<IXpertProjectSprint>(`${API_XPERT_PROJECT}/${id}/plans/${planId}/sprints`, input)
+  }
+
+  updateSprint(id: string, sprintId: string, input: Record<string, unknown>) {
+    return this.#http.put(`${API_XPERT_PROJECT}/${id}/sprints/${sprintId}`, input)
+  }
+
+  swimlanes(id: string, sprintId: string) {
+    return this.#http.get<IXpertProjectSwimlane[]>(`${API_XPERT_PROJECT}/${id}/sprints/${sprintId}/swimlanes`)
   }
 
   createAsset(id: string, input: Partial<IXpertProjectAsset>) {

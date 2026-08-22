@@ -8,6 +8,8 @@ import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsOptional } from 'class-validator'
 import { Column, Entity, OneToMany } from 'typeorm'
 import { XpertProjectTaskStep } from './project-task-step.entity'
+import { XpertProjectTaskConversation } from './project-task-conversation.entity'
+import { XpertProjectTaskExecution } from './project-task-execution.entity'
 import { XpertProjectBaseEntity } from './project.base'
 
 @Entity('xpert_project_task')
@@ -30,7 +32,18 @@ export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertPr
     @Column({
         nullable: true,
         type: 'enum',
-        enum: ['todo', 'in_progress', 'review', 'done', 'blocked', 'cancelled', 'pending', 'completed', 'failed']
+        enum: [
+            'todo',
+            'in_progress',
+            'review',
+            'paused',
+            'done',
+            'blocked',
+            'cancelled',
+            'pending',
+            'completed',
+            'failed'
+        ]
     })
     status: TXpertProjectTaskStatus | 'pending' | 'completed' | 'failed'
 
@@ -67,4 +80,10 @@ export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertPr
         cascade: true
     })
     steps: IXpertProjectTaskStep[]
+
+    @OneToMany(() => XpertProjectTaskConversation, (link) => link.task, { cascade: true })
+    conversations?: XpertProjectTaskConversation[]
+
+    @OneToMany(() => XpertProjectTaskExecution, (execution) => execution.task, { cascade: true })
+    executions?: XpertProjectTaskExecution[]
 }

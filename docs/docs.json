@@ -127,6 +127,13 @@
                 "pages": ["zh-hans/plans/follow-up-behavior-agent-chat"]
               },
               {
+                "group": "项目架构",
+                "pages": [
+                  "zh-hans/solutions/xpert-project-product-architecture",
+                  "zh-hans/solutions/xpert-project-plan-design"
+                ]
+              },
+              {
                 "group": "快速开始",
                 "pages": [
                   "zh-hans/solutions/declarative-extended-view-system",

@@ -316,10 +316,12 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const projectId = input.projectId?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
+    const currentControl = untracked(() => control())
+    const currentRuntimeKey = untracked(() => activeRuntimeKey())
 
     if (!key || !assistantId || !frameUrl) {
-      activeRuntimeKey.set(null)
-      control.set(null)
+      if (currentRuntimeKey !== null) activeRuntimeKey.set(null)
+      if (currentControl !== null) control.set(null)
       return
     }
 
@@ -397,13 +399,13 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       }
     } satisfies AssistantHostedChatKitOptions
 
-    if (!control() || activeRuntimeKey() !== key) {
+    if (!currentControl || currentRuntimeKey !== key) {
       control.set(createChatKit(options as AssistantChatKitOptions))
       activeRuntimeKey.set(key)
       return
     }
 
-    control()?.setOptions(options as AssistantChatKitOptions)
+    currentControl.setOptions(options as AssistantChatKitOptions)
   })
 
   return control
