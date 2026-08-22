@@ -33,7 +33,7 @@ import { XpertProjectFacade } from './project.facade'
           </p>
           <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ 'XP.XProject.Tasks' | translate }}</h2>
         </div>
-        <button z-button zType="default" zSize="sm" type="button" (click)="addTask()">
+        <button z-button zType="default" zSize="default" type="button" (click)="addTask()">
           <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddTask' | translate }}
         </button>
       </header>

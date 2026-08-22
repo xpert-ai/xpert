@@ -8,7 +8,9 @@ import {
   ZardButtonComponent,
   ZardCardImports,
   ZardDialogService,
-  ZardInputDirective,
+  ZardSearchInputComponent,
+  ZardSegmentedComponent,
+  ZardSegmentedItemComponent,
   ZardTableImports
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
@@ -27,7 +29,9 @@ import { XpertProjectApiService } from './project-api.service'
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
-    ZardInputDirective,
+    ZardSearchInputComponent,
+    ZardSegmentedComponent,
+    ZardSegmentedItemComponent,
     ...ZardCardImports,
     ...ZardTableImports
   ],
@@ -43,37 +47,35 @@ import { XpertProjectApiService } from './project-api.service'
           <h1 class="mt-1 text-2xl font-semibold text-text-primary">{{ 'XP.XProject.WorkspaceTitle' | translate }}</h1>
           <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.WorkspaceSubtitle' | translate }}</p>
         </div>
-        <div class="flex gap-2">
-          <button z-button zType="outline" zSize="sm" type="button" (click)="openImport()">
+        <div class="flex flex-wrap items-center gap-2">
+          <button z-button zType="outline" zSize="lg" type="button" (click)="openImport()">
             <i class="ri-upload-line mr-1"></i>{{ 'XP.XProject.ImportDSL' | translate }}
           </button>
-          <button z-button zType="default" zSize="sm" type="button" (click)="openCreate()">
+          <button z-button zType="default" zSize="lg" type="button" (click)="openCreate()">
             <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.NewProject' | translate }}
           </button>
         </div>
       </header>
       <section class="flex flex-col gap-3 md:flex-row md:items-center">
-        <input
-          z-input
-          class="w-full md:max-w-sm"
-          [placeholder]="'XP.XProject.SearchProjects' | translate"
+        <z-search-input
+          class="w-full min-w-0 md:max-w-[360px]"
+          zSize="default"
           [value]="search()"
-          (input)="search.set($any($event.target).value)"
+          [placeholder]="'XP.XProject.SearchProjects' | translate"
+          [clearLabel]="'XP.XProject.ClearSearch' | translate"
+          (valueChange)="search.set($event)"
         />
-        <div class="flex gap-1 text-xs">
+        <z-segmented
+          zSize="sm"
+          class="self-start md:self-auto"
+          [zAriaLabel]="'XP.XProject.StatusFilter' | translate"
+          [zDefaultValue]="status()"
+          (zChange)="status.set($event)"
+        >
           @for (filter of filters; track filter.value) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="sm"
-              type="button"
-              [class.bg-background-default-subtle]="status() === filter.value"
-              (click)="status.set(filter.value)"
-            >
-              {{ filter.label | translate }}
-            </button>
+            <z-segmented-item [value]="filter.value" [label]="filter.label | translate"></z-segmented-item>
           }
-        </div>
+        </z-segmented>
       </section>
       @if (facade.loading()) {
         <div

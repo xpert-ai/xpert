@@ -1511,6 +1511,8 @@
       "Automations": "Automations",
       "WorkspaceLabel": "Workspace",
       "SearchProjects": "Search projects",
+      "ClearSearch": "Clear search",
+      "StatusFilter": "Project status filter",
       "LoadingProjects": "Loading projects...",
       "CreateProject": "Create a project",
       "ProjectColumn": "Project",

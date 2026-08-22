@@ -26,13 +26,12 @@ import { XpertProjectFacade } from './project.facade'
     ...ZardTableImports
   ],
   template: `
-    <section class="mx-auto flex w-full flex-col gap-4 p-4 sm:p-6">
-      <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <section class="mx-auto flex h-full min-h-0 w-full flex-col gap-4 p-4 sm:p-6">
+      <header class="flex shrink-0 flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+          <h2 class="text-xl font-semibold text-text-primary">
             {{ 'XP.XProject.ProjectLibrary' | translate }}
-          </p>
-          <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ 'XP.XProject.Assets' | translate }}</h2>
+          </h2>
           <p class="mt-1 text-xs text-text-tertiary">
             {{ 'XP.XProject.AssetCount' | translate: { count: facade.assetCount() } }}
           </p>
@@ -42,7 +41,7 @@ import { XpertProjectFacade } from './project.facade'
           <button
             z-button
             zType="default"
-            zSize="sm"
+            zSize="default"
             type="button"
             [disabled]="uploading()"
             (click)="fileInput.click()"
@@ -53,141 +52,149 @@ import { XpertProjectFacade } from './project.facade'
         </div>
       </header>
 
-      <nav
-        class="flex min-w-0 items-center gap-1 overflow-x-auto text-sm"
-        [attr.aria-label]="'XP.XProject.ProjectNavigation' | translate"
-      >
-        <button z-button zType="ghost" zSize="sm" type="button" [disabled]="!folderStack().length" (click)="goToRoot()">
-          {{ 'XP.XProject.ProjectLibrary' | translate }}
-        </button>
-        @for (folder of folderStack(); track folder.id; let index = $index; let last = $last) {
-          <i class="ri-arrow-right-s-line shrink-0 text-text-tertiary"></i>
-          <button z-button zType="ghost" zSize="sm" type="button" [disabled]="last" (click)="goToFolder(index)">
-            {{ folder.name }}
-          </button>
-        }
-      </nav>
-
-      <div class="flex flex-col gap-3 md:flex-row">
-        <input
-          z-input
-          class="w-full md:max-w-sm"
-          [placeholder]="'XP.XProject.SearchAssets' | translate"
-          [value]="search()"
-          (input)="search.set($any($event.target).value)"
-        />
-        <div class="flex gap-1 text-xs">
-          @for (filter of filters; track filter) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="sm"
-              type="button"
-              [class.bg-background-default-subtle]="kind() === filter"
-              (click)="kind.set(filter)"
+      <div class="min-h-0 flex-1">
+        <div class="flex flex-col gap-4">
+          @if (folderStack().length) {
+            <nav
+              class="flex min-w-0 items-center gap-1 overflow-x-auto text-sm"
+              [attr.aria-label]="'XP.XProject.ProjectNavigation' | translate"
             >
-              {{ 'XP.XProject.AssetFilter.' + filter | translate }}
-            </button>
+              <button z-button zType="ghost" zSize="sm" type="button" (click)="goToRoot()">
+                {{ 'XP.XProject.ProjectLibrary' | translate }}
+              </button>
+              @for (folder of folderStack(); track folder.id; let index = $index; let last = $last) {
+                <i class="ri-arrow-right-s-line shrink-0 text-text-tertiary"></i>
+                <button z-button zType="ghost" zSize="sm" type="button" [disabled]="last" (click)="goToFolder(index)">
+                  {{ folder.name }}
+                </button>
+              }
+            </nav>
+          }
+
+          <div class="flex flex-col gap-3 md:flex-row">
+            <input
+              z-input
+              class="w-full md:max-w-sm"
+              [placeholder]="'XP.XProject.SearchAssets' | translate"
+              [value]="search()"
+              (input)="search.set($any($event.target).value)"
+            />
+            <div class="flex gap-1 text-xs">
+              @for (filter of filters; track filter) {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  type="button"
+                  [class.bg-background-default-subtle]="kind() === filter"
+                  (click)="kind.set(filter)"
+                >
+                  {{ 'XP.XProject.AssetFilter.' + filter | translate }}
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (facade.assetsError()) {
+            <div
+              class="rounded-lg border border-text-destructive bg-status-error-bg/10 px-4 py-3 text-sm text-text-destructive"
+            >
+              {{ facade.assetsError() }}
+            </div>
+          }
+          @if (facade.assetsLoading() && !facade.assets().length) {
+            <div
+              class="rounded-lg border border-divider-subtle bg-components-card-bg px-4 py-10 text-center text-sm text-text-secondary"
+            >
+              {{ 'XP.XProject.LoadingAssets' | translate }}
+            </div>
+          } @else {
+            <z-card class="w-full overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+              <z-card-content class="p-0">
+                <div class="overflow-x-auto">
+                  <table z-table zSize="compact" class="w-full min-w-[760px] text-sm">
+                    <thead z-table-header>
+                      <tr z-table-row class="bg-background-default-subtle">
+                        <th z-table-head>{{ 'XP.XProject.AssetColumn' | translate }}</th>
+                        <th z-table-head>{{ 'XP.XProject.TypeColumn' | translate }}</th>
+                        <th z-table-head>{{ 'XP.XProject.SourceColumn' | translate }}</th>
+                        <th z-table-head>{{ 'XP.XProject.SizeColumn' | translate }}</th>
+                        <th z-table-head>{{ 'XP.XProject.StatusColumn' | translate }}</th>
+                        <th z-table-head>{{ 'XP.XProject.RelatedObjectColumn' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody z-table-body>
+                      @for (asset of visibleAssets(); track asset.id) {
+                        <tr z-table-row class="hover:bg-background-default-subtle/60">
+                          <td z-table-cell>
+                            @if (asset.kind === 'folder') {
+                              <button
+                                z-button
+                                zType="ghost"
+                                zSize="sm"
+                                type="button"
+                                class="-ml-2 max-w-full justify-start"
+                                (click)="openFolder(asset)"
+                              >
+                                <i class="ri-folder-3-line mr-2 text-text-warning"></i
+                                ><span class="truncate">{{ asset.name }}</span>
+                              </button>
+                            } @else {
+                              <div class="flex min-w-0 items-center gap-2">
+                                <i class="ri-file-3-line text-text-secondary"></i>
+                                <div class="min-w-0">
+                                  <div class="truncate font-medium text-text-primary">{{ asset.name }}</div>
+                                  <div class="truncate text-xs text-text-tertiary">{{ asset.path }}</div>
+                                </div>
+                              </div>
+                            }
+                          </td>
+                          <td z-table-cell>
+                            <z-badge zType="outline">{{ asset.mimeType || asset.kind }}</z-badge>
+                          </td>
+                          <td z-table-cell class="text-text-secondary">{{ asset.source }}</td>
+                          <td z-table-cell class="text-text-secondary">{{ formatSize(asset.size) }}</td>
+                          <td z-table-cell>
+                            <z-badge zType="outline">{{
+                              asset.status || ('XP.XProject.Available' | translate)
+                            }}</z-badge>
+                          </td>
+                          <td z-table-cell class="text-text-secondary">
+                            {{ asset.taskId || asset.conversationId || '—' }}
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr z-table-row>
+                          <td z-table-cell colspan="6" class="py-12 text-center text-text-tertiary">
+                            {{ 'XP.XProject.NoIndexedAssets' | translate }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </z-card-content>
+            </z-card>
+            @if (hasMore()) {
+              <div class="flex justify-center">
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="facade.assetsLoading()"
+                  (click)="loadMore()"
+                >
+                  {{ 'XP.XProject.LoadMoreAssets' | translate }}
+                </button>
+              </div>
+            }
           }
         </div>
       </div>
-
-      @if (facade.assetsError()) {
-        <div
-          class="rounded-lg border border-text-destructive bg-status-error-bg/10 px-4 py-3 text-sm text-text-destructive"
-        >
-          {{ facade.assetsError() }}
-        </div>
-      }
-      @if (facade.assetsLoading() && !facade.assets().length) {
-        <div
-          class="rounded-lg border border-divider-subtle bg-components-card-bg px-4 py-10 text-center text-sm text-text-secondary"
-        >
-          {{ 'XP.XProject.LoadingAssets' | translate }}
-        </div>
-      } @else {
-        <z-card class="w-full overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-          <z-card-content class="p-0">
-            <div class="overflow-x-auto">
-              <table z-table zSize="compact" class="w-full min-w-[760px] text-sm">
-                <thead z-table-header>
-                  <tr z-table-row class="bg-background-default-subtle">
-                    <th z-table-head>{{ 'XP.XProject.AssetColumn' | translate }}</th>
-                    <th z-table-head>{{ 'XP.XProject.TypeColumn' | translate }}</th>
-                    <th z-table-head>{{ 'XP.XProject.SourceColumn' | translate }}</th>
-                    <th z-table-head>{{ 'XP.XProject.SizeColumn' | translate }}</th>
-                    <th z-table-head>{{ 'XP.XProject.StatusColumn' | translate }}</th>
-                    <th z-table-head>{{ 'XP.XProject.RelatedObjectColumn' | translate }}</th>
-                  </tr>
-                </thead>
-                <tbody z-table-body>
-                  @for (asset of visibleAssets(); track asset.id) {
-                    <tr z-table-row class="hover:bg-background-default-subtle/60">
-                      <td z-table-cell>
-                        @if (asset.kind === 'folder') {
-                          <button
-                            z-button
-                            zType="ghost"
-                            zSize="sm"
-                            type="button"
-                            class="-ml-2 max-w-full justify-start"
-                            (click)="openFolder(asset)"
-                          >
-                            <i class="ri-folder-3-line mr-2 text-text-warning"></i
-                            ><span class="truncate">{{ asset.name }}</span>
-                          </button>
-                        } @else {
-                          <div class="flex min-w-0 items-center gap-2">
-                            <i class="ri-file-3-line text-text-secondary"></i>
-                            <div class="min-w-0">
-                              <div class="truncate font-medium text-text-primary">{{ asset.name }}</div>
-                              <div class="truncate text-xs text-text-tertiary">{{ asset.path }}</div>
-                            </div>
-                          </div>
-                        }
-                      </td>
-                      <td z-table-cell>
-                        <z-badge zType="outline">{{ asset.mimeType || asset.kind }}</z-badge>
-                      </td>
-                      <td z-table-cell class="text-text-secondary">{{ asset.source }}</td>
-                      <td z-table-cell class="text-text-secondary">{{ formatSize(asset.size) }}</td>
-                      <td z-table-cell>
-                        <z-badge zType="outline">{{ asset.status || ('XP.XProject.Available' | translate) }}</z-badge>
-                      </td>
-                      <td z-table-cell class="text-text-secondary">
-                        {{ asset.taskId || asset.conversationId || '—' }}
-                      </td>
-                    </tr>
-                  } @empty {
-                    <tr z-table-row>
-                      <td z-table-cell colspan="6" class="py-12 text-center text-text-tertiary">
-                        {{ 'XP.XProject.NoIndexedAssets' | translate }}
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </z-card-content>
-        </z-card>
-        @if (hasMore()) {
-          <div class="flex justify-center">
-            <button
-              z-button
-              zType="outline"
-              zSize="sm"
-              type="button"
-              [disabled]="facade.assetsLoading()"
-              (click)="loadMore()"
-            >
-              {{ 'XP.XProject.LoadMoreAssets' | translate }}
-            </button>
-          </div>
-        }
-      }
     </section>
   `,
-  host: { class: 'block w-full min-w-0' }
+  host: { class: 'block h-full min-h-0 w-full min-w-0' }
 })
 export class XpertProjectAssetsComponent implements OnInit {
   readonly facade = inject(XpertProjectFacade)

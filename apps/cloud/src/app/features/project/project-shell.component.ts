@@ -27,12 +27,12 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
   ],
   template: `
     <div
-      class="xp-project-shell relative flex h-full min-h-full min-w-0 bg-background"
+      class="xp-project-shell relative flex h-full min-h-full min-w-0 overflow-hidden bg-background"
       [class.cursor-col-resize]="chatPanelResizing()"
       [class.select-none]="chatPanelResizing()"
     >
-      <div class="flex min-w-0 flex-1 flex-col">
-        <header class="border-b border-divider-subtle bg-components-card-bg">
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header class="sticky top-0 z-30 shrink-0 border-b border-divider-subtle bg-components-card-bg">
           <div class="mx-auto flex w-full max-w-screen-2xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
             <div class="flex min-w-0 items-center gap-3">
               <a
@@ -93,10 +93,12 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
             }
           </nav>
         </header>
-        <div class="mx-auto flex w-full max-w-screen-2xl min-w-0 flex-1">
-          <main class="min-w-0 flex-1"><router-outlet /></main>
+        <div class="mx-auto flex min-h-0 w-full max-w-screen-2xl min-w-0 flex-1">
+          <main class="min-h-0 min-w-0 flex-1 overflow-y-auto"><router-outlet /></main>
           @if (!chatPanelOpen()) {
-            <aside class="hidden w-64 shrink-0 border-l border-divider-subtle p-4 xl:block">
+            <aside
+              class="sticky top-0 hidden h-fit w-64 shrink-0 self-start border-l border-divider-subtle p-4 xl:block"
+            >
               <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
                 ><z-card-content class="space-y-3 p-4"
                   ><p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
@@ -127,7 +129,7 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
       @if (chatPanelOpen()) {
         <aside
           #chatPanel
-          class="fixed bottom-3 right-3 z-50 h-[min(78vh,44rem)] max-w-[calc(100vw-1.5rem)] shrink-0 border-divider-subtle lg:static lg:h-full lg:max-h-none lg:max-w-none lg:border-l lg:shadow-sm"
+          class="fixed bottom-3 right-3 z-50 h-[min(78vh,44rem)] max-w-[calc(100vw-1.5rem)] shrink-0 border-divider-subtle lg:sticky lg:top-0 lg:h-full lg:max-h-none lg:max-w-none lg:border-l lg:shadow-sm"
           [style.width.px]="chatPanelWidth()"
         >
           <div
@@ -140,6 +142,7 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
             [attr.aria-valuemax]="chatPanelMaxWidth"
             [attr.aria-valuenow]="chatPanelWidth()"
             (pointerdown)="startChatPanelResize($event, chatPanel)"
+            (lostpointercapture)="onChatPanelResizeLostPointerCapture()"
             (keydown)="onChatPanelResizeKeydown($event)"
           >
             <span
@@ -181,8 +184,10 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   readonly chatAssistantKey = signal<string | null>(null)
   #resizeStartX = 0
   #resizeStartWidth = 0
+  #resizePointerId: number | null = null
+  #resizeHandle: HTMLElement | null = null
   #resizeMoveListener: ((event: PointerEvent) => void) | null = null
-  #resizeEndListener: (() => void) | null = null
+  #resizeEndListener: ((event: PointerEvent) => void) | null = null
   readonly tabs = [
     { label: 'XP.XProject.Overview', path: '' },
     { label: 'XP.XProject.Plan', path: 'plan' },
@@ -231,6 +236,9 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   startChatPanelResize(event: PointerEvent, panel: HTMLElement) {
     if (event.button !== 0) return
 
+    const handle = event.currentTarget as HTMLElement | null
+    if (!handle) return
+
     event.preventDefault()
     event.stopPropagation()
     const bounds = this.chatPanelWidthBounds()
@@ -238,16 +246,28 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
     this.#resizeStartWidth = panel.getBoundingClientRect().width
     this.chatPanelWidth.set(this.clampChatPanelWidth(this.#resizeStartWidth, bounds))
     this.chatPanelResizing.set(true)
+    this.#resizePointerId = event.pointerId
+    this.#resizeHandle = handle
+    handle.setPointerCapture(event.pointerId)
 
     this.#resizeMoveListener = (moveEvent) => {
+      if (moveEvent.pointerId !== this.#resizePointerId) return
+
       const nextWidth = this.#resizeStartWidth - (moveEvent.clientX - this.#resizeStartX)
       this.chatPanelWidth.set(this.clampChatPanelWidth(nextWidth, bounds))
       moveEvent.preventDefault()
     }
-    this.#resizeEndListener = () => this.stopChatPanelResize()
+    this.#resizeEndListener = (endEvent) => {
+      if (endEvent.pointerId !== this.#resizePointerId) return
+      this.stopChatPanelResize()
+    }
     document.addEventListener('pointermove', this.#resizeMoveListener)
     document.addEventListener('pointerup', this.#resizeEndListener)
     document.addEventListener('pointercancel', this.#resizeEndListener)
+  }
+
+  onChatPanelResizeLostPointerCapture() {
+    if (this.#resizePointerId !== null) this.stopChatPanelResize()
   }
 
   onChatPanelResizeKeydown(event: KeyboardEvent) {
@@ -269,6 +289,13 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
       document.removeEventListener('pointerup', this.#resizeEndListener)
       document.removeEventListener('pointercancel', this.#resizeEndListener)
       this.#resizeEndListener = null
+    }
+    const resizeHandle = this.#resizeHandle
+    const resizePointerId = this.#resizePointerId
+    this.#resizeHandle = null
+    this.#resizePointerId = null
+    if (resizeHandle && resizePointerId !== null && resizeHandle.hasPointerCapture(resizePointerId)) {
+      resizeHandle.releasePointerCapture(resizePointerId)
     }
     this.chatPanelResizing.set(false)
   }

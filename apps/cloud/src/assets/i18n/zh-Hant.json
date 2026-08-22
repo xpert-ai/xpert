@@ -1138,6 +1138,8 @@
       "Automations": "自動化",
       "WorkspaceLabel": "工作台",
       "SearchProjects": "搜尋項目",
+      "ClearSearch": "清空搜尋",
+      "StatusFilter": "項目狀態篩選",
       "LoadingProjects": "正在載入項目…",
       "CreateProject": "建立項目",
       "ProjectColumn": "項目",

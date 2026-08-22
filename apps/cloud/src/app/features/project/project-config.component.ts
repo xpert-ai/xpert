@@ -58,7 +58,7 @@ import { XpertProjectFacade } from './project.facade'
           <a
             z-button
             zType="ghost"
-            zSize="sm"
+            zSize="default"
             [routerLink]="['/project', facade.project()?.id]"
             [queryParams]="{ chat: 'open' }"
             queryParamsHandling="merge"
@@ -92,7 +92,7 @@ import { XpertProjectFacade } from './project.facade'
               <a
                 z-button
                 zType="outline"
-                zSize="sm"
+                zSize="default"
                 [routerLink]="['/project', facade.project()?.id]"
                 [queryParams]="{ chat: 'open' }"
                 queryParamsHandling="merge"
@@ -122,7 +122,7 @@ import { XpertProjectFacade } from './project.facade'
             ><button
               z-button
               zType="outline"
-              zSize="sm"
+              zSize="default"
               type="button"
               [disabled]="!selectedXpertId() || bindingXpert()"
               (click)="bindSelectedXpert()"
@@ -158,7 +158,14 @@ import { XpertProjectFacade } from './project.facade'
           ></textarea>
         </z-form-field>
         <div>
-          <button z-button zType="default" zSize="sm" type="button" [disabled]="saving()" (click)="saveInstructions()">
+          <button
+            z-button
+            zType="default"
+            zSize="default"
+            type="button"
+            [disabled]="saving()"
+            (click)="saveInstructions()"
+          >
             {{ (saving() ? 'XP.XProject.Saving' : 'XP.XProject.SaveInstructions') | translate }}
           </button>
         </div>
@@ -246,7 +253,7 @@ import { XpertProjectFacade } from './project.facade'
             </h3>
             <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.AutomationDescription' | translate }}</p>
           </div>
-          <button z-button zType="outline" zSize="sm" type="button" (click)="addAutomation()">
+          <button z-button zType="outline" zSize="default" type="button" (click)="addAutomation()">
             <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddAutomation' | translate }}
           </button>
         </div>

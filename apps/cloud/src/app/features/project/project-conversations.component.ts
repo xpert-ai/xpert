@@ -19,7 +19,12 @@ import { XpertProjectApiService } from './project-api.service'
           </p>
           <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ 'XP.XProject.Conversations' | translate }}</h2>
         </div>
-        <a z-button zType="default" zSize="sm" [routerLink]="['/project', projectId]" [queryParams]="{ chat: 'open' }"
+        <a
+          z-button
+          zType="default"
+          zSize="default"
+          [routerLink]="['/project', projectId]"
+          [queryParams]="{ chat: 'open' }"
           ><i class="ri-add-line mr-1"></i>{{ 'XP.XProject.StartConversation' | translate }}</a
         >
       </header>

@@ -54,7 +54,7 @@ import { XpertProjectFacade } from './project.facade'
             (click)="view.set('board')"
           >
             <i class="ri-kanban-view-2 mr-1"></i>{{ 'XP.XProject.Board' | translate }}</button
-          ><button z-button zType="default" zSize="sm" type="button" (click)="addPlan()">
+          ><button z-button zType="default" zSize="default" type="button" (click)="addPlan()">
             <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddPlan' | translate }}
           </button>
         </div>

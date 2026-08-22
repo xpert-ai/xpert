@@ -2907,6 +2907,8 @@
       "Automations": "自动化",
       "WorkspaceLabel": "工作台",
       "SearchProjects": "搜索项目",
+      "ClearSearch": "清空搜索",
+      "StatusFilter": "项目状态筛选",
       "LoadingProjects": "正在加载项目…",
       "CreateProject": "创建项目",
       "ProjectColumn": "项目",
