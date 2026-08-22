@@ -7,6 +7,7 @@ import {
   AiFeatureEnum,
   AssistantBindingService,
   ChatConversationService,
+  OrderTypeEnum,
   ScopeService,
   Store,
   ViewExtensionApiService,
@@ -81,6 +82,9 @@ jest.mock('../../@core', () => {
     RequestScopeLevel: {
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
+    },
+    OrderTypeEnum: {
+      DESC: 'DESC'
     },
     AssistantBindingService,
     ChatConversationService,
@@ -264,6 +268,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   }
   let conversationService: {
     getUnreadByXperts: jest.Mock
+    getMyInOrg: jest.Mock
     unreadRefresh$: Subject<void>
   }
   let viewExtensionApi: {
@@ -338,6 +343,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     }
     conversationService = {
       getUnreadByXperts: jest.fn(() => of([])),
+      getMyInOrg: jest.fn(() => of({ items: [], total: 0 })),
       unreadRefresh$: new Subject<void>()
     }
     viewExtensionApi = {
@@ -1006,8 +1012,9 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench.fixed')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__children-label')).toHaveLength(1)
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-label').textContent).toContain(
-      'XP.Sidebar.Views'
+      'XP.Sidebar.RecentConversations'
     )
 
     const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
@@ -1021,6 +1028,123 @@ describe('CloudSidebarAssistantsComponent', () => {
     toggle.click()
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
+  })
+
+  it('loads recent assistant conversations in pages of ten and opens older conversations', async () => {
+    const today = new Date().toISOString()
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const firstPage = Array.from({ length: 10 }, (_, index) => ({
+      id: `conversation-${index + 1}`,
+      threadId: `thread-${index + 1}`,
+      title: `Conversation ${index + 1}`,
+      updatedAt: index < 5 ? today : yesterday,
+      xpertId: 'other-xpert'
+    }))
+    conversationService.getMyInOrg.mockReturnValueOnce(of({ items: firstPage, total: 12 })).mockReturnValueOnce(
+      of({
+        items: [
+          {
+            id: 'conversation-11',
+            threadId: 'thread-11',
+            title: 'Conversation 11',
+            updatedAt: yesterday,
+            xpertId: 'other-xpert'
+          },
+          {
+            id: 'conversation-12',
+            threadId: 'thread-12',
+            title: 'Conversation 12',
+            updatedAt: yesterday,
+            xpertId: 'other-xpert'
+          }
+        ],
+        total: 12
+      })
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(conversationService.getMyInOrg).toHaveBeenNthCalledWith(1, {
+      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
+      order: { updatedAt: OrderTypeEnum.DESC },
+      take: 10,
+      skip: 0,
+      where: { xpertId: 'other-xpert' }
+    })
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')).toHaveLength(10)
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-group-label')).map(
+        (item: Element) => item.textContent?.trim()
+      )
+    ).toEqual(['XP.KEY_WORDS.Date_Today', 'XP.KEY_WORDS.Date_Yesterday'])
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(conversationService.getMyInOrg).toHaveBeenNthCalledWith(2, {
+      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
+      order: { updatedAt: OrderTypeEnum.DESC },
+      take: 10,
+      skip: 10,
+      where: { xpertId: 'other-xpert' }
+    })
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')).toHaveLength(12)
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier')).toBeNull()
+
+    fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')[10].click()
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-11'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('marks the recent conversation matching the route thread as active', async () => {
+    conversationService.getMyInOrg.mockReturnValue(
+      of({
+        items: [
+          {
+            id: 'conversation-active',
+            threadId: 'thread-active',
+            title: 'Active conversation',
+            updatedAt: new Date().toISOString(),
+            xpertId: 'other-xpert'
+          }
+        ],
+        total: 1
+      })
+    )
+    const router = TestBed.inject(Router)
+    await router.navigateByUrl('/chat/x/other-assistant/c/thread-active')
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const activeConversation = fixture.nativeElement.querySelector(
+      '.cloud-sidebar-assistants__conversation-item.is-active'
+    )
+    expect(activeConversation).not.toBeNull()
+    expect(activeConversation.textContent).toContain('Active conversation')
+    expect(activeConversation.getAttribute('aria-current')).toBe('page')
   })
 
   it('shows the view empty state when an assistant has no fixed views', async () => {

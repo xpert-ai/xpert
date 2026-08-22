@@ -137,10 +137,6 @@ type ClawXpertFixedViewMenuItem = {
 }
 const DEFAULT_BROWSER_ZOOM = 100
 const TASKS_WORKSPACE_TAB_ID = 'tasks'
-const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
-  id: 'files-initial',
-  kind: 'files'
-}
 
 @Component({
   standalone: true,
@@ -760,8 +756,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #activeWorkbenchLayoutAssistantId: string | null = null
   #initializedWorkbenchLayoutAssistantId: string | null = null
   #pendingWorkbenchLayoutRestore: { assistantId: string | null; state: ClawXpertWorkbenchLayoutState } | null = null
-  #activeConversationEntryKey: string | null = null
-  #lastNonFixedTabId: string | null = INITIAL_WORKSPACE_TAB.id
+  #lastNonFixedTabId: string | null = null
+  #activeChatkitControl: ChatKitControl | null = null
+  #lastSyncedRoutedThreadId: string | null = null
+  #chatkitOriginThreadId: string | null = null
+  #chatkitThreadSync = Promise.resolve()
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
@@ -790,6 +789,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
+      this.#chatkitOriginThreadId = normalizeConversationThreadId(threadId)
       this.facade.onChatThreadChange(threadId)
     },
     onThreadLoadEnd: ({ threadId }) => {
@@ -850,17 +850,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(this.facade.threadId() ?? this.resolvedConversation()?.threadId)
     }
   })
-  readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([{ ...INITIAL_WORKSPACE_TAB }])
+  readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([])
   readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
   )
   readonly fixedViewTabs = computed<ClawXpertFixedViewTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view')
   )
-  readonly activeTabId = signal<string>(INITIAL_WORKSPACE_TAB.id)
+  readonly activeTabId = signal<string>('')
   readonly activeTab = computed<ClawXpertWorkspaceTab | null>(() => {
     const tabs = this.workspaceTabs()
-    return tabs.find((tab) => tab.id === this.activeTabId()) ?? tabs[0] ?? null
+    return tabs.find((tab) => tab.id === this.activeTabId()) ?? null
   })
   readonly activeBrowserTab = computed(() => {
     const tab = this.activeTab()
@@ -1040,25 +1040,51 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
 
     effect(() => {
-      const viewState = this.facade.viewState()
+      const control = this.control()
       const threadId = this.facade.threadId()
-      const pendingStartId = this.facade.pendingConversationStartId()
-      const requestedViewKey = this.#workbenchViewUrlState.viewKey()
+      const viewState = this.facade.viewState()
 
-      if (viewState !== 'ready') {
-        this.#activeConversationEntryKey = null
+      if (!control || viewState !== 'ready') {
+        this.#activeChatkitControl = null
+        this.#lastSyncedRoutedThreadId = null
+        this.#chatkitOriginThreadId = null
         return
       }
 
-      const entryKey = threadId ? `thread:${threadId}` : pendingStartId ? `new:${pendingStartId}` : 'new'
-      if (entryKey === this.#activeConversationEntryKey) {
+      if (control !== this.#activeChatkitControl) {
+        this.#activeChatkitControl = control
+        this.#lastSyncedRoutedThreadId = threadId
+        this.#chatkitOriginThreadId = null
         return
       }
 
-      this.#activeConversationEntryKey = entryKey
-      if (!requestedViewKey) {
-        this.applyWorkbenchLayoutState('minimized')
+      if (threadId === this.#chatkitOriginThreadId) {
+        this.#lastSyncedRoutedThreadId = threadId
+        this.#chatkitOriginThreadId = null
+        return
       }
+
+      this.#chatkitOriginThreadId = null
+      if (threadId === this.#lastSyncedRoutedThreadId) {
+        return
+      }
+
+      this.#lastSyncedRoutedThreadId = threadId
+      this.#chatkitThreadSync = this.#chatkitThreadSync
+        .catch(() => undefined)
+        .then(async () => {
+          if (
+            this.control() !== control ||
+            this.facade.threadId() !== threadId ||
+            this.facade.viewState() !== 'ready'
+          ) {
+            return
+          }
+          await control.setThreadId(threadId)
+        })
+        .catch((error) => {
+          this.#toastr.error(getErrorMessage(error) || 'Failed to switch the current conversation.')
+        })
     })
 
     effect((onCleanup) => {
@@ -1910,7 +1936,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     if (requestedTab) {
       this.activeTabId.set(requestedTab.id)
-    } else if (!nextTabs.some((tab) => tab.id === activeTabId)) {
+    } else if (activeTabId && !nextTabs.some((tab) => tab.id === activeTabId)) {
       const selectedTab = nextNonFixedTabs[0] ?? nextTabs[0]
       this.activeTabId.set(selectedTab?.id ?? '')
     }

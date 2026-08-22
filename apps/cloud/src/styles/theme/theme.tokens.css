@@ -53,8 +53,8 @@
   --color-components-input-text-filled-disabled: var(--sys-text-secondary);
   --color-components-input-border-hover: var(--sys-border);
   --color-components-list-option-bg: var(--color-background-default-subtle);
-  --color-components-list-option-hover-bg: var(--sys-primary-subtle-hover);
-  --color-components-list-option-active-bg: color-mix(in oklab, var(--foreground) 8%, var(--sys-surface-subtle));
+  --color-components-list-option-hover-bg: var(--sys-state-hover);
+  --color-components-list-option-active-bg: color-mix(in oklab, var(--foreground) 6%, var(--sys-surface-subtle));
   --color-components-toggle-bg: var(--sys-primary);
   --color-components-toggle-bg-unchecked: #d9d9dd;
   --color-components-kbd-bg-white: #ffffff1f;
@@ -161,8 +161,8 @@
   --color-components-input-text-filled-disabled: var(--color-text-tertiary);
   --color-components-input-border-hover: var(--sys-border-control);
   --color-components-list-option-bg: var(--color-background-default-subtle);
-  --color-components-list-option-hover-bg: var(--sys-primary-subtle-hover);
-  --color-components-list-option-active-bg: color-mix(in oklab, var(--foreground) 8%, var(--sys-surface-subtle));
+  --color-components-list-option-hover-bg: var(--sys-state-hover);
+  --color-components-list-option-active-bg: color-mix(in oklab, var(--foreground) 6%, var(--sys-surface-subtle));
   --color-components-toggle-bg: var(--sys-primary);
   --color-components-toggle-bg-unchecked: color-mix(in oklab, var(--foreground) 22%, transparent);
   --color-components-kbd-bg-white: color-mix(in oklab, var(--foreground) 12%, transparent);

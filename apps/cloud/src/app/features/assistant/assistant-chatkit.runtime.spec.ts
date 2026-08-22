@@ -262,6 +262,57 @@ describe('assistant chatkit runtime helpers', () => {
     )
   })
 
+  it('does not rebuild ChatKit options when only the routed thread changes', () => {
+    const setOptions = jest.fn()
+    const createChatKitMock = createChatKit as jest.Mock
+    createChatKitMock.mockReturnValue({ setOptions })
+    const initialThread = signal<string | null>('thread-1')
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: DOCUMENT, useValue: document },
+        {
+          provide: TranslateService,
+          useValue: {
+            currentLang: 'en',
+            instant: (_key: string, params?: { Default?: string }) => params?.Default ?? _key
+          }
+        },
+        { provide: ToastrService, useValue: { error: jest.fn() } },
+        { provide: AppService, useValue: { lang: signal('en'), theme$: signal({ primary: 'light' }) } },
+        {
+          provide: Store,
+          useValue: {
+            token: 'token-1',
+            token$: of('token-1'),
+            organizationId: 'org-1',
+            selectOrganizationId: () => of('org-1')
+          }
+        }
+      ]
+    })
+
+    TestBed.runInInjectionContext(() => {
+      injectHostedAssistantChatkitControl({
+        identity: signal('xpert_shared'),
+        assistantId: signal('assistant-1'),
+        frameUrl: signal('/chatkit'),
+        initialThread,
+        titleKey: 'XP.Xpert.Assistant',
+        titleDefault: 'Assistant'
+      })
+    })
+    flushAngularEffects()
+
+    expect(createChatKitMock).toHaveBeenCalledWith(expect.objectContaining({ initialThread: 'thread-1' }))
+    setOptions.mockClear()
+    initialThread.set('thread-2')
+    flushAngularEffects()
+
+    expect(createChatKitMock).toHaveBeenCalledTimes(1)
+    expect(setOptions).not.toHaveBeenCalled()
+  })
+
   it('passes an absolute same-origin API URL to ChatKit', () => {
     environment.API_BASE_URL = 'same-origin'
     const createChatKitMock = createChatKit as jest.Mock
