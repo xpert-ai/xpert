@@ -252,6 +252,72 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
         )
         expect(JSON.stringify(result)).not.toContain(legacyRelativePath)
     })
+
+    it('continues to guarded fallbacks when the immutable snapshot has no image assets', async () => {
+        const legacyRelativePath = 'ocr/images/page-1.png'
+        await fsPromises.mkdir(path.dirname(path.join(rootPath, legacyRelativePath)), { recursive: true })
+        await fsPromises.copyFile(imagePath, path.join(rootPath, legacyRelativePath))
+        const snapshots = service['snapshots'] as unknown as { getVisualCatalog: jest.Mock }
+        snapshots.getVisualCatalog.mockResolvedValueOnce({ snapshotFingerprint: 'snapshot-v1', assets: [] })
+        const chunks = service['chunks'] as unknown as { findAll: jest.Mock }
+        chunks.findAll.mockResolvedValueOnce({
+            items: [
+                {
+                    id: 'chunk-1',
+                    pageContent: 'Output shaft diameter drawing',
+                    metadata: {
+                        page: 1,
+                        sourceBlockIds: ['drawing-block-1'],
+                        assets: [{ type: 'image', filePath: legacyRelativePath, order: 1 }]
+                    }
+                }
+            ]
+        })
+
+        const result = await service
+            .createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
+            .issueCandidates({
+                ...candidateRequest(),
+                textAnchors: [{ page: 1, chunkId: 'chunk-1', sourceBlockIds: ['drawing-block-1'] }]
+            })
+
+        expect(result.warnings).toContain(
+            'The immutable analysis snapshot contains no image assets; visual candidates use a guarded source fallback.'
+        )
+        expect(result.candidates[0]).toEqual(
+            expect.objectContaining({ page: 1, visualAssetId: expect.any(String), candidateReason: 'same_block' })
+        )
+    })
+
+    it('renders governed source PDF pages when parsed metadata contains no visual assets', async () => {
+        document.type = 'pdf'
+        document.mimeType = 'application/pdf'
+        document.filePath = 'files/drawing.pdf'
+        const snapshots = service['snapshots'] as unknown as { getVisualCatalog: jest.Mock }
+        snapshots.getVisualCatalog.mockResolvedValueOnce({ snapshotFingerprint: 'snapshot-v1', assets: [] })
+        const fallback = jest.spyOn(service as never, 'buildPdfPageFallbackCatalog').mockResolvedValueOnce([
+            {
+                visualAssetId: 'rendered-pdf-page-1',
+                page: 1,
+                order: 0,
+                sourceBlockIds: ['drawing-block-1'],
+                chunkId: 'chunk-1',
+                locator: { kind: 'legacy', relativePath: '.knowledge/visual-page-fallback/doc-1/page-1.png' }
+            }
+        ] as never)
+
+        const result = await service
+            .createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
+            .issueCandidates({
+                ...candidateRequest(),
+                textAnchors: [{ page: 1, chunkId: 'chunk-1', sourceBlockIds: ['drawing-block-1'] }]
+            })
+
+        expect(fallback).toHaveBeenCalled()
+        expect(result.candidates[0]).toEqual(
+            expect.objectContaining({ page: 1, visualAssetId: 'rendered-pdf-page-1', candidateReason: 'same_block' })
+        )
+    })
 })
 
 function executionScope() {

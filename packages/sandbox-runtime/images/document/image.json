@@ -1,0 +1,23 @@
+{
+  "imageFamily": "document",
+  "repositories": {
+    "ghcr": "ghcr.io/xpert-ai/xpert-sandbox-document",
+    "dockerhub": "metadc/xpert-sandbox-document",
+    "acr": "registry.cn-hangzhou.aliyuncs.com/metad/xpert-sandbox-document"
+  },
+  "runtimeContractVersion": "1",
+  "profileName": "document/libreoffice-v1",
+  "nodeVersion": "20.20.2",
+  "libreOfficeMajorVersion": "7",
+  "platforms": ["linux/amd64"],
+  "capabilities": ["document.pdf", "document.libreoffice", "sandbox.action.v1"],
+  "dockerfile": "images/document/Dockerfile",
+  "manifest": "images/document/runtime/manifest.json",
+  "runner": "images/browser/runtime/runner-host.mjs",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/document-libreoffice-v1.json",
+  "artifactCatalogTemplate": "images/document/artifact-catalog.template.json",
+  "smokeCommand": ["soffice", "--headless", "--version"],
+  "baseImages": {
+    "node": "node:20.20.2-bookworm-slim@sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c"
+  }
+}

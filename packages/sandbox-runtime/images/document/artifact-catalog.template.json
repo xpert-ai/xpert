@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "runtimeSuiteVersion": "1.2.0",
+  "artifacts": [
+    {
+      "runtimeProfile": "document/libreoffice-v1",
+      "imageFamily": "document",
+      "kind": "oci-image",
+      "reference": "__IMMUTABLE_IMAGE__",
+      "digest": "__IMAGE_DIGEST__"
+    }
+  ]
+}

@@ -18,7 +18,9 @@ for (const entry of catalog.images) {
     dockerfile: `packages/sandbox-runtime/${image.dockerfile}`,
     context: '.',
     version: packageJson.version,
-    versionTag: `${packageJson.version}-pw${image.playwrightVersion}`,
+    versionTag: image.playwrightVersion
+      ? `${packageJson.version}-pw${image.playwrightVersion}`
+      : `${packageJson.version}-lo${image.libreOfficeMajorVersion}`,
     profileName: image.profileName,
     repositories: image.repositories,
     smokeCommand: image.smokeCommand.join(' '),

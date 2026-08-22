@@ -128,6 +128,7 @@ import { CopilotService } from '../../copilot/copilot.service'
 import { applicationMetrics } from '../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from '../../knowledge-document/visual-assets-runtime.token'
+import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
@@ -263,6 +264,103 @@ describe('AgentMiddlewareRuntimeService', () => {
             })
         )
         expect((dispatchCustomEvent as jest.Mock).mock.calls[0][1]).not.toHaveProperty('agentKey')
+    })
+
+    it('passes host-validated portable skill selections into Assistant Task chat runs', async () => {
+        const commands: unknown[] = []
+        const selectedSkillRefs = [
+            {
+                pluginName: '@xpert-ai/plugin-bid',
+                componentKey: 'bid-outline-planning'
+            }
+        ]
+        jest.spyOn(service as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
+            workspaceId: 'workspace-1',
+            skillIds: ['skill-outline-1']
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            if (command instanceof ChatConversationUpsertCommand) {
+                return { id: command.entity.id, threadId: 'thread-1' }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return { ...command.execution, id: command.execution.id, threadId: 'thread-1' }
+            }
+            if (command instanceof XpertChatCommand) {
+                return of()
+            }
+            return null
+        })
+
+        await service.startAssistantTask({
+            xpertId: 'xpert-1',
+            agentKey: 'Agent_BidOutline',
+            taskId: 'task-1',
+            prompt: 'Plan this outline.',
+            selectedSkillRefs
+        })
+
+        expect((service as any).resolveAssistantTaskSkillSelection).toHaveBeenCalledWith(
+            'xpert-1',
+            'Agent_BidOutline',
+            selectedSkillRefs
+        )
+        const chatCommand = commands.find((command) => command instanceof XpertChatCommand) as XpertChatCommand
+        expect(chatCommand.options.assistantTaskSkillSelection).toEqual({
+            workspaceId: 'workspace-1',
+            skillIds: ['skill-outline-1']
+        })
+    })
+
+    it('resolves portable plugin skills only through the target Agent direct Skills Middleware', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            workspaceId: 'workspace-1',
+            agent: { key: 'Agent_BidOutline' },
+            agents: [],
+            graph: {
+                nodes: [
+                    {
+                        key: 'Middleware_Skills',
+                        type: 'workflow',
+                        entity: {
+                            type: 'middleware',
+                            provider: 'skillsMiddleware',
+                            options: { skills: ['skill-outline-1'] }
+                        }
+                    }
+                ],
+                connections: [
+                    {
+                        type: 'workflow',
+                        from: 'Agent_BidOutline',
+                        to: 'Middleware_Skills'
+                    }
+                ]
+            }
+        }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof ResolveRuntimeSkillPackagesQuery) {
+                return [
+                    {
+                        id: 'skill-outline-1',
+                        sharedSkillId: 'plugin:@xpert-ai/plugin-bid:skill:bid-outline-planning'
+                    }
+                ]
+            }
+            return xpert
+        })
+
+        await expect(
+            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_BidOutline', [
+                { pluginName: '@xpert-ai/plugin-bid', componentKey: 'bid-outline-planning' }
+            ])
+        ).resolves.toEqual({ workspaceId: 'workspace-1', skillIds: ['skill-outline-1'] })
+        await expect(
+            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_BidOutline', [
+                { pluginName: '@xpert-ai/plugin-bid', componentKey: 'bid-service' }
+            ])
+        ).rejects.toThrow(/not directly connected/)
     })
 
     it('registers the connector runtime capability', async () => {

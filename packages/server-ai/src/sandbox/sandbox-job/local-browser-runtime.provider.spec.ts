@@ -5,11 +5,13 @@ import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
 import {
     LOCAL_AI_BROWSER_RUNTIME_BINDING,
     LOCAL_BROWSER_RUNTIME_PROVIDER,
+    LOCAL_DOCUMENT_RUNTIME_BINDING,
     LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
     LocalBrowserRuntimeProvider
 } from './local-browser-runtime.provider'
 import {
     AI_BROWSER_RUNTIME_PROFILE,
+    DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
     SandboxRuntimeDefinitionRegistry,
     VIDEO_BROWSER_RUNTIME_PROFILE
 } from './sandbox-runtime-definition.registry'
@@ -27,7 +29,7 @@ describe('LocalBrowserRuntimeProvider', () => {
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
     })
 
-    it('publishes low-priority development Bindings for browser, browser-ai, and browser-video profiles', () => {
+    it('publishes low-priority development Bindings for browser, AI, video, and document profiles', () => {
         const provider = new LocalBrowserRuntimeProvider()
 
         expect(provider.type).toBe(LOCAL_BROWSER_RUNTIME_PROVIDER)
@@ -66,6 +68,17 @@ describe('LocalBrowserRuntimeProvider', () => {
                 artifact: expect.objectContaining({
                     kind: 'filesystem',
                     reference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1'
+                })
+            }),
+            expect.objectContaining({
+                id: LOCAL_DOCUMENT_RUNTIME_BINDING,
+                runtimeProfile: DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
+                provider: LOCAL_BROWSER_RUNTIME_PROVIDER,
+                priority: 10_000,
+                developmentOnly: true,
+                artifact: expect.objectContaining({
+                    kind: 'filesystem',
+                    reference: 'xpert-source://sandbox-runtime/document-libreoffice-v1'
                 })
             })
         ])

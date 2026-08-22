@@ -15,9 +15,11 @@ import {
   AssistantBindingService,
   AssistantCode,
   ChatConversationService,
+  IChatConversation,
   IChatConversationUnreadXpertSummary,
   IAssistantBinding,
   IXpert,
+  OrderTypeEnum,
   RequestScopeLevel,
   ScopeService,
   Store,
@@ -25,6 +27,7 @@ import {
   ViewExtensionApiService
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
+import { groupConversations } from '../../xpert/types'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import {
   filterAssistantXperts,
@@ -56,6 +59,7 @@ const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
 const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
+const ASSISTANT_CONVERSATION_PAGE_SIZE = 10
 
 type AssistantMenuItem = {
   viewKey: string
@@ -73,6 +77,22 @@ type AssistantMenuState = {
 const EMPTY_ASSISTANT_MENU_STATE: AssistantMenuState = {
   loading: false,
   items: [],
+  error: false
+}
+
+type AssistantConversationState = {
+  loading: boolean
+  loaded: boolean
+  items: IChatConversation[]
+  total: number
+  error: boolean
+}
+
+const EMPTY_ASSISTANT_CONVERSATION_STATE: AssistantConversationState = {
+  loading: false,
+  loaded: false,
+  items: [],
+  total: 0,
   error: false
 }
 
@@ -101,6 +121,7 @@ export class CloudSidebarAssistantsComponent {
   readonly moreExpanded = signal(false)
   readonly expandedAssistantId = signal<string | null>(null)
   readonly assistantMenus = signal<Record<string, AssistantMenuState>>({})
+  readonly assistantConversations = signal<Record<string, AssistantConversationState>>({})
   readonly query = signal('')
   readonly category = signal(ALL_ASSISTANT_CATEGORY)
 
@@ -450,6 +471,7 @@ export class CloudSidebarAssistantsComponent {
 
     this.expandedAssistantId.set(assistantId)
     this.loadAssistantMenu(xpert)
+    this.loadAssistantConversations(xpert)
   }
 
   isAssistantExpanded(xpert: IXpert) {
@@ -462,6 +484,53 @@ export class CloudSidebarAssistantsComponent {
 
   assistantMenuState(xpert: IXpert) {
     return xpert.id ? (this.assistantMenus()[xpert.id] ?? EMPTY_ASSISTANT_MENU_STATE) : EMPTY_ASSISTANT_MENU_STATE
+  }
+
+  assistantConversationState(xpert: IXpert) {
+    return xpert.id
+      ? (this.assistantConversations()[xpert.id] ?? EMPTY_ASSISTANT_CONVERSATION_STATE)
+      : EMPTY_ASSISTANT_CONVERSATION_STATE
+  }
+
+  assistantConversationGroups(xpert: IXpert) {
+    return groupConversations(this.assistantConversationState(xpert).items)
+  }
+
+  canLoadEarlierConversations(xpert: IXpert) {
+    const state = this.assistantConversationState(xpert)
+    return state.loaded && !state.loading && state.items.length < state.total
+  }
+
+  conversationTitle(conversation: IChatConversation) {
+    return conversation.title?.trim() || 'Untitled conversation'
+  }
+
+  openAssistantConversation(event: Event, xpert: IXpert, conversation: IChatConversation) {
+    event.stopPropagation()
+    const routeId = getAssistantRouteId(xpert)
+    const threadId = conversation.threadId?.trim()
+    if (!routeId || !threadId) {
+      return
+    }
+
+    void this.#router.navigate(['/chat/x', routeId, 'c', threadId], {
+      queryParamsHandling: 'preserve'
+    })
+  }
+
+  isAssistantConversationActive(xpert: IXpert, conversation: IChatConversation) {
+    const routeId = getAssistantRouteId(xpert)
+    const threadId = conversation.threadId?.trim()
+    if (!routeId || !threadId) {
+      return false
+    }
+
+    return this.currentUrl() === `/chat/x/${encodeURIComponent(routeId)}/c/${encodeURIComponent(threadId)}`
+  }
+
+  loadEarlierConversations(event: Event, xpert: IXpert) {
+    event.stopPropagation()
+    this.loadAssistantConversations(xpert, true)
   }
 
   openAssistantMenuItem(event: Event, xpert: IXpert, item: AssistantMenuItem) {
@@ -617,6 +686,67 @@ export class CloudSidebarAssistantsComponent {
     }))
   }
 
+  private loadAssistantConversations(xpert: IXpert, append = false) {
+    const assistantId = xpert.id?.trim()
+    if (!assistantId) {
+      return
+    }
+
+    const current = this.assistantConversations()[assistantId] ?? EMPTY_ASSISTANT_CONVERSATION_STATE
+    if (
+      current.loading ||
+      (!append && current.loaded) ||
+      (append && current.loaded && current.items.length >= current.total)
+    ) {
+      return
+    }
+
+    this.updateAssistantConversations(assistantId, {
+      ...current,
+      loading: true,
+      error: false
+    })
+
+    this.#conversationService
+      .getMyInOrg({
+        select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
+        order: { updatedAt: OrderTypeEnum.DESC },
+        take: ASSISTANT_CONVERSATION_PAGE_SIZE,
+        skip: append ? current.items.length : 0,
+        where: {
+          xpertId: assistantId
+        }
+      })
+      .pipe(catchError(() => of(null as { items: IChatConversation[]; total: number } | null)))
+      .subscribe((result) => {
+        if (!result) {
+          this.updateAssistantConversations(assistantId, {
+            ...current,
+            loading: false,
+            error: true
+          })
+          return
+        }
+
+        const incoming = (result.items ?? []).filter((conversation) => !!conversation?.threadId?.trim())
+        const items = mergeConversations(append ? current.items : [], incoming)
+        this.updateAssistantConversations(assistantId, {
+          loading: false,
+          loaded: true,
+          items,
+          total: Math.max(Number(result.total) || 0, items.length),
+          error: false
+        })
+      })
+  }
+
+  private updateAssistantConversations(assistantId: string, state: AssistantConversationState) {
+    this.assistantConversations.update((conversations) => ({
+      ...conversations,
+      [assistantId]: state
+    }))
+  }
+
   toggleMore(event: Event) {
     event.stopPropagation()
     this.moreExpanded.update((expanded) => !expanded)
@@ -714,6 +844,26 @@ function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertS
   }
 
   return []
+}
+
+function mergeConversations(current: IChatConversation[], incoming: IChatConversation[]) {
+  const conversations = new Map<string, IChatConversation>()
+
+  for (const conversation of [...current, ...incoming]) {
+    const key = conversation.id?.trim() || conversation.threadId?.trim()
+    if (key) {
+      conversations.set(key, conversation)
+    }
+  }
+
+  return Array.from(conversations.values()).sort(
+    (left, right) => toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt)
+  )
+}
+
+function toTimestamp(value: Date | string | number | null | undefined) {
+  const timestamp = value instanceof Date ? value.getTime() : value ? new Date(value).getTime() : 0
+  return Number.isFinite(timestamp) ? timestamp : 0
 }
 
 function isUnreadSummary(value: unknown): value is IChatConversationUnreadXpertSummary {

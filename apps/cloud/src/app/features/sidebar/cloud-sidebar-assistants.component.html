@@ -101,6 +101,7 @@
           <button
             type="button"
             class="cloud-sidebar-assistants__header-main"
+            [disabled]="embedded()"
             [attr.aria-expanded]="expanded()"
             (click)="toggleExpanded()"
           >
@@ -196,11 +197,7 @@
                 [zDisabled]="!collapsed()"
               >
                 @if (!collapsed()) {
-                  <i
-                    class="ri-draggable pointer-events-none w-3 -translate-x-1 shrink-0 cursor-grab touch-none text-text-tertiary opacity-0 transition-opacity duration-200 ease-out group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 motion-reduce:transition-none active:cursor-grabbing"
-                    cdkDragHandle
-                    aria-hidden="true"
-                  ></i>
+                  <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
                 <button
                   type="button"
@@ -266,16 +263,13 @@
                   class="cloud-sidebar-assistants__children"
                   [id]="assistantMenuId(xpert)"
                   role="group"
-                  [attr.aria-label]="'XP.Sidebar.AssistantViews' | translate: { Default: 'Assistant views' }"
+                  [attr.aria-label]="assistantLabel(xpert)"
                 >
                   @if (assistantMenuState(xpert).loading) {
                     <div class="cloud-sidebar-assistants__children-state">
                       {{ 'XP.Sidebar.LoadingAssistantViews' | translate: { Default: 'Loading views...' } }}
                     </div>
                   } @else if (assistantMenuState(xpert).items.length) {
-                    <div class="cloud-sidebar-assistants__children-label">
-                      {{ 'XP.Sidebar.Views' | translate: { Default: 'Views' } }}
-                    </div>
                     @for (item of assistantMenuState(xpert).items; track item.viewKey) {
                       <button
                         type="button"
@@ -292,6 +286,84 @@
                       {{ 'XP.Sidebar.NoAssistantViews' | translate: { Default: 'No views yet' } }}
                     </div>
                   }
+
+                  <section
+                    class="cloud-sidebar-assistants__recent-conversations"
+                    [attr.aria-label]="
+                      'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' }
+                    "
+                  >
+                    <div class="cloud-sidebar-assistants__children-label">
+                      {{ 'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' } }}
+                    </div>
+
+                    @if (
+                      assistantConversationState(xpert).loading && assistantConversationState(xpert).items.length === 0
+                    ) {
+                      <div class="cloud-sidebar-assistants__children-state">
+                        {{
+                          'XP.Sidebar.LoadingRecentConversations' | translate: { Default: 'Loading conversations...' }
+                        }}
+                      </div>
+                    } @else if (assistantConversationState(xpert).error) {
+                      <div class="cloud-sidebar-assistants__children-state">
+                        {{
+                          'XP.Sidebar.RecentConversationsLoadFailed'
+                            | translate: { Default: 'Could not load conversations' }
+                        }}
+                      </div>
+                    } @else if (assistantConversationState(xpert).items.length) {
+                      @for (group of assistantConversationGroups(xpert); track group.name) {
+                        <div class="cloud-sidebar-assistants__conversation-group-label">
+                          {{ 'XP.KEY_WORDS.Date_' + group.name | translate: { Default: group.name } }}
+                        </div>
+
+                        @for (conversation of group.values; track conversation.id || conversation.threadId) {
+                          <button
+                            type="button"
+                            class="cloud-sidebar-assistants__conversation-item"
+                            [class.is-active]="isAssistantConversationActive(xpert, conversation)"
+                            [attr.aria-current]="isAssistantConversationActive(xpert, conversation) ? 'page' : null"
+                            [attr.aria-label]="conversationTitle(conversation)"
+                            [attr.title]="conversationTitle(conversation)"
+                            (click)="openAssistantConversation($event, xpert, conversation)"
+                          >
+                            <i class="ri-chat-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
+                            <span>{{ conversationTitle(conversation) }}</span>
+                          </button>
+                        }
+                      }
+
+                      @if (
+                        canLoadEarlierConversations(xpert) ||
+                        (assistantConversationState(xpert).loading &&
+                          assistantConversationState(xpert).items.length > 0)
+                      ) {
+                        <button
+                          type="button"
+                          class="cloud-sidebar-assistants__load-earlier"
+                          [disabled]="assistantConversationState(xpert).loading"
+                          (click)="loadEarlierConversations($event, xpert)"
+                        >
+                          @if (assistantConversationState(xpert).loading) {
+                            {{
+                              'XP.Sidebar.LoadingRecentConversations'
+                                | translate: { Default: 'Loading conversations...' }
+                            }}
+                          } @else {
+                            {{
+                              'XP.Sidebar.LoadEarlierConversations'
+                                | translate: { Default: 'Load earlier conversations' }
+                            }}
+                          }
+                        </button>
+                      }
+                    } @else if (assistantConversationState(xpert).loaded) {
+                      <div class="cloud-sidebar-assistants__children-state">
+                        {{ 'XP.Sidebar.NoRecentConversations' | translate: { Default: 'No recent conversations' } }}
+                      </div>
+                    }
+                  </section>
                 </div>
               }
             </li>

@@ -26,6 +26,15 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
                 fromEndUserId?: string
                 execution?: { id: string; metadata?: IXpertAgentExecution['metadata'] }
                 streamPersistence?: XpertChatStreamPersistenceOptions
+                /**
+                 * Host-resolved skill selection for a platform Assistant Task.
+                 * This is deliberately separate from the runtime-capabilities
+                 * allowlist so selecting skills does not disable other middleware.
+                 */
+                assistantTaskSkillSelection?: {
+                    workspaceId: string
+                    skillIds: string[]
+                }
             }
     ) {
         super()

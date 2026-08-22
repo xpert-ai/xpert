@@ -9,11 +9,16 @@ import {
     IStorageFile,
     IModelAccessResolution,
     IXpertAgentExecution,
+    IXpert,
+    IWFNMiddleware,
     ModelUsagePricingContext,
     TChatConversationStatus,
     TChatRequest,
     XpertAgentExecutionStatusEnum,
-    mapTranslationLanguage
+    mapTranslationLanguage,
+    figureOutXpert,
+    getAgentMiddlewareNodes,
+    normalizeMiddlewareProvider
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Injectable, Logger, Optional } from '@nestjs/common'
@@ -120,6 +125,7 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { applicationMetrics } from '../../metrics'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
@@ -135,6 +141,8 @@ import {
 } from '../../knowledge-document/visual-assets-runtime.token'
 import { ModuleRef } from '@nestjs/core'
 import { wrapAgentExecution } from './execution'
+import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
+import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -681,6 +689,14 @@ export class AgentMiddlewareRuntimeService {
             throw new Error('prompt is required to start an assistant task')
         }
 
+        // Resolve portable plugin skill references before creating any task rows.
+        // This keeps invalid or cross-Agent selections from leaving partial runs.
+        const assistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
+            xpertId,
+            normalizeOptionalString(input.agentKey),
+            input.selectedSkillRefs
+        )
+
         const requestedTaskId = normalizeOptionalString(input.taskId)
         const taskId = requestedTaskId ?? randomUUID()
         const conversationId = normalizeOptionalString(input.conversationId) ?? randomUUID()
@@ -737,6 +753,7 @@ export class AgentMiddlewareRuntimeService {
                 ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
                 projectId: normalizeOptionalString(input.projectId) ?? undefined,
                 context: input.context,
+                ...(assistantTaskSkillSelection ? { assistantTaskSkillSelection } : {}),
                 execution: { id: execution.id },
                 streamPersistence: {
                     transport: 'redis-stream',
@@ -761,6 +778,86 @@ export class AgentMiddlewareRuntimeService {
             threadId: conversation.threadId,
             executionId: execution.id
         }
+    }
+
+    /**
+     * Resolves portable plugin skill identities to workspace-local package IDs
+     * only after proving that the target Agent directly owns those skills.
+     */
+    private async resolveAssistantTaskSkillSelection(
+        xpertId: string,
+        requestedAgentKey: string | undefined,
+        references: AgentMiddlewareAssistantTaskInput['selectedSkillRefs']
+    ): Promise<{ workspaceId: string; skillIds: string[] } | undefined> {
+        const normalizedReferences = Array.from(
+            new Map(
+                (references ?? [])
+                    .map((reference) => ({
+                        pluginName: reference.pluginName?.trim(),
+                        componentKey: reference.componentKey?.trim()
+                    }))
+                    .filter((reference) => reference.pluginName && reference.componentKey)
+                    .map((reference) => [`${reference.pluginName}\u0000${reference.componentKey}`, reference] as const)
+            ).values()
+        )
+        if (!normalizedReferences.length) {
+            return undefined
+        }
+        if (normalizedReferences.length > 12) {
+            throw new Error('Assistant Task selectedSkillRefs cannot contain more than 12 skills')
+        }
+        const xpert = await this.queryBus.execute<FindXpertQuery, IXpert>(
+            new FindXpertQuery({ id: xpertId }, { relations: ['agent'] })
+        )
+        const runtimeXpert = figureOutXpert(xpert, false)
+        const agentKey = requestedAgentKey || runtimeXpert.agent?.key
+        const workspaceId = runtimeXpert.workspaceId?.trim()
+        if (!agentKey || !workspaceId || !runtimeXpert.graph) {
+            throw new Error('Assistant Task target Agent or workspace is unavailable')
+        }
+
+        const skillsMiddlewareNodes = getAgentMiddlewareNodes(runtimeXpert.graph, agentKey).filter((node) => {
+            const middleware = node.entity as IWFNMiddleware
+            return normalizeMiddlewareProvider(middleware?.provider) === SKILLS_MIDDLEWARE_NAME
+        })
+        if (skillsMiddlewareNodes.length !== 1) {
+            throw new Error(
+                `Assistant Task target Agent "${agentKey}" must be directly connected to exactly one Skills Middleware`
+            )
+        }
+        const configuredSkillIds = new Set<string>(
+            (skillsMiddlewareNodes[0].entity as IWFNMiddleware)?.options?.skills?.filter(
+                (skillId: unknown): skillId is string => typeof skillId === 'string' && Boolean(skillId.trim())
+            ) ?? []
+        )
+        if (!configuredSkillIds.size) {
+            throw new Error(`Assistant Task target Agent "${agentKey}" has no directly connected skills`)
+        }
+
+        // Cross the SkillPackage module through CQRS so the global runtime does
+        // not import that module (which would create a Nest bootstrap cycle).
+        const packages = await this.queryBus.execute(
+            new ResolveRuntimeSkillPackagesQuery(workspaceId, [...configuredSkillIds], RequestContext.currentUser())
+        )
+        // sharedSkillId is the stable bridge between plugin manifests and the
+        // workspace-local package UUIDs consumed by Agent runtime state.
+        const packageBySharedId = new Map(
+            (packages ?? [])
+                .filter((skillPackage) => configuredSkillIds.has(skillPackage.id) && skillPackage.sharedSkillId)
+                .map((skillPackage) => [skillPackage.sharedSkillId as string, skillPackage])
+        )
+        const resolvedSkillIds = normalizedReferences.map((reference) => {
+            const sharedSkillId = `plugin:${reference.pluginName}:skill:${reference.componentKey}`
+            const skillPackage = packageBySharedId.get(sharedSkillId)
+            if (!skillPackage) {
+                throw new Error(
+                    `Skill "${reference.pluginName}/${reference.componentKey}" is not directly connected to target Agent "${agentKey}"`
+                )
+            }
+            return skillPackage.id
+        })
+
+        return { workspaceId, skillIds: resolvedSkillIds }
     }
 
     constructor(

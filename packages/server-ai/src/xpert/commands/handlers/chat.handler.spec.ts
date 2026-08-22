@@ -888,7 +888,7 @@ describe('XpertChatHandler', () => {
         })
     })
 
-    it('inherits runtime capabilities saved on an existing conversation when the request omits them', async () => {
+    it('inherits runtime capabilities while applying an independent Assistant Task skill selection', async () => {
         const commands: any[] = []
         const persistedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
             mode: 'allowlist',
@@ -969,7 +969,11 @@ describe('XpertChatHandler', () => {
                     from: 'dingtalk',
                     fromEndUserId: 'user-1',
                     sourceIntegrationId: 'integration-1',
-                    channelType: 'enterprise_h5'
+                    channelType: 'enterprise_h5',
+                    assistantTaskSkillSelection: {
+                        workspaceId: 'workspace-1',
+                        skillIds: ['skill-3', 'skill-2']
+                    }
                 }
             )
         )
@@ -995,7 +999,11 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.state.human?.runtimeCapabilities).toEqual(persistedRuntimeCapabilities)
-        expect(agentCommand.state.selectedSkillIds).toEqual(['skill-1'])
+        // Machine-selected Assistant Task skills are independent from the
+        // runtime capability allow-list, while user-disabled skills still win.
+        expect(agentCommand.state.selectedSkillIds).toEqual(['skill-3'])
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual(['skill-2'])
         expect(agentCommand.state.skillSelectionMode).toBeUndefined()
         expect(agentCommand.options.runtimeCapabilities).toEqual(persistedRuntimeCapabilities)
     })

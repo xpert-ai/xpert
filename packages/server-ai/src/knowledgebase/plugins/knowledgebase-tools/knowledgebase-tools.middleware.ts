@@ -34,6 +34,10 @@ import {
 
 const KNOWLEDGE_DOCUMENT_ARTIFACT_PLUGIN = 'xpert.platform.knowledgebase'
 const KNOWLEDGE_DOCUMENT_IMAGE_RESOURCE_TYPE = 'knowledge-document-visual-asset'
+const KNOWLEDGE_DOCUMENT_VIEW_IMAGES_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-icon="eye">
+  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+  <circle cx="12" cy="12" r="3" />
+</svg>`
 
 const optionsSchema = z
     .object({
@@ -79,6 +83,10 @@ export class KnowledgebaseToolsMiddleware implements IAgentMiddlewareStrategy<Kn
         description: {
             en_US: 'General, execution-scoped tools for inspecting governed KnowledgeDocument assets.',
             zh_Hans: '提供受执行作用域约束的通用知识库文档工具；首个能力为查看受控图片资产。'
+        },
+        icon: {
+            type: 'svg',
+            value: KNOWLEDGE_DOCUMENT_VIEW_IMAGES_ICON
         },
         features: [KNOWLEDGEBASE_TOOLS_FEATURE],
         configSchema: {
@@ -150,7 +158,13 @@ export class KnowledgebaseToolsMiddleware implements IAgentMiddlewareStrategy<Kn
                 description:
                     'Load up to 3 governed relative filePaths returned by an exact KnowledgeDocument evidence search in the current Agent execution. The platform revalidates the KnowledgeDocument scope and snapshot, then attaches the images at high detail. Absolute paths, URLs, arbitrary relative paths, file IDs and document IDs are rejected.',
                 schema: inputSchema,
-                verboseParsingErrors: true
+                verboseParsingErrors: true,
+                metadata: {
+                    toolName: {
+                        en_US: 'View governed source images',
+                        zh_Hans: '查看受控来源图像'
+                    }
+                }
             }
         )
     }

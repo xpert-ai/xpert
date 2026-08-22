@@ -63,7 +63,7 @@ import {
 } from '@xpert-ai/contracts'
 import { NotFoundException } from '@nestjs/common'
 import { resolvePluginAppResourceInstallationStatus } from './plugin-resource-app-status'
-import { selectPluginResourceComponents } from './plugin-resource-installer.service'
+import { expandPluginRuntimeComponents, selectPluginResourceComponents } from './plugin-resource-installer.service'
 
 describe('PluginResourceInstallerService helpers', () => {
     it('returns a stable error code when selected components do not match', () => {
@@ -92,6 +92,43 @@ describe('PluginResourceInstallerService helpers', () => {
                 })
             )
         }
+    })
+
+    it('expands one plugin skill to every selected target Agent', async () => {
+        const resolved = expandPluginRuntimeComponents(
+            [
+                {
+                    componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+                    componentKey: 'bid-engineering',
+                    definitionHash: 'hash'
+                }
+            ],
+            [
+                {
+                    componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+                    componentKey: 'bid-engineering',
+                    targetAgentKey: 'Agent_BidInterpretation'
+                },
+                {
+                    componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+                    componentKey: 'bid-engineering',
+                    targetAgentKey: 'Agent_BidOutline'
+                },
+                {
+                    componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+                    componentKey: 'bid-engineering',
+                    targetAgentKey: 'Agent_BidAuthoring'
+                }
+            ],
+            '@xpert-ai/plugin-bid',
+            '/tmp/plugin'
+        )
+
+        expect(resolved.map((item) => item.targetAgentKey)).toEqual([
+            'Agent_BidInterpretation',
+            'Agent_BidOutline',
+            'Agent_BidAuthoring'
+        ])
     })
 
     it('blocks app resources with placeholder connector ids', () => {

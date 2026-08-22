@@ -109,6 +109,38 @@ export function selectPluginResourceComponents(
     return selected
 }
 
+/**
+ * Restores per-Agent selector cardinality after component discovery has
+ * de-duplicated portable plugin resources by component identity.
+ */
+export function expandPluginRuntimeComponents(
+    components: PluginBundleComponentRegistration[],
+    selectors: PluginResourceInstallComponent[],
+    normalizedPluginName: string,
+    rootDir: string
+): RuntimeComponent[] {
+    return selectors.flatMap((selector) => {
+        if (selector.pluginName && normalizePluginName(selector.pluginName) !== normalizedPluginName) {
+            return []
+        }
+        return components
+            .filter(
+                (component) =>
+                    selector.componentKey === component.componentKey &&
+                    (!selector.componentType || selector.componentType === component.componentType)
+            )
+            .map((component) => ({
+                pluginName: normalizedPluginName,
+                component,
+                rootDir,
+                targetAgentKey: selector.targetAgentKey,
+                policyOverrides: selector.policyOverrides,
+                events: selector.events,
+                auth: selector.auth
+            }))
+    })
+}
+
 @Injectable()
 export class PluginResourceInstallerService {
     constructor(
@@ -243,23 +275,20 @@ export class PluginResourceInstallerService {
             )
         }
 
-        return installable.map((component) => {
-            const selector = selectors?.find(
-                (item) =>
-                    (!item.pluginName || normalizePluginName(item.pluginName) === normalizedPluginName) &&
-                    (!item.componentType || item.componentType === component.componentType) &&
-                    item.componentKey === component.componentKey
-            )
-            return {
+        if (!selectors?.length) {
+            return installable.map((component) => ({
                 pluginName: normalizedPluginName,
                 component,
-                rootDir,
-                targetAgentKey: selector?.targetAgentKey,
-                policyOverrides: selector?.policyOverrides,
-                events: selector?.events,
-                auth: selector?.auth
-            }
-        })
+                rootDir
+            }))
+        }
+
+        // A template may attach the same portable resource to several Agents.
+        // Component discovery intentionally returns unique plugin components, so
+        // expand them back through every selector here instead of keeping only
+        // the first targetAgentKey. Each expanded entry creates an Agent-scoped
+        // installation and updates that Agent's middleware independently.
+        return expandPluginRuntimeComponents(installable, selectors, normalizedPluginName, rootDir)
     }
 
     private async installRuntimeComponent(

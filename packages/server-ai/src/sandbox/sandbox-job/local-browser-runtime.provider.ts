@@ -25,6 +25,7 @@ import {
 import {
     AI_BROWSER_RUNTIME_PROFILE,
     DEFAULT_BROWSER_RUNTIME_PROFILE,
+    DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
     VIDEO_BROWSER_RUNTIME_PROFILE
 } from './sandbox-runtime-definition.registry'
 
@@ -32,6 +33,7 @@ export const LOCAL_BROWSER_RUNTIME_PROVIDER = 'local-browser-runtime'
 export const LOCAL_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-playwright-1.61-v1'
 export const LOCAL_AI_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-ai-playwright-1.61-v1'
 export const LOCAL_VIDEO_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-video-playwright-1.61-v1'
+export const LOCAL_DOCUMENT_RUNTIME_BINDING = 'local-browser-runtime:document-libreoffice-v1'
 
 const LOCAL_PROVIDER_VERSION = '1.0.0'
 const LOCAL_BINDING_PRIORITY = 10_000
@@ -41,15 +43,17 @@ const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
 const LOCAL_AI_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:ai'
 const LOCAL_VIDEO_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:video'
+const LOCAL_DOCUMENT_INSTALL_COMMAND = 'Install LibreOffice and expose the soffice executable on PATH.'
 const execFileAsync = promisify(execFile)
 
 type LocalRuntimeConfiguration = {
     bindingId: string
-    imageFamily: 'browser' | 'browser-ai' | 'browser-video'
+    imageFamily: 'browser' | 'browser-ai' | 'browser-video' | 'document'
     artifactReference: string
     installCommand: string
     requiresFfmpeg: boolean
     requiresAiResources: boolean
+    requiresLibreOffice: boolean
 }
 
 const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfiguration>> = {
@@ -59,7 +63,8 @@ const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfigur
         artifactReference: 'xpert-source://sandbox-runtime/browser-playwright-1.61-v1',
         installCommand: LOCAL_BROWSER_INSTALL_COMMAND,
         requiresFfmpeg: false,
-        requiresAiResources: false
+        requiresAiResources: false,
+        requiresLibreOffice: false
     },
     [AI_BROWSER_RUNTIME_PROFILE]: {
         bindingId: LOCAL_AI_BROWSER_RUNTIME_BINDING,
@@ -67,7 +72,8 @@ const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfigur
         artifactReference: 'xpert-source://sandbox-runtime/browser-ai-playwright-1.61-v1',
         installCommand: LOCAL_AI_INSTALL_COMMAND,
         requiresFfmpeg: false,
-        requiresAiResources: true
+        requiresAiResources: true,
+        requiresLibreOffice: false
     },
     [VIDEO_BROWSER_RUNTIME_PROFILE]: {
         bindingId: LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
@@ -75,7 +81,17 @@ const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfigur
         artifactReference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1',
         installCommand: LOCAL_VIDEO_INSTALL_COMMAND,
         requiresFfmpeg: true,
-        requiresAiResources: false
+        requiresAiResources: false,
+        requiresLibreOffice: false
+    },
+    [DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE]: {
+        bindingId: LOCAL_DOCUMENT_RUNTIME_BINDING,
+        imageFamily: 'document',
+        artifactReference: 'xpert-source://sandbox-runtime/document-libreoffice-v1',
+        installCommand: LOCAL_DOCUMENT_INSTALL_COMMAND,
+        requiresFfmpeg: false,
+        requiresAiResources: false,
+        requiresLibreOffice: true
     }
 }
 
@@ -153,7 +169,11 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             const mismatch = manifestMismatch(definition.expectedManifest, manifest)
             if (mismatch) return { available: false, reason: mismatch, manifest }
 
-            const browserResult = await runProcess(runtime.nodePath, [runtime.runnerPath, '--browser-health'], {
+            const configuration = localRuntimeConfiguration(definition.name)
+            const healthCommand = configuration.requiresLibreOffice
+                ? { command: await resolveLocalLibreOffice(), args: ['--headless', '--version'] }
+                : { command: runtime.nodePath, args: [runtime.runnerPath, '--browser-health'] }
+            const browserResult = await runProcess(healthCommand.command, healthCommand.args, {
                 timeoutMs: HEALTH_TIMEOUT_MS,
                 maxOutputBytes: 256 * 1024,
                 cwd: runtime.root,
@@ -162,7 +182,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             if (browserResult.exitCode !== 0) {
                 return {
                     available: false,
-                    reason: `${browserResult.output || 'Playwright Chromium is not installed.'} Run "${localRuntimeConfiguration(definition.name).installCommand}" from the Xpert repository.`
+                    reason: `${browserResult.output || 'Required local runtime executable is not installed.'} ${configuration.installCommand}`
                 }
             }
             return { available: true, manifest }
@@ -523,6 +543,13 @@ async function resolveLocalRuntimeAssets(
                 const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
                 environmentAdditions.PATH = prependPath(path.dirname(ffmpegPath), process.env.PATH)
             }
+            if (configuration.requiresLibreOffice) {
+                const sofficePath = await resolveLocalLibreOffice()
+                environmentAdditions.PATH = prependPath(
+                    path.dirname(sofficePath),
+                    environmentAdditions.PATH ?? process.env.PATH
+                )
+            }
             return {
                 root,
                 runnerPath,
@@ -597,6 +624,26 @@ async function resolveLocalFfmpeg(packageRoot: string): Promise<string> {
     throw new Error(
         `Local Browser Video Runtime FFmpeg is not installed. Run "${LOCAL_VIDEO_INSTALL_COMMAND}" from the Xpert repository.`
     )
+}
+
+async function resolveLocalLibreOffice(): Promise<string> {
+    const candidates = [
+        ...(process.env.PATH ?? '')
+            .split(path.delimiter)
+            .map((directory) => path.join(directory, process.platform === 'win32' ? 'soffice.exe' : 'soffice')),
+        '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+        '/usr/bin/soffice',
+        '/usr/local/bin/soffice'
+    ]
+    for (const candidate of Array.from(new Set(candidates))) {
+        try {
+            await access(candidate, fsConstants.X_OK)
+            return candidate
+        } catch {
+            // Try the next platform-standard LibreOffice location.
+        }
+    }
+    throw new Error(LOCAL_DOCUMENT_INSTALL_COMMAND)
 }
 
 async function resolveNodeExecutable(expectedVersion: string | undefined): Promise<string> {

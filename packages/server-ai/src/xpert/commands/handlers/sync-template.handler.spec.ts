@@ -24,9 +24,10 @@ import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
 import { XpertSyncTemplateCommand } from '../sync-template.command'
 import { XpertSyncTemplateHandler } from './sync-template.handler'
+import { PluginTemplateSyncDependenciesCommand } from '../../../plugin-resource/commands/sync-template-dependencies.command'
 
 describe('XpertSyncTemplateHandler', () => {
-    const buildHandler = (xpert: Record<string, unknown>) => {
+    const buildHandler = (xpert: Record<string, unknown>, templateOverrides: Record<string, unknown> = {}) => {
         const xpertService = {
             findOne: jest.fn().mockResolvedValue(xpert)
         }
@@ -50,7 +51,8 @@ describe('XpertSyncTemplateHandler', () => {
                 ].join('\n'),
                 source: 'plugin',
                 pluginName: '@xpert-ai/plugin-example',
-                releaseNotes: 'Latest graph'
+                releaseNotes: 'Latest graph',
+                ...templateOverrides
             })
         }
         const commandBus = {
@@ -126,6 +128,47 @@ describe('XpertSyncTemplateHandler', () => {
 
         expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('@xpert-ai/plugin-example:assistant', 'en')
         expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('reconciles declared runtime dependencies after replacing the existing draft', async () => {
+        const dependencies = {
+            plugins: ['@xpert-ai/plugin-example'],
+            skills: [
+                {
+                    pluginName: '@xpert-ai/plugin-example',
+                    componentKey: 'example-skill',
+                    targetAgentKey: 'Agent_template'
+                }
+            ]
+        }
+        const { handler, commandBus } = buildHandler(
+            {
+                id: 'xpert-1',
+                name: 'My Assistant',
+                options: {
+                    templateSource: {
+                        templateId: '@xpert-ai/plugin-example:assistant',
+                        templateKey: 'assistant',
+                        pluginName: '@xpert-ai/plugin-example'
+                    }
+                }
+            },
+            { dependencies }
+        )
+
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(XpertImportCommand)
+        const dependencyCommand = commandBus.execute.mock.calls[1][0] as PluginTemplateSyncDependenciesCommand
+        expect(dependencyCommand).toBeInstanceOf(PluginTemplateSyncDependenciesCommand)
+        expect(dependencyCommand).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                pluginName: '@xpert-ai/plugin-example',
+                dependencies
+            })
+        )
     })
 
     it('enriches an older tracked source from its data-xpert plugin declaration', async () => {
