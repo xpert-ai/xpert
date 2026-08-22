@@ -891,8 +891,10 @@
   pointer-events: auto;
 }
 
-.cloud-sidebar-assistants.is-embedded .cloud-sidebar-assistants__item:hover .cloud-sidebar-assistants__item-main,
-.cloud-sidebar-assistants.is-embedded
+.cloud-sidebar-assistants.is-embedded:not(.is-collapsed)
+  .cloud-sidebar-assistants__item:hover
+  .cloud-sidebar-assistants__item-main,
+.cloud-sidebar-assistants.is-embedded:not(.is-collapsed)
   .cloud-sidebar-assistants__item:focus-within
   .cloud-sidebar-assistants__item-main {
   padding-right: 2rem;

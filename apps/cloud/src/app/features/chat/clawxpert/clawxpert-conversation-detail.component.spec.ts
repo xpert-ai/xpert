@@ -1816,7 +1816,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const handle = fixture.nativeElement.querySelector('[data-chatkit-resize-handle]') as HTMLElement | null
     expect(handle).not.toBeNull()
-    expect(fixture.componentInstance.chatkitWidthPx()).toBe(512)
+    expect(fixture.componentInstance.chatkitWidthPx()).toBe(460)
     expect(fixture.componentInstance.chatShellClasses()).not.toContain('transition-[width')
 
     handle?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 800 }))
@@ -1826,8 +1826,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.isResizingChatkit()).toBe(true)
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('transition-none')
     expect(fixture.componentInstance.workspaceLayoutClasses()).not.toContain('transition-[grid-template-columns')
-    expect(fixture.componentInstance.chatkitWidthPx()).toBe(612)
-    expect(fixture.componentInstance.chatkitWidthStyle()).toBe('612px')
+    expect(fixture.componentInstance.chatkitWidthPx()).toBe(560)
+    expect(fixture.componentInstance.chatkitWidthStyle()).toBe('560px')
 
     window.dispatchEvent(new MouseEvent('pointermove', { clientX: -1000 }))
     await settle(fixture)

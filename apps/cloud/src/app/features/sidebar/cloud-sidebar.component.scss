@@ -5,13 +5,20 @@
   height: 100%;
 }
 
+:host::ng-deep {
+  .cloud-sidebar.is-collapsed:hover {
+    .cloud-sidebar-identity__collapse-button {
+      opacity: 1;
+    }
+  }
+}
+
 .cloud-sidebar {
   display: flex;
   height: 100%;
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  // border-right: 1px solid var(--color-divider-regular);
   background: var(--sidebar);
   color: var(--color-text-primary);
 }
