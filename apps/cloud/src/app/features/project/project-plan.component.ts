@@ -3,15 +3,31 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import type { IXpertProjectTask, TXpertProjectPlanView, TXpertProjectTaskStatus } from '@xpert-ai/contracts'
+import type {
+  IXpertProjectMilestone,
+  IXpertProjectPlan,
+  IXpertProjectSprint,
+  IXpertProjectTask,
+  TXpertProjectPlanView,
+  TXpertProjectTaskStatus
+} from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
+  ZardDialogService,
   ZardInputDirective,
   ZardSelectImports,
   ZardTableImports
 } from '@xpert-ai/headless-ui'
+import { firstValueFrom } from 'rxjs'
+import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { XpertProjectFacade } from './project.facade'
+import type { XpertProjectTaskRelations } from './project-api.service'
+import {
+  XpertProjectPlanDialogComponent,
+  type XpertProjectPlanDialogMode,
+  type XpertProjectPlanDialogResult
+} from './project-plan-dialog.component'
 import { XpertProjectTaskDrawerComponent } from './project-task-drawer.component'
 
 type PlanView = TXpertProjectPlanView
@@ -52,17 +68,49 @@ type PlanView = TXpertProjectPlanView
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2">
             @if (isAdvanced()) {
-              <z-select class="min-w-44" [zValue]="activePlan()?.id || ''" (zSelectionChange)="selectPlan($event)">
+              <z-select
+                class="min-w-44"
+                [zValue]="activePlan()?.id || ''"
+                [zPlaceholder]="'XP.XProject.SelectPlan' | translate"
+                (zSelectionChange)="selectPlan($event)"
+              >
                 @for (plan of facade.plans(); track plan.id) {
                   <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
-                }</z-select
-              ><z-select class="min-w-44" [zValue]="activeSprint()?.id || ''" (zSelectionChange)="selectSprint($event)">
-                @for (sprint of activePlan()?.sprints || []; track sprint.id) {
-                  <z-select-item [zValue]="sprint.id">{{ sprint.goal }}</z-select-item>
-                }</z-select
-              ><button z-button zType="outline" type="button" (click)="addSprint()">
+                }
+              </z-select>
+              @if (activePlan()?.sprints?.length) {
+                <z-select
+                  class="min-w-44"
+                  [zValue]="activeSprint()?.id || ''"
+                  [zPlaceholder]="'XP.XProject.SelectSprint' | translate"
+                  (zSelectionChange)="selectSprint($event)"
+                >
+                  @for (sprint of activePlan()?.sprints || []; track sprint.id) {
+                    <z-select-item [zValue]="sprint.id">{{ sprint.goal }}</z-select-item>
+                  }
+                </z-select>
+              } @else {
+                <span class="border border-dashed border-divider-regular px-3 py-2 text-xs text-text-tertiary">
+                  {{ 'XP.XProject.NoSprints' | translate }}
+                </span>
+              }
+              <button z-button zType="outline" type="button" (click)="addPlan()">
+                <i class="ri-file-add-line mr-1"></i>{{ 'XP.XProject.AddPlan' | translate }}
+              </button>
+              <button z-button zType="outline" type="button" (click)="addSprint()">
                 <i class="ri-timer-line mr-1"></i>{{ 'XP.XProject.AddSprint' | translate }}
               </button>
+              <button z-button zType="outline" type="button" [disabled]="!activePlan()" (click)="addMilestone()">
+                <i class="ri-flag-line mr-1"></i>{{ 'XP.XProject.AddMilestone' | translate }}
+              </button>
+              <button z-button zType="ghost" type="button" [disabled]="!activePlan()" (click)="editPlan()">
+                <i class="ri-edit-line mr-1"></i>{{ 'XP.XProject.EditPlan' | translate }}
+              </button>
+              @if (activeMilestone()) {
+                <button z-button zType="ghost" type="button" (click)="editMilestone()">
+                  <i class="ri-flag-2-line mr-1"></i>{{ 'XP.XProject.EditMilestone' | translate }}
+                </button>
+              }
             }
             <button z-button zType="default" type="button" (click)="addTask()">
               <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddTask' | translate }}
@@ -102,6 +150,19 @@ type PlanView = TXpertProjectPlanView
                 <z-select-item [zValue]="item">{{ 'XP.XProject.Status.' + item | translate }}</z-select-item>
               }
             </z-select>
+            @if (isAdvanced() && activePlan()?.milestones?.length) {
+              <z-select
+                class="w-44"
+                [zValue]="selectedMilestoneId()"
+                [zPlaceholder]="'XP.XProject.AllMilestones' | translate"
+                (zSelectionChange)="selectMilestone($event)"
+              >
+                <z-select-item zValue="">{{ 'XP.XProject.AllMilestones' | translate }}</z-select-item>
+                @for (milestone of activePlan()?.milestones || []; track milestone.id) {
+                  <z-select-item [zValue]="milestone.id">{{ milestone.name }}</z-select-item>
+                }
+              </z-select>
+            }
           </div>
         </div>
       </header>
@@ -334,9 +395,13 @@ type PlanView = TXpertProjectPlanView
     >
     <xp-project-task-drawer
       [task]="selectedTask()"
+      [relations]="selectedTaskRelations()"
+      [plans]="facade.plans()"
+      [advanced]="isAdvanced()"
       [opened]="!!selectedTask()"
       (openedChange)="closeTask()"
       (saved)="saveTask($event)"
+      (conversationOpened)="openTaskConversation($event)"
     />
   `,
   host: { class: 'block w-full min-w-0' }
@@ -346,12 +411,17 @@ export class XpertProjectPlanComponent implements OnInit {
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #translate = inject(TranslateService)
+  readonly #dialog = inject(ZardDialogService)
+  readonly #toastr = injectToastr()
   readonly view = signal<PlanView>(this.readView())
   readonly status = signal('all')
   readonly search = signal('')
   readonly selectedTask = signal<IXpertProjectTask | null>(null)
+  readonly selectedTaskRelations = signal<XpertProjectTaskRelations>({ conversations: [], executions: [] })
   readonly selectedPlanId = signal<string | null>(null)
   readonly selectedSprintId = signal<string | null>(null)
+  readonly selectedMilestoneId = signal('')
+  #taskSelectionSequence = 0
   readonly viewOptions = [
     { value: 'board' as const, label: 'XP.XProject.Board', icon: 'ri-kanban-view-2-line' },
     { value: 'table' as const, label: 'XP.XProject.Table', icon: 'ri-list-check-2' },
@@ -370,6 +440,9 @@ export class XpertProjectPlanComponent implements OnInit {
       this.activePlan()?.sprints?.[0] ||
       null
   )
+  readonly activeMilestone = computed(
+    () => this.activePlan()?.milestones?.find((milestone) => milestone.id === this.selectedMilestoneId()) || null
+  )
   readonly isAdvanced = computed(() => this.facade.project()?.settings?.managementMode === 'advanced')
   readonly visibleTasks = computed(() => {
     const query = this.search().trim().toLowerCase()
@@ -378,6 +451,7 @@ export class XpertProjectPlanComponent implements OnInit {
       const status = this.normalizedStatus(task.status)
       return (
         (!planId || !task.planId || task.planId === planId) &&
+        (!this.selectedMilestoneId() || task.milestoneId === this.selectedMilestoneId()) &&
         (this.status() === 'all' || status === this.status()) &&
         (!query || `${task.title || ''} ${task.name} ${task.description || ''}`.toLowerCase().includes(query))
       )
@@ -429,9 +503,13 @@ export class XpertProjectPlanComponent implements OnInit {
   selectPlan(value: unknown) {
     this.selectedPlanId.set(String(value))
     this.selectedSprintId.set(null)
+    this.selectedMilestoneId.set('')
   }
   selectSprint(value: unknown) {
     this.selectedSprintId.set(String(value))
+  }
+  selectMilestone(value: unknown) {
+    this.selectedMilestoneId.set(String(value ?? ''))
   }
   tasksFor(status: string) {
     return this.visibleTasks().filter((task) => this.normalizedStatus(task.status) === status)
@@ -467,11 +545,30 @@ export class XpertProjectPlanComponent implements OnInit {
         ? 'text-text-warning'
         : 'text-text-secondary'
   }
-  selectTask(task: IXpertProjectTask) {
+  async selectTask(task: IXpertProjectTask) {
+    const sequence = ++this.#taskSelectionSequence
     this.selectedTask.set(task)
+    this.selectedTaskRelations.set({ conversations: [], executions: [] })
+    try {
+      const relations = await this.facade.loadTaskRelations(task.id)
+      if (sequence === this.#taskSelectionSequence) this.selectedTaskRelations.set(relations)
+    } catch {
+      // The task remains editable when relation history is unavailable.
+    }
   }
   closeTask() {
+    this.#taskSelectionSequence += 1
     this.selectedTask.set(null)
+    this.selectedTaskRelations.set({ conversations: [], executions: [] })
+  }
+  openTaskConversation(event: { conversationId?: string; threadId?: string }) {
+    const threadId = event.threadId?.trim()
+    if (!threadId) return
+    void this.#router.navigate([], {
+      relativeTo: this.#route,
+      queryParams: { chat: 'open', threadId },
+      queryParamsHandling: 'merge'
+    })
   }
   async saveTask(input: Partial<IXpertProjectTask>) {
     const task = this.selectedTask()
@@ -486,17 +583,78 @@ export class XpertProjectPlanComponent implements OnInit {
       name: title,
       status: 'todo',
       priority: 'medium',
-      planId: this.activePlan()?.id
+      planId: this.activePlan()?.id,
+      milestoneId: this.selectedMilestoneId() || undefined
     })
     if (task) this.selectTask(task)
   }
+  async addPlan() {
+    await this.openPlanDialog('plan', async (input) => {
+      const plan = await this.facade.createPlan(input as Partial<IXpertProjectPlan>)
+      if (plan) this.selectedPlanId.set(plan.id)
+    })
+  }
+
   async addSprint() {
     const plan = this.activePlan()
     if (!plan) return
-    await this.facade.createSprint(plan.id, {
-      goal: this.#translate.instant('XP.XProject.NewSprint'),
-      status: 'planned',
-      strategyType: 'software_delivery'
+    await this.openPlanDialog('sprint', async (input) => {
+      const sprint = await this.facade.createSprint(plan.id, input as Partial<IXpertProjectSprint>)
+      if (sprint) this.selectedSprintId.set(sprint.id)
     })
+  }
+
+  async addMilestone() {
+    const plan = this.activePlan()
+    if (!plan) return
+    await this.openPlanDialog('milestone', async (input) => {
+      const milestone = await this.facade.createMilestone(plan.id, input as Partial<IXpertProjectMilestone>)
+      if (milestone) this.selectedMilestoneId.set(milestone.id)
+    })
+  }
+
+  async editPlan() {
+    const plan = this.activePlan()
+    if (!plan) return
+    await this.openPlanDialog(
+      'plan',
+      async (input) => {
+        await this.facade.updatePlan(plan.id, input as Partial<IXpertProjectPlan>)
+      },
+      plan
+    )
+  }
+
+  async editMilestone() {
+    const plan = this.activePlan()
+    const milestone = this.activeMilestone()
+    if (!plan || !milestone) return
+    await this.openPlanDialog(
+      'milestone',
+      async (input) => {
+        await this.facade.updateMilestone(plan.id, milestone.id, input as Partial<IXpertProjectMilestone>)
+      },
+      milestone
+    )
+  }
+
+  private async openPlanDialog(
+    mode: XpertProjectPlanDialogMode,
+    onSubmit: (input: XpertProjectPlanDialogResult) => Promise<void>,
+    initial?: XpertProjectPlanDialogResult
+  ) {
+    const input = await firstValueFrom(
+      this.#dialog.open<
+        XpertProjectPlanDialogComponent,
+        { mode: XpertProjectPlanDialogMode; initial?: XpertProjectPlanDialogResult },
+        XpertProjectPlanDialogResult | null
+      >(XpertProjectPlanDialogComponent, { data: { mode, initial }, width: 'min(94vw, 560px)' }).closed
+    )
+    if (!input) return
+    try {
+      await onSubmit(input)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
   }
 }

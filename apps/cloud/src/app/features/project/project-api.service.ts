@@ -2,13 +2,17 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import type {
   IXpertProject,
+  IXpertProjectCreateInput,
   IXpertProjectActivity,
   IXpertProjectAsset,
+  IXpertProjectMilestone,
   IXpertProjectAutomation,
   IXpertProjectPlan,
   IXpertProjectSprint,
   IXpertProjectSwimlane,
   IXpertProjectTask,
+  IXpertProjectTaskConversation,
+  IXpertProjectTaskExecution,
   IPagination
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
@@ -21,6 +25,21 @@ export interface XpertProjectOverview {
   assetTotal?: number
   activities: IXpertProjectActivity[] | { items: IXpertProjectActivity[]; total: number }
   automations: IXpertProjectAutomation[] | { items: IXpertProjectAutomation[]; total: number }
+}
+
+export type XpertProjectTaskConversationSummary = IXpertProjectTaskConversation & {
+  conversation?: {
+    id: string
+    threadId?: string
+    title?: string
+    status?: string
+    xpertId?: string
+  }
+}
+
+export interface XpertProjectTaskRelations {
+  conversations: XpertProjectTaskConversationSummary[]
+  executions: IXpertProjectTaskExecution[]
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,7 +64,7 @@ export class XpertProjectApiService {
     return this.#http.get<IXpertProject>(`${API_XPERT_PROJECT}/${id}`, {
       params: new HttpParams().set(
         '$relations',
-        JSON.stringify(['owner', 'members', 'xperts', 'toolsets', 'knowledges'])
+        JSON.stringify(['owner', 'members', 'workspace', 'xperts', 'toolsets', 'knowledges'])
       )
     })
   }
@@ -56,7 +75,7 @@ export class XpertProjectApiService {
     })
   }
 
-  create(input: Partial<IXpertProject>) {
+  create(input: IXpertProjectCreateInput) {
     return this.#http.post<IXpertProject>(API_XPERT_PROJECT, input)
   }
 
@@ -66,6 +85,10 @@ export class XpertProjectApiService {
 
   update(id: string, input: Partial<IXpertProject>) {
     return this.#http.put<IXpertProject>(`${API_XPERT_PROJECT}/${id}`, input)
+  }
+
+  bindWorkspace(id: string, workspaceId: string) {
+    return this.#http.put<IXpertProject>(`${API_XPERT_PROJECT}/${id}/workspace`, { workspaceId })
   }
 
   addXpert(id: string, xpertId: string) {
@@ -119,6 +142,21 @@ export class XpertProjectApiService {
     return this.#http.post<IXpertProjectPlan>(`${API_XPERT_PROJECT}/${id}/plans`, input)
   }
 
+  updatePlan(id: string, planId: string, input: Partial<IXpertProjectPlan>) {
+    return this.#http.put<IXpertProjectPlan>(`${API_XPERT_PROJECT}/${id}/plans/${planId}`, input)
+  }
+
+  createMilestone(id: string, planId: string, input: Partial<IXpertProjectMilestone>) {
+    return this.#http.post<IXpertProjectMilestone>(`${API_XPERT_PROJECT}/${id}/plans/${planId}/milestones`, input)
+  }
+
+  updateMilestone(id: string, planId: string, milestoneId: string, input: Partial<IXpertProjectMilestone>) {
+    return this.#http.put<IXpertProjectMilestone>(
+      `${API_XPERT_PROJECT}/${id}/plans/${planId}/milestones/${milestoneId}`,
+      input
+    )
+  }
+
   createTask(id: string, input: Partial<IXpertProjectTask>) {
     return this.#http.post<IXpertProjectTask>(`${API_XPERT_PROJECT}/${id}/tasks`, input)
   }
@@ -128,7 +166,7 @@ export class XpertProjectApiService {
   }
 
   taskRelations(id: string, taskId: string) {
-    return this.#http.get(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/relations`)
+    return this.#http.get<XpertProjectTaskRelations>(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/relations`)
   }
 
   linkTaskConversation(
@@ -147,7 +185,7 @@ export class XpertProjectApiService {
     return this.#http.put(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}/executions/${executionId}`, input)
   }
 
-  createSprint(id: string, planId: string, input: Record<string, unknown>) {
+  createSprint(id: string, planId: string, input: Partial<IXpertProjectSprint>) {
     return this.#http.post<IXpertProjectSprint>(`${API_XPERT_PROJECT}/${id}/plans/${planId}/sprints`, input)
   }
 

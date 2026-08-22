@@ -14,7 +14,7 @@ import {
   ZardTableImports
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import type { IXpertProject } from '@xpert-ai/contracts'
+import type { IXpertProject, IXpertProjectCreateInput } from '@xpert-ai/contracts'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { XpertProjectCreateDialogComponent } from './project-create-dialog.component'
 import { XpertProjectFacade } from './project.facade'
@@ -179,7 +179,7 @@ export class XpertProjectListComponent implements OnInit {
   }
   openCreate() {
     firstValueFrom(
-      this.#dialog.open<XpertProjectCreateDialogComponent, undefined, Partial<IXpertProject>>(
+      this.#dialog.open<XpertProjectCreateDialogComponent, undefined, IXpertProjectCreateInput>(
         XpertProjectCreateDialogComponent,
         { width: 'min(94vw, 560px)' }
       ).closed

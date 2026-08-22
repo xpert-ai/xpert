@@ -1,15 +1,36 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateModule } from '@ngx-translate/core'
+import type {
+  ICopilotModel,
+  IKnowledgebase,
+  IUser,
+  IXpert,
+  IXpertProject,
+  IXpertProjectCreateInput,
+  IXpertToolset,
+  IXpertWorkspace,
+  OrderTypeEnum
+} from '@xpert-ai/contracts'
 import {
   Z_MODAL_DATA,
   ZardButtonComponent,
   ZardDialogRef,
   ZardFormImports,
-  ZardInputDirective
+  ZardInputDirective,
+  ZardSelectImports,
+  ZardTagSelectComponent,
+  type ZardTagSelectOption
 } from '@xpert-ai/headless-ui'
-import type { IXpertProject } from '@xpert-ai/contracts'
+import { BehaviorSubject, catchError, distinctUntilChanged, map, of, startWith, switchMap, take, tap } from 'rxjs'
+import { CopilotModelService } from '../../@core/services/copilot-model.service'
+import { KnowledgebaseService } from '../../@core/services/knowledgebase.service'
+import { UsersOrganizationsService } from '../../@core/services/users-organizations.service'
+import { XpertAPIService } from '../../@core/services/xpert.service'
+import { XpertToolsetService } from '../../@core/services/xpert-toolset.service'
+import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.service'
 
 @Component({
   standalone: true,
@@ -20,7 +41,9 @@ import type { IXpertProject } from '@xpert-ai/contracts'
     TranslateModule,
     ZardButtonComponent,
     ZardInputDirective,
-    ...ZardFormImports
+    ZardTagSelectComponent,
+    ...ZardFormImports,
+    ...ZardSelectImports
   ],
   template: `
     <form class="flex max-h-[82vh] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="submit()">
@@ -44,6 +67,18 @@ import type { IXpertProject } from '@xpert-ai/contracts'
       </div>
       <div class="min-h-64 space-y-4 overflow-auto py-5">
         @if (step() === 1) {
+          <z-form-field appearance="fill" class="w-full">
+            <z-form-label [zRequired]="true">{{ 'XP.XProject.WorkspaceLabel' | translate }}</z-form-label>
+            <z-select class="w-full" formControlName="workspaceId" [zDisabled]="workspacesLoading()">
+              <z-select-item zValue="">{{ 'XP.XProject.SelectWorkspace' | translate }}</z-select-item>
+              @for (workspace of workspaces(); track workspace.id) {
+                <z-select-item [zValue]="workspace.id">{{ workspace.name }}</z-select-item>
+              }
+            </z-select>
+            @if (!workspacesLoading() && !workspaces().length) {
+              <p class="mt-1 text-xs text-text-tertiary">{{ 'XP.XProject.NoAuthoringWorkspace' | translate }}</p>
+            }
+          </z-form-field>
           <z-form-field appearance="fill" class="w-full">
             <z-form-label [zRequired]="true">{{ 'XP.XProject.ProjectName' | translate }}</z-form-label>
             <input z-input formControlName="name" [placeholder]="'XP.XProject.ProjectNamePlaceholder' | translate" />
@@ -81,28 +116,59 @@ import type { IXpertProject } from '@xpert-ai/contracts'
         }
         @if (step() === 2) {
           <z-form-field appearance="fill" class="w-full">
-            <z-form-label>{{ 'XP.XProject.WorkspaceResources' | translate }}</z-form-label>
-            <textarea
-              z-input
-              class="min-h-28 resize-y"
-              formControlName="resources"
-              [placeholder]="'XP.XProject.ResourcesPlaceholder' | translate"
-            ></textarea>
+            <z-form-label>{{ 'XP.XProject.XpertResource' | translate }}</z-form-label>
+            <z-select class="w-full" formControlName="xpertId" [zDisabled]="xpertsLoading()">
+              <z-select-item zValue="">{{ 'XP.XProject.NotSelected' | translate }}</z-select-item>
+              @for (xpert of xperts(); track xpert.id) {
+                <z-select-item [zValue]="xpert.id">{{ xpert.name }}</z-select-item>
+              }
+            </z-select>
+          </z-form-field>
+          <z-form-field appearance="fill" class="w-full">
+            <z-form-label>{{ 'XP.XProject.ToolsetResource' | translate }}</z-form-label>
+            <z-select class="w-full" formControlName="toolsetId" [zDisabled]="toolsetsLoading()">
+              <z-select-item zValue="">{{ 'XP.XProject.NotSelected' | translate }}</z-select-item>
+              @for (toolset of toolsets(); track toolset.id) {
+                <z-select-item [zValue]="toolset.id">{{ toolset.name }}</z-select-item>
+              }
+            </z-select>
+          </z-form-field>
+          <z-form-field appearance="fill" class="w-full">
+            <z-form-label>{{ 'XP.XProject.KnowledgeResource' | translate }}</z-form-label>
+            <z-select class="w-full" formControlName="knowledgebaseId" [zDisabled]="knowledgebasesLoading()">
+              <z-select-item zValue="">{{ 'XP.XProject.NotSelected' | translate }}</z-select-item>
+              @for (knowledgebase of knowledgebases(); track knowledgebase.id) {
+                <z-select-item [zValue]="knowledgebase.id">{{ knowledgebase.name }}</z-select-item>
+              }
+            </z-select>
           </z-form-field>
           <p class="text-xs text-text-tertiary">{{ 'XP.XProject.ResourcesHint' | translate }}</p>
         }
         @if (step() === 3) {
           <z-form-field appearance="fill" class="w-full">
             <z-form-label>{{ 'XP.XProject.MembersLabel' | translate }}</z-form-label>
-            <input z-input formControlName="members" [placeholder]="'XP.XProject.MembersPlaceholder' | translate" />
+            <z-tag-select
+              mode="multiple"
+              formControlName="memberIds"
+              [options]="memberOptions()"
+              [enableSuggestions]="true"
+              [searchable]="true"
+              [placeholder]="'XP.XProject.MembersPlaceholder' | translate"
+              [displayWith]="displayUser"
+              [compareWith]="compareUsers"
+            />
           </z-form-field>
           <z-form-field appearance="fill" class="w-full">
             <z-form-label>{{ 'XP.XProject.CopilotModel' | translate }}</z-form-label>
-            <input
-              z-input
-              formControlName="copilotModelId"
-              [placeholder]="'XP.XProject.CopilotModelPlaceholder' | translate"
-            />
+            <z-select class="w-full" formControlName="copilotModelId" [zDisabled]="copilotModelsLoading()">
+              <z-select-item zValue="">{{ 'XP.XProject.UseProjectDefaultModel' | translate }}</z-select-item>
+              @for (model of copilotModels(); track model.id) {
+                <z-select-item [zValue]="model.id">{{ model.model || model.id }}</z-select-item>
+              }
+            </z-select>
+            @if (!copilotModelsLoading() && !copilotModels().length) {
+              <p class="mt-1 text-xs text-text-tertiary">{{ 'XP.XProject.NoCopilotModels' | translate }}</p>
+            }
           </z-form-field>
         }
       </div>
@@ -127,13 +193,118 @@ import type { IXpertProject } from '@xpert-ai/contracts'
 export class XpertProjectCreateDialogComponent {
   readonly #dialogRef = inject<ZardDialogRef<XpertProjectCreateDialogComponent>>(ZardDialogRef)
   readonly #fb = inject(FormBuilder)
+  readonly #xpertService = inject(XpertAPIService)
+  readonly #toolsetService = inject(XpertToolsetService)
+  readonly #knowledgebaseService = inject(KnowledgebaseService)
+  readonly #copilotModelService = inject(CopilotModelService)
+  readonly #membersService = inject(UsersOrganizationsService)
+  readonly #workspaceService = inject(XpertWorkspaceService)
   readonly step = signal(1)
   readonly submitting = signal(false)
+  readonly workspacesLoading = signal(true)
+  readonly xpertsLoading = signal(true)
+  readonly toolsetsLoading = signal(true)
+  readonly knowledgebasesLoading = signal(true)
+  readonly copilotModelsLoading = signal(true)
+  readonly #workspaceSelection$ = new BehaviorSubject<string>('')
+  readonly workspaces = toSignal(
+    this.#workspaceService.getAllMy({ order: { updatedAt: 'DESC' as OrderTypeEnum } }, { purpose: 'authoring' }).pipe(
+      map(({ items }) => items ?? []),
+      catchError(() => of([] as IXpertWorkspace[])),
+      tap(() => this.workspacesLoading.set(false))
+    ),
+    { initialValue: [] as IXpertWorkspace[] }
+  )
+  readonly xperts = toSignal(
+    this.#workspaceSelection$.pipe(
+      distinctUntilChanged(),
+      tap(() => this.xpertsLoading.set(true)),
+      switchMap((workspaceId) =>
+        workspaceId
+          ? this.#xpertService
+              .getAllByWorkspace(
+                workspaceId,
+                { where: { latest: true }, take: 100, order: { updatedAt: 'DESC' as OrderTypeEnum } },
+                false
+              )
+              .pipe(
+                map(({ items }) => items ?? []),
+                catchError(() => of([] as IXpert[]))
+              )
+          : of([] as IXpert[])
+      ),
+      tap(() => this.xpertsLoading.set(false))
+    ),
+    { initialValue: [] as IXpert[] }
+  )
+  readonly toolsets = toSignal(
+    this.#workspaceSelection$.pipe(
+      distinctUntilChanged(),
+      tap(() => this.toolsetsLoading.set(true)),
+      switchMap((workspaceId) =>
+        workspaceId
+          ? this.#toolsetService
+              .getAllByWorkspace(workspaceId, { take: 100, order: { updatedAt: 'DESC' as OrderTypeEnum } })
+              .pipe(
+                map(({ items }) => items ?? []),
+                catchError(() => of([] as IXpertToolset[]))
+              )
+          : of([] as IXpertToolset[])
+      ),
+      tap(() => this.toolsetsLoading.set(false))
+    ),
+    { initialValue: [] as IXpertToolset[] }
+  )
+  readonly knowledgebases = toSignal(
+    this.#workspaceSelection$.pipe(
+      distinctUntilChanged(),
+      tap(() => this.knowledgebasesLoading.set(true)),
+      switchMap((workspaceId) =>
+        workspaceId
+          ? this.#knowledgebaseService
+              .getAllByWorkspace(workspaceId, { take: 100, order: { updatedAt: 'DESC' as OrderTypeEnum } })
+              .pipe(
+                map(({ items }) => (items ?? []).filter((knowledgebase) => knowledgebase.workspaceId === workspaceId)),
+                catchError(() => of([] as IKnowledgebase[]))
+              )
+          : of([] as IKnowledgebase[])
+      ),
+      tap(() => this.knowledgebasesLoading.set(false))
+    ),
+    { initialValue: [] as IKnowledgebase[] }
+  )
+  readonly copilotModels = toSignal(
+    this.#copilotModelService.getAllInOrg({ take: 100, order: { updatedAt: 'DESC' as OrderTypeEnum } }).pipe(
+      map(({ items }) => items ?? []),
+      catchError(() => of([])),
+      map((items) => {
+        this.copilotModelsLoading.set(false)
+        return items
+      })
+    ),
+    { initialValue: [] as ICopilotModel[] }
+  )
+  readonly members = toSignal(
+    this.#membersService.getAllInOrg(['user'], { isActive: true }).pipe(
+      map(({ items }) => items?.map((entry) => entry.user).filter((user): user is IUser => !!user) ?? []),
+      catchError(() => of([])),
+      map((items) => {
+        return items
+      })
+    ),
+    { initialValue: [] as IUser[] }
+  )
+  readonly memberOptions = computed<ZardTagSelectOption<IUser>[]>(() =>
+    this.members().map((user) => ({ value: user, label: this.displayUser(user), data: user }))
+  )
   readonly form = this.#fb.nonNullable.group({
+    workspaceId: ['', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(120)]],
     description: [''],
-    resources: [''],
-    members: [''],
+    xpertId: [''],
+    toolsetId: [''],
+    knowledgebaseId: [''],
+    memberIds: this.#fb.nonNullable.control<IUser[]>([]),
     copilotModelId: [''],
     managementMode: ['simple' as 'simple' | 'advanced']
   })
@@ -147,13 +318,37 @@ export class XpertProjectCreateDialogComponent {
   ]
   readonly data = inject<{ initial?: Partial<IXpertProject> }>(Z_MODAL_DATA, { optional: true })
 
+  readonly displayUser = (user: unknown) => {
+    const value = user as IUser | undefined
+    return value?.fullName || value?.username || value?.email || ''
+  }
+  readonly compareUsers = (left: unknown, right: unknown) => (left as IUser)?.id === (right as IUser)?.id
+
   constructor() {
-    if (this.data?.initial)
-      this.form.patchValue({ name: this.data.initial.name ?? '', description: this.data.initial.description ?? '' })
+    this.form.controls.workspaceId.valueChanges
+      .pipe(startWith(this.form.controls.workspaceId.value), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((workspaceId) => this.#workspaceSelection$.next(workspaceId))
+
+    if (this.data?.initial) {
+      this.form.patchValue({
+        workspaceId: this.data.initial.workspaceId ?? '',
+        name: this.data.initial.name ?? '',
+        description: this.data.initial.description ?? ''
+      })
+    } else {
+      this.#workspaceService
+        .getMyDefault({ purpose: 'authoring' })
+        .pipe(take(1))
+        .subscribe((workspace) => {
+          if (workspace && !this.form.controls.workspaceId.value) {
+            this.form.controls.workspaceId.setValue(workspace.id)
+          }
+        })
+    }
   }
 
   canContinue() {
-    return this.step() === 1 ? this.form.controls.name.valid : true
+    return this.step() === 1 ? this.form.controls.name.valid && !!this.form.controls.workspaceId.value : true
   }
   next() {
     if (this.canContinue()) this.step.update((value) => Math.min(3, value + 1))
@@ -167,18 +362,19 @@ export class XpertProjectCreateDialogComponent {
   submit() {
     if (this.form.invalid) return
     const value = this.form.getRawValue()
-    const copilotModelId = value.copilotModelId.trim()
-    const input: Partial<IXpertProject> = {
+    const input: IXpertProjectCreateInput = {
+      workspaceId: value.workspaceId,
       name: value.name,
       description: value.description,
       status: 'active',
       settings: { instruction: value.description, managementMode: value.managementMode }
     }
-    // Model ids are UUID foreign keys. Keep the project on its default model
-    // when the optional wizard field contains a display name or is blank.
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(copilotModelId)) {
-      input.copilotModelId = copilotModelId
-    }
+    const memberIds = value.memberIds.map((user) => user.id).filter(Boolean)
+    if (value.xpertId) input.xpertIds = [value.xpertId]
+    if (value.toolsetId) input.toolsetIds = [value.toolsetId]
+    if (value.knowledgebaseId) input.knowledgebaseIds = [value.knowledgebaseId]
+    if (memberIds.length) input.memberIds = memberIds
+    if (value.copilotModelId) input.copilotModelId = value.copilotModelId
     this.#dialogRef.close(input)
   }
 }

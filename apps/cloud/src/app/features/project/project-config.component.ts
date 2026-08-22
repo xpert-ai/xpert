@@ -3,12 +3,11 @@ import { Component, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IXpert } from '@xpert-ai/contracts'
+import type { IXpert, IXpertWorkspace } from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardDividerComponent,
   ZardFormImports,
   ZardInputDirective,
   ZardSelectImports,
@@ -16,6 +15,7 @@ import {
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { XpertAPIService } from '../../@core/services/xpert.service'
+import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.service'
 import { XpertProjectFacade } from './project.facade'
 
 @Component({
@@ -28,7 +28,6 @@ import { XpertProjectFacade } from './project.facade'
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
-    ZardDividerComponent,
     ZardInputDirective,
     ZardSwitchComponent,
     ...ZardFormImports,
@@ -36,7 +35,7 @@ import { XpertProjectFacade } from './project.facade'
     ...ZardSelectImports
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-screen-xl flex-col gap-6 p-4 sm:p-6">
+    <section class="mx-auto flex w-full max-w-screen-xl flex-col gap-8 p-4 sm:p-6">
       <header class="flex flex-col gap-2 border-b border-divider-subtle pb-5">
         <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
           {{ 'XP.XProject.Governance' | translate }}
@@ -47,7 +46,71 @@ import { XpertProjectFacade } from './project.facade'
         </p>
       </header>
 
-      <section class="flex flex-col gap-4 pt-1" aria-labelledby="assistant-config-title">
+      <section class="flex flex-col gap-4" aria-labelledby="workspace-binding-title">
+        <div>
+          <h3 id="workspace-binding-title" class="text-base font-semibold text-text-primary">
+            {{ 'XP.XProject.WorkspaceLabel' | translate }}
+          </h3>
+          <p class="mt-1 text-sm text-text-secondary">
+            {{ 'XP.XProject.ProjectAssistantBindingDescription' | translate }}
+          </p>
+        </div>
+        <div class="flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:justify-between">
+          <div class="min-w-0 flex-1">
+            @if (workspace(); as boundWorkspace) {
+              <p class="truncate text-sm font-medium text-text-primary">{{ boundWorkspace.name }}</p>
+              <p class="mt-1 text-xs text-text-tertiary">
+                {{
+                  boundWorkspace.capabilities?.canRun
+                    ? ('XP.XProject.ProjectAssistantRole' | translate)
+                    : ('XP.XProject.NoAccessWorkspace' | translate)
+                }}
+              </p>
+            } @else if (facade.project()?.workspaceId) {
+              <p class="text-sm text-text-secondary">{{ 'XP.XProject.NoAccessWorkspace' | translate }}</p>
+            } @else {
+              <p class="text-sm text-text-destructive">{{ 'XP.XProject.BindWorkspaceToAddResources' | translate }}</p>
+              <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <z-select
+                  class="min-w-0 flex-1"
+                  [zValue]="workspaceSelection()"
+                  [zDisabled]="workspacesLoading() || bindingWorkspace()"
+                  [zPlaceholder]="'XP.XProject.SelectWorkspace' | translate"
+                  (zSelectionChange)="selectWorkspace($event)"
+                >
+                  @for (availableWorkspace of availableWorkspaces(); track availableWorkspace.id) {
+                    <z-select-item [zValue]="availableWorkspace.id">{{ availableWorkspace.name }}</z-select-item>
+                  }
+                </z-select>
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="default"
+                  type="button"
+                  [disabled]="!workspaceSelection() || workspacesLoading() || bindingWorkspace()"
+                  (click)="bindWorkspace()"
+                >
+                  {{ (bindingWorkspace() ? 'XP.XProject.BindingWorkspace' : 'XP.XProject.BindWorkspace') | translate }}
+                </button>
+              </div>
+            }
+          </div>
+          @if (workspace()) {
+            <a
+              z-button
+              zType="outline"
+              zSize="default"
+              [href]="'/xpert/w/' + workspace()?.id"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {{ 'XP.XProject.OpenWorkspace' | translate }}<i class="ri-external-link-line ml-1"></i>
+            </a>
+          }
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="assistant-config-title">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h3 id="assistant-config-title" class="text-base font-semibold text-text-primary">
@@ -65,7 +128,6 @@ import { XpertProjectFacade } from './project.facade'
             ><i class="ri-chat-3-line mr-1"></i>{{ 'XP.XProject.OpenAssistantPanel' | translate }}</a
           >
         </div>
-        <z-divider></z-divider>
         <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
           ><z-card-content class="p-4"
             ><div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -99,7 +161,7 @@ import { XpertProjectFacade } from './project.facade'
                 >{{ 'XP.XProject.ValidateInAssistant' | translate }}<i class="ri-arrow-right-up-line ml-1"></i
               ></a></div></z-card-content
         ></z-card>
-        <div class="flex flex-col gap-3 border-y border-divider-subtle py-3">
+        <div class="flex flex-col gap-3 py-1">
           <div class="min-w-0">
             <p class="text-sm font-medium text-text-primary">{{ 'XP.XProject.ProjectAssistantBinding' | translate }}</p>
             <p class="mt-1 text-xs text-text-secondary">
@@ -139,14 +201,13 @@ import { XpertProjectFacade } from './project.facade'
         </div>
       </section>
 
-      <section class="flex flex-col gap-4 pt-1" aria-labelledby="instruction-title">
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="instruction-title">
         <div>
           <h3 id="instruction-title" class="text-base font-semibold text-text-primary">
             {{ 'XP.XProject.ProjectInstructions' | translate }}
           </h3>
           <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.ProjectInstructionDescription' | translate }}</p>
         </div>
-        <z-divider></z-divider>
         <z-form-field class="w-full"
           ><z-form-label>{{ 'XP.XProject.SystemGuidance' | translate }}</z-form-label
           ><textarea
@@ -171,15 +232,14 @@ import { XpertProjectFacade } from './project.facade'
         </div>
       </section>
 
-      <section class="flex flex-col gap-4 pt-1" aria-labelledby="resources-title">
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="resources-title">
         <div>
           <h3 id="resources-title" class="text-base font-semibold text-text-primary">
             {{ 'XP.XProject.DefaultResources' | translate }}
           </h3>
           <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.DefaultResourcesDescription' | translate }}</p>
         </div>
-        <z-divider></z-divider>
-        <div class="divide-y divide-divider-subtle border-y border-divider-subtle">
+        <div class="divide-y divide-divider-subtle">
           <div class="flex items-center justify-between gap-4 py-3">
             <div class="flex min-w-0 items-center gap-3">
               <i class="ri-sparkling-line text-text-tertiary"></i
@@ -211,15 +271,14 @@ import { XpertProjectFacade } from './project.facade'
         </div>
       </section>
 
-      <section class="flex flex-col gap-4 pt-1" aria-labelledby="override-title">
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="override-title">
         <div>
           <h3 id="override-title" class="text-base font-semibold text-text-primary">
             {{ 'XP.XProject.SessionOverridePolicy' | translate }}
           </h3>
           <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.SessionOverrideDescription' | translate }}</p>
         </div>
-        <z-divider></z-divider>
-        <div class="divide-y divide-divider-subtle border-y border-divider-subtle">
+        <div class="divide-y divide-divider-subtle">
           <div class="flex items-center justify-between gap-4 py-3">
             <div class="min-w-0">
               <p class="text-sm font-medium text-text-primary">
@@ -245,7 +304,7 @@ import { XpertProjectFacade } from './project.facade'
         </div>
       </section>
 
-      <section class="flex flex-col gap-4 pt-1" aria-labelledby="automation-title">
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="automation-title">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h3 id="automation-title" class="text-base font-semibold text-text-primary">
@@ -257,8 +316,7 @@ import { XpertProjectFacade } from './project.facade'
             <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddAutomation' | translate }}
           </button>
         </div>
-        <z-divider></z-divider>
-        <div class="divide-y divide-divider-subtle border-y border-divider-subtle">
+        <div class="divide-y divide-divider-subtle">
           @for (automation of facade.automations(); track automation.id) {
             <div class="flex items-center justify-between gap-3 py-3">
               <div class="min-w-0">
@@ -284,6 +342,11 @@ import { XpertProjectFacade } from './project.facade'
 })
 export class XpertProjectConfigComponent {
   readonly facade = inject(XpertProjectFacade)
+  readonly workspace = signal<IXpertWorkspace | null>(null)
+  readonly availableWorkspaces = signal<IXpertWorkspace[]>([])
+  readonly workspaceSelection = signal('')
+  readonly workspacesLoading = signal(false)
+  readonly bindingWorkspace = signal(false)
   readonly instruction = signal('')
   readonly saving = signal(false)
   readonly allowSuggestions = signal(true)
@@ -293,24 +356,81 @@ export class XpertProjectConfigComponent {
   readonly xpertsLoading = signal(false)
   readonly bindingXpert = signal(false)
   readonly #xpertService = inject(XpertAPIService)
+  readonly #workspaceService = inject(XpertWorkspaceService)
+  #loadedWorkspaceId: string | null = null
 
   constructor() {
     effect(
       () => {
         const value = this.facade.project()?.settings?.instruction
         if (value !== undefined && !this.saving()) this.instruction.set(value)
-        const xpertId = this.facade.project()?.xperts?.[0]?.id ?? ''
+        const project = this.facade.project()
+        if (!project) return
+        const xpertId = project.xperts?.[0]?.id ?? ''
         if (!this.bindingXpert()) this.selectedXpertId.set(xpertId)
+        const workspaceId = project.workspaceId ?? ''
+        if (workspaceId !== this.#loadedWorkspaceId) {
+          this.#loadedWorkspaceId = workspaceId
+          this.workspaceSelection.set(workspaceId)
+          void this.loadWorkspace(workspaceId)
+          void this.loadXperts(workspaceId)
+          if (!workspaceId) void this.loadAuthoringWorkspaces()
+        }
       },
       { allowSignalWrites: true }
     )
-    void this.loadXperts()
   }
 
-  async loadXperts() {
+  async loadWorkspace(workspaceId: string) {
+    if (!workspaceId) {
+      this.workspace.set(null)
+      return
+    }
+    try {
+      this.workspace.set(await firstValueFrom(this.#workspaceService.getById(workspaceId)))
+    } catch {
+      this.workspace.set(null)
+    }
+  }
+
+  async loadAuthoringWorkspaces() {
+    this.workspacesLoading.set(true)
+    try {
+      const response = await firstValueFrom(this.#workspaceService.getAllMy(undefined, { purpose: 'authoring' }))
+      this.availableWorkspaces.set(response.items ?? [])
+    } catch {
+      this.availableWorkspaces.set([])
+    } finally {
+      this.workspacesLoading.set(false)
+    }
+  }
+
+  selectWorkspace(value: string | number | Array<string | number>) {
+    const selected = Array.isArray(value) ? value[0] : value
+    this.workspaceSelection.set(selected == null ? '' : String(selected))
+  }
+
+  async bindWorkspace() {
+    const workspaceId = this.workspaceSelection()
+    if (!workspaceId) return
+    this.bindingWorkspace.set(true)
+    try {
+      await this.facade.bindWorkspace(workspaceId)
+    } finally {
+      this.bindingWorkspace.set(false)
+    }
+  }
+
+  async loadXperts(workspaceId: string) {
     this.xpertsLoading.set(true)
     try {
-      const response = await firstValueFrom(this.#xpertService.getMyAll({ where: { latest: true }, take: 100 }))
+      if (!workspaceId) {
+        this.availableXperts.set([])
+        return
+      }
+      const response = await firstValueFrom(
+        this.#xpertService.getAllByWorkspace(workspaceId, { where: { latest: true }, take: 100 })
+      )
       this.availableXperts.set(response.items ?? [])
     } finally {
       this.xpertsLoading.set(false)

@@ -55,7 +55,14 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
                 </p>
               </div>
               @if (facade.project()?.status) {
-                <z-badge zType="outline">{{ facade.project()?.status }}</z-badge>
+                <z-badge zType="outline">{{
+                  'XP.XProject.ProjectStatusValue.' + facade.project()?.status | translate
+                }}</z-badge>
+              }
+              @if (facade.project()?.settings?.managementMode; as managementMode) {
+                <z-badge zType="secondary">{{
+                  'XP.XProject.' + (managementMode === 'advanced' ? 'AdvancedMode' : 'SimpleMode') | translate
+                }}</z-badge>
               }
             </div>
             <button
@@ -93,11 +100,11 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
             }
           </nav>
         </header>
-        <div class="mx-auto flex min-h-0 w-full max-w-screen-2xl min-w-0 flex-1">
-          <main class="min-h-0 min-w-0 flex-1 overflow-y-auto"><router-outlet /></main>
+        <div class="mx-auto flex h-full min-h-0 w-full max-w-screen-2xl min-w-0 flex-1 items-stretch">
+          <main class="h-full min-h-0 min-w-0 flex-1 overflow-y-auto"><router-outlet /></main>
           @if (!chatPanelOpen()) {
             <aside
-              class="sticky top-0 hidden h-fit w-64 shrink-0 self-start border-l border-divider-subtle p-4 xl:block"
+              class="sticky top-0 hidden h-full min-h-0 w-64 shrink-0 self-stretch border-l border-divider-subtle p-4 xl:block"
             >
               <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
                 ><z-card-content class="space-y-3 p-4"

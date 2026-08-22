@@ -34,6 +34,7 @@ import {
 import { VcsService } from './services/vcs-service'
 import { ProjectViewHostDefinition } from '../view-extension/hosts/project-view-host.definition'
 import { XpertProjectFeatureGuard, XpertProjectPermissionGuard } from './guards'
+import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 
 @Module({
     imports: [
@@ -60,7 +61,8 @@ import { XpertProjectFeatureGuard, XpertProjectPermissionGuard } from './guards'
         TenantModule,
         FeatureModule,
         CqrsModule,
-        IntegrationModule
+        IntegrationModule,
+        XpertWorkspaceModule
     ],
     controllers: [XpertProjectController],
     providers: [

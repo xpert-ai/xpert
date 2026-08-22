@@ -1,14 +1,17 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
 import type {
   IXpertProject,
+  IXpertProjectCreateInput,
   IXpertProjectActivity,
   IXpertProjectAsset,
   IXpertProjectAutomation,
+  IXpertProjectMilestone,
   IXpertProjectPlan,
+  IXpertProjectSprint,
   IXpertProjectTask
 } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
-import { XpertProjectApiService, XpertProjectOverview } from './project-api.service'
+import { XpertProjectApiService, XpertProjectOverview, XpertProjectTaskRelations } from './project-api.service'
 
 const itemsOf = <T>(value: T[] | { items: T[]; total: number } | undefined) =>
   Array.isArray(value) ? value : (value?.items ?? [])
@@ -74,7 +77,7 @@ export class XpertProjectFacade {
     }
   }
 
-  async createProject(input: Partial<IXpertProject>) {
+  async createProject(input: IXpertProjectCreateInput) {
     const project = await firstValueFrom(this.#api.create(input))
     this.project.set(project)
     this.projects.update((items) => [project, ...items])
@@ -85,6 +88,15 @@ export class XpertProjectFacade {
     const project = this.project()
     if (!project) return null
     const updated = await firstValueFrom(this.#api.update(project.id, input))
+    this.project.set({ ...project, ...updated })
+    this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
+    return updated
+  }
+
+  async bindWorkspace(workspaceId: string) {
+    const project = this.project()
+    if (!project || !workspaceId) return null
+    const updated = await firstValueFrom(this.#api.bindWorkspace(project.id, workspaceId))
     this.project.set({ ...project, ...updated })
     this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
     return updated
@@ -107,6 +119,45 @@ export class XpertProjectFacade {
     return plan
   }
 
+  async updatePlan(planId: string, input: Partial<IXpertProjectPlan>) {
+    const project = this.project()
+    if (!project) return null
+    const plan = await firstValueFrom(this.#api.updatePlan(project.id, planId, input))
+    this.plans.update((items) => items.map((item) => (item.id === plan.id ? { ...item, ...plan } : item)))
+    return plan
+  }
+
+  async createMilestone(planId: string, input: Partial<IXpertProjectMilestone>) {
+    const project = this.project()
+    if (!project) return null
+    const milestone = await firstValueFrom(this.#api.createMilestone(project.id, planId, input))
+    this.plans.update((items) =>
+      items.map((plan) =>
+        plan.id === planId ? { ...plan, milestones: [...(plan.milestones ?? []), milestone] } : plan
+      )
+    )
+    return milestone
+  }
+
+  async updateMilestone(planId: string, milestoneId: string, input: Partial<IXpertProjectMilestone>) {
+    const project = this.project()
+    if (!project) return null
+    const milestone = await firstValueFrom(this.#api.updateMilestone(project.id, planId, milestoneId, input))
+    this.plans.update((items) =>
+      items.map((plan) =>
+        plan.id === planId
+          ? {
+              ...plan,
+              milestones: (plan.milestones ?? []).map((item) =>
+                item.id === milestone.id ? { ...item, ...milestone } : item
+              )
+            }
+          : plan
+      )
+    )
+    return milestone
+  }
+
   async createTask(input: Partial<IXpertProjectTask>) {
     const project = this.project()
     if (!project) return null
@@ -123,7 +174,13 @@ export class XpertProjectFacade {
     return task
   }
 
-  async createSprint(planId: string, input: Record<string, unknown>) {
+  async loadTaskRelations(taskId: string): Promise<XpertProjectTaskRelations> {
+    const project = this.project()
+    if (!project) return { conversations: [], executions: [] }
+    return await firstValueFrom(this.#api.taskRelations(project.id, taskId))
+  }
+
+  async createSprint(planId: string, input: Partial<IXpertProjectSprint>) {
     const project = this.project()
     if (!project) return null
     const sprint = await firstValueFrom(this.#api.createSprint(project.id, planId, input))

@@ -86,7 +86,9 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
     @ManyToOne(() => XpertWorkspace, {
         nullable: true,
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        // Projects are delivery records and must survive Workspace archival
+        // or deletion attempts. Workspace migration is an explicit operation.
+        onDelete: 'RESTRICT'
     })
     @JoinColumn()
     @IsOptional()

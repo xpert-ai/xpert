@@ -134,6 +134,13 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   vcs?: IXpertProjectVCS
 }
 
+export type IXpertProjectCreateInput = Partial<IXpertProject> & {
+  xpertIds?: string[]
+  toolsetIds?: string[]
+  knowledgebaseIds?: string[]
+  memberIds?: string[]
+}
+
 export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrganizationEntityModel {
   projectId?: string
   project?: IXpertProject

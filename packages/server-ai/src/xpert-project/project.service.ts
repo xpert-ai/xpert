@@ -1,4 +1,5 @@
 import {
+    AIPermissionsEnum,
     IKnowledgebase,
     IStorageFile,
     IUser,
@@ -27,7 +28,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
 import { assign, omit } from 'lodash'
-import { Brackets, IsNull, Repository } from 'typeorm'
+import { Brackets, DeepPartial, IsNull, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
@@ -44,6 +45,10 @@ import { XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
 import { ExportProjectCommand } from './commands'
+import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
+import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { XpertProjectTaskExecution } from './entities/project-task-execution.entity'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -54,9 +59,20 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         repository: Repository<XpertProject>,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly taskService: XpertProjectTaskService
+        private readonly taskService: XpertProjectTaskService,
+        private readonly workspaceAccessService: XpertWorkspaceAccessService,
+        private readonly workspaceService: XpertWorkspaceService
     ) {
         super(repository)
+    }
+
+    /**
+     * New Projects always receive an authoring Workspace. Legacy Projects may
+     * still have a null workspaceId until they are explicitly repaired.
+     */
+    public async create(entity: DeepPartial<XpertProject>, ...options: unknown[]): Promise<XpertProject> {
+        const workspace = await this.resolveAuthoringWorkspace(entity.workspaceId as string | undefined)
+        return super.create({ ...entity, workspaceId: workspace.id }, ...options)
     }
 
     /**
@@ -92,6 +108,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const operation = project ? 'updated' : 'created'
         if (project && project.ownerId !== user.id) {
             throw new ForbiddenException('Only the Project owner can synchronize this Project')
+        }
+        if (project && project.workspaceId !== workspaceId) {
+            await this.assertWorkspaceCanBeBound(project, workspaceId)
         }
 
         if (!project) {
@@ -140,11 +159,14 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             })
             .andWhere('(project.ownerId = :userId OR project.createdById = :userId OR member.id = :userId)', { userId })
             .andWhere('xpert.id = :xpertId', { xpertId })
+            .andWhere('project.workspaceId = xpert.workspaceId')
+            .andWhere('project.workspaceId IS NOT NULL')
             .andWhere("project.status <> 'archived'")
             .getOne()
         if (!project) {
             throw new ForbiddenException('The requested Project is not available')
         }
+        await this.workspaceAccessService.assertCanRun(project.workspaceId)
         return project
     }
 
@@ -169,11 +191,34 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return project
     }
 
+    async assertToolPermission(projectId: string, operation: 'view' | 'edit') {
+        const project = await this.assertProjectAccess(projectId)
+        const userId = RequestContext.currentUserId()
+        const isOwner = project.ownerId === userId || project.createdById === userId
+        if (isOwner) return project
+        const permission =
+            operation === 'edit' ? AIPermissionsEnum.XPERT_PROJECT_EDIT : AIPermissionsEnum.XPERT_PROJECT_VIEW
+        if (!RequestContext.hasPermissions([permission])) {
+            throw new ForbiddenException('Project permission is required')
+        }
+        return project
+    }
+
     public async update(id: string, partialEntity: QueryDeepPartialEntity<XpertProject>): Promise<XpertProject> {
         const project = await this.findOne(id)
         const nextMode = (partialEntity.settings as IXpertProject['settings'] | undefined)?.managementMode
         if (project.settings?.managementMode === 'advanced' && nextMode === 'simple') {
             throw new BadRequestException('Advanced projects cannot be downgraded to simple mode')
+        }
+        if (Object.prototype.hasOwnProperty.call(partialEntity, 'workspaceId')) {
+            const nextWorkspaceId =
+                typeof partialEntity.workspaceId === 'string' ? partialEntity.workspaceId.trim() : ''
+            if (!nextWorkspaceId) {
+                throw new BadRequestException('Project Workspace is required')
+            }
+            if (nextWorkspaceId !== project.workspaceId) {
+                await this.assertWorkspaceCanBeBound(project, nextWorkspaceId)
+            }
         }
         if (partialEntity.copilotModel) {
             project.copilotModel ??= {}
@@ -294,13 +339,14 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             relations: ['xperts']
         })
 
+        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
+        await this.assertResourceWorkspace(project.workspaceId, xpert.workspaceId, 'Assistant')
+
         const xpertExists = project.xperts.some((xpert) => xpert.id === xpertId)
         if (xpertExists) {
             this.#logger.warn(`Xpert with id ${xpertId} already exists in project ${id}`)
             return project
         }
-
-        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
 
         project.xperts.push(xpert) // Assuming xpert is an entity with at least an id field
         await this.repository.save(project)
@@ -349,13 +395,16 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             relations: ['toolsets']
         })
 
+        const toolsets = await this.queryBus.execute(new FindXpertToolsetsQuery([toolsetId]))
+        for (const toolset of toolsets) {
+            await this.assertResourceWorkspace(project.workspaceId, toolset.workspaceId, 'Toolset')
+        }
+
         const exists = project.toolsets.some((_) => _.id === toolsetId)
         if (exists) {
             this.#logger.warn(`Toolset with id ${toolsetId} already exists in project ${id}`)
             return project
         }
-
-        const toolsets = await this.queryBus.execute(new FindXpertToolsetsQuery([toolsetId]))
 
         project.toolsets.push(...toolsets) // Assuming toolset is an entity with at least an id field
         await this.repository.save(project)
@@ -404,13 +453,14 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             relations: ['knowledges']
         })
 
+        const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({ id: knowledgebaseId }))
+        await this.assertResourceWorkspace(project.workspaceId, knowledgebase.workspaceId, 'Knowledgebase')
+
         const exists = project.knowledges.some((_) => _.id === knowledgebaseId)
         if (exists) {
             this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} already exists in project ${id}`)
             return project
         }
-
-        const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({ id: knowledgebaseId }))
 
         project.knowledges.push(knowledgebase)
         await this.repository.save(project)
@@ -498,6 +548,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     updateTaskExecution(id: string, taskId: string, executionId: string, input: Partial<IXpertProjectTaskExecution>) {
         return this.taskService.updateExecution(id, taskId, executionId, input)
+    }
+
+    claimTaskExecution(id: string, input: { threadId?: string; xpertId?: string; agentExecutionId: string }) {
+        return this.taskService.claimExecution(id, input)
     }
 
     // async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
@@ -890,6 +944,77 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
 
         return project?.vcs
+    }
+
+    private async resolveAuthoringWorkspace(workspaceId?: string) {
+        const normalizedWorkspaceId = workspaceId?.trim()
+        if (normalizedWorkspaceId) {
+            const access = await this.workspaceAccessService.assertCanAuthor(normalizedWorkspaceId)
+            return access.workspace
+        }
+
+        const workspace = await this.workspaceService.findMyDefault('authoring')
+        if (!workspace) {
+            throw new BadRequestException(
+                'Project Workspace is required. Select an authoring Workspace before creating a Project.'
+            )
+        }
+        return workspace
+    }
+
+    private async assertWorkspaceCanBeBound(project: XpertProject, workspaceId: string) {
+        const access = await this.workspaceAccessService.assertCanAuthor(workspaceId)
+        if (await this.hasProjectRuntimeData(project.id)) {
+            throw new BadRequestException(
+                'A Project with conversations, executions, tasks, or assets cannot change Workspace. Copy it instead.'
+            )
+        }
+
+        const [xperts, toolsets, knowledges] = await Promise.all([
+            this.repository.findOne({ where: { id: project.id }, relations: ['xperts'] }),
+            this.repository.findOne({ where: { id: project.id }, relations: ['toolsets'] }),
+            this.repository.findOne({ where: { id: project.id }, relations: ['knowledges'] })
+        ])
+        for (const xpert of xperts?.xperts ?? []) {
+            if (xpert.workspaceId !== access.workspace.id) {
+                throw new BadRequestException('All Project Assistants must belong to the selected Workspace')
+            }
+        }
+        for (const toolset of toolsets?.toolsets ?? []) {
+            if (toolset.workspaceId !== access.workspace.id) {
+                throw new BadRequestException('All Project Toolsets must belong to the selected Workspace')
+            }
+        }
+        for (const knowledge of knowledges?.knowledges ?? []) {
+            if (knowledge.workspaceId !== access.workspace.id) {
+                throw new BadRequestException('All Project Knowledgebases must belong to the selected Workspace')
+            }
+        }
+    }
+
+    private async assertResourceWorkspace(
+        projectWorkspaceId: string | undefined,
+        resourceWorkspaceId: string | undefined,
+        kind: string
+    ) {
+        if (!projectWorkspaceId) {
+            throw new BadRequestException('Bind a Workspace to the Project before adding resources')
+        }
+        if (!resourceWorkspaceId || resourceWorkspaceId !== projectWorkspaceId) {
+            throw new BadRequestException(`${kind} must belong to the Project Workspace`)
+        }
+        await this.workspaceAccessService.assertCanRun(projectWorkspaceId)
+    }
+
+    private async hasProjectRuntimeData(projectId: string) {
+        const manager = this.repository.manager
+        const [taskCount, assetCount, executionCount, conversationCount] = await Promise.all([
+            manager.getRepository(XpertProjectTask).count({ where: { projectId } }),
+            manager.getRepository(XpertProjectAsset).count({ where: { projectId } }),
+            manager.getRepository(XpertProjectTaskExecution).count({ where: { projectId } }),
+            manager.getRepository(ChatConversation).count({ where: { projectId } })
+        ])
+        return taskCount > 0 || assetCount > 0 || executionCount > 0 || conversationCount > 0
     }
 
     @OnEvent(EventNameIntegrationAuthorized)

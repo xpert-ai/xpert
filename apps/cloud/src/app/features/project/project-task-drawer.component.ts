@@ -2,7 +2,13 @@ import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IXpertProjectTask, TXpertProjectTaskPriority, TXpertProjectTaskStatus } from '@xpert-ai/contracts'
+import type {
+  IXpertProjectPlan,
+  IXpertProjectTask,
+  TXpertProjectTaskPriority,
+  TXpertProjectTaskStatus
+} from '@xpert-ai/contracts'
+import type { XpertProjectTaskRelations } from './project-api.service'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -18,6 +24,8 @@ type TaskForm = {
   status: FormControl<TXpertProjectTaskStatus>
   priority: FormControl<TXpertProjectTaskPriority>
   dueDate: FormControl<string>
+  planId: FormControl<string>
+  milestoneId: FormControl<string>
 }
 
 @Component({
@@ -91,6 +99,27 @@ type TaskForm = {
                 <z-form-label>{{ 'XP.XProject.DueDateColumn' | translate }}</z-form-label>
                 <input z-input type="date" formControlName="dueDate" />
               </z-form-field>
+              @if (advanced) {
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <z-form-field appearance="fill" class="w-full">
+                    <z-form-label>{{ 'XP.XProject.PlanColumn' | translate }}</z-form-label>
+                    <z-select class="w-full" formControlName="planId" (zSelectionChange)="changePlan($event)">
+                      @for (plan of plans; track plan.id) {
+                        <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+                      }
+                    </z-select>
+                  </z-form-field>
+                  <z-form-field appearance="fill" class="w-full">
+                    <z-form-label>{{ 'XP.XProject.MilestonesColumn' | translate }}</z-form-label>
+                    <z-select class="w-full" formControlName="milestoneId">
+                      <z-select-item zValue="">{{ 'XP.XProject.Unassigned' | translate }}</z-select-item>
+                      @for (milestone of selectedPlan()?.milestones || []; track milestone.id) {
+                        <z-select-item [zValue]="milestone.id">{{ milestone.name }}</z-select-item>
+                      }
+                    </z-select>
+                  </z-form-field>
+                </div>
+              }
               <section class="border-t border-divider-subtle pt-4">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-medium text-text-primary">
@@ -109,6 +138,79 @@ type TaskForm = {
                     </div>
                   } @empty {
                     <p class="text-sm text-text-tertiary">{{ 'XP.XProject.NoExecutionSteps' | translate }}</p>
+                  }
+                </div>
+              </section>
+              <section class="border-t border-divider-subtle pt-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-medium text-text-primary">
+                    {{ 'XP.XProject.ExecutionContext' | translate }}
+                  </h3>
+                  @if (relations.executions.length) {
+                    <z-badge zType="outline">{{ relations.executions.length }}</z-badge>
+                  }
+                </div>
+                <div class="mt-3 divide-y divide-divider-subtle">
+                  @for (execution of relations.executions; track execution.id) {
+                    <div class="py-3 text-xs">
+                      <div class="flex items-center justify-between gap-3">
+                        <div class="flex min-w-0 items-center gap-2">
+                          <z-badge zType="outline">
+                            {{ 'XP.XProject.ExecutionStatus.' + execution.status | translate }}
+                          </z-badge>
+                          <span class="truncate text-text-secondary">
+                            {{ execution.agentKey || execution.xpertId || ('XP.XProject.Assistant' | translate) }}
+                          </span>
+                        </div>
+                        <span class="shrink-0 text-text-tertiary">#{{ execution.attempt }}</span>
+                      </div>
+                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-text-tertiary">
+                        <span>{{ execution.createdAt | date: 'medium' }}</span>
+                        @if (execution.threadId) {
+                          <button
+                            z-button
+                            zType="link"
+                            type="button"
+                            class="h-auto p-0 text-xs"
+                            (click)="openConversation(execution.conversationId, execution.threadId)"
+                          >
+                            {{ 'XP.XProject.OpenConversation' | translate }}
+                          </button>
+                        }
+                      </div>
+                      @if (execution.error) {
+                        <p class="mt-2 text-text-destructive">{{ execution.error }}</p>
+                      } @else if (execution.outputSummary) {
+                        <p class="mt-2 text-text-secondary">{{ execution.outputSummary }}</p>
+                      }
+                    </div>
+                  } @empty {
+                    <p class="py-3 text-sm text-text-tertiary">{{ 'XP.XProject.NoExecutionContext' | translate }}</p>
+                  }
+                </div>
+              </section>
+              <section class="border-t border-divider-subtle pt-4">
+                <h3 class="text-sm font-medium text-text-primary">{{ 'XP.XProject.TaskConversations' | translate }}</h3>
+                <div class="mt-3 divide-y divide-divider-subtle">
+                  @for (link of relations.conversations; track link.id) {
+                    <div class="flex items-center justify-between gap-3 py-2 text-xs">
+                      <span class="truncate text-text-secondary">
+                        {{ link.conversation?.title || link.conversation?.threadId || link.conversationId }}
+                      </span>
+                      @if (link.conversation?.threadId) {
+                        <button
+                          z-button
+                          zType="link"
+                          type="button"
+                          class="h-auto shrink-0 p-0 text-xs"
+                          (click)="openConversation(link.conversationId, link.conversation.threadId)"
+                        >
+                          {{ 'XP.XProject.OpenConversation' | translate }}
+                        </button>
+                      }
+                    </div>
+                  } @empty {
+                    <p class="py-3 text-sm text-text-tertiary">{{ 'XP.XProject.NoTaskConversations' | translate }}</p>
                   }
                 </div>
               </section>
@@ -151,9 +253,13 @@ type TaskForm = {
 })
 export class XpertProjectTaskDrawerComponent implements OnChanges {
   @Input() task: IXpertProjectTask | null = null
+  @Input() relations: XpertProjectTaskRelations = { conversations: [], executions: [] }
+  @Input() plans: IXpertProjectPlan[] = []
+  @Input() advanced = false
   @Input() opened = false
   @Output() readonly openedChange = new EventEmitter<boolean>()
   @Output() readonly saved = new EventEmitter<Partial<IXpertProjectTask>>()
+  @Output() readonly conversationOpened = new EventEmitter<{ conversationId?: string; threadId?: string }>()
 
   readonly statuses: TXpertProjectTaskStatus[] = [
     'todo',
@@ -170,8 +276,20 @@ export class XpertProjectTaskDrawerComponent implements OnChanges {
     description: new FormControl('', { nonNullable: true }),
     status: new FormControl<TXpertProjectTaskStatus>('todo', { nonNullable: true }),
     priority: new FormControl<TXpertProjectTaskPriority>('medium', { nonNullable: true }),
-    dueDate: new FormControl('', { nonNullable: true })
+    dueDate: new FormControl('', { nonNullable: true }),
+    planId: new FormControl('', { nonNullable: true }),
+    milestoneId: new FormControl('', { nonNullable: true })
   })
+
+  selectedPlan() {
+    const planId = this.form.controls.planId.value
+    return this.plans.find((plan) => plan.id === planId)
+  }
+
+  changePlan(value: unknown) {
+    this.form.controls.planId.setValue(String(value ?? ''))
+    this.form.controls.milestoneId.setValue('')
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['task'] && this.task) {
@@ -180,13 +298,18 @@ export class XpertProjectTaskDrawerComponent implements OnChanges {
         description: this.task.description || '',
         status: normalizeStatus(this.task.status),
         priority: this.task.priority || 'medium',
-        dueDate: this.task.dueDate ? new Date(this.task.dueDate).toISOString().slice(0, 10) : ''
+        dueDate: this.task.dueDate ? new Date(this.task.dueDate).toISOString().slice(0, 10) : '',
+        planId: this.task.planId || this.plans[0]?.id || '',
+        milestoneId: this.task.milestoneId || ''
       })
     }
   }
 
   close() {
     this.openedChange.emit(false)
+  }
+  openConversation(conversationId?: string, threadId?: string) {
+    this.conversationOpened.emit({ conversationId, threadId })
   }
   save() {
     if (!this.task) return
@@ -195,6 +318,8 @@ export class XpertProjectTaskDrawerComponent implements OnChanges {
       ...value,
       name: value.title,
       id: this.task.id,
+      planId: value.planId || undefined,
+      milestoneId: value.milestoneId || undefined,
       dueDate: value.dueDate ? new Date(`${value.dueDate}T00:00:00`) : undefined
     })
   }

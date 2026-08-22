@@ -5,6 +5,7 @@ import {
     IXpertProject,
     IXpertProjectAsset,
     IXpertProjectAutomation,
+    IXpertProjectCreateInput,
     IXpertProjectMilestone,
     IXpertProjectPlan,
     IXpertProjectTask,
@@ -107,7 +108,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
         ])
         return {
             project: await this.service.findOne(id, {
-                relations: ['owner', 'members', 'xperts', 'toolsets', 'knowledges']
+                relations: ['owner', 'members', 'workspace', 'xperts', 'toolsets', 'knowledges']
             }),
             plans,
             tasks,
@@ -121,24 +122,43 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
     @HttpCode(HttpStatus.CREATED)
     @Post()
-    async create(@Body() entity: Partial<XpertProject>): Promise<XpertProject> {
+    async create(@Body() entity: IXpertProjectCreateInput): Promise<XpertProject> {
+        const { xpertIds, toolsetIds, knowledgebaseIds, memberIds, ...projectInput } = entity
         const project = await this.service.create({
-            ...entity,
-            status: entity.status ?? 'active',
+            ...projectInput,
+            status: projectInput.status ?? 'active',
             settings: {
-                instruction: entity.settings?.instruction ?? '',
-                ...entity.settings,
-                managementMode: entity.settings?.managementMode ?? 'simple'
+                instruction: projectInput.settings?.instruction ?? '',
+                ...projectInput.settings,
+                managementMode: projectInput.settings?.managementMode ?? 'simple'
             }
         })
+
+        // Resource selections are part of the create contract so the wizard
+        // can complete project setup in one request. Each helper is
+        // idempotent and applies the current tenant/organization query scope.
+        for (const xpertId of xpertIds ?? []) await this.service.addXpert(project.id, xpertId)
+        for (const toolsetId of toolsetIds ?? []) await this.service.addToolset(project.id, toolsetId)
+        for (const knowledgebaseId of knowledgebaseIds ?? [])
+            await this.service.addKnowledge(project.id, knowledgebaseId)
+        if (memberIds?.length) await this.service.updateMembers(project.id, memberIds)
+
         await this.planService.ensureDefaults(project.id)
         await this.activityService.record(project.id, {
             type: 'project.created',
             summary: `Project ${project.name} created`,
             entityType: 'project',
-            entityId: project.id
+            entityId: project.id,
+            payload: {
+                xpertCount: xpertIds?.length ?? 0,
+                toolsetCount: toolsetIds?.length ?? 0,
+                knowledgebaseCount: knowledgebaseIds?.length ?? 0,
+                memberCount: memberIds?.length ?? 0
+            }
         })
-        return project
+        return this.service.findOne(project.id, {
+            relations: ['owner', 'members', 'workspace', 'xperts', 'toolsets', 'knowledges', 'copilotModel']
+        })
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
@@ -147,6 +167,24 @@ export class XpertProjectController extends CrudController<XpertProject> {
         @Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
     ): Promise<IPagination<XpertProject>> {
         return this.service.findAllMy(params)
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    @UseGuards(XpertProjectGuard)
+    @Put(':id/workspace')
+    async bindWorkspace(@Param('id') id: string, @Body() input: { workspaceId?: string }) {
+        const workspaceId = input?.workspaceId?.trim()
+        if (!workspaceId) throw new BadRequestException('Project Workspace is required')
+
+        const project = await this.service.update(id, { workspaceId })
+        await this.activityService.record(id, {
+            type: 'project.workspace_bound',
+            summary: 'Project Workspace binding updated',
+            entityType: 'project',
+            entityId: id,
+            payload: { workspaceId }
+        })
+        return new XpertProjectDto(await this.service.findOne(project.id, { relations: ['workspace'] }))
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
@@ -497,8 +535,19 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
     @UseGuards(XpertProjectGuard)
     @Put(':id/plans/:planId')
-    updatePlan(@Param('id') id: string, @Param('planId') planId: string, @Body() input: Partial<IXpertProjectPlan>) {
-        return this.planService.updatePlan(id, planId, input)
+    async updatePlan(
+        @Param('id') id: string,
+        @Param('planId') planId: string,
+        @Body() input: Partial<IXpertProjectPlan>
+    ) {
+        const plan = await this.planService.updatePlan(id, planId, input)
+        await this.activityService.record(id, {
+            type: 'plan.updated',
+            summary: `Plan ${plan.name} updated`,
+            entityType: 'plan',
+            entityId: plan.id
+        })
+        return plan
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
@@ -516,7 +565,15 @@ export class XpertProjectController extends CrudController<XpertProject> {
         @Param('planId') planId: string,
         @Body() input: Partial<IXpertProjectMilestone>
     ) {
-        return this.planService.createMilestone(id, planId, input)
+        return this.planService.createMilestone(id, planId, input).then((milestone) => {
+            void this.activityService.record(id, {
+                type: 'milestone.created',
+                summary: `Milestone ${milestone.name} created`,
+                entityType: 'milestone',
+                entityId: milestone.id
+            })
+            return milestone
+        })
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
@@ -528,7 +585,15 @@ export class XpertProjectController extends CrudController<XpertProject> {
         @Param('milestoneId') milestoneId: string,
         @Body() input: Partial<IXpertProjectMilestone>
     ) {
-        return this.planService.updateMilestone(id, planId, milestoneId, input)
+        return this.planService.updateMilestone(id, planId, milestoneId, input).then((milestone) => {
+            void this.activityService.record(id, {
+                type: 'milestone.updated',
+                summary: `Milestone ${milestone.name} updated`,
+                entityType: 'milestone',
+                entityId: milestone.id
+            })
+            return milestone
+        })
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)

@@ -9,54 +9,73 @@ import { createListTasksTool } from './tools/list'
 import { createUpdateTasksTool } from './tools/update'
 
 export enum ProjectToolEnum {
-	ListTasks = 'project_list_tasks',
-	CreateTasks = 'project_create_tasks',
-	UpdateTasks = 'project_update_tasks'
+    ListTasks = 'project_list_tasks',
+    CreateTasks = 'project_create_tasks',
+    UpdateTasks = 'project_update_tasks'
 }
 
 export class ProjectToolset extends _BaseToolset {
-	readonly providerName = 'project-tasks'
-	
-	get commandBus(): CommandBus {
-		return this.params.commandBus
-	}
+    readonly providerName = 'project-tasks'
 
-	constructor(
-		private project: IXpertProject,
-		private service: XpertProjectService,
-		private taskService: XpertProjectTaskService,
-		protected params: TBuiltinToolsetParams
-	) {
-		super(params)
-	}
+    get commandBus(): CommandBus {
+        return this.params.commandBus
+    }
 
-	getId(): string {
-		return null
-	}
-	getName(): string {
-		return `project-tasks`
-	}
+    constructor(
+        private project: IXpertProject,
+        private service: XpertProjectService,
+        private taskService: XpertProjectTaskService,
+        protected params: TBuiltinToolsetParams
+    ) {
+        super(params)
+    }
 
-	async initTools() {
-		this.tools = []
+    getId(): string {
+        return null
+    }
+    getName(): string {
+        return `project-tasks`
+    }
 
-		this.tools.push(createListTasksTool({ projectId: this.project.id, service: this.taskService }))
-		this.tools.push(createCreateTasksTool({ projectId: this.project.id, service: this.taskService }))
-		this.tools.push(createUpdateTasksTool({ projectId: this.project.id, service: this.taskService }))
+    async initTools() {
+        this.tools = []
 
-		return this.tools
-	}
+        this.tools.push(
+            createListTasksTool({
+                projectId: this.project.id,
+                service: this.taskService,
+                assertPermission: () => this.service.assertToolPermission(this.project.id, 'view')
+            })
+        )
+        this.tools.push(
+            createCreateTasksTool({
+                projectId: this.project.id,
+                service: this.taskService,
+                conversationId: this.params.conversationId,
+                assertPermission: () => this.service.assertToolPermission(this.project.id, 'edit')
+            })
+        )
+        this.tools.push(
+            createUpdateTasksTool({
+                projectId: this.project.id,
+                service: this.taskService,
+                assertPermission: () => this.service.assertToolPermission(this.project.id, 'edit')
+            })
+        )
 
-	getToolTitle(name: string): string | I18nObject {
-		switch (name) {
-			case ProjectToolEnum.ListTasks:
-				return t('server-ai:Tools.ProjectTask.ListTasks')
-			case ProjectToolEnum.CreateTasks:
-				return t('server-ai:Tools.ProjectTask.CreateTasks')
-			case ProjectToolEnum.UpdateTasks:
-				return t('server-ai:Tools.ProjectTask.UpdateTasks')
-			default:
-				return t('server-ai:Tools.ProjectTask.Tasks')
-		}
-	}
+        return this.tools
+    }
+
+    getToolTitle(name: string): string | I18nObject {
+        switch (name) {
+            case ProjectToolEnum.ListTasks:
+                return t('server-ai:Tools.ProjectTask.ListTasks')
+            case ProjectToolEnum.CreateTasks:
+                return t('server-ai:Tools.ProjectTask.CreateTasks')
+            case ProjectToolEnum.UpdateTasks:
+                return t('server-ai:Tools.ProjectTask.UpdateTasks')
+            default:
+                return t('server-ai:Tools.ProjectTask.Tasks')
+        }
+    }
 }

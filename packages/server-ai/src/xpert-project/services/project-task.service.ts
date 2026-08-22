@@ -75,25 +75,40 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         return items
     }
 
-    async updateTaskSteps(projectId: string, threadId: string, ...entities: DeepPartial<IXpertProjectTask>[]) {
+    async updateTaskSteps(
+        projectId: string,
+        threadId: string | undefined,
+        ...entities: DeepPartial<IXpertProjectTask>[]
+    ) {
         const { items: tasks } = await this.findAll({
-            where: { projectId, threadId },
+            where: { projectId },
             relations: ['steps'],
             order: { createdAt: OrderTypeEnum.ASC }
         })
         for await (const entity of entities) {
-            const task = tasks.find((_) => _.name === entity.name)
+            const task = tasks.find(
+                (_) =>
+                    (entity.id && _.id === entity.id) ||
+                    (Boolean(threadId) && _.threadId === threadId && !!entity.name && _.name === entity.name) ||
+                    (!!entity.name && _.name === entity.name)
+            )
             if (!task) {
-                throw new Error(`Task not exists with name '${entity.name}'`)
+                throw new Error(`Task not exists with id or name '${entity.id || entity.name}'`)
             }
-            entity.steps.forEach((step) => {
-                if (!task.steps[step.stepIndex]) {
+            for (const step of entity.steps ?? []) {
+                const taskStep =
+                    task.steps.find((item) => item.stepIndex === step.stepIndex) || task.steps[step.stepIndex - 1]
+                if (!taskStep) {
                     throw new Error(`Step with index '${step.stepIndex}' not exists in task '${entity.name}'`)
                 }
-                task.steps[step.stepIndex].status = step.status
-                task.steps[step.stepIndex].notes += step.notes || ''
-            })
+                taskStep.status = step.status
+                if (step.notes) taskStep.notes = [taskStep.notes, step.notes].filter(Boolean).join('\n')
+            }
             task.steps = await this.stepRepository.save(task.steps)
+            if (entity.status) {
+                task.status = entity.status
+                await this.repository.save(task)
+            }
         }
 
         return tasks
@@ -139,11 +154,26 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         const [conversations, executions] = await Promise.all([
             this.conversationLinkRepository.find({
                 where: { projectId, taskId },
+                relations: ['conversation'],
                 order: { createdAt: OrderTypeEnum.ASC }
             }),
             this.executionRepository.find({ where: { projectId, taskId }, order: { createdAt: OrderTypeEnum.DESC } })
         ])
-        return { conversations, executions }
+        return {
+            conversations: conversations.map((link) => ({
+                ...link,
+                conversation: link.conversation
+                    ? {
+                          id: link.conversation.id,
+                          threadId: link.conversation.threadId,
+                          title: link.conversation.title,
+                          status: link.conversation.status,
+                          xpertId: link.conversation.xpertId
+                      }
+                    : undefined
+            })),
+            executions
+        }
     }
 
     async linkConversation(
@@ -216,6 +246,19 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (input.status && ['succeeded', 'failed', 'cancelled'].includes(input.status))
             execution.completedAt ??= new Date()
         if (input.status === 'running') execution.startedAt ??= new Date()
+        return this.executionRepository.save(execution)
+    }
+
+    async claimExecution(projectId: string, input: { threadId?: string; xpertId?: string; agentExecutionId: string }) {
+        if (!input.threadId || !input.xpertId) return null
+        const execution = await this.executionRepository.findOne({
+            where: { projectId, threadId: input.threadId, xpertId: input.xpertId, status: 'queued' },
+            order: { createdAt: OrderTypeEnum.ASC }
+        })
+        if (!execution) return null
+        execution.agentExecutionId = input.agentExecutionId
+        execution.status = 'running'
+        execution.startedAt ??= new Date()
         return this.executionRepository.save(execution)
     }
 
