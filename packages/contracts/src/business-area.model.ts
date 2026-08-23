@@ -1,7 +1,7 @@
 import type { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 
 /**
- * Canonical business-domain master data owned by xpert-pro.
+ * Canonical business-area master data owned by xpert-pro.
  * Consumers may attach their own usage records by `id`, but must not duplicate
  * this entity as another source of truth.
  */

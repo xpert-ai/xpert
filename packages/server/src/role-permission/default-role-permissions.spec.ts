@@ -10,6 +10,9 @@ describe('default role permissions', () => {
 			[
 				PermissionsEnum.DATA_SOURCE_EDIT,
 				PermissionsEnum.DATA_SOURCE_VIEW,
+				PermissionsEnum.BUSINESS_AREA_VIEW,
+				PermissionsEnum.BUSINESS_AREA_MANAGE,
+				PermissionsEnum.BUSINESS_AREA_ASSIGN,
 				PermissionsEnum.PROFILE_EDIT,
 				PermissionsEnum.ORG_INVITE_EDIT,
 				PermissionsEnum.INTEGRATION_EDIT,
