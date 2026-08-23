@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { I18nService } from 'nestjs-i18n'
 
 jest.mock('@xpert-ai/server-core', () => ({
+    BusinessArea: class BusinessArea {},
     RequestContext: {
         currentUserId: jest.fn(),
         getLanguageCode: jest.fn().mockReturnValue('en')
@@ -26,7 +27,8 @@ jest.mock('../../types', () => ({
     EventName_XpertPublished: 'xpert.published'
 }))
 
-import { RequestContext } from '@xpert-ai/server-core'
+import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
+import type { Repository } from 'typeorm'
 import { IWorkflowNode, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import { XpertAgentService } from '../../../xpert-agent'
 import { XpertPrincipalService } from '../../xpert-principal.service'
@@ -84,6 +86,14 @@ describe('XpertPublishHandler', () => {
         const eventEmitter = {
             emitAsync: jest.fn()
         }
+        const businessAreaRepository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'area-1',
+                name: 'Operations',
+                tenantId: xpert.tenantId,
+                organizationId: xpert.organizationId
+            })
+        }
 
         const handler = new XpertPublishHandler(
             xpertService as unknown as XpertService,
@@ -91,11 +101,20 @@ describe('XpertPublishHandler', () => {
             { translate: jest.fn() } as unknown as I18nService,
             commandBus as unknown as CommandBus,
             eventEmitter as unknown as EventEmitter2,
+            businessAreaRepository as unknown as Repository<BusinessArea>,
             undefined,
             xpertPrincipalService as unknown as XpertPrincipalService
         )
 
-        return { handler, xpertService, xpertPrincipalService, commandBus, eventEmitter, xpert }
+        return {
+            handler,
+            xpertService,
+            xpertPrincipalService,
+            businessAreaRepository,
+            commandBus,
+            eventEmitter,
+            xpert
+        }
     }
 
     afterEach(() => {
@@ -129,6 +148,36 @@ describe('XpertPublishHandler', () => {
         await handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes', marketplace))
 
         expect(publishSpy).toHaveBeenCalledWith(xpert, '1', xpert.draft, marketplace)
+    })
+
+    it('assigns an organization business area independently from marketplace metadata', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+
+        const { handler, xpert, businessAreaRepository } = createHandler({ organizationId: 'org-1' })
+        jest.spyOn(handler, 'publish').mockResolvedValue({ id: 'xpert-1', version: '1' } as Xpert)
+
+        await handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes', undefined, 'area-1'))
+
+        expect(businessAreaRepository.findOne).toHaveBeenCalledWith({
+            where: {
+                id: 'area-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            }
+        })
+        expect(xpert.businessAreaId).toBe('area-1')
+        expect(xpert.businessArea).toEqual(expect.objectContaining({ id: 'area-1', name: 'Operations' }))
+    })
+
+    it('rejects a business area from a different organization', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+
+        const { handler, businessAreaRepository } = createHandler({ organizationId: 'org-1' })
+        businessAreaRepository.findOne.mockResolvedValue(null)
+
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes', undefined, 'area-2'))
+        ).rejects.toThrow(BadRequestException)
     })
 
     it('still requires a user group when the publisher is not the creator', async () => {

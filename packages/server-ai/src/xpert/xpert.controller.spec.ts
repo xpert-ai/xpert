@@ -181,6 +181,7 @@ describe('XpertController', () => {
         findByPrincipalUserId: jest.Mock
         findBySlug: jest.Mock
         findOne: jest.Mock
+        publish: jest.Mock
         updateXpert: jest.Mock
     }
     let environmentService: {
@@ -212,6 +213,7 @@ describe('XpertController', () => {
             findByPrincipalUserId: jest.fn(),
             findBySlug: jest.fn(),
             findOne: jest.fn(),
+            publish: jest.fn(),
             updateXpert: jest.fn()
         }
         environmentService = {
@@ -301,6 +303,38 @@ describe('XpertController', () => {
         xpertService.findByPrincipalUserId.mockResolvedValue(null)
 
         await expect(controller.getByPrincipalUser('technical-user')).resolves.toBeNull()
+    })
+
+    it('forwards a valid business area when publishing an xpert', async () => {
+        const result = { id: 'xpert-1', version: '1' }
+        xpertService.publish.mockResolvedValue(result)
+
+        await expect(
+            controller.publish('xpert-1', 'true', {
+                environmentId: 'env-1',
+                releaseNotes: 'Release notes',
+                businessAreaId: '3ad87d56-feb7-49e1-85ec-4b4c4fbbaa0d'
+            })
+        ).resolves.toBe(result)
+        expect(xpertService.publish).toHaveBeenCalledWith(
+            'xpert-1',
+            true,
+            'env-1',
+            'Release notes',
+            undefined,
+            '3ad87d56-feb7-49e1-85ec-4b4c4fbbaa0d'
+        )
+    })
+
+    it('rejects an invalid business area id at the publish boundary', async () => {
+        await expect(
+            controller.publish('xpert-1', 'false', {
+                environmentId: 'env-1',
+                releaseNotes: 'Release notes',
+                businessAreaId: 'not-an-id'
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(xpertService.publish).not.toHaveBeenCalled()
     })
 
     it('loads the studio model catalog with the xpert creator as access subject', async () => {

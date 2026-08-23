@@ -37,7 +37,8 @@ import {
 	ReferralRelation,
 	DataSource,
 	DataSourceAuthentication,
-	DataSourceType
+	DataSourceType,
+	BusinessArea
 } from './internal'
 
 export const coreEntities = [
@@ -79,5 +80,6 @@ export const coreEntities = [
 	ReferralRelation,
 	DataSource,
 	DataSourceAuthentication,
-	DataSourceType
+	DataSourceType,
+	BusinessArea
 ]

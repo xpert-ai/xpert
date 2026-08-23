@@ -1,3 +1,6 @@
+// Invariants:
+// - Every image family owns its smoke command through image.json.
+// - All smoke commands run with the same hardened container flags used for manifest verification.
 import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
@@ -39,7 +42,15 @@ const identity = await docker([
   'test "$(id -u)" != 0 && test -w /workspace && test ! -w /opt/xpert/sandbox-runtime'
 ])
 void identity
-await docker([...common, '--browser-smoke'])
+if (
+  !Array.isArray(definition.smokeCommand) ||
+  !definition.smokeCommand.length ||
+  definition.smokeCommand.some((argument) => typeof argument !== 'string' || !argument)
+) {
+  throw new Error(`Runtime smoke command is invalid for image family: ${family}`)
+}
+const [smokeEntrypoint, ...smokeArguments] = definition.smokeCommand
+await docker([...sandboxFlags, '--entrypoint', smokeEntrypoint, image, ...smokeArguments])
 if (family === 'browser-video') {
   const mediaTools = await docker([
     ...sandboxFlags,

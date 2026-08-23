@@ -1,5 +1,6 @@
 import {
     AiBusinessRole,
+    IBusinessArea,
     ICopilotModel,
     IEnvironment,
     IIntegration,
@@ -25,7 +26,7 @@ import {
     TXpertTeamDraft,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
-import { Integration, Tag, User, UserGroup } from '@xpert-ai/server-core'
+import { BusinessArea, Integration, Tag, User, UserGroup } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Transform, TransformFnParams } from 'class-transformer'
@@ -147,6 +148,18 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     @IsOptional()
     @Column({ type: 'json', nullable: true })
     marketplace?: TXpertMarketplaceProfile
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @RelationId((it: Xpert) => it.businessArea)
+    @Column({ type: 'uuid', nullable: true })
+    businessAreaId?: string | null
+
+    @ApiPropertyOptional({ type: () => BusinessArea })
+    @ManyToOne(() => BusinessArea, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'businessAreaId' })
+    businessArea?: IBusinessArea | null
 
     // Versions
     @ApiPropertyOptional({ type: () => String })

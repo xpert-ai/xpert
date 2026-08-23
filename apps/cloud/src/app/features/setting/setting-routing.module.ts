@@ -198,6 +198,19 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'business-area',
+        loadChildren: () => import('./business-area/routing').then((m) => m.default),
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/business-area',
+          scopeContext: 'organization-only',
+          permissions: {
+            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            redirectTo
+          }
+        }
+      },
+      {
         path: 'roles',
         loadChildren: () => import('./roles/roles.module').then((m) => m.RolesModule),
         canActivate: [NgxPermissionsGuard],

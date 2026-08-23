@@ -9,7 +9,7 @@
 ## 选择优先级
 
 1. zard/ui 组件和 zard core token。
-2. Cloud/Xpert 业务域 token。
+2. Cloud/Xpert 业务组件 token。
 
 zard 已覆盖的基础 UI 语义，必须以 zard 为准。Cloud token 用于 zard 没覆盖的业务状态、数据可视化、flow、分析网格、应用 shell 等场景。
 
@@ -17,7 +17,7 @@ zard 已覆盖的基础 UI 语义，必须以 zard 为准。Cloud token 用于 z
 
 - `packages/ui/src/styles.css`: zard/ui token 合约。
 - `packages/ui/src/lib/components/**`: zard 组件 variant 的真实语义。
-- `apps/cloud/src/styles/theme/theme.tokens.css`: Cloud 业务域和主题 token。
+- `apps/cloud/src/styles/theme/theme.tokens.css`: Cloud 业务组件和主题 token。
 - `apps/cloud/src/styles/theme/theme.primary.css`: 从 zard `--primary` 派生 Cloud/Tailwind 兼容色阶。
 - `apps/cloud/src/styles/theme/theme.tailwind.css`: Cloud token 的 Tailwind v4 输出。
 - `tailwind.theme.vars.js`: Workspace Tailwind utility 注册源。
@@ -211,7 +211,7 @@ Flow、agent graph、node canvas 不是 zard core 覆盖的 UI primitive，应�
 
 ## Cloud Shell 和业务面板
 
-新页面普通内容区优先使用 zard token。下面这些 token 只用于 Cloud 应用 shell、业务面板、非 zard 自定义组件或明确业务域。
+新页面普通内容区优先使用 zard token。下面这些 token 只用于 Cloud 应用 shell、业务面板、非 zard 自定义组件或明确业务场景。
 
 | 场景                        | 推荐 token                                             |
 | --------------------------- | ------------------------------------------------------ |
@@ -247,5 +247,5 @@ Flow、agent graph、node canvas 不是 zard core 覆盖的 UI primitive，应�
 新页面 token 选择边界：
 
 - zard token 负责通用组件和 UI primitive。
-- Cloud token 负责 Xpert 业务域、数据状态、分析网格、flow、应用 shell。
+- Cloud token 负责 Xpert 业务组件、数据状态、分析网格、flow、应用 shell。
 - 选择 token 时按页面区域和组件语义判断，不按颜色相似度判断。

@@ -70,6 +70,11 @@ import {
 import { getFeatureMenus, syncMenuParentStateFromChildren } from './menus'
 import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
+export const FEATURE_SIDEBAR_WIDTH_STORAGE_KEY = 'xpert.cloud-sidebar.width'
+const FEATURE_SIDEBAR_DEFAULT_WIDTH = 256
+const FEATURE_SIDEBAR_MIN_WIDTH = 224
+const FEATURE_SIDEBAR_MAX_WIDTH = 420
+
 function isWorkspaceRoute(url?: string | null) {
   return /^\/xpert\/w(?:\/|$)/.test(url?.split('?')[0] ?? '')
 }
@@ -108,6 +113,10 @@ export class FeaturesComponent implements OnInit {
 
   // States
   readonly sidebarCollapsed = signal(true)
+  readonly sidebarWidth = signal(this.readSidebarWidth())
+  readonly sidebarResizing = signal(false)
+  readonly sidebarMinWidth = FEATURE_SIDEBAR_MIN_WIDTH
+  readonly sidebarMaxWidth = FEATURE_SIDEBAR_MAX_WIDTH
   readonly entryOnboardingOpen = signal(false)
   readonly entryOnboardingCurrent = signal(0)
   readonly entryOnboardingAllSteps = signal(this.createEntryOnboardingSteps())
@@ -200,6 +209,9 @@ export class FeaturesComponent implements OnInit {
   #entryOnboardingOpenHandle: number | null = null
   #entryOnboardingObserver: MutationObserver | null = null
   #entryOnboardingScopeLevel = this.#scopeService.scopeLevel()
+  #sidebarResizePointerId: number | null = null
+  #sidebarResizeHandle: HTMLElement | null = null
+  #sidebarResizeAbortController: AbortController | null = null
 
   constructor() {
     this.#router.events
@@ -214,7 +226,10 @@ export class FeaturesComponent implements OnInit {
       this.observeEntryOnboardingTargets()
     })
 
-    this.#destroyRef.onDestroy(() => this.cancelEntryOnboardingOpen())
+    this.#destroyRef.onDestroy(() => {
+      this.cancelEntryOnboardingOpen()
+      this.stopSidebarResize()
+    })
   }
 
   async ngOnInit() {
@@ -432,6 +447,118 @@ export class FeaturesComponent implements OnInit {
 
   onCollapsedChange(collapsed: boolean) {
     this.sidebarCollapsed.set(collapsed)
+  }
+
+  startSidebarResize(event: PointerEvent) {
+    if (event.button !== 0 || this.isMobile() || this.renderedSidebarCollapsed()) {
+      return
+    }
+
+    const handle = event.currentTarget
+    if (!(handle instanceof HTMLElement)) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.stopSidebarResize()
+
+    const startX = event.clientX
+    const startWidth = this.sidebarWidth()
+    const abortController = new AbortController()
+    this.#sidebarResizePointerId = event.pointerId
+    this.#sidebarResizeHandle = handle
+    this.#sidebarResizeAbortController = abortController
+    this.sidebarResizing.set(true)
+    document.body.classList.add('cursor-col-resize', 'select-none')
+    handle.setPointerCapture(event.pointerId)
+
+    document.addEventListener(
+      'pointermove',
+      (moveEvent) => {
+        if (moveEvent.pointerId !== this.#sidebarResizePointerId) {
+          return
+        }
+
+        this.sidebarWidth.set(this.clampSidebarWidth(startWidth + moveEvent.clientX - startX))
+        moveEvent.preventDefault()
+      },
+      { signal: abortController.signal }
+    )
+
+    const finishResize = (endEvent: PointerEvent) => {
+      if (endEvent.pointerId === this.#sidebarResizePointerId) {
+        this.stopSidebarResize()
+      }
+    }
+    document.addEventListener('pointerup', finishResize, { signal: abortController.signal })
+    document.addEventListener('pointercancel', finishResize, { signal: abortController.signal })
+    window.addEventListener('blur', () => this.stopSidebarResize(), {
+      once: true,
+      signal: abortController.signal
+    })
+  }
+
+  onSidebarResizeLostPointerCapture() {
+    if (this.#sidebarResizePointerId !== null) {
+      this.stopSidebarResize()
+    }
+  }
+
+  onSidebarResizeKeydown(event: KeyboardEvent) {
+    const step = event.shiftKey ? 32 : 16
+    const delta = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
+    if (!delta) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.sidebarWidth.update((width) => this.clampSidebarWidth(width + delta))
+    this.persistSidebarWidth()
+  }
+
+  private stopSidebarResize() {
+    const resizeHandle = this.#sidebarResizeHandle
+    const resizePointerId = this.#sidebarResizePointerId
+
+    this.#sidebarResizeAbortController?.abort()
+    this.#sidebarResizeAbortController = null
+    this.#sidebarResizeHandle = null
+    this.#sidebarResizePointerId = null
+    this.sidebarResizing.set(false)
+    document.body.classList.remove('cursor-col-resize', 'select-none')
+
+    if (resizeHandle && resizePointerId !== null && resizeHandle.hasPointerCapture(resizePointerId)) {
+      resizeHandle.releasePointerCapture(resizePointerId)
+    }
+
+    if (resizePointerId !== null) {
+      this.persistSidebarWidth()
+    }
+  }
+
+  private clampSidebarWidth(width: number) {
+    return Math.round(Math.max(this.sidebarMinWidth, Math.min(this.sidebarMaxWidth, width)))
+  }
+
+  private readSidebarWidth() {
+    try {
+      const storedWidth = Number(globalThis.localStorage?.getItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY))
+      return Number.isFinite(storedWidth) && storedWidth > 0
+        ? Math.round(Math.max(FEATURE_SIDEBAR_MIN_WIDTH, Math.min(FEATURE_SIDEBAR_MAX_WIDTH, storedWidth)))
+        : FEATURE_SIDEBAR_DEFAULT_WIDTH
+    } catch {
+      return FEATURE_SIDEBAR_DEFAULT_WIDTH
+    }
+  }
+
+  private persistSidebarWidth() {
+    try {
+      globalThis.localStorage?.setItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY, String(this.sidebarWidth()))
+    } catch {
+      // Local storage can be unavailable in restricted browser contexts.
+    }
   }
 
   async onEntryOnboardingFinish() {

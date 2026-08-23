@@ -142,6 +142,7 @@ import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 import { FindCopilotModelsQuery } from '../copilot/queries'
 import { t } from 'i18next'
+import { isUUID } from 'class-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 
 const XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
@@ -457,10 +458,19 @@ export class XpertController extends CrudController<Xpert> {
     async publish(
         @Param('id') id: string,
         @Query('newVersion') newVersion: string,
-        @Body() body: { environmentId: string; releaseNotes: string; marketplace?: unknown }
+        @Body()
+        body: { environmentId: string; releaseNotes: string; businessAreaId?: unknown; marketplace?: unknown }
     ) {
         const marketplace = parseXpertPublishMarketplaceInput(body.marketplace)
-        return this.service.publish(id, newVersion === 'true', body.environmentId, body.releaseNotes, marketplace)
+        const businessAreaId = parseXpertPublishBusinessAreaId(body.businessAreaId)
+        return this.service.publish(
+            id,
+            newVersion === 'true',
+            body.environmentId,
+            body.releaseNotes,
+            marketplace,
+            businessAreaId
+        )
     }
 
     /**
@@ -1598,4 +1608,25 @@ export class XpertController extends CrudController<Xpert> {
     ) {
         return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end, id, { model, userId }))
     }
+}
+
+export function parseXpertPublishBusinessAreaId(value: unknown): string | null | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    if (value === null) {
+        return null
+    }
+    if (typeof value === 'string') {
+        const id = value.trim()
+        if (isUUID(id)) {
+            return id
+        }
+    }
+
+    throw new BadRequestException(
+        t('server-ai:Error.XpertBusinessAreaInvalid', {
+            defaultValue: 'The selected business area is invalid.'
+        })
+    )
 }

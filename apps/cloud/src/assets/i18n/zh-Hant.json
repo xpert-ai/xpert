@@ -818,13 +818,13 @@
       "SuggestingPrompts": "正在建議提示語",
       "SelectSemanticModel": "選擇語義模型",
       "Project": "項目",
-      "BusinessArea": "業務域",
+      "BusinessArea": "業務區域",
       "Logo": "標識",
       "StoryPoint": "故事點",
       "ADD": "添加",
       "ACTION": "操作",
       "Apply": "應用",
-      "BUSINESS_AREA": "業務域",
+      "BUSINESS_AREA": "業務區域",
       "CACHE": "緩存",
       "CODE": "代碼",
       "CREATED_AT": "創建時間",
@@ -1747,7 +1747,7 @@
       "Account": "賬號",
       "User": "用戶",
       "Datasource": "數據源",
-      "Business Area": "業務域",
+      "Business Area": "業務區域",
       "Role & Permission": "角色 & 權限",
       "Feature": "功能",
       "Email Template": "郵件模板",
@@ -1793,7 +1793,7 @@
       "MANAGE_ORGANIZATIONS": "管理組織",
       "MANAGE_TENANT": "管理租戶",
       "EDIT_USER": "維護用戶",
-      "EDIT_BUSINESS_AREA": "編輯業務域",
+      "EDIT_BUSINESS_AREA": "編輯業務區域",
       "MY_ACCOUNT": "我的賬號",
       "ForOrganization": "為組織",
       "ManageCustomSmtp": "維護自定義 SMTP",
@@ -1881,7 +1881,7 @@
         }
       },
       "STORY": {
-        "SELECT_BUSINESS_AREA": "選擇業務域",
+        "SELECT_BUSINESS_AREA": "選擇業務區域",
         "SELECT_SEMANTIC_MODEL": "選擇語義模型",
         "STORY_NAME": "名稱",
         "INPUT_UNIQUE_NAME": "輸入唯一名稱",
@@ -1891,7 +1891,7 @@
         "Description": "描述",
         "DescriptionPlaceholder": "可選，故事的詳細描述",
         "Model": "模型",
-        "StoryBusinessArea": "應該放在哪個業務域內"
+        "StoryBusinessArea": "應該放在哪個業務區域內"
       },
       "STATUS_BAR": {
         "TITLE": "狀態欄",
@@ -2113,8 +2113,8 @@
         "CODE_PLACEHOLDER": "指標唯一編碼",
         "NAME": "名稱",
         "NAME_PLACEHOLDER": "指標名稱",
-        "BUSINESS_AREA": "業務域",
-        "BUSINESS_AREA_PLACEHOLDER": "選擇所屬業務域",
+        "BUSINESS_AREA": "業務區域",
+        "BUSINESS_AREA_PLACEHOLDER": "選擇所屬業務區域",
         "IsActive": "激活",
         "AvailableInApplication": "指標應用適用",
         "EmbeddingStatus": "索引狀態",
@@ -2165,7 +2165,7 @@
       },
       "MARKET": {
         "REQUEST": "申請",
-        "RequestBusinessArea": "申請業務域",
+        "RequestBusinessArea": "申請業務區域",
         "RequestIndicator": "申請指標",
         "Tags": "標簽",
         "Types": "類型"
@@ -2200,7 +2200,7 @@
       "EditIndicator": "編輯指標",
       "Indicator Name": "指標名稱",
       "Indicator Code": "指標編碼",
-      "Business Area": "業務域",
+      "Business Area": "業務區域",
       "Authentication": "認證流程",
       "Business": "業務口徑",
       "Principal": "業務負責人",
@@ -4298,7 +4298,7 @@
       }
     },
     "ApprovalPolicy": {
-      "BUSINESS_AREA": "業務域",
+      "BUSINESS_AREA": "業務區域",
       "INDICATOR": "指標"
     },
     "Onboarding": {
@@ -4386,7 +4386,7 @@
         "Ai": "AI 能力",
         "AiDescription": "模型提供商、對話和數字專家體驗。",
         "Data": "數據與分析",
-        "DataDescription": "語義模型、故事、指標和業務域。",
+        "DataDescription": "語義模型、故事、指標和業務區域。",
         "Integration": "系統集成",
         "IntegrationDescription": "外部連接、存儲、郵件和 SMTP 服務。",
         "Project": "項目協作",
@@ -5922,8 +5922,10 @@
         "MODELS_EDIT": "編輯語義模型",
         "STORIES_VIEW": "查看故事看板",
         "STORIES_EDIT": "編輯故事看板",
-        "BUSINESS_AREA_VIEW": "查看業務域",
-        "BUSINESS_AREA_EDIT": "編輯業務域",
+        "BUSINESS_AREA_EDIT": "編輯業務區域",
+        "BUSINESS_AREA_VIEW": "查看業務區域",
+        "BUSINESS_AREA_MANAGE": "維護業務區域",
+        "BUSINESS_AREA_ASSIGN": "分配業務區域",
         "INDICATOR_VIEW": "查看指標",
         "INDICATOR_MARTKET_VIEW": "查看指標應用",
         "INDICATOR_EDIT": "編輯指標",

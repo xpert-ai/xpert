@@ -418,9 +418,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         newVersion: boolean,
         environmentId: string,
         notes: string,
-        marketplace?: TXpertPublishMarketplaceInput
+        marketplace?: TXpertPublishMarketplaceInput,
+        businessAreaId?: string | null
     ) {
-        return await this.commandBus.execute(new XpertPublishCommand(id, newVersion, environmentId, notes, marketplace))
+        return await this.commandBus.execute(
+            new XpertPublishCommand(id, newVersion, environmentId, notes, marketplace, businessAreaId)
+        )
     }
 
     async allVersions(id: string) {

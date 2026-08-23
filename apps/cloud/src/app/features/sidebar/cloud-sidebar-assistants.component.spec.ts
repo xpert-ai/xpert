@@ -13,12 +13,15 @@ import {
   ViewExtensionApiService,
   XpertAPIService
 } from '../../@core'
-import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
+import { CloudSidebarAssistantsComponent, formatConversationUpdatedAt } from './cloud-sidebar-assistants.component'
 import {
   type AssistantXpertLike,
   filterAssistantXperts,
+  getAssistantBusinessArea,
+  getAssistantBusinessAreaInitial,
   getAssistantDescription,
   getAssistantLabel,
+  getAssistantName,
   getAssistantRouteId,
   isAssistantRouteActive,
   normalizeAssistantXperts,
@@ -120,6 +123,13 @@ function xpert(item: Partial<AssistantXpertLike>): AssistantXpertLike {
 }
 
 describe('cloud sidebar assistants helpers', () => {
+  it('formats the local conversation update date and time', () => {
+    const updatedAt = new Date(2026, 7, 23, 9, 5)
+
+    expect(formatConversationUpdatedAt(updatedAt)).toBe('2026-08-23 09:05')
+    expect(formatConversationUpdatedAt('invalid-date')).toBe('')
+  })
+
   it('keeps latest unique xperts with an id', () => {
     const items = normalizeAssistantXperts([
       xpert({ id: 'a', slug: 'alpha' }),
@@ -142,6 +152,21 @@ describe('cloud sidebar assistants helpers', () => {
     expect(getAssistantLabel(item)).toBe('中文标题')
     expect(getAssistantDescription(item)).toBe('Assistant Name')
     expect(getAssistantRouteId(item)).toBe('assistant-slug')
+  })
+
+  it('prefixes assistant menu labels with the assigned business area', () => {
+    const item = xpert({
+      id: 'assistant-id',
+      title: 'Planning Assistant',
+      businessAreaId: 'operations-id',
+      businessArea: { id: 'operations-id', name: 'Operations' }
+    })
+
+    expect(getAssistantLabel(item)).toBe('Operations / Planning Assistant')
+    expect(getAssistantName(item)).toBe('Planning Assistant')
+    expect(getAssistantBusinessArea(item)).toEqual({ id: 'operations-id', name: 'Operations' })
+    expect(getAssistantBusinessAreaInitial('销售')).toBe('销')
+    expect(getAssistantLabel({ ...item, businessArea: null })).toBe('Planning Assistant')
   })
 
   it('filters assistants by label or description', () => {
@@ -459,6 +484,7 @@ describe('CloudSidebarAssistantsComponent', () => {
           id: 'published-xpert',
           slug: 'published-assistant',
           title: 'Published Assistant',
+          businessArea: { name: 'Operations' },
           latest: true
         },
         {
@@ -479,8 +505,66 @@ describe('CloudSidebarAssistantsComponent', () => {
       item.textContent.trim()
     )
 
-    expect(names).toEqual(['Published Assistant'])
+    expect(names).toEqual(['Operations / Published Assistant'])
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledTimes(2)
+  })
+
+  it('filters all assistants by a clicked business area and clears the filter from the header tag', async () => {
+    assistantBindingService.get.mockReturnValue(of(null))
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'sales-one',
+          title: 'Sales One',
+          businessAreaId: 'sales',
+          businessArea: { id: 'sales', name: '销售' },
+          latest: true
+        },
+        {
+          id: 'operations-one',
+          title: 'Operations One',
+          businessAreaId: 'operations',
+          businessArea: { id: 'operations', name: '运营' },
+          latest: true
+        },
+        {
+          id: 'sales-two',
+          title: 'Sales Two',
+          businessAreaId: 'sales',
+          businessArea: { id: 'sales', name: '销售' },
+          latest: true
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('embedded', true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const names = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+        item.textContent.replace(/\s+/g, ' ').trim()
+      )
+
+    expect(names()).toEqual(['销售 / Sales One', '运营 / Operations One', '销售 / Sales Two'])
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__business-area-link').click()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activeBusinessAreaFilter()).toEqual({ id: 'sales', name: '销售' })
+    expect(names()).toEqual(['销售 / Sales One', '销售 / Sales Two'])
+    expect(
+      fixture.nativeElement.querySelector('.cloud-sidebar-assistants__business-area-filter').textContent
+    ).toContain('销售')
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('2')
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__business-area-filter').click()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activeBusinessAreaFilter()).toBeNull()
+    expect(names()).toEqual(['销售 / Sales One', '运营 / Operations One', '销售 / Sales Two'])
   })
 
   it('renders the latest conversation title in the assistant description row', async () => {

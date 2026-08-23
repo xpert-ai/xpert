@@ -48,4 +48,5 @@ export * from '../../referral/referral-relation.entity'
 export * from '../../data-source/data-source.entity'
 export * from '../../data-source/authentication/authentication.entity'
 export * from '../../data-source-type/data-source-type.entity'
+export * from '../../business-area/business-area.entity'
 //core subscribers

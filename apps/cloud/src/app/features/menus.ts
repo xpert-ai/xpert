@@ -146,6 +146,15 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
+      path: 'business-area',
+      label: 'Business Area',
+      icon: 'account_tree',
+      scopeContext: 'organization-only',
+      data: {
+        permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+      }
+    },
+    {
       path: 'roles',
       label: 'Role & Permission',
       icon: 'supervisor_account',

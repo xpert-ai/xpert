@@ -2,7 +2,14 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { RedisModule, SecretTokenModule, TenantModule, UserGroupModule, UserModule } from '@xpert-ai/server-core'
+import {
+    BusinessArea,
+    RedisModule,
+    SecretTokenModule,
+    TenantModule,
+    UserGroupModule,
+    UserModule
+} from '@xpert-ai/server-core'
 import { XpertController } from './xpert.controller'
 import { XpertAccessController } from './xpert-access.controller'
 import { Xpert } from './xpert.entity'
@@ -48,7 +55,7 @@ import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
-        TypeOrmModule.forFeature([Xpert, ChatConversation, ChatMessage, XpertFrequentQuestionCache]),
+        TypeOrmModule.forFeature([Xpert, BusinessArea, ChatConversation, ChatMessage, XpertFrequentQuestionCache]),
         DiscoveryModule,
         TenantModule,
         SecretTokenModule,

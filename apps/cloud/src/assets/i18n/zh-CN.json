@@ -337,13 +337,13 @@
       "SuggestingPrompts": "正在建议提示语",
       "SelectSemanticModel": "选择语义模型",
       "Project": "项目",
-      "BusinessArea": "业务域",
+      "BusinessArea": "业务区域",
       "Logo": "标识",
       "StoryPoint": "故事点",
       "ADD": "添加",
       "ACTION": "操作",
       "Apply": "应用",
-      "BUSINESS_AREA": "业务域",
+      "BUSINESS_AREA": "业务区域",
       "CACHE": "缓存",
       "CODE": "代码",
       "CREATED_AT": "创建时间",
@@ -732,7 +732,7 @@
       "ManageUsers": "管理用户",
       "User": "用户",
       "Datasource": "数据源",
-      "Business Area": "业务域",
+      "Business Area": "业务区域",
       "Role & Permission": "角色 & 权限",
       "Feature": "功能",
       "Email Template": "邮件模板",
@@ -774,7 +774,7 @@
       "MANAGE_ORGANIZATIONS": "管理组织",
       "MANAGE_TENANT": "管理租户",
       "EDIT_USER": "维护用户",
-      "EDIT_BUSINESS_AREA": "编辑业务域",
+      "EDIT_BUSINESS_AREA": "编辑业务区域",
       "MY_ACCOUNT": "我的账号",
       "ForOrganization": "为组织",
       "ManageCustomSmtp": "维护自定义 SMTP",
@@ -861,7 +861,7 @@
         }
       },
       "STORY": {
-        "SELECT_BUSINESS_AREA": "选择业务域",
+        "SELECT_BUSINESS_AREA": "选择业务区域",
         "SELECT_SEMANTIC_MODEL": "选择语义模型",
         "STORY_NAME": "名称",
         "INPUT_UNIQUE_NAME": "输入唯一名称",
@@ -871,7 +871,7 @@
         "Description": "描述",
         "DescriptionPlaceholder": "可选，故事的详细描述",
         "Model": "模型",
-        "StoryBusinessArea": "应该放在哪个业务域内"
+        "StoryBusinessArea": "应该放在哪个业务区域内"
       },
       "STATUS_BAR": {
         "TITLE": "状态栏",
@@ -1048,8 +1048,8 @@
         "CODE_PLACEHOLDER": "指标唯一编码",
         "NAME": "名称",
         "NAME_PLACEHOLDER": "指标名称",
-        "BUSINESS_AREA": "业务域",
-        "BUSINESS_AREA_PLACEHOLDER": "选择所属业务域",
+        "BUSINESS_AREA": "业务区域",
+        "BUSINESS_AREA_PLACEHOLDER": "选择所属业务区域",
         "IsActive": "激活",
         "AvailableInApplication": "指标应用适用",
         "Visible": "是否可见",
@@ -1098,7 +1098,7 @@
       },
       "MARKET": {
         "REQUEST": "申请",
-        "RequestBusinessArea": "申请业务域",
+        "RequestBusinessArea": "申请业务区域",
         "RequestIndicator": "申请指标",
         "Tags": "标签",
         "Types": "类型"
@@ -1121,7 +1121,7 @@
       },
       "Indicator Name": "指标名称",
       "Indicator Code": "指标编码",
-      "Business Area": "业务域",
+      "Business Area": "业务区域",
       "Authentication": "认证流程",
       "Business": "业务口径",
       "Principal": "业务负责人",
@@ -2796,7 +2796,7 @@
       "User": "用户"
     },
     "ApprovalPolicy": {
-      "BUSINESS_AREA": "业务域",
+      "BUSINESS_AREA": "业务区域",
       "INDICATOR": "指标"
     },
     "Onboarding": {
@@ -3458,7 +3458,7 @@
         "Ai": "AI 能力",
         "AiDescription": "模型提供商、对话和数字专家体验。",
         "Data": "数据与分析",
-        "DataDescription": "语义模型、故事、指标和业务域。",
+        "DataDescription": "语义模型、故事、指标和业务区域。",
         "Integration": "系统集成",
         "IntegrationDescription": "外部连接、存储、邮件和 SMTP 服务。",
         "Project": "项目协作",
@@ -3612,8 +3612,10 @@
         "MODELS_EDIT": "编辑模型",
         "STORIES_VIEW": "查看故事看板",
         "STORIES_EDIT": "编辑故事看板",
-        "BUSINESS_AREA_VIEW": "查看业务域",
-        "BUSINESS_AREA_EDIT": "编辑业务域",
+        "BUSINESS_AREA_EDIT": "编辑业务区域",
+        "BUSINESS_AREA_VIEW": "查看业务区域",
+        "BUSINESS_AREA_MANAGE": "维护业务区域",
+        "BUSINESS_AREA_ASSIGN": "分配业务区域",
         "INDICATOR_VIEW": "查看指标",
         "INDICATOR_MARTKET_VIEW": "查看指标应用",
         "INDICATOR_EDIT": "编辑指标",

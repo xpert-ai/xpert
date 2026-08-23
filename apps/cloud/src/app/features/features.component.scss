@@ -47,6 +47,10 @@ $prefix: (ngm, shell);
   transition: width;
 }
 
+.xp-features__sidenav.is-resizing {
+  transition: none;
+}
+
 .xp-features__sidenav-backdrop {
   @apply border-0 p-0;
 }
