@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.17.4
+
+### Patch Changes
+
+- 7b6954a: project
+
 ## 3.17.3
 
 ### Patch Changes

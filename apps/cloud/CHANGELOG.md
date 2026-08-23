@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.17.3
+
+### Patch Changes
+
+- 7b6954a: project
+
 ## 3.17.2
 
 ### Patch Changes
