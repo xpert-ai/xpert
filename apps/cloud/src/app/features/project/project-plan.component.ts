@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -7,6 +8,7 @@ import type {
   IXpertProjectMilestone,
   IXpertProjectPlan,
   IXpertProjectSprint,
+  IXpertProjectSwimlane,
   IXpertProjectTask,
   TXpertProjectPlanView,
   TXpertProjectTaskStatus
@@ -17,7 +19,9 @@ import {
   ZardDialogService,
   ZardInputDirective,
   ZardSelectImports,
-  ZardTableImports
+  ZardTableImports,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
@@ -28,40 +32,50 @@ import {
   type XpertProjectPlanDialogMode,
   type XpertProjectPlanDialogResult
 } from './project-plan-dialog.component'
-import { XpertProjectTaskDrawerComponent } from './project-task-drawer.component'
+import {
+  XpertProjectTaskDialogComponent,
+  type XpertProjectTaskDialogData,
+  type XpertProjectTaskDialogResult
+} from './project-task-dialog.component'
 
 type PlanView = TXpertProjectPlanView
+type BoardLane = {
+  key: string
+  label: string
+  status?: TXpertProjectTaskStatus
+  swimlane?: IXpertProjectSwimlane
+}
 
 @Component({
   standalone: true,
   selector: 'xp-project-plan',
+  styleUrl: './project-plan.component.scss',
   imports: [
     CommonModule,
     FormsModule,
     TranslateModule,
+    DragDropModule,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardInputDirective,
-    XpertProjectTaskDrawerComponent,
     ...ZardSelectImports,
-    ...ZardTableImports
+    ...ZardTableImports,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent
   ],
   template: `
     <section class="flex w-full min-w-0 flex-col">
-      <header class="sticky top-0 z-20 border-b border-divider-subtle bg-background px-4 py-4 sm:px-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
+      <header class="sticky top-0 z-20 border-b border-divider-subtle bg-background px-4 py-3 sm:px-6">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
                 {{ 'XP.XProject.DeliveryPlanning' | translate }}
               </p>
-              <z-badge zType="outline">{{
-                (isAdvanced() ? 'XP.XProject.AdvancedMode' : 'XP.XProject.SimpleMode') | translate
-              }}</z-badge>
+              <h2 class="truncate text-xl font-semibold text-text-primary">
+                {{ 'XP.XProject.PlansAndMilestones' | translate }}
+              </h2>
             </div>
-            <h2 class="mt-1 truncate text-xl font-semibold text-text-primary">
-              {{ 'XP.XProject.PlansAndMilestones' | translate }}
-            </h2>
             <p class="mt-1 max-w-2xl text-sm text-text-secondary">
               {{ activePlan()?.description || ('XP.XProject.PlanWorkspaceHint' | translate) }}
             </p>
@@ -117,28 +131,48 @@ type PlanView = TXpertProjectPlanView
             </button>
           </div>
         </div>
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3">
-          <div
-            class="flex flex-wrap items-center gap-1"
-            role="tablist"
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <z-toggle-group
+            zType="outline"
+            zSize="sm"
+            class="shrink-0"
+            [value]="view()"
             [attr.aria-label]="'XP.XProject.PlanViews' | translate"
+            (valueChange)="changeView($event)"
           >
             @for (option of viewOptions; track option.value) {
-              <button
-                z-button
-                zType="ghost"
-                type="button"
-                role="tab"
-                [attr.aria-selected]="view() === option.value"
-                [class.bg-background-default-subtle]="view() === option.value"
-                [class.text-text-primary]="view() === option.value"
-                (click)="setView(option.value)"
-              >
-                <i [class]="option.icon + ' mr-1'"></i>{{ option.label | translate }}
-              </button>
+              <z-toggle-group-item [value]="option.value" [attr.aria-label]="option.label | translate">
+                <i [class]="option.icon" aria-hidden="true"></i>
+                <span>{{ option.label | translate }}</span>
+              </z-toggle-group-item>
+            }
+          </z-toggle-group>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <div>
+              <span class="text-text-tertiary">{{ 'XP.XProject.OpenTasks' | translate }}</span
+              ><strong class="ml-2 text-text-primary">{{ openTaskCount() }}</strong>
+            </div>
+            <div>
+              <span class="text-text-tertiary">{{ 'XP.XProject.CompletedTasks' | translate }}</span
+              ><strong class="ml-2 text-text-primary">{{ completedTaskCount() }}</strong>
+            </div>
+            <div>
+              <span class="text-text-tertiary">{{ 'XP.XProject.PlanProgress' | translate }}</span
+              ><strong class="ml-2 text-text-primary">{{ progress() }}%</strong>
+            </div>
+            @if (activeSprint()) {
+              <span class="text-text-secondary">
+                <i class="ri-timer-line mr-1" aria-hidden="true"></i
+                >{{ 'XP.XProject.SprintStatus.' + activeSprint()?.status | translate }}
+              </span>
+            }
+            @if (activePlan()?.dueDate) {
+              <span class="text-text-secondary">
+                <i class="ri-calendar-line mr-1" aria-hidden="true"></i>{{ activePlan()?.dueDate | date: 'mediumDate' }}
+              </span>
             }
           </div>
-          <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <div class="ml-auto flex min-w-0 flex-wrap items-center gap-2">
             <input
               z-input
               class="w-52"
@@ -166,34 +200,10 @@ type PlanView = TXpertProjectPlanView
           </div>
         </div>
       </header>
-      <div class="flex flex-wrap items-center gap-6 border-b border-divider-subtle px-4 py-3 text-sm sm:px-6">
-        <div>
-          <span class="text-text-tertiary">{{ 'XP.XProject.OpenTasks' | translate }}</span
-          ><strong class="ml-2 text-text-primary">{{ openTaskCount() }}</strong>
-        </div>
-        <div>
-          <span class="text-text-tertiary">{{ 'XP.XProject.CompletedTasks' | translate }}</span
-          ><strong class="ml-2 text-text-primary">{{ completedTaskCount() }}</strong>
-        </div>
-        <div>
-          <span class="text-text-tertiary">{{ 'XP.XProject.PlanProgress' | translate }}</span
-          ><strong class="ml-2 text-text-primary">{{ progress() }}%</strong>
-        </div>
-        @if (activeSprint()) {
-          <div class="text-text-secondary">
-            <i class="ri-timer-line mr-1"></i>{{ 'XP.XProject.SprintStatus.' + activeSprint()?.status | translate }}
-          </div>
-        }
-        @if (activePlan()?.dueDate) {
-          <div class="text-text-secondary">
-            <i class="ri-calendar-line mr-1"></i>{{ activePlan()?.dueDate | date: 'mediumDate' }}
-          </div>
-        }
-      </div>
       @if (isAdvanced() && activeSprint()?.swimlanes?.length) {
         <div class="flex gap-2 overflow-x-auto border-b border-divider-subtle px-4 py-2 sm:px-6">
           @for (lane of activeSprint()?.swimlanes; track lane.id) {
-            <div class="flex shrink-0 items-center gap-2 border border-divider-subtle px-2.5 py-1.5 text-xs">
+            <div class="flex shrink-0 items-center gap-2 rounded-lg border border-divider-subtle px-2.5 py-1.5 text-xs">
               <span class="font-medium text-text-primary">{{ lane.name }}</span
               ><span class="text-text-tertiary">{{ lane.agentRole }}</span>
               @if (lane.wipLimit) {
@@ -224,22 +234,168 @@ type PlanView = TXpertProjectPlanView
       </main>
     </section>
     <ng-template #boardView
-      ><div class="flex min-w-0 gap-3 overflow-x-auto pb-2">
-        @for (lane of lanes(); track lane.status) {
+      ><div cdkDropListGroup class="flex min-w-0 gap-3 overflow-x-auto pb-2">
+        @for (lane of lanes(); track lane.key) {
           <section
-            class="flex min-h-72 w-[min(78vw,19rem)] shrink-0 flex-col border border-divider-subtle bg-background-default-subtle/30"
+            class="flex min-h-72 w-[min(82vw,20rem)] shrink-0 flex-col overflow-hidden rounded-lg border border-divider-subtle bg-background-default-subtle/30"
+            [attr.data-lane-key]="lane.key"
           >
-            <header class="flex items-center justify-between border-b border-divider-subtle px-3 py-3">
-              <h3 class="text-sm font-medium text-text-primary">{{ lane.label | translate }}</h3>
-              <z-badge zType="secondary">{{ tasksFor(lane.status).length }}</z-badge>
-            </header>
-            <div class="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
-              @for (task of tasksFor(lane.status); track task.id) {
-                <ng-container *ngTemplateOutlet="taskRow; context: { task: task }" />
-              } @empty {
-                <p class="py-8 text-center text-xs text-text-tertiary">{{ 'XP.XProject.NoTasks' | translate }}</p>
+            <header class="border-b border-divider-subtle px-3 py-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h3 class="truncate text-sm font-medium text-text-primary">{{ laneLabel(lane) }}</h3>
+                    <z-badge zType="secondary">{{ laneTasks(lane).length }}</z-badge>
+                  </div>
+                  @if (lane.swimlane) {
+                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-text-tertiary">
+                      <span>{{ lane.swimlane.agentRole }}</span>
+                      <span class="text-divider-regular">·</span>
+                      <span>{{ lane.swimlane.environmentType }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="flex shrink-0 items-center gap-1">
+                  @if (lane.swimlane?.wipLimit) {
+                    <z-badge zType="outline"
+                      >{{ laneTasks(lane).length }}/{{ lane.swimlane?.wipLimit }}
+                      {{ 'XP.XProject.WIP' | translate }}</z-badge
+                    >
+                  }
+                  @if (lane.status === 'done' || lane.key === 'release') {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
+                      type="button"
+                      class="size-7 p-0"
+                      [attr.aria-label]="'XP.XProject.CollapseCompleted' | translate"
+                      [title]="'XP.XProject.CollapseCompleted' | translate"
+                      (click)="toggleCompletedCollapsed()"
+                    >
+                      <i [class]="completedCollapsed() ? 'ri-expand-up-down-line' : 'ri-collapse-up-down-line'"></i>
+                    </button>
+                  }
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="sm"
+                    type="button"
+                    class="size-7 p-0"
+                    [attr.aria-label]="'XP.XProject.AddTask' | translate"
+                    [title]="'XP.XProject.AddTask' | translate"
+                    (click)="addTask(lane)"
+                  >
+                    <i class="ri-add-line"></i>
+                  </button>
+                </div>
+              </div>
+              @if (lane.swimlane?.concurrencyLimit) {
+                <div class="mt-2 flex items-center gap-2 text-[11px] text-text-tertiary">
+                  <span class="h-1.5 flex-1 overflow-hidden bg-background-default-subtle">
+                    <span
+                      class="block h-full bg-primary transition-[width]"
+                      [style.width.%]="laneCapacityPercent(lane)"
+                    ></span>
+                  </span>
+                  <span>{{ laneTasks(lane).length }}/{{ lane.swimlane?.concurrencyLimit }}</span>
+                </div>
               }
-            </div>
+            </header>
+            @if (!(lane.status === 'done' || lane.key === 'release') || !completedCollapsed()) {
+              <div
+                cdkDropList
+                class="project-plan-lane-list min-h-0 flex-1 space-y-2 overflow-y-auto p-2"
+                [id]="dropListId(lane.key)"
+                [cdkDropListData]="laneTasks(lane)"
+                [cdkDropListConnectedTo]="dropListIds()"
+                (cdkDropListDropped)="dropTask($event, lane)"
+              >
+                @for (task of laneTasks(lane); track task.id) {
+                  <article
+                    cdkDrag
+                    [cdkDragData]="task"
+                    tabindex="0"
+                    class="project-task-card cursor-grab rounded-lg border border-divider-subtle bg-background p-3 text-left transition-colors hover:border-primary/50 active:cursor-grabbing"
+                    (click)="selectTask(task)"
+                    (keydown.enter)="selectTask(task)"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <span class="min-w-0 flex-1 text-sm font-medium text-text-primary">{{
+                        task.title || task.name
+                      }}</span>
+                      @if (isRiskTask(task)) {
+                        <i
+                          class="ri-alert-line shrink-0 text-text-warning"
+                          [attr.title]="'XP.XProject.TaskRisk' | translate"
+                        ></i>
+                      }
+                    </div>
+                    @if (task.description) {
+                      <p class="mt-1 line-clamp-2 text-xs text-text-tertiary">{{ task.description }}</p>
+                    }
+                    @if (taskAssistantName(task); as assistantName) {
+                      <div class="mt-2 flex min-w-0 items-center gap-1 text-[11px] text-text-tertiary">
+                        <i class="ri-sparkling-2-line shrink-0"></i>
+                        <span class="truncate">{{ assistantName }}</span>
+                      </div>
+                    }
+                    <div class="mt-2 flex items-center justify-between gap-2 text-xs text-text-tertiary">
+                      <span [class]="priorityClass(task.priority)">{{
+                        'XP.XProject.Priority.' + (task.priority || 'medium') | translate
+                      }}</span>
+                      <span>{{
+                        task.dueDate ? (task.dueDate | date: 'MMM d') : ('XP.XProject.NoDueDate' | translate)
+                      }}</span>
+                    </div>
+                    @if (task.steps?.length) {
+                      <div class="mt-2 flex items-center gap-2 text-[11px] text-text-tertiary">
+                        <span class="h-1 flex-1 overflow-hidden bg-background-default-subtle">
+                          <span class="block h-full bg-primary" [style.width.%]="stepProgress(task)"></span>
+                        </span>
+                        <span>{{ completedSteps(task) }}/{{ task.steps.length }}</span>
+                      </div>
+                    }
+                    <ng-template cdkDragPreview [matchSize]="true">
+                      <div
+                        class="project-task-drag-preview rounded-lg border border-primary/60 bg-background p-3 text-sm shadow-xl"
+                      >
+                        <div class="flex items-center gap-2">
+                          <i class="ri-drag-move-2-line shrink-0 text-primary"></i>
+                          <span class="min-w-0 flex-1 truncate font-medium text-text-primary">
+                            {{ task.title || task.name }}
+                          </span>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2 text-xs text-text-tertiary">
+                          <span [class]="priorityClass(task.priority)">
+                            {{ 'XP.XProject.Priority.' + (task.priority || 'medium') | translate }}
+                          </span>
+                          @if (taskAssistantName(task); as assistantName) {
+                            <span class="flex min-w-0 items-center gap-1 truncate">
+                              <i class="ri-sparkling-2-line shrink-0"></i>
+                              <span class="truncate">{{ assistantName }}</span>
+                            </span>
+                          }
+                          <span class="ml-auto shrink-0">
+                            {{ task.dueDate ? (task.dueDate | date: 'MMM d') : ('XP.XProject.NoDueDate' | translate) }}
+                          </span>
+                        </div>
+                      </div>
+                    </ng-template>
+                  </article>
+                } @empty {
+                  <button
+                    z-button
+                    zType="ghost"
+                    type="button"
+                    class="min-h-20 w-full rounded-lg border border-dashed border-divider-regular text-xs text-text-tertiary"
+                    (click)="addTask(lane)"
+                  >
+                    <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.NoTasks' | translate }}
+                  </button>
+                }
+              </div>
+            }
           </section>
         }
       </div></ng-template
@@ -393,16 +549,6 @@ type PlanView = TXpertProjectPlanView
         </div>
       </button></ng-template
     >
-    <xp-project-task-drawer
-      [task]="selectedTask()"
-      [relations]="selectedTaskRelations()"
-      [plans]="facade.plans()"
-      [advanced]="isAdvanced()"
-      [opened]="!!selectedTask()"
-      (openedChange)="closeTask()"
-      (saved)="saveTask($event)"
-      (conversationOpened)="openTaskConversation($event)"
-    />
   `,
   host: { class: 'block w-full min-w-0' }
 })
@@ -416,15 +562,13 @@ export class XpertProjectPlanComponent implements OnInit {
   readonly view = signal<PlanView>(this.readView())
   readonly status = signal('all')
   readonly search = signal('')
-  readonly selectedTask = signal<IXpertProjectTask | null>(null)
-  readonly selectedTaskRelations = signal<XpertProjectTaskRelations>({ conversations: [], executions: [] })
   readonly selectedPlanId = signal<string | null>(null)
   readonly selectedSprintId = signal<string | null>(null)
   readonly selectedMilestoneId = signal('')
-  #taskSelectionSequence = 0
+  readonly completedCollapsed = signal(false)
   readonly viewOptions = [
     { value: 'board' as const, label: 'XP.XProject.Board', icon: 'ri-kanban-view-2-line' },
-    { value: 'table' as const, label: 'XP.XProject.Table', icon: 'ri-list-check-2' },
+    { value: 'table' as const, label: 'XP.XProject.Table', icon: 'ri-table-line' },
     { value: 'gantt' as const, label: 'XP.XProject.Gantt', icon: 'ri-bar-chart-horizontal-line' },
     { value: 'calendar' as const, label: 'XP.XProject.Calendar', icon: 'ri-calendar-line' },
     { value: 'list' as const, label: 'XP.XProject.List', icon: 'ri-list-unordered' }
@@ -467,22 +611,24 @@ export class XpertProjectPlanComponent implements OnInit {
   readonly progress = computed(() =>
     this.visibleTasks().length ? Math.round((this.completedTaskCount() / this.visibleTasks().length) * 100) : 0
   )
-  readonly lanes = computed(() =>
-    this.isAdvanced()
-      ? [
-          { status: 'todo', label: 'XP.XProject.Status.todo' },
-          { status: 'in_progress', label: 'XP.XProject.Status.in_progress' },
-          { status: 'review', label: 'XP.XProject.Status.review' },
-          { status: 'blocked', label: 'XP.XProject.Status.blocked' },
-          { status: 'done', label: 'XP.XProject.Status.done' }
-        ]
-      : [
-          { status: 'todo', label: 'XP.XProject.StatusTodo' },
-          { status: 'in_progress', label: 'XP.XProject.StatusInProgress' },
-          { status: 'paused', label: 'XP.XProject.StatusPaused' },
-          { status: 'done', label: 'XP.XProject.StatusDone' }
-        ]
-  )
+  readonly lanes = computed<BoardLane[]>(() => {
+    if (this.isAdvanced()) {
+      const swimlanes = [...(this.activeSprint()?.swimlanes ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
+      if (swimlanes.length) return swimlanes.map((swimlane) => ({ key: swimlane.key, label: swimlane.name, swimlane }))
+      return [
+        { key: 'backlog', label: 'XP.XProject.Status.todo', status: 'todo' },
+        { key: 'coding', label: 'XP.XProject.Status.in_progress', status: 'in_progress' },
+        { key: 'review', label: 'XP.XProject.Status.review', status: 'review' },
+        { key: 'release', label: 'XP.XProject.Status.done', status: 'done' }
+      ]
+    }
+    return [
+      { key: 'todo', label: 'XP.XProject.StatusTodo', status: 'todo' },
+      { key: 'in_progress', label: 'XP.XProject.StatusInProgress', status: 'in_progress' },
+      { key: 'paused', label: 'XP.XProject.StatusPaused', status: 'paused' },
+      { key: 'done', label: 'XP.XProject.StatusDone', status: 'done' }
+    ]
+  })
 
   ngOnInit() {
     if (this.facade.plans().length) this.selectedPlanId.set(this.facade.plans()[0].id)
@@ -500,6 +646,11 @@ export class XpertProjectPlanComponent implements OnInit {
       replaceUrl: true
     })
   }
+  changeView(value: unknown) {
+    if (typeof value === 'string' && this.viewOptions.some((option) => option.value === value)) {
+      this.setView(value as PlanView)
+    }
+  }
   selectPlan(value: unknown) {
     this.selectedPlanId.set(String(value))
     this.selectedSprintId.set(null)
@@ -511,8 +662,99 @@ export class XpertProjectPlanComponent implements OnInit {
   selectMilestone(value: unknown) {
     this.selectedMilestoneId.set(String(value ?? ''))
   }
-  tasksFor(status: string) {
-    return this.visibleTasks().filter((task) => this.normalizedStatus(task.status) === status)
+  laneLabel(lane: BoardLane) {
+    return lane.swimlane?.name || this.#translate.instant(lane.label)
+  }
+  dropListId(key: string) {
+    return `project-plan-lane-${key}`
+  }
+  dropListIds() {
+    return this.lanes().map((lane) => this.dropListId(lane.key))
+  }
+  laneTasks(lane: BoardLane) {
+    return this.visibleTasks().filter((task) => this.boardLaneForTask(task) === lane.key)
+  }
+  boardLaneForTask(task: IXpertProjectTask) {
+    const lanes = this.lanes()
+    const status = this.normalizedStatus(task.status)
+    if (task.column && status !== 'done' && lanes.some((lane) => lane.key === task.column)) return task.column
+    const direct = lanes.find((lane) => lane.status === status || lane.key === status)
+    if (direct) return direct.key
+    if (!this.isAdvanced()) return status === 'done' ? 'done' : status === 'todo' ? 'todo' : 'paused'
+    if (status === 'todo') return lanes.find((lane) => lane.key === 'backlog')?.key || lanes[0]?.key
+    if (status === 'done') return lanes.find((lane) => lane.key === 'release')?.key || lanes.at(-1)?.key
+    if (status === 'review' || status === 'blocked')
+      return lanes.find((lane) => lane.key === 'review')?.key || lanes[0]?.key
+    return (
+      lanes.find((lane) => lane.key === 'coding')?.key ||
+      lanes.find((lane) => lane.swimlane?.kind === 'execution')?.key ||
+      lanes[0]?.key
+    )
+  }
+  laneStatus(lane: BoardLane): TXpertProjectTaskStatus {
+    if (lane.status) return lane.status
+    if (!this.isAdvanced()) return lane.key as TXpertProjectTaskStatus
+    if (lane.key === 'backlog') return 'todo'
+    if (lane.key === 'review') return 'review'
+    if (lane.key === 'release') return 'done'
+    return 'in_progress'
+  }
+  isRiskTask(task: IXpertProjectTask) {
+    return ['blocked', 'cancelled', 'failed'].includes(task.status)
+  }
+  completedSteps(task: IXpertProjectTask) {
+    return (task.steps || []).filter((step) => step.status === 'done').length
+  }
+  stepProgress(task: IXpertProjectTask) {
+    return task.steps?.length ? Math.round((this.completedSteps(task) / task.steps.length) * 100) : 0
+  }
+  laneCapacityPercent(lane: BoardLane) {
+    const limit = lane.swimlane?.concurrencyLimit || lane.swimlane?.wipLimit || 0
+    return limit ? Math.min(100, Math.round((this.laneTasks(lane).length / limit) * 100)) : 0
+  }
+  taskAssistantName(task: IXpertProjectTask) {
+    const project = this.facade.project()
+    const id = task.assigneeXpertId || project?.settings?.projectAssistantId || project?.xperts?.[0]?.id
+    const assistant = project?.xperts?.find((item) => item.id === id)
+    return assistant?.title || assistant?.name || ''
+  }
+  toggleCompletedCollapsed() {
+    this.completedCollapsed.update((value) => !value)
+  }
+  async dropTask(event: CdkDragDrop<IXpertProjectTask[]>, targetLane: BoardLane) {
+    const task = event.item.data as IXpertProjectTask | undefined
+    if (!task) return
+    const sourceLaneKey = this.boardLaneForTask(task)
+    const buckets = new Map(this.lanes().map((lane) => [lane.key, [...this.laneTasks(lane)]]))
+    const source = buckets.get(sourceLaneKey) ?? []
+    const existingDestination = buckets.get(targetLane.key) ?? []
+    const wipLimit = targetLane.swimlane?.wipLimit || 0
+    if (sourceLaneKey !== targetLane.key && wipLimit > 0 && existingDestination.length >= wipLimit) {
+      this.#toastr.warning('XP.XProject.WipLimitReached')
+      return
+    }
+    const sourceIndex = source.findIndex((item) => item.id === task.id)
+    if (sourceIndex >= 0) source.splice(sourceIndex, 1)
+    const destination = existingDestination
+    const insertAt = Math.max(0, Math.min(event.currentIndex, destination.length))
+    destination.splice(insertAt, 0, task)
+    buckets.set(sourceLaneKey, source)
+    buckets.set(targetLane.key, destination)
+    const items = [...buckets.entries()].flatMap(([column, tasks]) =>
+      tasks.map((item, order) => ({
+        id: item.id,
+        order,
+        column,
+        ...(item.id === task.id ? { status: this.laneStatus(targetLane) } : {})
+      }))
+    )
+    try {
+      await this.facade.reorderTasks(items)
+      if (task.status !== this.laneStatus(targetLane))
+        await this.facade.updateTask(task.id, { status: this.laneStatus(targetLane), column: targetLane.key })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
   }
   tasksForDay(day: string) {
     return this.visibleTasks().filter(
@@ -546,20 +788,38 @@ export class XpertProjectPlanComponent implements OnInit {
         : 'text-text-secondary'
   }
   async selectTask(task: IXpertProjectTask) {
-    const sequence = ++this.#taskSelectionSequence
-    this.selectedTask.set(task)
-    this.selectedTaskRelations.set({ conversations: [], executions: [] })
+    let relations: XpertProjectTaskRelations = { conversations: [], executions: [] }
     try {
-      const relations = await this.facade.loadTaskRelations(task.id)
-      if (sequence === this.#taskSelectionSequence) this.selectedTaskRelations.set(relations)
+      relations = await this.facade.loadTaskRelations(task.id)
     } catch {
       // The task remains editable when relation history is unavailable.
     }
-  }
-  closeTask() {
-    this.#taskSelectionSequence += 1
-    this.selectedTask.set(null)
-    this.selectedTaskRelations.set({ conversations: [], executions: [] })
+    const data: XpertProjectTaskDialogData = {
+      task,
+      relations,
+      plans: this.facade.plans(),
+      project: this.facade.project(),
+      advanced: this.isAdvanced()
+    }
+    const result = await firstValueFrom(
+      this.#dialog.open<
+        XpertProjectTaskDialogComponent,
+        XpertProjectTaskDialogData,
+        XpertProjectTaskDialogResult | null
+      >(XpertProjectTaskDialogComponent, {
+        data,
+        width: 'min(94vw, 720px)',
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+    if (!result) return
+    if ('openConversation' in result) {
+      this.openTaskConversation(result.openConversation)
+      return
+    }
+    await this.saveTask(task, result)
   }
   openTaskConversation(event: { conversationId?: string; threadId?: string }) {
     const threadId = event.threadId?.trim()
@@ -570,23 +830,30 @@ export class XpertProjectPlanComponent implements OnInit {
       queryParamsHandling: 'merge'
     })
   }
-  async saveTask(input: Partial<IXpertProjectTask>) {
-    const task = this.selectedTask()
-    if (!task) return
-    await this.facade.updateTask(task.id, input)
-    this.closeTask()
+  async saveTask(task: IXpertProjectTask, input: Partial<IXpertProjectTask>) {
+    try {
+      await this.facade.updateTask(task.id, input)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
   }
-  async addTask() {
+  async addTask(lane?: BoardLane) {
     const title = this.#translate.instant('XP.XProject.NewTask')
-    const task = await this.facade.createTask({
-      title,
-      name: title,
-      status: 'todo',
-      priority: 'medium',
-      planId: this.activePlan()?.id,
-      milestoneId: this.selectedMilestoneId() || undefined
-    })
-    if (task) this.selectTask(task)
+    try {
+      const status = lane ? this.laneStatus(lane) : 'todo'
+      const task = await this.facade.createTask({
+        title,
+        name: title,
+        status,
+        priority: 'medium',
+        column: lane?.key,
+        planId: this.activePlan()?.id,
+        milestoneId: this.selectedMilestoneId() || undefined
+      })
+      if (task) await this.selectTask(task)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
   }
   async addPlan() {
     await this.openPlanDialog('plan', async (input) => {

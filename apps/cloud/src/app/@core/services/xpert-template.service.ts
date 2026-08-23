@@ -24,6 +24,7 @@ export class XpertTemplateService {
     id: string,
     body: {
       workspaceId: string
+      publish?: boolean
       basic?: {
         name?: string
         title?: string

@@ -14,6 +14,8 @@ export type TXpertProjectSettings = {
   instruction: string
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
+  /** Explicit default Assistant used by the Project assistant panel and task orchestration. */
+  projectAssistantId?: string
 }
 export type TXpertProjectManagementMode = 'simple' | 'advanced'
 export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'
@@ -156,6 +158,8 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
   priority?: TXpertProjectTaskPriority
   assigneeId?: string
   assignee?: IUser
+  /** Project Assistant responsible for executing this task. */
+  assigneeXpertId?: string
   dueDate?: Date
   planId?: string
   milestoneId?: string

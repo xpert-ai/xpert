@@ -27,6 +27,7 @@ export const createListTasksTool = ({
                 priority: task.priority,
                 description: task.description,
                 assigneeId: task.assigneeId,
+                assigneeXpertId: task.assigneeXpertId,
                 planId: task.planId,
                 milestoneId: task.milestoneId,
                 threadId: task.threadId,

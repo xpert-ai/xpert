@@ -181,7 +181,13 @@ export class XpertProjectListComponent implements OnInit {
     firstValueFrom(
       this.#dialog.open<XpertProjectCreateDialogComponent, undefined, IXpertProjectCreateInput>(
         XpertProjectCreateDialogComponent,
-        { width: 'min(94vw, 560px)' }
+        {
+          width: 'min(94vw, 600px)',
+          maxWidth: 'calc(100vw - 32px)',
+          maxHeight: 'calc(100vh - 32px)',
+          backdropClass: 'backdrop-blur-sm-black',
+          panelClass: 'xp-overlay-pane-card'
+        }
       ).closed
     ).then(async (input) => {
       if (!input) return

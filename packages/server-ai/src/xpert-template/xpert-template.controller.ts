@@ -90,7 +90,13 @@ export class XpertTemplateController {
     async installTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string, @Body() body: unknown) {
         const input = parseTemplateInstallInput(body)
         return this.commandBus.execute(
-            new PluginTemplateInstallCommand(id, input.workspaceId, LanguagesMap[language] ?? language, input.basic)
+            new PluginTemplateInstallCommand(
+                id,
+                input.workspaceId,
+                LanguagesMap[language] ?? language,
+                input.basic,
+                input.publish
+            )
         )
     }
 
@@ -105,7 +111,11 @@ export class XpertTemplateController {
     }
 }
 
-function parseTemplateInstallInput(value: unknown): { workspaceId: string; basic?: PluginTemplateInstallBasic } {
+function parseTemplateInstallInput(value: unknown): {
+    workspaceId: string
+    basic?: PluginTemplateInstallBasic
+    publish: boolean
+} {
     if (!isObjectValue(value)) {
         throw new BadRequestException('Request body is required')
     }
@@ -116,8 +126,10 @@ function parseTemplateInstallInput(value: unknown): { workspaceId: string; basic
 
     const basicValue = Reflect.get(value, 'basic')
     const basic = isObjectValue(basicValue) ? parseTemplateInstallBasic(basicValue) : undefined
+    const publish = Reflect.get(value, 'publish') === true
     return {
         workspaceId,
+        publish,
         ...(basic ? { basic } : {})
     }
 }

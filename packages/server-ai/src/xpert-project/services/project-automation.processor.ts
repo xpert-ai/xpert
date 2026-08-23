@@ -98,6 +98,7 @@ export class XpertProjectAutomationProcessor {
             if (typeof input.status === 'string') task.status = input.status as XpertProjectTask['status']
             if (typeof input.priority === 'string') task.priority = input.priority as XpertProjectTask['priority']
             if (typeof input.assigneeId === 'string') task.assigneeId = input.assigneeId
+            if (typeof input.assigneeXpertId === 'string') task.assigneeXpertId = input.assigneeXpertId
             await this.taskRepository.save(task)
             return
         }

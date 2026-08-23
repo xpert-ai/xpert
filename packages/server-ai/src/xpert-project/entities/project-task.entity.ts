@@ -53,6 +53,9 @@ export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertPr
     @Column({ nullable: true })
     assigneeId?: string
 
+    @Column({ nullable: true })
+    assigneeXpertId?: string
+
     @Column({ nullable: true, type: 'timestamp with time zone' })
     dueDate?: Date
 

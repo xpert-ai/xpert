@@ -42,6 +42,7 @@ jest.mock('../plugin-resource-installer.service', () => ({
 
 import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
+import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
@@ -97,6 +98,44 @@ connections:
 `
 
 describe('PluginTemplateInstallHandler', () => {
+    it('publishes a template xpert after installation when requested', async () => {
+        const { handler, commandBus } = createHandler({ templateDsl: createSandboxTemplateDsl() })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-project:project-assistant',
+                'workspace-1',
+                LanguagesEnum.English,
+                undefined,
+                true
+            )
+        )
+
+        const publishCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof XpertPublishCommand)
+        expect(publishCommand).toMatchObject({
+            id: 'xpert-1',
+            newVersion: false,
+            environmentId: '',
+            notes: 'Installed from template'
+        })
+    })
+
+    it('keeps the default template installation as a draft', async () => {
+        const { handler, commandBus } = createHandler({ templateDsl: createSandboxTemplateDsl() })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-project:project-assistant',
+                'workspace-1',
+                LanguagesEnum.English
+            )
+        )
+
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof XpertPublishCommand)).toBe(false)
+    })
+
     it('initializes template prompt workflows after plugin dependencies are installed', async () => {
         const { handler, templateWorkspaceInitializer } = createHandler({
             templateDsl: createSandboxTemplateDsl()

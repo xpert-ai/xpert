@@ -6,6 +6,7 @@ import {
     IXpertWorkspace,
     TAvatar,
     TXpertExportedTemplate,
+    TXpertOptions,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { UserPublicDTO } from '@xpert-ai/server-core'
@@ -53,6 +54,10 @@ export class XpertIdentiDto implements Partial<IXpert> {
 
     @Expose()
     tags?: ITag[]
+
+    /** Keep the template lineage available to consumers that need safe role filtering. */
+    @Expose()
+    options?: Pick<TXpertOptions, 'templateSource'>
 
     @Expose()
     @Transform((params: TransformFnParams) => (params.value ? new XpertAgentIdentiDto(params.value) : null))

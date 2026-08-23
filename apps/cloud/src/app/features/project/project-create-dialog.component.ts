@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateModule } from '@ngx-translate/core'
 import type {
@@ -14,6 +14,7 @@ import type {
   IXpertWorkspace,
   OrderTypeEnum
 } from '@xpert-ai/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import {
   Z_MODAL_DATA,
   ZardButtonComponent,
@@ -24,35 +25,51 @@ import {
   ZardTagSelectComponent,
   type ZardTagSelectOption
 } from '@xpert-ai/headless-ui'
-import { BehaviorSubject, catchError, distinctUntilChanged, map, of, startWith, switchMap, take, tap } from 'rxjs'
-import { CopilotModelService } from '../../@core/services/copilot-model.service'
+import {
+  BehaviorSubject,
+  catchError,
+  distinctUntilChanged,
+  firstValueFrom,
+  map,
+  of,
+  startWith,
+  switchMap,
+  take,
+  tap
+} from 'rxjs'
 import { KnowledgebaseService } from '../../@core/services/knowledgebase.service'
 import { UsersOrganizationsService } from '../../@core/services/users-organizations.service'
 import { XpertAPIService } from '../../@core/services/xpert.service'
 import { XpertToolsetService } from '../../@core/services/xpert-toolset.service'
+import { XpertTemplateService } from '../../@core/services/xpert-template.service'
 import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.service'
+import { CopilotModelSelectComponent } from '../../@shared/copilot'
+import { getErrorMessage, injectToastr } from '@cloud/app/@core'
+import { isProjectAssistant, PROJECT_ASSISTANT_TEMPLATE_ID } from './project-assistant.constants'
 
 @Component({
   standalone: true,
   selector: 'xp-project-create-dialog',
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
     ZardInputDirective,
     ZardTagSelectComponent,
+    CopilotModelSelectComponent,
     ...ZardFormImports,
     ...ZardSelectImports
   ],
   template: `
-    <form class="flex max-h-[82vh] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="submit()">
-      <div class="flex items-start justify-between border-b border-divider-subtle pb-4">
+    <form class="flex max-h-[min(82vh,720px)] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="flex items-start justify-between border-b border-divider-subtle pb-3">
         <div>
           <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
             {{ 'XP.XProject.StepOf' | translate: { step: step(), total: 3 } }}
           </p>
-          <h2 class="mt-1 text-lg font-semibold text-text-primary">{{ 'XP.XProject.NewProject' | translate }}</h2>
+          <h2 class="mt-1 text-base font-semibold text-text-primary">{{ 'XP.XProject.NewProject' | translate }}</h2>
         </div>
         <button
           z-button
@@ -65,7 +82,7 @@ import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.serv
           <i class="ri-close-line"></i>
         </button>
       </div>
-      <div class="min-h-64 space-y-4 overflow-auto py-5">
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         @if (step() === 1) {
           <z-form-field appearance="fill" class="w-full">
             <z-form-label [zRequired]="true">{{ 'XP.XProject.WorkspaceLabel' | translate }}</z-form-label>
@@ -76,7 +93,9 @@ import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.serv
               }
             </z-select>
             @if (!workspacesLoading() && !workspaces().length) {
-              <p class="mt-1 text-xs text-text-tertiary">{{ 'XP.XProject.NoAuthoringWorkspace' | translate }}</p>
+              <p class="col-span-full mt-1 text-xs text-text-tertiary">
+                {{ 'XP.XProject.NoAuthoringWorkspace' | translate }}
+              </p>
             }
           </z-form-field>
           <z-form-field appearance="fill" class="w-full">
@@ -116,13 +135,48 @@ import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.serv
         }
         @if (step() === 2) {
           <z-form-field appearance="fill" class="w-full">
-            <z-form-label>{{ 'XP.XProject.XpertResource' | translate }}</z-form-label>
-            <z-select class="w-full" formControlName="xpertId" [zDisabled]="xpertsLoading()">
-              <z-select-item zValue="">{{ 'XP.XProject.NotSelected' | translate }}</z-select-item>
-              @for (xpert of xperts(); track xpert.id) {
-                <z-select-item [zValue]="xpert.id">{{ xpert.name }}</z-select-item>
-              }
-            </z-select>
+            <z-form-label>{{ 'XP.XProject.CopilotModel' | translate }}</z-form-label>
+            <copilot-model-select
+              class="block w-full"
+              [modelType]="eModelType.LLM"
+              [hiddenLabel]="true"
+              [required]="true"
+              [(ngModel)]="copilotModel"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </z-form-field>
+          <z-form-field appearance="fill" class="w-full">
+            <z-form-label>{{ 'XP.XProject.ProjectAssistant' | translate }}</z-form-label>
+            <div class="col-span-full grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <z-select
+                class="block w-full min-w-0"
+                formControlName="xpertId"
+                [zDisabled]="xpertsLoading() || installingTemplate()"
+              >
+                <z-select-item zValue="">{{ 'XP.XProject.NotSelected' | translate }}</z-select-item>
+                @for (xpert of projectAssistants(); track xpert.id) {
+                  <z-select-item [zValue]="xpert.id">{{ xpert.title || xpert.name }}</z-select-item>
+                }
+              </z-select>
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                class="w-full whitespace-nowrap sm:w-auto"
+                type="button"
+                [zDisabled]="!canCreateProjectAssistantFromTemplate()"
+                (click)="createProjectAssistantFromTemplate()"
+              >
+                <i class="ri-magic-line mr-1"></i>
+                {{
+                  (installingTemplate() ? 'XP.XProject.CreatingProjectAssistant' : 'XP.XProject.CreateProjectAssistant')
+                    | translate
+                }}
+              </button>
+            </div>
+            <p class="col-span-full mt-1 text-xs leading-5 text-text-tertiary">
+              {{ 'XP.XProject.ProjectAssistantTemplateHint' | translate }}
+            </p>
           </z-form-field>
           <z-form-field appearance="fill" class="w-full">
             <z-form-label>{{ 'XP.XProject.ToolsetResource' | translate }}</z-form-label>
@@ -158,21 +212,9 @@ import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.serv
               [compareWith]="compareUsers"
             />
           </z-form-field>
-          <z-form-field appearance="fill" class="w-full">
-            <z-form-label>{{ 'XP.XProject.CopilotModel' | translate }}</z-form-label>
-            <z-select class="w-full" formControlName="copilotModelId" [zDisabled]="copilotModelsLoading()">
-              <z-select-item zValue="">{{ 'XP.XProject.UseProjectDefaultModel' | translate }}</z-select-item>
-              @for (model of copilotModels(); track model.id) {
-                <z-select-item [zValue]="model.id">{{ model.model || model.id }}</z-select-item>
-              }
-            </z-select>
-            @if (!copilotModelsLoading() && !copilotModels().length) {
-              <p class="mt-1 text-xs text-text-tertiary">{{ 'XP.XProject.NoCopilotModels' | translate }}</p>
-            }
-          </z-form-field>
         }
       </div>
-      <div class="flex items-center justify-between border-t border-divider-subtle pt-4">
+      <div class="flex items-center justify-between border-t border-divider-subtle pt-3">
         <button z-button zType="ghost" type="button" [disabled]="step() === 1" (click)="previous()">
           {{ 'XP.XProject.Back' | translate }}
         </button>
@@ -191,21 +233,25 @@ import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.serv
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectCreateDialogComponent {
+  readonly eModelType = AiModelTypeEnum
   readonly #dialogRef = inject<ZardDialogRef<XpertProjectCreateDialogComponent>>(ZardDialogRef)
   readonly #fb = inject(FormBuilder)
   readonly #xpertService = inject(XpertAPIService)
+  readonly #templateService = inject(XpertTemplateService)
   readonly #toolsetService = inject(XpertToolsetService)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
-  readonly #copilotModelService = inject(CopilotModelService)
   readonly #membersService = inject(UsersOrganizationsService)
   readonly #workspaceService = inject(XpertWorkspaceService)
+  readonly #toastr = injectToastr()
   readonly step = signal(1)
   readonly submitting = signal(false)
   readonly workspacesLoading = signal(true)
   readonly xpertsLoading = signal(true)
+  readonly installingTemplate = signal(false)
+  readonly installedAssistant = signal<IXpert | null>(null)
   readonly toolsetsLoading = signal(true)
   readonly knowledgebasesLoading = signal(true)
-  readonly copilotModelsLoading = signal(true)
+  copilotModel: Partial<ICopilotModel> | null = null
   readonly #workspaceSelection$ = new BehaviorSubject<string>('')
   readonly workspaces = toSignal(
     this.#workspaceService.getAllMy({ order: { updatedAt: 'DESC' as OrderTypeEnum } }, { purpose: 'authoring' }).pipe(
@@ -237,6 +283,16 @@ export class XpertProjectCreateDialogComponent {
     ),
     { initialValue: [] as IXpert[] }
   )
+  readonly projectAssistants = computed(() => {
+    const items = this.installedAssistant()
+      ? [...this.xperts(), this.installedAssistant()!].filter(
+          (xpert, index, all) => all.findIndex((item) => item.id === xpert.id) === index
+        )
+      : this.xperts()
+    const marked = items.filter((xpert) => isProjectAssistant(xpert))
+    // Keep legacy workspaces usable until their assistants are re-marked.
+    return marked.length ? marked : items
+  })
   readonly toolsets = toSignal(
     this.#workspaceSelection$.pipe(
       distinctUntilChanged(),
@@ -273,17 +329,6 @@ export class XpertProjectCreateDialogComponent {
     ),
     { initialValue: [] as IKnowledgebase[] }
   )
-  readonly copilotModels = toSignal(
-    this.#copilotModelService.getAllInOrg({ take: 100, order: { updatedAt: 'DESC' as OrderTypeEnum } }).pipe(
-      map(({ items }) => items ?? []),
-      catchError(() => of([])),
-      map((items) => {
-        this.copilotModelsLoading.set(false)
-        return items
-      })
-    ),
-    { initialValue: [] as ICopilotModel[] }
-  )
   readonly members = toSignal(
     this.#membersService.getAllInOrg(['user'], { isActive: true }).pipe(
       map(({ items }) => items?.map((entry) => entry.user).filter((user): user is IUser => !!user) ?? []),
@@ -305,7 +350,6 @@ export class XpertProjectCreateDialogComponent {
     toolsetId: [''],
     knowledgebaseId: [''],
     memberIds: this.#fb.nonNullable.control<IUser[]>([]),
-    copilotModelId: [''],
     managementMode: ['simple' as 'simple' | 'advanced']
   })
   readonly modes = [
@@ -350,6 +394,16 @@ export class XpertProjectCreateDialogComponent {
   canContinue() {
     return this.step() === 1 ? this.form.controls.name.valid && !!this.form.controls.workspaceId.value : true
   }
+  canCreateProjectAssistantFromTemplate() {
+    const model = this.copilotModel
+    return (
+      !!this.form.controls.workspaceId.value &&
+      !this.installingTemplate() &&
+      (!model?.modelType || model.modelType === AiModelTypeEnum.LLM) &&
+      !!model?.copilotId &&
+      !!model?.model
+    )
+  }
   next() {
     if (this.canContinue()) this.step.update((value) => Math.min(3, value + 1))
   }
@@ -367,14 +421,52 @@ export class XpertProjectCreateDialogComponent {
       name: value.name,
       description: value.description,
       status: 'active',
-      settings: { instruction: value.description, managementMode: value.managementMode }
+      settings: {
+        instruction: value.description,
+        managementMode: value.managementMode,
+        ...(value.xpertId ? { projectAssistantId: value.xpertId } : {})
+      }
     }
     const memberIds = value.memberIds.map((user) => user.id).filter(Boolean)
     if (value.xpertId) input.xpertIds = [value.xpertId]
     if (value.toolsetId) input.toolsetIds = [value.toolsetId]
     if (value.knowledgebaseId) input.knowledgebaseIds = [value.knowledgebaseId]
     if (memberIds.length) input.memberIds = memberIds
-    if (value.copilotModelId) input.copilotModelId = value.copilotModelId
+    if (this.copilotModel) input.copilotModel = this.copilotModel
     this.#dialogRef.close(input)
+  }
+
+  async createProjectAssistantFromTemplate() {
+    const workspaceId = this.form.controls.workspaceId.value
+    const selectedModel = this.copilotModel
+    if (!workspaceId || !selectedModel || !this.canCreateProjectAssistantFromTemplate()) return
+    this.installingTemplate.set(true)
+    try {
+      const response = await firstValueFrom(
+        this.#templateService.installTemplate(PROJECT_ASSISTANT_TEMPLATE_ID, {
+          workspaceId,
+          publish: true,
+          basic: {
+            name: `${this.form.controls.name.value.trim() || 'Project'} Assistant`,
+            title: `${this.form.controls.name.value.trim() || 'Project'} Assistant`,
+            description: this.form.controls.description.value.trim() || undefined,
+            copilotModel: {
+              copilotId: selectedModel.copilotId,
+              model: selectedModel.model,
+              modelType: selectedModel.modelType ?? AiModelTypeEnum.LLM,
+              options: selectedModel.options
+            }
+          }
+        })
+      )
+      if (response.xpert) {
+        this.installedAssistant.set(response.xpert)
+        this.form.controls.xpertId.setValue(response.xpert.id)
+      }
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.installingTemplate.set(false)
+    }
   }
 }

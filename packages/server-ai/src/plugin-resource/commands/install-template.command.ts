@@ -16,6 +16,7 @@ export class PluginTemplateInstallCommand implements ICommand {
         public readonly templateId: string,
         public readonly workspaceId: string,
         public readonly language: LanguagesEnum,
-        public readonly basic?: PluginTemplateInstallBasic
+        public readonly basic?: PluginTemplateInstallBasic,
+        public readonly publish = false
     ) {}
 }

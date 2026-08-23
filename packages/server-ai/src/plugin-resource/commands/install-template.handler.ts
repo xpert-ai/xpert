@@ -19,6 +19,7 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
+import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertDraftDslDTO } from '../../xpert/dto'
 import { XpertService } from '../../xpert/xpert.service'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
@@ -85,9 +86,14 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 xpert.workspaceId ?? command.workspaceId,
                 command.language
             )
+            const installedXpert = command.publish
+                ? await this.commandBus.execute<XpertPublishCommand, IXpert>(
+                      new XpertPublishCommand(xpert.id, false, '', 'Installed from template')
+                  )
+                : xpert
             return {
                 ...result,
-                xpert
+                xpert: installedXpert
             }
         } catch (error) {
             await this.rollbackTemplateXpert(xpert)

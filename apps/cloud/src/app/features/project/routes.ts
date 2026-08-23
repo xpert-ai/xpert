@@ -16,7 +16,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: XpertProjectOverviewComponent, pathMatch: 'full', data: { title: 'Project overview' } },
       { path: 'plan', component: XpertProjectPlanComponent, data: { title: 'Project plan' } },
-      { path: 'tasks', component: XpertProjectTasksComponent, data: { title: 'Project tasks' } },
+      { path: 'tasks', component: XpertProjectTasksComponent, data: { title: 'Project conversations' } },
       { path: 'assets', component: XpertProjectAssetsComponent, data: { title: 'Project assets' } },
       { path: 'config', component: XpertProjectConfigComponent, data: { title: 'Project configuration' } }
     ]

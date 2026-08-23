@@ -52,6 +52,8 @@ export class ProjectToolset extends _BaseToolset {
                 projectId: this.project.id,
                 service: this.taskService,
                 conversationId: this.params.conversationId,
+                xpertId: this.params.xpertId,
+                agentKey: this.params.agentKey,
                 assertPermission: () => this.service.assertToolPermission(this.project.id, 'edit')
             })
         )

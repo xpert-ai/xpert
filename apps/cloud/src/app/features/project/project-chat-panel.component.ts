@@ -8,6 +8,7 @@ import type { IXpertProject } from '@xpert-ai/contracts'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
 import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '../assistant/assistant-chatkit.runtime'
+import { isProjectAssistant } from './project-assistant.constants'
 
 @Component({
   standalone: true,
@@ -15,11 +16,29 @@ import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '
   imports: [CommonModule, DragDropModule, RouterLink, TranslateModule, ChatKit, ZardButtonComponent],
   template: `
     <section
+      #panel
       cdkDrag
       cdkDragBoundary=".xp-project-shell"
       [cdkDragDisabled]="!floating()"
-      class="flex h-full min-h-0 min-w-0 flex-col rounded-lg border border-divider-regular bg-components-card-bg shadow-xl lg:rounded-none lg:border-0 lg:shadow-none"
+      class="group relative flex h-full min-h-0 min-w-0 flex-col rounded-lg border border-divider-regular bg-components-card-bg shadow-xl lg:rounded-none lg:border-0 lg:shadow-none"
     >
+      <div
+        class="absolute inset-y-0 left-0 z-50 flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none items-center justify-center"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        [attr.aria-label]="'XP.XProject.ResizeProjectAssistant' | translate"
+        [attr.aria-valuemin]="resizeMinWidth()"
+        [attr.aria-valuemax]="resizeMaxWidth()"
+        [attr.aria-valuenow]="resizeWidth()"
+        (pointerdown)="onResizePointerDown($event, panel)"
+        (lostpointercapture)="resizeLost.emit()"
+        (keydown)="resizeKeydown.emit($event)"
+      >
+        <span
+          class="h-full w-px bg-divider-subtle transition-colors hover:bg-primary group-focus-within:bg-primary"
+        ></span>
+      </div>
       <header class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-divider-subtle px-4">
         <div cdkDragHandle class="flex min-w-0 cursor-grab items-center gap-2 active:cursor-grabbing">
           <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -105,16 +124,25 @@ export class XpertProjectChatPanelComponent {
   readonly project = input<IXpertProject | null>(null)
   readonly projectId = input('')
   readonly floating = input(false)
+  readonly resizeMinWidth = input(320)
+  readonly resizeMaxWidth = input(640)
+  readonly resizeWidth = input(512)
   readonly assistantKey = input<string | null>(null)
   readonly initialThreadId = input<string | null>(null)
   readonly closed = output<void>()
   readonly threadChanged = output<string | null>()
+  readonly resizeStart = output<{ event: PointerEvent; panel: HTMLElement; handle: HTMLElement }>()
+  readonly resizeLost = output<void>()
+  readonly resizeKeydown = output<KeyboardEvent>()
 
   readonly assistant = computed(() => {
     const xperts = this.project()?.xperts ?? []
     const key = this.assistantKey()?.trim()
+    const configuredId = this.project()?.settings?.projectAssistantId?.trim()
     return (
       (key ? xperts.find((xpert) => xpert.id === key || xpert.slug === key) : null) ??
+      (configuredId ? xperts.find((xpert) => xpert.id === configuredId || xpert.slug === configuredId) : null) ??
+      xperts.find((xpert) => isProjectAssistant(xpert)) ??
       xperts.find((xpert) => xpert.latest !== false) ??
       null
     )
@@ -148,4 +176,10 @@ export class XpertProjectChatPanelComponent {
     titleDefault: 'Project assistant',
     onThreadChange: ({ threadId }) => this.threadChanged.emit(threadId)
   })
+
+  onResizePointerDown(event: PointerEvent, panel: HTMLElement) {
+    const handle = event.currentTarget
+    if (!(handle instanceof HTMLElement)) return
+    this.resizeStart.emit({ event, panel, handle })
+  }
 }

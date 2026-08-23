@@ -107,8 +107,12 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             task.steps = await this.stepRepository.save(task.steps)
             if (entity.status) {
                 task.status = entity.status
-                await this.repository.save(task)
+            } else if (task.steps.length > 0 && task.steps.every((step) => step.status === 'done')) {
+                // A completed step list is the assistant's canonical completion signal.
+                // Persist the task state even when the model omits the redundant status field.
+                task.status = 'done'
             }
+            await this.repository.save(task)
         }
 
         return tasks
@@ -116,9 +120,13 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 
     async createTask(projectId: string, input: Partial<IXpertProjectTask>) {
         await this.validateTaskMode(projectId, input.status)
+        const project = await this.projectRepository.findOne({ where: { id: projectId }, relations: ['xperts'] })
+        if (!project) throw new NotFoundException('Xpert project not found')
+        const assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
         const [task] = await this.saveAll({
             ...input,
             projectId,
+            assigneeXpertId,
             name: input.name?.trim() || input.title?.trim() || 'Untitled task',
             title: input.title ?? input.name,
             status: input.status ?? 'todo',
@@ -130,10 +138,32 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 
     async updateTask(projectId: string, taskId: string, input: Partial<IXpertProjectTask>) {
         await this.validateTaskMode(projectId, input.status)
+        const project = await this.projectRepository.findOne({ where: { id: projectId }, relations: ['xperts'] })
+        if (!project) throw new NotFoundException('Xpert project not found')
         const task = await this.findOne({ where: { id: taskId, projectId } })
         if (!task) throw new NotFoundException('Project task not found')
-        Object.assign(task, input, { projectId })
+        const nextInput = { ...input } as Partial<IXpertProjectTask>
+        if (Object.prototype.hasOwnProperty.call(input, 'assigneeXpertId')) {
+            nextInput.assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId, false)
+        }
+        Object.assign(task, nextInput, { projectId })
         return this.save(task)
+    }
+
+    private async resolveAssigneeXpertId(
+        project: XpertProject,
+        requestedId?: string,
+        useDefault = true
+    ): Promise<string | undefined> {
+        const normalizedId = typeof requestedId === 'string' ? requestedId.trim() : ''
+        if (!normalizedId && !useDefault) return undefined
+        const fallback = project.settings?.projectAssistantId || project.xperts?.[0]?.id
+        const assigneeXpertId = normalizedId || fallback
+        if (!assigneeXpertId) return undefined
+        if (!project.xperts?.some((xpert) => xpert.id === assigneeXpertId)) {
+            throw new BadRequestException('The task execution Assistant must be a member of this Project')
+        }
+        return assigneeXpertId
     }
 
     private async validateTaskMode(projectId: string, status?: IXpertProjectTask['status']) {
@@ -216,6 +246,13 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             if (!conversation || conversation.projectId !== projectId)
                 throw new NotFoundException('Project conversation not found')
         }
+        if (input.status === 'queued' && input.threadId && input.xpertId) {
+            const queued = await this.executionRepository.findOne({
+                where: { projectId, taskId, threadId: input.threadId, xpertId: input.xpertId, status: 'queued' },
+                order: { createdAt: OrderTypeEnum.ASC }
+            })
+            if (queued) return queued
+        }
         const latest = await this.executionRepository.findOne({
             where: { projectId, taskId },
             order: { attempt: 'DESC' }
@@ -285,6 +322,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             ids: string[]
             status?: IXpertProjectTask['status']
             assigneeId?: string
+            assigneeXpertId?: string
             priority?: IXpertProjectTask['priority']
         }
     ) {
@@ -294,10 +332,21 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             const tasks = await repository.find({ where: { projectId, id: In(input.ids) } })
             if (tasks.length !== input.ids.length)
                 throw new NotFoundException('One or more project tasks were not found')
+            if (input.assigneeXpertId !== undefined) {
+                const project = await this.projectRepository.findOne({
+                    where: { id: projectId },
+                    relations: ['xperts']
+                })
+                if (!project) throw new NotFoundException('Xpert project not found')
+                await this.resolveAssigneeXpertId(project, input.assigneeXpertId, false)
+            }
             for (const task of tasks) {
                 Object.assign(task, {
                     ...(input.status !== undefined ? { status: input.status } : {}),
                     ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
+                    ...(input.assigneeXpertId !== undefined
+                        ? { assigneeXpertId: input.assigneeXpertId.trim() || undefined }
+                        : {}),
                     ...(input.priority !== undefined ? { priority: input.priority } : {})
                 })
             }

@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
 import type {
+  IChatConversation,
   IXpertProject,
   IXpertProjectCreateInput,
   IXpertProjectActivity,
@@ -23,6 +24,9 @@ export class XpertProjectFacade {
   readonly projects = signal<IXpertProject[]>([])
   readonly plans = signal<IXpertProjectPlan[]>([])
   readonly tasks = signal<IXpertProjectTask[]>([])
+  readonly conversations = signal<IChatConversation[]>([])
+  readonly conversationsLoading = signal(false)
+  readonly conversationsError = signal<string | null>(null)
   readonly assets = signal<IXpertProjectAsset[]>([])
   readonly assetsTotal = signal(0)
   readonly assetCount = signal(0)
@@ -58,6 +62,8 @@ export class XpertProjectFacade {
     this.projectError.set(null)
     this.loading.set(true)
     this.error.set(null)
+    this.conversations.set([])
+    this.conversationsError.set(null)
     try {
       const overview = await firstValueFrom(this.#api.overview(id))
       if (sequence !== this.#projectLoadSequence) return null
@@ -74,6 +80,29 @@ export class XpertProjectFacade {
         this.projectLoading.set(false)
         this.loading.set(false)
       }
+    }
+  }
+
+  async loadConversations(projectId = this.project()?.id) {
+    const id = projectId?.trim()
+    if (!id) {
+      this.conversations.set([])
+      return []
+    }
+
+    this.conversationsLoading.set(true)
+    this.conversationsError.set(null)
+    try {
+      const response = await firstValueFrom(this.#api.conversations(id))
+      const items = response.items ?? []
+      this.conversations.set(items)
+      return items
+    } catch (error) {
+      this.conversationsError.set(error instanceof Error ? error.message : 'Failed to load conversations')
+      this.conversations.set([])
+      return []
+    } finally {
+      this.conversationsLoading.set(false)
     }
   }
 
@@ -105,7 +134,25 @@ export class XpertProjectFacade {
   async bindXpert(xpertId: string) {
     const project = this.project()
     if (!project || !xpertId) return null
+    const updated = await firstValueFrom(this.#api.setAssistant(project.id, xpertId))
+    this.project.set({ ...project, ...updated })
+    this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
+    return updated
+  }
+
+  async addXpert(xpertId: string) {
+    const project = this.project()
+    if (!project || !xpertId) return null
     const updated = await firstValueFrom(this.#api.addXpert(project.id, xpertId))
+    this.project.set({ ...project, ...updated })
+    this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
+    return updated
+  }
+
+  async removeXpert(xpertId: string) {
+    const project = this.project()
+    if (!project || !xpertId) return null
+    const updated = await firstValueFrom(this.#api.removeXpert(project.id, xpertId))
     this.project.set({ ...project, ...updated })
     this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
     return updated
@@ -172,6 +219,15 @@ export class XpertProjectFacade {
     const task = await firstValueFrom(this.#api.updateTask(project.id, taskId, input))
     this.tasks.update((items) => items.map((item) => (item.id === task.id ? { ...item, ...task } : item)))
     return task
+  }
+
+  async reorderTasks(items: Array<{ id: string; order: number; column?: string }>) {
+    const project = this.project()
+    if (!project || !items.length) return []
+    const tasks = await firstValueFrom(this.#api.reorderTasks(project.id, items))
+    const updatedById = new Map(tasks.map((task) => [task.id, task]))
+    this.tasks.update((current) => current.map((task) => updatedById.get(task.id) ?? task))
+    return tasks
   }
 
   async loadTaskRelations(taskId: string): Promise<XpertProjectTaskRelations> {

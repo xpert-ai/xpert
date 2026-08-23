@@ -100,7 +100,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
         await this.service.assertProjectAccess(id)
         const [plans, tasks, assets, assetTotal, activities, automations] = await Promise.all([
             this.planService.list(id),
-            this.service.getTasks(id, { take: 100, skip: 0, order: {}, where: {}, withDeleted: false }),
+            this.service.getTasks(id, {
+                take: 100,
+                skip: 0,
+                order: {},
+                where: {},
+                relations: ['steps'],
+                withDeleted: false
+            }),
             this.assetService.list(id, undefined, undefined, { take: 100, skip: 0 }),
             this.assetService.countProjectAssets(id),
             this.activityService.list(id, 20),
@@ -138,6 +145,8 @@ export class XpertProjectController extends CrudController<XpertProject> {
         // can complete project setup in one request. Each helper is
         // idempotent and applies the current tenant/organization query scope.
         for (const xpertId of xpertIds ?? []) await this.service.addXpert(project.id, xpertId)
+        const projectAssistantId = projectInput.settings?.projectAssistantId ?? xpertIds?.[0]
+        if (projectAssistantId) await this.service.setAssistant(project.id, projectAssistantId)
         for (const toolsetId of toolsetIds ?? []) await this.service.addToolset(project.id, toolsetId)
         for (const knowledgebaseId of knowledgebaseIds ?? [])
             await this.service.addKnowledge(project.id, knowledgebaseId)
@@ -288,6 +297,15 @@ export class XpertProjectController extends CrudController<XpertProject> {
         return this.service.addXpert(id, xpertId)
     }
 
+    @Put(':id/assistant')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @UseGuards(XpertProjectGuard)
+    async setAssistant(@Param('id') id: string, @Body() input: { xpertId?: string }) {
+        const xpertId = input?.xpertId?.trim()
+        if (!xpertId) throw new BadRequestException('Project Assistant is required')
+        return new XpertProjectDto(await this.service.setAssistant(id, xpertId))
+    }
+
     @Delete(':id/xperts/:xpert')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
     @UseGuards(XpertProjectGuard)
@@ -302,7 +320,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
         const { items, total } = await this.queryBus.execute(
             new FindChatConversationQuery(
                 { projectId: id },
-                { relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } }
+                { relations: ['createdBy', 'xpert'], order: { updatedAt: OrderTypeEnum.DESC } }
             )
         )
         return {
@@ -440,6 +458,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
             ids: string[]
             status?: IXpertProjectTask['status']
             assigneeId?: string
+            assigneeXpertId?: string
             priority?: IXpertProjectTask['priority']
         }
     ) {

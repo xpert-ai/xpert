@@ -298,6 +298,13 @@ function getRunCreateContext(context: unknown): Record<string, unknown> | undefi
     return context
 }
 
+function getContextProjectId(context?: Record<string, unknown>): string | undefined {
+    const direct = typeof context?.projectId === 'string' ? context.projectId : undefined
+    const env = isRecord(context?.env) ? context.env : undefined
+    const nested = typeof env?.projectId === 'string' ? env.projectId : undefined
+    return (direct ?? nested)?.trim() || undefined
+}
+
 export function validateRunCreateInput(
     input: LegacyTChatRequest | TChatRequestV2 | unknown,
     conversation: IChatConversation
@@ -363,6 +370,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         applyAssistantScope(xpert)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
+        if (chatRequest.action === 'send' && !chatRequest.projectId) {
+            chatRequest.projectId = getContextProjectId(runtimeContext)
+        }
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
 
         // Backfill legacy threads independently with a compare-and-set update.

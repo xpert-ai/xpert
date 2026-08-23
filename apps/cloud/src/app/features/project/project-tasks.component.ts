@@ -1,185 +1,241 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { ActivatedRoute, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import type { IChatConversation } from '@xpert-ai/contracts'
 import {
-  ZardBadgeComponent,
   ZardButtonComponent,
-  ZardCardImports,
+  ZardDialogService,
   ZardInputDirective,
-  ZardTableImports
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 import { XpertProjectFacade } from './project.facade'
+import {
+  XpertProjectConversationDialogComponent,
+  type XpertProjectConversationDialogData
+} from './project-conversation-dialog.component'
+
+type ConversationFilter = 'all' | 'busy' | 'idle' | 'interrupted' | 'error'
 
 @Component({
   standalone: true,
   selector: 'xp-project-tasks',
   imports: [
     CommonModule,
-    FormsModule,
+    RouterLink,
     TranslateModule,
-    ZardBadgeComponent,
     ZardButtonComponent,
     ZardInputDirective,
-    ...ZardCardImports,
-    ...ZardTableImports
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent
   ],
   template: `
-    <section class="mx-auto flex w-full flex-col gap-4 p-4 sm:p-6">
-      <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
+    <section class="mx-auto flex w-full max-w-screen-xl flex-col gap-4 p-4 sm:p-6">
+      <header
+        class="flex flex-col gap-3 border-b border-divider-subtle pb-4 sm:flex-row sm:items-end sm:justify-between"
+      >
+        <div class="min-w-0">
           <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-            {{ 'XP.XProject.ExecutionQueue' | translate }}
+            {{ 'XP.XProject.AICollaboration' | translate }}
           </p>
-          <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ 'XP.XProject.Tasks' | translate }}</h2>
+          <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ 'XP.XProject.Conversations' | translate }}</h2>
+          <p class="mt-1 max-w-2xl text-sm text-text-secondary">
+            {{ 'XP.XProject.ConversationsDescription' | translate }}
+          </p>
         </div>
-        <button z-button zType="default" zSize="default" type="button" (click)="addTask()">
-          <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddTask' | translate }}
-        </button>
+        <a
+          z-button
+          zType="default"
+          zSize="sm"
+          class="shrink-0"
+          [routerLink]="['/project', projectId]"
+          [queryParams]="{ chat: 'open' }"
+        >
+          <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.StartConversation' | translate }}
+        </a>
       </header>
-      <div class="flex flex-col gap-3 md:flex-row">
+
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <input
           z-input
-          class="w-full md:max-w-sm"
-          [placeholder]="'XP.XProject.FilterTasks' | translate"
+          class="w-full sm:max-w-sm"
+          [placeholder]="'XP.XProject.FilterConversations' | translate"
           [value]="search()"
           (input)="search.set($any($event.target).value)"
         />
-        <div class="flex gap-1 text-xs">
-          @for (filter of filters; track filter) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="sm"
-              type="button"
-              [class.bg-background-default-subtle]="status() === filter"
-              (click)="status.set(filter)"
-            >
-              {{ 'XP.XProject.Status.' + filter | translate }}
-            </button>
-          }
-        </div>
-      </div>
-      <z-card class="w-full overflow-hidden border border-divider-regular bg-components-card-bg shadow-none"
-        ><z-card-content class="p-0"
-          ><div class="overflow-x-auto">
-            <table z-table zSize="compact" class="w-full min-w-[900px] text-sm">
-              <thead z-table-header>
-                <tr z-table-row class="bg-background-default-subtle">
-                  <th z-table-head>{{ 'XP.XProject.TaskColumn' | translate }}</th>
-                  <th z-table-head>{{ 'XP.XProject.StatusColumn' | translate }}</th>
-                  <th z-table-head>{{ 'XP.XProject.PriorityColumn' | translate }}</th>
-                  <th z-table-head>{{ 'XP.XProject.AssigneeColumn' | translate }}</th>
-                  <th z-table-head>{{ 'XP.XProject.DueDateColumn' | translate }}</th>
-                  <th z-table-head>{{ 'XP.XProject.ExecutionColumn' | translate }}</th>
-                </tr>
-              </thead>
-              <tbody z-table-body>
-                @for (task of visibleTasks(); track task.id) {
-                  <tr z-table-row class="hover:bg-background-default-subtle/60">
-                    <td z-table-cell>
-                      <div class="font-medium text-text-primary">{{ task.title || task.name }}</div>
-                      <div class="max-w-[360px] truncate text-xs text-text-tertiary">
-                        {{ task.description || ('XP.XProject.NoDescription' | translate) }}
-                      </div>
-                    </td>
-                    <td z-table-cell>
-                      <z-badge zType="outline">{{ 'XP.XProject.Status.' + task.status | translate }}</z-badge>
-                    </td>
-                    <td z-table-cell>
-                      <span [class]="priorityClass(task.priority)">{{
-                        'XP.XProject.Priority.' + (task.priority || 'medium') | translate
-                      }}</span>
-                    </td>
-                    <td z-table-cell class="text-text-secondary">
-                      {{ task.assignee?.name || task.assigneeId || ('XP.XProject.Unassigned' | translate) }}
-                    </td>
-                    <td z-table-cell class="text-text-secondary">
-                      {{ task.dueDate ? (task.dueDate | date: 'mediumDate') : '—' }}
-                    </td>
-                    <td z-table-cell>
-                      <button z-button zType="ghost" zSize="sm" type="button" (click)="select(task.id)">
-                        <i class="ri-file-list-3-line mr-1"></i>{{ 'XP.XProject.Details' | translate }}
-                      </button>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr z-table-row>
-                    <td z-table-cell colspan="6" class="py-12 text-center text-text-tertiary">
-                      {{ 'XP.XProject.NoTasksMatch' | translate }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div></z-card-content
-        ></z-card
-      >
-      @if (selectedTask()) {
-        <z-card class="border border-primary/30 bg-components-card-bg shadow-none"
-          ><z-card-content class="p-4"
-            ><div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-xs uppercase tracking-wide text-text-tertiary">
-                  {{ 'XP.XProject.TaskDetail' | translate }}
-                </p>
-                <h3 class="mt-1 font-semibold text-text-primary">
-                  {{ selectedTask()?.title || selectedTask()?.name }}
-                </h3>
-              </div>
-              <button
-                z-button
-                zType="ghost"
-                zSize="sm"
-                type="button"
-                [attr.aria-label]="'XP.XProject.Close' | translate"
-                (click)="selected.set(null)"
-              >
-                <i class="ri-close-line"></i>
-              </button>
-            </div>
-            <p class="mt-3 text-sm text-text-secondary">
-              {{ selectedTask()?.description || ('XP.XProject.NoDescription' | translate) }}
-            </p>
-            <div class="mt-4 border-t border-divider-subtle pt-3 text-xs text-text-tertiary">
-              {{ 'XP.XProject.ExecutionSteps' | translate: { count: selectedTask()?.steps?.length || 0 } }} ·
-              {{ 'XP.XProject.Thread' | translate }}:
-              {{ selectedTask()?.threadId || ('XP.XProject.NotStarted' | translate) }}
-            </div></z-card-content
-          ></z-card
+        <z-toggle-group
+          zType="outline"
+          zSize="sm"
+          class="shrink-0"
+          [value]="status()"
+          [attr.aria-label]="'XP.XProject.ConversationFilter' | translate"
+          (valueChange)="setStatus($event)"
         >
-      }
+          @for (filter of filters; track filter) {
+            <z-toggle-group-item [value]="filter" [attr.aria-label]="conversationStatusLabel(filter) | translate">
+              {{ conversationStatusLabel(filter) | translate }}
+            </z-toggle-group-item>
+          }
+        </z-toggle-group>
+      </div>
+
+      <section class="overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg shadow-none">
+        @if (facade.conversationsLoading()) {
+          <div class="flex min-h-52 items-center justify-center gap-2 text-sm text-text-tertiary">
+            <i class="ri-loader-4-line animate-spin"></i>{{ 'XP.XProject.LoadingConversations' | translate }}
+          </div>
+        } @else if (facade.conversationsError(); as error) {
+          <div class="flex min-h-52 flex-col items-center justify-center gap-2 px-5 text-center">
+            <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
+            <p class="text-sm text-text-destructive">{{ error }}</p>
+            <button z-button zType="outline" zSize="sm" type="button" (click)="reload()">
+              {{ 'XP.XProject.RetryLoadingConversations' | translate }}
+            </button>
+          </div>
+        } @else {
+          <div class="divide-y divide-divider-subtle">
+            @for (conversation of visibleConversations(); track conversation.id) {
+              <button
+                type="button"
+                class="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-background-default-subtle sm:px-5"
+                (click)="openConversation(conversation)"
+              >
+                <span
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15"
+                >
+                  <i class="ri-chat-3-line"></i>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="flex min-w-0 items-center gap-2">
+                    <span class="truncate text-sm font-medium text-text-primary">
+                      {{ conversation.title || ('XP.XProject.UntitledConversation' | translate) }}
+                    </span>
+                    <span class="flex shrink-0 items-center gap-1 text-xs text-text-tertiary">
+                      <span [class]="conversationStatusDot(conversation.status)"></span>
+                      <span class="hidden sm:inline">{{
+                        conversationStatusLabel(conversation.status) | translate
+                      }}</span>
+                    </span>
+                  </span>
+                  <span class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-text-tertiary">
+                    <span>{{
+                      conversation.updatedAt
+                        ? (conversation.updatedAt | date: 'medium')
+                        : ('XP.XProject.NoActivityDate' | translate)
+                    }}</span>
+                    @if (conversation.threadId) {
+                      <span class="font-mono"
+                        >{{ 'XP.XProject.Thread' | translate }}: {{ shortId(conversation.threadId) }}</span
+                      >
+                    }
+                    @if (conversation.executions?.length) {
+                      <span class="font-mono"
+                        >{{ 'XP.XProject.ExecutionId' | translate }}:
+                        {{ shortId(conversation.executions?.[0]?.id) }}</span
+                      >
+                    }
+                  </span>
+                </span>
+                <i
+                  class="ri-arrow-right-s-line shrink-0 text-lg text-text-tertiary transition-transform group-hover:translate-x-0.5 group-hover:text-text-primary"
+                ></i>
+              </button>
+            } @empty {
+              <div class="flex min-h-52 flex-col items-center justify-center px-5 text-center">
+                <i class="ri-chat-3-line text-3xl text-text-tertiary"></i>
+                <p class="mt-3 text-sm text-text-tertiary">{{ 'XP.XProject.NoProjectConversations' | translate }}</p>
+                <a
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  class="mt-3"
+                  [routerLink]="['/project', projectId]"
+                  [queryParams]="{ chat: 'open' }"
+                >
+                  {{ 'XP.XProject.StartConversation' | translate }}
+                </a>
+              </div>
+            }
+          </div>
+        }
+      </section>
     </section>
   `,
   host: { class: 'block w-full min-w-0' }
 })
-export class XpertProjectTasksComponent {
+export class XpertProjectTasksComponent implements OnInit {
   readonly facade = inject(XpertProjectFacade)
+  readonly #dialog = inject(ZardDialogService)
+  readonly #route = inject(ActivatedRoute)
+  readonly projectId = this.#route.parent?.snapshot.paramMap.get('id') ?? ''
   readonly search = signal('')
-  readonly status = signal('all')
-  readonly selected = signal<string | null>(null)
-  readonly filters = ['all', 'todo', 'in_progress', 'review', 'done', 'blocked']
-  readonly visibleTasks = computed(() =>
-    this.facade
-      .tasks()
-      .filter(
-        (task) =>
-          (this.status() === 'all' || task.status === this.status()) &&
-          `${task.title ?? ''} ${task.name}`.toLowerCase().includes(this.search().toLowerCase().trim())
-      )
-  )
-  readonly selectedTask = computed(() => this.facade.tasks().find((task) => task.id === this.selected()) ?? null)
-  select(id: string) {
-    this.selected.set(id)
+  readonly status = signal<ConversationFilter>('all')
+  readonly filters: ConversationFilter[] = ['all', 'busy', 'idle', 'interrupted', 'error']
+  readonly visibleConversations = computed(() => {
+    const query = this.search().trim().toLowerCase()
+    const filter = this.status()
+    return this.facade.conversations().filter((conversation) => {
+      const text = `${conversation.title ?? ''} ${conversation.threadId ?? ''} ${conversation.from ?? ''}`.toLowerCase()
+      return (!query || text.includes(query)) && (filter === 'all' || (conversation.status ?? 'idle') === filter)
+    })
+  })
+
+  ngOnInit() {
+    void this.reload()
   }
-  priorityClass(priority?: string) {
-    return priority === 'urgent'
-      ? 'text-text-destructive font-medium'
-      : priority === 'high'
-        ? 'text-text-warning'
-        : 'text-text-secondary'
+
+  reload() {
+    return this.facade.loadConversations(this.projectId)
   }
-  async addTask() {
-    await this.facade.createTask({ title: 'New task', name: 'New task', status: 'todo', priority: 'medium' })
+
+  setStatus(value: unknown) {
+    if (typeof value === 'string' && this.filters.includes(value as ConversationFilter)) {
+      this.status.set(value as ConversationFilter)
+    }
+  }
+
+  conversationStatusLabel(status?: string): string {
+    const normalized = status && this.filters.includes(status as ConversationFilter) ? status : 'idle'
+    return `XP.XProject.ConversationStatus.${normalized}`
+  }
+
+  conversationStatusDot(status?: string) {
+    switch (status) {
+      case 'busy':
+        return 'size-1.5 rounded-full bg-primary animate-pulse'
+      case 'error':
+        return 'size-1.5 rounded-full bg-text-destructive'
+      case 'interrupted':
+        return 'size-1.5 rounded-full bg-text-warning'
+      default:
+        return 'size-1.5 rounded-full bg-text-success'
+    }
+  }
+
+  shortId(value?: string | null) {
+    const normalized = value?.trim()
+    return normalized && normalized.length > 16
+      ? `${normalized.slice(0, 8)}...${normalized.slice(-6)}`
+      : normalized || '-'
+  }
+
+  openConversation(conversation: IChatConversation) {
+    const threadId = conversation.threadId?.trim()
+    if (!threadId) return
+
+    const data: XpertProjectConversationDialogData = {
+      projectId: this.projectId,
+      project: this.facade.project(),
+      conversation,
+      executionId: conversation.executions?.[0]?.id
+    }
+    this.#dialog.open(XpertProjectConversationDialogComponent, {
+      data,
+      width: 'min(96vw, 980px)',
+      maxWidth: 'calc(100vw - 24px)',
+      backdropClass: 'backdrop-blur-sm-black',
+      panelClass: 'xp-overlay-pane-card'
+    })
   }
 }

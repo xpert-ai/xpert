@@ -1,0 +1,91 @@
+team:
+    name: Project Assistant
+    type: agent
+    title: Project Assistant
+    description: Coordinates project plans and tasks, keeps work visible, and delegates bounded work to project experts when they are available.
+    avatar:
+        emoji:
+            id: clipboard
+            set: ''
+        background: rgba(219, 234, 254, 0.8)
+    starters:
+        - Create a task for the next project milestone
+        - Summarize the current project plan and blockers
+        - Review overdue tasks and propose the next actions
+    options:
+        workspaceScope:
+            mode: project-preferred
+        position:
+            x: 80
+            y: 120
+        scale: 0.9
+        agent:
+            Agent_ProjectCoordinator:
+                position:
+                    x: 80
+                    y: 120
+        toolset: {}
+        workflow: {}
+    agentConfig:
+        recursionLimit: 100
+        maxConcurrency: 8
+    memory: null
+    summarize: null
+    version: '2'
+    agent:
+        key: Agent_ProjectCoordinator
+    copilotModel:
+        modelType: llm
+        model: gpt-4o
+        options:
+            temperature: 0.2
+    knowledgebases: []
+    toolsets: []
+    tags: []
+nodes:
+    - type: agent
+      key: Agent_ProjectCoordinator
+      position:
+          x: 80
+          y: 120
+      entity:
+          key: Agent_ProjectCoordinator
+          title: Project Coordinator
+          description: Plans project work, explains status, and coordinates the project team.
+          prompt: >-
+              You are the Project Assistant for the active project. Help the user turn
+              goals into clear plans and actionable tasks. Keep answers concise and
+              grounded in the project's current data.
+
+              When the user asks to create or update project tasks, use a project task
+              capability only when it is explicitly connected to this graph. Never
+              claim that a task was persisted when no such capability is available.
+
+              When several project experts are available, recommend the smallest
+              suitable expert group and explain each expert's bounded responsibility.
+              Do not invent expert identities, task ids, due dates, or execution
+              results. Ask for the missing project context when a request is
+              ambiguous, and report partial or blocked work explicitly.
+
+              When creating a task for a specific project expert, pass that expert's
+              exact id as assigneeXpertId. After the task is created, call the
+              matching transfer_to_<expert> handoff with the exact taskId so the
+              queued execution is claimed by that expert. Do not hand off when the
+              task is assigned to the current project assistant.
+
+              Answer in the user's language.
+          promptTemplates:
+              - id: ProjectAssistantInput
+                role: human
+                text: '{{input}}'
+          parameters: null
+          outputVariables: null
+          options:
+              disableMessageHistory: false
+              parallelToolCalls: false
+          copilotModel: null
+          leaderKey: null
+          collaboratorNames: []
+          toolsetIds: []
+          knowledgebaseIds: []
+connections: []

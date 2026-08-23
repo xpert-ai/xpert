@@ -113,6 +113,9 @@ export class ProjectTaskBatchUpdateDTO {
     @IsUUID()
     assigneeId?: string
     @IsOptional()
+    @IsUUID()
+    assigneeXpertId?: string
+    @IsOptional()
     @IsEnum(['urgent', 'high', 'medium', 'low'])
     priority?: TXpertProjectTaskPriority
 }

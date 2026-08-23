@@ -1,15 +1,20 @@
 import { CommonModule } from '@angular/common'
 import { BreakpointObserver } from '@angular/cdk/layout'
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core'
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { DestroyRef } from '@angular/core'
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import type { ConnectorInstance } from '@xpert-ai/plugin-sdk/connector'
+import type { ISkillPackage } from '@xpert-ai/contracts'
+import { resolveI18nText } from '@xpert-ai/contracts'
 import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { map, distinctUntilChanged } from 'rxjs'
+import { firstValueFrom, map, distinctUntilChanged } from 'rxjs'
+import { SkillPackageService, XpertConnectorService } from '../../@core'
 import { XpertProjectFacade } from './project.facade'
 import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
+import { IconComponent } from '../../@shared/avatar'
 
 @Component({
   standalone: true,
@@ -22,6 +27,7 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
+    IconComponent,
     XpertProjectChatPanelComponent,
     ...ZardCardImports
   ],
@@ -104,64 +110,260 @@ import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
           <main class="h-full min-h-0 min-w-0 flex-1 overflow-y-auto"><router-outlet /></main>
           @if (!chatPanelOpen()) {
             <aside
-              class="sticky top-0 hidden h-full min-h-0 w-64 shrink-0 self-stretch border-l border-divider-subtle p-4 xl:block"
+              class="sticky top-0 hidden h-full min-h-0 w-[21rem] shrink-0 self-stretch border-l border-divider-subtle bg-background-body xl:block"
             >
-              <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-                ><z-card-content class="space-y-3 p-4"
-                  ><p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                    {{ 'XP.XProject.ProjectStatus' | translate }}
-                  </p>
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-text-secondary">{{ 'XP.XProject.TasksLabel' | translate }}</span
-                    ><span class="font-medium text-text-primary">{{ facade.tasks().length }}</span>
+              <div class="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-5">
+                <header class="flex items-center justify-between gap-3 px-1">
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium uppercase tracking-[0.12em] text-text-tertiary">
+                      {{ 'XP.XProject.Governance' | translate }}
+                    </p>
+                    <h2 class="mt-1 truncate text-lg font-semibold text-text-primary">
+                      {{ 'XP.XProject.ProjectConfiguration' | translate }}
+                    </h2>
                   </div>
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-text-secondary">{{ 'XP.XProject.AssetsLabel' | translate }}</span
-                    ><span class="font-medium text-text-primary">{{ facade.assetCount() }}</span>
+                  <a
+                    z-button
+                    zType="ghost"
+                    zSize="sm"
+                    [routerLink]="['/project', id(), 'config']"
+                    [attr.aria-label]="'XP.XProject.Settings' | translate"
+                    [title]="'XP.XProject.Settings' | translate"
+                  >
+                    <i class="ri-settings-3-line"></i>
+                  </a>
+                </header>
+
+                <div class="mt-5 space-y-3">
+                  <section
+                    class="rounded-2xl border border-divider-regular bg-components-card-bg p-4"
+                    aria-labelledby="project-command-card"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <h3 id="project-command-card" class="text-base font-semibold text-text-primary">
+                        {{ 'XP.XProject.Instruction' | translate }}
+                      </h3>
+                      <a
+                        z-button
+                        zType="ghost"
+                        zSize="sm"
+                        [routerLink]="['/project', id(), 'config']"
+                        [attr.aria-label]="'XP.XProject.Edit' | translate"
+                        [title]="'XP.XProject.Edit' | translate"
+                      >
+                        <i class="ri-add-line"></i>
+                      </a>
+                    </div>
+                    @if (facade.project()?.settings?.instruction?.trim(); as instruction) {
+                      <p class="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6 text-text-secondary">
+                        {{ instruction }}
+                      </p>
+                    } @else {
+                      <p class="mt-3 text-sm leading-6 text-text-tertiary">
+                        {{ 'XP.XProject.ProjectInstructionPanelEmpty' | translate }}
+                      </p>
+                    }
+                  </section>
+
+                  <section
+                    class="rounded-2xl border border-divider-regular bg-components-card-bg p-4"
+                    aria-labelledby="project-connectors-card"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex min-w-0 items-center gap-2">
+                        <h3 id="project-connectors-card" class="text-base font-semibold text-text-primary">
+                          {{ 'XP.XProject.Connectors' | translate }}
+                        </h3>
+                        <span class="text-sm text-text-tertiary">{{ workspaceConnectorCount() }}</span>
+                      </div>
+                      <a
+                        z-button
+                        zType="ghost"
+                        zSize="sm"
+                        [routerLink]="workspaceId() ? ['/xpert/w', workspaceId(), 'connectors'] : null"
+                        [attr.aria-label]="'XP.XProject.OpenWorkspaceResources' | translate"
+                        [title]="'XP.XProject.OpenWorkspaceResources' | translate"
+                      >
+                        <i class="ri-add-line"></i>
+                      </a>
+                    </div>
+                    @if (workspaceResourcesLoading() && !workspaceConnectors().length) {
+                      <p class="mt-4 text-sm text-text-tertiary">
+                        {{ 'XP.XProject.LoadingWorkspaceResources' | translate }}
+                      </p>
+                    } @else if (workspaceConnectors().length) {
+                      <div class="mt-4 flex flex-wrap gap-2">
+                        @for (connector of workspaceConnectors().slice(0, 5); track connector.id) {
+                          <span
+                            class="flex size-10 items-center justify-center rounded-xl border border-divider-subtle bg-background-default-subtle text-sm font-semibold text-text-secondary"
+                            [title]="connectorLabel(connector)"
+                          >
+                            {{ connectorInitial(connector) }}
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="mt-4 text-sm text-text-tertiary">
+                        {{ 'XP.XProject.NoConnectorsInWorkspace' | translate }}
+                      </p>
+                    }
+                  </section>
+
+                  <section
+                    class="rounded-2xl border border-divider-regular bg-components-card-bg p-4"
+                    aria-labelledby="project-experts-card"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex min-w-0 items-center gap-2">
+                        <h3 id="project-experts-card" class="text-base font-semibold text-text-primary">
+                          {{ 'XP.XProject.ProjectExperts' | translate }}
+                        </h3>
+                        <span class="text-sm text-text-tertiary">{{ projectExperts().length }}</span>
+                      </div>
+                      <a
+                        z-button
+                        zType="ghost"
+                        zSize="sm"
+                        [routerLink]="['/project', id(), 'config']"
+                        [attr.aria-label]="'XP.XProject.ManageExperts' | translate"
+                        [title]="'XP.XProject.ManageExperts' | translate"
+                      >
+                        <i class="ri-add-line"></i>
+                      </a>
+                    </div>
+                    @if (projectExperts().length) {
+                      <div class="mt-4 flex flex-wrap gap-2">
+                        @for (expert of projectExperts().slice(0, 5); track expert.id) {
+                          <span
+                            class="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-divider-subtle bg-background-default-subtle text-sm font-semibold text-text-secondary"
+                            [title]="expert.title || expert.name"
+                          >
+                            {{ expertInitial(expert.title || expert.name) }}
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="mt-4 text-sm text-text-tertiary">{{ 'XP.XProject.NoProjectExperts' | translate }}</p>
+                    }
+                  </section>
+
+                  <section
+                    class="rounded-2xl border border-divider-regular bg-components-card-bg p-4"
+                    aria-labelledby="project-skills-card"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex min-w-0 items-center gap-2">
+                        <h3 id="project-skills-card" class="text-base font-semibold text-text-primary">
+                          {{ 'XP.XProject.Skills' | translate }}
+                        </h3>
+                        <span class="text-sm text-text-tertiary">{{ workspaceSkills().length }}</span>
+                      </div>
+                      <a
+                        z-button
+                        zType="ghost"
+                        zSize="sm"
+                        [routerLink]="workspaceId() ? ['/xpert/w', workspaceId(), 'skills'] : null"
+                        [attr.aria-label]="'XP.XProject.OpenWorkspaceResources' | translate"
+                        [title]="'XP.XProject.OpenWorkspaceResources' | translate"
+                      >
+                        <i class="ri-add-line"></i>
+                      </a>
+                    </div>
+                    @if (workspaceSkills().length) {
+                      <div class="mt-4 flex flex-wrap gap-2">
+                        @for (skill of workspaceSkills().slice(0, 5); track skill.id) {
+                          <span
+                            class="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-divider-subtle bg-background-default-subtle"
+                            [title]="skillLabel(skill)"
+                          >
+                            <xp-icon [icon]="skill.metadata?.icon ?? null" [size]="22"></xp-icon>
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="mt-4 text-sm text-text-tertiary">{{ 'XP.XProject.NoSkillsInWorkspace' | translate }}</p>
+                    }
+                  </section>
+
+                  <section
+                    class="rounded-2xl border border-divider-regular bg-components-card-bg p-4"
+                    aria-labelledby="project-automation-card"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex min-w-0 items-center gap-2">
+                        <h3 id="project-automation-card" class="text-base font-semibold text-text-primary">
+                          {{ 'XP.XProject.Automations' | translate }}
+                        </h3>
+                        <span class="text-sm text-text-tertiary">{{ facade.automations().length }}</span>
+                      </div>
+                      <a
+                        z-button
+                        zType="ghost"
+                        zSize="sm"
+                        [routerLink]="['/project', id(), 'config']"
+                        [attr.aria-label]="'XP.XProject.AddAutomation' | translate"
+                        [title]="'XP.XProject.AddAutomation' | translate"
+                      >
+                        <i class="ri-add-line"></i>
+                      </a>
+                    </div>
+                    @if (facade.automations().length) {
+                      <div class="mt-4 space-y-2">
+                        @for (automation of facade.automations().slice(0, 2); track automation.id) {
+                          <div class="flex items-center gap-2 text-sm text-text-secondary">
+                            <span
+                              class="size-2 rounded-full"
+                              [class.bg-primary]="automation.enabled"
+                              [class.bg-divider-regular]="!automation.enabled"
+                            ></span>
+                            <span class="truncate">{{ automation.name }}</span>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <p class="mt-4 text-sm text-text-tertiary">{{ 'XP.XProject.AutomationPanelHint' | translate }}</p>
+                    }
+                  </section>
+
+                  <div class="grid grid-cols-3 gap-2 border-t border-divider-subtle px-1 pt-4 text-center">
+                    <div>
+                      <p class="text-lg font-semibold text-text-primary">{{ facade.tasks().length }}</p>
+                      <p class="text-xs text-text-tertiary">{{ 'XP.XProject.TasksLabel' | translate }}</p>
+                    </div>
+                    <div>
+                      <p class="text-lg font-semibold text-text-primary">{{ facade.assetCount() }}</p>
+                      <p class="text-xs text-text-tertiary">{{ 'XP.XProject.AssetsLabel' | translate }}</p>
+                    </div>
+                    <div>
+                      <p class="text-lg font-semibold text-text-primary">
+                        {{ facade.project()?.members?.length || 0 }}
+                      </p>
+                      <p class="text-xs text-text-tertiary">{{ 'XP.XProject.MembersLabel' | translate }}</p>
+                    </div>
                   </div>
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-text-secondary">{{ 'XP.XProject.MembersLabel' | translate }}</span
-                    ><span class="font-medium text-text-primary">{{ facade.project()?.members?.length || 0 }}</span>
-                  </div></z-card-content
-                ></z-card
-              ><a
-                class="mt-3 flex items-center justify-between rounded-md border border-divider-subtle px-3 py-2 text-sm text-text-secondary hover:bg-background-default-subtle hover:text-text-primary"
-                [routerLink]="['/project', id(), 'config']"
-                >{{ 'XP.XProject.Settings' | translate }} <i class="ri-settings-3-line"></i
-              ></a>
+                </div>
+              </div>
             </aside>
           }
         </div>
       </div>
       @if (chatPanelOpen()) {
         <aside
-          #chatPanel
           class="fixed bottom-3 right-3 z-50 h-[min(78vh,44rem)] max-w-[calc(100vw-1.5rem)] shrink-0 border-divider-subtle lg:sticky lg:top-0 lg:h-full lg:max-h-none lg:max-w-none lg:border-l lg:shadow-sm"
           [style.width.px]="chatPanelWidth()"
         >
-          <div
-            class="group absolute inset-y-0 left-0 z-50 flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none items-center justify-center"
-            role="separator"
-            tabindex="0"
-            aria-orientation="vertical"
-            [attr.aria-label]="'XP.XProject.ResizeProjectAssistant' | translate"
-            [attr.aria-valuemin]="chatPanelMinWidth"
-            [attr.aria-valuemax]="chatPanelMaxWidth"
-            [attr.aria-valuenow]="chatPanelWidth()"
-            (pointerdown)="startChatPanelResize($event, chatPanel)"
-            (lostpointercapture)="onChatPanelResizeLostPointerCapture()"
-            (keydown)="onChatPanelResizeKeydown($event)"
-          >
-            <span
-              class="h-full w-px bg-divider-subtle transition-colors group-hover:bg-primary group-focus-visible:bg-primary"
-            ></span>
-          </div>
           <xp-project-chat-panel
             [project]="facade.project()"
             [projectId]="id()"
             [assistantKey]="chatAssistantKey()"
             [initialThreadId]="chatThreadId()"
             [floating]="isNarrow()"
+            [resizeMinWidth]="chatPanelMinWidth"
+            [resizeMaxWidth]="chatPanelMaxWidth"
+            [resizeWidth]="chatPanelWidth()"
+            (resizeStart)="startChatPanelResize($event.event, $event.panel, $event.handle)"
+            (resizeLost)="onChatPanelResizeLostPointerCapture()"
+            (resizeKeydown)="onChatPanelResizeKeydown($event)"
             (closed)="closeChatPanel()"
             (threadChanged)="onChatThreadChanged($event)"
           />
@@ -211,6 +413,16 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   readonly chatPanelMaxWidth = 640
   readonly chatThreadId = signal<string | null>(null)
   readonly chatAssistantKey = signal<string | null>(null)
+  readonly workspaceConnectors = signal<ConnectorInstance[]>([])
+  readonly workspaceSkills = signal<ISkillPackage[]>([])
+  readonly workspaceResourcesLoading = signal(false)
+  readonly projectExperts = computed(() => this.facade.project()?.xperts ?? [])
+  readonly workspaceConnectorCount = computed(() => this.workspaceConnectors().length)
+  readonly workspaceId = computed(() => this.facade.project()?.workspaceId ?? '')
+  readonly #connectorService = inject(XpertConnectorService)
+  readonly #skillPackageService = inject(SkillPackageService)
+  #loadedResourceWorkspaceId: string | null = null
+  #resourceLoadSequence = 0
   #resizeStartX = 0
   #resizeStartWidth = 0
   #resizePointerId: number | null = null
@@ -220,10 +432,72 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   readonly tabs = [
     { label: 'XP.XProject.Overview', path: '' },
     { label: 'XP.XProject.Plan', path: 'plan' },
-    { label: 'XP.XProject.Tasks', path: 'tasks' },
+    { label: 'XP.XProject.Conversations', path: 'tasks' },
     { label: 'XP.XProject.Assets', path: 'assets' },
     { label: 'XP.XProject.Config', path: 'config' }
   ]
+
+  constructor() {
+    effect(() => {
+      const workspaceId = this.workspaceId()
+      if (workspaceId === this.#loadedResourceWorkspaceId) return
+
+      this.#loadedResourceWorkspaceId = workspaceId || null
+      if (!workspaceId) {
+        this.workspaceConnectors.set([])
+        this.workspaceSkills.set([])
+        this.workspaceResourcesLoading.set(false)
+        return
+      }
+
+      void this.loadWorkspaceResources(workspaceId)
+    })
+  }
+
+  async loadWorkspaceResources(workspaceId: string) {
+    const sequence = ++this.#resourceLoadSequence
+    this.workspaceResourcesLoading.set(true)
+    try {
+      const [connectorsResult, skillsResult] = await Promise.allSettled([
+        firstValueFrom(this.#connectorService.list(workspaceId)),
+        firstValueFrom(
+          this.#skillPackageService.getAllByWorkspace(workspaceId, {
+            relations: ['skillIndex', 'skillIndex.repository'],
+            take: 100
+          })
+        )
+      ])
+      if (sequence !== this.#resourceLoadSequence || workspaceId !== this.workspaceId()) return
+      this.workspaceConnectors.set(
+        connectorsResult.status === 'fulfilled'
+          ? connectorsResult.value.filter((connector) => connector.status !== 'disconnected')
+          : []
+      )
+      this.workspaceSkills.set(skillsResult.status === 'fulfilled' ? (skillsResult.value.items ?? []) : [])
+    } catch {
+      if (sequence !== this.#resourceLoadSequence) return
+      this.workspaceConnectors.set([])
+      this.workspaceSkills.set([])
+    } finally {
+      if (sequence === this.#resourceLoadSequence) this.workspaceResourcesLoading.set(false)
+    }
+  }
+
+  connectorLabel(connector: ConnectorInstance) {
+    return connector.profile?.name || connector.profile?.email || connector.provider
+  }
+
+  connectorInitial(connector: ConnectorInstance) {
+    return this.connectorLabel(connector).trim().charAt(0).toUpperCase() || 'C'
+  }
+
+  expertInitial(name?: string) {
+    return name?.trim().charAt(0).toUpperCase() || 'A'
+  }
+
+  skillLabel(skill: ISkillPackage) {
+    return resolveI18nText(skill.metadata?.displayName, 'zh-Hans') || skill.name || skill.metadata?.name || 'Skill'
+  }
   ngOnInit() {
     this.#route.paramMap
       .pipe(
@@ -267,11 +541,11 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
     this.stopChatPanelResize()
   }
 
-  startChatPanelResize(event: PointerEvent, panel: HTMLElement) {
+  startChatPanelResize(event: PointerEvent, panel: HTMLElement, handle?: HTMLElement) {
     if (event.button !== 0) return
 
-    const handle = event.currentTarget as HTMLElement | null
-    if (!handle) return
+    const resizeHandle = handle ?? (event.currentTarget as HTMLElement | null)
+    if (!resizeHandle) return
 
     event.preventDefault()
     event.stopPropagation()
@@ -281,8 +555,8 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
     this.chatPanelWidth.set(this.clampChatPanelWidth(this.#resizeStartWidth, bounds))
     this.chatPanelResizing.set(true)
     this.#resizePointerId = event.pointerId
-    this.#resizeHandle = handle
-    handle.setPointerCapture(event.pointerId)
+    this.#resizeHandle = resizeHandle
+    resizeHandle.setPointerCapture(event.pointerId)
 
     this.#resizeMoveListener = (moveEvent) => {
       if (moveEvent.pointerId !== this.#resizePointerId) return

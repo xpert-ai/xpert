@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import type {
+  IChatConversation,
   IXpertProject,
   IXpertProjectCreateInput,
   IXpertProjectActivity,
@@ -95,6 +96,10 @@ export class XpertProjectApiService {
     return this.#http.put<IXpertProject>(`${API_XPERT_PROJECT}/${id}/xperts/${xpertId}`, {})
   }
 
+  setAssistant(id: string, xpertId: string) {
+    return this.#http.put<IXpertProject>(`${API_XPERT_PROJECT}/${id}/assistant`, { xpertId })
+  }
+
   removeXpert(id: string, xpertId: string) {
     return this.#http.delete<IXpertProject>(`${API_XPERT_PROJECT}/${id}/xperts/${xpertId}`)
   }
@@ -133,9 +138,7 @@ export class XpertProjectApiService {
   }
 
   conversations(id: string) {
-    return this.#http.get<{ items: Array<{ id: string; title?: string; updatedAt?: string }>; total: number }>(
-      `${API_XPERT_PROJECT}/${id}/conversations`
-    )
+    return this.#http.get<{ items: IChatConversation[]; total: number }>(`${API_XPERT_PROJECT}/${id}/conversations`)
   }
 
   createPlan(id: string, input: Partial<IXpertProjectPlan>) {
@@ -163,6 +166,10 @@ export class XpertProjectApiService {
 
   updateTask(id: string, taskId: string, input: Partial<IXpertProjectTask>) {
     return this.#http.put<IXpertProjectTask>(`${API_XPERT_PROJECT}/${id}/tasks/${taskId}`, input)
+  }
+
+  reorderTasks(id: string, items: Array<{ id: string; order: number; column?: string }>) {
+    return this.#http.put<IXpertProjectTask[]>(`${API_XPERT_PROJECT}/${id}/tasks/order`, items)
   }
 
   taskRelations(id: string, taskId: string) {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -11,12 +11,15 @@ import {
   ZardFormImports,
   ZardInputDirective,
   ZardSelectImports,
-  ZardSwitchComponent
+  ZardSwitchComponent,
+  ZardDialogService
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { XpertAPIService } from '../../@core/services/xpert.service'
 import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.service'
 import { XpertProjectFacade } from './project.facade'
+import { isProjectAssistant } from './project-assistant.constants'
+import { XpertProjectAssistantsDialogComponent } from './project-assistants-dialog.component'
 
 @Component({
   standalone: true,
@@ -138,7 +141,7 @@ import { XpertProjectFacade } from './project.facade'
                 ></span>
                 <div class="min-w-0">
                   <p class="truncate text-sm font-semibold text-text-primary">
-                    {{ facade.project()?.xperts?.[0]?.name || ('XP.XProject.ProjectAssistantDefault' | translate) }}
+                    {{ assistantName() || ('XP.XProject.ProjectAssistantDefault' | translate) }}
                   </p>
                   <p class="mt-1 truncate text-xs text-text-secondary">
                     {{ 'XP.XProject.ProjectAssistantRole' | translate }}
@@ -176,7 +179,7 @@ import { XpertProjectFacade } from './project.facade'
               [zPlaceholder]="'XP.XProject.SelectXpert' | translate"
               (zSelectionChange)="selectXpert($event)"
             >
-              @for (xpert of availableXperts(); track xpert.id) {
+              @for (xpert of projectAssistants(); track xpert.id) {
                 <z-select-item [zValue]="xpert.id"
                   >{{ xpert.name }}<span class="ml-2 text-xs text-text-tertiary">{{ xpert.slug }}</span></z-select-item
                 >
@@ -197,6 +200,39 @@ import { XpertProjectFacade } from './project.facade'
           }
           @if (!xpertsLoading() && !availableXperts().length) {
             <p class="text-xs text-text-tertiary">{{ 'XP.XProject.NoAvailableXperts' | translate }}</p>
+          }
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="experts-config-title">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 id="experts-config-title" class="text-base font-semibold text-text-primary">
+              {{ 'XP.XProject.ProjectExperts' | translate }}
+            </h3>
+            <p class="mt-1 text-sm text-text-secondary">
+              {{ 'XP.XProject.ProjectExpertsDescription' | translate }}
+            </p>
+          </div>
+          <button z-button zType="outline" zSize="default" type="button" (click)="openProjectExperts()">
+            <i class="ri-team-line mr-1"></i>{{ 'XP.XProject.ManageExperts' | translate }}
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          @for (assistant of facade.project()?.xperts || []; track assistant.id) {
+            <span
+              class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-divider-subtle px-3 py-1.5 text-xs text-text-secondary"
+            >
+              <i class="ri-user-star-line text-text-tertiary"></i>
+              <span class="max-w-48 truncate">{{ assistant.title || assistant.name }}</span>
+              @if (
+                assistant.id === (facade.project()?.settings?.projectAssistantId || facade.project()?.xperts?.[0]?.id)
+              ) {
+                <z-badge zType="secondary">{{ 'XP.XProject.DefaultXpert' | translate }}</z-badge>
+              }
+            </span>
+          } @empty {
+            <p class="text-sm text-text-tertiary">{{ 'XP.XProject.NoProjectExperts' | translate }}</p>
           }
         </div>
       </section>
@@ -352,11 +388,22 @@ export class XpertProjectConfigComponent {
   readonly allowSuggestions = signal(true)
   readonly autoReferenceAssets = signal(true)
   readonly availableXperts = signal<IXpert[]>([])
+  readonly projectAssistants = computed(() => {
+    const assistants = this.availableXperts()
+    const marked = assistants.filter((xpert) => isProjectAssistant(xpert))
+    if (!marked.length) return assistants
+
+    // Keep the current binding visible while it is being migrated to the tag.
+    const selectedId = this.facade.project()?.settings?.projectAssistantId
+    const selected = selectedId ? assistants.find((xpert) => xpert.id === selectedId) : null
+    return selected && !marked.some((xpert) => xpert.id === selected.id) ? [selected, ...marked] : marked
+  })
   readonly selectedXpertId = signal('')
   readonly xpertsLoading = signal(false)
   readonly bindingXpert = signal(false)
   readonly #xpertService = inject(XpertAPIService)
   readonly #workspaceService = inject(XpertWorkspaceService)
+  readonly #dialog = inject(ZardDialogService)
   #loadedWorkspaceId: string | null = null
 
   constructor() {
@@ -366,7 +413,7 @@ export class XpertProjectConfigComponent {
         if (value !== undefined && !this.saving()) this.instruction.set(value)
         const project = this.facade.project()
         if (!project) return
-        const xpertId = project.xperts?.[0]?.id ?? ''
+        const xpertId = project.settings?.projectAssistantId ?? project.xperts?.[0]?.id ?? ''
         if (!this.bindingXpert()) this.selectedXpertId.set(xpertId)
         const workspaceId = project.workspaceId ?? ''
         if (workspaceId !== this.#loadedWorkspaceId) {
@@ -437,6 +484,12 @@ export class XpertProjectConfigComponent {
     }
   }
 
+  assistantName() {
+    const project = this.facade.project()
+    const assistantId = project?.settings?.projectAssistantId
+    return project?.xperts?.find((xpert) => xpert.id === assistantId)?.name ?? project?.xperts?.[0]?.name ?? ''
+  }
+
   selectXpert(value: string | number | Array<string | number>) {
     const selected = Array.isArray(value) ? value[0] : value
     this.selectedXpertId.set(selected == null ? '' : String(selected))
@@ -451,6 +504,25 @@ export class XpertProjectConfigComponent {
     } finally {
       this.bindingXpert.set(false)
     }
+  }
+
+  async openProjectExperts() {
+    const project = this.facade.project()
+    if (!project) return
+    await firstValueFrom(
+      this.#dialog.open(XpertProjectAssistantsDialogComponent, {
+        data: {
+          project,
+          workspaceXperts: this.availableXperts()
+        },
+        width: 'min(94vw, 680px)',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true,
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+    await this.facade.loadProject(project.id)
   }
 
   async saveInstructions() {

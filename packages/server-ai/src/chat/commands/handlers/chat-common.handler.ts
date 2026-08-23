@@ -845,7 +845,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     conversationId,
                     executionId: execution.id,
                     agentKey: '',
-                    xpertId: null
+                    xpertId: command.options.xpertId ?? null
                 })
             )
             const items = await projectToolset.initTools()

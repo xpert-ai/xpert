@@ -354,11 +354,39 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return project
     }
 
+    /**
+     * Bind the Project's explicit default Assistant. The relation is kept in
+     * sync so the selected Assistant can be used by the panel immediately.
+     */
+    async setAssistant(id: string, xpertId: string) {
+        const project = await this.findOne({
+            where: { id },
+            relations: ['xperts']
+        })
+        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
+        await this.assertResourceWorkspace(project.workspaceId, xpert.workspaceId, 'Assistant')
+
+        if (!project.xperts.some((item) => item.id === xpertId)) {
+            project.xperts.push(xpert)
+        }
+        project.settings = {
+            ...(project.settings ?? { instruction: '' }),
+            projectAssistantId: xpertId
+        }
+        await this.repository.save(project)
+        return this.findOne({ where: { id }, relations: ['xperts'] })
+    }
+
     async removeXpert(id: string, xpertId: string) {
         const project = await this.findOne({
             where: { id },
             relations: ['xperts']
         })
+
+        const defaultAssistantId = project.settings?.projectAssistantId ?? project.xperts[0]?.id
+        if (defaultAssistantId === xpertId) {
+            throw new BadRequestException('Bind another Project Assistant before removing the current one')
+        }
 
         const xpertIndex = project.xperts.findIndex((xpert) => xpert.id === xpertId)
         if (xpertIndex === -1) {
@@ -870,6 +898,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                     status: normalizeImportedTaskStatus(inputTask.status),
                     priority: (inputTask.priority as IXpertProjectTask['priority']) ?? 'medium',
                     assigneeId: typeof inputTask.assigneeId === 'string' ? inputTask.assigneeId : undefined,
+                    assigneeXpertId:
+                        typeof inputTask.assigneeXpertId === 'string' ? inputTask.assigneeXpertId : undefined,
                     dueDate: inputTask.dueDate ? new Date(String(inputTask.dueDate)) : undefined,
                     planId: rawPlanId ? planIdMap.get(rawPlanId) : undefined,
                     milestoneId: rawMilestoneId ? milestoneIdMap.get(rawMilestoneId) : undefined,
