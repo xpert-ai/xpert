@@ -23,7 +23,8 @@ jest.mock('../../@core', () => ({
     ORG_USERS_VIEW: 'ORG_USERS_VIEW'
   },
   RolesEnum: {
-    SUPER_ADMIN: 'SUPER_ADMIN'
+    SUPER_ADMIN: 'SUPER_ADMIN',
+    ADMIN: 'ADMIN'
   }
 }))
 
@@ -130,5 +131,17 @@ describe('setting routes', () => {
 
     expect(referralRoute?.loadChildren).toBeDefined()
     expect(referralRoute?.loadComponent).toBeUndefined()
+  })
+
+  it('guards the organization business area management route for administrators', () => {
+    const businessAreaRoute = settingChildren.find((route) => route.path === 'business-area')
+
+    expect(businessAreaRoute?.loadChildren).toBeDefined()
+    expect(businessAreaRoute?.canActivate).toEqual([NgxPermissionsGuard])
+    expect(businessAreaRoute?.data?.['scopeContext']).toBe('organization-only')
+    expect(businessAreaRoute?.data?.['permissions']).toEqual({
+      only: ['SUPER_ADMIN', 'ADMIN'],
+      redirectTo: expect.any(Function)
+    })
   })
 })

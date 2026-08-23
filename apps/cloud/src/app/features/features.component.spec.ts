@@ -71,7 +71,7 @@ import {
 } from '../@core'
 import { AppService } from '../app.service'
 import { FEATURE_ENTRY_ONBOARDING_GUIDE_KEY } from './features-onboarding'
-import { FeaturesComponent } from './features.component'
+import { FEATURE_SIDEBAR_WIDTH_STORAGE_KEY, FeaturesComponent } from './features.component'
 
 type FeatureTestOptions = {
   autoShownAt?: string | null
@@ -322,6 +322,68 @@ async function setup(options: FeatureTestOptions = {}) {
     xpertService
   }
 }
+
+describe('FeaturesComponent sidebar width', () => {
+  afterEach(() => {
+    localStorage.removeItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY)
+    document.body.innerHTML = ''
+    TestBed.resetTestingModule()
+  })
+
+  it('restores the expanded sidebar width and persists keyboard resizing', async () => {
+    localStorage.setItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY, '360')
+    const { component } = await setup()
+
+    expect(component.sidebarWidth()).toBe(360)
+
+    component.onSidebarResizeKeydown(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+
+    expect(component.sidebarWidth()).toBe(376)
+    expect(localStorage.getItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY)).toBe('376')
+  })
+
+  it('clamps a restored width to the supported range', async () => {
+    localStorage.setItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY, '999')
+    const { component } = await setup()
+
+    expect(component.sidebarWidth()).toBe(component.sidebarMaxWidth)
+  })
+
+  it('resizes and persists the sidebar through pointer events', async () => {
+    const { component } = await setup()
+    const handle = document.createElement('button')
+    Object.defineProperties(handle, {
+      setPointerCapture: { value: jest.fn() },
+      hasPointerCapture: { value: jest.fn(() => false) },
+      releasePointerCapture: { value: jest.fn() }
+    })
+    document.body.appendChild(handle)
+    handle.addEventListener('pointerdown', (event) => component.startSidebarResize(event))
+
+    const pointerDown = new Event('pointerdown', { bubbles: true, cancelable: true })
+    Object.defineProperties(pointerDown, {
+      button: { value: 0 },
+      clientX: { value: 256 },
+      pointerId: { value: 7 }
+    })
+    handle.dispatchEvent(pointerDown)
+
+    const pointerMove = new Event('pointermove', { bubbles: true, cancelable: true })
+    Object.defineProperties(pointerMove, {
+      clientX: { value: 336 },
+      pointerId: { value: 7 }
+    })
+    document.dispatchEvent(pointerMove)
+
+    const pointerUp = new Event('pointerup', { bubbles: true, cancelable: true })
+    Object.defineProperty(pointerUp, 'pointerId', { value: 7 })
+    document.dispatchEvent(pointerUp)
+
+    expect(component.sidebarWidth()).toBe(336)
+    expect(component.sidebarResizing()).toBe(false)
+    expect(localStorage.getItem(FEATURE_SIDEBAR_WIDTH_STORAGE_KEY)).toBe('336')
+  })
+})
 
 describe('FeaturesComponent entry onboarding', () => {
   afterEach(() => {

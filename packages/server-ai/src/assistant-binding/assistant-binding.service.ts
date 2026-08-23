@@ -245,6 +245,7 @@ export class AssistantBindingService
                     type: XpertTypeEnum.Agent,
                     latest: true
                 },
+                relations: ['businessArea'],
                 order: {
                     createdAt: 'DESC'
                 }
@@ -262,6 +263,9 @@ export class AssistantBindingService
 
         return this.xpertRepository.find({
             where,
+            relations: {
+                businessArea: true
+            },
             order: {
                 createdAt: 'DESC'
             }

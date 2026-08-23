@@ -17,6 +17,7 @@ import { IEnvironment } from './environment.model'
 import { TXpertCommandProfile } from './prompt-workflow.model'
 import type { TXpertMarketplaceProfile } from './xpert-marketplace.model'
 import type { KnowledgeFilterNode } from './knowledge-filter.model'
+import type { IBusinessArea } from '../business-area.model'
 
 export type ToolCall = LToolCall
 
@@ -189,6 +190,13 @@ export type TXpert = {
   features?: TXpertFeatures
   commandProfile?: TXpertCommandProfile
   marketplace?: TXpertMarketplaceProfile
+
+  /**
+   * Organization business taxonomy used to group this assistant in product menus.
+   * This is independent from marketplace business categories.
+   */
+  businessAreaId?: string | null
+  businessArea?: IBusinessArea | null
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...

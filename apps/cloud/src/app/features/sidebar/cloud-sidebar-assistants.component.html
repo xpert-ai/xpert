@@ -115,7 +115,23 @@
             </span>
           </button>
 
-          <span class="cloud-sidebar-assistants__subtitle">{{ assistantCount() }}</span>
+          @if (activeBusinessAreaFilter(); as businessArea) {
+            <button
+              type="button"
+              class="cloud-sidebar-assistants__business-area-filter"
+              [attr.aria-label]="
+                'XP.Sidebar.ClearBusinessAreaFilter'
+                  | translate: { Default: 'Clear business area filter: ' + businessArea.name }
+              "
+              [attr.title]="businessArea.name"
+              (click)="clearBusinessAreaFilter($event)"
+            >
+              <span>{{ businessArea.name }}</span>
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          }
+
+          <span class="cloud-sidebar-assistants__subtitle">{{ assistantHeaderCount() }}</span>
 
           @if (canCreateDigitalExpert()) {
             <button
@@ -199,12 +215,14 @@
                 @if (!collapsed()) {
                   <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
-                <button
-                  type="button"
-                  class="cloud-sidebar-assistants__item-main"
-                  [attr.aria-label]="assistantLabel(xpert)"
-                  (click)="openAssistant($event, xpert)"
-                >
+                <div class="cloud-sidebar-assistants__item-layout">
+                  <button
+                    type="button"
+                    class="cloud-sidebar-assistants__item-main"
+                    [attr.aria-label]="assistantLabel(xpert)"
+                    (click)="openAssistant($event, xpert)"
+                  ></button>
+
                   <emoji-avatar
                     class="cloud-sidebar-assistants__avatar"
                     [avatar]="xpert.avatar"
@@ -214,11 +232,44 @@
 
                   @if (!collapsed()) {
                     <span class="cloud-sidebar-assistants__content">
-                      <span class="cloud-sidebar-assistants__name">{{ assistantLabel(xpert) }}</span>
+                      <span class="cloud-sidebar-assistants__name">
+                        @if (assistantBusinessAreaName(xpert); as businessAreaName) {
+                          @if (canFilterByAssistantBusinessArea(xpert)) {
+                            <button
+                              type="button"
+                              class="cloud-sidebar-assistants__business-area-link"
+                              [class.is-active]="isBusinessAreaFilterActive(xpert)"
+                              [attr.aria-label]="
+                                'XP.Sidebar.FilterByBusinessArea'
+                                  | translate: { Default: 'Filter assistants by ' + businessAreaName }
+                              "
+                              [attr.aria-pressed]="isBusinessAreaFilterActive(xpert)"
+                              [attr.title]="businessAreaName"
+                              [attr.data-initial]="assistantBusinessAreaInitial(xpert)"
+                              (click)="filterByAssistantBusinessArea($event, xpert)"
+                            >
+                              <span class="cloud-sidebar-assistants__business-area-full">{{ businessAreaName }}</span>
+                            </button>
+                          } @else {
+                            <span
+                              class="cloud-sidebar-assistants__business-area-text"
+                              [attr.data-initial]="assistantBusinessAreaInitial(xpert)"
+                            >
+                              <span class="cloud-sidebar-assistants__business-area-full">{{ businessAreaName }}</span>
+                            </span>
+                          }
+                          <span
+                            class="cloud-sidebar-assistants__business-area-separator"
+                            aria-hidden="true"
+                            [textContent]="' / '"
+                          ></span>
+                        }
+                        <span class="cloud-sidebar-assistants__assistant-name">{{ assistantName(xpert) }}</span>
+                      </span>
                       <span class="cloud-sidebar-assistants__description">{{ assistantDescription(xpert) }}</span>
                     </span>
                   }
-                </button>
+                </div>
 
                 @if (!collapsed()) {
                   @if (hasAssistantUnread(xpert)) {
@@ -324,12 +375,20 @@
                             class="cloud-sidebar-assistants__conversation-item"
                             [class.is-active]="isAssistantConversationActive(xpert, conversation)"
                             [attr.aria-current]="isAssistantConversationActive(xpert, conversation) ? 'page' : null"
-                            [attr.aria-label]="conversationTitle(conversation)"
-                            [attr.title]="conversationTitle(conversation)"
+                            [attr.aria-label]="conversationHoverLabel(conversation)"
+                            [attr.title]="conversationHoverLabel(conversation)"
                             (click)="openAssistantConversation($event, xpert, conversation)"
                           >
                             <i class="ri-chat-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
                             <span>{{ conversationTitle(conversation) }}</span>
+                            @if (conversationUpdatedLabel(conversation); as updatedAtLabel) {
+                              <time
+                                class="cloud-sidebar-assistants__conversation-updated"
+                                [attr.datetime]="conversationUpdatedDateTime(conversation)"
+                              >
+                                {{ updatedAtLabel }}
+                              </time>
+                            }
                           </button>
                         }
                       }
@@ -368,7 +427,7 @@
               }
             </li>
           } @empty {
-            @if (!collapsed() && (query() || activeCategory() !== 'all')) {
+            @if (!collapsed() && hasAssistantFilter()) {
               <li class="cloud-sidebar-assistants__empty">
                 {{ 'XP.Assistant.EmptySearch' | translate: { Default: 'No matching assistants.' } }}
               </li>
@@ -388,7 +447,7 @@
                   @if (moreExpanded()) {
                     {{ 'XP.Assistant.CollapseDigitalExperts' | translate: { Default: 'Show less' } }}
                   } @else {
-                    {{ 'XP.Assistant.MoreDigitalExperts' | translate: { Default: 'Show more' } }}
+                    {{ 'XP.Assistant.MoreDigitalExperts' | translate: { Default: 'Show all' } }}
                   }
                 </span>
               </button>

@@ -31,8 +31,12 @@ import { groupConversations } from '../../xpert/types'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import {
   filterAssistantXperts,
+  getAssistantBusinessArea,
+  getAssistantBusinessAreaInitial,
+  getAssistantBusinessAreaName,
   getAssistantDescription,
   getAssistantLabel,
+  getAssistantName,
   getAssistantRouteId,
   getAssistantTagNames,
   isAssistantRouteActive,
@@ -124,6 +128,7 @@ export class CloudSidebarAssistantsComponent {
   readonly assistantConversations = signal<Record<string, AssistantConversationState>>({})
   readonly query = signal('')
   readonly category = signal(ALL_ASSISTANT_CATEGORY)
+  readonly businessAreaFilter = signal<{ id: string; name: string } | null>(null)
 
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
@@ -333,11 +338,29 @@ export class CloudSidebarAssistantsComponent {
     const category = this.category()
     return this.categories().some((item) => item.value === category) ? category : ALL_ASSISTANT_CATEGORY
   })
-  readonly filteredXperts = computed(() =>
-    filterAssistantXperts(this.listXperts(), this.query(), this.activeCategory())
-  )
+  readonly activeBusinessAreaFilter = computed(() => {
+    const filter = this.businessAreaFilter()
+    if (!filter) {
+      return null
+    }
+
+    for (const xpert of this.listXperts()) {
+      const businessArea = getAssistantBusinessArea(xpert)
+      if (businessArea?.id === filter.id) {
+        return businessArea
+      }
+    }
+
+    return null
+  })
+  readonly filteredXperts = computed(() => {
+    const items = filterAssistantXperts(this.listXperts(), this.query(), this.activeCategory())
+    const businessAreaId = this.activeBusinessAreaFilter()?.id
+
+    return businessAreaId ? items.filter((xpert) => getAssistantBusinessArea(xpert)?.id === businessAreaId) : items
+  })
   readonly hasAssistantFilter = computed(
-    () => !!this.query().trim() || this.activeCategory() !== ALL_ASSISTANT_CATEGORY
+    () => !!this.query().trim() || this.activeCategory() !== ALL_ASSISTANT_CATEGORY || !!this.activeBusinessAreaFilter()
   )
   readonly defaultVisibleXpertCount = computed(() => DEFAULT_VISIBLE_ASSISTANT_COUNT)
   readonly visibleXperts = computed(() => {
@@ -505,6 +528,27 @@ export class CloudSidebarAssistantsComponent {
     return conversation.title?.trim() || 'Untitled conversation'
   }
 
+  conversationUpdatedLabel(conversation: IChatConversation) {
+    return formatConversationUpdatedAt(conversation.updatedAt)
+  }
+
+  conversationUpdatedDateTime(conversation: IChatConversation) {
+    const updatedAt = conversation.updatedAt
+    if (!updatedAt) {
+      return null
+    }
+
+    const date = updatedAt instanceof Date ? updatedAt : new Date(updatedAt)
+    return Number.isNaN(date.getTime()) ? null : date.toISOString()
+  }
+
+  conversationHoverLabel(conversation: IChatConversation) {
+    const title = this.conversationTitle(conversation)
+    const updatedAt = this.conversationUpdatedLabel(conversation)
+
+    return updatedAt ? `${title} · ${updatedAt}` : title
+  }
+
   openAssistantConversation(event: Event, xpert: IXpert, conversation: IChatConversation) {
     event.stopPropagation()
     const routeId = getAssistantRouteId(xpert)
@@ -628,6 +672,49 @@ export class CloudSidebarAssistantsComponent {
 
   assistantLabel(xpert: IXpert) {
     return getAssistantLabel(xpert)
+  }
+
+  assistantName(xpert: IXpert) {
+    return getAssistantName(xpert)
+  }
+
+  assistantBusinessAreaName(xpert: IXpert) {
+    return getAssistantBusinessAreaName(xpert)
+  }
+
+  assistantBusinessAreaInitial(xpert: IXpert) {
+    return getAssistantBusinessAreaInitial(getAssistantBusinessAreaName(xpert))
+  }
+
+  canFilterByAssistantBusinessArea(xpert: IXpert) {
+    return !!getAssistantBusinessArea(xpert)
+  }
+
+  isBusinessAreaFilterActive(xpert: IXpert) {
+    const businessArea = getAssistantBusinessArea(xpert)
+    return !!businessArea && businessArea.id === this.activeBusinessAreaFilter()?.id
+  }
+
+  filterByAssistantBusinessArea(event: Event, xpert: IXpert) {
+    event.preventDefault()
+    event.stopPropagation()
+    const businessArea = getAssistantBusinessArea(xpert)
+    if (!businessArea) {
+      return
+    }
+
+    this.businessAreaFilter.set(businessArea)
+    this.moreExpanded.set(false)
+  }
+
+  clearBusinessAreaFilter(event: Event) {
+    event.preventDefault()
+    event.stopPropagation()
+    this.businessAreaFilter.set(null)
+  }
+
+  assistantHeaderCount() {
+    return this.activeBusinessAreaFilter() ? this.filteredXperts().length : this.assistantCount()
   }
 
   assistantDescription(xpert: IXpert) {
@@ -864,6 +951,25 @@ function mergeConversations(current: IChatConversation[], incoming: IChatConvers
 function toTimestamp(value: Date | string | number | null | undefined) {
   const timestamp = value instanceof Date ? value.getTime() : value ? new Date(value).getTime() : 0
   return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+export function formatConversationUpdatedAt(value: Date | string | number | null | undefined) {
+  if (value === null || value === undefined || value === '') {
+    return ''
+  }
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hour}:${minute}`
 }
 
 function isUnreadSummary(value: unknown): value is IChatConversationUnreadXpertSummary {

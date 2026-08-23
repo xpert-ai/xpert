@@ -11,12 +11,26 @@ import { getFeatureMenus, getSettingsMenuItems } from './menus'
 
 describe('getSettingsMenuItems', () => {
   it('removes legacy Analytics settings menus', () => {
-    const removedPaths = ['chatbi', 'business-area', 'certification']
+    const removedPaths = ['chatbi', 'certification']
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
 
     for (const path of removedPaths) {
       expect(menus.find((item) => item.path === path)).toBeUndefined()
     }
+  })
+
+  it('exposes business area master data only in organization settings for administrators', () => {
+    const organizationArea = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find(
+      (item) => item.path === 'business-area'
+    )
+    const tenantArea = getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'business-area')
+
+    expect(organizationArea).toMatchObject({
+      label: 'Business Area',
+      scopeContext: 'organization-only',
+      data: { permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN] }
+    })
+    expect(tenantArea).toBeUndefined()
   })
 
   it('removes plugins from the settings menu after promotion', () => {

@@ -250,7 +250,12 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   publish(
     id: string,
     newVersion: boolean,
-    body: { environmentId?: string | null; releaseNotes: string; marketplace?: TXpertPublishMarketplaceInput }
+    body: {
+      environmentId?: string | null
+      releaseNotes: string
+      businessAreaId?: string | null
+      marketplace?: TXpertPublishMarketplaceInput
+    }
   ) {
     return this.httpClient
       .post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {

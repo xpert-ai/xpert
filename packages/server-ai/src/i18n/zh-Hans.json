@@ -1,6 +1,11 @@
 {
     "Error": {
         "NoMatchingPluginComponents": "未找到匹配的插件组件。",
+        "BusinessAreaNameRequired": "业务域名称不能为空。",
+        "BusinessAreaCannotParentSelf": "业务域不能以自身作为父业务域。",
+        "BusinessAreaCannotParentDescendant": "业务域不能移动到自己的下级业务域中。",
+        "XpertBusinessAreaInvalid": "所选业务域无效。",
+        "XpertBusinessAreaScopeMismatch": "所选业务域不属于当前 Xpert 的作用域。",
         "AgentEvolutionManualTestGateRequiresAdministrator": "手动测试发布门禁仅允许 SUPER_ADMIN 或 ADMIN 使用。",
         "AgentEvolutionCanaryTestOverrideRequiresAdministrator": "只有 SUPER_ADMIN 或 ADMIN 可以强制一次性命中 Candidate。",
         "AgentEvolutionCanaryTestOverrideInvalidSubject": "测试主体不能为空，且长度不能超过 200 个字符。",

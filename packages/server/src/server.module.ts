@@ -47,6 +47,7 @@ import { RuntimeControlModule } from './runtime-control'
 import { ReferralModule } from './referral'
 import { DataSourceModule } from './data-source'
 import { DataSourceTypeModule } from './data-source-type'
+import { BusinessAreaModule } from './business-area'
 
 @Module({
 	imports: [
@@ -100,7 +101,8 @@ import { DataSourceTypeModule } from './data-source-type'
 		ManagedConnectionModule,
 		ManagedQueueModule,
 		DataSourceTypeModule,
-		DataSourceModule
+		DataSourceModule,
+		BusinessAreaModule
 	],
 	controllers: [AppController],
 	providers: [

@@ -1,6 +1,11 @@
 {
     "Error": {
         "NoMatchingPluginComponents": "No matching plugin components were found.",
+        "BusinessAreaNameRequired": "Business area name is required.",
+        "BusinessAreaCannotParentSelf": "A business area cannot be its own parent.",
+        "BusinessAreaCannotParentDescendant": "A business area cannot be moved below one of its descendants.",
+        "XpertBusinessAreaInvalid": "The selected business area is invalid.",
+        "XpertBusinessAreaScopeMismatch": "The selected business area is not available in this Xpert scope.",
         "AgentEvolutionManualTestGateRequiresAdministrator": "The manual-test release gate profile requires SUPER_ADMIN or ADMIN.",
         "AgentEvolutionCanaryTestOverrideRequiresAdministrator": "Only SUPER_ADMIN or ADMIN can force a one-time Candidate assignment.",
         "AgentEvolutionCanaryTestOverrideInvalidSubject": "The test subject is required and must not exceed 200 characters.",
