@@ -13,10 +13,12 @@ for (const entry of catalog.images) {
   imagePackage.version = suite.version
   await writeJson(imagePackagePath, imagePackage)
   const imageLockPath = path.join('images', entry.family, 'package-lock.json')
-  const imageLock = await readJson(imageLockPath)
-  imageLock.version = suite.version
-  if (imageLock.packages?.['']) imageLock.packages[''].version = suite.version
-  await writeJson(imageLockPath, imageLock)
+  const imageLock = await readOptionalJson(imageLockPath)
+  if (imageLock) {
+    imageLock.version = suite.version
+    if (imageLock.packages?.['']) imageLock.packages[''].version = suite.version
+    await writeJson(imageLockPath, imageLock)
+  }
   const runnerPath = image.runner ?? path.join('images', entry.family, 'runtime', 'runner-host.mjs')
   const runner = await readFile(path.join(packageRoot, runnerPath))
   const runnerHostSha256 = createHash('sha256').update(runner).digest('hex')
@@ -66,6 +68,14 @@ process.stdout.write(`synchronized Sandbox Runtime Suite ${suite.version}\n`)
 
 async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(packageRoot, relativePath), 'utf8'))
+}
+async function readOptionalJson(relativePath) {
+  try {
+    return await readJson(relativePath)
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return undefined
+    throw error
+  }
 }
 async function writeJson(relativePath, value) {
   await writeFile(path.join(packageRoot, relativePath), `${JSON.stringify(value, null, 2)}\n`)
