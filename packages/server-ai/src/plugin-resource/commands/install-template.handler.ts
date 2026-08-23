@@ -3,7 +3,6 @@ import {
     IXpert,
     IXpertTool,
     IXpertToolset,
-    PLUGIN_COMPONENT_TYPE,
     TCopilotModel,
     TXpertFeatures,
     TXpertTeamConnection,
@@ -20,6 +19,7 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
+import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertDraftDslDTO } from '../../xpert/dto'
 import { XpertService } from '../../xpert/xpert.service'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
@@ -27,13 +27,9 @@ import { createXpertTemplateSource } from '../../xpert/template-source'
 import { XpertTemplateService } from '../../xpert-template/xpert-template.service'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
-import {
-    PluginResourceInstallComponent,
-    PluginResourceInstallResult,
-    PluginResourceInstallerService,
-    RuntimeComponent
-} from '../plugin-resource-installer.service'
+import { PluginResourceInstallResult, PluginResourceInstallerService } from '../plugin-resource-installer.service'
 import { PluginTemplateInstallCommand, PluginTemplateInstallBasic } from './install-template.command'
+import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 
 type TemplateToolsetResolution = {
     dependency: Required<Pick<XpertTemplatePluginToolsetDependency, 'provider' | 'templateNodeKey'>> &
@@ -75,7 +71,11 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         try {
             const dependencies = template.dependencies
             const pluginName = template.pluginName
-            const components = await this.resolveTemplateDependencyComponents(pluginName, dependencies)
+            const components = await resolveTemplateRuntimeDependencyComponents(
+                this.installer,
+                pluginName,
+                dependencies
+            )
             const result = await this.installer.installComponentsForXpert(xpert, components)
             const toolsets = await this.resolveTemplateToolsetDependencies(xpert.workspaceId, pluginName, dependencies)
             if (toolsets.length) {
@@ -86,9 +86,14 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 xpert.workspaceId ?? command.workspaceId,
                 command.language
             )
+            const installedXpert = command.publish
+                ? await this.commandBus.execute<XpertPublishCommand, IXpert>(
+                      new XpertPublishCommand(xpert.id, false, '', 'Installed from template')
+                  )
+                : xpert
             return {
                 ...result,
-                xpert
+                xpert: installedXpert
             }
         } catch (error) {
             await this.rollbackTemplateXpert(xpert)
@@ -124,68 +129,6 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             nodes: nodesValue as TXpertTeamNode[],
             connections: connectionsValue as TXpertTeamConnection[]
         })
-    }
-
-    private async resolveTemplateDependencyComponents(
-        defaultPluginName: string | undefined,
-        dependencies?: XpertTemplatePluginDependencies
-    ): Promise<RuntimeComponent[]> {
-        const pluginName = normalizePluginName(defaultPluginName ?? '')
-        if (!pluginName) {
-            return []
-        }
-
-        const components: PluginResourceInstallComponent[] = []
-        for (const item of dependencies?.skills ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                componentKey: item.componentKey,
-                targetAgentKey: item.targetAgentKey
-            })
-        }
-        for (const item of dependencies?.mcpServers ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.MCP_SERVER,
-                componentKey: item.componentKey,
-                targetAgentKey: item.targetAgentKey,
-                policyOverrides: item.policyOverrides
-            })
-        }
-        for (const item of dependencies?.hooks ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.HOOK,
-                componentKey: item.componentKey,
-                targetAgentKey: item.targetAgentKey,
-                events: item.events
-            })
-        }
-        for (const item of dependencies?.apps ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.APP,
-                componentKey: item.componentKey,
-                auth: item.auth
-            })
-        }
-
-        if (!components.length) {
-            return dependencies?.plugins?.includes(pluginName)
-                ? await this.installer.resolveRuntimeComponents(pluginName, undefined)
-                : []
-        }
-
-        const groups = await Promise.all(
-            Array.from(new Set(components.map((item) => item.pluginName ?? pluginName))).map((name) =>
-                this.installer.resolveRuntimeComponents(
-                    name,
-                    components.filter((item) => item.pluginName === name)
-                )
-            )
-        )
-        return groups.flat()
     }
 
     private async resolveTemplateToolsetDependencies(

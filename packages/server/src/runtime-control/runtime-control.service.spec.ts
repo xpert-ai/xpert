@@ -1,118 +1,126 @@
 import { RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
 import { setDefaultTenantId } from '@xpert-ai/plugin-sdk'
-import { ConflictException, ForbiddenException } from '@nestjs/common'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
-import { RuntimeControlService, RuntimeProcessSignaler } from './runtime-control.service'
-import { RuntimeLifecycleService } from './runtime-lifecycle.service'
+import { RuntimeControlService } from './runtime-control.service'
+import type { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
 
 describe('RuntimeControlService', () => {
-	const redis = {
-		set: jest.fn(),
-		eval: jest.fn()
+	const coordinator = {
+		requestRestart: jest.fn(),
+		getStatus: jest.fn(),
+		getPluginConvergenceStatus: jest.fn(),
+		recordPluginChange: jest.fn()
 	}
-	const signaler: RuntimeProcessSignaler = { signal: jest.fn() }
-	let lifecycle: RuntimeLifecycleService
+	let service: RuntimeControlService
 
 	beforeEach(() => {
-		jest.useFakeTimers()
 		jest.resetAllMocks()
-		process.env.NODE_ENV = 'test'
 		setDefaultTenantId('tenant-default')
 		jest.spyOn(RequestContext, 'currentApiKey').mockReturnValue(null)
-		jest.spyOn(RequestContext, 'hasRole').mockReturnValue(true)
+		jest.spyOn(RequestContext, 'hasRole').mockImplementation((role) => role === RolesEnum.SUPER_ADMIN)
 		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-default')
 		jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
-		lifecycle = new RuntimeLifecycleService()
+		coordinator.requestRestart.mockResolvedValue({
+			accepted: true,
+			restartId: 'restart-1',
+			mode: 'rolling-self-signal',
+			instanceId: 'boot-a',
+			requestedAt: '2026-08-21T00:00:00.000Z',
+			signalAfterMs: 750,
+			drainTimeoutMs: 30_000
+		})
+		service = new RuntimeControlService(coordinator as unknown as RuntimeRestartCoordinatorService)
 	})
 
 	afterEach(() => {
 		jest.restoreAllMocks()
-		jest.useRealTimers()
 		setDefaultTenantId(null)
 	})
 
-	it('accepts a confirmed default-tenant SuperAdmin request and signals after the response delay', async () => {
-		redis.set.mockResolvedValue('OK')
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
-
-		const result = await service.requestRestart(
-			{ confirmation: RUNTIME_RESTART_CONFIRMATION, reason: 'activate staged system plugin' },
-			{ sourceIp: '127.0.0.1' }
-		)
-
-		expect(result).toMatchObject({
+	it('requests a rolling restart for a confirmed default-tenant SuperAdmin', async () => {
+		const runtimeRequirements = [
+			{
+				scopeKey: 'system:global',
+				pluginName: '@xpert-ai/plugin-openrouter',
+				version: '0.1.0',
+				state: 'loaded' as const
+			}
+		]
+		await expect(
+			service.requestRestart(
+				{ confirmation: RUNTIME_RESTART_CONFIRMATION, reason: 'activate staged plugin', runtimeRequirements },
+				{ sourceIp: '127.0.0.1' }
+			)
+		).resolves.toMatchObject({
 			accepted: true,
-			mode: 'self-signal',
-			signalAfterMs: 750,
-			drainTimeoutMs: 30_000
+			mode: 'rolling-self-signal'
 		})
-		expect(redis.set).toHaveBeenCalledWith(
-			'xpert:system:runtime:restart',
-			expect.stringContaining(result.restartId),
-			expect.objectContaining({ NX: true, PX: expect.any(Number) })
-		)
-		expect(lifecycle.readiness()).toMatchObject({ status: 'draining', restartId: result.restartId })
 
-		await jest.advanceTimersByTimeAsync(750)
-		expect(signaler.signal).toHaveBeenCalledWith('SIGTERM')
+		expect(coordinator.requestRestart).toHaveBeenCalledWith({
+			source: 'interactive',
+			reason: 'activate staged plugin',
+			actorUserId: 'user-1',
+			tenantId: 'tenant-default',
+			sourceIp: '127.0.0.1',
+			runtimeRequirements
+		})
 	})
 
 	it('reports restart capability for an interactive default-tenant SuperAdmin', () => {
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
-
 		expect(service.restartCapability()).toEqual({
 			allowed: true,
-			mode: 'self-signal',
+			mode: 'rolling-self-signal',
 			reason: 'allowed'
 		})
 	})
 
-	it('reports the scope reason instead of exposing restart outside the default tenant', () => {
+	it('rejects actors outside the default tenant', async () => {
 		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-other')
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
-
-		expect(service.restartCapability()).toEqual({
-			allowed: false,
-			mode: 'self-signal',
-			reason: 'default-tenant-required'
-		})
-	})
-
-	it('rejects actors outside the default tenant even when they are SuperAdmin', async () => {
-		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-other')
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
 
 		await expect(service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION })).rejects.toBeInstanceOf(
 			ForbiddenException
 		)
-		expect(redis.set).not.toHaveBeenCalled()
+		expect(coordinator.requestRestart).not.toHaveBeenCalled()
 	})
 
-	it('rejects concurrent restart requests when the distributed lock is held', async () => {
-		redis.set.mockResolvedValue(null)
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
+	it('returns a persisted cluster restart status from any replica', async () => {
+		coordinator.getStatus.mockResolvedValue({
+			restartId: 'restart-1',
+			mode: 'rolling-self-signal',
+			status: 'in_progress',
+			requestedAt: '2026-08-21T00:00:00.000Z',
+			targetReplicaCount: 3,
+			completedReplicaCount: 1,
+			failedReplicaCount: 0,
+			pluginGeneration: 4
+		})
 
-		await expect(service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION })).rejects.toBeInstanceOf(
-			ConflictException
-		)
-		expect(signaler.signal).not.toHaveBeenCalled()
+		await expect(service.restartStatus('restart-1')).resolves.toMatchObject({
+			status: 'in_progress',
+			completedReplicaCount: 1
+		})
 	})
 
-	it('returns to ready and atomically releases the lock when SIGTERM signaling fails', async () => {
-		redis.set.mockResolvedValue('OK')
-		redis.eval.mockResolvedValue(1)
-		jest.mocked(signaler.signal).mockImplementation(() => {
-			throw new Error('signal unavailable')
-		})
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
+	it('does not report a different replica as completion when the operation is missing', async () => {
+		coordinator.getStatus.mockResolvedValue(null)
 
-		await service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION })
-		await jest.advanceTimersByTimeAsync(750)
+		await expect(service.restartStatus('missing')).rejects.toBeInstanceOf(NotFoundException)
+	})
 
-		expect(redis.eval).toHaveBeenCalledWith(expect.stringContaining("redis.call('get'"), {
-			keys: ['xpert:system:runtime:restart'],
-			arguments: [expect.stringContaining(lifecycle.instanceId)]
+	it('returns durable plugin convergence state by generation', async () => {
+		coordinator.getPluginConvergenceStatus.mockResolvedValue({
+			generation: 4,
+			status: 'completed',
+			restartId: 'restart-1',
+			targetReplicaCount: 3,
+			completedReplicaCount: 3,
+			failedReplicaCount: 0
 		})
-		expect(lifecycle.readiness().status).toBe('ready')
+
+		await expect(service.pluginConvergenceStatus(4)).resolves.toMatchObject({
+			generation: 4,
+			status: 'completed'
+		})
 	})
 })

@@ -209,7 +209,11 @@ export class UserLoginComponent implements OnDestroy {
       startUrl.searchParams.set('returnTo', returnTo.trim())
     }
 
-    window.location.assign(startUrl.toString())
+    this.redirectToLocation(startUrl.toString())
+  }
+
+  protected redirectToLocation(location: string): void {
+    window.location.assign(location)
   }
 
   getConfigValue(key: string): any {

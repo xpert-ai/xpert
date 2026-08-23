@@ -7,16 +7,21 @@ import {
   AiFeatureEnum,
   AssistantBindingService,
   ChatConversationService,
+  OrderTypeEnum,
   ScopeService,
   Store,
+  ViewExtensionApiService,
   XpertAPIService
 } from '../../@core'
-import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
+import { CloudSidebarAssistantsComponent, formatConversationUpdatedAt } from './cloud-sidebar-assistants.component'
 import {
   type AssistantXpertLike,
   filterAssistantXperts,
+  getAssistantBusinessArea,
+  getAssistantBusinessAreaInitial,
   getAssistantDescription,
   getAssistantLabel,
+  getAssistantName,
   getAssistantRouteId,
   isAssistantRouteActive,
   normalizeAssistantXperts,
@@ -57,6 +62,7 @@ jest.mock('../../@core', () => {
   class ChatConversationService {}
   class Store {}
   class XpertAPIService {}
+  class ViewExtensionApiService {}
 
   return {
     AiFeatureEnum: {
@@ -80,11 +86,15 @@ jest.mock('../../@core', () => {
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
     },
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
     AssistantBindingService,
     ChatConversationService,
     ScopeService: class ScopeService {},
     Store,
-    XpertAPIService
+    XpertAPIService,
+    ViewExtensionApiService
   }
 })
 
@@ -113,6 +123,13 @@ function xpert(item: Partial<AssistantXpertLike>): AssistantXpertLike {
 }
 
 describe('cloud sidebar assistants helpers', () => {
+  it('formats the local conversation update date and time', () => {
+    const updatedAt = new Date(2026, 7, 23, 9, 5)
+
+    expect(formatConversationUpdatedAt(updatedAt)).toBe('2026-08-23 09:05')
+    expect(formatConversationUpdatedAt('invalid-date')).toBe('')
+  })
+
   it('keeps latest unique xperts with an id', () => {
     const items = normalizeAssistantXperts([
       xpert({ id: 'a', slug: 'alpha' }),
@@ -135,6 +152,21 @@ describe('cloud sidebar assistants helpers', () => {
     expect(getAssistantLabel(item)).toBe('中文标题')
     expect(getAssistantDescription(item)).toBe('Assistant Name')
     expect(getAssistantRouteId(item)).toBe('assistant-slug')
+  })
+
+  it('prefixes assistant menu labels with the assigned business area', () => {
+    const item = xpert({
+      id: 'assistant-id',
+      title: 'Planning Assistant',
+      businessAreaId: 'operations-id',
+      businessArea: { id: 'operations-id', name: 'Operations' }
+    })
+
+    expect(getAssistantLabel(item)).toBe('Operations / Planning Assistant')
+    expect(getAssistantName(item)).toBe('Planning Assistant')
+    expect(getAssistantBusinessArea(item)).toEqual({ id: 'operations-id', name: 'Operations' })
+    expect(getAssistantBusinessAreaInitial('销售')).toBe('销')
+    expect(getAssistantLabel({ ...item, businessArea: null })).toBe('Planning Assistant')
   })
 
   it('filters assistants by label or description', () => {
@@ -261,7 +293,11 @@ describe('CloudSidebarAssistantsComponent', () => {
   }
   let conversationService: {
     getUnreadByXperts: jest.Mock
+    getMyInOrg: jest.Mock
     unreadRefresh$: Subject<void>
+  }
+  let viewExtensionApi: {
+    getSlotViews: jest.Mock
   }
   let store: {
     user: { id: string }
@@ -332,7 +368,31 @@ describe('CloudSidebarAssistantsComponent', () => {
     }
     conversationService = {
       getUnreadByXperts: jest.fn(() => of([])),
+      getMyInOrg: jest.fn(() => of({ items: [], total: 0 })),
       unreadRefresh$: new Subject<void>()
+    }
+    viewExtensionApi = {
+      getSlotViews: jest.fn(() =>
+        of([
+          {
+            key: 'sales-orders',
+            title: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
+            hostType: 'agent',
+            slot: 'agent.workbench.fixed',
+            source: { type: 'builtin' },
+            view: {},
+            dataSource: {},
+            workbench: {
+              fixed: true,
+              menu: {
+                enabled: true,
+                label: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
+                order: 10
+              }
+            }
+          }
+        ])
+      )
     }
     store = {
       user: { id: 'user-1' },
@@ -374,6 +434,10 @@ describe('CloudSidebarAssistantsComponent', () => {
         {
           provide: XpertAPIService,
           useValue: xpertAPI
+        },
+        {
+          provide: ViewExtensionApiService,
+          useValue: viewExtensionApi
         }
       ]
     }).compileComponents()
@@ -420,6 +484,7 @@ describe('CloudSidebarAssistantsComponent', () => {
           id: 'published-xpert',
           slug: 'published-assistant',
           title: 'Published Assistant',
+          businessArea: { name: 'Operations' },
           latest: true
         },
         {
@@ -440,8 +505,66 @@ describe('CloudSidebarAssistantsComponent', () => {
       item.textContent.trim()
     )
 
-    expect(names).toEqual(['Published Assistant'])
+    expect(names).toEqual(['Operations / Published Assistant'])
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledTimes(2)
+  })
+
+  it('filters all assistants by a clicked business area and clears the filter from the header tag', async () => {
+    assistantBindingService.get.mockReturnValue(of(null))
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'sales-one',
+          title: 'Sales One',
+          businessAreaId: 'sales',
+          businessArea: { id: 'sales', name: '销售' },
+          latest: true
+        },
+        {
+          id: 'operations-one',
+          title: 'Operations One',
+          businessAreaId: 'operations',
+          businessArea: { id: 'operations', name: '运营' },
+          latest: true
+        },
+        {
+          id: 'sales-two',
+          title: 'Sales Two',
+          businessAreaId: 'sales',
+          businessArea: { id: 'sales', name: '销售' },
+          latest: true
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('embedded', true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const names = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+        item.textContent.replace(/\s+/g, ' ').trim()
+      )
+
+    expect(names()).toEqual(['销售 / Sales One', '运营 / Operations One', '销售 / Sales Two'])
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__business-area-link').click()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activeBusinessAreaFilter()).toEqual({ id: 'sales', name: '销售' })
+    expect(names()).toEqual(['销售 / Sales One', '销售 / Sales Two'])
+    expect(
+      fixture.nativeElement.querySelector('.cloud-sidebar-assistants__business-area-filter').textContent
+    ).toContain('销售')
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('2')
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__business-area-filter').click()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activeBusinessAreaFilter()).toBeNull()
+    expect(names()).toEqual(['销售 / Sales One', '运营 / Operations One', '销售 / Sales Two'])
   })
 
   it('renders the latest conversation title in the assistant description row', async () => {
@@ -950,6 +1073,181 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-unread'])
+  })
+
+  it('loads and opens assistant result items from the expandable menu', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
+    expect(toggle).not.toBeNull()
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+
+    toggle.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench.fixed')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__children-label')).toHaveLength(1)
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-label').textContent).toContain(
+      'XP.Sidebar.RecentConversations'
+    )
+
+    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
+    expect(child.textContent).toContain('未清销售订单')
+    child.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'], {
+      queryParams: { view: 'sales-orders' }
+    })
+
+    toggle.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
+  })
+
+  it('loads recent assistant conversations in pages of ten and opens older conversations', async () => {
+    const today = new Date().toISOString()
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const firstPage = Array.from({ length: 10 }, (_, index) => ({
+      id: `conversation-${index + 1}`,
+      threadId: `thread-${index + 1}`,
+      title: `Conversation ${index + 1}`,
+      updatedAt: index < 5 ? today : yesterday,
+      xpertId: 'other-xpert'
+    }))
+    conversationService.getMyInOrg.mockReturnValueOnce(of({ items: firstPage, total: 12 })).mockReturnValueOnce(
+      of({
+        items: [
+          {
+            id: 'conversation-11',
+            threadId: 'thread-11',
+            title: 'Conversation 11',
+            updatedAt: yesterday,
+            xpertId: 'other-xpert'
+          },
+          {
+            id: 'conversation-12',
+            threadId: 'thread-12',
+            title: 'Conversation 12',
+            updatedAt: yesterday,
+            xpertId: 'other-xpert'
+          }
+        ],
+        total: 12
+      })
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(conversationService.getMyInOrg).toHaveBeenNthCalledWith(1, {
+      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
+      order: { updatedAt: OrderTypeEnum.DESC },
+      take: 10,
+      skip: 0,
+      where: { xpertId: 'other-xpert' }
+    })
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')).toHaveLength(10)
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-group-label')).map(
+        (item: Element) => item.textContent?.trim()
+      )
+    ).toEqual(['XP.KEY_WORDS.Date_Today', 'XP.KEY_WORDS.Date_Yesterday'])
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(conversationService.getMyInOrg).toHaveBeenNthCalledWith(2, {
+      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
+      order: { updatedAt: OrderTypeEnum.DESC },
+      take: 10,
+      skip: 10,
+      where: { xpertId: 'other-xpert' }
+    })
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')).toHaveLength(12)
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier')).toBeNull()
+
+    fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')[10].click()
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-11'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('marks the recent conversation matching the route thread as active', async () => {
+    conversationService.getMyInOrg.mockReturnValue(
+      of({
+        items: [
+          {
+            id: 'conversation-active',
+            threadId: 'thread-active',
+            title: 'Active conversation',
+            updatedAt: new Date().toISOString(),
+            xpertId: 'other-xpert'
+          }
+        ],
+        total: 1
+      })
+    )
+    const router = TestBed.inject(Router)
+    await router.navigateByUrl('/chat/x/other-assistant/c/thread-active')
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const activeConversation = fixture.nativeElement.querySelector(
+      '.cloud-sidebar-assistants__conversation-item.is-active'
+    )
+    expect(activeConversation).not.toBeNull()
+    expect(activeConversation.textContent).toContain('Active conversation')
+    expect(activeConversation.getAttribute('aria-current')).toBe('page')
+  })
+
+  it('shows the view empty state when an assistant has no fixed views', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-state').textContent).toContain(
+      'XP.Sidebar.NoAssistantViews'
+    )
   })
 
   it('routes normal assistant settings to the xpert studio page', async () => {

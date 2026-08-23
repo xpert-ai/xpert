@@ -15,7 +15,7 @@
 
 ## Architectural Highlights
 
-- **Modular Design**: Follows NestJS module separation principles, making it easy to introduce or extend business domains as needed.
+- **Modular Design**: Follows NestJS module separation principles, making it easy to introduce or extend business capabilities as needed.
 - **Data Access Layer**: Domain entities built on TypeORM, supporting mainstream relational databases and providing migration tools.
 - **API Protocols**: Compatible with both REST and GraphQL, facilitating integration with front-end and third-party systems.
 - **Observability**: Built-in logging, health checks, and Sentry integration to support production operations and troubleshooting.

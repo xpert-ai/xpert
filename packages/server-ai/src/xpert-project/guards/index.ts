@@ -1,2 +1,5 @@
 export * from './project.guard'
 export * from './project-owner.guard'
+export * from './project-permission.decorator'
+export * from './project-permission.guard'
+export * from './project-feature.guard'

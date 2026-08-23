@@ -252,6 +252,9 @@ describe('AssistantBindingService', () => {
         const result = await service.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
 
         expect(result).toEqual([{ id: 'xpert-1' }])
+        expect(publishedXpertAccessService.findAccessiblePublishedXperts).toHaveBeenCalledWith(
+            expect.objectContaining({ relations: ['businessArea'] })
+        )
     })
 
     it('saves a user binding for clawxpert', async () => {

@@ -11,6 +11,7 @@ import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { XpertToolsetModule } from '../xpert-toolset'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { PluginTemplateInstallHandler } from './commands/install-template.handler'
+import { PluginTemplateSyncDependenciesHandler } from './commands/sync-template-dependencies.handler'
 import { PluginHooksMiddleware } from './plugin-hooks.middleware'
 import { PluginResourceController } from './plugin-resource.controller'
 import { PluginResourceInstallation } from './plugin-resource-installation.entity'
@@ -29,7 +30,13 @@ import { QueryHandlers } from './queries/handlers'
         forwardRef(() => XpertWorkspaceModule)
     ],
     controllers: [PluginResourceController],
-    providers: [PluginResourceInstallerService, PluginHooksMiddleware, PluginTemplateInstallHandler, ...QueryHandlers],
+    providers: [
+        PluginResourceInstallerService,
+        PluginHooksMiddleware,
+        PluginTemplateInstallHandler,
+        PluginTemplateSyncDependenciesHandler,
+        ...QueryHandlers
+    ],
     exports: [PluginResourceInstallerService]
 })
 export class PluginResourceModule {}

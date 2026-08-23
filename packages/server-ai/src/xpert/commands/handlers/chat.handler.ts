@@ -809,7 +809,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             conversationRuntimeCapabilities: conversation.options?.runtimeCapabilities,
             workspaceId: latestXpert?.workspaceId ?? xpert.workspaceId,
             userPreference,
-            forceWorkspaceSkillBlacklistMode
+            forceWorkspaceSkillBlacklistMode,
+            assistantTaskSkillSelection: options?.assistantTaskSkillSelection
         })
         state = preparedAgentChatState.state
         input = preparedAgentChatState.input
@@ -1312,7 +1313,8 @@ function prepareAgentChatState({
     conversationRuntimeCapabilities,
     workspaceId,
     userPreference,
-    forceWorkspaceSkillBlacklistMode = false
+    forceWorkspaceSkillBlacklistMode = false,
+    assistantTaskSkillSelection
 }: {
     state: TXpertChatState | null
     input: TChatRequestHuman | null
@@ -1324,6 +1326,10 @@ function prepareAgentChatState({
         toolPreferences?: IAssistantBindingToolPreferences | null
     } | null
     forceWorkspaceSkillBlacklistMode?: boolean
+    assistantTaskSkillSelection?: {
+        workspaceId: string
+        skillIds: string[]
+    }
 }): {
     state: TXpertChatState
     input: TChatRequestHuman | null
@@ -1360,10 +1366,42 @@ function prepareAgentChatState({
         runtimeCapabilities
     )
 
+    if (assistantTaskSkillSelection) {
+        preparedState = withAssistantTaskSkillSelection(
+            preparedState,
+            assistantTaskSkillSelection,
+            userPreference?.toolPreferences
+        )
+    }
+
     return {
         state: preparedState,
         input: preparedInput,
         runtimeCapabilities
+    }
+}
+
+/**
+ * Applies a host-validated Assistant Task skill selection without changing the
+ * middleware capability selection. User-disabled skills still take precedence.
+ */
+function withAssistantTaskSkillSelection(
+    state: TXpertChatState,
+    selection: { workspaceId: string; skillIds: string[] },
+    toolPreferences?: IAssistantBindingToolPreferences | null
+): TXpertChatState {
+    const workspaceId = selection.workspaceId.trim()
+    const disabledSkillIds = getDisabledSkillIds(workspaceId, toolPreferences)
+    const disabledSkillIdSet = new Set(disabledSkillIds)
+
+    return {
+        ...state,
+        selectedSkillWorkspaceId: workspaceId,
+        selectedSkillIds: selection.skillIds.filter((skillId) => !disabledSkillIdSet.has(skillId)),
+        disabledSkillIds,
+        // The host list is authoritative for this task; do not layer the
+        // conversation's dynamic skill-selection mode on top of it.
+        skillSelectionMode: undefined
     }
 }
 

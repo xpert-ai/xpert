@@ -21,11 +21,25 @@ describe('XpertPublishVersionComponent layout', () => {
     const marketplaceIndex = template.indexOf('data-marketplace-section')
     const versionHistoryIndex = template.indexOf('XP.Xpert.VersionHistory')
     const publishBindingIndex = template.indexOf('XP.Xpert.PublishBinding')
+    const businessAreaIndex = template.indexOf('data-business-area-section')
 
     expect(marketplaceIndex).toBeGreaterThan(versionHistoryIndex)
     expect(marketplaceIndex).toBeGreaterThan(publishBindingIndex)
+    expect(businessAreaIndex).toBeGreaterThan(versionHistoryIndex)
+    expect(marketplaceIndex).toBeGreaterThan(businessAreaIndex)
     expect(template.slice(marketplaceIndex, marketplaceIndex + 240)).toContain('<z-accordion-item')
     expect(template.slice(marketplaceIndex, marketplaceIndex + 240)).not.toContain('expanded')
+  })
+
+  it('offers an optional business area selector without a redundant menu preview', () => {
+    const businessAreaSection = template.slice(
+      template.indexOf('data-business-area-section'),
+      template.indexOf('data-marketplace-section')
+    )
+
+    expect(businessAreaSection).toContain('[(ngModel)]="businessAreaId"')
+    expect(businessAreaSection).toContain('[selectOptions]="businessAreaOptions()"')
+    expect(businessAreaSection).not.toContain('MenuPreview')
   })
 
   function classAttributeFor(fragment: string) {

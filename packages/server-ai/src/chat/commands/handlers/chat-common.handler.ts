@@ -93,6 +93,7 @@ import {
     isChatModelWithParallelToolCallsParam,
     OutputMode,
     PlanInstruction,
+    ProjectTaskInstruction,
     PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
 import { prepareMessagesForModel } from '../../../copilot-model/model-capabilities'
@@ -653,7 +654,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             // 	...mute,
                             // 	[GRAPH_NODE_TITLE_CONVERSATION]
                             // ],
-                            unmutes: []
+                            unmutes: [],
+                            language: languageCode
                         })
                         for await (const event of stream) {
                             const messageContent = transformGraphEvent(event)
@@ -834,10 +836,17 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
          * The relationship between tool and toolset provider
          */
         const toolsetsMap: Record<string, { provider: string; toolsetId: string }> = {}
-        // Project toolset for plan mode
-        if (project?.settings?.mode === 'plan') {
+        // Project task tools are available in every project conversation. The
+        // management mode controls the UI and task lanes, not whether the
+        // assistant can maintain the project's task ledger.
+        if (project?.id) {
             const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(
-                new CreateProjectToolsetCommand(projectId)
+                new CreateProjectToolsetCommand(projectId, {
+                    conversationId,
+                    executionId: execution.id,
+                    agentKey: '',
+                    xpertId: command.options.xpertId ?? null
+                })
             )
             const items = await projectToolset.initTools()
             const _variables = await projectToolset.getVariables()
@@ -964,7 +973,30 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 const tool = createHandoffTool({
                     agentName: agent.name,
                     title: xpert.title,
-                    description: xpert.description
+                    description: xpert.description,
+                    onHandoff: async ({ taskId, config }) => {
+                        if (!project?.id || !taskId) return
+                        await this.projectService.assertToolPermission(project.id, 'edit')
+                        const configurable = (config as { configurable?: TAgentRunnableConfigurable } | undefined)
+                            ?.configurable
+                        const delegated = await this.projectService.createTaskExecution(project.id, taskId, {
+                            conversationId,
+                            threadId: configurable?.thread_id,
+                            agentExecutionId: configurable?.executionId,
+                            xpertId: xpert.id,
+                            agentKey: xpert.agent?.key || agent.name,
+                            status: 'queued',
+                            inputSummary: 'Delegated by the project assistant'
+                        })
+                        if (conversationId) {
+                            await this.projectService.linkTaskConversation(project.id, taskId, {
+                                conversationId,
+                                relationType: 'execution',
+                                sourceExecutionId: delegated.id
+                            })
+                        }
+                        return delegated.id
+                    }
                 })
                 xperts.push({ name: agent.name, agent, tool })
                 toolsTitleMap[tool.name] =
@@ -1047,6 +1079,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 (project?.settings?.instruction || supervisorPrompt) +
                 '\n\n' +
                 Instruction
+
+            if (project?.id) systemTemplate += `\n\n${ProjectTaskInstruction}`
 
             if (project?.settings?.mode === 'plan') {
                 systemTemplate += `\n\n` + PlanInstruction
@@ -1193,6 +1227,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     })
                 )
 
+                const projectTaskExecution = project?.id
+                    ? await this.projectService.claimTaskExecution(project.id, {
+                          threadId: config.configurable.thread_id,
+                          xpertId: xpert.id,
+                          agentExecutionId: __execution.id
+                      })
+                    : null
+
                 // Start agent execution event
                 subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, __execution))
 
@@ -1218,6 +1260,23 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             }
                         })
                     )
+
+                    if (projectTaskExecution) {
+                        await this.projectService.updateTaskExecution(
+                            project.id,
+                            projectTaskExecution.taskId,
+                            projectTaskExecution.id,
+                            {
+                                status: status === XpertAgentExecutionStatusEnum.SUCCESS ? 'succeeded' : 'failed',
+                                outputSummary:
+                                    status === XpertAgentExecutionStatusEnum.SUCCESS
+                                        ? 'Assistant execution completed'
+                                        : undefined,
+                                error: status === XpertAgentExecutionStatusEnum.SUCCESS ? undefined : error,
+                                completedAt: new Date()
+                            }
+                        )
+                    }
 
                     const fullExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(___execution.id))
 

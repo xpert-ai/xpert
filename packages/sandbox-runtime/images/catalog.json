@@ -13,6 +13,10 @@
     {
       "family": "browser-ai",
       "definition": "images/browser-ai/image.json"
+    },
+    {
+      "family": "document",
+      "definition": "images/document/image.json"
     }
   ]
 }

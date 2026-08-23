@@ -8,25 +8,26 @@ import { ProjectToolset } from '../../tools'
 
 @CommandHandler(CreateProjectToolsetCommand)
 export class CreateProjectToolsetHandler implements ICommandHandler<CreateProjectToolsetCommand> {
-	readonly #logger = new Logger(CreateProjectToolsetHandler.name)
+    readonly #logger = new Logger(CreateProjectToolsetHandler.name)
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly service: XpertProjectService,
-		private readonly taskService: XpertProjectTaskService
-	) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly service: XpertProjectService,
+        private readonly taskService: XpertProjectTaskService
+    ) {}
 
-	public async execute(command: CreateProjectToolsetCommand) {
-		const project = await this.service.findOne(command.projectId)
-		return new ProjectToolset(project, this.service, this.taskService, {
-			tenantId: RequestContext.currentTenantId(),
-			organizationId: RequestContext.getOrganizationId(),
-			projectId: command.projectId,
-			userId: RequestContext.currentUserId(),
-			commandBus: this.commandBus,
-			queryBus: this.queryBus,
-			env: {}
-		})
-	}
+    public async execute(command: CreateProjectToolsetCommand) {
+        const project = await this.service.findOne(command.projectId)
+        return new ProjectToolset(project, this.service, this.taskService, {
+            tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
+            projectId: command.projectId,
+            userId: RequestContext.currentUserId(),
+            commandBus: this.commandBus,
+            queryBus: this.queryBus,
+            env: {},
+            ...command.params
+        })
+    }
 }

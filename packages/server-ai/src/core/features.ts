@@ -92,6 +92,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 status: 'info'
             },
             {
+                name: 'Project workspace',
+                code: AiFeatureEnum.FEATURE_XPERT_PROJECT,
+                description: 'Enable the Xpert Project collaboration workspace',
+                link: '/project',
+                isEnabled: features.FEATURE_XPERT_PROJECT,
+                icon: 'folder_open',
+                status: 'info'
+            },
+            {
                 name: 'ClawXpert',
                 code: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
                 description: 'Show the ClawXpert entry in chat sidebar',

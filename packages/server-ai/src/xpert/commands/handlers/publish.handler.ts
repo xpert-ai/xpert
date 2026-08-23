@@ -13,13 +13,14 @@ import {
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import { omit, pick } from '@xpert-ai/server-common'
-import { RequestContext } from '@xpert-ai/server-core'
+import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { groupBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { IsNull } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
@@ -28,6 +29,7 @@ import { XpertAgentService } from '../../../xpert-agent'
 import { EventName_XpertPublished } from '../../types'
 import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
+import { t } from 'i18next'
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -39,12 +41,14 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         private readonly i18nService: I18nService,
         private readonly commandBus: CommandBus,
         private readonly eventEmitter: EventEmitter2,
+        @InjectRepository(BusinessArea)
+        private readonly businessAreaRepository: Repository<BusinessArea>,
         private readonly promptWorkflowService?: PromptWorkflowService,
         private readonly xpertPrincipalService?: XpertPrincipalService
     ) {}
 
     public async execute(command: XpertPublishCommand): Promise<Xpert> {
-        const { id, newVersion, environmentId, notes, marketplace } = command
+        const { id, newVersion, environmentId, notes, marketplace, businessAreaId } = command
         const xpert = await this.xpertService.findOne(id, {
             relations: [
                 'agent',
@@ -60,6 +64,26 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
         if (!xpert.draft) {
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
+        }
+
+        const businessArea =
+            businessAreaId === undefined
+                ? undefined
+                : businessAreaId === null
+                  ? null
+                  : await this.businessAreaRepository.findOne({
+                        where: {
+                            id: businessAreaId,
+                            tenantId: xpert.tenantId,
+                            organizationId: xpert.organizationId ?? IsNull()
+                        }
+                    })
+        if (businessAreaId && !businessArea) {
+            throw new BadRequestException(
+                t('server-ai:Error.XpertBusinessAreaScopeMismatch', {
+                    defaultValue: 'The selected business area is not available in this Xpert scope.'
+                })
+            )
         }
 
         const currentUserId = RequestContext.currentUserId()
@@ -134,6 +158,11 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
         // Env
         xpert.environmentId = environmentId
+
+        if (businessArea !== undefined) {
+            xpert.businessAreaId = businessArea?.id ?? null
+            xpert.businessArea = businessArea
+        }
 
         return await this.publish(xpert, version, draft, marketplace)
     }

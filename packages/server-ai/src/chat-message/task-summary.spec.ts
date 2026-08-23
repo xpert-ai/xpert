@@ -97,6 +97,119 @@ describe('extractChatMessageTaskSummary', () => {
         expect(JSON.stringify(summary)).not.toContain('Raw shell output')
     })
 
+    it('extracts generated files from artifact collections without exposing provider data', () => {
+        const summary = extractChatMessageTaskSummary(
+            message({
+                content: [
+                    {
+                        type: 'component',
+                        data: {
+                            tool: 'video_generation_query',
+                            artifact: {
+                                files: [
+                                    {
+                                        fileName: 'generated-video.mp4',
+                                        filePath: 'files/videos/generated-video.mp4',
+                                        workspacePath: 'files/videos/generated-video.mp4',
+                                        fileUrl: 'https://example.com/internal/generated-video.mp4?token=secret',
+                                        mimeType: 'video/mp4'
+                                    },
+                                    {
+                                        fileName: 'generated-video-cover.png',
+                                        workspacePath: 'files/covers/generated-video-cover.png',
+                                        url: 'https://provider.example.com/generated-video-cover.png?token=secret',
+                                        mimeType: 'image/png'
+                                    }
+                                ],
+                                data: {
+                                    providerVideoUrl: 'https://provider.example.com/video.mp4?token=secret'
+                                }
+                            }
+                        }
+                    }
+                ]
+            })
+        )
+
+        expect(summary.outputs).toEqual([
+            {
+                id: 'artifact:files/videos/generated-video.mp4',
+                kind: 'file',
+                title: 'generated-video.mp4',
+                resource: {
+                    type: 'workspace_file',
+                    workspacePath: 'files/videos/generated-video.mp4'
+                },
+                messageId: 'message-1',
+                updatedAt: '2026-07-13T01:00:00.000Z'
+            },
+            {
+                id: 'artifact:files/covers/generated-video-cover.png',
+                kind: 'image',
+                title: 'generated-video-cover.png',
+                resource: {
+                    type: 'workspace_file',
+                    workspacePath: 'files/covers/generated-video-cover.png'
+                },
+                messageId: 'message-1',
+                updatedAt: '2026-07-13T01:00:00.000Z'
+            }
+        ])
+        expect(JSON.stringify(summary)).not.toContain('provider.example.com')
+        expect(JSON.stringify(summary)).not.toContain('token=secret')
+    })
+
+    it('extracts structured artifacts returned by tools through output text', () => {
+        const summary = extractChatMessageTaskSummary(
+            message({
+                content: [
+                    {
+                        type: 'component',
+                        data: {
+                            tool: 'drawio_publish_artifact_link',
+                            output: JSON.stringify({
+                                drawingId: 'drawing-1',
+                                artifactId: 'artifact-drawio',
+                                publicUrl: 'https://example.com/artifacts/share/secret'
+                            })
+                        }
+                    },
+                    {
+                        type: 'component',
+                        data: {
+                            tool: 'export_report',
+                            output: JSON.stringify({
+                                files: [
+                                    {
+                                        fileName: 'report.pdf',
+                                        workspacePath: 'files/report.pdf',
+                                        mimeType: 'application/pdf'
+                                    }
+                                ]
+                            })
+                        }
+                    }
+                ]
+            })
+        )
+
+        expect(summary.outputs).toMatchObject([
+            {
+                id: 'artifact:artifact-drawio',
+                kind: 'site',
+                title: 'draw.io diagram',
+                resource: { type: 'artifact', artifactId: 'artifact-drawio' }
+            },
+            {
+                id: 'artifact:files/report.pdf',
+                kind: 'document',
+                title: 'report.pdf',
+                resource: { type: 'workspace_file', workspacePath: 'files/report.pdf' }
+            }
+        ])
+        expect(JSON.stringify(summary)).not.toContain('example.com/artifacts/share/secret')
+    })
+
     it('preserves element and file_element references and capability sources', () => {
         const summary = extractChatMessageTaskSummary(
             message({

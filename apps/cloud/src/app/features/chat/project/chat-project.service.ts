@@ -1,13 +1,13 @@
 import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
-import { Router } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { IXpert } from '@cloud/app/@core/types'
 import type { ChatAgentFile } from '@cloud/app/@shared/chat/attachments/agent-file'
 import { ChatService } from '@cloud/app/xpert'
 import { nonNullable } from '@xpert-ai/contracts'
 import { injectParams } from 'ngxtension/inject-params'
-import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
+import { distinctUntilChanged, filter, map, take, withLatestFrom } from 'rxjs'
 import { injectProjectService } from '@cloud/app/@core'
 import { ChatHomeService } from '../home.service'
 import { ProjectService } from './project.service'
@@ -19,6 +19,7 @@ export class ChatProjectService extends ChatService {
   readonly #projectsService = injectProjectService()
   readonly #router = inject(Router)
   readonly #location = inject(Location)
+  readonly #route = inject(ActivatedRoute)
 
   readonly paramRole = injectParams('name')
   readonly paramId = injectParams('c')
@@ -33,9 +34,11 @@ export class ChatProjectService extends ChatService {
     )
     .subscribe(([role, paramRole]) => {
       if (role?.slug === 'common') {
-        this.#location.replaceState('/project/' + this.projectService.id())
+        this.#location.replaceState('/project/' + this.projectService.id() + '?chat=open&xpert=common')
       } else if (role?.name && role.slug !== paramRole) {
-        this.#location.replaceState('/project/' + this.projectService.id() + '/x/' + role.slug)
+        this.#location.replaceState(
+          '/project/' + this.projectService.id() + '?chat=open&xpert=' + encodeURIComponent(role.slug)
+        )
       }
 
       if (!this.conversationId()) {
@@ -56,20 +59,47 @@ export class ChatProjectService extends ChatService {
     .subscribe((id) => {
       if (this.xpert()?.slug) {
         if (id) {
-          this.#location.replaceState('/project/' + this.projectService.id() + '/x/' + this.xpert().slug + '/c/' + id)
+          this.#location.replaceState(
+            '/project/' +
+              this.projectService.id() +
+              '?chat=open&xpert=' +
+              encodeURIComponent(this.xpert().slug) +
+              '&threadId=' +
+              id
+          )
         } else {
-          this.#location.replaceState('/project/' + this.projectService.id() + '/x/' + this.xpert().slug)
+          this.#location.replaceState(
+            '/project/' + this.projectService.id() + '?chat=open&xpert=' + encodeURIComponent(this.xpert().slug)
+          )
         }
       } else if (id) {
-        this.#location.replaceState('/project/' + this.projectService.id() + '/c/' + id)
+        this.#location.replaceState('/project/' + this.projectService.id() + '?chat=open&threadId=' + id)
       } else {
-        this.#location.replaceState('/project/' + this.projectService.id())
+        this.#location.replaceState('/project/' + this.projectService.id() + '?chat=open')
       }
       this.homeService.conversationId.set(id)
     })
 
   constructor() {
     super()
+    this.#route.queryParamMap
+      .pipe(
+        map((params) => ({ xpert: params.get('xpert'), threadId: params.get('threadId') })),
+        distinctUntilChanged((left, right) => left.xpert === right.xpert && left.threadId === right.threadId),
+        takeUntilDestroyed()
+      )
+      .subscribe(({ xpert, threadId }) => {
+        this.conversationId.set(threadId)
+        if (xpert && xpert !== 'common') {
+          this.homeService
+            .getXpert(xpert)
+            .pipe(take(1))
+            .subscribe((role) => this.xpert.set(role))
+        } else if (xpert === 'common') {
+          this.xpert.set(null)
+        }
+      })
+
     effect(() => {
       if (this.paramId()) {
         this.conversationId.set(this.paramId())
@@ -83,9 +113,9 @@ export class ChatProjectService extends ChatService {
     this.conversationId.set(null)
     this.conversation.set(null)
     if (xpert?.slug) {
-      this.#router.navigate(['/project', this.project().id, 'x', xpert.slug])
+      this.#router.navigate(['/project', this.project().id], { queryParams: { chat: 'open', xpert: xpert.slug } })
     } else {
-      this.#router.navigate(['/project', this.project().id])
+      this.#router.navigate(['/project', this.project().id], { queryParams: { chat: 'open' } })
     }
   }
 

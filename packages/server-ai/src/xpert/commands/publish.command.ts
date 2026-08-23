@@ -12,6 +12,7 @@ export class XpertPublishCommand implements ICommand {
         public readonly newVersion: boolean,
         public readonly environmentId: string,
         public readonly notes: string,
-        public readonly marketplace?: TXpertPublishMarketplaceInput
+        public readonly marketplace?: TXpertPublishMarketplaceInput,
+        public readonly businessAreaId?: string | null
     ) {}
 }

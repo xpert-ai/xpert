@@ -54,6 +54,9 @@ export enum PermissionsEnum {
   INTEGRATION_VIEW = 'INTEGRATION_VIEW',
   DATA_SOURCE_VIEW = 'DATA_SOURCE_VIEW',
   DATA_SOURCE_EDIT = 'DATA_SOURCE_EDIT',
+  BUSINESS_AREA_VIEW = 'BUSINESS_AREA_VIEW',
+  BUSINESS_AREA_MANAGE = 'BUSINESS_AREA_MANAGE',
+  BUSINESS_AREA_ASSIGN = 'BUSINESS_AREA_ASSIGN',
   FILE_STORAGE_VIEW = 'FILE_STORAGE_VIEW',
   SMS_GATEWAY_VIEW = 'SMS_GATEWAY_VIEW',
   CUSTOM_SMTP_VIEW = 'CUSTOM_SMTP_VIEW',
@@ -94,13 +97,22 @@ export const PermissionGroups = {
     AIPermissionsEnum.BILLING_REFUND,
     AIPermissionsEnum.PAYMENT_PROVIDER_EDIT,
     AIPermissionsEnum.XPERT_EDIT,
+    AIPermissionsEnum.XPERT_PROJECT_VIEW,
+    AIPermissionsEnum.XPERT_PROJECT_CREATE,
+    AIPermissionsEnum.XPERT_PROJECT_EDIT,
+    AIPermissionsEnum.XPERT_PROJECT_MANAGE,
     AIPermissionsEnum.CHAT_VIEW,
     AIPermissionsEnum.EVOLUTION_VIEW,
     AIPermissionsEnum.EVOLUTION_MANAGE,
 
     // DataSource
     PermissionsEnum.DATA_SOURCE_VIEW,
-    PermissionsEnum.DATA_SOURCE_EDIT
+    PermissionsEnum.DATA_SOURCE_EDIT,
+
+    // Business Area
+    PermissionsEnum.BUSINESS_AREA_VIEW,
+    PermissionsEnum.BUSINESS_AREA_MANAGE,
+    PermissionsEnum.BUSINESS_AREA_ASSIGN
   ],
 
   //Readonly permissions, are only enabled for admin role

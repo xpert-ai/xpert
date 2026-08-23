@@ -10,6 +10,7 @@ import { createXpertTemplateSource, resolveXpertTemplateSource } from '../../tem
 import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
 import { XpertSyncTemplateCommand } from '../sync-template.command'
+import { PluginTemplateSyncDependenciesCommand } from '../../../plugin-resource/commands/sync-template-dependencies.command'
 
 @CommandHandler(XpertSyncTemplateCommand)
 export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTemplateCommand> {
@@ -59,6 +60,13 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
                 templateSource
             })
         )
+        // Reconcile runtime resources after graph import so targetAgentKey
+        // selectors bind against the refreshed Agent nodes, not the old draft.
+        if (hasRuntimeDependencies(template.dependencies)) {
+            await this.commandBus.execute(
+                new PluginTemplateSyncDependenciesCommand(xpert.id, template.pluginName, template.dependencies)
+            )
+        }
 
         return {
             xpertId: xpert.id,
@@ -67,6 +75,17 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
             ...(template.releaseNotes ? { releaseNotes: template.releaseNotes } : {})
         }
     }
+}
+
+/** Detects declarative runtime dependencies without coupling to one schema version. */
+function hasRuntimeDependencies(dependencies: unknown): boolean {
+    if (!dependencies || typeof dependencies !== 'object') {
+        return false
+    }
+    return ['skills', 'mcpServers', 'hooks', 'apps', 'plugins'].some((key) => {
+        const value = Reflect.get(dependencies, key)
+        return Array.isArray(value) && value.length > 0
+    })
 }
 
 function resolveTemplateLookupId(source: { templateId: string; templateKey?: string; pluginName?: string }) {

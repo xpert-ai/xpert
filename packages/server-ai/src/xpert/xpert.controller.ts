@@ -1,7 +1,6 @@
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
-    isEnterpriseH5Platform,
     IChatConversation,
     IIntegration,
     IXpert,
@@ -72,6 +71,8 @@ import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
+import { createReadStream } from 'fs'
+import archiver from 'archiver'
 import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -141,6 +142,7 @@ import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 import { FindCopilotModelsQuery } from '../copilot/queries'
 import { t } from 'i18next'
+import { isUUID } from 'class-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 
 const XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
@@ -456,10 +458,19 @@ export class XpertController extends CrudController<Xpert> {
     async publish(
         @Param('id') id: string,
         @Query('newVersion') newVersion: string,
-        @Body() body: { environmentId: string; releaseNotes: string; marketplace?: unknown }
+        @Body()
+        body: { environmentId: string; releaseNotes: string; businessAreaId?: unknown; marketplace?: unknown }
     ) {
         const marketplace = parseXpertPublishMarketplaceInput(body.marketplace)
-        return this.service.publish(id, newVersion === 'true', body.environmentId, body.releaseNotes, marketplace)
+        const businessAreaId = parseXpertPublishBusinessAreaId(body.businessAreaId)
+        return this.service.publish(
+            id,
+            newVersion === 'true',
+            body.environmentId,
+            body.releaseNotes,
+            marketplace,
+            businessAreaId
+        )
     }
 
     /**
@@ -649,6 +660,82 @@ export class XpertController extends CrudController<Xpert> {
         @NestUploadedFile() file: Express.Multer.File
     ) {
         return await this.service.uploadMemoryFile(id, path, file)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/workspace/files')
+    async listWorkspaceFiles(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string,
+        @Query('deepth') deepth: number
+    ) {
+        return this.workspaceFilesService.list(id, path, deepth)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/workspace/file')
+    async readWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        return this.workspaceFilesService.read(id, path)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/workspace/file/download')
+    async downloadWorkspaceFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string,
+        @Res() res: Response
+    ) {
+        const file = await this.workspaceFilesService.download(id, path)
+        const encodedFilename = encodeURIComponent(file.fileName)
+        res.setHeader('Content-Type', file.mimeType)
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+        )
+
+        if (file.type === 'directory') {
+            const archive = archiver('zip', { zlib: { level: 9 } })
+            archive.on('error', (error) => res.destroy(error))
+            archive.pipe(res)
+            archive.directory(file.absolutePath, false)
+            await archive.finalize()
+            return
+        }
+
+        createReadStream(file.absolutePath).pipe(res)
+    }
+
+    @UseGuards(XpertGuard)
+    @Put(':id/workspace/file')
+    async saveWorkspaceFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body() body: { path: string; content: string }
+    ) {
+        return this.workspaceFilesService.save(id, body?.path, body?.content ?? '')
+    }
+
+    @UseGuards(XpertGuard)
+    @Post(':id/workspace/file/upload')
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
+    async uploadWorkspaceFileToFolder(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body('path') path: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileUploadRequired', {
+                    defaultValue: 'Workspace file is required.'
+                })
+            )
+        }
+        return this.workspaceFilesService.uploadToFolder(id, path, file)
+    }
+
+    @UseGuards(XpertGuard)
+    @Delete(':id/workspace/file')
+    async deleteWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        return this.workspaceFilesService.delete(id, path)
     }
 
     @UseGuards(XpertGuard)
@@ -1006,11 +1093,6 @@ export class XpertController extends CrudController<Xpert> {
     @Put(':id/app')
     async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
         const xpert = await this.service.findOne(id)
-        for (const platform of Object.keys(app.channels ?? {})) {
-            if (!isEnterpriseH5Platform(platform)) {
-                throw new BadRequestException(t('server-ai:Error.EnterpriseH5PlatformUnsupported'))
-            }
-        }
         await this.service.updateXpert(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
             await this.xpertPrincipalService.ensurePrincipalUser(xpert)
@@ -1526,4 +1608,25 @@ export class XpertController extends CrudController<Xpert> {
     ) {
         return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end, id, { model, userId }))
     }
+}
+
+export function parseXpertPublishBusinessAreaId(value: unknown): string | null | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    if (value === null) {
+        return null
+    }
+    if (typeof value === 'string') {
+        const id = value.trim()
+        if (isUUID(id)) {
+            return id
+        }
+    }
+
+    throw new BadRequestException(
+        t('server-ai:Error.XpertBusinessAreaInvalid', {
+            defaultValue: 'The selected business area is invalid.'
+        })
+    )
 }

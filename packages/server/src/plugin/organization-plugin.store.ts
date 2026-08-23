@@ -287,6 +287,11 @@ function readWorkspaceStageState(statePath: string): WorkspaceStageState | null 
 	return isWorkspaceStageState(value) ? value : null
 }
 
+export function readWorkspacePluginRuntimeRevision(pluginDir: string): string | undefined {
+	const state = readWorkspaceStageState(path.join(pluginDir, WORKSPACE_STAGE_STATE_FILE))
+	return state ? `workspace:${state.sourceFingerprint}` : undefined
+}
+
 function writeWorkspaceStageState(statePath: string, state: WorkspaceStageState) {
 	const temporaryPath = `${statePath}.${process.pid}.${Date.now()}.tmp`
 	try {

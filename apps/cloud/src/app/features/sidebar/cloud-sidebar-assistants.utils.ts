@@ -7,7 +7,14 @@ export interface AssistantXpertLike {
   titleCN?: string | null
   description?: string | null
   latest?: boolean | null
+  businessAreaId?: string | null
+  businessArea?: { id?: string | null; name?: string | null } | null
   tags?: Array<{ name?: unknown; label?: unknown }>
+}
+
+export type AssistantBusinessArea = {
+  id: string
+  name: string
 }
 
 export function normalizeAssistantXperts<T extends AssistantXpertLike>(
@@ -73,7 +80,29 @@ export function getAssistantRouteId(xpert: AssistantXpertLike) {
 }
 
 export function getAssistantLabel(xpert: AssistantXpertLike) {
+  const label = getAssistantName(xpert)
+  const businessAreaName = getAssistantBusinessAreaName(xpert)
+
+  return businessAreaName && label ? `${businessAreaName} / ${label}` : label
+}
+
+export function getAssistantName(xpert: AssistantXpertLike) {
   return xpert.title || xpert.titleCN || xpert.name || xpert.slug || xpert.id || ''
+}
+
+export function getAssistantBusinessAreaName(xpert: AssistantXpertLike) {
+  return xpert.businessArea?.name?.trim() || ''
+}
+
+export function getAssistantBusinessArea(xpert: AssistantXpertLike): AssistantBusinessArea | null {
+  const id = xpert.businessAreaId?.trim() || xpert.businessArea?.id?.trim()
+  const name = getAssistantBusinessAreaName(xpert)
+
+  return id && name ? { id, name } : null
+}
+
+export function getAssistantBusinessAreaInitial(name: string) {
+  return Array.from(name.trim())[0] ?? ''
 }
 
 export function getAssistantDescription(xpert: AssistantXpertLike) {

@@ -1,0 +1,1552 @@
+---
+title: 'Xpert Project 计划模块功能设计'
+description: '以 WorkBuddy 简易项目和 origin/feat/project 高级泳道执行模型为参照，设计 Xpert Project 的简易/高级计划能力，以及项目助理智能体自主管理项目的闭环。'
+---
+
+# Xpert Project 计划模块功能设计
+
+> 调研与设计日期：2026-08-22
+> 参考提交：`origin/feat/project` / `ce695b7245befa8613dff6d269415107533136c4`
+> 设计范围：项目计划、里程碑、Sprint、Swimlane、任务编排、Agent 执行和 Assistant 协作。
+
+## 1. 设计结论
+
+Xpert Project 的“计划”不应只是一个展示计划名称和截止日期的表格，也不应把所有任务直接堆在一个看板里。它应该是从项目目标到 Agent 执行结果的中间控制面：
+
+1. 新建项目时选择 **简易模式** 或 **高级模式**，让普通项目不承担不必要的配置成本。
+2. 简易模式只提供 WorkBuddy 风格的固定任务板，用户直接管理任务，不需要理解里程碑、Sprint 或泳道策略。
+3. 高级模式用 **Plan** 固化交付范围，用 **Milestone** 表达验收阶段，用 **Sprint** 切分执行周期。
+4. 高级模式用 **Swimlane** 表达执行路径、Agent 角色、运行环境和容量约束。
+5. 两种模式都用 **Task** 承载具体工作、负责人、状态、执行记录和最终产物。
+6. 用 Assistant 将自然语言目标转换成计划、任务和资产，并在每次写入前保留用户确认和权限检查。
+7. 将项目 Assistant 定义为受控的协调智能体：它通过项目快照观察、变更集预览、领域服务写入、队列派发和事件回收，循环管理项目，而不是直接操作数据库或把聊天成功当成任务完成。
+
+目标结构如下：
+
+```text
+Project
+└── Plan                    长期交付范围和目标
+    ├── Milestone           阶段验收点
+    └── Sprint              有时间边界的执行周期
+        └── Swimlane        Agent/团队执行路径和容量约束
+            └── Task        可验收工作单元
+                ├── Steps / Logs
+                ├── TaskConversationLink -> Conversation
+                ├── ProjectTaskExecution
+                └── Assets / Artifacts
+```
+
+Plan 是高级模式的治理层，Sprint 是高级模式的执行层。简易模式使用一个系统默认计划和固定任务板，不向用户暴露这些内部层级；两种模式底层仍使用统一 Task、Activity、Conversation 和 Asset 关系。
+
+## 2. WorkBuddy 对标要点
+
+WorkBuddy 的 Project 公开定位更接近一个可持续的 AI 工作空间，而不是传统项目管理工具。公开资料重点强调：用户给出目标，Agent 自主理解、拆解、规划并执行；多个 Agent 可以并行处理不同工作；项目空间共享知识、流程、Skills 和结果；最终产物在项目边界内持续复用，并且团队版本需要成员授权、数据隔离和操作审计。
+
+对 Xpert 计划模块的直接启发：
+
+| WorkBuddy 取向           | Xpert 计划模块的对应设计                                               |
+| ------------------------ | ---------------------------------------------------------------------- |
+| 目标驱动，而不是表单驱动 | Plan 创建时先填写目标和验收标准，计划结构可由 Assistant 生成           |
+| 多 Agent 并行            | Sprint Swimlane 按 Agent 角色、工具能力和运行环境路由任务              |
+| 共享项目上下文           | Plan/Sprint/Task 执行继承项目指令、绑定 Xpert、工具集、知识库和资产    |
+| Skills/流程复用          | 计划模板、Sprint 策略模板、泳道模板和 Assistant 快捷动作可复用         |
+| 结果沉淀                 | Task 输出转为项目 Asset，保留来源会话、执行记录、版本和关联任务        |
+| 团队治理                 | 计划编辑、任务执行、泳道配置和自动化启停遵循 Project Permission 和审计 |
+
+WorkBuddy 的启发不等于让所有项目都直接复制复杂看板。简易模式保持低门槛的固定四列；进入高级模式后，Xpert 的差异化能力才体现为：泳道不仅代表状态，还代表谁来执行、使用什么环境、最多同时执行多少任务，以及 Agent 如何回写任务结果。
+
+### 2.1 项目模式设计
+
+模式在新建项目向导的第一步选择，并保存为项目级 `managementMode`：
+
+```text
+simple  简易模式
+advanced 高级模式
+```
+
+| 项目模式 | 目标用户                                 | 用户可见的计划能力                                            | 底层能力                                                                 |
+| -------- | ---------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 简易模式 | 个人、小团队、一次性或短周期工作         | 一个默认计划、固定四列任务板、基础筛选和 Assistant            | 统一 Task/Activity/Asset；系统泳道不可编辑                               |
+| 高级模式 | 多团队、长周期、Agent 编排和严格交付项目 | 多计划、多里程碑、多 Sprint、自定义泳道、容量、状态和执行治理 | 完整复用 `origin/feat/project` 的 Sprint/Swimlane/Task/Orchestrator 能力 |
+
+#### 简易模式的固定泳道
+
+简易模式默认展示截图所示的四条固定泳道：
+
+| 显示名称 | 系统 key      | 任务语义                           |
+| -------- | ------------- | ---------------------------------- |
+| 待开始   | `todo`        | 已创建但尚未开始处理               |
+| 进行中   | `in_progress` | 正在由成员或 Assistant 处理        |
+| 已暂停   | `paused`      | 暂时不推进，保留当前上下文和下一步 |
+| 已完成   | `done`        | 已达到验收条件或由用户确认完成     |
+
+简易模式的 `blocked`、`cancelled` 仍作为任务内部终态，用于筛选、活动记录和执行审计；阻塞或取消的任务保留在原泳道并显示风险标记，不改变固定四列。已完成任务保留在“已完成”泳道，并支持完成时间、完成者和执行结果查看。
+
+简易模式明确不提供：
+
+- 手动创建或删除 Plan、Milestone、Sprint。
+- 自定义泳道、泳道顺序、WIP、并发和 Agent 角色。
+- 自定义任务状态和状态转换图。
+- 跨 Sprint Carry-over、复杂依赖和泳道策略模板。
+
+#### 高级模式
+
+高级模式展示完整计划工作台：
+
+- 可以创建多个 Plan 和 Milestone。
+- 每个 Plan 可以创建多个 Sprint，并从策略模板生成泳道。
+- 可以新增、重命名、排序和配置自定义泳道。
+- 可以配置自定义任务状态、状态转换、完成条件和阻塞原因。
+- 可以使用 Agent 角色、运行环境、绑定团队、WIP 和并发约束进行自动分派。
+- 可以进行 Backlog Carry-over、依赖校验、Sprint 回顾和执行审计。
+
+#### 模式生命周期
+
+- 新建项目默认推荐简易模式；高级项目由用户主动选择高级模式。
+- 简易模式可以由项目所有者或 `XPERT_PROJECT_MANAGE` 权限升级为高级模式，升级前显示数据和界面变化预览。
+- 高级模式原则上不能降级为简易模式；已有里程碑、Sprint、泳道或自定义状态时禁止降级，避免数据语义丢失。
+- 模式切换写入 `project.mode_changed` 活动；Assistant 只能提出升级建议，不能自行切换模式。
+- 模式由服务端校验，不能只靠前端隐藏高级按钮来保证边界。
+
+## 3. 现有实现盘点
+
+### 3.1 旧分支：`origin/feat/project`
+
+指定提交是一个合并提交，但其项目功能代码已经包含可运行的 Sprint/Swimlane 方案。关键代码位置如下：
+
+```text
+apps/cloud/src/app/features/project/
+  pages/project-kanban-page.component.ts
+  components/project-board.component.ts
+  components/project-swimlane-column.component.ts
+  components/project-task-card.component.ts
+  components/project-sprint-create-dialog.component.ts
+  project-page.facade.ts
+  project-page.utils.ts
+
+apps/cloud/src/app/@core/services/
+  project-sprint.service.ts
+  project-swimlane.service.ts
+  project-task.service.ts
+
+packages/contracts/src/project/
+  project-sprint.model.ts
+  project-strategy.model.ts
+  project-swimlane.model.ts
+  project-task.model.ts
+
+packages/server-ai/src/
+  project-sprint/
+  project-swimlane/
+  project-task/
+  project-orchestrator/
+```
+
+### 3.2 旧分支已验证的功能
+
+#### Sprint
+
+`IProjectSprint` 保存 `goal`、`status`、`strategyType`、`startAt`、`endAt` 和 `retrospective`。Sprint 状态为：
+
+```text
+planned -> running -> review -> done
+```
+
+创建 Sprint 时，服务端会在同一事务内校验所属项目和策略模板，并自动生成默认泳道。创建对话框已经支持：
+
+- Sprint 目标。
+- 执行策略：`software_delivery`、`data_analysis`。
+- 初始状态。
+- 开始日期和结束日期。
+- 从当前 Sprint Backlog 选择任务，迁移到新 Sprint 的 Backlog。
+- 结束日期不能早于开始日期。
+
+Sprint 的策略创建后不能随意切换，避免已经产生的泳道、路由和执行记录失去语义。
+
+#### Swimlane
+
+每条泳道保存：
+
+- `key`、`name`、`kind` 和 `sortOrder`。
+- `priority`、`weight`。
+- `concurrencyLimit` 和 `wipLimit`。
+- `agentRole` 和 `environmentType`。
+- `sourceStrategyType`。
+
+系统保留一个 `backlog` 泳道。软件交付策略默认生成：
+
+```text
+Backlog -> Planning -> Coding -> Review -> Release
+```
+
+数据分析策略默认生成：
+
+```text
+Backlog -> Research -> Analysis -> Visualization
+```
+
+Backlog 不能配置执行并发，且只能保持 `todo` 状态；普通执行泳道不能复用保留的 Backlog key。旧服务还校验了泳道和 Sprint 必须属于同一个项目。
+
+#### 看板和拖拽
+
+旧前端使用横向滚动的 Swimlane Board：
+
+- 顶部选择当前 Sprint。
+- 显示泳道数、任务数、绑定团队数。
+- 每条泳道显示 Agent 角色、运行环境、并发上限和 WIP 上限。
+- 可以从泳道创建任务。
+- 任务卡可以打开任务详情或最近一次执行会话。
+- 支持同泳道排序和跨泳道拖拽。
+- 跨 Sprint 移动只允许从 Backlog 到 Backlog。
+- 拖拽先在前端乐观更新，接口失败时恢复原始顺序并提示错误。
+
+服务端对应两个明确接口：
+
+```text
+POST /project-task/move
+POST /project-task/swimlane/:swimlaneId/reorder
+```
+
+#### Agent 路由和任务执行
+
+旧分支的 `ProjectTaskAssignmentService` 会根据泳道的 `agentRole`、`environmentType`、团队绑定能力和并发额度自动选择执行团队；没有匹配能力或容量已满时，会返回可解释的跳过原因。
+
+`ProjectTaskDispatchProcessor` 通过 Managed Queue/交接处理器启动 Xpert 执行，并把任务执行状态、摘要、错误、产物和事件写回任务：
+
+```text
+queued -> running -> success / failed
+```
+
+执行 Agent 通过 `reportProjectTaskOutcome` 汇报最终结果，产物可以是项目文件、项目目录或外部 URL。该机制是本设计保留 Swimlane 的主要原因：泳道是 Agent 执行调度和容量控制单元，而不是纯视觉列。
+
+### 3.3 当前主线的 Plan/Milestone
+
+当前主线已经在 `packages/contracts/src/ai/xpert-project.model.ts` 和 `packages/server-ai/src/xpert-project/` 中实现了另一套更通用的计划模型：
+
+| 对象                        | 当前能力                                                            |
+| --------------------------- | ------------------------------------------------------------------- |
+| `IXpertProjectPlan`         | `name`、`description`、`status`、`view`、起止日期、排序和里程碑关系 |
+| `IXpertProjectMilestone`    | 计划归属、名称、描述、状态、截止日期和排序                          |
+| `IXpertProjectTask`         | 计划/里程碑、负责人、优先级、截止日期、步骤和日志                   |
+| `XpertProjectPlanService`   | 默认计划、未归类里程碑、计划/里程碑 CRUD                            |
+| `project.controller.ts`     | `/plans`、`/milestones` 接口，使用 `XPERT_PROJECT_VIEW/EDIT` 保护   |
+| `project-plan.component.ts` | 表格/简单看板切换和新增计划入口                                     |
+
+当前 UI 的“看板”是按任务状态渲染三列，新增计划使用固定的 `New plan` 默认值，里程碑没有完整编辑流程，也没有旧分支的 Sprint/Swimlane 路由、拖拽排序和 Agent 调度能力。当前还没有 `managementMode`，三列状态也不是本设计要求的简易模式固定泳道。因此现状属于“计划数据模型已存在，双模式和执行计划工作台未闭环”。
+
+### 3.4 当前主线已经落地的协作基础
+
+在本设计文档形成后，主线项目 Feature 已补上部分计划工作台能力，后续自治实现应直接复用这些边界，而不是另起一套状态管理：
+
+- `XpertProjectFacade` 统一维护项目、计划、任务、资产、活动和自动化的 signals，并通过加载序列号避免切换项目时旧请求覆盖新项目。
+- Plan 页面已具备 Table、Board、Gantt、Calendar、List 五种任务投影；高级模式提供 Plan/Sprint/Milestone 选择，简单模式隐藏高级层级。
+- 新建项目向导已经可以从现有 Xpert、Toolset、Knowledgebase、组织成员和 Copilot Model 服务加载可选项，并通过 `IXpertProjectCreateInput` 一次提交资源绑定。
+- `XpertProjectPlanDialogComponent` 统一承载 Plan、Sprint、Milestone 的创建和编辑；任务详情 Drawer 可以编辑任务字段并在高级模式选择 Plan/Milestone。
+- `XpertProjectController` 对创建项目、计划和里程碑操作记录活动，项目创建后确保 Default plan 和 Uncategorized milestone 存在。
+
+这些能力解决的是“用户可以管理项目数据”，还没有解决“项目 Assistant 可以在安全边界内持续管理项目”。自治层必须建立在这些 facade、controller、guard、activity 和实体服务之上，并保留局部刷新、错误回滚和简单/高级模式隔离。
+
+## 4. 目标用户和典型场景
+
+### 4.1 项目负责人
+
+- 创建项目计划，定义目标、范围、验收标准和时间窗口。
+- 选择计划模板或让 Assistant 根据项目目标生成里程碑和任务草案。
+- 创建 Sprint，选择执行策略，确认泳道和团队容量。
+- 查看计划进度、阻塞任务、Agent 运行状态和产物。
+- 在回顾阶段填写 Sprint retrospective，并调整下一个周期。
+
+### 4.2 计划/交付经理
+
+- 管理里程碑、任务依赖、任务负责人和截止日期。
+- 在表格、看板和时间线之间切换。
+- 批量调整任务顺序、泳道、负责人或 Sprint。
+- 处理 WIP/并发容量不足导致的任务阻塞。
+
+### 4.3 Agent 操作员
+
+- 配置每条泳道允许的 Agent 角色、环境和绑定团队。
+- 观察队列、执行日志、失败原因和重试。
+- 在 Agent 不能自动执行时进行人工接管或重新分派。
+
+### 4.4 普通成员和观察者
+
+- 查看项目计划和任务上下文。
+- 更新自己有权限负责的任务。
+- 查看会话和资产，但不能修改计划治理或泳道策略。
+
+## 5. 目标信息架构
+
+计划模块位于 Project Shell 的 `Plan` tab。页面不再把所有内容包在多层 Card 中，采用项目现有的紧凑 Zard UI 风格：页面标题、控制栏和内容区用 divider 分割，只有任务卡、指标模块和编辑抽屉使用 Card。
+
+```text
+Plan
+├── Mode badge: Simple | Advanced
+├── Sticky header
+│   ├── Plan selector / plan goal
+│   ├── Sprint selector（高级模式）
+│   ├── View switch: Table | Board | Gantt | Calendar | List
+│   └── Actions: Assistant | New task | New sprint（高级） | Plan settings
+├── Plan summary bar
+│   ├── Progress
+│   ├── Active milestone
+│   ├── Open tasks / blocked tasks
+│   └── Next deadline
+├── Content viewport
+│   ├── Table: fields, filters, bulk actions and sorting
+│   ├── Board: status swimlanes and task cards
+│   ├── Gantt: task/milestone timeline and dependencies
+│   ├── Calendar: date-based task planning
+│   └── List: grouped task stream and quick entry
+└── Right Assistant panel
+    ├── Plan context indicator
+    ├── Generate plan / decompose goal
+    ├── Explain blockers / rebalance workload
+    └── Create task or asset after confirmation
+```
+
+模式决定页面信息密度，而不是生成两套互不兼容的数据：
+
+```text
+简易模式：Plan（系统默认） -> 固定 Board [待开始 | 进行中 | 已暂停 | 已完成]
+高级模式：Plan -> Milestone -> Sprint -> Swimlane -> Task
+```
+
+### 5.1 Sticky 与滚动规则
+
+- Plan header、tab navigation、控制栏和 Assistant panel 入口保持 sticky。
+- 只有当前内容 viewport 纵向滚动；Board 的泳道内部独立纵向滚动，整体支持横向滚动。
+- Assistant 在宽屏作为项目壳层右侧 rail；窄屏使用可拖动浮窗，不挤压 Board 的最小宽度。
+- Sprint 切换只更新当前 Plan 内容和 URL query，不重建整个项目壳层。
+
+### 5.2 视图选择
+
+| 视图          | 主要用途                                          | 默认使用者             |
+| ------------- | ------------------------------------------------- | ---------------------- |
+| 表格 Table    | 字段化查看、批量编辑、筛选、分组和排序            | 所有人，默认视图       |
+| 看板 Board    | 简易模式固定四列；高级模式按 Sprint Swimlane 路由 | 交付经理、Agent 操作员 |
+| 甘特 Gantt    | 任务/里程碑时间窗口、依赖和进度关系               | 项目负责人、交付经理   |
+| 日历 Calendar | 按开始/截止日期安排任务和查看期限冲突             | 所有人                 |
+| 列表 List     | 按状态、负责人或里程碑分组的连续任务流            | 普通成员、移动端用户   |
+
+简易模式默认进入 Board 或用户上次选择的视图；隐藏 Plan selector、Milestone 和 Sprint 管理，只保留固定四泳道、任务筛选、搜索、排序、添加和 Assistant。高级模式显示完整 Plan/Sprint 上下文，并在 Gantt 中增加里程碑、Sprint、依赖和容量信息。
+
+视图偏好保存到 Project Plan 或用户设置；默认视图沿用 `IXpertProjectPlan.view`，但不把 `board/table` 误认为完整的业务模型。
+
+视图是同一任务数据的不同投影，不产生副本：
+
+- 当前过滤、分组、排序、字段显示和视图类型保存为用户级 View 配置；高级模式允许保存为项目共享 View。
+- 从一个视图编辑任务后，其他视图通过事件流局部刷新，不整页跳转。
+- 所有视图共享搜索、筛选、添加任务、打开待办详情和 Assistant 入口。
+- 简易模式支持 Table、Board、Gantt（只显示任务日期）、Calendar 和 List；高级模式额外显示 Milestone、Sprint、依赖和泳道配置。
+
+### 5.3 表格视图 Table
+
+表格是所有模式都可用的密集工作视图，适合快速比较任务和批量处理。默认字段与截图保持一致，并按照屏幕宽度渐进显示：
+
+```text
+选择 | 标题 | 状态 | 处理人 | 优先级 | 标签 | 开始日期 | 截止日期 | 更新日期
+```
+
+功能设计：
+
+- 首列复选框支持单选、全选当前筛选结果和批量操作；批量操作包括状态、负责人、优先级、标签、日期、归档和删除。
+- 标题单击打开待办详情 Dialog；标题支持单元格内快速编辑，按 Enter 保存，按 Esc 取消。
+- 状态、处理人、优先级、标签、日期使用单元格内联编辑；保存失败恢复旧值并显示错误原因。
+- 表头支持排序；服务端分页时排序、筛选和分组参数必须进入请求，不在前端只处理当前页。
+- 任务层级通过缩进显示；高级模式可展开 Plan/Milestone/Sprint/Task 层级，简易模式只展开子待办。
+
+右上角设置按钮打开“视图设置”侧边 Panel，交互对应截图：
+
+| 设置项     | 功能                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| 视图       | 选择表格、看板、甘特、日历、列表；保存当前 View 名称和默认视图                                          |
+| 字段显示   | 显示/隐藏状态、处理人、优先级、标签、附件、开始日期、截止日期、创建时间、更新时间、来源；拖拽调整列顺序 |
+| 分组       | 简易模式按固定状态分组；高级模式可按状态、处理人、优先级、Plan、Milestone、Sprint、泳道分组             |
+| 筛选       | 多条件 AND/OR、保存筛选、清除筛选、只看我负责、只看阻塞和逾期                                           |
+| 排序       | 多级排序，支持手动顺序、截止日期、优先级、更新时间和执行状态                                            |
+| 显示子待办 | 展开/隐藏子待办；隐藏时父任务显示未完成子项计数                                                         |
+| 数据源     | 导入 DSL/CSV、选择项目任务源；导入先生成草稿，不直接覆盖现有任务                                        |
+| 添加字段   | 高级模式允许新增文本、数字、日期、单选、多人、URL 等自定义字段；简易模式只提示升级                      |
+
+字段设置属于 View 配置，不改变任务实体；高级模式共享 View 的修改需要 `MANAGE` 权限，个人 View 由用户自己保存。
+
+### 5.4 看板视图 Board
+
+简易模式看板固定四列：待开始、进行中、已暂停、已完成。列标题显示图标、任务数、折叠按钮和添加按钮；列配置不可编辑。高级模式看板按当前 Sprint 的 Swimlane 展示，允许拖拽和显示泳道容量。
+
+看板工具栏包含筛选、搜索、视图设置、分组/排序和添加按钮：
+
+- 搜索只过滤当前 Plan/Sprint 数据；输入过程中使用 debounce，清除后恢复原列顺序。
+- 卡片拖拽在同列排序或跨列移动；简易模式只改变任务状态，高级模式同时改变泳道、Sprint 和排序。
+- 空列显示“暂无事项”和“输入待办标题”快捷入口，Enter 创建任务并保留当前列状态。
+- 已完成列支持折叠，默认显示最近完成任务；历史完成任务通过分页加载，避免 Board 首屏过长。
+- 已完成任务可以通过 Dialog 的“重新打开”回到进行中；重新打开必须记录原因和活动，不能直接静默拖回。
+- 卡片点击打开待办详情 Dialog，卡片上的评论、附件、子待办和执行状态使用数量徽标。
+
+### 5.5 甘特视图 Gantt
+
+甘特用于观察时间窗口和依赖关系。顶部控制与截图保持一致：月份/日期导航、上一期/下一期、今天按钮，以及周、月、季、年缩放。
+
+布局：
+
+```text
+左侧固定列：选择 | 标题 | 负责人 | 状态
+右侧时间轴：日期/周/月刻度 | 任务条 | 里程碑点 | 依赖连线
+```
+
+功能设计：
+
+- 任务有开始日期和截止日期时显示任务条；只有截止日期时显示单日节点，没有日期的任务归入“无日期记录”计数。
+- 拖动任务条移动日期，拖动两端调整持续时间；保存前显示变更提示，失败恢复原日期。
+- 高级模式显示 Plan、Milestone、Sprint 的层级行、完成率、依赖连线、关键路径和阻塞标记。
+- 简易模式只显示任务条和截止日期，不显示自定义依赖、Sprint 和里程碑编辑；可以从任务 Dialog 补充日期。
+- 任务依赖发生循环或跨 Sprint 非法引用时，甘特图显示警告但不画出误导性连线。
+- 缩放和横向滚动只影响时间轴，左侧任务列保持 sticky；大量任务使用虚拟列表。
+
+### 5.6 日历视图 Calendar
+
+日历以月视图为默认，也支持周视图和日视图。顶部提供上/下一个周期、今天、当前月份/年份和“无日期记录”入口。
+
+- 有开始/截止日期的任务显示在日期格内；跨日任务显示连续条，颜色使用状态 token。
+- 点击空白日期创建任务并预填开始日期；拖动任务到其他日期更新开始/截止日期。
+- 点击任务打开待办详情 Dialog；逾期任务显示风险标记，已完成任务降低视觉强调但仍可打开。
+- 高级模式可叠加 Milestone、Sprint 起止线和外部日历事件；简易模式只显示任务。
+- 无日期记录显示数量，点击后进入 List/Table 筛选，不强行把任务放到今天。
+- 移动端使用 agenda 列表替代七列网格，保留日期切换和快速添加。
+
+### 5.7 列表视图 List
+
+列表是介于看板和表格之间的纵向任务流，适合快速浏览和移动端使用。默认按四个固定状态分组：
+
+```text
+待开始
+  └─ 任务行：状态图标 | 标题 | 优先级 | 处理人 | 截止日期
+进行中
+已暂停
+已完成
+```
+
+功能设计：
+
+- 分组标题显示展开/折叠、任务数和添加按钮；任务行支持拖动排序。
+- 简易模式只能按固定状态、处理人、优先级、截止日期分组；高级模式增加 Plan、Milestone、Sprint、泳道和自定义字段。
+- 任务行末尾显示处理人头像、附件/评论/子待办数量和最近更新时间；点击整行打开 Dialog。
+- 组内“输入待办标题”支持键盘快速创建；创建后按当前分组写入状态。
+- 列表滚动使用分页或虚拟列表，折叠分组不请求其余任务详情。
+
+### 5.8 视图之间的行为一致性
+
+- 五种视图共享同一套任务状态、权限、过滤器和待办详情 Dialog；切换视图不改变任务数据。
+- 视图 URL 保存 `view`、`filters`、`groupBy`、`sort` 和 `dateRange`，刷新或分享链接后可以恢复。
+- 视图状态只保留轻量配置，不把大规模任务数组写入 URL；服务端保存共享 View，用户设置保存个人 View。
+- 任何视图中发生的状态、负责人、日期、优先级、标签或排序变化都记录活动，并通过 Project Event 刷新其他打开的视图。
+
+## 6. 核心功能设计
+
+### 6.1 Plan 创建和编辑
+
+高级模式创建 Plan 使用 `z-dialog + z-form`，字段分为三组：
+
+1. **目标**：名称、目标描述、成功标准、范围和非目标。
+2. **时间**：开始日期、截止日期、默认时区、是否允许跨期任务。
+3. **执行方式**：计划模板、默认视图、默认 Sprint 策略、是否允许 Assistant 自动拆解。
+
+计划状态：
+
+```text
+draft -> active -> completed
+   └──────────────> archived
+```
+
+规则：
+
+- 新建项目时两种模式都自动生成一个系统 Default plan；简易模式只把它作为内部上下文，不显示 Plan 管理入口。
+- Plan 必须有名称和目标；目标为空时允许保存草稿，不允许进入 `active`。
+- 简易模式不能创建第二个 Plan；高级模式的 `completed` 计划不能创建新 Sprint，恢复为 `active` 需要 `MANAGE` 权限。
+- 删除 Plan 前必须处理其任务和里程碑：迁移到其他计划、归档，或由拥有 `MANAGE` 权限的用户确认级联删除。
+- 计划进度由里程碑和任务状态计算，不允许前端手工写入伪进度。
+
+#### 简易模式固定任务板
+
+简易模式不打开 Plan 编辑表单，而是在项目创建时写入系统默认计划，并直接展示固定任务板：
+
+```text
+待开始      进行中      已暂停
+todo       in_progress  paused
+```
+
+固定任务板支持搜索、状态筛选、优先级筛选、负责人筛选、截止日期排序、添加任务、拖拽调整固定状态和打开任务详情。泳道名称、顺序和状态映射不可编辑；任务完成后进入“已完成”泳道，并可通过完成时间、完成者和活动筛选查看。Assistant 可以创建任务或把任务从待开始移动到进行中，但不能创建新泳道。
+
+简易模式任务卡只显示标题、状态、优先级、负责人、截止日期、最近执行和资产数量；泳道容量、Agent role、环境、Sprint 和 Milestone 字段隐藏，避免普通用户承担高级项目管理认知成本。
+
+### 6.2 Milestone 管理
+
+里程碑是高级模式计划的验收节点，字段为名称、描述、状态、截止日期、排序和验收标准。简易模式不显示里程碑入口，也不要求用户维护里程碑。状态为：
+
+```text
+planned -> in_progress -> completed
+       └───────────────> blocked
+```
+
+功能要求：
+
+- 可以在 Plan Overview 和 Table 视图内联创建、编辑和排序。
+- 可以展开里程碑查看其任务、完成率和阻塞原因。
+- 里程碑完成前，必须显示未完成任务和未处理阻塞项；是否强制阻止完成由计划设置决定。
+- Assistant 可以根据目标生成里程碑草案，但必须由用户确认后写入。
+- 里程碑的状态变化记录 `milestone.status_changed` 活动，并触发可选自动化。
+
+### 6.3 Sprint 创建和周期管理（高级模式）
+
+Sprint 只在高级模式启用，是 Plan 下的执行周期。创建流程沿用旧分支 `project-sprint-create-dialog.component` 的优点，并补充 Plan 绑定和验收目标：
+
+| 字段       | 说明                                              |
+| ---------- | ------------------------------------------------- |
+| Plan       | 必填，不能跨项目引用                              |
+| Goal       | 本周期唯一目标，必填                              |
+| Strategy   | 软件交付、数据分析，以及未来可注册模板            |
+| Status     | 默认 `planned`，只有满足启动条件才可 `running`    |
+| Start/End  | 时间窗口，结束时间不能早于开始时间                |
+| Milestones | 可选，绑定本周期要推进的里程碑                    |
+| Carry over | 从旧 Sprint Backlog 选择任务迁入新 Sprint Backlog |
+| Capacity   | 汇总泳道并发/WIP，提示当前容量和冲突              |
+
+Sprint 生命周期：
+
+```text
+planned -> running -> review -> done
+   └────────────────────────> cancelled
+```
+
+启动条件：
+
+- 至少存在一个 Backlog 泳道和一个执行泳道。
+- 策略模板和所有泳道均属于当前项目。
+- 任务没有引用不存在的负责人、团队或跨 Sprint 依赖。
+- 当前已有 `running` Sprint 时，是否允许并行由 Plan 配置决定，默认允许多个 planned 但只允许一个 running。
+
+结束 Sprint 时提供：完成任务、未完成任务、阻塞原因、产物和 retrospective 摘要；未完成任务只能回到 Backlog 或迁入下一个 Sprint，不允许静默丢失。
+
+### 6.4 Swimlane 策略和模板
+
+简易模式只有系统固定泳道，不允许编辑；高级模式的泳道模板分为系统模板和项目自定义模板：
+
+- 简易模式系统泳道固定为 `todo`、`in_progress`、`paused`，不显示泳道配置表。
+- 高级模式系统模板包括软件交付、数据分析、内容生产、研究等。
+- 高级模式项目自定义泳道：项目管理员可以新增、重命名、调整顺序和容量，但不能删除仍有关联任务的泳道。
+- 高级模式 Backlog 是系统保留泳道，每个 Sprint 只能有一个。
+
+泳道配置 UI 采用紧凑表格，不使用嵌套 Card：
+
+| 配置              | 作用                                                 |
+| ----------------- | ---------------------------------------------------- |
+| Agent role        | 任务的能力路由，如 Planner、Coder、Reviewer、Analyst |
+| Environment       | Browser、Container、Terminal 等执行环境              |
+| Bound teams       | 允许执行该泳道任务的项目团队/Xpert                   |
+| Priority/Weight   | 多个匹配团队时的选择顺序                             |
+| WIP limit         | 泳道中允许同时处于执行状态的任务数                   |
+| Concurrency limit | 该泳道/团队可以并行运行的 Agent 任务数               |
+| Sort order        | 看板显示顺序                                         |
+
+泳道写入规则：
+
+- `kind`、`key` 和 `sourceStrategyType` 创建后默认不可改变；如需更换策略，创建新 Sprint。
+- 每次调整 WIP 或并发限制都生成配置活动。
+- 已在运行中的任务不因降低上限而被强制取消，新任务进入 `blocked` 或等待队列，并显示容量原因。
+- 队列调度必须再次检查容量，避免前端显示可执行但服务端超限。
+
+### 6.5 Task 创建、分解和移动
+
+两种模式都使用统一 Task 实体，但呈现和可编辑字段不同。任务是最小可验收执行单元，至少包含：
+
+- 标题、描述、验收标准。
+- Plan、Milestone、Sprint、Swimlane。
+- 状态、优先级、负责人、绑定团队、截止日期。
+- 依赖任务、步骤、来源/讨论 Conversation、执行记录。
+- 输入资产、输出资产、来源 Assistant 和创建活动。
+
+简易模式只要求标题、描述、状态、优先级、负责人、截止日期和资产关联；Plan/Milestone/Sprint/Swimlane 使用系统默认值，不显示为必填项。高级模式开放完整层级、依赖、泳道、团队绑定和执行配置。
+
+统一状态底层保留完整状态集合，界面按模式裁剪：
+
+```text
+简易：todo -> in_progress -> paused -> done
+                         └───────> blocked / cancelled
+
+高级：todo -> in_progress -> review -> done
+         ├──────────────────────────────> blocked
+         └──────────────────────────────> cancelled
+```
+
+兼容旧分支时，`doing` 映射为 `in_progress`，`failed` 映射为 `blocked`，但保留原始执行结果和失败原因。
+
+高级模式的自定义状态是在旧分支固定枚举之上的扩展：状态定义属于 Project 或 Plan，包含 `key/name/color/category/order` 和允许的前后状态；系统仍保留 `todo`、`in_progress`、`review`、`done`、`blocked`、`cancelled` 作为兼容基类。简易模式只显示固定四泳道，不开放状态定义编辑。
+
+Contracts 需要新增 `paused` 基础状态，并把状态的 `category`（open、active、paused、done、blocked、cancelled）与显示泳道解耦：简易模式将 `paused` 映射到“已暂停”泳道，将 `done` 映射到“已完成”泳道；高级模式可把多个自定义状态映射到任意泳道或仅作为过滤条件。
+
+任务创建有三种入口：
+
+1. **手动创建**：用户在泳道、表格或 Assistant 中打开 `z-drawer`。
+2. **批量导入**：DSL、CSV 或已有资产解析后生成草稿任务。
+3. **Assistant 分解**：用户给出目标；简易模式返回固定四列任务草案，高级模式额外返回里程碑、Sprint、依赖和建议泳道，用户确认后批量写入。
+
+移动和排序规则：
+
+- 简易模式拖拽只更新固定状态映射，服务端拒绝修改泳道定义；阻塞/取消使用任务状态和筛选，不改变固定四列。
+- 高级模式同泳道排序调用 `reorder`，保留未包含在请求中的任务并追加到队尾。
+- 高级模式跨泳道移动调用 `move`，服务端重新写入 `sprintId`、`swimlaneId` 和 `sortOrder`。
+- 高级模式跨 Sprint 只允许 Backlog -> Backlog；执行中的任务必须先暂停或完成。
+- 高级模式 Backlog 任务不允许状态为 `in_progress` 及以上，也不允许创建同 Sprint 依赖。
+- 任务拖拽采用乐观更新，但必须支持并发冲突检测和失败回滚。
+
+### 6.6 任务详情和执行证据
+
+任务详情使用右侧 `z-drawer`，而不是跳转离开计划页。抽屉分为：
+
+```text
+Header: task title / status / priority / actions
+Summary: assignee / team / sprint / swimlane / due date
+Description: description / acceptance criteria
+Dependencies: upstream / downstream / cycle warning
+Execution: Xpert / conversation / queue job / retries
+Steps & logs: step status / timestamps / sanitized logs
+Artifacts: generated files / URLs / version / source
+Activity: task changes and actor timeline
+```
+
+#### 待办详情 Dialog 布局
+
+点击看板卡片、列表行、表格标题或日历任务后打开“待办详情” Dialog。Dialog 采用“顶部标题栏 + 左侧内容区 + 右侧属性栏”的布局，宽屏保持固定最大宽度，窄屏改为全屏 Drawer：
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ 待办详情                         评论  更多  关闭              │
+├──────────────────────────────────────┬───────────────────────┤
+│ 标题（可编辑）                       │ 状态                  │
+│ 描述/说明（可编辑）                  │ 处理人                │
+│ 添加附件                             │ 开始日期              │
+│ 添加子待办                           │ 截止日期              │
+│ ─────────────────────────            │ 优先级                │
+│ 子待办列表                           │ 标签                  │
+│ 关联资产 / 执行结果                  │ Plan / Milestone（高级）│
+│ 动态                                  │ Sprint / Swimlane（高级）│
+│ 评论输入                              │                       │
+└──────────────────────────────────────┴───────────────────────┘
+```
+
+#### Dialog 功能
+
+- 标题和描述支持点击编辑；标题不能为空，描述支持 Markdown/纯文本，保存失败保留未保存内容。
+- 状态、处理人、优先级、标签、开始日期和截止日期在右侧属性栏内联编辑；简易模式只显示四种固定泳道状态，高级模式显示自定义状态和状态转换校验。
+- 点击“添加附件”打开资产选择器，可上传新文件或关联已有项目资产；文件写入 Assets 后显示来源、处理状态和预览入口。
+- “添加子待办”在正文插入子任务行，支持勾选完成、拖拽排序、设置处理人和截止日期；高级模式可将子待办提升为独立任务并绑定 Milestone/Sprint。
+- 动态区域记录创建、状态、负责人、日期、优先级、附件、子待办、执行和评论变化；内容使用稳定事件码国际化。
+- 评论输入支持文本、@成员、@Assistant 和附件；发送后立即显示 pending 状态，失败允许重试，不阻塞任务字段保存。
+- 顶部评论图标显示评论数；更多菜单提供复制任务链接、复制任务、移动到其他泳道/Sprint（高级）、归档、删除和报告问题。
+- Agent 操作提供“交给 Assistant”“重新执行”“暂停执行”“查看执行详情”等动作；写操作先显示变更预览，遵循权限和确认策略。
+- 关闭 Dialog 前检测未保存编辑：有权限用户可以保存并关闭、放弃修改或继续编辑；自动保存只用于字段更新，不自动发送评论或执行 Agent。
+
+#### 模式和权限
+
+- 简易模式右侧只显示状态、处理人、开始/截止日期、优先级、标签和资产；Plan/Milestone/Sprint/Swimlane 作为只读系统上下文隐藏。
+- 高级模式额外显示 Plan、Milestone、Sprint、Swimlane、依赖、执行团队、环境和容量信息。
+- `VIEW` 用户可以打开和查看 Dialog；`EDIT` 用户可以编辑任务字段、评论和附件；`MANAGE` 用户可以修改高级路由、执行策略、归档和删除。
+- Dialog 内所有异步操作显示局部 loading，不关闭、不跳转项目首页；403/409 错误在对应字段附近展示并保留其他编辑内容。
+- 手机端将右侧属性栏移动到“属性”折叠区，评论输入固定在底部，键盘打开时不遮挡输入框。
+
+执行状态必须可区分：
+
+- 任务状态：用户可理解的交付状态。
+- 执行状态：队列和 Agent 的运行状态。
+- 结果状态：成功、失败、部分成功或需要人工确认。
+
+不能只把队列成功当成任务完成。Agent 必须提交结构化 outcome，任务才可以进入 `done` 或 `blocked`。
+
+### 6.7 Assistant 协作
+
+Assistant 是计划模块的执行入口，不新增单独“会话”tab。Assistant 读取：
+
+```text
+Project instruction
++ 当前用户权限
++ 当前 Plan / Milestone / Sprint / Swimlane 上下文
++ 任务依赖和容量状态
++ 项目 Xpert、工具集、知识库和资产
++ 最近活动和执行失败原因
+```
+
+计划相关快捷动作按模式提供：
+
+- 简易模式：“把这个目标拆成几个任务”“把任务移到进行中”“总结已暂停任务”。
+- 高级模式：“把这个项目目标拆成一个计划”“为下周生成一个 Sprint，并把 Backlog 中可执行的任务带过去”。
+- 高级模式：“检查当前 Sprint 的阻塞和容量冲突”“把任务按能力分配给合适的 Agent 团队”“总结 Sprint 并生成 retrospective 资产”。
+
+所有会产生写入的动作遵循：
+
+```text
+Assistant proposal -> preview diff -> user confirm -> Project Service -> activity/event
+```
+
+Assistant 不直接绕过 Project Controller 写入任务、计划或泳道；即使调用来自 ChatKit，也必须经过项目成员、所有者和权限 Guard。
+
+### 6.7.1 项目助理的职责边界：协调者而不是普通执行者
+
+项目助理（Project Coordinator）负责把项目目标转化为可执行的交付闭环，但不应该亲自冒充每一种执行 Agent。它与任务执行 Agent 的分工如下：
+
+| 角色            | 负责内容                                                                                | 不负责内容                                                        |
+| --------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 项目助理        | 读取项目上下文、拆解目标、生成计划变更、安排 Sprint、检查依赖和容量、汇总结果、发起复盘 | 直接写数据库、绕过权限、伪造任务完成、代替专用 Agent 处理所有任务 |
+| 计划/治理服务   | 校验状态转换、项目归属、权限、版本、依赖、WIP 和并发约束，并以事务写入                  | 解释自然语言目标、决定业务优先级                                  |
+| 任务执行 Agent  | 在指定 Swimlane 和运行环境完成单个 Task，产生步骤、日志和结构化 outcome                 | 创建项目级计划结构、修改其他任务、扩大自己的权限                  |
+| 用户/项目管理员 | 确认高风险变更、处理歧义、接管失败任务、调整策略和容量                                  | 不需要手工跟踪每一次低风险状态回写                                |
+
+旧分支已经实现了这一分工的关键基础：`ProjectOrchestratorService` 负责快照和派发，`ProjectTaskAssignmentService` 负责按泳道能力与容量分派，`ProjectTaskDispatchProcessor` 通过 Managed Queue 启动 Xpert，并要求执行 Agent 使用 `reportProjectTaskOutcome` 提交结构化结果。新主线应保留这些职责边界，并将它们挂到统一的 `/api/xpert-project` 服务下。
+
+### 6.7.2 自主管理闭环
+
+项目助理的自治不是一个无限循环的 `while`，而是由项目事件驱动、带预算和幂等键的有限状态机。每一轮只处理一个明确的项目目标或事件，完成后等待下一次事件：
+
+```text
+Observe -> Plan -> Validate -> Approve -> Commit -> Dispatch
+    ^                                             |
+    |                                             v
+    +------ Reconcile <- Execute <- Monitor <- Event
+```
+
+每一步的输入和输出必须可审计：
+
+1. **Observe**：读取只读 Project Snapshot，包括项目指令、当前用户权限、Plan/Milestone/Sprint/Swimlane、任务依赖、容量、最近活动、资产索引和未完成执行。
+2. **Plan**：根据用户目标或事件生成结构化 `ProjectChangeSet`，而不是生成一段不可执行的自然语言。ChangeSet 包括新增/修改/移动任务、里程碑、Sprint、绑定资源、执行动作和预期结果。
+3. **Validate**：先调用领域服务的 dry-run 校验，检查项目归属、状态转换、依赖环、日期、Backlog 规则、WIP/并发和权限；校验失败不得进入写入阶段。
+4. **Approve**：根据项目的 Assistant Policy 判断自动执行、需要确认或必须人工审批。涉及高级治理、删除、跨 Sprint 移动、外部副作用和费用的动作默认需要确认。
+5. **Commit**：使用一个幂等 `changeSetId` 和 Snapshot 版本号写入 Project Service。一次 ChangeSet 要么全部成功，要么返回可重试的冲突，不允许部分写入后让 Assistant 猜测结果。
+6. **Dispatch**：只把通过容量和依赖检查的任务交给 Orchestrator；派发本身返回 `queued/running/skipped` 和可解释原因。
+7. **Monitor**：监听项目事件和执行事件，不靠轮询聊天文本判断任务是否完成。Assistant 可以等待事件、继续处理其他任务，或在达到超时时间后暂停本轮。
+8. **Reconcile**：读取最新任务和执行结果，将 `outcome/error/artifacts` 写回任务、资产和活动；成功任务进入 review 或 done 需经过验收规则，失败任务进入 blocked 或人工确认队列。
+9. **Replan**：只有在事件满足触发条件时生成下一份 ChangeSet，例如任务失败、依赖解除、容量释放、里程碑临近或用户明确要求重新规划。
+
+自治轮次必须有以下硬限制：最大步骤数、最大运行时间、最大并行任务数、最大 ChangeSet 数量和最大重试次数。超过预算时写入 `assistant.budget_exceeded`，暂停自动动作并向用户说明剩余工作，不能自行继续产生新轮次。
+
+### 6.7.3 Assistant Policy 与自治级别
+
+项目配置增加 Assistant Policy，默认采用最小权限和人工确认：
+
+```ts
+type ProjectAssistantPolicy = {
+  autonomy: 'suggest' | 'confirmed' | 'supervised' | 'autonomous'
+  autoCreateTasks: boolean
+  autoMoveTasks: boolean
+  autoDispatchTasks: boolean
+  autoUpdateDueDates: boolean
+  autoCreateAssets: boolean
+  requireApprovalFor: Array<'plan' | 'sprint' | 'swimlane' | 'external_side_effect' | 'delete'>
+  maxParallelExecutions: number
+  maxRetriesPerTask: number
+}
+```
+
+四个级别的语义：
+
+| 级别                | Assistant 可以自动做什么                                           | 必须停下来询问什么                                            |
+| ------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `suggest`           | 读取上下文、生成任务/计划草案、解释风险                            | 所有写入和执行                                                |
+| `confirmed`（默认） | 在一次用户确认中批量创建任务、更新低风险字段、关联资产             | 删除、升级模式、Sprint/泳道策略、外部副作用、执行高成本 Agent |
+| `supervised`        | 对已批准的计划自动创建任务、派发和回写；每次失败或策略变化通知用户 | 超出预算、容量冲突、依赖环、连续失败和高风险变更              |
+| `autonomous`        | 在预设范围内持续调度和回写，用户可随时暂停                         | 任何超出范围的结构变更、外部系统写入、权限不足和人工验收      |
+
+`autonomous` 不是管理员权限的替代品。服务端每次工具调用仍检查 `XPERT_PROJECT_VIEW/EDIT/MANAGE`、项目成员/所有者、租户和组织范围；策略只能收紧权限，不能放宽权限。简单模式即使开启 `supervised`，也不能创建 Plan、Milestone、Sprint 或自定义泳道，只能在固定任务板内管理任务。
+
+### 6.7.4 Project Snapshot、工具和变更集协议
+
+Assistant 不应直接读取几十个零散接口。服务端提供一个按权限裁剪的 Snapshot，减少上下文过载并保证每轮决策基于同一版本：
+
+```ts
+type ProjectAssistantSnapshot = {
+  project: { id: string; managementMode: 'simple' | 'advanced'; version: number }
+  plan?: { id: string; status: string; progress: number; milestones: unknown[] }
+  sprint?: { id: string; status: string; lanes: unknown[]; capacity: unknown }
+  tasks: { id: string; status: string; dependencies: string[]; latestExecution?: unknown }[]
+  pendingApprovals: unknown[]
+  recentEvents: unknown[]
+  policy: ProjectAssistantPolicy
+}
+```
+
+工具按读写和风险分层，所有写工具只接受 DTO，不接受任意 SQL、实体对象或未验证的 JSON Patch：
+
+```text
+Read:  getProjectSnapshot / listTasks / listActivities / getExecution
+Plan:  proposeChangeSet / validateChangeSet
+Write: applyChangeSet / updateTask / moveTask / createSprint
+Run:   dispatchRunnableTasks / retryExecution / cancelExecution
+Link:  linkConversation / registerArtifact / appendActivity
+Control: requestApproval / pauseAutonomy / resumeAutonomy
+```
+
+`ProjectChangeSet` 至少包含：
+
+```ts
+type ProjectChangeSet = {
+  id: string
+  projectId: string
+  baseVersion: number
+  reason: string
+  operations: Array<{ op: string; entity: string; id?: string; input: Record<string, unknown> }>
+  warnings: string[]
+  requiresApproval: boolean
+  idempotencyKey: string
+}
+```
+
+前端 Assistant Panel 展示变更前后对比、影响任务数量、容量变化、权限结果和风险提示；用户确认后才调用 `applyChangeSet`。服务端以 `baseVersion` 做乐观并发校验，冲突时返回最新 Snapshot 和需要重新规划的原因，禁止静默覆盖用户刚刚的修改。
+
+### 6.7.5 事件驱动的执行和回写
+
+Assistant 的长期管理依赖 Project Event，而不是持续占用一个 ChatKit 请求。事件建议分为四类：
+
+```text
+project.plan.changed
+project.task.changed / project.task.moved
+project.task.execution.queued / started / updated / succeeded / failed
+project.asset.created / project.conversation.completed
+```
+
+旧分支的 `XPERT_EVENT_TYPES`、`ProjectTaskClaimed`、`ProjectTaskDispatchEnqueued`、`ProjectTaskExecutionStarted`、`ProjectTaskExecutionUpdated`、`ProjectTaskExecutionSucceeded` 和 `ProjectTaskExecutionFailed` 可以直接作为执行事件基础。事件必须携带 `projectId`、可选 `planId/sprintId/taskId/executionId`、版本、actor/source 和脱敏 payload，并支持去重键与顺序号。
+
+事件处理流程：
+
+```text
+Domain write
+ -> outbox/event publisher
+ -> Project event consumer
+ -> update facade/Assistant snapshot
+ -> evaluate policy trigger
+ -> create bounded assistant cycle (if allowed)
+```
+
+事件消费者只负责投递下一轮自治任务，不在消息处理器内直接调用模型并执行长流程。自治任务进入 Managed Queue 后携带 `projectId + changeSetId + triggerEventId`，重复消息只恢复或返回已有运行记录。前端收到事件时只刷新受影响的 Plan/Sprint/Task，避免项目壳层和 Assistant Panel 整页重建。
+
+### 6.7.6 执行 Agent、Conversation/Thread 和项目 Assistant 的协作
+
+项目 Assistant Panel 使用项目级 Conversation/Thread 作为控制面：目标、确认、计划解释和复盘都保留在这里。每个执行任务由 Orchestrator 创建独立的 Execution 和执行 Conversation/Thread，避免大量步骤日志污染用户的项目讨论。
+
+```text
+Project Assistant Conversation
+  -> ChangeSet / approval
+  -> Orchestrator dispatch
+  -> TaskExecution
+  -> worker Xpert execution Conversation/Thread
+  -> reportProjectTaskOutcome
+  -> Task/Asset/Activity events
+  -> Project Assistant summary or replan
+```
+
+旧分支的 `ProjectTaskDispatchProcessor` 已证明这条链路可行：它通过 `XpertChatCommand` 启动指定团队的 lead Xpert，为执行 Agent 注入 `reportProjectTaskOutcome` 工具，并对项目文件/目录路径进行工作区相对路径校验。项目主 Assistant 不能被当作自己的 worker 目标；否则会造成递归调用和权限边界失效。任务详情打开执行对话时，应根据 `conversationId` 加载 `threadId`，不能用 `threadId` 直接定位任务。
+
+### 6.7.7 自治失败、人工接管和安全停止
+
+自治流程必须把“无法继续”当作一种可解释状态，而不是反复重试：
+
+| 情况                | 服务端行为                            | Assistant 展示                     |
+| ------------------- | ------------------------------------- | ---------------------------------- |
+| 权限不足/跨项目引用 | 拒绝 ChangeSet，不写入                | 缺少的权限和需要的角色             |
+| 版本冲突            | 返回最新 Snapshot，放弃旧写入         | “项目已被其他人修改，是否重新规划” |
+| WIP/并发已满        | 保持 todo/queued，记录容量原因        | 等待哪个泳道/团队释放容量          |
+| 依赖环或日期非法    | dry-run 拒绝                          | 指出具体任务和修复建议             |
+| Agent 超时/队列失败 | 记录 execution failed，按策略有限重试 | 重试次数、错误摘要和人工接管       |
+| outcome 缺失        | 不自动标记 done，执行置为需要确认     | 要求 Agent/用户补充结果            |
+| 连续失败或预算耗尽  | 暂停项目自治，保留现状                | 提供恢复、修改策略或手动处理按钮   |
+
+安全停止需要幂等 `pauseAutonomy(projectId)`，停止新派发但不强制杀掉已运行任务；恢复时重新读取 Snapshot，不能从旧模型上下文继续盲写。所有自动暂停、人工恢复和接管都记录活动。
+
+### 6.7.8 简易/高级模式下的自治范围
+
+```text
+简易模式
+  允许：创建/编辑任务、固定状态移动、设置负责人/优先级/期限、关联资产、总结和提醒
+  禁止：创建 Plan/Milestone/Sprint、编辑泳道、修改状态定义、跨项目调度
+
+高级模式
+  允许：在策略范围内生成 Plan/Milestone、创建 Sprint、安排 Backlog、按泳道能力派发
+  需要 MANAGE/确认：泳道策略、WIP/并发、状态图、Carry-over、删除、外部副作用
+```
+
+因此“自主管理”不是一个全局开关，而是 **模式能力 × Assistant Policy × 当前权限 × 本轮预算** 的交集。任何一项不满足，Assistant 都只能提出建议或等待人工确认。
+
+### 6.8 Project、Workspace 与 Assistant 的关系
+
+Workspace 和 Project 是两个不同层次的边界，不能把 Workspace 当作 Project 的文件夹，也不能让 Project 直接获得 Workspace 的全部权限：
+
+| 对象                | 负责内容                                                                     | 作用域                          |
+| ------------------- | ---------------------------------------------------------------------------- | ------------------------------- |
+| Workspace           | Xpert、Toolset、Knowledgebase、Skill、Environment、Workspace 成员和资源权限  | Assistant 资源与运行能力        |
+| Project             | 目标、Plan、Task、Asset、Project Conversation、Execution 和 Assistant Policy | 交付数据与协作过程              |
+| Project Coordinator | 澄清目标、生成 ChangeSet、审批、调度、汇总和复盘                             | 一个 Project 的控制面           |
+| Worker Assistant    | 在指定任务中执行步骤并回传结构化 outcome                                     | 继承 Project + Workspace 作用域 |
+
+Project 应绑定一个且仅一个主 Workspace，关系为 `Workspace 1:N Project`。一个 Workspace 可以承载多个 Project，但共享的只是 Assistant 资源和运行能力；不同 Project 的任务、资产、会话和执行结果仍按 `projectId` 隔离。
+
+```text
+Workspace
+├── Xperts / Toolsets / Knowledgebases / Skills / Environments
+└── Projects
+    ├── Coordinator Assistant
+    ├── Worker Assistants
+    ├── Plans / Tasks / Activities
+    ├── Project Conversations / Task Executions
+    └── Project Assets (catalog=projects, projectId)
+```
+
+#### 6.8.1 绑定规则
+
+- 新 Project 创建时必须解析一个 Workspace；客户端可提交 Workspace ID，也可以请求服务端使用当前组织或用户的默认 authoring Workspace。服务端必须重新校验 authoring access，不能信任客户端下拉选项。
+- Project 的 Coordinator 和 Worker Assistant 必须属于 `project.workspaceId`。Toolset、Knowledgebase、Skill 和 Environment 也必须经过相同的 Workspace/租户/组织校验。
+- Project 不保存每个 Assistant 的独立 Workspace。运行时从 `project.workspaceId` 推导资源候选集，并检查 `project.workspaceId === xpert.workspaceId`。
+- 每个 Project 最多一个启用中的 Coordinator；Worker 可以有多个，但不能把 Coordinator 作为自己的 Worker。
+- Project 成员不会自动成为 Workspace 成员；有效能力是 `Workspace capability ∩ Project permission ∩ Assistant Policy`，Project 不能提升 Workspace 权限。
+- Workspace 绑定在 Project 创建后应保持稳定。已有对话、执行或资产后禁止直接切换；需要跨 Workspace 时复制/迁移到新 Project，并保留原 Project 审计记录。
+
+建议将当前裸多对多关系升级为带角色的绑定实体：
+
+```ts
+type ProjectAssistantBinding = {
+  projectId: string
+  xpertId: string
+  role: 'coordinator' | 'worker' | 'reviewer'
+  enabled: boolean
+  pinnedVersion?: number
+  allowedCapabilities?: string[]
+}
+```
+
+#### 6.8.2 运行时上下文和文件边界
+
+Project Assistant 的控制面会话必须持久保存 `projectId`、`assistantId` 和由服务端解析的 `workspaceId`。每次运行都重新校验：
+
+```text
+tenant / organization
+  -> workspace runtime access
+  -> project member + project permission
+  -> assistant binding and workspace equality
+  -> assistant policy
+  -> project-scoped volume and execution
+```
+
+存在 `projectId` 时，Agent 文件能力使用 `catalog: 'projects'` 和该 `projectId`；不能因为 Worker Xpert 属于某 Workspace 而写入 Xpert 共享卷。项目 Volume 的标准子目录为 `shared/`、`agents/<xpertId>/`、`sessions/<conversationId>/` 和 `.xpert/`。Workspace 资源只能通过受控 Tool/Skill/Environment 能力访问。
+
+项目 Assistant Conversation 只负责目标、确认、计划解释和复盘；每个 Worker Execution 使用独立的 Conversation/Thread，但继承同一个 Project 和 Workspace 作用域。Assistant Panel 不提供独立 Workspace 切换入口，始终使用当前 Project 的绑定。
+
+#### 6.8.3 生命周期和失效处理
+
+- 没有 Workspace 的历史 Project 保留任务、资产和会话的查看能力，但标记为 `workspace_binding_required`，禁用新的 Assistant 执行、自动化和资源绑定，直到项目所有者完成绑定。
+- Workspace 被归档或用户失去 runtime access 时，Project 不删除；暂停新的 Assistant 派发和自动化，保留 Project 数据，并展示重新授权、迁移或复制入口。
+- Workspace 删除必须阻止或要求先迁移 Project，不能使用级联删除直接删除 Project。
+- Workspace 资源被删除、移动或失去权限时，相关 Assistant Binding 标记为不可用，不允许静默切换到其他 Workspace 或其他 Assistant。
+
+### 6.9 Task、Conversation、Thread 与 Execution 的关系
+
+这四个对象必须保持清晰边界，不能用一个 `threadId` 同时表达项目任务、用户对话和 Agent 执行：
+
+| 对象         | 产品语义                                                 | 生命周期                                                                   | 关键标识                           |
+| ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| Project Task | 项目中的持久化工作事实，描述要完成什么、谁负责、何时验收 | 长期存在，可从待开始进入完成、阻塞或取消                                   | `taskId`                           |
+| Conversation | 用户与 Assistant 的协作记录，保存需求、确认、讨论和复盘  | 可持续追加消息，可归档但不因任务完成自动删除                               | `conversationId`                   |
+| Thread       | Assistant/Agent 的运行上下文，用于恢复同一段模型状态     | 通常由一个 Conversation 持有一个主 Thread；执行重试可以创建执行专用 Thread | `threadId`                         |
+| Execution    | 一次 Agent/队列执行尝试，保存运行状态、错误、耗时和产物  | 每次执行或重试创建一条新记录                                               | `executionId` / `agentExecutionId` |
+
+当前 Xpert 的 `ChatConversation` 已保存 `conversation.id`、`threadId` 和 `projectId`；项目 Assistant Panel 通过 ChatKit 的 `initialThread` 和 URL `threadId` 恢复上下文。对外业务接口应以 `conversationId` 作为会话主键，`threadId` 只作为 Conversation 的运行时标识。
+
+目标关系如下：
+
+```text
+Project
+├── ProjectTask
+├── ChatConversation
+│   └── primary threadId
+└── TaskConversationLink
+
+ProjectTask
+├── 0..N TaskConversationLink
+├── 0..N ProjectTaskExecution
+├── Input / Output Assets
+└── Activity records
+
+TaskConversationLink
+└── ChatConversation
+```
+
+关系基数必须允许：
+
+- 一个项目 Conversation 创建多个任务。
+- 一个任务拥有来源对话、后续讨论、执行记录和验收复盘等多个 Conversation。
+- 一个任务多次执行，每次重试都保留独立的 Execution 和结果。
+- 手动创建且没有对话来源的任务可以暂时没有 `origin` 关系。
+
+#### 任务来源
+
+当 Assistant 在项目对话中拆解任务时，创建流程为：
+
+```text
+Project Conversation
+    -> Assistant 生成任务草案
+    -> 用户确认
+    -> 创建 ProjectTask
+    -> 创建 TaskConversationLink(relationType = origin)
+```
+
+来源关系至少记录 `conversationId`，可选记录触发任务创建的 `sourceMessageId`、Assistant 和创建者。批量创建的多个任务可以共享同一个来源 Conversation，但每个任务必须有自己的关系记录。
+
+#### 任务讨论
+
+任务详情中的“继续讨论”“交给 Assistant”“补充需求”应打开已有讨论 Conversation，或创建新的任务讨论 Conversation，并记录：
+
+```ts
+relationType = 'discussion'
+```
+
+打开 Assistant 时传入项目和任务上下文：
+
+```ts
+{
+  ;(projectId, taskId, conversationId, threadId, planId, milestoneId, sprintId, swimlaneId)
+}
+```
+
+讨论 Conversation 用于用户可见的协作，不应承载全部节点日志、Token 统计或队列重试详情。
+
+#### 任务执行
+
+点击“执行任务”或“重新执行”时，先创建 `ProjectTaskExecution`，再通过 Managed Queue 或 Agent Runtime 派发。默认使用独立的执行 Conversation/Thread，避免执行日志污染用户讨论上下文：
+
+```text
+ProjectTask
+    -> ProjectTaskExecution(attempt = 1)
+    -> execution Conversation / Thread
+    -> Agent Execution / Managed Queue
+    -> outcome、error、artifacts
+    -> task status、activity
+```
+
+执行状态与任务状态必须分开：
+
+```text
+Execution: queued -> running -> succeeded / failed / cancelled
+Task:      todo -> in_progress -> review -> done / blocked
+```
+
+Agent 执行成功不自动等于任务完成。只有结构化 outcome、产物和验收规则满足后，任务才能进入 `done`；失败原因应进入 `blocked` 或等待人工确认。
+
+#### 任务详情 Dialog
+
+任务 Dialog 不显示原始 `threadId`，而是提供以下可读关系：
+
+```text
+来源
+├── 创建任务的 Conversation
+└── 创建 Assistant / 创建消息
+
+协作
+├── 继续讨论
+├── 新建讨论
+└── 最近讨论
+
+执行
+├── 当前执行状态
+├── 最近一次执行结果
+├── 查看执行对话
+├── 重新执行
+└── 从失败原因继续讨论
+```
+
+项目级 Assistant 在没有选定任务时保持项目范围；从任务 Dialog 打开时增加 `taskId` 上下文，但不自动把项目主 Conversation 改成执行线程。
+
+#### Task 的会话字段边界
+
+新 `ProjectTask` 不保存任何 Conversation/Thread 字段。任务来源、讨论和验收关系全部通过 `TaskConversationLink.conversationId` 表达；任务步骤和执行回写必须使用明确的 `taskId` 与 `executionId`，不能通过 `projectId + threadId + name` 定位任务。
+
+`ChatConversation.taskId` 继续保留系统 `XpertTask`（定时/自动化任务）的现有语义，不能复用为 `XpertProjectTask` 外键；项目任务关系统一通过 `TaskConversationLink` 表达。
+
+## 7. 状态、容量和一致性规则
+
+### 7.1 计划进度计算
+
+高级模式建议使用任务和里程碑的加权进度：
+
+```text
+milestoneProgress = completedTaskWeight / totalTaskWeight
+planProgress = sum(milestoneProgress * milestoneWeight) / totalMilestoneWeight
+```
+
+没有任务的里程碑显示“未开始”，不计入完成百分比；被阻塞的里程碑要在 Overview 里单独显示风险，不被错误计算成完成。
+
+简易模式不显示里程碑进度，只显示固定任务板的状态统计：待开始、进行中、已暂停、已完成和阻塞数量。项目进度使用已完成任务数 / 有效任务总数计算，任务完成后仍可从历史筛选中查看。
+
+### 7.2 依赖检查
+
+- 简易模式默认不显示任务依赖；如果 Assistant 生成了依赖，只保存为建议关系，不阻断基础任务移动。
+- 高级模式依赖只能引用同一 Sprint 的任务；跨 Sprint 依赖改为 Milestone 或 Plan 级关系。
+- 创建和更新任务时拒绝自依赖、未知任务和环路。
+- 将任务移入 Backlog 时清空执行依赖并记录活动。
+- 依赖未完成时，任务可保持 `todo`，不能自动进入 `in_progress`，除非计划设置允许强制执行。
+
+### 7.3 WIP 和并发
+
+- 简易模式不提供可配置 WIP/Concurrency，只限制同一用户或 Assistant 的重复提交，并提供简单的处理中提示。
+- 高级模式 WIP 是泳道内处于 `in_progress/review` 的任务数，Concurrency 是真正运行中的 Agent/队列任务数。
+- 高级模式两者都由服务端在派发前检查。
+- 高级模式超限任务状态为 `blocked` 或 `queued`，具体取决于计划的排队策略；UI 必须显示“等待容量”而不是普通失败。
+- 高级模式自动分配顺序使用团队优先级、当前运行数、泳道权重和配置排序。
+
+### 7.4 并发编辑和事件
+
+- 计划、Sprint、泳道和任务更新携带 `updatedAt` 或版本号。
+- 拖拽排序使用服务端返回的最终顺序，不能只依赖客户端数组。
+- 通过 Project Event 推送 `plan.changed`、`sprint.changed`、`swimlane.changed`、`task.changed`、`task.execution.*`。
+- 前端在收到事件时只刷新受影响的 Plan/Sprint 上下文，避免重载整个 Project。
+
+### 7.5 Assistant 自治状态机和一致性规则
+
+每一轮 Assistant 自治都必须是可暂停、可恢复、可审计的状态机，不能由一次聊天请求持有长连接并隐式修改项目：
+
+```text
+queued -> observing -> planning -> validating
+       -> waiting_approval
+       -> applying -> dispatching -> monitoring
+       -> reconciling -> completed
+       -> paused / failed / cancelled
+```
+
+一个自治 `cycle` 至少保存以下控制字段：
+
+```ts
+type ProjectAssistantCycle = {
+  cycleId: string
+  projectId: string
+  triggerEventId?: string
+  changeSetId?: string
+  baseVersion: number
+  idempotencyKey: string
+  state: string
+  budget: { maxSteps: number; maxRuntimeMs: number; maxChanges: number; maxRetries: number }
+}
+```
+
+一致性规则：
+
+- 同一项目同一时间只允许一个 `applying`、`dispatching` 或 `reconciling` cycle；多个 `observing`/`planning` cycle 可以并行，但应用前必须重新校验 Snapshot 版本。
+- `apply` 必须同时校验 `cycleId`、`changeSetId`、`baseVersion` 和 `idempotencyKey`；重复请求返回原结果，不能重复创建任务、执行或资产。
+- 事件通过 inbox/outbox 去重，至少保存 `eventId`、`projectId`、`sequence` 和消费时间；乱序事件不能覆盖更高版本的项目状态。
+- 执行状态与任务交付状态分离。Worker 进入 `succeeded` 只表示本次执行完成；没有结构化 outcome、验收证据或用户确认时，任务不得自动进入 `done`。
+- `retry` 必须创建新的 execution 和 cycle step，旧 execution 只读保留；超过 `maxRetries` 后进入 `paused` 或人工接管队列。
+- 任何 cycle 超过预算、审批超时、版本冲突或策略版本变化，都停止新的写入并回到 `paused`，恢复时必须重新读取 Snapshot。
+
+## 8. 数据模型和兼容策略
+
+### 8.1 目标关系
+
+```text
+XpertProject
+ ├─ workspaceId -> XpertWorkspace (exactly one for new projects)
+ ├─ managementMode: simple | advanced
+ └─ XpertProjectPlan
+     ├─ XpertProjectMilestone
+     ├─ ProjectSprint
+     │   └─ ProjectSwimlane
+     │       └─ XpertProjectTask / ProjectTask
+     └─ PlanActivity
+
+Task
+ ├─ TaskConversationLink
+ ├─ ProjectTaskExecution
+ ├─ Input Asset
+ └─ Output Asset
+
+TaskConversationLink
+ └─ ChatConversation
+```
+
+目标实体字段建议：
+
+| 实体                    | 必要字段                                                                                                | 说明                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Project                 | `workspaceId/managementMode`                                                                            | 新建项目必须绑定一个 Workspace；默认 `simple`，升级只允许 simple -> advanced |
+| Plan                    | `projectId/name/status/view/startDate/dueDate/order`                                                    | `view` 扩展为 `table/board/gantt/calendar/list`                              |
+| Milestone               | `planId/name/status/dueDate/order/acceptanceCriteria`                                                   | 增加验收标准和权重可选字段                                                   |
+| Sprint                  | `planId/goal/status/strategyType/startAt/endAt/retrospective`                                           | 从旧 `ProjectSprint` 迁入并增加 `planId`                                     |
+| Swimlane                | `sprintId/key/name/kind/agentRole/environmentType/wipLimit/concurrencyLimit/sortOrder`                  | 沿用旧分支能力                                                               |
+| Task                    | `projectId/planId/milestoneId/sprintId/swimlaneId/status/priority/assigneeId/teamId/sortOrder`          | 统一当前主线与旧分支字段；不保存 Conversation/Thread 字段                    |
+| TaskConversationLink    | `projectId/taskId/conversationId/relationType/isPrimary/sourceMessageId/sourceExecutionId`              | 表达来源、讨论、执行和验收关系，支持 Task/Conversation 多对多                |
+| Execution               | `taskId/conversationId/threadId/agentExecutionId/teamId/xpertId/status/attempt/outcome/error/artifacts` | 记录一次 Agent 执行尝试，不替代底层 Agent execution 日志                     |
+| ProjectAssistantBinding | `projectId/xpertId/role/enabled/pinnedVersion/allowedCapabilities`                                      | Coordinator/Worker/Reviewer 角色；Assistant 必须属于 Project Workspace       |
+
+`TaskConversationLink` 的 `relationType` 使用以下枚举：
+
+```text
+origin      任务由哪次对话产生
+discussion  任务的后续讨论和补充需求
+execution   某次执行对应的 Assistant/Agent 上下文
+review      验收、复盘或失败原因确认
+```
+
+关系约束：
+
+- `task.projectId` 必须与 `conversation.projectId` 一致，并经过项目成员/权限校验。
+- 同一 `taskId + conversationId + relationType` 不得重复。
+- 一个任务最多一个 `isPrimary = true` 的 `origin` 关系；讨论和执行可以有多条。
+- 执行型自动化可以没有用户 Conversation，但必须有 `ProjectTaskExecution` 和项目活动记录。
+
+视图配置建议单独建模，避免把筛选和字段设置塞进 Plan 或任务：
+
+```text
+ProjectView
+ ├─ projectId / planId / ownerId
+ ├─ name / type / shared
+ ├─ visibleFields[]
+ ├─ filterExpression
+ ├─ groupBy / sortBy[]
+ ├─ showSubtasks / dateRange
+ └─ createdAt / updatedAt
+```
+
+简易模式只使用系统 View 和个人 View；高级模式允许项目管理员创建共享 View，并在复制项目时选择是否复制 View 配置。
+
+兼容原则：
+
+1. 当前主线已有 Plan/Milestone 不删除；每个项目的 Default plan 继续作为迁移落点。
+2. 旧 Sprint 若没有 `planId`，迁移到项目 Default plan；不能凭空复制 Sprint 或任务。
+3. 旧 `swimlaneId` 映射到新 Swimlane；旧 `column/order` 映射到泳道和 `sortOrder`，原值保留在迁移日志中。
+4. 旧任务状态：`todo` 保持、`doing -> in_progress`、`done -> done`、`failed -> blocked`。
+5. 历史执行日志、会话、资产和错误信息不可因结构升级丢失。
+6. 迁移必须以 `(projectId, sourceId, sourceType)` 作为幂等键，支持多实例重试。
+7. 不将 `ChatConversation.taskId` 迁移为项目任务关系；该字段继续指向系统 `XpertTask`，项目任务统一使用 `TaskConversationLink`。
+8. 任务步骤和执行回写必须按 `taskId`、`executionId` 更新，并为每次执行建立独立的 `ProjectTaskExecution`。
+9. 新项目的 `workspaceId` 必须非空；历史空 Workspace 项目标记为 `workspace_binding_required`，不自动猜测用户 Workspace，不复制或移动项目文件。
+10. 迁移 Workspace 时只允许在没有对话/执行/资产的项目上直接绑定；已有运行数据的项目使用复制到新 Workspace 的流程，原项目保留只读审计。
+
+模式约束：
+
+- `simple` 项目只创建系统 Default plan 和四条系统泳道：`todo`、`in_progress`、`paused`、`done`；不创建用户可见 Milestone/Sprint。
+- `advanced` 项目允许多个 Plan、Milestone、Sprint、Swimlane 和自定义状态；旧分支 Sprint 会挂到 Default plan。
+- 简易模式内部生成的系统泳道使用 `systemManaged=true`，所有修改泳道定义、状态映射和顺序的请求都由服务端拒绝。
+- 升级到高级模式只新增可见能力和关系，不复制任务、不改变任务 ID、不丢失历史活动或资产。
+- Project Workspace 是资源和运行边界，不是 Project 资产目录；项目文件始终使用 `catalog=projects + projectId` 隔离。
+
+## 9. API 和服务边界
+
+计划模块继续使用 `/api/xpert-project` 作为业务边界。旧 Sprint/Swimlane API 可以兼容保留，但新 UI 统一从 Project Controller/Facade 进入。
+
+### 9.1 推荐 API
+
+| 方法                    | 路径                                                        | 权限               | 用途                                                  |
+| ----------------------- | ----------------------------------------------------------- | ------------------ | ----------------------------------------------------- |
+| `POST`                  | `/projects`                                                 | `CREATE`           | 新建项目并选择 `managementMode`                       |
+| `GET`                   | `/projects/:id/workspace`                                   | `VIEW`             | 查询绑定 Workspace、成员能力和 Assistant 资源摘要     |
+| `PUT`                   | `/projects/:id/workspace`                                   | `MANAGE`           | 在无运行数据的项目上绑定/更换 Workspace；否则要求复制 |
+| `PATCH`                 | `/projects/:id/mode`                                        | `MANAGE`           | 仅允许 simple -> advanced 升级                        |
+| `GET`                   | `/projects/:id/plans`                                       | `VIEW`             | 计划列表及摘要                                        |
+| `POST`                  | `/projects/:id/plans`                                       | `EDIT`             | 创建计划                                              |
+| `PATCH`                 | `/projects/:id/plans/:planId`                               | `EDIT`             | 更新计划                                              |
+| `POST`                  | `/projects/:id/plans/:planId/archive`                       | `MANAGE`           | 归档计划                                              |
+| `GET`                   | `/projects/:id/plans/:planId/milestones`                    | `VIEW`             | 里程碑列表                                            |
+| `POST/PATCH/DELETE`     | `/projects/:id/plans/:planId/milestones`                    | `EDIT`             | 里程碑 CRUD                                           |
+| `GET`                   | `/projects/:id/plans/:planId/sprints`                       | `VIEW`             | Sprint 列表                                           |
+| `POST/PATCH`            | `/projects/:id/plans/:planId/sprints`                       | `EDIT`             | 创建/更新 Sprint                                      |
+| `POST`                  | `/projects/:id/sprints/:sprintId/start`                     | `MANAGE`           | 启动 Sprint                                           |
+| `POST`                  | `/projects/:id/sprints/:sprintId/complete`                  | `MANAGE`           | 完成 Sprint                                           |
+| `GET`                   | `/projects/:id/sprints/:sprintId/board`                     | `VIEW`             | 泳道和任务聚合数据                                    |
+| `GET`                   | `/projects/:id/simple-board`                                | `VIEW`             | 简易模式固定四泳道和任务聚合数据                      |
+| `GET/PATCH`             | `/projects/:id/sprints/:sprintId/swimlanes`                 | `VIEW/EDIT`        | 泳道配置                                              |
+| `GET/POST/PATCH/DELETE` | `/projects/:id/assistant-bindings`                          | `VIEW/EDIT/MANAGE` | Coordinator/Worker/Reviewer 绑定和能力限制            |
+| `GET/POST/PATCH/DELETE` | `/projects/:id/views`                                       | `VIEW/EDIT`        | 视图配置、字段显示、分组、筛选和排序                  |
+| `GET`                   | `/projects/:id/tasks/:taskId/conversations`                 | `VIEW`             | 查询任务的来源、讨论、执行和验收 Conversation         |
+| `POST`                  | `/projects/:id/tasks/:taskId/conversations`                 | `EDIT`             | 创建或关联任务讨论 Conversation                       |
+| `GET`                   | `/projects/:id/tasks/:taskId/executions`                    | `VIEW`             | 查询任务执行尝试和结果摘要                            |
+| `POST`                  | `/projects/:id/tasks/:taskId/execute`                       | `EDIT/MANAGE`      | 创建执行记录并派发 Agent；返回幂等的 execution 信息   |
+| `POST`                  | `/projects/:id/tasks/:taskId/executions/:executionId/retry` | `EDIT/MANAGE`      | 创建新的重试执行，不覆盖历史结果                      |
+| `POST`                  | `/projects/:id/tasks/move`                                  | `EDIT`             | 移动任务                                              |
+| `POST`                  | `/projects/:id/tasks/swimlanes/:swimlaneId/reorder`         | `EDIT`             | 泳道内排序                                            |
+| `POST`                  | `/projects/:id/plans/:planId/assistant/preview`             | `EDIT`             | 生成计划变更预览                                      |
+| `POST`                  | `/projects/:id/plans/:planId/assistant/apply`               | `EDIT`             | 用户确认后应用变更                                    |
+
+当前已存在的 `/plans`、`/plans/:planId/milestones`、`/project-task/move` 和 `/project-task/swimlane/:swimlaneId/reorder` 可以作为兼容实现，不要求一次性替换所有旧 Controller。
+
+### 9.2 服务边界
+
+- `ProjectPlanService`：计划和里程碑 CRUD、进度、归档和默认计划。
+- `ProjectSprintService`：周期生命周期、策略模板、Carry-over。
+- `ProjectSwimlaneService`：泳道模板、容量校验、配置和排序。
+- `ProjectTaskService`：任务 CRUD、移动、依赖、批量更新和执行入口。
+- `ProjectTaskAssignmentService`：团队/Xpert 自动匹配和容量检查。
+- `ProjectTaskDispatchProcessor`：Managed Queue 派发、执行结果和重试。
+- `ProjectViewService`：表格/看板/甘特/日历/列表 View 配置、字段和查询表达式。
+- `ProjectPlanEventService`：计划域事件、活动记录和实时刷新。
+- `ProjectWorkspaceBindingService`：Workspace 绑定、资源归属校验、能力计算、失效和迁移/复制检查。
+- `ProjectAssistantBindingService`：Coordinator/Worker 绑定、Assistant 版本固定、能力白名单和递归执行保护。
+
+Controller 只负责权限、输入 DTO、调用领域服务和返回统一 DTO，不在 Controller 中拼装计划进度或绕过事务写入多个实体。
+
+### 9.3 Assistant Control Plane API
+
+项目 Assistant 的控制面 API 与普通计划 CRUD 分开，便于审计自治轮次、实现暂停/恢复，并确保 ChatKit 不能绕过项目服务直接写入：
+
+| 方法   | 路径                                                         | 权限           | 用途                                                               |
+| ------ | ------------------------------------------------------------ | -------------- | ------------------------------------------------------------------ |
+| `GET`  | `/projects/:id/assistant/snapshot`                           | `VIEW`         | 返回按当前用户权限裁剪的项目快照和策略版本                         |
+| `POST` | `/projects/:id/assistant/preview`                            | `VIEW + EDIT`  | 对自然语言目标生成并 dry-run 校验 ChangeSet，不写数据              |
+| `POST` | `/projects/:id/assistant/apply`                              | `EDIT`         | 带 `baseVersion/changeSetId/idempotencyKey` 应用已确认的 ChangeSet |
+| `POST` | `/projects/:id/assistant/cycles`                             | `EDIT`         | 创建由项目事件或用户目标触发的自治轮次                             |
+| `GET`  | `/projects/:id/assistant/cycles/:cycleId`                    | `VIEW`         | 查询自治轮次、审批、预算和执行摘要                                 |
+| `POST` | `/projects/:id/assistant/cycles/:cycleId/pause`              | `OWNER/MANAGE` | 暂停新的写入和派发，不强杀已经运行的任务                           |
+| `POST` | `/projects/:id/assistant/cycles/:cycleId/resume`             | `OWNER/MANAGE` | 重新读取快照后恢复自治轮次                                         |
+| `PUT`  | `/projects/:id/assistant/policy`                             | `MANAGE`       | 更新项目 Assistant Policy，并递增策略版本                          |
+| `POST` | `/projects/:id/tasks/:taskId/execute`                        | `EDIT/MANAGE`  | 手动创建一次新的任务 execution                                     |
+| `POST` | `/projects/:id/tasks/:taskId/executions/:executionId/retry`  | `EDIT/MANAGE`  | 以新 execution 重试，不覆盖旧记录                                  |
+| `POST` | `/projects/:id/tasks/:taskId/executions/:executionId/cancel` | `MANAGE`       | 取消尚未完成的派发或执行                                           |
+
+接口约束：
+
+- `snapshot` 根据租户、组织、项目成员和权限裁剪任务、资产、提示词摘要及执行错误，不向无权限用户泄露其他项目数据。
+- `preview` 只执行领域服务的验证和影响分析；不得因为生成预览而创建任务、资产、队列消息或外部副作用。
+- `apply` 必须携带 `baseVersion`、`changeSetId` 和幂等键，版本冲突返回最新 Snapshot 和重新规划原因，不静默覆盖。
+- `cycle` 只能调用白名单内的 Project Tool，不能接受任意工具名、SQL、实体对象或未验证 JSON Patch。
+- `retry` 永远生成新的 execution，保留旧 execution 的 outcome、日志和失败原因；幂等键只保证同一次重试请求不重复。
+- `pause` 只阻止新的 ChangeSet 应用和任务派发；已运行的 Agent 按取消策略继续或自然结束，结果仍需回写。
+- 所有 endpoint 都经过统一的项目成员/所有者、Feature、Permission Guard 和 Activity 记录。
+
+## 10. 权限、Feature 和审计
+
+计划模块沿用一级菜单的 Feature 设计：
+
+```text
+FEATURE_XPERT
+  + FEATURE_XPERT_PROJECT
+  + XPERT_PROJECT_VIEW
+```
+
+动作权限建议：
+
+| 动作                                        | 权限                                                       |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| 查看计划、里程碑、Sprint、Board             | `XPERT_PROJECT_VIEW`                                       |
+| 创建/编辑 Plan、Milestone、Task、Sprint     | `XPERT_PROJECT_EDIT`                                       |
+| 修改泳道策略、WIP、并发和执行绑定           | `XPERT_PROJECT_MANAGE`                                     |
+| 启动/完成 Sprint、重试/取消 Agent 执行      | `XPERT_PROJECT_MANAGE`                                     |
+| 简易模式任务创建和状态移动                  | `XPERT_PROJECT_EDIT`                                       |
+| 简易模式升级为高级模式                      | 项目所有者或 `XPERT_PROJECT_MANAGE`                        |
+| 查看 Project Workspace 状态                 | `XPERT_PROJECT_VIEW` + Workspace `canRead`                 |
+| 绑定/更换 Project Workspace                 | 项目所有者或 `XPERT_PROJECT_MANAGE` + Workspace `canWrite` |
+| 绑定 Project Coordinator/Worker             | `XPERT_PROJECT_MANAGE` + Workspace `canRun`                |
+| 修改 Workspace 资源配置                     | Project `MANAGE` + Workspace `canWrite/manage`             |
+| Assistant Snapshot                          | `XPERT_PROJECT_VIEW`                                       |
+| Assistant 生成预览                          | `XPERT_PROJECT_VIEW + EDIT`                                |
+| Assistant 应用任务变更                      | `XPERT_PROJECT_EDIT`                                       |
+| Assistant 应用 Plan/Milestone/Sprint 变更   | `XPERT_PROJECT_EDIT`                                       |
+| Assistant 应用 Swimlane/WIP/并发/状态图变更 | `XPERT_PROJECT_MANAGE`                                     |
+| Assistant autonomous policy                 | `XPERT_PROJECT_MANAGE`                                     |
+| Assistant 暂停/恢复自治                     | 项目所有者或 `XPERT_PROJECT_MANAGE`                        |
+| Assistant 派发/重试/取消任务执行            | `XPERT_PROJECT_EDIT`；跨泳道策略需 `MANAGE`                |
+| 外部系统写入、删除、跨项目操作              | 显式人工审批，即使自治级别为 `autonomous`                  |
+
+Assistant 不允许获得比发起请求的用户或项目 Assistant 自身更高的权限；`autonomous` 只能在策略允许的资源和动作范围内运行。
+
+项目所有者在自己项目内拥有管理能力；非所有者必须具备相应权限。所有写操作记录：
+
+- actor、tenant、organization、project、plan、sprint、task。
+- 稳定事件码，例如 `plan.created`、`sprint.started`、`task.moved`、`task.execution.failed`。
+- 变更前后摘要、来源会话和 Agent。
+- 脱敏 payload，不记录 token、完整提示词、密码和授权头。
+
+## 11. 前端实现建议
+
+使用 Angular standalone、signals、现有 facade/service 和 Zard UI，不新增第三方依赖：
+
+- `z-button`：默认尺寸用于主操作，sm 只用于密集表格行内动作。
+- `z-select`：高级模式的 Plan/Sprint/Strategy 选择；简易模式不显示这些选择器。
+- `z-form`、`z-form-field`：项目模式选择、高级 Plan、Milestone、Sprint 和泳道编辑。
+- `z-table`：任务批量操作和计划表格。
+- `z-drawer`：任务详情、泳道配置和 Assistant 变更预览。
+- `z-dialog`：创建 Plan、Sprint 和删除/归档确认。
+- `z-badge`：状态、策略、容量和执行结果。
+- `z-tab-nav-bar`：视图切换，选中状态必须有明确下划线或边框样式。
+
+新建项目向导的第一步增加模式选择：
+
+```text
+简易模式（推荐）
+固定任务板：待开始 / 进行中 / 已暂停
+适合个人和小团队，不需要配置里程碑和泳道
+
+高级模式
+多计划、多里程碑、Sprint、可自定义泳道和 Agent 执行策略
+适合需要交付周期和自动化调度的项目
+```
+
+选择卡只表达能力差异，不使用营销式大卡片；在同一 `z-form-field` 中用单选项、简短说明和“稍后可升级”提示。模式确认后，项目 Shell 显示 `简易` 或 `高级` badge；高级配置入口在简易项目中只显示“升级为高级模式”。
+
+新建向导还必须先选择 Project Workspace。Workspace 选择完成后，再加载该 Workspace 下可用的 Assistant、Toolset、Knowledgebase、Skill 和 Environment；不允许先加载全租户资源再用前端隐藏过滤。没有 Workspace 的历史项目在 Shell 中显示“需要绑定 Workspace”，保留计划/资产浏览能力，但隐藏 Assistant 执行、自动化和资源绑定操作。
+
+Project Assistant Panel 不提供独立 Workspace 切换。Panel 只显示当前 Project 的 Workspace 摘要、运行能力和失效原因，并提供跳转 Workspace 管理页的入口；真正的 Workspace 变更只能从项目配置完成，并经过服务端迁移约束。
+
+加载和错误状态：
+
+- Plan 切换期间保留当前内容，显示局部 loading，不退回项目首页。
+- 简易 Board 只加载固定四泳道和任务分页；高级 Board 只加载当前 Sprint 的泳道和任务，不调用全量计划/任务接口。
+- 大量任务使用分页、泳道内渐进加载或虚拟滚动；拖拽时只维护当前泳道数据。
+- 403 显示权限提示并隐藏不可用操作；404 保留项目壳层并回到可用的 Plan。
+- 拖拽失败回滚原位置，显示明确的容量、依赖或权限原因。
+- 空状态分别说明“没有计划”“没有 Sprint”“没有泳道”“没有任务”，每个状态提供对应下一步操作。
+
+## 12. 分阶段实施路线
+
+### P0：统一模型和正确性
+
+- 在新建项目向导增加 `simple/advanced` 模式选择，默认简易模式。
+- 在新建项目向导增加 Workspace 选择；服务端使用默认 authoring Workspace 兜底，最终保存 `workspaceId`。
+- 增加 `managementMode`、模式 Guard 和 simple -> advanced 升级接口；禁止高级降级。
+- 为简易模式建立四条系统泳道和 `paused/done` 状态映射，服务端禁止修改其定义。
+- 为当前 Plan/Milestone 增加 Sprint 关联，设计统一 Task 字段和状态映射。
+- 把旧 Sprint/Swimlane 服务能力接入当前 `/api/xpert-project` 权限和租户边界。
+- 所有 Xpert/Toolset/Knowledgebase/Skill/Environment 绑定校验与 Project Workspace 一致；运行时再次校验 Workspace capability。
+- 将 Project Workspace 外键改为阻止级联删除；无 Workspace 的历史项目进入 `workspace_binding_required`，不自动猜测绑定。
+- 保留当前主线接口兼容，补充 DTO 校验、项目归属和权限测试。
+- 迁移历史 Sprint、泳道、任务和执行记录，验证幂等性。
+
+验收：已有项目仍能打开 Plan；旧任务不会丢失；跨项目、跨 Sprint 非法移动被拒绝。
+
+### P1：WorkBuddy 风格的简易计划
+
+- 简易模式固定四泳道 Board：待开始、进行中、已暂停、已完成。
+- 任务创建、编辑、筛选、搜索、拖拽状态移动、完成筛选和 Assistant 快捷动作。
+- 待办详情 Dialog、局部刷新、分页加载和错误回滚。
+- 完成中英文及繁体语言包、权限隐藏、加载/空/错误状态。
+- Project 配置显示 Workspace 状态、能力和重新授权入口；未绑定项目不能启动 Assistant 或自动化。
+
+验收：用户新建简易项目后，可以不配置 Plan、Milestone 或泳道，直接创建任务、移动状态、暂停任务、查看执行详情并通过 Assistant 继续工作。
+
+### P2：高级计划和 Agent 协作
+
+#### P2.1 Coordinator 基础
+
+- 提供权限裁剪的 Project Snapshot、只读 Project Tools 和 Assistant Policy。
+- 实现 ChangeSet 生成、dry-run 预览、影响分析、审批和幂等 apply。
+- 将自治 cycle、Project Event、Activity 和 outbox/inbox 记录统一起来。
+- 简易模式只允许任务级变更；高级结构变更始终显示审批原因。
+
+#### P2.2 受监督执行
+
+- 简易项目升级高级模式，保留任务和资产并生成 Default Sprint/泳道草案。
+- Plan/Milestone 创建、编辑、归档和进度计算；Sprint 创建、选择、启动、完成和 Carry-over。
+- Board 复用旧分支 Swimlane UI，接入当前项目 Shell 和 Assistant rail。
+- Assistant 在确认后创建/更新/移动任务，派发 runnable tasks，并通过结构化 outcome 回写步骤、错误、产物和活动。
+- 支持有限重试、执行取消、人工接管和执行 Conversation/Thread 与项目主 Conversation 分离。
+
+#### P2.3 高级自治
+
+- 自定义泳道、状态、WIP/并发、团队绑定和 Agent 路由。
+- 根据依赖、泳道能力、项目团队绑定和容量自动分派任务。
+- 监听任务失败、容量释放、里程碑临近和会话完成事件，触发有预算的 replan。
+- 提供自治 pause/resume、审批超时、预算耗尽和 Sprint retrospective；生成项目资产和下一周期建议。
+- 计划模板、策略模板、泳道模板和可复用 Skills 必须继承权限和策略版本。
+
+#### P2.4 企业安全与运营
+
+- Assistant Policy 版本化、审批记录导出、自治 cycle 审计和变更集回放。
+- 统计 Agent 用量、成本、队列 SLA、WIP/并发阻塞和人工接管率。
+- 通过 outbox/inbox 去重、事件顺序号、队列幂等键和重试/backoff 支持多实例部署。
+- 外部系统写入、删除、跨项目操作和费用动作必须人工审批，并提供紧急停止入口。
+
+验收：高级项目可以用一句目标生成可审阅 ChangeSet，确认后按依赖和容量自动执行，并在 Plan 页面看到 Sprint、泳道、任务、执行 Conversation 和资产结果；任务失败或版本冲突时自治会暂停并给出可操作原因，简易项目升级后历史任务仍可追踪。
+
+### P3：组合计划和企业协作
+
+- 跨计划依赖、跨项目组合视图和风险汇总。
+- 项目角色细化为 Owner、Manager、Contributor、Viewer、Agent Operator。
+- 邮箱、日历、IM、VCS、知识库和外部项目工具集成。
+- 用量、成本、队列 SLA、审计导出和策略版本化。
+
+## 13. 验收测试矩阵
+
+| 场景               | 关键验证                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| 新建项目模式       | 默认简易、模式说明、`managementMode` 持久化、权限和国际化                          |
+| Project Workspace  | 新建必选/默认解析、组织范围、Workspace capability、资源同 Workspace 校验           |
+| Workspace 失效     | 归档/撤权暂停 Assistant 和自动化，任务/资产保留，不能级联删除 Project              |
+| Workspace 重绑定   | 无运行数据可变更；有会话/执行/资产时拒绝直接切换并要求复制/迁移                    |
+| Assistant 绑定     | 单 Coordinator、多 Worker、同 Workspace、版本固定、不能递归执行                    |
+| 简易固定泳道       | 只生成 `todo/in_progress/paused/done`，名称/顺序不可编辑，完成任务保留在已完成泳道 |
+| 模式升级           | simple -> advanced 保留任务/资产/活动，生成高级结构，重复执行幂等                  |
+| 模式降级           | advanced -> simple 被拒绝，已有高级数据不被隐藏或破坏                              |
+| 待办详情 Dialog    | 字段编辑、状态/负责人、附件、子待办、评论、动态、未保存提示和权限                  |
+| 表格视图           | 字段显示、分组、筛选、排序、子待办、批量编辑和保存 View                            |
+| 甘特视图           | 缩放、日期拖拽、依赖校验、无日期记录、虚拟滚动和模式差异                           |
+| 日历视图           | 月/周/日切换、日期拖拽、逾期标识、无日期记录和移动端 agenda                        |
+| 列表视图           | 分组折叠、快速创建、排序、虚拟列表和任务 Dialog                                    |
+| 创建 Plan          | 必填校验、草稿、默认视图、权限和活动                                               |
+| 创建 Sprint        | 项目/Plan 归属、策略模板、默认泳道、日期校验、事务回滚                             |
+| Carry-over         | 只能 Backlog -> Backlog，任务状态/依赖正确重置                                     |
+| Board 拖拽         | 乐观更新、跨泳道移动、排序、失败回滚、并发冲突                                     |
+| WIP/并发           | 超限排队或阻塞、容量原因可见、服务端再次校验                                       |
+| 依赖               | 自依赖、环路、跨 Sprint 依赖被拒绝                                                 |
+| Agent 执行         | 自动分派、队列重试、结构化 outcome、产物和失败原因回写                             |
+| Sprint 完成        | 未完成任务确认、retrospective、下一 Sprint 建议                                    |
+| 权限               | VIEW/EDIT/MANAGE、所有者例外、跨租户/组织隔离                                      |
+| Assistant          | 只读上下文、预览变更、确认写入、活动审计                                           |
+| Snapshot/ChangeSet | 权限裁剪、dry-run 不写数据、影响分析、非法操作拒绝                                 |
+| Assistant apply    | `baseVersion` 冲突、幂等键去重、事务性写入、重复请求返回原结果                     |
+| 自治 cycle         | 状态机迁移、单项目 apply 串行、预算/审批超时、pause/resume 和恢复读新 Snapshot     |
+| 事件驱动自治       | inbox/outbox 去重、事件乱序、触发 replan、局部 facade 刷新而非整页刷新             |
+| 自治安全边界       | 不能调用未授权工具、不能提升权限、主 Assistant 不得作为 worker、外部副作用需审批   |
+| 执行一致性         | outcome 缺失不自动 done、retry 不覆盖旧 execution、失败原因和人工接管可见          |
+| 大数据量           | 当前 Sprint 局部加载、泳道渐进加载、首屏和滚动稳定                                 |
+
+## 14. 需要保持的产品边界
+
+- 简易模式只向用户暴露固定任务板；Plan、Milestone 和 Swimlane 是系统内部结构，不要求用户理解。
+- Workspace 是 Project 的 Assistant 资源与运行边界；Project 是任务、资产和协作数据边界，二者不能互相替代。
+- 一个 Project 只能绑定一个主 Workspace；共享 Workspace 不代表共享其他 Project 的任务、资产、会话或执行结果。
+- Project 成员不会自动获得 Workspace 成员权限；Workspace capability、Project permission 和 Assistant Policy 必须同时满足。
+- 高级模式下 Plan 负责“为什么做、做什么、何时验收”；Sprint 负责“这一周期如何交付”；Swimlane 负责“谁以什么能力执行”；Task 负责“具体工作和证据”。
+- 不把 Swimlane 的 WIP/并发上限当作普通任务状态；容量是调度约束，状态是交付语义。
+- 不把 Agent 会话成功等同于任务完成，必须有结构化 outcome 和产物/失败原因。
+- 不让 Assistant 通过 ChatKit 直接写数据库，所有变更必须走 Project Service、Permission Guard 和活动记录。
+- 自治能力不等于权限提升；Assistant 只能使用当前用户和项目策略交集内的能力。
+- Coordinator 和 worker 永远分离；项目 Assistant thread 只负责控制面，执行 Agent 使用独立 execution Conversation/Thread。
+- 任何自动写入都必须有 ChangeSet、cycle、幂等键和 Activity；不能通过模型文本或轮询聊天结果隐式改状态。
+- 不允许无限自动重试或无限 replan；预算、重试上限、审批超时和版本冲突都必须触发暂停或人工接管。
+- 删除、跨项目移动、权限/计费修改、外部发布和其他外部副作用必须人工审批。
+- 自动化消费者只负责识别事件和投递有界自治任务，不能在消息处理器内持有模型长连接。
+- Workspace 归档、撤权或资源失效时，Project 保留数据但暂停 Assistant 运行；不能静默回退到用户 Workspace 或其他 Assistant。
+- 不用全量树或全量任务数组驱动默认 Board，默认只读取当前计划和 Sprint 的必要数据。
+- 不为兼容旧分支而删除当前主线 Plan/Milestone；通过 `managementMode`、`planId`、`sprintId` 和迁移映射逐步统一。
+
+## 15. 参考资料
+
+代码参考：
+
+- `origin/feat/project`：`ce695b7245befa8613dff6d269415107533136c4`
+- 本文使用 `git show ce695b7245befa8613dff6d269415107533136c4:<path>` 对旧分支实现进行代码级核对，不仅依据目录名推断。
+- `apps/cloud/src/app/features/project/components/project-swimlane-column.component.ts`
+- `apps/cloud/src/app/features/project/components/project-sprint-create-dialog.component.ts`
+- `apps/cloud/src/app/features/project/project-page.facade.ts`
+- `apps/cloud/src/app/features/project/project-task-assistant.facade.ts`
+- `apps/cloud/src/app/features/project/components/project-assistant-panel.component.ts`
+- `apps/cloud/src/app/features/project/components/project-task-dialog.component.ts`
+- `packages/server-ai/src/project-sprint/project-sprint.service.ts`
+- `packages/server-ai/src/project-swimlane/project-swimlane.service.ts`
+- `packages/server-ai/src/project-task/project-task.service.ts`
+- `packages/server-ai/src/project-orchestrator/project-orchestrator.service.ts`
+- `packages/server-ai/src/project-orchestrator/project-task-assignment.service.ts`
+- `packages/server-ai/src/project-orchestrator/project-task-dispatch.processor.ts`
+- `packages/contracts/src/ai/xpert-project.model.ts`
+- `packages/server-ai/src/xpert-project/services/project-plan.service.ts`
+- `packages/server-ai/src/xpert-project/entities/project.entity.ts`（当前 Project Workspace 外键和级联策略）
+- `packages/server-ai/src/xpert-project/project.service.ts`（Project/Assistant 运行时归属校验）
+- `packages/server-ai/src/xpert-workspace/workspace-access.service.ts`（Workspace capability 和 authoring/runtime access）
+- `docs/zh-hans/guides/volume-workspace-architecture.mdx`（Project/Xpert Volume 作用域和运行时文件边界）
+
+外部产品：
+
+- [腾讯云 WorkBuddy 产品页](https://cloud.tencent.com/product/workbuddy)
+- [WorkBuddy 官方活动与 Skills 介绍](https://cloud.tencent.com/act/pro/workbuddy)
+- [Xpert Project 产品功能架构](./xpert-project-product-architecture)

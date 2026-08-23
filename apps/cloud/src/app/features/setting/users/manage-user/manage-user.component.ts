@@ -34,7 +34,8 @@ import {
   ZardIconComponent,
   ZardSearchInputComponent,
   ZardSelectImports,
-  ZardTableImports
+  ZardTableImports,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { distinctUntilChanged } from 'rxjs/operators'
 
@@ -93,6 +94,7 @@ const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; de
     ZardSearchInputComponent,
     ...ZardSelectImports,
     ...ZardTableImports,
+    ...ZardTooltipImports,
     DateRelativePipe
   ]
 })

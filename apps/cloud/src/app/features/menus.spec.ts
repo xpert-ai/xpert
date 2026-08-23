@@ -11,12 +11,26 @@ import { getFeatureMenus, getSettingsMenuItems } from './menus'
 
 describe('getSettingsMenuItems', () => {
   it('removes legacy Analytics settings menus', () => {
-    const removedPaths = ['chatbi', 'business-area', 'certification']
+    const removedPaths = ['chatbi', 'certification']
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
 
     for (const path of removedPaths) {
       expect(menus.find((item) => item.path === path)).toBeUndefined()
     }
+  })
+
+  it('exposes business area master data only in organization settings for administrators', () => {
+    const organizationArea = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find(
+      (item) => item.path === 'business-area'
+    )
+    const tenantArea = getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'business-area')
+
+    expect(organizationArea).toMatchObject({
+      label: 'Business Area',
+      scopeContext: 'organization-only',
+      data: { permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN] }
+    })
+    expect(tenantArea).toBeUndefined()
   })
 
   it('removes plugins from the settings menu after promotion', () => {
@@ -164,12 +178,21 @@ describe('getFeatureMenus', () => {
     expect(plugins?.data?.onboardingTarget).toBe('plugins-marketplace')
   })
 
-  it('keeps tasks as the only static chat sidebar entry', () => {
+  it('keeps scheduled tasks as a static chat sidebar entry', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const chat = menus.find((item) => item.link === '/chat')
     const tasks = menus.find((item) => item.link === '/chat/tasks')
+    const newTask = menus.find((item) => item.link === '/chat/clawxpert/c')
 
     expect(chat).toBeUndefined()
+    expect(newTask).toMatchObject({
+      title: 'New task',
+      icon: 'ri-add-circle-line',
+      pathMatch: 'full',
+      data: {
+        action: 'newClawXpertConversation'
+      }
+    })
     expect(tasks).toMatchObject({
       title: 'Scheduled',
       icon: 'ri-time-line',

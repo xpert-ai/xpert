@@ -123,6 +123,7 @@ import {
     hasMultipleInputs,
     filterDisabledTools,
     getAgentMiddlewares,
+    inheritMiddlewareToolDisplayMetadata,
     getRuntimeEnabledMiddlewareNodes,
     getRuntimeEnabledSubAgentConnections,
     getSubAgentConnectionTargetKey,
@@ -789,18 +790,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             // Platform middleware: it is hidden from the graph UI but is still
             // created through the normal middleware path so its tools enter
             // toolMap, tracing, and runtime filtering consistently.
-            const fileUnderstandingMiddleware = await fileUnderstandingStrategy.createMiddleware(
-                { conversationId: options.conversationId, projectId: options.projectId },
-                {
-                    ...middlewareContext,
-                    node: {
-                        id: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
-                        key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
-                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
-                        provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
-                        required: true
+            const fileUnderstandingMiddleware = inheritMiddlewareToolDisplayMetadata(
+                await fileUnderstandingStrategy.createMiddleware(
+                    { conversationId: options.conversationId, projectId: options.projectId },
+                    {
+                        ...middlewareContext,
+                        node: {
+                            id: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                            key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                            provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
+                            required: true
+                        }
                     }
-                }
+                ),
+                fileUnderstandingStrategy.meta
             )
             fileUnderstandingMiddleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
             builtinMiddlewareEntries.push({

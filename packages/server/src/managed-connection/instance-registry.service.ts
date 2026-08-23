@@ -12,6 +12,27 @@ type RedisClientLike = {
 const INSTANCE_HEARTBEAT_TTL_SECONDS = 45
 const INSTANCE_HEARTBEAT_INTERVAL_MS = 15_000
 
+export interface RuntimePluginStateItem {
+	scopeKey: string
+	pluginName: string
+	packageName?: string
+	version?: string
+	runtimeRevision?: string
+}
+
+export interface RuntimePluginFailureItem {
+	scopeKey: string
+	pluginName: string
+	packageName?: string
+	error: string
+}
+
+export interface RuntimePluginState {
+	reportedAt: string
+	plugins: RuntimePluginStateItem[]
+	failures: RuntimePluginFailureItem[]
+}
+
 @Injectable()
 export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 	private readonly logger = new Logger(InstanceRegistryService.name)
@@ -19,7 +40,9 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 		process.env.XPERT_INSTANCE_ID ||
 		process.env.HOSTNAME ||
 		`${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`
+	readonly bootId = randomUUID()
 	private timer?: ReturnType<typeof setInterval>
+	private pluginState: RuntimePluginState | null = null
 
 	constructor(
 		@Inject(REDIS_CLIENT)
@@ -44,6 +67,24 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 	async isAlive(instanceId: string): Promise<boolean> {
 		const value = await this.redisClient.get?.(this.key(instanceId))
 		return Boolean(value)
+	}
+
+	getPluginState(): RuntimePluginState | null {
+		return this.pluginState
+			? {
+					...this.pluginState,
+					plugins: this.pluginState.plugins.map((plugin) => ({ ...plugin })),
+					failures: this.pluginState.failures.map((failure) => ({ ...failure }))
+				}
+			: null
+	}
+
+	async reportPluginState(state: Omit<RuntimePluginState, 'reportedAt'>): Promise<void> {
+		this.pluginState = {
+			reportedAt: new Date().toISOString(),
+			plugins: state.plugins.map((plugin) => ({ ...plugin })),
+			failures: state.failures.map((failure) => ({ ...failure }))
+		}
 	}
 
 	private async heartbeat(): Promise<void> {

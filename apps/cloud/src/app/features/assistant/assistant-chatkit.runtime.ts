@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common'
-import { computed, effect, inject, signal, Signal } from '@angular/core'
+import { computed, effect, inject, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/chatkit-angular'
@@ -309,15 +309,19 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const currentLocale = locale()
     const currentToken = authToken() ?? ''
     const currentOrganizationId = organizationId()
-    const initialThread = input.initialThread?.() ?? null
+    // A route-level thread change is applied through ChatKitControl.setThreadId by the host.
+    // Keep initialThread non-reactive here so switching conversations does not rebuild all ChatKit options.
+    const initialThread = untracked(() => input.initialThread?.() ?? null)
     const requestContext = input.requestContext?.() ?? null
     const projectId = input.projectId?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
+    const currentControl = untracked(() => control())
+    const currentRuntimeKey = untracked(() => activeRuntimeKey())
 
     if (!key || !assistantId || !frameUrl) {
-      activeRuntimeKey.set(null)
-      control.set(null)
+      if (currentRuntimeKey !== null) activeRuntimeKey.set(null)
+      if (currentControl !== null) control.set(null)
       return
     }
 
@@ -395,13 +399,13 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       }
     } satisfies AssistantHostedChatKitOptions
 
-    if (!control() || activeRuntimeKey() !== key) {
+    if (!currentControl || currentRuntimeKey !== key) {
       control.set(createChatKit(options as AssistantChatKitOptions))
       activeRuntimeKey.set(key)
       return
     }
 
-    control()?.setOptions(options as AssistantChatKitOptions)
+    currentControl.setOptions(options as AssistantChatKitOptions)
   })
 
   return control

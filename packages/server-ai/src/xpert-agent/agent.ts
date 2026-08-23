@@ -12,6 +12,7 @@ import {
     isAgentKey,
     IXpert,
     IXpertAgent,
+    type IconDefinition,
     TMessageChannel,
     TMessageComponent,
     TMessageComponentStep,
@@ -89,6 +90,75 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function sanitizeToolInputForDisplay(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map((item) => sanitizeToolInputForDisplay(item))
+    }
+    if (isRecord(value)) {
+        return Object.fromEntries(
+            Object.entries(value)
+                .filter(([key]) => key !== 'changeSummary')
+                .map(([key, item]) => [key, sanitizeToolInputForDisplay(item)])
+        )
+    }
+    return value
+}
+
+function resolveLocalizedToolTitle(value: unknown, language?: string): string | undefined {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (!isRecord(value)) return undefined
+
+    const normalized = language?.replace('-', '_').toLowerCase()
+    const preferredKeys = normalized?.startsWith('zh') ? ['zh_Hans', 'zh_CN', 'en_US'] : ['en_US', 'en', 'zh_Hans']
+    for (const key of preferredKeys) {
+        const title = value[key]
+        if (typeof title === 'string' && title.trim()) return title.trim()
+    }
+    return Object.values(value)
+        .find((title): title is string => typeof title === 'string' && Boolean(title.trim()))
+        ?.trim()
+}
+
+function toolTitle(metadata: Record<string, unknown>, name: string, language?: string) {
+    return (
+        resolveLocalizedToolTitle(metadata['toolName'], language) ??
+        resolveLocalizedToolTitle(metadata[name], language) ??
+        name
+    )
+}
+
+function isIconType(value: unknown): value is IconDefinition['type'] {
+    return value === 'image' || value === 'svg' || value === 'font' || value === 'emoji' || value === 'lottie'
+}
+
+function parseToolIcon(candidate: unknown): IconDefinition | undefined {
+    if (!isRecord(candidate) || !isIconType(candidate['type'])) return undefined
+
+    const value = readString(candidate['value'])
+    if (!value) return undefined
+    const color = readString(candidate['color'])
+    const alt = readString(candidate['alt'])
+    const size =
+        typeof candidate['size'] === 'number' &&
+        Number.isFinite(candidate['size']) &&
+        candidate['size'] > 0 &&
+        candidate['size'] <= 64
+            ? candidate['size']
+            : undefined
+
+    return {
+        type: candidate['type'],
+        value,
+        ...(color ? { color } : {}),
+        ...(alt ? { alt } : {}),
+        ...(size ? { size } : {})
+    }
+}
+
+function toolIcon(metadata: Record<string, unknown>): IconDefinition | undefined {
+    return parseToolIcon(metadata['toolIcon']) ?? parseToolIcon(metadata['middlewareIcon'])
+}
+
 function normalizeMiddlewareChatEvent(data: unknown) {
     if (!isRecord(data) || data.type !== 'middleware_event') {
         return null
@@ -131,9 +201,10 @@ export function createMapStreamEvents(
         agent?: IXpertAgent
         unmutes: TXpertAgentConfig['mute']
         xperts?: IXpert[]
+        language?: string
     }
 ) {
-    const { agent, unmutes, xperts } = options ?? {}
+    const { agent, unmutes, xperts, language } = options ?? {}
     const eventStack: string[] = []
     let prevEvent = ''
     const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
@@ -289,6 +360,8 @@ export function createMapStreamEvents(
                             //
                         }
                     }
+                    input = sanitizeToolInputForDisplay(input)
+                    const icon = toolIcon(rest.metadata)
                     subscriber.next({
                         data: {
                             type: ChatMessageTypeEnum.MESSAGE,
@@ -302,7 +375,8 @@ export function createMapStreamEvents(
                                     toolset: rest.metadata.toolset,
                                     toolset_id: rest.metadata.toolsetId,
                                     tool: rest.name,
-                                    title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
+                                    title: toolTitle(rest.metadata, rest.name, language),
+                                    ...(icon ? { icon } : {}),
                                     created_date: new Date(),
                                     status: 'running',
                                     input
@@ -365,6 +439,7 @@ export function createMapStreamEvents(
             }
             case 'on_retriever_start': {
                 // console.log('on_retriever_start', data, rest)
+                const icon = toolIcon(rest.metadata)
                 subscriber.next({
                     data: {
                         type: ChatMessageTypeEnum.MESSAGE,
@@ -377,12 +452,13 @@ export function createMapStreamEvents(
                                 type: ChatMessageStepCategory.Knowledges,
                                 toolset: rest.metadata.toolset,
                                 toolset_id: rest.metadata.toolsetId,
-                                title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
+                                title: toolTitle(rest.metadata, rest.name, language),
+                                ...(icon ? { icon } : {}),
                                 created_date: new Date(),
                                 status: 'running',
                                 message: data.input?.query,
                                 end_date: null,
-                                input: data.input
+                                input: sanitizeToolInputForDisplay(data.input)
                             } as TMessageComponent<TMessageComponentStep>
                         } as TMessageContentComponent
                     }
@@ -461,6 +537,7 @@ export function createMapStreamEvents(
                                         ...executionMeta,
                                         data: {
                                             ...data,
+                                            input: sanitizeToolInputForDisplay(data.input),
                                             category: data.category,
                                             type: data.type,
                                             data: data.data

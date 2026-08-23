@@ -1,0 +1,330 @@
+<div class="flex min-h-full w-full min-w-0 flex-col gap-4 p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <span
+          class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-components-panel-bg text-text-secondary"
+        >
+          <i class="ri-node-tree text-2xl" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <h1 class="text-lg font-semibold text-text-primary">
+            {{ 'XP.BusinessArea.Title' | translate: { Default: 'Business Areas' } }}
+          </h1>
+          @if (organization(); as currentOrganization) {
+            <p class="truncate text-xs text-text-tertiary">{{ currentOrganization.name }}</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="flex shrink-0 items-center gap-2">
+      <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="loadAreas()">
+        <i class="ri-refresh-line" aria-hidden="true"></i>
+        {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+      </button>
+      <button z-button zType="default" zSize="sm" type="button" [disabled]="busy()" (click)="startCreate()">
+        <i class="ri-add-line" aria-hidden="true"></i>
+        {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
+      </button>
+    </div>
+  </header>
+
+  @if (legacyAreaCount() > 0) {
+    <div
+      class="flex items-start gap-3 rounded-lg border border-text-warning/30 bg-text-warning/10 px-4 py-3 text-sm text-text-primary"
+      role="status"
+    >
+      <i class="ri-alert-line mt-0.5 shrink-0 text-text-warning" aria-hidden="true"></i>
+      <div>
+        <div class="font-medium">
+          {{
+            'XP.BusinessArea.LegacyTitle'
+              | translate
+                : { Default: legacyAreaCount() + ' legacy business areas need names', count: legacyAreaCount() }
+          }}
+        </div>
+        <p class="mt-0.5 text-xs leading-5 text-text-secondary">
+          {{
+            'XP.BusinessArea.LegacyDescription'
+              | translate
+                : {
+                    Default:
+                      'These records are preserved from the historical module. Select an unnamed item to repair or delete it.'
+                  }
+          }}
+        </p>
+      </div>
+    </div>
+  }
+
+  <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[20rem_minmax(0,1fr)] lg:overflow-hidden">
+    <section
+      class="flex min-h-[22rem] flex-col overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg lg:min-h-0"
+    >
+      <div class="border-b border-divider-regular px-4 py-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-semibold text-text-primary">
+              {{ 'XP.BusinessArea.Hierarchy' | translate: { Default: 'Business area hierarchy' } }}
+            </h2>
+            <p class="mt-1 text-xs text-text-tertiary">
+              {{ areas().length }} {{ 'XP.BusinessArea.Items' | translate: { Default: 'items' } }}
+            </p>
+          </div>
+        </div>
+        <z-search-input
+          class="mt-3 w-full"
+          zSize="sm"
+          [value]="search()"
+          [aria-label]="'XP.BusinessArea.Search' | translate: { Default: 'Search business areas' }"
+          [placeholder]="'XP.BusinessArea.Search' | translate: { Default: 'Search business areas' }"
+          [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+          (valueChange)="updateSearch($event)"
+        />
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto p-2">
+        @if (loading()) {
+          <div class="flex min-h-48 items-center justify-center"><xp-spin /></div>
+        } @else if (filteredTreeNodes().length) {
+          <z-tree
+            #businessAreaTree
+            class="gap-1"
+            [zData]="filteredTreeNodes()"
+            [zSelectable]="true"
+            [zExpandAll]="true"
+            (zNodeClick)="selectTreeArea($event)"
+          >
+            <ng-template #nodeTemplate let-node>
+              <span
+                class="flex size-7 shrink-0 items-center justify-center rounded-md bg-components-panel-bg text-text-secondary"
+              >
+                <i [class]="node.children?.length ? 'ri-folder-3-line' : 'ri-price-tag-3-line'" aria-hidden="true"></i>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium text-text-primary">{{ node.label }}</span>
+                <span class="mt-0.5 block text-xs text-text-tertiary">
+                  @if (node.children?.length) {
+                    {{
+                      'XP.BusinessArea.ChildCount'
+                        | translate: { Default: node.children.length + ' children', count: node.children.length }
+                    }}
+                  } @else {
+                    {{ 'XP.BusinessArea.Leaf' | translate: { Default: 'Leaf area' } }}
+                  }
+                </span>
+              </span>
+              @if (!node.data?.name?.trim()) {
+                <span class="shrink-0 rounded-md bg-state-warning-hover/20 px-1.5 py-0.5 text-[10px] text-text-warning">
+                  {{ 'XP.BusinessArea.Repair' | translate: { Default: 'Repair' } }}
+                </span>
+              }
+            </ng-template>
+          </z-tree>
+        } @else if (areas().length) {
+          <div class="flex min-h-48 flex-col items-center justify-center px-5 text-center">
+            <i class="ri-search-eye-line text-xl text-text-tertiary" aria-hidden="true"></i>
+            <p class="mt-2 text-sm font-medium text-text-primary">
+              {{ 'XP.BusinessArea.NoMatches' | translate: { Default: 'No matching business areas' } }}
+            </p>
+          </div>
+        } @else {
+          <div class="flex min-h-52 flex-col items-center justify-center px-5 text-center">
+            <span
+              class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-text-secondary"
+            >
+              <i class="ri-node-tree" aria-hidden="true"></i>
+            </span>
+            <p class="mt-3 text-sm font-medium text-text-primary">
+              {{ 'XP.BusinessArea.Empty' | translate: { Default: 'No business areas yet' } }}
+            </p>
+            <p class="mt-1 max-w-52 text-xs leading-5 text-text-tertiary">
+              {{
+                'XP.BusinessArea.EmptyHint'
+                  | translate: { Default: 'Create the first top-level business area for this organization.' }
+              }}
+            </p>
+            <button z-button zType="default" zSize="sm" type="button" class="mt-4" (click)="startCreate()">
+              <i class="ri-add-line" aria-hidden="true"></i>
+              {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section
+      class="flex min-h-[32rem] min-w-0 flex-col overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg lg:min-h-0"
+    >
+      @if (creating() || selectedArea()) {
+        <header
+          class="flex flex-col gap-4 border-b border-divider-regular px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="min-w-0">
+            <h2 class="truncate text-base font-semibold text-text-primary">
+              @if (creating()) {
+                {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
+              } @else if (selectedArea(); as activeArea) {
+                {{ areaName(activeArea) }}
+              }
+            </h2>
+            @if (creating()) {
+              <p class="mt-1 text-xs text-text-tertiary">
+                {{
+                  'XP.BusinessArea.CreateHint'
+                    | translate: { Default: 'Create a reusable node in the organization business taxonomy.' }
+                }}
+              </p>
+            }
+          </div>
+
+          <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            @if (!creating()) {
+              @if (selectedArea(); as activeArea) {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="startCreate(activeArea)"
+                >
+                  <i class="ri-node-tree" aria-hidden="true"></i>
+                  {{ 'XP.BusinessArea.AddChild' | translate: { Default: 'Add child' } }}
+                </button>
+                <button
+                  z-button
+                  zType="destructive"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="deleteSelected()"
+                >
+                  <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                  {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+                </button>
+              }
+            }
+            <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="resetForm()">
+              {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+            </button>
+            <button z-button zType="default" zSize="sm" type="button" [disabled]="busy()" (click)="save()">
+              @if (saving()) {
+                <xp-spin small />
+              } @else {
+                <i class="ri-save-line" aria-hidden="true"></i>
+              }
+              {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+            </button>
+          </div>
+        </header>
+
+        <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+          <div class="mx-auto w-full max-w-3xl">
+            <div>
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{ 'XP.BusinessArea.BasicInfo' | translate: { Default: 'Basic information' } }}
+              </h3>
+              <p class="mt-1 text-sm leading-6 text-text-tertiary">
+                {{
+                  'XP.BusinessArea.FormHint'
+                    | translate
+                      : {
+                          Default:
+                            'The name is used by xpert-pro and connected applications. The parent controls hierarchy only.'
+                        }
+                }}
+              </p>
+            </div>
+
+            <div class="mt-6 space-y-5">
+              <label class="flex flex-col gap-2">
+                <span class="text-sm font-medium text-text-primary">
+                  {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+                  <span class="text-text-destructive" aria-hidden="true">*</span>
+                </span>
+                <input
+                  z-input
+                  zSize="sm"
+                  type="text"
+                  class="w-full"
+                  [zStatus]="name.touched && !name.getRawValue().trim() ? 'error' : undefined"
+                  [formControl]="name"
+                  [attr.aria-invalid]="name.touched && !name.getRawValue().trim()"
+                  aria-required="true"
+                  [placeholder]="'XP.BusinessArea.NamePlaceholder' | translate: { Default: 'Enter business area name' }"
+                />
+                @if (name.touched && !name.getRawValue().trim()) {
+                  <span class="text-xs text-text-destructive" role="alert">
+                    {{ 'XP.BusinessArea.NameRequired' | translate: { Default: 'Business area name is required' } }}
+                  </span>
+                }
+              </label>
+
+              <div class="flex flex-col gap-2">
+                <xp-tree-select
+                  class="w-full"
+                  displayDensity="compact"
+                  [formControl]="parentId"
+                  [label]="'XP.BusinessArea.Parent' | translate: { Default: 'Parent business area' }"
+                  [placeholder]="'XP.BusinessArea.TopLevel' | translate: { Default: 'Top-level business area' }"
+                  [searchable]="true"
+                  [treeNodes]="parentTreeNodes()"
+                />
+                <span class="text-xs leading-5 text-text-tertiary">
+                  {{
+                    'XP.BusinessArea.ParentHint'
+                      | translate: { Default: 'Moving an area also moves its complete subtree.' }
+                  }}
+                </span>
+              </div>
+            </div>
+
+            @if (!creating()) {
+              @if (selectedArea(); as activeArea) {
+                <dl class="mt-8 divide-y divide-divider-regular border-y border-divider-regular">
+                  <div class="grid gap-2 py-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                    <dt class="text-sm text-text-tertiary">ID</dt>
+                    <dd class="break-all font-mono text-xs text-text-primary">{{ activeArea.id }}</dd>
+                  </div>
+                  <div class="grid gap-2 py-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                    <dt class="text-sm text-text-tertiary">
+                      {{ 'XP.BusinessArea.Children' | translate: { Default: 'Child areas' } }}
+                    </dt>
+                    <dd class="text-sm font-medium text-text-primary">{{ selectedChildCount() }}</dd>
+                  </div>
+                  <div class="grid gap-2 py-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                    <dt class="text-sm text-text-tertiary">
+                      {{ 'XP.BusinessArea.UpdatedAt' | translate: { Default: 'Last updated' } }}
+                    </dt>
+                    <dd class="text-sm text-text-primary">
+                      {{ activeArea.updatedAt ? (activeArea.updatedAt | date: 'medium') : '—' }}
+                    </dd>
+                  </div>
+                </dl>
+              }
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="flex min-h-80 flex-1 flex-col items-center justify-center px-6 text-center">
+          <span
+            class="flex h-12 w-12 items-center justify-center rounded-xl bg-components-panel-bg text-xl text-text-secondary"
+          >
+            <i class="ri-node-tree" aria-hidden="true"></i>
+          </span>
+          <h2 class="mt-4 text-base font-semibold text-text-primary">
+            {{ 'XP.BusinessArea.Select' | translate: { Default: 'Select a business area' } }}
+          </h2>
+          <p class="mt-1 max-w-sm text-sm leading-6 text-text-tertiary">
+            {{
+              'XP.BusinessArea.SelectHint'
+                | translate: { Default: 'Select an item from the hierarchy or create a new business area.' }
+            }}
+          </p>
+        </div>
+      }
+    </section>
+  </div>
+</div>

@@ -1,10 +1,12 @@
 jest.mock('../@core', () => ({
   AiFeatureEnum: {
     FEATURE_XPERT: 'FEATURE_XPERT',
+    FEATURE_XPERT_PROJECT: 'FEATURE_XPERT_PROJECT',
     FEATURE_XPERT_MARKETPLACE: 'FEATURE_XPERT_MARKETPLACE'
   },
   AIPermissionsEnum: {
-    XPERT_EDIT: 'XPERT_EDIT'
+    XPERT_EDIT: 'XPERT_EDIT',
+    XPERT_PROJECT_VIEW: 'XPERT_PROJECT_VIEW'
   },
   RolesEnum: {
     ADMIN: 'ADMIN',
@@ -38,7 +40,7 @@ jest.mock('../app.service', () => ({
 }))
 
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { routes, xpertMarketplaceRouteGate } from './features-routing.module'
+import { routes, xpertMarketplaceRouteGate, xpertProjectRouteGate } from './features-routing.module'
 
 describe('features routing', () => {
   const children = routes[0].children ?? []
@@ -47,6 +49,12 @@ describe('features routing', () => {
     const route = children.find((item) => item.path === 'project')
 
     expect(route?.loadChildren).toEqual(expect.any(Function))
+    expect(route?.canActivate).toContain(xpertProjectRouteGate)
+    expect(route?.data?.permissions?.only).toEqual(['XPERT_PROJECT_VIEW'])
+    expect(xpertProjectRouteGate).toEqual({
+      featureKeys: ['FEATURE_XPERT', 'FEATURE_XPERT_PROJECT'],
+      redirectCommands: ['/chat']
+    })
   })
 
   it('does not mount migrated Analytics product routes', () => {

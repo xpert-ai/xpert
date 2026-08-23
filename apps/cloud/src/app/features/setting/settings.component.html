@@ -11,9 +11,9 @@
     >
       <div class="flex items-center gap-2" [class.justify-center]="!sideMenuOpened()">
         <div
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-text-secondary"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-text-secondary"
         >
-          <z-icon zSize="lg" [zType]="scopeIcon()"></z-icon>
+          <z-icon class="size-6 text-2xl" zSize="xl" [zType]="scopeIcon()"></z-icon>
         </div>
 
         @if (sideMenuOpened()) {
@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <ul class="xp-nav__tab-bar flex-1 p-2 rounded-lg space-y-1">
+  <ul class="xp-nav__tab-bar flex-1 p-2 rounded-lg">
     @for (e of menus(); track $index) {
       <li
         class="link flex justify-start items-center px-3 py-2 cursor-pointer rounded-lg hover:bg-hover-bg"

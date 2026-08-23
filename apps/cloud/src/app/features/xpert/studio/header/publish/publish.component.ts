@@ -9,9 +9,12 @@ import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiFeatureEnum,
+  BusinessAreaService,
   deriveXpertMarketplaceTechnicalProfile,
   getErrorMessage,
+  type IBusinessArea,
   IXpert,
+  OrderTypeEnum,
   Store,
   ToastrService,
   TSelectOption,
@@ -21,7 +24,7 @@ import {
   XpertAPIService,
   XpertMarketplaceBusinessCategories
 } from '@cloud/app/@core'
-import { Observable, of, switchMap } from 'rxjs'
+import { catchError, Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
@@ -56,6 +59,7 @@ export class XpertPublishVersionComponent {
   readonly confirm = injectConfirm()
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
+  readonly #businessAreaService = inject(BusinessAreaService)
 
   readonly xpert = this.studioService.team
   readonly latest = computed(() => this.xpert()?.latest)
@@ -74,6 +78,46 @@ export class XpertPublishVersionComponent {
 
   readonly newVersion = model(false)
   readonly releaseNotes = model('')
+  readonly businessAreaId = model<string | null>(this.xpert().businessAreaId ?? null)
+  readonly businessAreaLoadFailed = signal(false)
+  readonly businessAreaPage = toSignal(
+    this.#businessAreaService
+      .getAllInOrg({
+        order: { name: OrderTypeEnum.ASC },
+        take: 500
+      })
+      .pipe(
+        catchError(() => {
+          this.businessAreaLoadFailed.set(true)
+          return of({ items: [], total: 0 })
+        })
+      ),
+    { initialValue: { items: [], total: 0 } }
+  )
+  readonly businessAreaOptions = computed<TSelectOption[]>(() => {
+    const areas = this.businessAreaPage().items ?? []
+    const byId = new Map<string, IBusinessArea>()
+    for (const area of areas) {
+      if (area.id) {
+        byId.set(area.id, area)
+      }
+    }
+
+    return areas
+      .flatMap((area) => {
+        const id = area.id?.trim()
+        const name = area.name?.trim()
+        return id && name
+          ? [
+              {
+                value: id,
+                label: this.businessAreaPath(area, byId)
+              }
+            ]
+          : []
+      })
+      .sort((left, right) => String(left.label).localeCompare(String(right.label)))
+  })
   readonly marketplaceSummary = model(this.xpert().marketplace?.summary ?? '')
   readonly capabilityTagsText = model((this.xpert().marketplace?.capabilityTags ?? []).join(', '))
   readonly businessCategories = XpertMarketplaceBusinessCategories
@@ -180,6 +224,7 @@ export class XpertPublishVersionComponent {
           this.xpertAPI.publish(this.xpert().id, this.newVersion(), {
             environmentId: this.environmentId(),
             releaseNotes: this.releaseNotes(),
+            businessAreaId: this.businessAreaId(),
             ...(this.agentMarketplaceEnabled() ? { marketplace: this.marketplacePayload() } : {})
           })
         )
@@ -227,5 +272,22 @@ export class XpertPublishVersionComponent {
         .filter(Boolean)
         .slice(0, 12)
     }
+  }
+
+  private businessAreaPath(area: IBusinessArea, byId: Map<string, IBusinessArea>) {
+    const names: string[] = []
+    const visited = new Set<string>()
+    let current: IBusinessArea | undefined = area
+
+    while (current?.id && !visited.has(current.id)) {
+      visited.add(current.id)
+      const name = current.name?.trim()
+      if (name) {
+        names.unshift(name)
+      }
+      current = current.parentId ? byId.get(current.parentId) : undefined
+    }
+
+    return names.join(' / ')
   }
 }

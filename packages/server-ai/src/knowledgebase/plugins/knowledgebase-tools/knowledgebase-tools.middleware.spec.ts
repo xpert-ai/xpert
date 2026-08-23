@@ -33,7 +33,18 @@ describe('KnowledgebaseToolsMiddleware', () => {
 
         const created = middleware.createMiddleware({ tools: ['knowledge_document_view_images'] }, context({}) as never)
         expect(middleware.meta.features).toEqual(['knowledgebase-tools'])
+        expect(middleware.meta.icon).toMatchObject({
+            type: 'svg',
+            value: expect.stringContaining('data-icon="eye"')
+        })
         expect(created.tools?.map((item) => item.name)).toEqual(['knowledge_document_view_images'])
+        expect(created.tools?.[0]?.metadata).toMatchObject({
+            toolName: {
+                en_US: 'View governed source images',
+                zh_Hans: '查看受控来源图像'
+            }
+        })
+        expect(created.tools?.[0]?.metadata?.['toolIcon']).toBeUndefined()
         const schema = (
             created.tools?.[0] as unknown as { schema: { safeParse: (input: unknown) => { success: boolean } } }
         ).schema

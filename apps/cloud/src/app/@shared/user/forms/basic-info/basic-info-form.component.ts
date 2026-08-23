@@ -62,6 +62,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   @Input() public createdById: string
   @Input() public selectedTags: ITag[]
   @Input() public readOnly = false
+  @Input() public emailDisabled = false
 
   readonly roleOptions$ = new ReplaySubject<Array<{ key: string; caption: string }>>(1)
   private roles: IRole[] = []
@@ -93,7 +94,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   setDisabledState?(isDisabled: boolean): void {}
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['readOnly']) {
+    if (changes['readOnly'] || changes['emailDisabled']) {
       this.syncReadOnlyState()
     }
   }
@@ -197,6 +198,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
               label: TRANSLATES?.Email ?? 'Email',
               placeholder: '',
               required: true,
+              disabled: this.emailDisabled,
               appearance: 'fill'
             },
             validators: {
@@ -298,11 +300,12 @@ export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   private syncReadOnlyState(fields = this.fields) {
     for (const field of fields) {
       const baseDisabled = !!field.props?.['baseDisabled']
+      const fieldDisabled = field.key === 'email' && this.emailDisabled
       if (field.props) {
-        field.props.disabled = this.readOnly || baseDisabled
+        field.props.disabled = this.readOnly || baseDisabled || fieldDisabled
       }
       if (field.formControl) {
-        if (this.readOnly || baseDisabled) {
+        if (this.readOnly || baseDisabled || fieldDisabled) {
           field.formControl.disable({ emitEvent: false })
         } else {
           field.formControl.enable({ emitEvent: false })

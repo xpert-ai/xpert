@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// Invariants:
+// - This Runner Host is shared by browser and document image families.
+// - Playwright is resolved and exposed only when the Runtime manifest declares it.
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { lstat, mkdir, readFile, realpath, symlink } from 'node:fs/promises'
@@ -68,6 +71,7 @@ function parseActionManifest(value) {
 }
 
 async function exposeRuntimeDependencies(actionRoot) {
+  if (!manifest.playwrightVersion) return
   const dependencyRoot = path.join(actionRoot, 'node_modules')
   await mkdir(dependencyRoot, { recursive: true })
   const playwrightTarget = path.dirname(requireFromHost.resolve('playwright-core/package.json'))
@@ -82,6 +86,19 @@ async function exposeRuntimeDependencies(actionRoot) {
 }
 
 async function runtimeManifest() {
+  const result = {
+    ...manifest,
+    nodeVersion: process.versions.node,
+    runnerHostSha256: createHash('sha256')
+      .update(await readFile(hostFile))
+      .digest('hex')
+  }
+  if (manifest.playwrightVersion) Object.assign(result, await browserRuntimeMetadata())
+  if (manifest.ffmpegVersion) result.ffmpegVersion = await ffmpegVersion(manifest.ffmpegVersion)
+  return result
+}
+
+async function browserRuntimeMetadata() {
   const packageJsonPath = requireFromHost.resolve('playwright-core/package.json')
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
   const browsers = JSON.parse(await readFile(path.join(path.dirname(packageJsonPath), 'browsers.json'), 'utf8'))
@@ -89,17 +106,10 @@ async function runtimeManifest() {
     ? (browsers.browsers.find((entry) => entry?.name === 'chromium-headless-shell') ??
       browsers.browsers.find((entry) => entry?.name === 'chromium'))
     : undefined
-  const result = {
-    ...manifest,
-    nodeVersion: process.versions.node,
+  return {
     playwrightVersion: String(packageJson.version ?? 'unknown'),
-    browserRevision: chromium?.revision ? String(chromium.revision) : 'unknown',
-    runnerHostSha256: createHash('sha256')
-      .update(await readFile(hostFile))
-      .digest('hex')
+    browserRevision: chromium?.revision ? String(chromium.revision) : 'unknown'
   }
-  if (manifest.ffmpegVersion) result.ffmpegVersion = await ffmpegVersion(manifest.ffmpegVersion)
-  return result
 }
 
 async function ffmpegVersion(declaredVersion) {

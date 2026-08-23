@@ -5,6 +5,7 @@ import {
     isRequiredMiddleware,
     IXpertAgent,
     normalizeMiddlewareProvider,
+    TAgentMiddlewareMeta,
     TXpertGraph,
     TXpertTeamNode,
     WorkflowNodeTypeEnum
@@ -32,6 +33,28 @@ function assertSingleSkillsMiddlewareConnection(sourceKey: string, middlewareNod
     if (skillsMiddlewareCount > 1) {
         throw new Error(`Node "${sourceKey}" can connect to only one Skills Middleware node`)
     }
+}
+
+/**
+ * Carries a middleware's catalog icon into each owned tool as a display fallback.
+ * A tool may still provide `metadata.toolIcon` to override this default.
+ */
+export function inheritMiddlewareToolDisplayMetadata(
+    middleware: AgentMiddleware,
+    meta?: Pick<TAgentMiddlewareMeta, 'name' | 'icon'> | null
+): AgentMiddleware {
+    if (!meta?.icon || !middleware.tools?.length) {
+        return middleware
+    }
+
+    for (const tool of middleware.tools) {
+        tool.metadata = {
+            ...tool.metadata,
+            middlewareIcon: meta.icon
+        }
+    }
+
+    return middleware
 }
 
 export const isSkillsConnectedToAgent = (graph: TXpertGraph, agent: IXpertAgent) => {
@@ -110,14 +133,17 @@ export async function getAgentMiddlewares(
             continue
         }
 
-        const middleware = await strategy.createMiddleware(entity.options, {
-            ...context,
-            xpertFeatures: context.xpertFeatures ?? null,
-            node: {
-                ...(middlewareNode.entity as IWFNMiddleware),
-                provider
-            }
-        })
+        const middleware = inheritMiddlewareToolDisplayMetadata(
+            await strategy.createMiddleware(entity.options, {
+                ...context,
+                xpertFeatures: context.xpertFeatures ?? null,
+                node: {
+                    ...(middlewareNode.entity as IWFNMiddleware),
+                    provider
+                }
+            }),
+            strategy.meta
+        )
         if (middleware?.tools?.length) {
             const enabledTools = middleware.tools.filter((tool) => isMiddlewareToolEnabled(entity?.tools?.[tool.name]))
             middleware.tools = filterDisabledTools(

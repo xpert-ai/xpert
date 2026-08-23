@@ -94,6 +94,7 @@ export class ChatTaskSummaryService {
                 where: { conversationId: conversation.id },
                 select: [
                     'id',
+                    'content',
                     'taskSummary',
                     'executionId',
                     'followUpMode',
@@ -117,9 +118,24 @@ export class ChatTaskSummaryService {
         ])
 
         const messages = messageResult.items
-        const contributions = messages.flatMap((message) =>
-            message.taskSummary?.version === TASK_SUMMARY_VERSION ? [message.taskSummary] : []
-        )
+        const contributions = messages.flatMap((message) => {
+            const persisted = message.taskSummary?.version === TASK_SUMMARY_VERSION ? message.taskSummary : undefined
+            if (!persisted) {
+                const extracted = extractChatMessageTaskSummary(message)
+                return extracted.outputs?.length ? [extracted] : []
+            }
+            const extractedOutputs = extractChatMessageTaskSummary(message).outputs
+            const existingOutputIds = new Set(persisted.outputs?.map((output) => output.id) ?? [])
+            const additionalOutputs = extractedOutputs?.filter((output) => !existingOutputIds.has(output.id)) ?? []
+            return [
+                {
+                    ...persisted,
+                    ...(additionalOutputs.length
+                        ? { outputs: [...(persisted.outputs ?? []), ...additionalOutputs] }
+                        : {})
+                }
+            ]
+        })
         const plan = this.latestItem(contributions.flatMap((contribution) => contribution.plan ?? []))
         const todos = this.latestItem(contributions.flatMap((contribution) => contribution.todos ?? []))
         const outputs = this.mergeLatest(contributions.flatMap((contribution) => contribution.outputs ?? []))

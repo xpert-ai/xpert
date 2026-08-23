@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Entity } from 'typeorm'
 import type { PluginInstanceService } from './plugin-instance.service'
+import type { RuntimeControlService } from '../runtime-control/runtime-control.service'
 
 jest.mock('@xpert-ai/contracts', () => ({
 	PLUGIN_CONFIGURATION_STATUS: {
@@ -108,6 +109,7 @@ jest.mock('./organization-plugin.store', () => ({
 		return `/tmp/plugins/${organizationId}/${sanitizedName}`
 	}),
 	getOrganizationPluginRoot: jest.fn(() => '/tmp/plugins'),
+	readWorkspacePluginRuntimeRevision: jest.fn(() => 'workspace:test-source'),
 	stagePackageDirectoryPlugin: jest.fn()
 }))
 
@@ -216,6 +218,12 @@ describe('PluginManagementService', () => {
 	const applicationConfig = {
 		getGlobalPrefix: jest.fn(() => 'api')
 	}
+	const runtimeControl = {
+		recordPluginRuntimeChange: jest.fn()
+	}
+	const runtimeState = {
+		report: jest.fn()
+	}
 
 	let service: InstanceType<typeof PluginManagementService>
 
@@ -273,6 +281,8 @@ describe('PluginManagementService', () => {
 		})
 		;(collectProvidersWithMetadata as jest.Mock).mockReturnValue([])
 		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
+		runtimeControl.recordPluginRuntimeChange.mockResolvedValue({ scheduled: true, generation: 1 })
+		runtimeState.report.mockResolvedValue(undefined)
 		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
 			hostVersion: '3.8.4',
 			peerRange: '^3.8.0',
@@ -299,7 +309,9 @@ describe('PluginManagementService', () => {
 			lazyLoader as any,
 			moduleRef as any,
 			dataSource as any,
-			applicationConfig as any
+			applicationConfig as any,
+			runtimeControl as unknown as RuntimeControlService,
+			runtimeState
 		)
 		RequestContext.getOrganizationId.mockReturnValue('org-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
@@ -309,6 +321,62 @@ describe('PluginManagementService', () => {
 		})
 		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue(null)
 		;(pluginInstanceService as any).getDefaultTenantId.mockResolvedValue('tenant-1')
+	})
+
+	it('schedules cluster convergence after an organization plugin is installed', async () => {
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-openrouter',
+				version: '0.1.0',
+				level: 'organization'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-openrouter',
+				version: '0.1.0'
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				currentVersion: '0.1.0',
+				runtimeConvergence: { generation: 1 },
+				runtimeRequirements: [
+					{
+						scopeKey: 'org-1',
+						pluginName: '@xpert-ai/plugin-openrouter',
+						version: '0.1.0',
+						state: 'loaded'
+					}
+				]
+			})
+		)
+		expect(runtimeState.report).toHaveBeenCalled()
+
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-openrouter',
+			version: '0.1.0',
+			scopeKey: 'org-1'
+		})
+	})
+
+	it('falls back to an explicit restart when cluster convergence cannot be scheduled', async () => {
+		runtimeControl.recordPluginRuntimeChange.mockResolvedValue({ scheduled: false, generation: 1 })
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-openrouter',
+				version: '0.1.0',
+				level: 'organization'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-openrouter',
+				version: '0.1.0'
+			})
+		).resolves.toEqual(expect.objectContaining({ restartRequired: true }))
 	})
 
 	it('persists a non-blocking configuration warning when install-time config is invalid', async () => {
@@ -584,7 +652,7 @@ describe('PluginManagementService', () => {
 		}
 	})
 
-	it('uses isolated runtime directories for code plugins from local workspaces', async () => {
+	it('rotates the runtime revision when a same-version local workspace plugin is refreshed', async () => {
 		;(loadPlugin as jest.Mock).mockResolvedValue({
 			meta: {
 				name: '@xpert-ai/plugin-code-demo',
@@ -593,15 +661,16 @@ describe('PluginManagementService', () => {
 			}
 		})
 
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-code-demo',
-				source: 'code',
-				sourceConfig: {
-					workspacePath: '/tmp/workspaces/plugin-code-demo'
-				}
-			})
-		).resolves.toEqual(
+		const previousRuntimeName = '@xpert-ai/plugin-code-demo@runtime__previous'
+		const result = await service.installPlugin({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-code-demo',
+				runtimeName: previousRuntimeName
+			}
+		})
+		expect(result).toEqual(
 			expect.objectContaining({
 				success: true,
 				name: '@xpert-ai/plugin-code-demo'
@@ -609,6 +678,20 @@ describe('PluginManagementService', () => {
 		)
 
 		const runtimeName = (registerPluginsAsync as jest.Mock).mock.calls[0][0].plugins[0].runtimeName
+		expect(runtimeName).not.toBe(previousRuntimeName)
+		expect(result).toEqual(
+			expect.objectContaining({
+				runtimeRequirements: [
+					{
+						scopeKey: 'org-1',
+						pluginName: '@xpert-ai/plugin-code-demo',
+						version: '1.0.0',
+						runtimeRevision: `runtime:${runtimeName}`,
+						state: 'loaded'
+					}
+				]
+			})
+		)
 
 		expect(runtimeName).toMatch(/^@xpert-ai\/plugin-code-demo@runtime__/)
 		expect(registerPluginsAsync).toHaveBeenCalledWith(
@@ -619,7 +702,8 @@ describe('PluginManagementService', () => {
 						runtimeName,
 						source: 'code',
 						sourceConfig: {
-							workspacePath: '/tmp/workspaces/plugin-code-demo'
+							workspacePath: '/tmp/workspaces/plugin-code-demo',
+							runtimeName
 						}
 					})
 				]
@@ -645,17 +729,25 @@ describe('PluginManagementService', () => {
 			version: undefined,
 			source: 'code',
 			sourceConfig: {
-				workspacePath: '/tmp/workspaces/plugin-code-demo'
+				workspacePath: '/tmp/workspaces/plugin-code-demo',
+				runtimeName: previousRuntimeName
 			}
 		})
 		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				source: 'code',
 				sourceConfig: {
-					workspacePath: '/tmp/workspaces/plugin-code-demo'
+					workspacePath: '/tmp/workspaces/plugin-code-demo',
+					runtimeName
 				}
 			})
 		)
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			version: '1.0.0',
+			runtimeRevision: `runtime:${runtimeName}`,
+			scopeKey: 'org-1'
+		})
 	})
 
 	it('installs uploaded plugin archives as staged code plugins without a workspace path', async () => {
@@ -1076,6 +1168,7 @@ describe('PluginManagementService', () => {
 			}),
 			{ syncLoadedConfig: false }
 		)
+		expect(runtimeControl.recordPluginRuntimeChange).not.toHaveBeenCalled()
 	})
 
 	it('stages tenant-level plugins in the owning tenant global scope', async () => {
@@ -1364,7 +1457,18 @@ describe('PluginManagementService', () => {
 
 		await expect(
 			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-system-demo'], '__global__', 'system:global')
-		).resolves.toEqual({ restartRequired: true })
+		).resolves.toEqual(
+			expect.objectContaining({
+				restartRequired: true,
+				runtimeRequirements: [
+					{
+						scopeKey: 'system:global',
+						pluginName: '@xpert-ai/plugin-system-demo',
+						state: 'absent'
+					}
+				]
+			})
+		)
 
 		expect((pluginInstanceService as any).deactivate).toHaveBeenCalledWith(
 			'tenant-1',
@@ -1394,7 +1498,18 @@ describe('PluginManagementService', () => {
 
 		await expect(
 			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-bom'], '__global__', 'tenant:tenant-bom:global')
-		).resolves.toEqual({ restartRequired: true })
+		).resolves.toEqual(
+			expect.objectContaining({
+				restartRequired: true,
+				runtimeRequirements: [
+					{
+						scopeKey: 'tenant:tenant-bom:global',
+						pluginName: '@xpert-ai/plugin-bom',
+						state: 'absent'
+					}
+				]
+			})
+		)
 
 		expect((pluginInstanceService as any).deactivate).toHaveBeenCalledWith(
 			'tenant-bom',

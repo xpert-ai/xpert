@@ -142,14 +142,15 @@ describe('createMapStreamEvents', () => {
         })
     })
 
-    it('adds execution metadata to tool start components', () => {
+    it('adds execution metadata, resolves localized titles and hides changeSummary on tool start', () => {
         const subscriber = { next: jest.fn() }
         const mapStreamEvent = createMapStreamEvents(
             logger as unknown as Logger,
             subscriber as unknown as Subscriber<MessageEvent>,
             {
                 agent: { key: 'Agent_root' } as unknown as IXpertAgent,
-                unmutes: []
+                unmutes: [],
+                language: 'zh-Hans'
             }
         )
 
@@ -159,7 +160,7 @@ describe('createMapStreamEvents', () => {
             tags: [],
             data: {
                 id: 'tool-call-1',
-                input: { path: 'README.md' }
+                input: { path: 'README.md', changeSummary: '模型生成的冗长摘要' }
             },
             metadata: {
                 agentKey: 'Agent_child',
@@ -167,7 +168,19 @@ describe('createMapStreamEvents', () => {
                 executionId: 'child-execution',
                 parentExecutionId: 'root-execution',
                 toolset: 'filesystem',
-                toolsetId: 'toolset-1'
+                toolsetId: 'toolset-1',
+                toolName: {
+                    en_US: 'Read governed file',
+                    zh_Hans: '读取受控文件'
+                },
+                toolIcon: {
+                    type: 'svg',
+                    value: '<svg viewBox="0 0 24 24" data-icon="eye"></svg>'
+                },
+                middlewareIcon: {
+                    type: 'emoji',
+                    value: '🧰'
+                }
             },
             run_id: 'tool-run-1'
         })
@@ -183,7 +196,84 @@ describe('createMapStreamEvents', () => {
                         xpertName: 'Child Agent',
                         executionId: 'child-execution',
                         parentExecutionId: 'root-execution',
-                        runId: 'tool-run-1'
+                        runId: 'tool-run-1',
+                        data: expect.objectContaining({
+                            title: '读取受控文件',
+                            icon: {
+                                type: 'svg',
+                                value: '<svg viewBox="0 0 24 24" data-icon="eye"></svg>'
+                            },
+                            input: { path: 'README.md' }
+                        })
+                    })
+                })
+            })
+        )
+
+        subscriber.next.mockClear()
+        mapStreamEvent({
+            event: 'on_tool_start',
+            name: 'middleware_default_tool',
+            tags: [],
+            data: {
+                id: 'tool-call-2',
+                input: {}
+            },
+            metadata: {
+                middlewareIcon: {
+                    type: 'emoji',
+                    value: '🧰'
+                }
+            },
+            run_id: 'tool-run-2'
+        })
+
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    data: expect.objectContaining({
+                        data: expect.objectContaining({
+                            icon: {
+                                type: 'emoji',
+                                value: '🧰'
+                            }
+                        })
+                    })
+                })
+            })
+        )
+    })
+
+    it('hides changeSummary from custom tool messages before emitting them', () => {
+        const subscriber = { next: jest.fn() }
+        const mapStreamEvent = createMapStreamEvents(
+            logger as unknown as Logger,
+            subscriber as unknown as Subscriber<MessageEvent>,
+            { agent: { key: 'Agent_root' } as unknown as IXpertAgent, unmutes: [] }
+        )
+
+        mapStreamEvent({
+            event: 'on_custom_event',
+            name: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            tags: [],
+            data: {
+                id: 'custom-tool-call-1',
+                category: 'Tool',
+                title: '保存需求证据',
+                input: { caseId: 'case-1', changeSummary: '不要发给 ChatKit' }
+            },
+            metadata: {},
+            run_id: 'custom-tool-run-1'
+        })
+
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    data: expect.objectContaining({
+                        data: expect.objectContaining({
+                            title: '保存需求证据',
+                            input: { caseId: 'case-1' }
+                        })
                     })
                 })
             })

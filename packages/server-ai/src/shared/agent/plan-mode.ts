@@ -7,6 +7,7 @@ import {
     type RequestUserInputQuestion,
     type RequestUserInputToolArgs
 } from '@xpert-ai/chatkit-types'
+import { inheritMiddlewareToolDisplayMetadata } from './middleware'
 
 export const PLAN_MODE_HUMAN_INPUT_KEY = 'planMode'
 export const PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY = '__xpert_plan_mode_client_tool__'
@@ -182,21 +183,24 @@ export async function createPlanModeMiddlewareEntries(
     }
 
     const clientToolStrategy = agentMiddlewareRegistry.get(CLIENT_TOOL_MIDDLEWARE_NAME)
-    const clientToolMiddleware = await clientToolStrategy.createMiddleware(
-        {
-            clientTools: [
-                {
-                    name: REQUEST_USER_INPUT_TOOL_NAME,
-                    description:
-                        'Plan Mode user input. Use once for clarification before a plan, or after a visible proposed plan only for the final implementation confirmation. Never use for repeated clarification rounds.',
-                    schema: PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
-                }
-            ]
-        },
-        {
-            ...context,
-            node: createPlanModeNode(PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY, CLIENT_TOOL_MIDDLEWARE_NAME)
-        }
+    const clientToolMiddleware = inheritMiddlewareToolDisplayMetadata(
+        await clientToolStrategy.createMiddleware(
+            {
+                clientTools: [
+                    {
+                        name: REQUEST_USER_INPUT_TOOL_NAME,
+                        description:
+                            'Plan Mode user input. Use once for clarification before a plan, or after a visible proposed plan only for the final implementation confirmation. Never use for repeated clarification rounds.',
+                        schema: PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
+                    }
+                ]
+            },
+            {
+                ...context,
+                node: createPlanModeNode(PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY, CLIENT_TOOL_MIDDLEWARE_NAME)
+            }
+        ),
+        clientToolStrategy.meta
     )
 
     const promptMiddleware: AgentMiddleware = {

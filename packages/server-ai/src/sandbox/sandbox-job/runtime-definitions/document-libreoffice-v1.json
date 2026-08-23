@@ -1,0 +1,39 @@
+{
+    "name": "document/libreoffice-v1",
+    "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
+    "contractVersion": "1",
+    "sandboxRuntimeVersion": "1.2.0",
+    "timeoutMs": 180000,
+    "hardDeadlineMs": 240000,
+    "resources": {
+        "cpu": 2,
+        "memoryMb": 4096,
+        "shmSizeMb": 256,
+        "tempDiskMb": 4096
+    },
+    "networkPolicy": {
+        "mode": "none"
+    },
+    "security": {
+        "runAsNonRoot": true,
+        "readOnlyRootFilesystem": true,
+        "noNewPrivileges": true,
+        "dropCapabilities": "all"
+    },
+    "requirements": {
+        "isolation": "hardened",
+        "ephemeral": true,
+        "resourceLimits": true,
+        "networkPolicy": true,
+        "readOnlyRootFilesystem": true
+    },
+    "expectedManifest": {
+        "sandboxRuntimeVersion": "1.2.0",
+        "imageFamily": "document",
+        "profileName": "document/libreoffice-v1",
+        "contractVersion": "1",
+        "nodeVersion": "20.20.2",
+        "libreOfficeMajorVersion": "7",
+        "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec"
+    }
+}

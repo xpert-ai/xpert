@@ -28,6 +28,7 @@ describe('RolePermissionService', () => {
 			expect.arrayContaining(['MODELS_VIEW', 'STORIES_EDIT', 'INDICATOR_EDIT'])
 		)
 		expect(criteria.permission.value).not.toContain('DATA_SOURCE_VIEW')
+		expect(criteria.permission.value).not.toContain('BUSINESS_AREA_VIEW')
 		expect(criteria).not.toHaveProperty('tenantId')
 		expect(repository.update).toHaveBeenCalledWith(
 			{ permission: 'MEMBERSHIP_PURCHASE' },
@@ -57,7 +58,7 @@ describe('RolePermissionService', () => {
 			expect.arrayContaining([
 				'MODELS_VIEW',
 				'STORIES_EDIT',
-				'BUSINESS_AREA_VIEW',
+				'BUSINESS_AREA_EDIT',
 				'INDICATOR_MARTKET_VIEW',
 				'DATA_FACTORY_EDIT',
 				'PERMISSION_APPROVAL_EDIT'
@@ -65,5 +66,6 @@ describe('RolePermissionService', () => {
 		)
 		expect(criteria.permission.value).not.toContain('DATA_SOURCE_VIEW')
 		expect(criteria.permission.value).not.toContain('DATA_SOURCE_EDIT')
+		expect(criteria.permission.value).not.toContain('BUSINESS_AREA_VIEW')
 	})
 })

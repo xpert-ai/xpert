@@ -26,6 +26,8 @@ import {
   ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
+  TFile,
+  TFileDirectory,
   IUserGroup,
   IXpert,
   IXpertAgentExecution,
@@ -201,6 +203,42 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
+  getWorkspaceFiles(id: string, path = '') {
+    return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/workspace/files`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
+  getWorkspaceFile(id: string, path: string) {
+    return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
+  downloadWorkspaceFile(id: string, path: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/workspace/file/download`, {
+      params: createOptionalQueryParams({ path }),
+      responseType: 'blob'
+    })
+  }
+
+  saveWorkspaceFile(id: string, path: string, content: string) {
+    return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, { path, content })
+  }
+
+  uploadWorkspaceFileToFolder(id: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/workspace/file/upload`, formData)
+  }
+
+  deleteWorkspaceFile(id: string, path: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/workspace/file`, {
+      params: createOptionalQueryParams({ path })
+    })
+  }
+
   updateCommandProfile(id: string, profile: TXpertCommandProfile) {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/commands`, profile)
   }
@@ -212,7 +250,12 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   publish(
     id: string,
     newVersion: boolean,
-    body: { environmentId?: string | null; releaseNotes: string; marketplace?: TXpertPublishMarketplaceInput }
+    body: {
+      environmentId?: string | null
+      releaseNotes: string
+      businessAreaId?: string | null
+      marketplace?: TXpertPublishMarketplaceInput
+    }
   ) {
     return this.httpClient
       .post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {

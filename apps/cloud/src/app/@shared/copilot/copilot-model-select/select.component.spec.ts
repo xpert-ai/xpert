@@ -324,7 +324,7 @@ describe('CopilotModelSelectComponent', () => {
     })
   }))
 
-  it('clamps numeric parameter updates to the active rule range', fakeAsync(() => {
+  it('preserves output token updates beyond the active slider range', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()
 
@@ -348,7 +348,7 @@ describe('CopilotModelSelectComponent', () => {
     component.updateParameter('max_tokens', 655361234)
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options?.max_tokens).toBe(32768)
+    expect(component['cva'].value$()?.options?.max_tokens).toBe(655361234)
   }))
 
   it('does not clamp parameter updates with stale rules while new model rules are loading', fakeAsync(() => {
@@ -397,7 +397,7 @@ describe('CopilotModelSelectComponent', () => {
     expect(component['cva'].value$()?.options?.max_tokens).toBe(32000)
   }))
 
-  it('clamps persisted numeric options when model parameter rules resolve', fakeAsync(() => {
+  it('preserves persisted output token options beyond the configured slider range', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()
 
@@ -426,7 +426,7 @@ describe('CopilotModelSelectComponent', () => {
 
     expect(component['cva'].value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
-      max_tokens: 32768
+      max_tokens: 655361234
     })
   }))
 

@@ -1,0 +1,88 @@
+@reference "../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block min-w-0;
+}
+
+.project-plan-lane-list {
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.project-plan-lane-list.cdk-drop-list-dragging {
+  @apply rounded-lg;
+  background-color: color-mix(in oklab, var(--color-background-default-subtle) 30%, transparent);
+}
+
+.project-plan-lane-list.cdk-drop-list-receiving {
+  @apply rounded-lg;
+  background-color: color-mix(in oklab, var(--sys-primary) 5%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--sys-primary) 30%, transparent);
+}
+
+.project-task-card {
+  will-change: transform;
+  transition:
+    transform 250ms cubic-bezier(0, 0, 0.2, 1),
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.project-task-card.cdk-drag-dragging {
+  @apply shadow-lg;
+  background-color: var(--background);
+  border-color: color-mix(in oklab, var(--sys-primary) 70%, transparent);
+}
+
+.project-task-card.cdk-drag-placeholder {
+  @apply border-dashed;
+  border-color: color-mix(in oklab, var(--sys-primary) 50%, transparent);
+  background-color: color-mix(in oklab, var(--sys-primary) 5%, transparent);
+  opacity: 0.62;
+}
+
+.project-task-card.cdk-drag-placeholder > * {
+  opacity: 0.28;
+}
+
+.project-task-drag-preview {
+  box-sizing: border-box;
+  transform-origin: center;
+  will-change: opacity, scale;
+  animation: project-task-drag-preview-in 140ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.project-plan-lane-list.cdk-drop-list-dragging .project-task-card:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes project-task-drag-preview-in {
+  from {
+    opacity: 0.82;
+    scale: 0.96;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-plan-lane-list,
+  .project-task-card,
+  .cdk-drag-animating,
+  .project-plan-lane-list.cdk-drop-list-dragging .project-task-card:not(.cdk-drag-placeholder) {
+    transition: none;
+  }
+
+  .project-task-drag-preview {
+    animation: none;
+  }
+}

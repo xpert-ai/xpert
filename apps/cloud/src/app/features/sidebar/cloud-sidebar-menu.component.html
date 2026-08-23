@@ -130,7 +130,15 @@
                 </ul>
               }
             } @else if (group.key === 'work') {
-              <xp-cloud-sidebar-assistants [collapsed]="collapsed()" [enabled]="group.items.length > 0" />
+              <div class="cloud-sidebar-menu__assistant-stack">
+                <xp-cloud-sidebar-recent-tasks [collapsed]="collapsed()" />
+                <xp-cloud-sidebar-assistants
+                  class="cloud-sidebar-menu__assistant-list"
+                  [collapsed]="collapsed()"
+                  [enabled]="group.items.length > 0"
+                  [embedded]="true"
+                />
+              </div>
             }
           </li>
         }

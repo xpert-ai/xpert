@@ -1,7 +1,17 @@
 {
     "templates": {
         "en-US": {
-            "categories": ["Agent", "Workflow", "HR", "Programming", "Writing", "Assistant", "Analysis", "Xpert"],
+            "categories": [
+                "Agent",
+                "Workflow",
+                "HR",
+                "Programming",
+                "Writing",
+                "Assistant",
+                "Analysis",
+                "Project",
+                "Xpert"
+            ],
             "recommendedApps": [
                 {
                     "name": "Smart HR Assistant",
@@ -226,6 +236,29 @@
                         "modelType": "llm",
                         "model": "deepseek-v4-flash"
                     }
+                },
+                {
+                    "name": "Project Assistant",
+                    "type": "agent",
+                    "title": "Project Assistant",
+                    "description": "Coordinates project plans and tasks, keeps work visible, and coordinates project experts.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "clipboard"
+                        },
+                        "background": "rgba(219, 234, 254, 0.8)"
+                    },
+                    "id": "xpert-project-assistant",
+                    "category": "Project",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "targetApps": ["xpert"],
+                    "targetAppMeta": {
+                        "xpert": {
+                            "types": ["assistant-template", "project-assistant"],
+                            "capabilities": ["project-plan", "project-tasks"]
+                        }
+                    }
                 }
             ]
         },
@@ -239,6 +272,7 @@
                 "Writing",
                 "Assistant",
                 "Analysis",
+                "Project",
                 "Xpert"
             ],
             "recommendedApps": [
@@ -366,6 +400,29 @@
                     "copilotModel": {
                         "modelType": "llm",
                         "model": "deepseek-v4-flash"
+                    }
+                },
+                {
+                    "name": "Project Assistant",
+                    "type": "agent",
+                    "title": "项目助理",
+                    "description": "协调项目计划和任务，保持工作可见，并协调项目专家成员。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "clipboard"
+                        },
+                        "background": "rgba(219, 234, 254, 0.8)"
+                    },
+                    "id": "xpert-project-assistant",
+                    "category": "Project",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "targetApps": ["xpert"],
+                    "targetAppMeta": {
+                        "xpert": {
+                            "types": ["assistant-template", "project-assistant"],
+                            "capabilities": ["project-plan", "project-tasks"]
+                        }
                     }
                 },
                 {

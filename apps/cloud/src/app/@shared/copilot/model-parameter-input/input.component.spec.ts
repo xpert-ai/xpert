@@ -50,4 +50,25 @@ describe('ModelParameterInputComponent', () => {
     expect(component['cva'].value$()).toBe(256)
     expect(typeof component['cva'].value$()).toBe('number')
   })
+
+  it('expands the output token slider maximum to a larger input value', () => {
+    fixture.componentRef.setInput('parameter', {
+      name: 'max_tokens',
+      label: { en_US: 'Max Tokens' },
+      type: ParameterType.INT,
+      min: 1,
+      max: 2048
+    })
+    component['cva'].value$.set(2048)
+    fixture.detectChanges()
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement
+    input.value = '4096'
+    input.dispatchEvent(new Event('input'))
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()).toBe(4096)
+    expect(component.sliderMaximum()).toBe(4096)
+    expect(input.max).toBe('4096')
+  })
 })

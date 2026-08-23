@@ -12,7 +12,12 @@ export class ChatCommandHandler implements ICommandHandler<ChatCommand> {
     ) {}
 
     public async execute(command: ChatCommand): Promise<Observable<MessageEvent>> {
-        if (command.options.xpertId) {
+        // Project conversations use the project supervisor so the task ledger,
+        // execution tracking, and assistant handoff tools are available. Keep
+        // standalone Xpert conversations on the Xpert-specific execution path.
+        const isProjectConversation =
+            Boolean(command.options.projectId) || ('projectId' in command.request && Boolean(command.request.projectId))
+        if (command.options.xpertId && !isProjectConversation) {
             return await this.commandBus.execute(new XpertChatCommand(command.request, command.options))
         }
         return await this.commandBus.execute(new ChatCommonCommand(command.request, command.options))

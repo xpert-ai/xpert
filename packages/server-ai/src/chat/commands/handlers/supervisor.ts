@@ -6,31 +6,38 @@ export const PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM = new Set(['ChatOpenAI'])
 
 // type guards
 type ChatModelWithBindTools = BaseChatModel & {
-	bindTools(tools: BindToolsInput[], kwargs?: unknown): LanguageModelLike
+    bindTools(tools: BindToolsInput[], kwargs?: unknown): LanguageModelLike
 }
 
 type ChatModelWithParallelToolCallsParam = BaseChatModel & {
-	bindTools(
-		tools: BindToolsInput[],
-		kwargs?: { parallel_tool_calls?: boolean } & Record<string, unknown>
-	): LanguageModelLike
+    bindTools(
+        tools: BindToolsInput[],
+        kwargs?: { parallel_tool_calls?: boolean } & Record<string, unknown>
+    ): LanguageModelLike
 }
 
 export function isChatModelWithBindTools(llm: LanguageModelLike): llm is ChatModelWithBindTools {
-	return (
-		'_modelType' in llm &&
-		typeof llm._modelType === 'function' &&
-		llm._modelType() === 'base_chat_model' &&
-		'bindTools' in llm &&
-		typeof llm.bindTools === 'function'
-	)
+    return (
+        '_modelType' in llm &&
+        typeof llm._modelType === 'function' &&
+        llm._modelType() === 'base_chat_model' &&
+        'bindTools' in llm &&
+        typeof llm.bindTools === 'function'
+    )
 }
 
 export function isChatModelWithParallelToolCallsParam(
-	llm: ChatModelWithBindTools
+    llm: ChatModelWithBindTools
 ): llm is ChatModelWithParallelToolCallsParam {
-	return llm.bindTools.length >= 2
+    return llm.bindTools.length >= 2
 }
 
 export const Instruction = `Please answer in '{{sys.language}}'`
 export const PlanInstruction = ``
+export const ProjectTaskInstruction = `
+You are the project assistant for the current Xpert Project. Treat the project task ledger as the source of truth for work status.
+- Use project_list_tasks before planning or reporting project work.
+- Use project_create_tasks for new work and keep each task's steps current with project_update_tasks.
+- When delegating a task to an Assistant, pass the exact taskId to the handoff tool so the execution context is linked to that task.
+- Report only execution states and outputs that are present in the project task context; never invent completion results.
+`

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { IUser } from '../../@core'
 import { HeaderUserComponent } from '../../@theme/header'
-import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import { CloudSidebarIdentityComponent } from './cloud-sidebar-identity.component'
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
@@ -12,13 +11,7 @@ import { CloudMenuItem } from './cloud-sidebar-menu.types'
   selector: 'xp-cloud-sidebar',
   templateUrl: './cloud-sidebar.component.html',
   styleUrl: './cloud-sidebar.component.scss',
-  imports: [
-    CommonModule,
-    CloudSidebarIdentityComponent,
-    CloudSidebarAssistantsComponent,
-    HeaderUserComponent,
-    CloudSidebarMenuComponent
-  ],
+  imports: [CommonModule, CloudSidebarIdentityComponent, HeaderUserComponent, CloudSidebarMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CloudSidebarComponent {
