@@ -15,24 +15,25 @@
         </span>
         <div class="min-w-0">
           <h1 class="text-2xl font-semibold text-text-primary">
-            {{ 'XP.Xpert.Task' | translate: { Default: '任务' } }}
+            {{ 'XP.Xpert.Task' | translate: { Default: 'Task' } }}
           </h1>
           <p class="mt-1 max-w-3xl text-sm leading-6 text-text-secondary">
             {{
-              'XP.Chat.ScheduledTasksPageDescription' | translate: { Default: '集中管理任务计划、运行状态与执行记录。' }
+              'XP.Chat.ScheduledTasksPageDescription'
+                | translate: { Default: 'Manage task schedules, run status, and execution history in one place.' }
             }}
           </p>
           <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
             <span>
               {{ totalTaskCount() }}
-              {{ 'XP.Chat.Tasks' | translate: { Default: '个任务' } }}
+              {{ 'XP.Chat.Tasks' | translate: { Default: 'tasks' } }}
             </span>
             <span class="size-1 rounded-full bg-text-tertiary" aria-hidden="true"></span>
             <span>
               {{ successfulExecutionCount() }}
-              {{ 'XP.Chat.Successful' | translate: { Default: '成功' } }}
+              {{ 'XP.Chat.Successful' | translate: { Default: 'successful' } }}
               / {{ failedExecutionCount() }}
-              {{ 'XP.Chat.Failed' | translate: { Default: '失败' } }}
+              {{ 'XP.Chat.Failed' | translate: { Default: 'failed' } }}
             </span>
           </div>
         </div>
@@ -57,10 +58,13 @@
             <div class="flex items-start justify-between gap-3">
               <div>
                 <h2 class="text-base font-semibold text-text-primary">
-                  {{ 'XP.Chat.TaskQueue' | translate: { Default: '任务队列' } }}
+                  {{ 'XP.Chat.TaskQueue' | translate: { Default: 'Task Queue' } }}
                 </h2>
                 <p class="mt-1 text-sm text-text-secondary">
-                  {{ 'XP.Chat.TaskQueueDescription' | translate: { Default: '按状态筛选并管理全部定时任务。' } }}
+                  {{
+                    'XP.Chat.TaskQueueDescription'
+                      | translate: { Default: 'Filter and manage all scheduled tasks by status.' }
+                  }}
                 </p>
               </div>
               <z-badge zType="outline" zShape="pill" class="shrink-0">{{ totalTaskCount() }}</z-badge>
@@ -69,7 +73,7 @@
             <div
               class="mt-4 grid grid-cols-4 overflow-hidden rounded-lg border border-divider-regular bg-background-default-subtle p-1"
               role="group"
-              [attr.aria-label]="'XP.Chat.FilterTasksByStatus' | translate: { Default: '按状态筛选任务' }"
+              [attr.aria-label]="'XP.Chat.FilterTasksByStatus' | translate: { Default: 'Filter tasks by status' }"
             >
               <button
                 type="button"
@@ -82,7 +86,7 @@
                 [attr.aria-pressed]="statusFilter() === 'all'"
                 (click)="statusFilter.set('all')"
               >
-                <span class="truncate">{{ 'XP.Chat.AllTasks' | translate: { Default: '全部' } }}</span>
+                <span class="truncate">{{ 'XP.Chat.AllTasks' | translate: { Default: 'All' } }}</span>
                 <span class="text-text-tertiary">{{ totalTaskCount() }}</span>
               </button>
               <button
@@ -96,7 +100,7 @@
                 [attr.aria-pressed]="statusFilter() === eXpertTaskStatus.SCHEDULED"
                 (click)="statusFilter.set(eXpertTaskStatus.SCHEDULED)"
               >
-                <span class="truncate">{{ 'XP.Xpert.Scheduled' | translate: { Default: '已安排' } }}</span>
+                <span class="truncate">{{ 'XP.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}</span>
                 <span class="text-text-tertiary">{{ scheduledTaskCount() }}</span>
               </button>
               <button
@@ -110,7 +114,7 @@
                 [attr.aria-pressed]="statusFilter() === eXpertTaskStatus.PAUSED"
                 (click)="statusFilter.set(eXpertTaskStatus.PAUSED)"
               >
-                <span class="truncate">{{ 'XP.Xpert.Paused' | translate: { Default: '已暂停' } }}</span>
+                <span class="truncate">{{ 'XP.Xpert.Paused' | translate: { Default: 'Paused' } }}</span>
                 <span class="text-text-tertiary">{{ pausedTaskCount() }}</span>
               </button>
               <button
@@ -124,7 +128,7 @@
                 [attr.aria-pressed]="statusFilter() === eXpertTaskStatus.ARCHIVED"
                 (click)="statusFilter.set(eXpertTaskStatus.ARCHIVED)"
               >
-                <span class="truncate">{{ 'XP.Xpert.Archived' | translate: { Default: '已归档' } }}</span>
+                <span class="truncate">{{ 'XP.Xpert.Archived' | translate: { Default: 'Archived' } }}</span>
                 <span class="text-text-tertiary">{{ archivedTaskCount() }}</span>
               </button>
             </div>
@@ -132,11 +136,11 @@
 
           <div class="flex shrink-0 items-center justify-between gap-3 border-b border-divider-regular px-5 py-3">
             <span class="text-xs font-medium text-text-secondary">
-              {{ visibleTaskCount() }} {{ 'XP.Chat.Tasks' | translate: { Default: '个任务' } }}
+              {{ visibleTaskCount() }} {{ 'XP.Chat.Tasks' | translate: { Default: 'tasks' } }}
             </span>
             <span class="inline-flex items-center gap-1 text-xs text-text-tertiary">
               <i class="ri-sort-desc" aria-hidden="true"></i>
-              {{ 'XP.Chat.SortedByUpdatedTime' | translate: { Default: '按更新时间排序' } }}
+              {{ 'XP.Chat.SortedByUpdatedTime' | translate: { Default: 'Sorted by update time' } }}
             </span>
           </div>
 
@@ -171,7 +175,7 @@
                         <span class="min-w-0 flex-1">
                           <span class="flex min-w-0 items-center gap-2">
                             <span class="truncate text-sm font-semibold text-text-primary">
-                              {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: '未命名任务' }) }}
+                              {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
                             </span>
                             <ng-container
                               *ngTemplateOutlet="statusBadgeTempl; context: { status: task.status }"
@@ -186,7 +190,7 @@
                             {{ task.scheduleDescription || task.schedule }}
                           </span>
                           <span class="font-mono text-[11px] text-text-tertiary">
-                            {{ task.timeZone || ('XP.Chat.LocalTimeZone' | translate: { Default: '本地时区' }) }}
+                            {{ task.timeZone || ('XP.Chat.LocalTimeZone' | translate: { Default: 'Local time zone' }) }}
                           </span>
                         </span>
                       </span>
@@ -234,17 +238,17 @@
                   <i class="ri-calendar-search-line text-xl" aria-hidden="true"></i>
                 </span>
                 <h3 class="mt-3 text-sm font-semibold text-text-primary">
-                  {{ 'XP.Chat.NoTasksInCurrentFilter' | translate: { Default: '当前筛选暂无任务' } }}
+                  {{ 'XP.Chat.NoTasksInCurrentFilter' | translate: { Default: 'No tasks match the current filter' } }}
                 </h3>
                 <p class="mt-1 max-w-xs text-xs leading-5 text-text-secondary">
                   {{
                     'XP.Chat.SwitchFilterOrCreateTask'
-                      | translate: { Default: '切换其他状态，或创建一个新的定时任务。' }
+                      | translate: { Default: 'Select another status or create a new scheduled task.' }
                   }}
                 </p>
                 <button z-button type="button" zType="outline" zSize="sm" class="mt-4" (click)="newTask()">
                   <i class="ri-add-line" aria-hidden="true"></i>
-                  {{ 'XP.Xpert.NewTask' | translate: { Default: '新建任务' } }}
+                  {{ 'XP.Xpert.NewTask' | translate: { Default: 'New Task' } }}
                 </button>
               </div>
             }
@@ -265,12 +269,13 @@
               <i class="ri-calendar-todo-line text-2xl" aria-hidden="true"></i>
             </span>
             <h2 class="mt-4 text-lg font-semibold text-text-primary">
-              {{ 'XP.Chat.SelectTaskTitle' | translate: { Default: '选择一个任务' } }}
+              {{ 'XP.Chat.SelectTaskTitle' | translate: { Default: 'Select a task' } }}
             </h2>
             <p class="mt-2 max-w-sm text-sm leading-6 text-text-secondary">
               {{
                 'XP.Chat.SelectTaskDescription'
-                  | translate: { Default: '从左侧任务队列中选择一项，查看计划、执行状态与历史记录。' }
+                  | translate
+                    : { Default: 'Select a task from the queue to view its schedule, status, and execution history.' }
               }}
             </p>
           </div>
@@ -313,7 +318,7 @@
           @if (task.status === eXpertTaskStatus.ARCHIVED) {
             <button z-button type="button" zType="outline" zSize="sm" data-task-unarchive (click)="unarchiveTask(task)">
               <i class="ri-inbox-unarchive-line" aria-hidden="true"></i>
-              {{ 'XP.Xpert.Unarchive' | translate: { Default: '取消归档' } }}
+              {{ 'XP.Xpert.Unarchive' | translate: { Default: 'Unarchive' } }}
             </button>
           }
           @if (task.status !== eXpertTaskStatus.ARCHIVED) {
@@ -356,17 +361,17 @@
               </span>
               <div class="min-w-0 flex-1">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'XP.Chat.ExecutionPlan' | translate: { Default: '执行计划' } }}
+                  {{ 'XP.Chat.ExecutionPlan' | translate: { Default: 'Schedule' } }}
                 </div>
                 <div class="mt-1 text-sm font-semibold leading-6 text-text-primary">
                   {{
                     task.scheduleDescription ||
                       task.schedule ||
-                      ('XP.Chat.SchedulePlaceholder' | translate: { Default: '暂无执行计划' })
+                      ('XP.Chat.SchedulePlaceholder' | translate: { Default: 'No schedule' })
                   }}
                 </div>
                 <div class="mt-1 font-mono text-xs text-text-tertiary">
-                  {{ task.timeZone || ('XP.Chat.LocalTimeZone' | translate: { Default: '本地时区' }) }}
+                  {{ task.timeZone || ('XP.Chat.LocalTimeZone' | translate: { Default: 'Local time zone' }) }}
                 </div>
               </div>
             </div>
@@ -375,7 +380,7 @@
           <section class="grid grid-cols-3 divide-x divide-divider-regular border-b border-divider-regular">
             <div class="min-w-0 px-5 py-4">
               <div class="text-xs text-text-tertiary">
-                {{ 'XP.Chat.TotalRuns' | translate: { Default: '总执行' } }}
+                {{ 'XP.Chat.TotalRuns' | translate: { Default: 'Total runs' } }}
               </div>
               <div class="mt-1 text-xl font-semibold tabular-nums text-text-primary">
                 {{ taskExecutionTotal(task) }}
@@ -383,7 +388,7 @@
             </div>
             <div class="min-w-0 px-5 py-4">
               <div class="text-xs text-text-tertiary">
-                {{ 'XP.Chat.SuccessRate' | translate: { Default: '成功率' } }}
+                {{ 'XP.Chat.SuccessRate' | translate: { Default: 'Success rate' } }}
               </div>
               <div class="mt-1 text-xl font-semibold tabular-nums text-text-primary">
                 {{ taskSuccessRate(task) === null ? '—' : taskSuccessRate(task) + '%' }}
@@ -391,13 +396,13 @@
             </div>
             <div class="min-w-0 px-5 py-4">
               <div class="text-xs text-text-tertiary">
-                {{ 'XP.Chat.LastRun' | translate: { Default: '最近运行' } }}
+                {{ 'XP.Chat.LastRun' | translate: { Default: 'Last run' } }}
               </div>
               <div class="mt-1 truncate text-sm font-medium text-text-primary">
                 @if (taskLastExecution(task); as lastExecution) {
                   {{ lastExecution.createdAt | relative }}
                 } @else {
-                  {{ 'XP.Chat.NotRunYet' | translate: { Default: '尚未运行' } }}
+                  {{ 'XP.Chat.NotRunYet' | translate: { Default: 'Not run yet' } }}
                 }
               </div>
             </div>
@@ -450,7 +455,7 @@
             <div class="flex items-center justify-between gap-3 px-5 py-4">
               <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
                 <i class="ri-history-line text-text-secondary" aria-hidden="true"></i>
-                {{ 'XP.Xpert.History' | translate: { Default: '执行历史' } }}
+                {{ 'XP.Xpert.History' | translate: { Default: 'Execution history' } }}
               </div>
               <z-badge zType="secondary" zShape="pill">
                 {{ historyConversations().length }}
@@ -490,7 +495,7 @@
                             {{
                               history.title ||
                                 history.options?.parameters?.input ||
-                                ('XP.Chat.UntitledConversation' | translate: { Default: '未命名执行记录' })
+                                ('XP.Chat.UntitledConversation' | translate: { Default: 'Untitled execution' })
                             }}
                           </div>
                           <span class="shrink-0 font-mono text-[11px] text-text-tertiary">
@@ -506,7 +511,7 @@
                           </div>
                         } @else {
                           <div class="mt-1 text-xs text-text-tertiary">
-                            {{ 'XP.Chat.ExecutionCompleted' | translate: { Default: '执行完成' } }}
+                            {{ 'XP.Chat.ExecutionCompleted' | translate: { Default: 'Execution completed' } }}
                           </div>
                         }
                       </div>

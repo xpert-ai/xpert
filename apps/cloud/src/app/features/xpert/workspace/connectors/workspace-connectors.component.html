@@ -2,17 +2,18 @@
   <div class="mb-4 flex items-center justify-between gap-3">
     <div>
       <h2 class="text-base font-medium text-text-primary">
-        {{ 'XP.Xpert.ConnectorCatalogTitle' | translate: { Default: '连接器目录' } }}
+        {{ 'XP.Xpert.ConnectorCatalogTitle' | translate: { Default: 'Connector Catalog' } }}
       </h2>
       <p class="mt-1 text-sm text-text-secondary">
         {{
-          'XP.Xpert.ConnectorCatalogDescription' | translate: { Default: '管理当前工作空间使用的外部服务与授权状态。' }
+          'XP.Xpert.ConnectorCatalogDescription'
+            | translate: { Default: 'Manage external services and authorization status for the current workspace.' }
         }}
       </p>
     </div>
     <button z-button zType="outline" zSize="sm" type="button" (click)="refresh()">
       <z-icon [zType]="refreshIcon"></z-icon>
-      {{ 'XP.ACTIONS.Refresh' | translate: { Default: '刷新' } }}
+      {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
     </button>
   </div>
 
