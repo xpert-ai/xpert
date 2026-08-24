@@ -11,7 +11,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
-import { Repository } from 'typeorm'
+import { Repository, UpdateResult } from 'typeorm'
 import { of } from 'rxjs'
 import { z } from 'zod'
 import { ChatConversationUpsertCommand } from '../chat-conversation'
@@ -36,6 +36,19 @@ type AgentMiddlewareRegistryMock = {
 }
 
 describe('XpertTaskService', () => {
+    it('restores an archived task as paused without scheduling it', async () => {
+        const service = createService(createCommandBusMock())
+        const task = createTaskFixture({ status: ScheduleTaskStatus.ARCHIVED })
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+        const deleteJob = jest.spyOn(service, 'deleteJob').mockImplementation()
+        const update = jest.spyOn(service, 'update').mockResolvedValue(new UpdateResult())
+
+        await service.unarchive(task.id)
+
+        expect(deleteJob).toHaveBeenCalledWith(task.id)
+        expect(update).toHaveBeenCalledWith(task.id, { status: ScheduleTaskStatus.PAUSED })
+    })
+
     it('builds one occurrence key for a normalized scheduled slot', () => {
         const task = createTaskFixture({
             options: {

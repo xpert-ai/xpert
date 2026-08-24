@@ -23,7 +23,14 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { sortBy } from 'lodash-es'
 import { XpertTaskDialogComponent, XpertTaskDialogService } from '@cloud/app/@shared/chat'
 import { ZardBadgeComponent, ZardButtonComponent, ZardEmptyComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { buildTaskHistoryConversationRoute } from './tasks.utils'
+import {
+  buildTaskHistoryConversationRoute,
+  filterTasksByStatus,
+  getTaskExecutionTotal,
+  getTaskLastExecution,
+  getTaskSuccessRate,
+  type TaskStatusFilter
+} from './tasks.utils'
 
 @Component({
   standalone: true,
@@ -98,6 +105,9 @@ export class ChatTasksComponent {
   readonly scheduledTaskCount = computed(() => this.scheduledTasks()?.length ?? 0)
   readonly pausedTaskCount = computed(() => this.pausedTasks()?.length ?? 0)
   readonly archivedTaskCount = computed(() => this.archivedTasks()?.length ?? 0)
+  readonly statusFilter = signal<TaskStatusFilter>('all')
+  readonly visibleTasks = computed(() => filterTasksByStatus(this.tasks() ?? [], this.statusFilter()))
+  readonly visibleTaskCount = computed(() => this.visibleTasks().length)
   readonly successfulExecutionCount = computed(
     () => this.tasks()?.reduce((total, task) => total + (task.successCount ?? 0), 0) ?? 0
   )
@@ -126,6 +136,9 @@ export class ChatTasksComponent {
   readonly taskDetailLoading = computed(() => this.#taskDetail.status() === 'loading')
 
   readonly loading = signal(false)
+  readonly taskExecutionTotal = getTaskExecutionTotal
+  readonly taskSuccessRate = getTaskSuccessRate
+  readonly taskLastExecution = getTaskLastExecution
 
   constructor() {
     effect(() => {
@@ -229,6 +242,23 @@ export class ChatTasksComponent {
       next: () => {
         this.loading.set(false)
         this.refreshTasks()
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  unarchiveTask(task: IXpertTask) {
+    this.loading.set(true)
+    this.taskService.unarchive(task.id).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.#toastr.success('XP.Chat.TaskUnarchived', {
+          Default: 'Task restored to paused.'
+        })
+        this.refreshTasks(task.id)
       },
       error: (err) => {
         this.loading.set(false)

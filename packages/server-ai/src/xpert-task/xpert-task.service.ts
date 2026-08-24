@@ -495,6 +495,12 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         return await this.update(id, { status: ScheduleTaskStatus.ARCHIVED })
     }
 
+    async unarchive(id: string) {
+        const task = await this.findOne(id)
+        this.deleteJob(task.id)
+        return await this.update(id, { status: ScheduleTaskStatus.PAUSED })
+    }
+
     async test(id: string, options: TChatOptions) {
         return await this.executeTask(id, options)
     }
