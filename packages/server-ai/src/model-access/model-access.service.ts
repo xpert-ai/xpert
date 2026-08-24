@@ -341,7 +341,12 @@ export class ModelAccessService {
             const planIncluded =
                 !!target &&
                 !!membershipAccess &&
-                this.membershipService.isModelAllowed(membershipAccess.membership.plan, target.provider, target.model)
+                this.membershipService.isModelAllowed(
+                    membershipAccess.membership.plan,
+                    target.provider,
+                    target.model,
+                    target.copilotId
+                )
             const multiplier = planIncluded
                 ? this.membershipService.resolveModelMultiplierForPlan(
                       membershipAccess.membership.plan,
@@ -616,7 +621,12 @@ export class ModelAccessService {
         const quotaReason = await this.resolveQuotaReason(membershipAccess)
         const planIncluded =
             !!membershipAccess &&
-            this.membershipService.isModelAllowed(membershipAccess.membership.plan, target.provider, target.model)
+            this.membershipService.isModelAllowed(
+                membershipAccess.membership.plan,
+                target.provider,
+                target.model,
+                target.copilotId
+            )
         const multiplier = planIncluded
             ? this.membershipService.resolveModelMultiplierForPlan(
                   membershipAccess.membership.plan,
@@ -1497,6 +1507,7 @@ export class ModelAccessService {
                 tenantId: input.tenantId,
                 organizationId: input.organizationId,
                 copilotOrganizationId: resolution.organizationId,
+                copilotId: resolution.copilotId,
                 userId: resolution.billableUserId,
                 provider: resolution.provider ?? undefined,
                 model: resolution.model ?? undefined
@@ -2274,7 +2285,13 @@ export class ModelAccessService {
             access.organizationId === target.organizationId ||
             (target.organizationId === null && !!access.organizationId && !!access.membership.plan.catalogSourcePlanId)
         return (
-            scopeMatches && this.membershipService.isModelAllowed(access.membership.plan, target.provider, target.model)
+            scopeMatches &&
+            this.membershipService.isModelAllowed(
+                access.membership.plan,
+                target.provider,
+                target.model,
+                target.copilotId
+            )
         )
     }
 

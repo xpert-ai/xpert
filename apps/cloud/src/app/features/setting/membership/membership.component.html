@@ -487,11 +487,11 @@
                             "
                             (zSelectionChange)="setAllowedModelValues($event)"
                           >
-                            @for (option of modelOptions(); track option.value) {
+                            @for (option of allowedModelOptions(); track option.value) {
                               <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
                             }
                           </z-select>
-                          @if (!modelOptions().length) {
+                          @if (!allowedModelOptions().length) {
                             <div class="mt-2 text-xs text-text-tertiary">
                               {{
                                 'XP.Membership.NoModelsAvailable'

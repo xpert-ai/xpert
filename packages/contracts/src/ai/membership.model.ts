@@ -93,6 +93,7 @@ export interface IMembershipModelMultiplier {
 export interface IMembershipAllowedModel {
   provider: string
   model: string
+  copilotId?: string
 }
 
 export interface IMembershipRateLimit {

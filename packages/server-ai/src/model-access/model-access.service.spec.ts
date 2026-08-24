@@ -728,7 +728,7 @@ describe('ModelAccessService model resolution', () => {
             organizationId: null,
             scope: ModelAccessOwnershipScopeEnum.Tenant
         })
-        expect(membershipService.isModelAllowed).toHaveBeenCalledWith(plan, 'openai', 'gpt-4.1')
+        expect(membershipService.isModelAllowed).toHaveBeenCalledWith(plan, 'openai', 'gpt-4.1', 'copilot-1')
     })
 
     it('restores the same personal grant after the plan stops including the model', async () => {
@@ -842,6 +842,7 @@ describe('ModelAccessService model resolution', () => {
                 tenantId: 'tenant-1',
                 organizationId: 'runtime-org',
                 copilotOrganizationId: null,
+                copilotId: 'copilot-1',
                 userId: 'creator-user',
                 provider: 'openai',
                 model: 'gpt-4.1'
@@ -894,6 +895,7 @@ describe('ModelAccessService model resolution', () => {
                 tenantId: 'tenant-1',
                 organizationId: 'runtime-org',
                 copilotOrganizationId: null,
+                copilotId: 'copilot-1',
                 userId: 'creator-user',
                 provider: 'openai',
                 model: 'gpt-4.1'
