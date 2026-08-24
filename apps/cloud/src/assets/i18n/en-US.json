@@ -2255,6 +2255,7 @@
       "AccountAvailableModelsHint": "Models this account can use based on the current scope and membership plan.",
       "NoAccountAvailableModels": "No models are available to this account.",
       "AllowedModelsHint": "Choose which models members of this plan can use.",
+      "HistoricalModelUnavailable": "Removed / unavailable",
       "AllowAllModels": "Allow all models",
       "SelectModels": "Select allowed models",
       "NoModelsAvailable": "No configured Copilot models are available in this scope.",
