@@ -433,10 +433,20 @@ describe('ClawXpertToolPreferencesComponent', () => {
 
     expect(fixture.nativeElement.querySelector('nav')).toBeNull()
     expect(fixture.nativeElement.querySelector('h1')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('h2')).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Workspace Search')
     expect(fixture.nativeElement.textContent).toContain('XP.Skill.UploadSkills')
     expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.InstallOrRefreshSkills')
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.SkillCatalogTitle')
+    expect(fixture.nativeElement.textContent).toContain('XP.ACTIONS.Refresh')
     expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.InstallWorkspaceSkillsTitle')
     expect(fixture.nativeElement.textContent).not.toContain('XP.Common.Tools')
+
+    const refreshButton = fixture.nativeElement.querySelector('[data-skill-catalog-refresh]') as HTMLButtonElement
+    refreshButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(skillPackageService.getAllByWorkspace).toHaveBeenCalledTimes(2)
   })
 })

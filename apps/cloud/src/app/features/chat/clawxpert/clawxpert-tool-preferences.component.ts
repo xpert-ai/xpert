@@ -111,8 +111,14 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
     ...ZardTabsImports
   ],
   template: `
-    <z-card class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border shadow-none">
-      <z-card-content class="flex min-h-0 flex-1 flex-col p-0">
+    <z-card
+      [class]="
+        skillsOnly
+          ? 'flex min-h-0 flex-col overflow-hidden border-0 bg-transparent shadow-none'
+          : 'flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border shadow-none'
+      "
+    >
+      <z-card-content class="flex min-h-0 flex-1 flex-col bg-transparent p-0">
         @if (isBlocked()) {
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <z-icon zType="toggle_on" class="text-3xl text-text-tertiary"></z-icon>
@@ -175,9 +181,22 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
           <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
             @if (activeTab() === 'skills') {
               <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div class="border-b border-divider-regular px-5 py-4">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                <div
+                  [class]="
+                    skillsOnly
+                      ? 'flex flex-wrap items-start justify-between gap-4 border-b border-divider-regular pb-6'
+                      : 'flex flex-wrap items-start justify-between gap-3 border-b border-divider-regular px-5 py-4'
+                  "
+                >
+                  <div [class]="skillsOnly ? 'flex min-w-0 items-start gap-3' : 'min-w-0'">
+                    @if (skillsOnly) {
+                      <div
+                        class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-background-default-subtle"
+                      >
+                        <i class="ri-pencil-ruler-line text-xl text-text-primary" aria-hidden="true"></i>
+                      </div>
+                    }
+                    <div class="min-w-0">
                       @if (skillsOnly) {
                         <h1 class="text-2xl font-semibold text-text-primary">
                           {{ 'XP.KEY_WORDS.Skills' | translate: { Default: '技能' } }}
@@ -209,48 +228,85 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         }
                       </p>
                     </div>
-
-                    @if (skillsOnly) {
-                      <div class="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          z-button
-                          zType="outline"
-                          type="button"
-                          [disabled]="busy() || !skillWorkspaceId()"
-                          (click)="openSkillUploadDialog()"
-                        >
-                          <i class="ri-upload-2-line" aria-hidden="true"></i>
-                          {{ 'XP.Skill.UploadSkills' | translate: { Default: '上传技能' } }}
-                        </button>
-                        <button
-                          z-button
-                          zType="default"
-                          type="button"
-                          [disabled]="busy() || !skillWorkspaceId()"
-                          (click)="openSkillInstallDialog()"
-                        >
-                          <i class="ri-box-3-line" aria-hidden="true"></i>
-                          {{ 'XP.Chat.ClawXpert.InstallOrRefreshSkills' | translate: { Default: '安装/刷新内置技能' } }}
-                        </button>
-                      </div>
-                    } @else {
-                      <span
-                        class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
-                      >
-                        {{
-                          'XP.Chat.ClawXpert.SkillCount'
-                            | translate
-                              : {
-                                  Default: '{count} skills',
-                                  count: skillItems().length
-                                }
-                        }}
-                      </span>
-                    }
                   </div>
+
+                  @if (skillsOnly) {
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        z-button
+                        zType="outline"
+                        zSize="sm"
+                        type="button"
+                        [disabled]="busy() || !skillWorkspaceId()"
+                        (click)="openSkillUploadDialog()"
+                      >
+                        <i class="ri-upload-2-line" aria-hidden="true"></i>
+                        {{ 'XP.Skill.UploadSkills' | translate: { Default: '上传技能' } }}
+                      </button>
+                      <button
+                        z-button
+                        zType="default"
+                        zSize="sm"
+                        type="button"
+                        [disabled]="busy() || !skillWorkspaceId()"
+                        (click)="openSkillInstallDialog()"
+                      >
+                        <i class="ri-box-3-line" aria-hidden="true"></i>
+                        {{ 'XP.Chat.ClawXpert.InstallOrRefreshSkills' | translate: { Default: '安装/刷新内置技能' } }}
+                      </button>
+                    </div>
+                  } @else {
+                    <span
+                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                    >
+                      {{
+                        'XP.Chat.ClawXpert.SkillCount'
+                          | translate
+                            : {
+                                Default: '{count} skills',
+                                count: skillItems().length
+                              }
+                      }}
+                    </span>
+                  }
                 </div>
 
-                <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
+                <div
+                  [class]="
+                    skillsOnly ? 'min-h-0 flex-1 overflow-visible pt-8' : 'min-h-0 flex-1 overflow-auto px-5 py-4'
+                  "
+                >
+                  @if (skillsOnly) {
+                    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                      <div class="space-y-1">
+                        <h2 class="text-base font-medium text-text-primary">
+                          {{ 'XP.Chat.ClawXpert.SkillCatalogTitle' | translate: { Default: '技能目录' } }}
+                        </h2>
+                        <p class="text-sm text-text-secondary">
+                          {{
+                            'XP.Chat.ClawXpert.SkillCatalogDescription'
+                              | translate
+                                : {
+                                    Default: '查看并管理当前工作区已安装的技能，技能状态会从 xpert 平台实时同步。'
+                                  }
+                          }}
+                        </p>
+                      </div>
+                      <button
+                        z-button
+                        zType="outline"
+                        zSize="sm"
+                        type="button"
+                        data-skill-catalog-refresh
+                        [disabled]="skillState().loading || busy() || !skillWorkspaceId()"
+                        (click)="refreshSkills()"
+                      >
+                        <i class="ri-refresh-line" [class.animate-spin]="skillState().loading" aria-hidden="true"></i>
+                        {{ 'XP.ACTIONS.Refresh' | translate: { Default: '刷新' } }}
+                      </button>
+                    </div>
+                  }
+
                   @if (!skillWorkspaceId()) {
                     <div
                       class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center"
@@ -324,10 +380,14 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           </p>
                         </div>
                       } @else {
-                        <div class="grid gap-3 md:grid-cols-2">
+                        <div [class]="skillsOnly ? 'grid gap-4 xl:grid-cols-2' : 'grid gap-3 md:grid-cols-2'">
                           @for (item of skillItems(); track item.id) {
                             <div
-                              class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4"
+                              [class]="
+                                skillsOnly
+                                  ? 'rounded-xl border border-divider-regular bg-components-card-bg p-5'
+                                  : 'rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4'
+                              "
                             >
                               <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1">
@@ -876,7 +936,7 @@ export class ClawXpertToolPreferencesComponent {
       })
   }
 
-  private refreshSkills() {
+  refreshSkills() {
     this.skillRefreshTick.update((value) => value + 1)
   }
 }
