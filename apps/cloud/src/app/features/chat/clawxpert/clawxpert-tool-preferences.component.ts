@@ -199,7 +199,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                     <div class="min-w-0">
                       @if (skillsOnly) {
                         <h1 class="text-2xl font-semibold text-text-primary">
-                          {{ 'XP.KEY_WORDS.Skills' | translate: { Default: '技能' } }}
+                          {{ 'XP.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
                         </h1>
                       } @else {
                         <div class="text-sm font-medium text-text-primary">
@@ -241,7 +241,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         (click)="openSkillUploadDialog()"
                       >
                         <i class="ri-upload-2-line" aria-hidden="true"></i>
-                        {{ 'XP.Skill.UploadSkills' | translate: { Default: '上传技能' } }}
+                        {{ 'XP.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
                       </button>
                       <button
                         z-button
@@ -252,7 +252,10 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         (click)="openSkillInstallDialog()"
                       >
                         <i class="ri-box-3-line" aria-hidden="true"></i>
-                        {{ 'XP.Chat.ClawXpert.InstallOrRefreshSkills' | translate: { Default: '安装/刷新内置技能' } }}
+                        {{
+                          'XP.Chat.ClawXpert.InstallOrRefreshSkills'
+                            | translate: { Default: 'Install/Refresh Built-in Skills' }
+                        }}
                       </button>
                     </div>
                   } @else {
@@ -280,14 +283,15 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
                       <div class="space-y-1">
                         <h2 class="text-base font-medium text-text-primary">
-                          {{ 'XP.Chat.ClawXpert.SkillCatalogTitle' | translate: { Default: '技能目录' } }}
+                          {{ 'XP.Chat.ClawXpert.SkillCatalogTitle' | translate: { Default: 'Skill Catalog' } }}
                         </h2>
                         <p class="text-sm text-text-secondary">
                           {{
                             'XP.Chat.ClawXpert.SkillCatalogDescription'
                               | translate
                                 : {
-                                    Default: '查看并管理当前工作区已安装的技能，技能状态会从 xpert 平台实时同步。'
+                                    Default:
+                                      'View and manage skills installed in the current workspace. Skill status is synchronized with the xpert platform in real time.'
                                   }
                           }}
                         </p>
@@ -302,7 +306,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         (click)="refreshSkills()"
                       >
                         <i class="ri-refresh-line" [class.animate-spin]="skillState().loading" aria-hidden="true"></i>
-                        {{ 'XP.ACTIONS.Refresh' | translate: { Default: '刷新' } }}
+                        {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
                       </button>
                     </div>
                   }
