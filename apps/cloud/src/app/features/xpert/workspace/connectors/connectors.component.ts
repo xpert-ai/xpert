@@ -44,7 +44,7 @@ type ConnectorStatusLabel = {
     ...ZardFormImports,
     ...ZardSelectImports
   ],
-  templateUrl: './connectors.component.html'
+  templateUrl: './workspace-connectors.component.html'
 })
 export class XpertConnectorsComponent {
   readonly #connectorService = inject(XpertConnectorService)
@@ -483,6 +483,25 @@ export class XpertConnectorsComponent {
     })
   }
 }
+
+@Component({
+  selector: 'xpert-clawxpert-connectors',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    TranslateModule,
+    XpI18nPipe,
+    XpSpinComponent,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ...ZardFormImports,
+    ...ZardSelectImports
+  ],
+  templateUrl: './connectors.component.html'
+})
+export class ClawXpertConnectorsComponent extends XpertConnectorsComponent {}
 
 function connectorStatusLabel(connector?: ConnectorInstance | null): ConnectorStatusLabel {
   switch (connector?.status) {

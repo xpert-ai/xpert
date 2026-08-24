@@ -161,8 +161,21 @@ export function isNewClawXpertTaskMenuItem(item: CloudMenuItem) {
 export function buildWorkspaceModuleMenuLink(section: CloudWorkspaceModuleSection, workspaceId?: string | null) {
   const normalizedWorkspaceId = workspaceId?.trim()
   return normalizedWorkspaceId
-    ? `/xpert/w/${encodeURIComponent(normalizedWorkspaceId)}/${section}`
+    ? `/xpert/w/${encodeURIComponent(normalizedWorkspaceId)}/${workspaceModuleRouteSegment(section)}`
     : `/xpert/w?section=${section}`
+}
+
+function workspaceModuleRouteSegment(section: CloudWorkspaceModuleSection) {
+  if (section === 'skills') {
+    return 'clawxpert-skills'
+  }
+  if (section === 'knowledges') {
+    return 'clawxpert-knowledges'
+  }
+  if (section === 'connectors') {
+    return 'clawxpert-connectors'
+  }
+  return section
 }
 
 function ensureWorkMenuGroup(groups: CloudSidebarMenuGroup[]) {
@@ -256,6 +269,20 @@ export function isCloudMenuRouteForcedActive(currentUrl: string, item: CloudMenu
       (prefix) => typeof prefix === 'string' && (currentUrl === prefix || currentUrl.startsWith(`${prefix}/`))
     )
   )
+}
+
+/**
+ * Workspace pages promoted to standalone sidebar modules should not also
+ * activate the parent workspace entry.
+ */
+export function isCloudWorkspaceStandaloneRoute(currentUrl: string) {
+  return /^\/xpert\/w\/[^/]+\/(?:clawxpert-connectors|clawxpert-skills|files|clawxpert-knowledges|settings)(?:\/|$)/.test(
+    currentUrl
+  )
+}
+
+export function isCloudWorkspaceShellMenuItem(item: CloudMenuItem) {
+  return normalizeMenuPath(item.link ?? '') === '/xpert'
 }
 
 function isWorkCloudMenuItem(item: CloudMenuItem) {

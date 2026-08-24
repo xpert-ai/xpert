@@ -1,0 +1,223 @@
+<div class="relative px-12 py-4">
+  <div class="mb-4 flex items-center justify-between gap-3">
+    <div>
+      <h2 class="text-base font-medium text-text-primary">
+        {{ 'XP.Xpert.ConnectorCatalogTitle' | translate: { Default: '连接器目录' } }}
+      </h2>
+      <p class="mt-1 text-sm text-text-secondary">
+        {{
+          'XP.Xpert.ConnectorCatalogDescription' | translate: { Default: '管理当前工作空间使用的外部服务与授权状态。' }
+        }}
+      </p>
+    </div>
+    <button z-button zType="outline" zSize="sm" type="button" (click)="refresh()">
+      <z-icon [zType]="refreshIcon"></z-icon>
+      {{ 'XP.ACTIONS.Refresh' | translate: { Default: '刷新' } }}
+    </button>
+  </div>
+
+  @if (errorMessage(); as error) {
+    <div
+      class="mb-4 flex items-start gap-2 rounded-lg border border-danger-500/30 bg-danger-500/10 px-3 py-2 text-sm text-text-danger"
+    >
+      <z-icon [zType]="errorIcon" class="mt-0.5 size-4 shrink-0"></z-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  @if (loading() && definitions().length === 0) {
+    <div class="grid max-w-7xl grid-cols-1 gap-3 xl:grid-cols-2">
+      @for (card of skeletonCards; track card) {
+        <div class="h-44 animate-pulse rounded-lg border border-divider-regular bg-components-card-bg"></div>
+      }
+    </div>
+  } @else if (definitions().length) {
+    <div class="grid max-w-7xl grid-cols-1 gap-3 xl:grid-cols-2">
+      @for (definition of definitions(); track definition.provider) {
+        @let connector = connectorFor(definition);
+        @let status = statusLabelFor(connector);
+        @let authMethods = authMethodsFor(definition);
+        @let authMethod = selectedAuthMethod(definition);
+        @let credentialForm = credentialFormFor(authMethod);
+
+        <div
+          class="relative flex w-full items-start gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-4"
+        >
+          <div
+            class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-divider-regular bg-background-default-subtle"
+          >
+            @if (iconImageUrl(definition); as iconUrl) {
+              <img class="size-6 rounded-md object-contain" [src]="iconUrl" [alt]="definition.provider" />
+            } @else {
+              <z-icon [zType]="connectorIcon" class="size-5 text-text-secondary"></z-icon>
+            }
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-start justify-between gap-2">
+              <div class="min-w-0">
+                <h3 class="truncate font-medium text-text-primary">{{ definition.label | i18n }}</h3>
+                <p class="mt-1 line-clamp-2 text-sm text-text-secondary">{{ descriptionFor(definition) | i18n }}</p>
+              </div>
+              <z-badge class="shrink-0" [zType]="statusBadgeType(connector)" zShape="pill">
+                {{ status.key | translate: { Default: status.defaultLabel } }}
+              </z-badge>
+            </div>
+
+            @if (connector?.lastError) {
+              <p class="mt-2 text-xs text-text-warning">{{ connector.lastError }}</p>
+            }
+
+            @if (connector?.profile) {
+              <p class="mt-2 text-xs text-text-secondary">
+                {{ 'XP.Xpert.ConnectorConnectedAccount' | translate: { Default: 'Connected account:' } }}
+                <span class="font-medium text-text-primary">{{ profileLabel(connector) }}</span>
+              </p>
+            }
+
+            @if (!canManageWorkspace()) {
+              <p class="mt-3 text-xs text-text-tertiary">
+                {{
+                  'XP.Xpert.ConnectorsReadonly'
+                    | translate: { Default: 'Only workspace managers can connect or disconnect connectors.' }
+                }}
+              </p>
+            }
+
+            @if (canManageWorkspace() && connector?.status !== 'active' && connector?.status !== 'pending') {
+              <form class="mt-3 grid gap-3" [formGroup]="formFor(definition)">
+                @if (authMethods.length > 1) {
+                  <z-form-field>
+                    <z-form-label>
+                      {{ 'XP.Xpert.ConnectorAuthenticationMethod' | translate: { Default: 'Authentication method' } }}
+                    </z-form-label>
+                    <z-select
+                      class="w-full"
+                      formControlName="authMethodId"
+                      (zSelectionChange)="selectAuthMethod(definition, $event)"
+                    >
+                      @for (method of authMethods; track method.id) {
+                        <z-select-item [zValue]="method.id">{{ method.label | i18n }}</z-select-item>
+                      }
+                    </z-select>
+                  </z-form-field>
+                }
+
+                @for (field of credentialFieldsFor(authMethod); track field.name) {
+                  <z-form-field>
+                    <z-form-label>{{ field.label | i18n }}</z-form-label>
+                    <input
+                      z-input
+                      [attr.data-credential-field]="field.name"
+                      [type]="field.type === 'password' || field.secret ? 'password' : 'text'"
+                      [formControlName]="field.name"
+                      [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
+                      [attr.autocomplete]="field.type === 'password' || field.secret ? 'new-password' : 'off'"
+                    />
+                    @if (field.description) {
+                      <z-form-message>{{ field.description | i18n }}</z-form-message>
+                    }
+                    @if (
+                      fieldControl(definition, field)?.touched && fieldControl(definition, field)?.hasError('required')
+                    ) {
+                      <z-form-message>
+                        {{ 'XP.Xpert.ConnectorCredentialRequired' | translate: { Default: 'This field is required.' } }}
+                      </z-form-message>
+                    }
+                  </z-form-field>
+                }
+
+                @if (credentialForm?.help; as help) {
+                  <a
+                    class="w-fit text-xs text-text-secondary underline underline-offset-2"
+                    [href]="help.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ help.label | i18n }}
+                  </a>
+                }
+              </form>
+            }
+
+            @if (connector?.status === 'pending' && canManageWorkspace()) {
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                @if (pendingAuthorizationUrl(connector)) {
+                  <button
+                    z-button
+                    type="button"
+                    zType="secondary"
+                    zSize="sm"
+                    (click)="openPendingAuthorizationUrl(connector)"
+                  >
+                    <z-icon zType="arrow-up-right"></z-icon>
+                    {{ 'XP.Xpert.ConnectorOpenAuthorization' | translate: { Default: 'Continue authorization' } }}
+                  </button>
+                }
+                @if (isPolling(connector)) {
+                  <span class="inline-flex items-center gap-1 text-xs text-text-tertiary">
+                    <z-icon [zType]="loadingIcon" class="animate-spin"></z-icon>
+                    {{
+                      'XP.Xpert.ConnectorAuthorizationPending'
+                        | translate: { Default: 'Waiting for authorization to complete.' }
+                    }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          @if (connector?.status === 'active') {
+            <button
+              z-button
+              type="button"
+              zType="outline"
+              zSize="sm"
+              class="shrink-0"
+              data-connector-action="disconnect"
+              [zDisabled]="!canManageWorkspace() || loading() || isDisconnecting(connector)"
+              [attr.aria-label]="'XP.ACTIONS.Disconnect' | translate: { Default: 'Disconnect' }"
+              (click)="disconnect(connector)"
+            >
+              @if (isDisconnecting(connector)) {
+                <z-icon [zType]="loadingIcon" class="animate-spin"></z-icon>
+              } @else {
+                <z-icon [zType]="disconnectIcon"></z-icon>
+              }
+              {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect' } }}
+            </button>
+          } @else {
+            <button
+              z-button
+              type="button"
+              zType="outline"
+              zSize="sm"
+              class="shrink-0"
+              data-connector-action="connect"
+              [zDisabled]="!canManageWorkspace() || loading() || isConnecting(definition)"
+              [attr.aria-label]="'XP.Xpert.ConnectConnector' | translate: { Default: 'Connect connector' }"
+              (click)="connect(definition)"
+            >
+              @if (isConnecting(definition)) {
+                <z-icon [zType]="loadingIcon" class="animate-spin"></z-icon>
+              } @else {
+                <z-icon zType="plus"></z-icon>
+              }
+              {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: 'Connect' } }}
+            </button>
+          }
+
+          @if (loading()) {
+            <xp-spin class="absolute inset-0"></xp-spin>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div
+      class="max-w-5xl rounded-lg border border-dashed border-divider-regular p-10 text-center text-sm text-text-secondary"
+    >
+      {{ 'XP.Xpert.NoConnectorsAvailable' | translate: { Default: 'No connectors are available.' } }}
+    </div>
+  }
+</div>
