@@ -3505,6 +3505,7 @@
       "AccountAvailableModelsHint": "根據目前範圍與會員套餐，列出此帳號可以使用的模型。",
       "NoAccountAvailableModels": "目前帳號沒有可用模型。",
       "AllowedModelsHint": "選擇該套餐成員可以使用的模型。",
+      "HistoricalModelUnavailable": "已下架/不可用",
       "AllowAllModels": "允許使用全部模型",
       "SelectModels": "選擇可用模型",
       "NoModelsAvailable": "目前範圍尚未配置可選的 Copilot 模型。",

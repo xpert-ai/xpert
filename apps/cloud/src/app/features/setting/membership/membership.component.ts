@@ -43,6 +43,7 @@ type MembershipModelOption = {
   value: string
   provider: string
   model: string
+  available: boolean
 }
 
 type MembershipAdminTab = 'plans' | 'users'
@@ -794,15 +795,21 @@ export class MembershipAdminComponent implements OnInit {
   }
 
   modelTargetLabel(option: MembershipModelOption) {
+    let label: string
     if (!option.provider) {
-      return this.#translate.instant('XP.Membership.AllModels', { Default: 'All models' })
-    }
-    if (option.model === '*') {
-      return `${option.provider} · ${this.#translate.instant('XP.Membership.AllProviderModels', {
+      label = this.#translate.instant('XP.Membership.AllModels', { Default: 'All models' })
+    } else if (option.model === '*') {
+      label = `${option.provider} · ${this.#translate.instant('XP.Membership.AllProviderModels', {
         Default: 'All provider models'
       })}`
+    } else {
+      label = `${option.provider} · ${option.model}`
     }
-    return `${option.provider} · ${option.model}`
+    return option.available
+      ? label
+      : `${label} · ${this.#translate.instant('XP.Membership.HistoricalModelUnavailable', {
+          Default: 'Removed / unavailable'
+        })}`
   }
 
   private buildPayload(): Partial<IMembershipPlan> | null {
@@ -883,11 +890,11 @@ export class MembershipAdminComponent implements OnInit {
       if (!provider) {
         continue
       }
-      addModelOption(options, provider, '*')
+      addModelOption(options, provider, '*', true)
       for (const model of copilot.providerWithModels.models ?? []) {
         const modelName = model.model?.trim()
         if (modelName) {
-          addModelOption(options, provider, modelName)
+          addModelOption(options, provider, modelName, true)
         }
       }
     }
@@ -901,7 +908,7 @@ export class MembershipAdminComponent implements OnInit {
       const provider = rule.provider?.trim() ?? ''
       const model = rule.model?.trim() || '*'
       if (provider || model !== '*') {
-        addModelOption(options, provider, model)
+        addModelOption(options, provider, model, false)
       }
     }
     this.modelOptions.set(sortModelOptions(Array.from(options.values())))
@@ -934,10 +941,15 @@ function selectionValues(value: string | number | Array<string | number>) {
   return (Array.isArray(value) ? value : [value]).map(String)
 }
 
-function addModelOption(options: Map<string, MembershipModelOption>, provider: string, model: string) {
+function addModelOption(
+  options: Map<string, MembershipModelOption>,
+  provider: string,
+  model: string,
+  available: boolean
+) {
   const value = modelOptionValue(provider, model)
   if (!options.has(value)) {
-    options.set(value, { value, provider, model })
+    options.set(value, { value, provider, model, available })
   }
 }
 

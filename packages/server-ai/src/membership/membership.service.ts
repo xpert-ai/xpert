@@ -241,6 +241,23 @@ export class MembershipService {
         return this.isMembershipPlanEnabledForScope({ tenantId: scope.tenantId, organizationId: null }, manager)
     }
 
+    /** Includes catalog-derived plans because they also configure effective organization access. */
+    async hasActiveMembershipPlan(input?: ResolveScopeInput, manager?: EntityManager): Promise<boolean> {
+        const scope = this.resolveScope(input)
+        const repository = manager?.getRepository(MembershipPlan) ?? this.planRepository
+        if (!repository?.count) {
+            return false
+        }
+        return (
+            (await repository.count({
+                where: {
+                    ...this.scopeWhere(scope.tenantId, scope.organizationId),
+                    status: MembershipPlanStatusEnum.Active
+                }
+            })) > 0
+        )
+    }
+
     async findPlans(): Promise<MembershipPlan[]> {
         const scope = this.requireCurrentScope()
         await this.assertMembershipPlanFeatureEnabled(scope)

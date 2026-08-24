@@ -1707,6 +1707,30 @@ describe('MembershipService', () => {
         expect(requestedScopes).toEqual(['org-1', null])
     })
 
+    it('treats any active organization plan as configured, including catalog-derived plans', async () => {
+        const planRepository = {
+            count: jest.fn().mockResolvedValue(1)
+        }
+        const service = createMembershipService(
+            {} as never,
+            planRepository as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+
+        await expect(service.hasActiveMembershipPlan({ tenantId: 'tenant-1', organizationId: 'org-1' })).resolves.toBe(
+            true
+        )
+        expect(planRepository.count).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                status: MembershipPlanStatusEnum.Active
+            }
+        })
+    })
+
     it('rejects membership admin reads when membership plan feature is disabled', async () => {
         const planRepository = {
             find: jest.fn()

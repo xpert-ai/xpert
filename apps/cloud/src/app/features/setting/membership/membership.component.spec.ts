@@ -5,6 +5,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  AiModelTypeEnum,
   IMembershipPlan,
   MembershipBulkActionEnum,
   MembershipPeriodEnum,
@@ -144,6 +145,40 @@ describe('MembershipAdminComponent', () => {
 
     expect(component.plans()).toEqual([targetPlan])
     expect(component.selectedPlanId()).toBe(targetPlan.id)
+  })
+
+  it('marks stored models that are no longer in the current provider catalog', () => {
+    const plan = {
+      ...targetPlan,
+      allowedModels: [
+        { provider: 'moonshot', model: 'kimi-k3' },
+        { provider: 'moonshot', model: 'kimi-k2-thinking' }
+      ]
+    }
+    membershipService.getModelOptions.mockReturnValue(
+      of([
+        {
+          id: 'copilot-1',
+          providerWithModels: {
+            provider: 'moonshot',
+            models: [{ model: 'kimi-k3', model_type: AiModelTypeEnum.LLM }]
+          }
+        }
+      ])
+    )
+    membershipService.getPlans.mockReturnValue(of([plan]))
+
+    component.load()
+    component.edit(plan)
+
+    expect(component.modelOptions()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: 'moonshot', model: 'kimi-k3', available: true }),
+        expect.objectContaining({ provider: 'moonshot', model: 'kimi-k2-thinking', available: false })
+      ])
+    )
+    const unavailable = component.modelOptions().find((option) => option.model === 'kimi-k2-thinking')
+    expect(unavailable && component.modelTargetLabel(unavailable)).toContain('XP.Membership.HistoricalModelUnavailable')
   })
 
   it('archives a plan only after confirmation', async () => {
