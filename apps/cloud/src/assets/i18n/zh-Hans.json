@@ -5355,6 +5355,93 @@
       "NoInstruction": "暂无指令",
       "SelectTaskTitle": "选择一个任务",
       "UnknownStatus": "未知",
+      "ExecutionCompleted": "执行完成",
+      "LocalTimeZone": "本地时区",
+      "TaskUnarchived": "任务已恢复为暂停状态。",
+      "Automation": {
+        "ScheduledTasks": "定时任务",
+        "RunHistory": "运行记录",
+        "ArchivedTasks": "归档任务",
+        "PageViews": "定时任务视图",
+        "SearchPlaceholder": "搜索自动化或运行记录",
+        "BatchManagement": "批量管理",
+        "ExitManagement": "退出管理",
+        "SelectAll": "全选",
+        "ClearSelection": "取消全选",
+        "SelectedCount": "已选择{{count}}项",
+        "SelectedTaskCount": "已选择 {{count}} 个任务",
+        "BatchDeleteTitle": "删除定时任务",
+        "SoftDeleteInformation": "所选任务将先停止调度并从任务列表中移除，相关数据仍会保留。",
+        "TasksDeleted": "所选任务已删除。",
+        "DeleteTaskTitle": "删除定时任务",
+        "DeleteTaskInformation": "该任务将先停止调度并从任务列表中移除，相关数据仍会保留。",
+        "TaskDeleted": "任务已删除。",
+        "AddAutomation": "添加自动化",
+        "AddFromTemplate": "从模板添加",
+        "EmptyTitle": "开启你的第一个自动化任务吧",
+        "TemplateHeading": "自动化任务模板",
+        "TemplatePickerDescription": "选择一个起点，然后在现有任务编辑器中继续调整。",
+        "TaskCount": "{{count}} 个任务",
+        "NoMatchingTasks": "没有匹配的任务",
+        "TryAnotherFilter": "请尝试其他搜索词或任务状态。",
+        "RunHistoryDescription": "查看所有定时任务的执行结果。",
+        "NoRunHistory": "暂无运行记录",
+        "NoRunHistoryDescription": "定时任务执行后，结果会显示在这里。",
+        "ArchivedDescription": "已归档任务处于暂停状态，可以随时恢复。",
+        "NoArchivedDescription": "归档后的任务会保存在这里。",
+        "TotalRuns": "运行总数",
+        "SuccessRate": "成功率",
+        "LastRun": "最后运行",
+        "NotRunYet": "尚未运行",
+        "RunNow": "立即运行"
+      },
+      "AutomationTemplates": {
+        "DailyAiNews": {
+          "Title": "每日 AI 新闻推送",
+          "Description": "每天早晨汇总最重要的 AI 领域动态。",
+          "Prompt": "汇总过去 24 小时最重要的 AI 新闻，说明每条新闻为什么值得关注，并在可以获得来源时附上链接。"
+        },
+        "DailyEnglishWords": {
+          "Title": "每日 5 个英语单词",
+          "Description": "每天学习 5 个高频实用英语单词和例句。",
+          "Prompt": "每天推荐 5 个实用英语单词。每个单词提供音标、简明释义、一个例句和一个便于记忆的小提示。"
+        },
+        "BedtimeStory": {
+          "Title": "每日儿童睡前故事",
+          "Description": "生成一个适合睡前阅读 3 到 5 分钟的温和故事。",
+          "Prompt": "创作一个适合儿童的温暖睡前故事，阅读时长控制在 3 到 5 分钟，内容轻松、有想象力并适合安静入睡。"
+        },
+        "WeeklyWorkReport": {
+          "Title": "每周工作周报",
+          "Description": "把本周进展、风险和下周计划整理成周报。",
+          "Prompt": "整理本周工作周报，按已完成工作、可衡量成果、待解决风险、需要决策的事项和下周优先级进行组织。"
+        },
+        "ClassicMovie": {
+          "Title": "经典电影推荐",
+          "Description": "推荐一部高分经典电影并提供无剧透介绍。",
+          "Prompt": "推荐一部值得观看的经典电影，提供无剧透剧情简介、推荐理由、影片风格以及适合的观众类型。"
+        },
+        "TodayInHistory": {
+          "Title": "历史上的今天",
+          "Description": "了解历史上今天发生的一件重要事件。",
+          "Prompt": "挑选一件发生在历史上今天的重要事件，简洁说明事件背景、经过以及它产生的长期影响。"
+        },
+        "DailyWhy": {
+          "Title": "每日一个为什么",
+          "Description": "每天探索一个有趣问题并获得清晰解释。",
+          "Prompt": "从科学、技术、社会或日常生活中提出一个有趣的为什么，并通过一个具体例子给出清晰易懂的回答。"
+        },
+        "MeetingPreparation": {
+          "Title": "会议前准备",
+          "Description": "提前整理会议目标、讨论重点和待决策事项。",
+          "Prompt": "生成一份简洁的会议准备材料，包括会议目标、背景、议程、关键问题、需要作出的决策以及会前材料检查清单。"
+        },
+        "InterviewPreparation": {
+          "Title": "面试准备提醒",
+          "Description": "每天复习一个面试主题并完成针对性练习。",
+          "Prompt": "安排一次聚焦的面试准备练习，包括一个常见问题、优秀回答结构、可能的追问和一个简短练习。"
+        }
+      },
       "UntitledConversation": "未命名会话",
       "TaskDeleted": "任务已被删除",
       "TaskSuccessCount": "任务成功执行次数",
@@ -6740,6 +6827,7 @@
       "OutputVariablesInfo": "按照预定义格式组织数据，便于程序自动解析和使用。",
       "TaskCreatedSuccessfully": "任务创建成功",
       "Archive": "归档",
+      "Unarchive": "取消归档",
       "Time": "时间",
       "NameOfTask": "任务名称",
       "DayinMonth": "每月运行的日期",

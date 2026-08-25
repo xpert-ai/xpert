@@ -1,6 +1,10 @@
 import { ScheduleTaskStatus, type IChatConversation, type IXpertTask } from '../../../@core'
 import {
+  buildTaskExecutionRecords,
   buildTaskHistoryConversationRoute,
+  filterArchivedTasks,
+  filterCurrentTasks,
+  filterTaskExecutionRecords,
   filterTasksByStatus,
   getTaskExecutionTotal,
   getTaskLastExecution,
@@ -29,6 +33,47 @@ describe('scheduled task presentation helpers', () => {
     const latest = { id: 'latest', createdAt: new Date('2026-08-21T10:00:00.000Z') } as IChatConversation
 
     expect(getTaskLastExecution({ conversations: [older, latest] } as IXpertTask)).toBe(latest)
+  })
+
+  it('keeps archived tasks out of the current task list', () => {
+    const pausedTask = { id: 'paused', name: 'Weekly report', status: ScheduleTaskStatus.PAUSED } as IXpertTask
+
+    expect(filterCurrentTasks([scheduledTask, pausedTask, archivedTask], 'all')).toEqual([scheduledTask, pausedTask])
+    expect(filterCurrentTasks([scheduledTask, pausedTask, archivedTask], ScheduleTaskStatus.PAUSED)).toEqual([
+      pausedTask
+    ])
+    expect(filterArchivedTasks([scheduledTask, archivedTask])).toEqual([archivedTask])
+  })
+
+  it('searches current tasks using task and expert metadata', () => {
+    const task = {
+      id: 'task-1',
+      name: 'Weekly report',
+      status: ScheduleTaskStatus.SCHEDULED,
+      xpert: { title: 'Claw Xpert' }
+    } as IXpertTask
+
+    expect(filterCurrentTasks([task], 'all', 'claw')).toEqual([task])
+    expect(filterCurrentTasks([task], 'all', 'missing')).toEqual([])
+  })
+
+  it('flattens and sorts run history across tasks', () => {
+    const earlier = { id: 'run-1', createdAt: new Date('2026-08-20T10:00:00.000Z') } as IChatConversation
+    const later = {
+      id: 'run-2',
+      title: 'Daily briefing',
+      createdAt: new Date('2026-08-21T10:00:00.000Z')
+    } as IChatConversation
+    const task = {
+      id: 'task-1',
+      name: 'AI news',
+      conversations: [earlier, later]
+    } as IXpertTask
+
+    const records = buildTaskExecutionRecords([task])
+
+    expect(records.map(({ conversation }) => conversation.id)).toEqual(['run-2', 'run-1'])
+    expect(filterTaskExecutionRecords(records, 'briefing')).toEqual([records[0]])
   })
 })
 
