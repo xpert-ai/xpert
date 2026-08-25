@@ -31,211 +31,240 @@
   </header>
 
   <div class="knowledge-content">
-    <section class="knowledge-selector-row">
-      <label for="workspace-knowledgebase-select">
-        {{ 'XP.WorkspaceKnowledge.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}
-      </label>
-      <div class="knowledge-select-wrap">
-        <select
-          id="workspace-knowledgebase-select"
-          [ngModel]="activeKnowledgebaseId()"
-          [disabled]="loadingKnowledgebases() || !knowledgebases().length"
-          (ngModelChange)="selectKnowledgebase($event)"
-        >
-          @if (!knowledgebases().length) {
-            <option [ngValue]="null">
-              {{ 'XP.WorkspaceKnowledge.NoKnowledgebases' | translate: { Default: 'No knowledgebases' } }}
-            </option>
-          }
-          @for (knowledgebase of knowledgebases(); track knowledgebase.id) {
-            <option [value]="knowledgebase.id">{{ knowledgebase.name }}</option>
-          }
-        </select>
-        <i class="ri-arrow-down-s-line"></i>
-      </div>
-      <span class="document-count">
-        {{ documents().length }}
-        {{ 'XP.WorkspaceKnowledge.DocumentsUnit' | translate: { Default: 'documents' } }}
-      </span>
-    </section>
-
-    <button
-      type="button"
-      class="refresh-button"
-      [disabled]="loadingKnowledgebases() || loadingDocuments()"
-      (click)="refresh()"
-    >
-      <i class="ri-refresh-line" [class.animate-spin]="loadingKnowledgebases() || loadingDocuments()"></i>
-      <span>{{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}</span>
-    </button>
-
-    @if (loadError()) {
-      <div class="load-error" role="alert">
-        <i class="ri-error-warning-line"></i>
-        {{ 'XP.WorkspaceKnowledge.LoadFailed' | translate: { Default: 'Unable to load knowledgebase data.' } }}
-      </div>
-    }
-
-    @if (activeKnowledgebase(); as knowledgebase) {
-      <section class="knowledge-summary">
-        <div class="knowledge-avatar"><i class="ri-folder-open-line"></i></div>
-        <div class="min-w-0 flex-1">
-          <h1>{{ knowledgebase.name }}</h1>
-          <p>
-            {{
-              knowledgebase.description ||
-                ('XP.WorkspaceKnowledge.AllDocuments' | translate: { Default: 'All documents' })
-            }}
-          </p>
+    <div class="knowledge-content-inner">
+      <section class="knowledge-selector-panel">
+        <div class="knowledge-selector-row">
+          <div class="knowledge-selector-copy">
+            <span class="knowledge-eyebrow">工作区资源</span>
+            <label for="workspace-knowledgebase-select">
+              {{ 'XP.WorkspaceKnowledge.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}
+            </label>
+          </div>
+          <div class="knowledge-select-wrap">
+            <select
+              id="workspace-knowledgebase-select"
+              [ngModel]="activeKnowledgebaseId()"
+              [disabled]="loadingKnowledgebases() || !knowledgebases().length"
+              (ngModelChange)="selectKnowledgebase($event)"
+            >
+              @if (!knowledgebases().length) {
+                <option [ngValue]="null">
+                  {{ 'XP.WorkspaceKnowledge.NoKnowledgebases' | translate: { Default: 'No knowledgebases' } }}
+                </option>
+              }
+              @for (knowledgebase of knowledgebases(); track knowledgebase.id) {
+                <option [value]="knowledgebase.id">{{ knowledgebase.name }}</option>
+              }
+            </select>
+            <i class="ri-arrow-down-s-line"></i>
+          </div>
+          <span class="document-count">
+            <strong>{{ documents().length }}</strong>
+            {{ 'XP.WorkspaceKnowledge.DocumentsUnit' | translate: { Default: 'documents' } }}
+          </span>
         </div>
         <button
           type="button"
-          class="icon-button"
-          [attr.aria-label]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
-          [title]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
-          (click)="openKnowledgebaseSettings()"
+          class="refresh-button"
+          [disabled]="loadingKnowledgebases() || loadingDocuments()"
+          (click)="refresh()"
         >
-          <i class="ri-settings-3-line"></i>
+          <i class="ri-refresh-line" [class.animate-spin]="loadingKnowledgebases() || loadingDocuments()"></i>
+          <span>{{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}</span>
         </button>
       </section>
 
-      <section class="documents-section">
-        <div class="documents-heading">
-          <h2>{{ 'XP.WorkspaceKnowledge.Content' | translate: { Default: 'Content' } }}({{ documents().length }})</h2>
-          <div class="documents-actions">
-            <div class="document-search">
-              <i class="ri-search-line"></i>
-              <input
-                type="search"
-                [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-                [ngModel]="documentSearch()"
-                (ngModelChange)="documentSearch.set($event)"
-              />
-            </div>
-            <button
-              type="button"
-              class="icon-button"
-              [class.active]="documentSort() === 'name'"
-              [attr.aria-label]="'XP.WorkspaceKnowledge.Sort' | translate: { Default: 'Sort' }"
-              [title]="'XP.WorkspaceKnowledge.Sort' | translate: { Default: 'Sort' }"
-              (click)="toggleDocumentSort()"
-            >
-              <i class="ri-sort-desc"></i>
-            </button>
-            <button
-              type="button"
-              class="icon-button"
-              [disabled]="!canWriteWorkspace()"
-              [attr.aria-label]="'XP.WorkspaceKnowledge.CreateDocument' | translate: { Default: 'Add content' }"
-              [title]="'XP.WorkspaceKnowledge.CreateDocument' | translate: { Default: 'Add content' }"
-              (click)="createDocument()"
-            >
-              <i class="ri-folder-add-line"></i>
-            </button>
-            <button
-              type="button"
-              class="icon-button"
-              [disabled]="!canWriteWorkspace()"
-              [attr.aria-label]="'XP.WorkspaceKnowledge.UploadDocument' | translate: { Default: 'Upload document' }"
-              [title]="'XP.WorkspaceKnowledge.UploadDocument' | translate: { Default: 'Upload document' }"
-              (click)="createDocument()"
-            >
-              <i class="ri-file-add-line"></i>
-            </button>
-          </div>
+      @if (loadError()) {
+        <div class="load-error" role="alert">
+          <i class="ri-error-warning-line"></i>
+          {{ 'XP.WorkspaceKnowledge.LoadFailed' | translate: { Default: 'Unable to load knowledgebase data.' } }}
         </div>
+      }
 
-        <div class="documents-list" [class.loading]="loadingDocuments()">
-          @if (loadingDocuments()) {
-            <div class="list-state">
-              <i class="ri-loader-4-line animate-spin"></i>
-              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
-            </div>
-          } @else {
-            @for (document of visibleDocuments(); track document.id) {
-              <button
-                type="button"
-                class="document-row"
-                [class.selected]="selectedDocumentId() === document.id"
-                (click)="selectDocument(document)"
-                (dblclick)="openDocument(document)"
-              >
-                <span class="document-icon" [ngClass]="documentIconClass(document)">
-                  <i [class]="documentIcon(document)"></i>
-                </span>
-                <span class="document-main">
-                  <span class="document-name">{{ document.name }}</span>
-                  <span class="document-meta">
-                    {{ documentTypeLabel(document) }}
-                    <span aria-hidden="true">|</span>
-                    {{ document.updatedAt || document.createdAt | date: 'HH:mm' }}
-                  </span>
-                </span>
-                <i class="ri-arrow-right-s-line row-arrow"></i>
-              </button>
-            } @empty {
-              <div class="list-state">
-                <i class="ri-file-list-3-line"></i>
-                {{ 'XP.WorkspaceKnowledge.NoDocuments' | translate: { Default: 'No documents yet' } }}
+      @if (activeKnowledgebase(); as knowledgebase) {
+        <section class="knowledge-summary">
+          <div class="knowledge-avatar"><i class="ri-folder-open-line"></i></div>
+          <div class="min-w-0 flex-1">
+            <div class="knowledge-summary-kicker">当前知识库</div>
+            <h1>{{ knowledgebase.name }}</h1>
+            <p>
+              {{
+                knowledgebase.description ||
+                  ('XP.WorkspaceKnowledge.AllDocuments' | translate: { Default: 'All documents' })
+              }}
+            </p>
+          </div>
+          <div class="knowledge-summary-meta">
+            <span>{{ documents().length }}</span>
+            <small>{{ 'XP.WorkspaceKnowledge.DocumentsUnit' | translate: { Default: 'documents' } }}</small>
+          </div>
+          <button
+            type="button"
+            class="icon-button"
+            [attr.aria-label]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
+            [title]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
+            (click)="openKnowledgebaseSettings()"
+          >
+            <i class="ri-settings-3-line"></i>
+          </button>
+        </section>
+
+        <div class="knowledge-workspace-grid">
+          <section class="documents-section">
+            <div class="documents-heading">
+              <div>
+                <h2>{{ 'XP.WorkspaceKnowledge.Content' | translate: { Default: 'Content' } }}</h2>
+                <span
+                  >{{ documents().length }}
+                  {{ 'XP.WorkspaceKnowledge.DocumentsUnit' | translate: { Default: 'documents' } }}</span
+                >
               </div>
-            }
-          }
-        </div>
-      </section>
-
-      <section class="preview-section">
-        @if (selectedDocument(); as document) {
-          <div class="preview-header">
-            <div class="min-w-0">
-              <div class="truncate font-medium text-text-primary">{{ document.name }}</div>
-              <div class="text-xs text-text-tertiary">{{ documentTypeLabel(document) }}</div>
+              <div class="documents-actions">
+                <div class="document-search">
+                  <i class="ri-search-line"></i>
+                  <input
+                    type="search"
+                    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                    [ngModel]="documentSearch()"
+                    (ngModelChange)="documentSearch.set($event)"
+                  />
+                </div>
+                <button
+                  type="button"
+                  class="icon-button"
+                  [class.active]="documentSort() === 'name'"
+                  [attr.aria-label]="'XP.WorkspaceKnowledge.Sort' | translate: { Default: 'Sort' }"
+                  [title]="'XP.WorkspaceKnowledge.Sort' | translate: { Default: 'Sort' }"
+                  (click)="toggleDocumentSort()"
+                >
+                  <i class="ri-sort-desc"></i>
+                </button>
+                <button
+                  type="button"
+                  class="icon-button"
+                  [disabled]="!canWriteWorkspace()"
+                  [attr.aria-label]="'XP.WorkspaceKnowledge.CreateDocument' | translate: { Default: 'Add content' }"
+                  [title]="'XP.WorkspaceKnowledge.CreateDocument' | translate: { Default: 'Add content' }"
+                  (click)="createDocument()"
+                >
+                  <i class="ri-folder-add-line"></i>
+                </button>
+                <button
+                  type="button"
+                  class="icon-button"
+                  [disabled]="!canWriteWorkspace()"
+                  [attr.aria-label]="'XP.WorkspaceKnowledge.UploadDocument' | translate: { Default: 'Upload document' }"
+                  [title]="'XP.WorkspaceKnowledge.UploadDocument' | translate: { Default: 'Upload document' }"
+                  (click)="createDocument()"
+                >
+                  <i class="ri-file-add-line"></i>
+                </button>
+              </div>
             </div>
-            <button type="button" class="text-button" (click)="openDocument(document)">
-              {{ 'XP.WorkspaceKnowledge.OpenDetail' | translate: { Default: 'Open detail' } }}
-              <i class="ri-external-link-line"></i>
-            </button>
-          </div>
-          <div class="preview-body">
-            @if (loadingPreview()) {
-              <div class="preview-placeholder"><i class="ri-loader-4-line animate-spin"></i></div>
-            } @else if (previewText()) {
-              <pre>{{ previewText() }}</pre>
-            } @else if (isFolder(document)) {
-              <div class="preview-placeholder">
-                {{
-                  'XP.WorkspaceKnowledge.FolderPreview'
-                    | translate: { Default: 'Open the folder to view its contents.' }
-                }}
+
+            <div class="documents-list" [class.loading]="loadingDocuments()">
+              @if (loadingDocuments()) {
+                <div class="list-state">
+                  <i class="ri-loader-4-line animate-spin"></i>
+                  {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
+                </div>
+              } @else {
+                @for (document of visibleDocuments(); track document.id) {
+                  <button
+                    type="button"
+                    class="document-row"
+                    [class.selected]="selectedDocumentId() === document.id"
+                    (click)="selectDocument(document)"
+                    (dblclick)="openDocument(document)"
+                  >
+                    <span class="document-icon" [ngClass]="documentIconClass(document)">
+                      <i [class]="documentIcon(document)"></i>
+                    </span>
+                    <span class="document-main">
+                      <span class="document-name">{{ document.name }}</span>
+                      <span class="document-meta">
+                        {{ documentTypeLabel(document) }}
+                        <span aria-hidden="true">|</span>
+                        {{ document.updatedAt || document.createdAt | date: 'HH:mm' }}
+                      </span>
+                    </span>
+                    <i class="ri-arrow-right-s-line row-arrow"></i>
+                  </button>
+                } @empty {
+                  <div class="list-state">
+                    <i class="ri-file-list-3-line"></i>
+                    <div>
+                      <strong>{{
+                        'XP.WorkspaceKnowledge.NoDocuments' | translate: { Default: 'No documents yet' }
+                      }}</strong>
+                      <span>上传文档后，它们会显示在这里。</span>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </section>
+
+          <section class="preview-section">
+            @if (selectedDocument(); as document) {
+              <div class="preview-header">
+                <div class="min-w-0">
+                  <div class="preview-eyebrow">文档预览</div>
+                  <div class="truncate font-medium text-text-primary">{{ document.name }}</div>
+                  <div class="text-xs text-text-tertiary">{{ documentTypeLabel(document) }}</div>
+                </div>
+                <button type="button" class="text-button" (click)="openDocument(document)">
+                  {{ 'XP.WorkspaceKnowledge.OpenDetail' | translate: { Default: 'Open detail' } }}
+                  <i class="ri-external-link-line"></i>
+                </button>
+              </div>
+              <div class="preview-body">
+                @if (loadingPreview()) {
+                  <div class="preview-placeholder"><i class="ri-loader-4-line animate-spin"></i></div>
+                } @else if (previewText()) {
+                  <pre>{{ previewText() }}</pre>
+                } @else if (isFolder(document)) {
+                  <div class="preview-placeholder">
+                    {{
+                      'XP.WorkspaceKnowledge.FolderPreview'
+                        | translate: { Default: 'Open the folder to view its contents.' }
+                    }}
+                  </div>
+                } @else {
+                  <div class="preview-placeholder">
+                    {{
+                      'XP.WorkspaceKnowledge.PreviewUnavailable' | translate: { Default: 'No preview is available.' }
+                    }}
+                  </div>
+                }
               </div>
             } @else {
               <div class="preview-placeholder">
-                {{ 'XP.WorkspaceKnowledge.PreviewUnavailable' | translate: { Default: 'No preview is available.' } }}
+                <i class="ri-file-search-line"></i>
+                <strong>{{ 'XP.WorkspaceKnowledge.Preview' | translate: { Default: 'Preview' } }}</strong>
+                <span>选择一个文档查看内容预览。</span>
               </div>
             }
-          </div>
-        } @else {
-          <div class="preview-placeholder">
-            {{ 'XP.WorkspaceKnowledge.Preview' | translate: { Default: 'Preview' } }}
-          </div>
-        }
-      </section>
-    } @else if (!loadingKnowledgebases()) {
-      <section class="empty-knowledge">
-        <i class="ri-book-2-line"></i>
-        <h1>{{ 'XP.WorkspaceKnowledge.NoKnowledgebases' | translate: { Default: 'No knowledgebases' } }}</h1>
-        <p>
-          {{
-            'XP.WorkspaceKnowledge.EmptyDescription'
-              | translate: { Default: 'Knowledgebases created by Claw Xpert or this workspace will appear here.' }
-          }}
-        </p>
-        @if (canWriteWorkspace()) {
-          <button type="button" class="btn btn-primary" (click)="newKnowledgebase()">
-            <i class="ri-add-line"></i>
-            {{ 'XP.WorkspaceKnowledge.NewKnowledgebase' | translate: { Default: 'New knowledgebase' } }}
-          </button>
-        }
-      </section>
-    }
+          </section>
+        </div>
+      } @else if (!loadingKnowledgebases()) {
+        <section class="empty-knowledge">
+          <i class="ri-book-2-line"></i>
+          <h1>{{ 'XP.WorkspaceKnowledge.NoKnowledgebases' | translate: { Default: 'No knowledgebases' } }}</h1>
+          <p>
+            {{
+              'XP.WorkspaceKnowledge.EmptyDescription'
+                | translate: { Default: 'Knowledgebases created by Claw Xpert or this workspace will appear here.' }
+            }}
+          </p>
+          @if (canWriteWorkspace()) {
+            <button type="button" class="btn btn-primary" (click)="newKnowledgebase()">
+              <i class="ri-add-line"></i>
+              {{ 'XP.WorkspaceKnowledge.NewKnowledgebase' | translate: { Default: 'New knowledgebase' } }}
+            </button>
+          }
+        </section>
+      }
+    </div>
   </div>
 </div>

@@ -23,6 +23,8 @@ import {
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
   isExternalCloudMenuItem,
+  isCloudWorkspaceShellMenuItem,
+  isCloudWorkspaceStandaloneRoute,
   isNewClawXpertTaskMenuItem,
   normalizeMenuPath
 } from './cloud-sidebar-menu.utils'
@@ -93,6 +95,12 @@ export class CloudSidebarMenuComponent {
     }
 
     const currentUrl = normalizeMenuPath(this.currentUrl())
+    if (isCloudWorkspaceShellMenuItem(item)) {
+      if (isCloudWorkspaceStandaloneRoute(currentUrl) || this.isMoreMenuExpanded()) {
+        return false
+      }
+    }
+
     if (isCloudMenuRouteSuppressed(currentUrl, item)) {
       return false
     }
@@ -110,7 +118,17 @@ export class CloudSidebarMenuComponent {
   }
 
   isActive(item: CloudMenuItem) {
-    return this.isMenuItemActive(item, item.pathMatch !== 'prefix') || this.hasActiveChild(item)
+    return (
+      this.isMenuItemActive(item, item.pathMatch !== 'prefix') ||
+      this.hasActiveChild(item) ||
+      (item.data?.translationKey === 'More' && this.isExpanded(item))
+    )
+  }
+
+  private isMoreMenuExpanded() {
+    return this.groups()
+      .flatMap((group) => group.items)
+      .some((item) => item.data?.translationKey === 'More' && this.isExpanded(item))
   }
 
   isExpanded(menu: CloudMenuItem) {
