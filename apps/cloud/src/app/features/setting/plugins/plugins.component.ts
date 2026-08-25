@@ -57,7 +57,7 @@ import { pluginMarketplaceDetailCommands } from './plugin-marketplace-navigation
 import { PluginRuntimeRestartService } from './plugin-runtime-restart.service'
 
 type TPluginComponentSummaryItem = {
-  key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
+  key: 'skills' | 'mcpServers' | 'toolsets' | 'apps' | 'hooks'
   count: number
   icon: string
   label: string
@@ -370,6 +370,13 @@ export class PluginsComponent {
         defaultLabel: 'MCP servers'
       },
       {
+        key: 'toolsets',
+        count: summary.toolsets,
+        icon: 'ri-tools-line',
+        label: 'XP.Plugin.ResourceTypeToolset',
+        defaultLabel: 'Native MCP'
+      },
+      {
         key: 'apps',
         count: summary.apps,
         icon: 'ri-apps-2-line',
@@ -397,7 +404,10 @@ export class PluginsComponent {
 
   hasInstallableBundleResources(plugin: TInstalledPlugin) {
     const summary = plugin.componentSummary
-    return !!summary && (summary.skills > 0 || summary.mcpServers > 0 || summary.apps > 0 || summary.hooks > 0)
+    return (
+      !!summary &&
+      (summary.skills > 0 || summary.mcpServers > 0 || summary.toolsets > 0 || summary.apps > 0 || summary.hooks > 0)
+    )
   }
 
   hasInstallableMarketplaceContributions(plugin: TInstalledPlugin) {

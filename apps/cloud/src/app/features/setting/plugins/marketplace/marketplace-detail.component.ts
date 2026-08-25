@@ -83,6 +83,7 @@ export class PluginMarketplaceDetailComponent {
   readonly showActions = this.#data.showActions !== false
   readonly marketplaceContents = computed(() => this.plugin()?.contributions ?? [])
   readonly appContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'app'))
+  readonly mcpContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'mcp'))
   readonly assistantTemplateContents = computed(() =>
     this.marketplaceContents().filter((content) => this.isAssistantTemplate(content))
   )
@@ -181,6 +182,7 @@ export class PluginMarketplaceDetailComponent {
     if (!pluginName) {
       return
     }
+    const initialInstallMode = this.installModeForResource(content)
 
     this.#dialog.open(PluginResourcesComponent, {
       data: {
@@ -209,7 +211,10 @@ export class PluginMarketplaceDetailComponent {
             componentKey: content.name
           }
         ],
-        initialInstallMode: this.installModeForResource(content)
+        initialInstallMode,
+        ...(content.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET
+          ? { allowedInstallModes: ['organization' as const] }
+          : {})
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
@@ -358,6 +363,8 @@ export class PluginMarketplaceDetailComponent {
         return 'ri-sparkling-2-line'
       case 'tool':
         return 'ri-tools-line'
+      case 'mcp':
+        return 'ri-server-line'
       default:
         return 'ri-puzzle-2-line'
     }
@@ -370,6 +377,8 @@ export class PluginMarketplaceDetailComponent {
       case 'skill':
         return 'h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
       case 'tool':
+        return 'h-5 border-accent/25 bg-accent/10 text-accent'
+      case 'mcp':
         return 'h-5 border-accent/25 bg-accent/10 text-accent'
       case 'middleware':
         return 'h-5 border-accent/25 bg-accent/10 text-accent'
@@ -436,7 +445,7 @@ export class PluginMarketplaceDetailComponent {
   }
 
   private isPrimaryContent(content: TPluginMarketplaceContribution) {
-    if (content.type === 'app') {
+    if (content.type === 'app' || content.type === 'mcp') {
       return false
     }
     if (content.type === 'assistant-template') {
@@ -461,10 +470,10 @@ export class PluginMarketplaceDetailComponent {
           type: 'skill',
           componentType
         }
-      case 'tool':
+      case 'mcp':
         return {
           ...content,
-          type: 'tool',
+          type: 'mcp',
           componentType
         }
       case 'app':
@@ -485,7 +494,7 @@ export class PluginMarketplaceDetailComponent {
   }
 
   private canShowDeclaredResourceWithoutComponent(resource: TPluginResourceContribution) {
-    return !this.plugin()?.installed && resource.type === 'skill'
+    return !this.plugin()?.installed && (resource.type === 'skill' || resource.type === 'mcp')
   }
 
   private resolveTrialShortcuts(): TTrialShortcutView[] {
@@ -545,7 +554,7 @@ export class PluginMarketplaceDetailComponent {
       return true
     }
 
-    return content.type === 'tool' && !this.resourceContribution(content)
+    return content.type === 'tool'
   }
 
   private resolveTemplateId(content: TPluginMarketplaceContribution) {
@@ -571,6 +580,9 @@ export class PluginMarketplaceDetailComponent {
   }
 
   private installModeForResource(content: TPluginResourceContribution) {
+    if (content.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET) {
+      return 'organization'
+    }
     return content.componentType === PLUGIN_COMPONENT_TYPE.HOOK ? 'xpert' : 'workspace'
   }
 
@@ -696,8 +708,8 @@ function marketplaceComponentType(type: string): PluginComponentType | null {
   switch (type) {
     case 'skill':
       return PLUGIN_COMPONENT_TYPE.SKILL
-    case 'tool':
-      return PLUGIN_COMPONENT_TYPE.MCP_SERVER
+    case 'mcp':
+      return PLUGIN_COMPONENT_TYPE.TOOLSET
     case 'app':
       return PLUGIN_COMPONENT_TYPE.APP
     case 'hook':

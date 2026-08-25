@@ -38,6 +38,8 @@ class FakeSpan implements TracingSpan {
 
 class FakeTracingDriver implements TracingDriver {
     spans: FakeSpan[] = []
+    remoteCarriers: Record<string, string>[] = []
+    injectedCarriers: Record<string, string>[] = []
     private readonly spanContext = new AsyncLocalStorage<TracingSpan>()
 
     constructor(private readonly enabledValue: boolean) {}
@@ -54,6 +56,18 @@ class FakeTracingDriver implements TracingDriver {
 
     withSpan<T>(span: TracingSpan, handler: () => T): T {
         return this.spanContext.run(span, handler)
+    }
+
+    withRemoteContext<T>(carrier: Record<string, string>, handler: () => T): T {
+        this.remoteCarriers.push(carrier)
+        return handler()
+    }
+
+    injectContext(carrier: Record<string, string>) {
+        carrier.traceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+        carrier.baggage = 'workspace.id=workspace-1'
+        this.injectedCarriers.push(carrier)
+        return carrier
     }
 }
 
@@ -83,6 +97,36 @@ describe('ApplicationTracing', () => {
         expect(driver.spans[0].exceptions).toEqual([error])
         expect(driver.spans[0].status).toBe('error')
         expect(driver.spans[0].ended).toBe(1)
+    })
+
+    it('continues a remote trace context before creating child spans', async () => {
+        const driver = new FakeTracingDriver(true)
+        const tracing = new ApplicationTracing(driver)
+        const carrier = {
+            traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+            tracestate: 'vendor=value'
+        }
+
+        const result = await tracing.withRemoteContext(carrier, () =>
+            tracing.traceAsync('mcp.request', undefined, async () => 'ok')
+        )
+
+        expect(result).toBe('ok')
+        expect(driver.remoteCarriers).toEqual([carrier])
+        expect(driver.spans).toHaveLength(1)
+    })
+
+    it('injects the active trace context into an outbound carrier', () => {
+        const driver = new FakeTracingDriver(true)
+        const tracing = new ApplicationTracing(driver)
+
+        const carrier = tracing.injectContext()
+
+        expect(carrier).toEqual({
+            traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+            baggage: 'workspace.id=workspace-1'
+        })
+        expect(driver.injectedCarriers).toEqual([carrier])
     })
 
     it.each([false, true])(

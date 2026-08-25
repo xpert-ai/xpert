@@ -16,6 +16,7 @@ import {
 	ORGANIZATION_METADATA_KEY,
 	PLUGIN_METADATA,
 	PLUGIN_METADATA_KEY,
+	PLUGIN_VERSION_METADATA_KEY,
 	PluginLifecycleMethods
 } from '@xpert-ai/plugin-sdk'
 import {
@@ -560,7 +561,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			const mod = plugin.register(ctx)
 
 			// 4) Tag the module and its providers with organization and plugin metadata.
-			tagModuleWithPluginScope(mod, scopeKey, normalizePluginName(name))
+			tagModuleWithPluginScope(mod, scopeKey, normalizePluginName(name), plugin.meta.version)
 			modules.push(mod)
 			const existing = loaded.findIndex(
 				(item) => (item.scopeKey ?? item.organizationId) === scopeKey && item.name === plugin.meta.name
@@ -618,14 +619,20 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	}
 }
 
-function tagModuleWithPluginScope(mod: DynamicModule, scopeKey: string, pluginName: string) {
+function tagModuleWithPluginScope(mod: DynamicModule, scopeKey: string, pluginName: string, pluginVersion: string) {
 	const target = mod.module
 	Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, scopeKey, target)
 	Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
-	tagModuleProvidersWithPluginScope(mod, scopeKey, pluginName)
+	Reflect.defineMetadata(PLUGIN_VERSION_METADATA_KEY, pluginVersion, target)
+	tagModuleProvidersWithPluginScope(mod, scopeKey, pluginName, pluginVersion)
 }
 
-function tagModuleProvidersWithPluginScope(plugin: DynamicModule, scopeKey: string, pluginName: string) {
+function tagModuleProvidersWithPluginScope(
+	plugin: DynamicModule,
+	scopeKey: string,
+	pluginName: string,
+	pluginVersion: string
+) {
 	const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin
 	const { controllers, providers } = reflectDynamicModuleMetadata(pluginModule)
 	for (const provider of [...controllers, ...providers]) {
@@ -638,6 +645,7 @@ function tagModuleProvidersWithPluginScope(plugin: DynamicModule, scopeKey: stri
 		if (target) {
 			Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, scopeKey, target)
 			Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
+			Reflect.defineMetadata(PLUGIN_VERSION_METADATA_KEY, pluginVersion, target)
 		}
 	}
 }

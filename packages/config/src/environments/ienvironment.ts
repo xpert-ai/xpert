@@ -69,6 +69,7 @@ export interface IEnvironment {
 
   env?: Env
   pro?: boolean
+  mcpOAuthEnabled: boolean
 
   secretsEncryptionKey: string
   EXPRESS_SESSION_SECRET: string

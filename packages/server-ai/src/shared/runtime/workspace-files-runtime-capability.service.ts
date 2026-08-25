@@ -700,6 +700,9 @@ function readRuntimeScope(descriptor: Record<string, unknown>): WorkspaceFileSco
  */
 function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defaults: WorkspaceFilesRuntimeDefaults): T {
     const scoped = { ...input } as T & WorkspaceFileScope
+    assertRuntimeScopeMatch('tenantId', scoped.tenantId, defaults.tenantId)
+    assertRuntimeScopeMatch('organizationId', scoped.organizationId, defaults.organizationId)
+    assertRuntimeScopeMatch('userId', scoped.userId, defaults.userId)
     scoped.tenantId = normalizeOptionalString(scoped.tenantId) ?? normalizeOptionalString(defaults.tenantId)
     // Organization is part of the same trusted runtime boundary as tenant and
     // must survive portable-reference replay and delayed jobs.
@@ -727,6 +730,18 @@ function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defau
     }
 
     return scoped
+}
+
+function assertRuntimeScopeMatch(
+    field: 'tenantId' | 'organizationId' | 'userId',
+    requested: string | null | undefined,
+    authoritative: string | null | undefined
+) {
+    const requestedValue = normalizeOptionalString(requested)
+    const authoritativeValue = normalizeOptionalString(authoritative)
+    if (requestedValue && authoritativeValue && requestedValue !== authoritativeValue) {
+        throw new BadRequestException(`Workspace file ${field} is outside the current execution scope`)
+    }
 }
 
 function hasExplicitWorkspaceScope(scope: WorkspaceFileScope) {

@@ -1,6 +1,7 @@
 import type { TMcpAppCsp, TMcpAppPermissions, TMcpAppToolResult, TMcpAppVisibility } from '@xpert-ai/chatkit-types'
 import type { I18nObject } from '../i18n.model'
 import type { IconDefinition } from '../types'
+import type { McpCapabilityVisibility, McpJsonSchema, McpToolAnnotations } from './mcp-capability.model'
 
 export enum MCPServerType {
   SSE = 'sse',
@@ -61,6 +62,64 @@ export type TMCPServerReconnect = {
   delayMs?: number
 }
 
+export const MCP_CONSUMER_AUTH_TYPES = ['none', 'manual_header', 'api_key', 'oauth'] as const
+export type McpConsumerAuthType = (typeof MCP_CONSUMER_AUTH_TYPES)[number]
+
+export type TMcpConsumerAuth =
+  | { type: 'none' }
+  | { type: 'manual_header' }
+  | {
+      type: 'api_key'
+      /** Header used by the remote MCP server, for example Authorization or x-api-key. */
+      headerName: string
+      /** Environment expression or value resolved by the existing MCP header resolver. */
+      value: string
+    }
+  | {
+      type: 'oauth'
+      /** OAuth tokens are encrypted server-side and bound to this subject scope. */
+      binding: 'user' | 'organization'
+      scopes?: string[]
+    }
+
+export interface IMcpConsumerOAuthStatus {
+  status: 'disconnected' | 'pending' | 'connected' | 'expired' | 'error'
+  authorizationUrl?: string | null
+  expiresAt?: string | null
+  scopes?: string[]
+  message?: string | null
+}
+
+export interface IMcpConsumerServerCapabilities {
+  serverName: string
+  serverInfo?: { name: string; version: string }
+  instructions?: string
+  tools: Array<{
+    name: string
+    title?: string
+    description?: string
+    inputSchema: McpJsonSchema
+    outputSchema?: McpJsonSchema
+    annotations?: McpToolAnnotations
+    taskSupport?: 'required' | 'optional' | 'forbidden'
+    /** MCP Apps visibility from Tool._meta.ui; omitted only for older persisted discovery payloads. */
+    visibility?: McpCapabilityVisibility[]
+  }>
+  resources: Array<{ uri: string; name: string; title?: string; description?: string; mimeType?: string }>
+  resourceTemplates: Array<{
+    uriTemplate: string
+    name: string
+    title?: string
+    description?: string
+    mimeType?: string
+    argumentSchema: McpJsonSchema
+  }>
+  prompts: Array<{ name: string; title?: string; description?: string; argumentSchema: McpJsonSchema }>
+  apps: Array<{ toolName: string; title?: string; resourceUri: string }>
+  supportsCompletion?: boolean
+  errors?: Partial<Record<'tools' | 'resources' | 'resourceTemplates' | 'prompts' | 'apps', string>>
+}
+
 export type TMcpStdioRuntimePolicy = {
   /**
    * Runtime provider requested by the toolset or plugin. v1 supports
@@ -101,6 +160,8 @@ export type TMCPServer = {
 
   url?: string
   headers?: Record<string, string>
+  /** Explicit authentication mode for external MCP Consumer connections. */
+  auth?: TMcpConsumerAuth
   useNodeEventSource?: boolean
   /**
    * Whether to automatically fallback to SSE if Streamable HTTP is not available.
@@ -155,6 +216,10 @@ export type TMcpAppUiMeta = {
   prefersBorder?: boolean
 }
 
+export type TMcpToolExecution = {
+  taskSupport?: 'required' | 'optional' | 'forbidden'
+}
+
 export type TMcpToolAppMeta = {
   serverName: string
   name: string
@@ -163,6 +228,7 @@ export type TMcpToolAppMeta = {
   visibility: TMcpAppVisibility[]
   ui?: TMcpAppUiMeta
   annotations?: Record<string, unknown>
+  execution?: TMcpToolExecution
   _meta?: Record<string, unknown>
 }
 

@@ -111,49 +111,158 @@
       </div>
     </div>
 
-    <div class="my-4">
-      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-        <div class="truncate">{{ 'XP.MCP.Headers' | translate: { Default: 'Headers' } }}</div>
-
-        <div
-          class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
-          (click)="addHeader()"
-        >
-          <i class="ri-add-line"></i>
-        </div>
+    @if (types()[0] === eMCPServerType.SSE) {
+      <div class="rounded-lg bg-background-default-subtle p-3 text-sm text-text-secondary">
+        {{
+          'XP.MCP.LegacySseNotice'
+            | translate
+              : { Default: 'SSE is supported for existing servers only. Use Streamable HTTP for new MCP capabilities.' }
+        }}
       </div>
+    }
 
-      <div class="grid grid-cols-3 gap-3">
-        <div class="col-span-1">{{ 'XP.MCP.Name' | translate: { Default: 'Name' } }}</div>
-        <div class="col-span-2">{{ 'XP.MCP.Value' | translate: { Default: 'Value' } }}</div>
-        @for (row of headers() | entries; track row[0]) {
-          <div class="col-span-1">
-            <input #input1 class="xp-input w-full" [ngModel]="row[0]" (blur)="updateHeaderName(row[0], input1.value)" />
+    <div class="my-4 space-y-3 rounded-xl border border-divider-regular p-3">
+      <div class="text-semibold flex h-6 items-center text-text-secondary">
+        {{ 'XP.MCP.Authentication' | translate: { Default: 'Authentication' } }}
+      </div>
+      <z-select class="w-full" zSize="sm" [zValue]="authType()" (zSelectionChange)="selectAuthType($event)">
+        <z-select-item zValue="none">
+          {{ 'XP.MCP.AuthNone' | translate: { Default: 'No authentication' } }}
+        </z-select-item>
+        <z-select-item zValue="manual_header">
+          {{ 'XP.MCP.AuthManualHeader' | translate: { Default: 'Manual headers' } }}
+        </z-select-item>
+        <z-select-item zValue="api_key">
+          {{ 'XP.MCP.AuthApiKey' | translate: { Default: 'API key' } }}
+        </z-select-item>
+        @if (types()[0] === eMCPServerType.HTTP) {
+          <z-select-item zValue="oauth">
+            {{ 'XP.MCP.AuthOAuth' | translate: { Default: 'OAuth' } }}
+          </z-select-item>
+        }
+      </z-select>
+
+      @if (authType() === 'api_key') {
+        <div class="grid grid-cols-3 gap-3">
+          <input
+            z-input
+            class="col-span-1 w-full"
+            [placeholder]="'XP.MCP.ApiKeyHeader' | translate: { Default: 'Header name' }"
+            [(ngModel)]="apiKeyHeaderName"
+          />
+          <xpert-env-input
+            class="col-span-2"
+            [variables]="variables()"
+            [ngModel]="apiKeyValue"
+            (ngModelChange)="apiKeyValue = $event"
+          />
+        </div>
+        <div class="text-xs text-text-secondary">
+          {{
+            'XP.MCP.ApiKeyEnvironmentHint'
+              | translate: { Default: 'Use a secret environment variable so the API key is not stored in this schema.' }
+          }}
+        </div>
+      }
+
+      @if (authType() === 'oauth') {
+        <div class="grid grid-cols-2 gap-3">
+          <z-select class="w-full" zSize="sm" [zValue]="oauthBinding" (zSelectionChange)="selectOAuthBinding($event)">
+            <z-select-item zValue="user">
+              {{ 'XP.MCP.OAuthUserBinding' | translate: { Default: 'Current user' } }}
+            </z-select-item>
+            <z-select-item zValue="organization">
+              {{ 'XP.MCP.OAuthOrganizationBinding' | translate: { Default: 'Organization' } }}
+            </z-select-item>
+          </z-select>
+          <input
+            z-input
+            class="w-full"
+            [placeholder]="'XP.MCP.OAuthScopes' | translate: { Default: 'Scopes, separated by spaces' }"
+            [(ngModel)]="oauthScopes"
+          />
+        </div>
+        @if (toolsetId()) {
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn btn-primary" (click)="authorizeOAuth()">
+              {{ 'XP.MCP.AuthorizeOAuth' | translate: { Default: 'Authorize' } }}
+            </button>
+            <button type="button" class="btn" (click)="refreshOAuthStatus()">
+              {{ 'XP.MCP.RefreshOAuthStatus' | translate: { Default: 'Refresh status' } }}
+            </button>
+            @if (oauthStatus() === 'connected' || oauthStatus() === 'expired') {
+              <button type="button" class="btn btn-danger" (click)="disconnectOAuth()">
+                {{ 'XP.MCP.DisconnectOAuth' | translate: { Default: 'Disconnect' } }}
+              </button>
+            }
+            <span class="text-sm text-text-secondary">
+              {{ 'XP.MCP.OAuthStatus' | translate: { Default: 'OAuth status' } }}: {{ oauthStatus() }}
+            </span>
           </div>
-          <div class="col-span-2 flex items-center gap-1">
-            <xpert-env-input
-              #input2
-              class="grow"
-              [variables]="variables()"
-              [ngModel]="row[1]"
-              (blur)="updateHeaderValue(row[0], input2.value$())"
-            />
-            <div
-              class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger pressable"
-              (click)="removeHeader(row[0])"
-            >
-              <i class="ri-close-line"></i>
-            </div>
-          </div>
-        } @empty {
-          <div
-            class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle"
-          >
-            {{ 'XP.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+        } @else {
+          <div class="text-xs text-text-secondary">
+            {{
+              'XP.MCP.SaveBeforeOAuth'
+                | translate: { Default: 'Save this MCP toolset before starting OAuth authorization.' }
+            }}
           </div>
         }
-      </div>
+        @if (oauthMessage()) {
+          <div class="text-sm text-text-destructive">{{ oauthMessage() }}</div>
+        }
+      }
     </div>
+
+    @if (authType() === 'manual_header') {
+      <div class="my-4">
+        <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+          <div class="truncate">{{ 'XP.MCP.Headers' | translate: { Default: 'Headers' } }}</div>
+
+          <div
+            class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
+            (click)="addHeader()"
+          >
+            <i class="ri-add-line"></i>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-1">{{ 'XP.MCP.Name' | translate: { Default: 'Name' } }}</div>
+          <div class="col-span-2">{{ 'XP.MCP.Value' | translate: { Default: 'Value' } }}</div>
+          @for (row of headers() | entries; track row[0]) {
+            <div class="col-span-1">
+              <input
+                #input1
+                class="xp-input w-full"
+                [ngModel]="row[0]"
+                (blur)="updateHeaderName(row[0], input1.value)"
+              />
+            </div>
+            <div class="col-span-2 flex items-center gap-1">
+              <xpert-env-input
+                #input2
+                class="grow"
+                [variables]="variables()"
+                [ngModel]="row[1]"
+                (blur)="updateHeaderValue(row[0], input2.value$())"
+              />
+              <div
+                class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger pressable"
+                (click)="removeHeader(row[0])"
+              >
+                <i class="ri-close-line"></i>
+              </div>
+            </div>
+          } @empty {
+            <div
+              class="col-span-3 flex justify-center text-sm rounded-lg p-1 text-text-secondary bg-background-default-subtle"
+            >
+              {{ 'XP.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+            </div>
+          }
+        </div>
+      </div>
+    }
   } @else {
     <div class="">
       <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">

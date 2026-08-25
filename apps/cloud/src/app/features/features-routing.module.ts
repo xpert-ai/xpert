@@ -144,10 +144,10 @@ export const routes: Routes = [
       },
       {
         path: 'operations',
-        loadComponent: () => import('./operations/mcp-runtimes.component').then((m) => m.McpRuntimesComponent),
+        loadComponent: () => import('./operations/mcp-management.component').then((m) => m.McpManagementComponent),
         canActivate: [authGuard, NgxPermissionsGuard],
         data: {
-          title: 'MCP Monitor',
+          title: 'MCP Management',
           scopeContext: 'dual-scope',
           permissions: {
             only: [RolesEnum.SUPER_ADMIN],

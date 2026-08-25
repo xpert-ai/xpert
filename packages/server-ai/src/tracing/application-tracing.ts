@@ -1,4 +1,4 @@
-import { context, Span, SpanStatusCode, trace } from '@opentelemetry/api'
+import { context, propagation, Span, SpanStatusCode, trace } from '@opentelemetry/api'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchSpanProcessor, ParentBasedSampler, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base'
@@ -7,6 +7,7 @@ import { Observable } from 'rxjs'
 
 export type TracingAttributeValue = string | number | boolean
 export type TracingAttributes = Record<string, TracingAttributeValue | null | undefined>
+export type TracingCarrier = Record<string, string>
 
 export interface TracingSpan {
     setAttributes(attributes: Record<string, TracingAttributeValue>): void
@@ -19,6 +20,8 @@ export interface TracingDriver {
     enabled(): boolean
     startSpan(name: string, attributes?: Record<string, TracingAttributeValue>): TracingSpan
     withSpan<T>(span: TracingSpan, handler: () => T): T
+    withRemoteContext<T>(carrier: TracingCarrier, handler: () => T): T
+    injectContext(carrier: TracingCarrier): TracingCarrier
 }
 
 class NoopTracingDriver implements TracingDriver {
@@ -37,6 +40,14 @@ class NoopTracingDriver implements TracingDriver {
 
     withSpan<T>(_span: TracingSpan, handler: () => T): T {
         return handler()
+    }
+
+    withRemoteContext<T>(_carrier: TracingCarrier, handler: () => T): T {
+        return handler()
+    }
+
+    injectContext(carrier: TracingCarrier): TracingCarrier {
+        return carrier
     }
 }
 
@@ -83,6 +94,15 @@ class OpenTelemetryTracingDriver implements TracingDriver {
 
         return handler()
     }
+
+    withRemoteContext<T>(carrier: TracingCarrier, handler: () => T): T {
+        return context.with(propagation.extract(context.active(), carrier), handler)
+    }
+
+    injectContext(carrier: TracingCarrier): TracingCarrier {
+        propagation.inject(context.active(), carrier)
+        return carrier
+    }
 }
 
 export class ApplicationTracing {
@@ -90,6 +110,20 @@ export class ApplicationTracing {
 
     setDriver(driver: TracingDriver) {
         this.driver = driver
+    }
+
+    withRemoteContext<T>(carrier: TracingCarrier, handler: () => T): T {
+        if (!this.driver.enabled()) {
+            return handler()
+        }
+        return this.driver.withRemoteContext(carrier, handler)
+    }
+
+    injectContext(carrier: TracingCarrier = {}): TracingCarrier {
+        if (!this.driver.enabled()) {
+            return carrier
+        }
+        return this.driver.injectContext(carrier)
     }
 
     traceAsync<T>(name: string, attributes: TracingAttributes | undefined, handler: () => Promise<T>): Promise<T> {

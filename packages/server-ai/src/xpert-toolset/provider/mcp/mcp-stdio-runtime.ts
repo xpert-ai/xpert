@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto'
 import { inspect } from 'node:util'
 import {
     getPluginManagedMcpOptions,
-    resolvePluginManagedRuntimePaths,
+    resolvePluginManagedMcpContract,
     type PluginRuntimePaths
 } from './plugin-managed-runtime'
 import type { TBuiltinToolsetParams } from '../../../shared'
@@ -271,7 +271,7 @@ export class McpStdioRuntimeManager {
     }
 
     isEnabled() {
-        return parseBooleanEnv(process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED, !environment.production)
+        return parseBooleanEnv(process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED, false)
     }
 
     assertInitScriptsAllowed(server: TMCPServer, serverName: string) {
@@ -290,9 +290,18 @@ export class McpStdioRuntimeManager {
         server: TMCPServer,
         runtimeContext: Partial<TBuiltinToolsetParams> = {}
     ): ManagedServerResult {
-        const transport = server.type?.toLowerCase()
-        if (transport !== MCPServerType.STDIO && !server.command) {
-            return { server }
+        const pluginOptions = getPluginManagedMcpOptions(toolset)
+        const pluginManaged = Boolean(pluginOptions)
+        const pluginContract = pluginManaged ? resolvePluginManagedMcpContract(toolset) : null
+        if (pluginManaged && !pluginContract) {
+            throw new Error(
+                `Plugin-managed MCP component '${pluginOptions?.pluginName}:${pluginOptions?.componentKey ?? 'missing'}' is not available in the current plugin manifest`
+            )
+        }
+        const effectiveServer = pluginContract?.server ?? server
+        const transport = effectiveServer.type?.toLowerCase()
+        if (transport !== MCPServerType.STDIO && !effectiveServer.command) {
+            return { server: effectiveServer }
         }
 
         if (!this.isEnabled()) {
@@ -301,27 +310,22 @@ export class McpStdioRuntimeManager {
             )
         }
 
-        const pluginOptions = getPluginManagedMcpOptions(toolset)
-        const pluginManaged = Boolean(pluginOptions)
         const pluginName = pluginOptions?.pluginName
-        const policy = this.resolvePolicy(toolset, server)
-        const originalCommand = server.command?.trim()
+        const policy = this.resolvePolicy(toolset, effectiveServer, pluginManaged)
+        const originalCommand = effectiveServer.command?.trim()
         if (!originalCommand) {
             throw new Error(`MCP stdio server '${serverName}' is missing command`)
         }
 
         let command = originalCommand
-        let args = [...(server.args ?? [])]
+        let args = [...(effectiveServer.args ?? [])]
         let cwd = process.cwd()
         if (pluginManaged) {
-            const paths = resolvePluginManagedRuntimePaths(toolset)
-            if (!paths) {
-                throw new Error(`Plugin-managed MCP stdio server '${serverName}' cannot resolve plugin runtime root`)
-            }
+            const paths = pluginContract
             if (!isNodeCommand(command)) {
                 throw new Error(`Plugin-managed MCP stdio server '${serverName}' must be launched with Node.js`)
             }
-            const entryPath = resolvePluginEntry(server, paths)
+            const entryPath = resolvePluginEntry(effectiveServer, paths)
             const entryArg = resolveNodeEntryArg(args)
             args = args.map((arg) => (arg === entryArg ? entryPath : arg))
             command = process.execPath
@@ -357,7 +361,7 @@ export class McpStdioRuntimeManager {
             conversationId: runtimeContext.conversationId,
             appInstanceId: runtimeContext.appInstanceId,
             command: originalCommand,
-            args: server.args ?? [],
+            args: effectiveServer.args ?? [],
             policy
         })
         runtime.maxLifetimeExpiresAt = new Date(runtime.startedAt.getTime() + policy.maxLifetimeMs)
@@ -369,7 +373,7 @@ export class McpStdioRuntimeManager {
             command,
             args,
             cwd,
-            env: safeEnv(server.env),
+            env: safeEnv(effectiveServer.env),
             startupTimeoutMs: policy.startupTimeoutMs,
             maxLifetimeMs: policy.maxLifetimeMs
         }
@@ -382,7 +386,7 @@ export class McpStdioRuntimeManager {
         return {
             runtime,
             server: {
-                ...server,
+                ...effectiveServer,
                 command: process.execPath,
                 args: [getRunnerPath()],
                 env: {
@@ -491,9 +495,9 @@ export class McpStdioRuntimeManager {
         }
     }
 
-    private resolvePolicy(toolset: Partial<IXpertToolset>, server: TMCPServer) {
+    private resolvePolicy(toolset: Partial<IXpertToolset>, server: TMCPServer, pluginManaged: boolean) {
         const serverPolicy = server.runtime ?? {}
-        const toolsetPolicy = readToolsetRuntimePolicy(toolset) ?? {}
+        const toolsetPolicy = pluginManaged ? {} : (readToolsetRuntimePolicy(toolset) ?? {})
         const requested = {
             ...serverPolicy,
             ...toolsetPolicy

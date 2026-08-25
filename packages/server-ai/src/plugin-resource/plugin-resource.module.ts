@@ -17,6 +17,7 @@ import { PluginResourceController } from './plugin-resource.controller'
 import { PluginResourceInstallation } from './plugin-resource-installation.entity'
 import { PluginResourceInstallerService } from './plugin-resource-installer.service'
 import { QueryHandlers } from './queries/handlers'
+import { McpPublicationModule } from '../mcp-publication'
 
 @Module({
     imports: [
@@ -27,7 +28,8 @@ import { QueryHandlers } from './queries/handlers'
         XpertTemplateModule,
         forwardRef(() => SkillPackageModule),
         forwardRef(() => XpertToolsetModule),
-        forwardRef(() => XpertWorkspaceModule)
+        forwardRef(() => XpertWorkspaceModule),
+        McpPublicationModule
     ],
     controllers: [PluginResourceController],
     providers: [

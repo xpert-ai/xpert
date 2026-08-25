@@ -15,7 +15,7 @@ import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 @Entity('plugin_resource_installation')
 @Index(['workspaceId', 'xpertId', 'agentKey', 'pluginName', 'componentType', 'componentKey'])
 export class PluginResourceInstallation extends WorkspaceBaseEntity implements IPluginResourceInstallation {
-    declare workspaceId: string
+    declare workspaceId?: string | null
 
     @ApiProperty({ type: () => String })
     @IsString()

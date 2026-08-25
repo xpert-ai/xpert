@@ -1,4 +1,4 @@
-import type { JSONSchema4 } from "json-schema";
+import type { JSONSchema4 } from 'json-schema'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { AiProviderRole } from './copilot.model'
@@ -23,7 +23,7 @@ export type XpertToolType = {
    * Is disabled in toolset
    */
   disabled?: boolean
-  
+
   options?: Record<string, any>
   /**
    * Schema of tool
@@ -56,39 +56,39 @@ export type TToolProviderIdentity = {
 }
 
 interface ToolParameterOption {
-  value: string;
-  label: I18nObject;
+  value: string
+  label: I18nObject
 }
 
 export enum ToolParameterType {
-  STRING = "string",
-  NUMBER = "number",
-  BOOLEAN = "boolean",
-  ARRAY = "array",
-  SELECT = "select",
-  SECRET_INPUT = "secret-input",
-  FILE = "file"
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  ARRAY = 'array',
+  SELECT = 'select',
+  SECRET_INPUT = 'secret-input',
+  FILE = 'file'
 }
 
 export enum ToolParameterForm {
-  SCHEMA = "schema",  // should be set while adding tool
-  FORM = "form",      // should be set before invoking tool
-  LLM = "llm"         // will be set by LLM
+  SCHEMA = 'schema', // should be set while adding tool
+  FORM = 'form', // should be set before invoking tool
+  LLM = 'llm' // will be set by LLM
 }
 
 export type TToolParameter = {
-  name: string;
-  label: I18nObject;
-  human_description?: I18nObject;
-  placeholder?: I18nObject;
-  type: ToolParameterType;
-  form: ToolParameterForm;
-  llm_description?: string;
-  required?: boolean;
-  default?: number | string;
-  min?: number;
-  max?: number;
-  options?: ToolParameterOption[];
+  name: string
+  label: I18nObject
+  human_description?: I18nObject
+  placeholder?: I18nObject
+  type: ToolParameterType
+  form: ToolParameterForm
+  llm_description?: string
+  required?: boolean
+  default?: number | string
+  min?: number
+  max?: number
+  options?: ToolParameterOption[]
   items?: {
     type: ToolParameterType
   }
@@ -106,25 +106,25 @@ export interface ApiToolBundle {
    */
 
   // server_url
-  server_url: string;
+  server_url: string
   // method
-  method: string;
+  method: string
   // summary
-  summary?: string;
+  summary?: string
   // operation_id
-  operation_id?: string;
+  operation_id?: string
   /**
    * parameters
    * @deprecated use schema
    */
-  parameters?: TToolParameter[];
+  parameters?: TToolParameter[]
   schema?: JSONSchema4
   // author
-  author: string;
+  author: string
   // icon
-  icon?: string;
+  icon?: string
   // openapi operation
-  openapi: Record<string, any>;
+  openapi: Record<string, any>
 }
 
 export interface IBuiltinTool {
@@ -161,11 +161,11 @@ export type TXpertToolEntity = {
   description?: string
 }
 
-export const TOOL_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+export const TOOL_NAME_REGEX = /^[a-zA-Z0-9_-]+$/
 
 // Helper functions for tools
 /**
- * 
+ *
  * @param tool Tool
  * @param disableToolDefault Is default disable tools
  * @returns Tool is enabled?
@@ -183,7 +183,7 @@ export function isToolEnabled(tool: IXpertTool, disableToolDefault = false) {
 
 /**
  * Tool is enabled?
- * 
+ *
  * @deprecated use isToolEnabled
  */
 export function isEnableTool(tool: IXpertTool, toolset: IXpertToolset) {

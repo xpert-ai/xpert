@@ -13,6 +13,19 @@ describe('McpStdioRuntimeManager audit events', () => {
         jest.clearAllMocks()
     })
 
+    it('fails closed until the stdio runtime is explicitly enabled', () => {
+        delete process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED
+        const manager = new McpStdioRuntimeManager()
+
+        expect(() =>
+            manager.prepareServer({ id: 'toolset-1', tenantId: 'tenant-1' }, 'default', {
+                type: MCPServerType.STDIO,
+                command: 'node',
+                args: ['server.js']
+            })
+        ).toThrow('MCP stdio runtime is disabled')
+    })
+
     it('emits audit events for start, ready, app association, and close', async () => {
         process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED = 'true'
         const manager = new McpStdioRuntimeManager()
@@ -46,7 +59,10 @@ describe('McpStdioRuntimeManager audit events', () => {
                 env: {}
             }
         )
-        const runtime = result.runtime!
+        const runtime = result.runtime
+        if (!runtime) {
+            throw new Error('Expected an stdio runtime handle')
+        }
         const client = {} as never
 
         expect(auditSink.recordStarting).toHaveBeenCalledWith(runtime)
@@ -61,5 +77,96 @@ describe('McpStdioRuntimeManager audit events', () => {
         expect(auditSink.recordClosed).toHaveBeenCalledWith(runtime)
         expect(runtime.closeReason).toBe('test-close')
         expect(runtime.context.appInstanceId).toBe('app-instance-1')
+    })
+
+    it('closes an attached stdio transport after the configured idle timeout', async () => {
+        jest.useFakeTimers()
+        process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED = 'true'
+        try {
+            const manager = new McpStdioRuntimeManager()
+            const close = jest.fn().mockResolvedValue(undefined)
+            const result = manager.prepareServer(
+                {
+                    id: 'toolset-1',
+                    tenantId: 'tenant-1',
+                    options: {
+                        mcpRuntime: {
+                            idleTimeoutMs: 10,
+                            maxLifetimeMs: 1_000
+                        }
+                    }
+                },
+                'default',
+                {
+                    type: MCPServerType.STDIO,
+                    command: 'node',
+                    args: ['server.js']
+                }
+            )
+            const client = {
+                _transportInstances: {
+                    default: { close }
+                }
+            } as never
+
+            const runtime = result.runtime
+            if (!runtime) {
+                throw new Error('Expected an stdio runtime handle')
+            }
+            manager.attachClient(client, [runtime])
+            await jest.advanceTimersByTimeAsync(11)
+
+            expect(close).toHaveBeenCalled()
+            expect(runtime.status).toBe('closed')
+            expect(manager.list({ tenantId: 'tenant-1' })).toEqual([])
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('closes an attached stdio transport after the configured maximum lifetime', async () => {
+        jest.useFakeTimers()
+        process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED = 'true'
+        try {
+            const manager = new McpStdioRuntimeManager()
+            const close = jest.fn().mockResolvedValue(undefined)
+            const result = manager.prepareServer(
+                {
+                    id: 'toolset-1',
+                    tenantId: 'tenant-1',
+                    options: {
+                        mcpRuntime: {
+                            idleTimeoutMs: 1_000,
+                            maxLifetimeMs: 10
+                        }
+                    }
+                },
+                'default',
+                {
+                    type: MCPServerType.STDIO,
+                    command: 'node',
+                    args: ['server.js']
+                }
+            )
+            const client = {
+                _transportInstances: {
+                    default: { close }
+                }
+            } as never
+
+            const runtime = result.runtime
+            if (!runtime) {
+                throw new Error('Expected an stdio runtime handle')
+            }
+            manager.attachClient(client, [runtime])
+            await jest.advanceTimersByTimeAsync(11)
+
+            expect(close).toHaveBeenCalled()
+            expect(runtime.status).toBe('closed')
+            expect(runtime.closeReason).toBe('max-lifetime-timeout')
+            expect(manager.list({ tenantId: 'tenant-1' })).toEqual([])
+        } finally {
+            jest.useRealTimers()
+        }
     })
 })

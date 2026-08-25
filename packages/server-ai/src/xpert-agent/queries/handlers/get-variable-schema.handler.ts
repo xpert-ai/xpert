@@ -1,11 +1,15 @@
 import { IXpertAgent, TWorkflowVarGroup, TXpertGraph } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { closeToolsets } from '../../../shared'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { XpertService } from '../../../xpert/xpert.service'
 import { XpertAgentVariableSchemaQuery } from '../get-variable-schema.query'
 
 @QueryHandler(XpertAgentVariableSchemaQuery)
 export class XpertAgentVariableSchemaHandler implements IQueryHandler<XpertAgentVariableSchemaQuery> {
+    readonly #logger = new Logger(XpertAgentVariableSchemaHandler.name)
+
     constructor(
         private readonly xpertService: XpertService,
         private readonly commandBus: CommandBus
@@ -52,15 +56,18 @@ export class XpertAgentVariableSchemaHandler implements IQueryHandler<XpertAgent
                     })
                 )
 
-                for await (const toolset of toolsets) {
-                    // await toolset.initTools()
-                    const toolVars = await toolset.getVariables()
-                    if (toolVars) {
-                        variableSchema = toolVars.find((_) => _.name === variableName)
-                        if (variableSchema) {
-                            return variableSchema
+                try {
+                    for await (const toolset of toolsets) {
+                        const toolVars = await toolset.getVariables()
+                        if (toolVars) {
+                            variableSchema = toolVars.find((_) => _.name === variableName)
+                            if (variableSchema) {
+                                return variableSchema
+                            }
                         }
                     }
+                } finally {
+                    await closeToolsets(toolsets, (error) => this.#logger.debug(error))
                 }
             }
         }

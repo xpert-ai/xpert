@@ -1,4 +1,6 @@
 import { _BaseToolset } from '../../../shared'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
 
 const createToolset = (close: jest.Mock<Promise<void>, []>) => ({ close }) as unknown as _BaseToolset
@@ -58,9 +60,8 @@ describe('createToolsetRuntimeCleanup', () => {
                 })()
             ),
             streamEvents: jest.fn(function (this: { stream: () => AsyncGenerator<string, void, unknown> }) {
-                const graph = this
+                const outputStream = this.stream()
                 return (async function* () {
-                    const outputStream = graph.stream()
                     yield (await outputStream.next()).value
                 })()
             })
@@ -100,5 +101,16 @@ describe('createToolsetRuntimeCleanup', () => {
         await closePromise
 
         expect(toolsetClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps graph compilation inside the toolset cleanup boundary', () => {
+        const source = readFileSync(join(__dirname, 'subgraph.handler.ts'), 'utf8')
+        const compileBoundary = source.indexOf('let compiledGraph: ReturnType<typeof subgraphBuilder.compile>')
+        const compile = source.indexOf('compiledGraph = subgraphBuilder.compile', compileBoundary)
+        const cleanupCatch = source.indexOf('} catch (error) {\n            await closeToolsets()', compile)
+
+        expect(compileBoundary).toBeGreaterThan(-1)
+        expect(compile).toBeGreaterThan(compileBoundary)
+        expect(cleanupCatch).toBeGreaterThan(compile)
     })
 })

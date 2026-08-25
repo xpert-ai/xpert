@@ -43,11 +43,14 @@ import {
     PLUGIN_RESOURCE_RUNTIME_TYPE
 } from '@xpert-ai/contracts'
 import { collectPluginBundleComponents } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ListPluginResourceComponentStatesHandler } from './list-component-states.handler'
 import { ListPluginResourceComponentStatesQuery } from '../list-component-states.query'
 
 describe('ListPluginResourceComponentStatesHandler', () => {
     beforeEach(() => {
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-1')
+        jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant-1')
         jest.mocked(collectPluginBundleComponents).mockReturnValue([
             {
                 componentType: PLUGIN_COMPONENT_TYPE.SKILL,
@@ -69,6 +72,54 @@ describe('ListPluginResourceComponentStatesHandler', () => {
         )
 
         expect(workspaceAccess.assertCanAuthor).toHaveBeenCalledWith('workspace-1')
+    })
+
+    it('loads organization toolset state without selecting a workspace', async () => {
+        jest.mocked(collectPluginBundleComponents).mockReturnValue([
+            {
+                componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                componentKey: 'cut',
+                definitionHash: 'cut-native-hash'
+            }
+        ] as never)
+        const { handler, installationRepo, workspaceAccess } = createHandler({
+            installations: [
+                {
+                    workspaceId: null,
+                    pluginName: '@xpert-ai/plugin-cut',
+                    componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                    componentKey: 'cut',
+                    runtimeType: PLUGIN_RESOURCE_RUNTIME_TYPE.TOOLSET,
+                    runtimeId: 'toolset-cut',
+                    definitionHash: 'cut-native-hash',
+                    status: PLUGIN_RESOURCE_INSTALLATION_STATUS.READY
+                }
+            ]
+        })
+
+        const states = await handler.execute(
+            new ListPluginResourceComponentStatesQuery('@xpert-ai/plugin-cut', {
+                target: 'organization'
+            })
+        )
+
+        expect(workspaceAccess.assertCanAuthor).not.toHaveBeenCalled()
+        const builder = installationRepo.createQueryBuilder.mock.results[0]?.value
+        expect(builder.andWhere).toHaveBeenCalledWith('installation.tenantId = :installationTenantId', {
+            installationTenantId: 'tenant-1'
+        })
+        expect(builder.andWhere).toHaveBeenCalledWith('installation.organizationId = :installationOrganizationId', {
+            installationOrganizationId: 'org-1'
+        })
+        expect(builder.andWhere).toHaveBeenCalledWith('installation.workspaceId IS NULL')
+        expect(states).toEqual([
+            expect.objectContaining({
+                componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                componentKey: 'cut',
+                installed: true,
+                runtimeId: 'toolset-cut'
+            })
+        ])
     })
 
     it('does not mark a plugin skill as installed when its runtime skill package was deleted', async () => {
@@ -108,6 +159,30 @@ describe('ListPluginResourceComponentStatesHandler', () => {
                 installation: null
             })
         ])
+    })
+
+    it('keeps tenant-global organization installations separate from named organizations', async () => {
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue(null)
+        jest.mocked(collectPluginBundleComponents).mockReturnValue([
+            {
+                componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                componentKey: 'cut',
+                definitionHash: 'cut-native-hash'
+            }
+        ] as never)
+        const { handler, installationRepo } = createHandler()
+
+        await handler.execute(
+            new ListPluginResourceComponentStatesQuery('@xpert-ai/plugin-cut', {
+                target: 'organization'
+            })
+        )
+
+        const builder = installationRepo.createQueryBuilder.mock.results[0]?.value
+        expect(builder.andWhere).toHaveBeenCalledWith('installation.tenantId = :installationTenantId', {
+            installationTenantId: 'tenant-1'
+        })
+        expect(builder.andWhere).toHaveBeenCalledWith('installation.organizationId IS NULL')
     })
 
     it('marks a plugin skill as installed from its current shared skill package', async () => {
@@ -173,7 +248,11 @@ function createHandler(options?: { installations?: any[]; skillPackages?: any[] 
         {
             getTeam: jest.fn(() => Promise.resolve(null))
         } as any,
-        [{ name: '@xpert-ai/plugin-documents', scopeKey: 'org-1' }] as any
+        [
+            { name: '@xpert-ai/plugin-documents', scopeKey: 'org-1' },
+            { name: '@xpert-ai/plugin-cut', scopeKey: 'org-1' },
+            { name: '@xpert-ai/plugin-cut', scopeKey: 'global:tenant-1' }
+        ] as never
     )
 
     return {

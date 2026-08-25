@@ -173,6 +173,33 @@ async function toImageContentPart(
     }
 }
 
+async function toAudioContentPart(file: ResolvedFile) {
+    if (!file.mimeType?.startsWith('audio/')) {
+        throw new Error('Audio MIME type is required')
+    }
+
+    if (file.filePath) {
+        const audioData = await fs.promises.readFile(file.filePath)
+        return {
+            type: 'audio' as const,
+            source_type: 'base64' as const,
+            data: Buffer.from(audioData).toString('base64'),
+            mime_type: file.mimeType
+        }
+    }
+
+    if (file.fileUrl) {
+        return {
+            type: 'audio' as const,
+            source_type: 'url' as const,
+            url: file.fileUrl,
+            mime_type: file.mimeType
+        }
+    }
+
+    throw new Error('Audio file path or url is required')
+}
+
 function dedupeFiles(files: Array<ResolvedFile>) {
     const seen = new Set<string>()
     return files.filter((file) => {
@@ -297,7 +324,7 @@ export async function createHumanMessage(
                 }
 
                 if (file.mimeType?.startsWith('audio')) {
-                    throw new Error('Audio files are not supported yet')
+                    return await toAudioContentPart(file)
                 }
 
                 if (file.fileAsset?.id && ['ready', 'partial'].includes(file.fileAsset.status)) {
