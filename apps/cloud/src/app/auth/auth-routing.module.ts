@@ -1,6 +1,8 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
+import { environment } from '../../environments/environment'
 import { XpAuthComponent } from './auth.component'
+import { OidcConsentComponent } from './consent/consent.component'
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component'
 import { NoAuthGuard } from './guards/no-auth.guard'
 import { UserLoginComponent } from './login/login.component'
@@ -23,6 +25,15 @@ const routes: Routes = [
         component: UserLoginComponent,
         data: { title: '登录', titleI18n: 'app.login.login' }
       },
+      ...(environment.mcpOAuthEnabled
+        ? [
+            {
+              path: 'consent',
+              component: OidcConsentComponent,
+              data: { title: 'Authorization request', titleI18n: 'Auth.McpConsent.Eyebrow' }
+            }
+          ]
+        : []),
       {
         path: 'register',
         component: UserRegisterComponent,

@@ -1,4 +1,23 @@
 {
+  "Auth": {
+    "McpConsent": {
+      "Eyebrow": "授權請求",
+      "UnknownClient": "某個應用程式",
+      "RequestsAccess": "請求存取",
+      "ReviewRequest": "確認存取請求",
+      "Loading": "正在載入授權請求…",
+      "Description": "繼續前，請確認該客戶端請求存取的 MCP 服務和身分權限。",
+      "Client": "客戶端",
+      "McpServices": "MCP 服務",
+      "NoMcpService": "未指定 MCP 服務。",
+      "Permissions": "請求的權限",
+      "NoPermissions": "未請求額外的權限範圍。",
+      "SecurityHint": "僅在你信任該客戶端時允許存取。客戶端只能取得上方顯示的服務和權限。",
+      "InvalidRequest": "此授權請求缺失或已過期。",
+      "Deny": "拒絕",
+      "Allow": "允許存取"
+    }
+  },
   "Pro": {
     "ContactUs": "聯系我們",
     "UpgradePro": "升級成專業版",

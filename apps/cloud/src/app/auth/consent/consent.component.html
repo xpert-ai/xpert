@@ -1,0 +1,114 @@
+<section class="w-full" aria-labelledby="oidc-consent-title">
+  <header>
+    <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-accent">
+      {{ 'Auth.McpConsent.Eyebrow' | translate: { Default: 'Authorization request' } }}
+    </p>
+    <h1 id="oidc-consent-title" class="m-0 text-3xl font-semibold tracking-[-0.04em] text-text-primary">
+      @if (!loading && !loadFailed) {
+        {{ clientName || ('Auth.McpConsent.UnknownClient' | translate: { Default: 'An application' }) }}
+        {{ 'Auth.McpConsent.RequestsAccess' | translate: { Default: 'requests access' } }}
+      } @else {
+        {{ 'Auth.McpConsent.ReviewRequest' | translate: { Default: 'Review access request' } }}
+      }
+    </h1>
+    <p class="mb-0 mt-2 text-sm leading-6 text-text-secondary">
+      {{
+        'Auth.McpConsent.Description'
+          | translate
+            : {
+                Default: 'Review the MCP services and identity permissions requested by this client before continuing.'
+              }
+      }}
+    </p>
+  </header>
+
+  @if (loading) {
+    <div class="mt-6 rounded-xl border border-divider-regular bg-components-panel-bg p-4">
+      <div class="h-4 w-28 animate-pulse rounded bg-divider-regular"></div>
+      <div class="mt-3 h-5 w-48 animate-pulse rounded bg-divider-regular"></div>
+      <p class="mb-0 mt-4 text-sm text-text-secondary">
+        {{ 'Auth.McpConsent.Loading' | translate: { Default: 'Loading authorization request…' } }}
+      </p>
+    </div>
+  } @else if (loadFailed) {
+    <div class="mt-6 rounded-xl border border-divider-regular bg-components-panel-bg p-4">
+      <p class="m-0 text-sm font-medium text-text-destructive">
+        {{
+          'Auth.McpConsent.InvalidRequest' | translate: { Default: 'This authorization request is missing or expired.' }
+        }}
+      </p>
+    </div>
+  } @else {
+    <div class="mt-6 rounded-xl border border-divider-regular bg-components-panel-bg p-4">
+      <p class="m-0 text-xs font-medium uppercase tracking-[0.12em] text-text-tertiary">
+        {{ 'Auth.McpConsent.Client' | translate: { Default: 'Client' } }}
+      </p>
+      <p class="mb-0 mt-2 text-base font-semibold text-text-primary">{{ clientName }}</p>
+      @if (clientId && clientId !== clientName) {
+        <p class="mb-0 mt-1 break-all font-mono text-xs text-text-tertiary">{{ clientId }}</p>
+      }
+    </div>
+
+    <div class="mt-5">
+      <h2 class="m-0 text-sm font-semibold text-text-primary">
+        {{ 'Auth.McpConsent.McpServices' | translate: { Default: 'MCP services' } }}
+      </h2>
+      @if (resources.length) {
+        <ul class="mb-0 mt-3 flex list-none flex-col gap-2 p-0">
+          @for (resource of resources; track resource) {
+            <li class="rounded-lg border border-divider-regular px-3 py-2.5 font-mono text-xs text-text-secondary">
+              {{ resource }}
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="mb-0 mt-2 text-sm text-text-tertiary">
+          {{ 'Auth.McpConsent.NoMcpService' | translate: { Default: 'No MCP service was specified.' } }}
+        </p>
+      }
+    </div>
+
+    <div class="mt-5">
+      <h2 class="m-0 text-sm font-semibold text-text-primary">
+        {{ 'Auth.McpConsent.Permissions' | translate: { Default: 'Requested permissions' } }}
+      </h2>
+      @if (scopes.length) {
+        <div class="mt-3 flex flex-wrap gap-2">
+          @for (scope of scopes; track scope) {
+            <span
+              class="rounded-full border border-divider-regular bg-components-panel-bg px-3 py-1.5 font-mono text-xs text-text-secondary"
+            >
+              {{ scope }}
+            </span>
+          }
+        </div>
+      } @else {
+        <p class="mb-0 mt-2 text-sm text-text-tertiary">
+          {{
+            'Auth.McpConsent.NoPermissions' | translate: { Default: 'No additional permission scopes were requested.' }
+          }}
+        </p>
+      }
+    </div>
+
+    <p class="mb-0 mt-6 rounded-lg border border-divider-regular p-3 text-xs leading-5 text-text-secondary">
+      {{
+        'Auth.McpConsent.SecurityHint'
+          | translate
+            : {
+                Default:
+                  'Only allow access if you recognize this client. The client will receive access only to the services and permissions shown above.'
+              }
+      }}
+    </p>
+
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button z-button zType="outline" type="button" [disabled]="submitting" (click)="deny()">
+        {{ 'Auth.McpConsent.Deny' | translate: { Default: 'Deny' } }}
+      </button>
+      <button z-button type="button" [zLoading]="submitting" [disabled]="submitting" (click)="allow()">
+        {{ 'Auth.McpConsent.Allow' | translate: { Default: 'Allow access' } }}
+      </button>
+    </div>
+  }
+</section>
