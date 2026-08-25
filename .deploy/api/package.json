@@ -44,7 +44,8 @@
     "react-dom": "^18.2.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "zod": "3.25.67"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",

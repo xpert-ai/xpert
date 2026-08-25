@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod/v3'
 import { defineXpertTool } from './define-tool'
 import type { ToolExecutionContext } from './tool-execution-context'
 
