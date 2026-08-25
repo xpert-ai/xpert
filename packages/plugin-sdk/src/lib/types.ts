@@ -12,7 +12,7 @@ import {
 } from '@xpert-ai/contracts'
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
-import type { ZodSchema } from 'zod'
+import type { ZodSchema } from 'zod/v3'
 import type { Permissions } from './core/permissions'
 
 export const ORGANIZATION_METADATA_KEY = 'xpert:organizationId'

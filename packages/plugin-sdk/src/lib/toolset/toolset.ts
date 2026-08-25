@@ -1,6 +1,6 @@
 import { BaseToolkit, StructuredTool, StructuredToolInterface } from "@langchain/core/tools"
 import { I18nObject, TStateVariable, TToolsetParams } from "@xpert-ai/contracts"
-import { z } from 'zod'
+import { z } from 'zod/v3'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ZodObjectAny = z.ZodObject<any, any, any, any>;
