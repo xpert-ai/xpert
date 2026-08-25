@@ -1,4 +1,23 @@
 {
+  "Auth": {
+    "McpConsent": {
+      "Eyebrow": "Authorization request",
+      "UnknownClient": "An application",
+      "RequestsAccess": "requests access",
+      "ReviewRequest": "Review access request",
+      "Loading": "Loading authorization request…",
+      "Description": "Review the MCP services and identity permissions requested by this client before continuing.",
+      "Client": "Client",
+      "McpServices": "MCP services",
+      "NoMcpService": "No MCP service was specified.",
+      "Permissions": "Requested permissions",
+      "NoPermissions": "No additional permission scopes were requested.",
+      "SecurityHint": "Only allow access if you recognize this client. The client will receive access only to the services and permissions shown above.",
+      "InvalidRequest": "This authorization request is missing or expired.",
+      "Deny": "Deny",
+      "Allow": "Allow access"
+    }
+  },
   "MENU": {
     "TENANT": "Tenant",
     "ORGANIZATION": "Organization",

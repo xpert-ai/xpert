@@ -1,4 +1,23 @@
 {
+  "Auth": {
+    "McpConsent": {
+      "Eyebrow": "授权请求",
+      "UnknownClient": "某个应用",
+      "RequestsAccess": "请求访问",
+      "ReviewRequest": "确认访问请求",
+      "Loading": "正在加载授权请求…",
+      "Description": "继续前，请确认该客户端请求访问的 MCP 服务和身份权限。",
+      "Client": "客户端",
+      "McpServices": "MCP 服务",
+      "NoMcpService": "未指定 MCP 服务。",
+      "Permissions": "请求的权限",
+      "NoPermissions": "未请求额外的权限范围。",
+      "SecurityHint": "仅在你信任该客户端时允许访问。客户端只能获得上方显示的服务和权限。",
+      "InvalidRequest": "此授权请求缺失或已过期。",
+      "Deny": "拒绝",
+      "Allow": "允许访问"
+    }
+  },
   "Pro": {
     "ContactUs": "联系我们",
     "UpgradePro": "升级成专业版",
