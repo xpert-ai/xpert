@@ -1,13 +1,15 @@
 jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
 import { Dialog } from '@angular/cdk/dialog'
-import { TestBed } from '@angular/core/testing'
+import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import { Subject } from 'rxjs'
 import { CopilotServerService, ToastrService } from '../../../@core'
 import { CopilotConfigFormComponent } from './form.component'
 
 describe('CopilotConfigFormComponent', () => {
   let component: CopilotConfigFormComponent
+  let fixture: ComponentFixture<CopilotConfigFormComponent>
   let dialogClosed: Subject<string | undefined>
 
   beforeEach(() => {
@@ -45,8 +47,15 @@ describe('CopilotConfigFormComponent', () => {
       }
     })
 
-    const fixture = TestBed.createComponent(CopilotConfigFormComponent)
+    fixture = TestBed.createComponent(CopilotConfigFormComponent)
     component = fixture.componentInstance
+  })
+
+  it('uses LLM models for the reasoning provider', () => {
+    fixture.componentRef.setInput('copilot', { role: AiProviderRole.Reasoning })
+    fixture.detectChanges()
+
+    expect(component.defaultModelType()).toBe(AiModelTypeEnum.LLM)
   })
 
   it('notifies its parent after deleting the model provider', () => {
