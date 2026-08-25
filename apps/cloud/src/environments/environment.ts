@@ -10,7 +10,8 @@ export const environment: IEnvironment = {
   DEMO: false,
   deploymentTarget: DEPLOYMENT_TARGET,
   API_BASE_URL: API_BASE_URL,
-  CHATKIT_FRAME_URL
+  CHATKIT_FRAME_URL,
+  mcpOAuthEnabled: false
 }
 
 function getEnvValue(...keys: string[]): string | undefined {

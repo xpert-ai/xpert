@@ -1,131 +1,23 @@
-import { Tool } from '@langchain/core/tools'
-import { XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
-import { MANAGED_QUEUE_SERVICE_TOKEN, type ManagedQueueService } from '@xpert-ai/plugin-sdk'
+import type { StructuredToolInterface } from '@langchain/core/tools'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Inject } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { In } from 'typeorm'
-import { ToolProviderNotFoundError } from '../../errors'
-import { createBuiltinToolset, MCPToolset, ODataToolset } from '../../provider'
-import { OpenAPIToolset } from '../../provider/openapi/openapi-toolset'
-import { BaseToolset } from '../../toolset'
-import { XpertToolsetService } from '../../xpert-toolset.service'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { _BaseToolset } from '../../../shared'
+import { ToolRuntimeService } from '../../../tool-runtime'
 import { ToolsetGetToolsCommand } from '../get-tools.command'
-import { TBuiltinToolsetParams } from '../../../shared'
-import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
-import {
-    createExecutionModelUsageRecorder,
-    XpertAgentExecutionRecordUsageCommand
-} from '../../../xpert-agent-execution'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
-    constructor(
-        private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus,
-        private readonly toolsetService: XpertToolsetService,
-        private readonly modelRuntime: AgentMiddlewareRuntimeService,
-        @Inject(MANAGED_QUEUE_SERVICE_TOKEN)
-        private readonly managedQueue: ManagedQueueService
-    ) {}
+    constructor(private readonly toolRuntime: ToolRuntimeService) {}
 
-    public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-
-        const ids = command.ids
-        if (!ids?.length) {
-            return []
-        }
-        const workspaceId = normalizeWorkspaceId(command.environment?.workspaceId)
-        const originExecutionId = command.environment?.executionId
-        const getExecutionId = command.environment?.getExecutionId
-        const executionIdSource = getExecutionId ?? originExecutionId
+    execute(command: ToolsetGetToolsCommand): Promise<_BaseToolset<StructuredToolInterface>[]> {
         const userId = RequestContext.currentUserId()
-        const usageRecorder = executionIdSource
-            ? createExecutionModelUsageRecorder(executionIdSource, async (executionId, usage) => {
-                  await this.commandBus.execute(new XpertAgentExecutionRecordUsageCommand(executionId, usage))
-              })
-            : undefined
-        const { items: toolsets } = await this.toolsetService.findAll({
-            where: {
-                id: In(ids),
-                ...(workspaceId ? { workspaceId } : {})
-            },
-            relations: ['tools']
-        })
-
-        const scopedModelRuntime = this.modelRuntime.createScopedApi({
-            tenantId,
-            organizationId,
-            userId,
+        return this.toolRuntime.loadToolsets({
+            tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
             workspaceId: command.environment?.workspaceId,
-            projectId: command.environment?.projectId,
-            xpertId: command.environment?.xpertId,
-            conversationId: command.environment?.conversationId,
-            agentKey: command.environment?.agentKey,
-            executionId: originExecutionId,
-            usageCallback: usageRecorder?.usageCallback
+            principal: userId ? { type: 'user', id: userId, userId } : { type: 'service_account', id: 'xpert-runtime' },
+            toolsetIds: command.ids,
+            ...command.environment
         })
-        const getModelProvider = scopedModelRuntime.getModelProvider
-        const baseContext: Omit<TBuiltinToolsetParams, 'modelRuntime'> = {
-            conversationId: command.environment?.conversationId,
-            tenantId,
-            organizationId,
-            // toolsetService: this.toolsetService,
-            commandBus: this.commandBus,
-            queryBus: this.queryBus,
-            userId,
-            projectId: command.environment?.projectId,
-            xpertId: command.environment?.xpertId,
-            agentKey: command.environment?.agentKey,
-            executionId: originExecutionId,
-            signal: command.environment?.signal,
-            env: command.environment?.env,
-            store: command.environment?.store,
-            managedQueue: this.managedQueue
-        }
-
-        return Promise.all(
-            toolsets.map(async (toolset) => {
-                const context: TBuiltinToolsetParams = {
-                    ...baseContext,
-                    modelRuntime: {
-                        createModelClient: scopedModelRuntime.createModelClient,
-                        getModelProvider,
-                        reportUsage: usageRecorder?.reportUsage
-                    }
-                }
-                switch (toolset.category) {
-                    case XpertToolsetCategoryEnum.BUILTIN: {
-                        return await createBuiltinToolset(toolset.type, toolset, context)
-                    }
-                    case XpertToolsetCategoryEnum.API: {
-                        switch (toolset.type) {
-                            case 'openapi': {
-                                return new OpenAPIToolset(toolset, context.modelRuntime.reportUsage)
-                            }
-                            case 'odata': {
-                                return new ODataToolset(toolset)
-                            }
-                            default: {
-                                throw new ToolProviderNotFoundError(`API Tool type '${toolset.type}' not found`)
-                            }
-                        }
-                    }
-                    case XpertToolsetCategoryEnum.MCP: {
-                        return new MCPToolset(toolset, context)
-                    }
-                    default: {
-                        throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)
-                    }
-                }
-            })
-        )
     }
-}
-
-function normalizeWorkspaceId(value?: string | null) {
-    const workspaceId = value?.trim()
-    return workspaceId && workspaceId !== 'null' && workspaceId !== 'undefined' ? workspaceId : null
 }

@@ -142,4 +142,54 @@ describe('ApplicationMetricsRegistry', () => {
             'xpert_chat_requests_total{action="follow_up",from="api",status="queued"} 1'
         )
     })
+
+    it('renders bounded MCP request, tool, auth, rate limit, task, and app metrics', () => {
+        const registry = new ApplicationMetricsRegistry()
+
+        registry.recordMcpRequest({
+            authMethod: 'api_key',
+            durationMs: 250,
+            method: 'tools/call',
+            publicationId: 'publication-1',
+            status: 'success'
+        })
+        registry.recordMcpToolCall({
+            authMethod: 'api_key',
+            durationMs: 125,
+            publicationId: 'publication-1',
+            status: 'success',
+            toolName: 'search'
+        })
+        registry.recordMcpAuthFailure({ authMethod: 'oauth', publicationId: 'publication-1', reason: 'audience' })
+        registry.recordMcpRateLimitRejection({ publicationId: 'publication-1', scope: 'tool' })
+        registry.startMcpTask({ publicationId: 'publication-1' })
+        registry.finishMcpTask({ publicationId: 'publication-1' })
+        registry.startMcpAppInstance({ publicationId: 'publication-1' })
+        registry.finishMcpAppInstance({ publicationId: 'publication-1' })
+        registry.recordMcpAppRpc({ method: 'tools/call', publicationId: 'publication-1', status: 'denied' })
+
+        const output = registry.render()
+
+        expect(output).toContain(
+            'xpert_mcp_requests_total{auth_method="api_key",method="tools/call",publication_id="publication-1",status="success"} 1'
+        )
+        expect(output).toContain(
+            'xpert_mcp_request_duration_seconds_sum{method="tools/call",publication_id="publication-1",status="success"} 0.25'
+        )
+        expect(output).toContain(
+            'xpert_mcp_tool_calls_total{auth_method="api_key",publication_id="publication-1",status="success",tool_name="search"} 1'
+        )
+        expect(output).toContain(
+            'xpert_mcp_tool_call_duration_seconds_sum{publication_id="publication-1",status="success",tool_name="search"} 0.125'
+        )
+        expect(output).toContain(
+            'xpert_mcp_auth_failures_total{auth_method="oauth",publication_id="publication-1",reason="audience"} 1'
+        )
+        expect(output).toContain('xpert_mcp_rate_limit_rejections_total{publication_id="publication-1",scope="tool"} 1')
+        expect(output).toContain('xpert_mcp_tasks_active{publication_id="publication-1"} 0')
+        expect(output).toContain('xpert_mcp_app_instances_active{publication_id="publication-1"} 0')
+        expect(output).toContain(
+            'xpert_mcp_app_rpc_total{method="tools/call",publication_id="publication-1",status="denied"} 1'
+        )
+    })
 })

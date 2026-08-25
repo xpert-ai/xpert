@@ -12,6 +12,8 @@ import {
   IToolTag,
   IXpertTool,
   IXpertToolset,
+  IMcpCapabilityCatalog,
+  IMcpConsumerServerCapabilities,
   OrderTypeEnum,
   ToolProviderCredentials,
   TToolCredentials,
@@ -20,6 +22,7 @@ import {
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectFetchEventSource } from './fetch-event-source'
 import { injectApiBaseUrl } from '../providers'
+import { API_PREFIX } from '../state'
 
 @Injectable({ providedIn: 'root' })
 export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToolset> {
@@ -127,6 +130,19 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
         method: 'POST'
       },
       JSON.stringify(toolset)
+    )
+  }
+
+  discoverMcpCapabilities(workspaceId: string, toolsetId: string) {
+    return this.httpClient.get<IMcpConsumerServerCapabilities[]>(
+      this.apiBaseUrl + `/mcp-consumer/${encodeURIComponent(workspaceId)}/${encodeURIComponent(toolsetId)}/capabilities`
+    )
+  }
+
+  importMcpCapabilities(toolsetId: string) {
+    return this.httpClient.post<IMcpCapabilityCatalog[]>(
+      `${API_PREFIX}/mcp-capability-catalog/toolsets/${encodeURIComponent(toolsetId)}/discover`,
+      {}
     )
   }
 

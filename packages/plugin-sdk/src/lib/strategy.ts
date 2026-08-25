@@ -8,6 +8,7 @@ import {
   GLOBAL_ORGANIZATION_SCOPE,
   ORGANIZATION_METADATA_KEY,
   PLUGIN_METADATA_KEY,
+  PLUGIN_VERSION_METADATA_KEY,
   SYSTEM_GLOBAL_SCOPE,
   resolveTenantGlobalScopeKey
 } from './types'
@@ -20,6 +21,7 @@ export type StrategySource =
   | {
       kind: 'plugin'
       pluginName: string
+      pluginVersion?: string
       scopeKey: string
     }
 
@@ -98,9 +100,11 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
       }
     }
 
+    const pluginVersion = this.reflector.get<string>(PLUGIN_VERSION_METADATA_KEY, target)
     return {
       kind: 'plugin',
       pluginName,
+      ...(pluginVersion ? { pluginVersion } : {}),
       scopeKey: this.reflector.get<string>(ORGANIZATION_METADATA_KEY, target) ?? GLOBAL_ORGANIZATION_SCOPE
     }
   }

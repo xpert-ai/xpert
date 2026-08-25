@@ -33,7 +33,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       menu({ title: 'Scheduled', link: '/chat/tasks' }),
       menu({ title: 'Settings', link: '/settings', admin: true }),
       menu({ title: 'Data', link: '/data' }),
-      menu({ title: 'MCP Monitor', link: '/operations' }),
+      menu({ title: 'MCP Management', link: '/operations' }),
       menu({ title: 'Plugins', link: '/plugins' }),
       menu({ title: 'Model Providers', link: '/copilot/basic', admin: true }),
       menu({ title: 'Xpert Access Requests', link: '/xpert-access-requests', admin: true }),

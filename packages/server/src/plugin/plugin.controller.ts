@@ -747,6 +747,7 @@ function summarizePluginComponents(components: Array<{ componentType: PluginComp
 		total: 0,
 		skills: 0,
 		mcpServers: 0,
+		toolsets: 0,
 		apps: 0,
 		hooks: 0
 	}
@@ -756,13 +757,15 @@ function summarizePluginComponents(components: Array<{ componentType: PluginComp
 			summary.skills += 1
 		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER) {
 			summary.mcpServers += 1
+		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET) {
+			summary.toolsets += 1
 		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.APP) {
 			summary.apps += 1
 		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.HOOK) {
 			summary.hooks += 1
 		}
 	}
-	summary.total = summary.skills + summary.mcpServers + summary.apps + summary.hooks
+	summary.total = summary.skills + summary.mcpServers + summary.toolsets + summary.apps + summary.hooks
 	return summary
 }
 

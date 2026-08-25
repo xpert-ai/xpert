@@ -8,6 +8,7 @@ import {
   getTenantGlobalScopeKey,
   ORGANIZATION_METADATA_KEY,
   PLUGIN_METADATA_KEY,
+  PLUGIN_VERSION_METADATA_KEY,
   setDefaultTenantId
 } from './types'
 import { RequestContext } from './core/context'
@@ -290,6 +291,7 @@ describe('BaseStrategyRegistry', () => {
     class PluginStrategy {}
     Reflect.defineMetadata(TEST_STRATEGY_KEY, 'plugin', PluginStrategy)
     Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/plugin', PluginStrategy)
+    Reflect.defineMetadata(PLUGIN_VERSION_METADATA_KEY, '1.2.3', PluginStrategy)
     Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, 'org-1', PluginStrategy)
 
     const registry = new TestStrategyRegistry<object>()
@@ -301,6 +303,7 @@ describe('BaseStrategyRegistry', () => {
     expect(registry.getSource(new PluginStrategy())).toEqual({
       kind: 'plugin',
       pluginName: '@xpert/plugin',
+      pluginVersion: '1.2.3',
       scopeKey: 'org-1'
     })
   })

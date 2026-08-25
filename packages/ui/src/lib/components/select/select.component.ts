@@ -275,13 +275,14 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
     }
 
     this.zValue.update((selectedValues) => {
-      if (Array.isArray(selectedValues)) {
-        return selectedValues.includes(value) ? selectedValues.filter((v) => v !== value) : [...selectedValues, value]
+      if (this.zMultiple()) {
+        const values = Array.isArray(selectedValues) ? selectedValues : selectedValues === '' ? [] : [selectedValues]
+        return values.includes(value) ? values.filter((selectedValue) => selectedValue !== value) : [...values, value]
       }
 
       return value
     })
-    this.onChange(value)
+    this.onChange(this.zValue())
     this.zSelectionChange.emit(this.zValue())
 
     if (this.zMultiple()) {

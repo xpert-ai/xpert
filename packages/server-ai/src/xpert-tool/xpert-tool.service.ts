@@ -80,12 +80,15 @@ export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTo
             })
         )
         const toolset = toolsets[0]
-        await toolset.initTools()
-        const toolInstance = toolset.getTool(tool.name)
-        const jsonSchema =
-            (<DynamicStructuredTool>toolInstance).lc_kwargs?.schema ??
-            ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
-        const sample = JSONSchemaFaker.generate(jsonSchema as Schema)
-        return sample
+        try {
+            await toolset.initTools()
+            const toolInstance = toolset.getTool(tool.name)
+            const jsonSchema =
+                (<DynamicStructuredTool>toolInstance).lc_kwargs?.schema ??
+                ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
+            return JSONSchemaFaker.generate(jsonSchema as Schema)
+        } finally {
+            await toolset.close().catch((error) => this.#logger.debug(error))
+        }
     }
 }

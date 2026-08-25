@@ -15,6 +15,7 @@ import {
   IPluginUninstallResult,
   IPluginUpdateResult,
   PluginResourceInstallWorkspaceInput,
+  PluginResourceInstallOrganizationInput,
   PluginResourceInstallXpertInput,
   PluginMarketplaceAuthor,
   PluginMarketplaceDetailItem,
@@ -73,11 +74,12 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
   getPluginResourceStates(
     pluginName: string,
     params:
+      | { target: 'organization' }
       | { target: 'workspace'; workspaceId: string }
       | { target: 'xpert'; workspaceId?: string; xpertId: string; agentKey?: string }
   ) {
     let httpParams = new HttpParams().set('target', params.target)
-    if (params.workspaceId) {
+    if ('workspaceId' in params && params.workspaceId) {
       httpParams = httpParams.set('workspaceId', params.workspaceId)
     }
     if (params.target === 'xpert') {
@@ -98,6 +100,13 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
   installResourcesToWorkspace(pluginName: string, input: PluginResourceInstallWorkspaceInput) {
     return this.httpClient.post<IPluginResourceInstallResult>(
       `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/install-workspace`,
+      input
+    )
+  }
+
+  installResourcesToOrganization(pluginName: string, input: PluginResourceInstallOrganizationInput) {
+    return this.httpClient.post<IPluginResourceInstallResult>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/install-organization`,
       input
     )
   }

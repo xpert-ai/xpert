@@ -104,6 +104,69 @@ describe('plugin marketplace metadata', () => {
     })
   })
 
+  it('uses installed marketplace contents as the authoritative set', () => {
+    const marketplaceItems: PluginMarketplaceItem[] = [
+      {
+        name: '@xpert-ai/plugin-finance',
+        targetAppMeta: {
+          xpert: {
+            marketplace: {
+              contents: [
+                {
+                  type: 'tool',
+                  name: 'cut-ir-mcp',
+                  displayName: 'Cut IR MCP Tools'
+                },
+                {
+                  type: 'mcp',
+                  name: 'cut',
+                  displayName: 'Catalog Cut MCP',
+                  icon: {
+                    type: 'font',
+                    value: 'ri-server-line'
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+
+    const enriched = enrichInstalledPluginWithMarketplaceMetadata(
+      installedPlugin({
+        meta: {
+          targetAppMeta: {
+            xpert: {
+              marketplace: {
+                contents: [
+                  {
+                    type: 'mcp',
+                    name: 'cut',
+                    displayName: 'Cut MCP Capabilities'
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }),
+      buildMarketplacePluginMetadataLookup(marketplaceItems)
+    )
+
+    expect(enriched.meta.targetAppMeta?.['xpert']?.marketplace?.contents).toEqual([
+      {
+        type: 'mcp',
+        name: 'cut',
+        displayName: 'Cut MCP Capabilities',
+        icon: {
+          type: 'font',
+          value: 'ri-server-line'
+        }
+      }
+    ])
+  })
+
   it('dedupes assistant template contributions by their effective template id', () => {
     const contributions = mergeMarketplaceContributions(
       [

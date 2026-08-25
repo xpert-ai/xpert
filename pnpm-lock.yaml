@@ -9,6 +9,8 @@ overrides:
   '@langchain/core': 0.3.72
   langchain: 0.3.31
   '@modelcontextprotocol/sdk': 1.12.1
+  '@modelcontextprotocol/core>zod': 4.2.0
+  '@modelcontextprotocol/server>zod': 4.2.0
   '@modelcontextprotocol/ext-apps>@modelcontextprotocol/sdk': 1.29.0
   '@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk': 1.29.0
   zod: 3.25.67
@@ -1248,9 +1250,18 @@ importers:
       '@larksuiteoapi/node-sdk':
         specifier: ^1.30.0
         version: 1.59.0
+      '@modelcontextprotocol/core':
+        specifier: 2.0.0
+        version: 2.0.0
+      '@modelcontextprotocol/node':
+        specifier: 2.0.0
+        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.3)
       '@modelcontextprotocol/sdk':
         specifier: 1.12.1
         version: 1.12.1
+      '@modelcontextprotocol/server':
+        specifier: 2.0.0
+        version: 2.0.0
       '@nestjs/bull':
         specifier: ^11.0.3
         version: 11.0.4(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(bull@4.16.5)
@@ -1380,6 +1391,9 @@ importers:
       isolated-vm:
         specifier: 5.0.4
         version: 5.0.4
+      jose:
+        specifier: ^6.2.9
+        version: 6.2.9
       json-schema-faker:
         specifier: ^0.5.9
         version: 0.5.9
@@ -4049,6 +4063,12 @@ packages:
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
 
+  '@hono/node-server@1.19.17':
+    resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
+
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
     engines: {node: '>=10.10.0'}
@@ -5381,9 +5401,27 @@ packages:
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
 
+  '@modelcontextprotocol/core@2.0.0':
+    resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
+    engines: {node: '>=20'}
+
+  '@modelcontextprotocol/node@2.0.0':
+    resolution: {integrity: sha512-Y4hAC2XdGDUdDOCbLDOCA4+aL3NUldjsOWlDL/YwpAxrPhRm1xHd7lZ+mLacvZ9t3PaH28wgNoaLQGrIk1P2pg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@modelcontextprotocol/server': ^2.0.0
+      hono: ^4.11.4
+    peerDependenciesMeta:
+      hono:
+        optional: true
+
   '@modelcontextprotocol/sdk@1.12.1':
     resolution: {integrity: sha512-KG1CZhZfWg+u8pxeM/mByJDScJSrjjxLc8fwQqbsS8xCjBmQfMNEBTotYdNanKekepnfRI85GtgQlctLFpcYPw==}
     engines: {node: '>=18'}
+
+  '@modelcontextprotocol/server@2.0.0':
+    resolution: {integrity: sha512-YhHWdHfpFMQfd0prsEnxKeS3Qz3ytIGmsS0sth4KDjnacIT7hxk6hXHkJ9KysxlkvTM+WZAtQbbcUhdoP4Hvtw==}
+    engines: {node: '>=20'}
 
   '@module-federation/bridge-react-webpack-plugin@0.21.6':
     resolution: {integrity: sha512-lJMmdhD4VKVkeg8RHb+Jwe6Ou9zKVgjtb1inEURDG/sSS2ksdZA8pVKLYbRPRbdmjr193Y8gJfqFbI2dqoyc/g==}
@@ -13249,6 +13287,10 @@ packages:
     resolution: {integrity: sha512-eSmmWE5bZTK2Nou4g0AI3zZ9rswp7GRKoKXS1BLUkvPviOqs4YTN1djQIqrXy9k5gEtdLPy86JjRwsNM9tnDcA==}
     engines: {node: '>=0.10.0'}
 
+  hono@4.13.3:
+    resolution: {integrity: sha512-r8AO2mYHoLxSHkgafNeC/BXyb2vWRxD3jem4Ts+ptav8oTG5FIRifAjuJEmZI4bSvvc2ns0GxmIYiZnHqN3mMw==}
+    engines: {node: '>=16.9.0'}
+
   hookified@1.15.1:
     resolution: {integrity: sha512-MvG/clsADq1GPM2KGo2nyfaWVyn9naPiXrqIe4jYjXNZQt238kWyOGrsyc/DmRAQ+Re6yeo6yX/yoNCG5KAEVg==}
 
@@ -14253,6 +14295,9 @@ packages:
   jmespath@0.16.0:
     resolution: {integrity: sha512-9FzQjJ7MATs1tSpnco1K6ayiYE3figslrXA72G2HQ/n76RzvYlofyi5QM+iX4YRs/pu3yzxlVQSST23+dMDknw==}
     engines: {node: '>= 0.6.0'}
+
+  jose@6.2.9:
+    resolution: {integrity: sha512-XrchZOFZUl/T3vTwRe8XK+cJrGtMF4th1ARnDfwbBXFKThGhlsxEE4Zu03AD/bjJSt/9jT/mxrOCkJWOg77aPA==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -20954,6 +20999,9 @@ packages:
   zod@3.25.67:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
+  zod@4.2.0:
+    resolution: {integrity: sha512-Bd5fw9wlIhtqCCxotZgdTOMwGm1a0u75wARVEY9HMs1X17trvA/lMi4+MGK5EUfYkXVTbX8UDiDKW4OgzHVUZw==}
+
   zone.js@0.16.2:
     resolution: {integrity: sha512-Eky7p2Z1Ig3NnbfodSPoARCjKBSTFMnE/ACsP1L/XJEfY4SdOFce19BsUCWVwL6K5ABZFy5J3bjcMWffX+YM3Q==}
 
@@ -25273,6 +25321,10 @@ snapshots:
 
   '@hapi/hoek@9.3.0': {}
 
+  '@hono/node-server@1.19.17(hono@4.13.3)':
+    dependencies:
+      hono: 4.13.3
+
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
@@ -26619,6 +26671,17 @@ snapshots:
 
   '@mixmark-io/domino@2.2.0': {}
 
+  '@modelcontextprotocol/core@2.0.0':
+    dependencies:
+      zod: 4.2.0
+
+  '@modelcontextprotocol/node@2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.3)':
+    dependencies:
+      '@hono/node-server': 1.19.17(hono@4.13.3)
+      '@modelcontextprotocol/server': 2.0.0
+    optionalDependencies:
+      hono: 4.13.3
+
   '@modelcontextprotocol/sdk@1.12.1':
     dependencies:
       ajv: 6.12.6
@@ -26634,6 +26697,11 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@3.25.67)
     transitivePeerDependencies:
       - supports-color
+
+  '@modelcontextprotocol/server@2.0.0':
+    dependencies:
+      '@modelcontextprotocol/core': 2.0.0
+      zod: 4.2.0
 
   '@module-federation/bridge-react-webpack-plugin@0.21.6':
     dependencies:
@@ -36176,6 +36244,8 @@ snapshots:
     dependencies:
       parse-passwd: 1.0.0
 
+  hono@4.13.3: {}
+
   hookified@1.15.1: {}
 
   hosted-git-info@2.8.9: {}
@@ -36544,7 +36614,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.18.1(debug@4.4.3))
+      retry-axios: 2.6.0(axios@1.18.1)
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -37461,6 +37531,8 @@ snapshots:
   jiti@2.7.0: {}
 
   jmespath@0.16.0: {}
+
+  jose@6.2.9: {}
 
   joycon@3.1.1: {}
 
@@ -42705,7 +42777,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.18.1(debug@4.4.3)):
+  retry-axios@2.6.0(axios@1.18.1):
     dependencies:
       axios: 1.18.1(debug@4.4.3)
 
@@ -45909,6 +45981,8 @@ snapshots:
       zod: 3.25.67
 
   zod@3.25.67: {}
+
+  zod@4.2.0: {}
 
   zone.js@0.16.2: {}
 

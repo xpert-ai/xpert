@@ -14,6 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from './toolset'
 import type { AgentMiddlewareModelProviderConnection, AgentMiddlewareRuntimeApi } from '../agent/middleware/runtime'
 import type { ManagedQueueService } from '../managed-queue'
+import type { McpCapabilityDefinitions, McpCapabilityRuntimeProvider } from '../mcp'
 
 /**
  * The context params of creating toolset
@@ -49,6 +50,9 @@ export type TBuiltinToolsetParams = TToolsetParams & {
   managedQueue?: ManagedQueueService
   /** Installation scope used to route jobs back to this plugin instance. */
   pluginScopeKey?: string
+  /** Package provenance used to resolve plugin-owned MCP App bundles. */
+  pluginName?: string
+  pluginVersion?: string
 }
 
 export interface IBuiltinToolset {
@@ -57,7 +61,7 @@ export interface IBuiltinToolset {
 
 export abstract class BuiltinToolset<T extends StructuredToolInterface = StructuredToolInterface, C = TToolCredentials>
   extends BaseToolset<T>
-  implements IBuiltinToolset
+  implements IBuiltinToolset, McpCapabilityRuntimeProvider
 {
   static provider = ''
   protected logger = new Logger(this.constructor.name)
@@ -65,6 +69,7 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
   providerType: XpertToolsetCategoryEnum.BUILTIN
 
   credentialsSchema?: { [key: string]: ToolProviderCredentials }
+  protected mcpCapabilities: McpCapabilityDefinitions = {}
 
   get tenantId() {
     return this.params?.tenantId
@@ -114,6 +119,17 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
 
   getCredentials() {
     return this.toolset?.credentials as C
+  }
+
+  getMcpCapabilityDefinitions(): Readonly<McpCapabilityDefinitions> {
+    return this.mcpCapabilities
+  }
+
+  getMcpCapabilitySource() {
+    return {
+      ...(this.params?.pluginName ? { pluginName: this.params.pluginName } : {}),
+      ...(this.params?.pluginVersion ? { pluginVersion: this.params.pluginVersion } : {})
+    }
   }
 
   getToolTitle(name: string): string | I18nObject {

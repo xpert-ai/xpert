@@ -69,6 +69,12 @@ describe('plugin bundle manifest', () => {
 			artifactNamespace: 'xpertai_helper',
 			skills: './skills',
 			mcpServers: './mcp.json',
+			toolsets: {
+				cut: {
+					provider: 'cut',
+					name: 'Cut MCP Capabilities'
+				}
+			},
 			apps: './.app.json',
 			hooks: './hooks/hooks.json',
 			interface: {
@@ -108,7 +114,7 @@ describe('plugin bundle manifest', () => {
 		expect(manifest?.manifest.interface?.displayName).toBe('XpertAI Helper')
 
 		const components = collectPluginBundleComponents(root, manifest.manifest)
-		expect(components).toHaveLength(5)
+		expect(components).toHaveLength(6)
 		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.SKILL)?.componentKey).toBe(
 			'hello'
 		)
@@ -124,6 +130,13 @@ describe('plugin bundle manifest', () => {
 		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER)?.componentKey).toBe(
 			'docs'
 		)
+		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET)).toMatchObject({
+			componentKey: 'cut',
+			config: {
+				provider: 'cut',
+				name: 'Cut MCP Capabilities'
+			}
+		})
 		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.APP)?.componentKey).toBe('drive')
 		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.ASSET)?.sourcePath).toBe(
 			'./assets/composer-icon.svg'
