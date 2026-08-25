@@ -1,6 +1,10 @@
 import {
     AiModelTypeEnum,
     AiProviderRole,
+    AssistantBindingScope,
+    AssistantCode,
+    ICopilotWithProvider,
+    IXpert,
     LanguagesEnum,
     RolesEnum,
     TCopilotModel,
@@ -34,6 +38,8 @@ import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { MembershipService } from '../membership'
 import { ModelAccessService } from '../model-access'
 import { ModelGatewayService } from '../model-gateway'
+import { AssistantBindingService } from '../assistant-binding'
+import { PluginResourceInstallResult, PluginTemplateInstallCommand } from '../plugin-resource'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
@@ -62,6 +68,9 @@ type WorkspaceWithId = {
 
 const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
 const CLAWXPERT_TEMPLATE_KEY = 'xpert-my-claw-xpert'
+const CLAWXPERT_NAME = 'clawxpert'
+const CLAWXPERT_TITLE = 'ClawXpert'
+const CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial ClawXpert bootstrap release.'
 
 type BootstrapModelScanContext = {
     nodeType?: string
@@ -93,6 +102,7 @@ export class ServerAIBootstrapService {
         private readonly xpertTemplateService: XpertTemplateService,
         private readonly templateSkillSyncService: TemplateSkillSyncService,
         private readonly pluginManagementService: PluginManagementService,
+        private readonly assistantBindingService: AssistantBindingService,
         private readonly membershipService: MembershipService,
         private readonly modelAccessService: ModelAccessService,
         private readonly modelGatewayService: ModelGatewayService
@@ -149,6 +159,7 @@ export class ServerAIBootstrapService {
     async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
         const user = await this.userService.findOne(event.userId, { relations: ['role'] })
         let workspaceId: string | null = null
+        let environmentId: string | null = null
         let createdNewUserDefaultWorkspace = false
 
         await this.membershipService.ensureTenantDefaultMembership({
@@ -159,8 +170,9 @@ export class ServerAIBootstrapService {
         await this.runInOrganizationContext(user, event.organizationId, async () => {
             if (this.shouldBootstrapPersonalWorkspace(user)) {
                 const { workspace, created } = await this.ensureUserWorkspace(event.organizationId, user)
-                await this.ensureDefaultEnvironment(workspace.id)
+                const environment = await this.ensureDefaultEnvironment(workspace.id)
                 workspaceId = workspace.id
+                environmentId = environment.id
                 createdNewUserDefaultWorkspace = created
             }
 
@@ -178,6 +190,23 @@ export class ServerAIBootstrapService {
                 userId: event.userId,
                 assignedById: event.userId
             })
+
+            if (workspaceId && environmentId) {
+                try {
+                    await this.initializeClawXpertIfModelAvailable({
+                        organizationId: event.organizationId,
+                        workspaceId,
+                        environmentId,
+                        user
+                    })
+                } catch (error) {
+                    this.logger.warn(
+                        `Failed initializing ClawXpert for user '${event.userId}' in organization '${event.organizationId}': ${getErrorMessage(
+                            error
+                        )}`
+                    )
+                }
+            }
         })
 
         return {
@@ -425,11 +454,108 @@ export class ServerAIBootstrapService {
         })
     }
 
-    private async preinstallClawXpertTemplatePlugins(organizationId: string, owner: IUser) {
+    private async initializeClawXpertIfModelAvailable({
+        organizationId,
+        workspaceId,
+        environmentId,
+        user
+    }: {
+        organizationId: string
+        workspaceId: string
+        environmentId: string
+        user: IUser
+    }) {
+        const existingBinding = await this.assistantBindingService.getBinding(
+            AssistantCode.CLAWXPERT,
+            AssistantBindingScope.USER
+        )
+        if (existingBinding?.assistantId) {
+            return
+        }
+
+        const copilotModel = await this.resolveFirstAvailableLlmModel()
+        if (!copilotModel) {
+            return
+        }
+
+        await this.preinstallClawXpertTemplatePlugins(organizationId, user)
+
+        let clawXpert = await this.findUserClawXpert(workspaceId, user.id)
+        if (!clawXpert) {
+            const language = Object.values(LanguagesEnum).find((value) => value === user.preferredLanguage)
+            const installResult = await this.commandBus.execute<
+                PluginTemplateInstallCommand,
+                PluginResourceInstallResult
+            >(
+                new PluginTemplateInstallCommand(
+                    CLAWXPERT_TEMPLATE_KEY,
+                    workspaceId,
+                    language ?? LanguagesEnum.English,
+                    {
+                        name: `${CLAWXPERT_NAME}-${workspaceId}`,
+                        title: CLAWXPERT_TITLE,
+                        copilotModel
+                    }
+                )
+            )
+            if (!installResult.xpert?.id) {
+                throw new Error('ClawXpert template installation did not return an xpert id')
+            }
+            clawXpert = installResult.xpert
+        }
+
+        if (!clawXpert.publishAt) {
+            clawXpert = await this.xpertService.publish(
+                clawXpert.id,
+                false,
+                environmentId,
+                CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
+            )
+        }
+
+        await this.assistantBindingService.upsertBinding({
+            code: AssistantCode.CLAWXPERT,
+            scope: AssistantBindingScope.USER,
+            assistantId: clawXpert.id
+        })
+    }
+
+    private async resolveFirstAvailableLlmModel(): Promise<TCopilotModel | null> {
+        const copilots = await this.queryBus.execute<FindCopilotModelsQuery, ICopilotWithProvider[]>(
+            new FindCopilotModelsQuery(AiModelTypeEnum.LLM)
+        )
+        for (const copilot of copilots ?? []) {
+            const model = copilot.providerWithModels?.models?.[0]
+            if (copilot.id && model?.model) {
+                return {
+                    copilotId: copilot.id,
+                    model: model.model,
+                    modelType: AiModelTypeEnum.LLM
+                }
+            }
+        }
+
+        return null
+    }
+
+    private findUserClawXpert(workspaceId: string, userId: string): Promise<IXpert | null> {
+        return this.xpertService.repository
+            .createQueryBuilder('xpert')
+            .where('xpert.workspaceId = :workspaceId', { workspaceId })
+            .andWhere('xpert.createdById = :userId', { userId })
+            .andWhere('xpert.latest = true')
+            .andWhere('xpert.deletedAt IS NULL')
+            .andWhere(`COALESCE((xpert.options)::jsonb -> 'templateSource' ->> 'templateKey', '') = :templateKey`, {
+                templateKey: CLAWXPERT_TEMPLATE_KEY
+            })
+            .getOne()
+    }
+
+    private async preinstallClawXpertTemplatePlugins(organizationId: string, user: IUser) {
         try {
             const template = await this.xpertTemplateService.getTemplateDetail(
                 CLAWXPERT_TEMPLATE_KEY,
-                (owner.preferredLanguage as LanguagesEnum) ?? LanguagesEnum.English
+                (user.preferredLanguage as LanguagesEnum) ?? LanguagesEnum.English
             )
             const pluginNames = this.readTemplateRequiredPluginNames(template.dependencies)
             for (const pluginName of pluginNames) {
