@@ -251,11 +251,13 @@ jest.mock('./clawxpert.facade', () => ({
 
 import { Component, Input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
+import { Router } from '@angular/router'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
+  KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
   type IconDefinition,
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
@@ -1129,6 +1131,79 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance.query).toEqual({
       selectionId: 'record-1',
       parameters: { section: 'features' }
+    })
+  })
+
+  it('opens a provider-composed knowledge workbench view at the cited document chunk', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('knowledgebase_workbench__knowledgebase_workbench', {
+          title: { en_US: 'Knowledge Workbench', zh_Hans: '知识工作台' }
+        })
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    getRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-auto-1',
+        documentId: 'doc-auto-1',
+        chunkId: 'chunk-auto-7'
+      }
+    })
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'knowledgebase_workbench__knowledgebase_workbench',
+        query: {
+          parameters: {
+            knowledgebaseId: 'kb-auto-1',
+            documentId: 'doc-auto-1',
+            chunkId: 'chunk-auto-7'
+          }
+        }
+      })
+    )
+  })
+
+  it('falls back to the knowledge document deep link when the workbench view is unavailable', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const router = TestBed.inject(Router)
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    getRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-auto-1',
+        documentId: 'doc-auto-1',
+        chunkId: 'chunk-auto-7',
+        page: 4,
+        sourceBlockIds: ['block-auto-2'],
+        evidenceText: 'Automotive motor rated voltage is 800 V.'
+      }
+    })
+    await settle(fixture)
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-auto-1', 'documents', 'doc-auto-1'], {
+      queryParams: {
+        chunkId: 'chunk-auto-7',
+        view: 'analysis',
+        page: '4',
+        block: 'block-auto-2'
+      },
+      state: {
+        knowledgeEvidence: {
+          text: 'Automotive motor rated voltage is 800 V.',
+          chunkId: 'chunk-auto-7',
+          page: 4,
+          sourceBlockIds: ['block-auto-2']
+        }
+      }
     })
   })
 

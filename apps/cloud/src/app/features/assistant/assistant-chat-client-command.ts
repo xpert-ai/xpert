@@ -50,6 +50,13 @@ export function registerAssistantChatSendMessageCommand(
       }
     }
 
+    // ChatKit queues follow-ups while the current thread is still running, even
+    // when sendUserMessage receives newThread: true. Resetting the active thread
+    // first mirrors ChatKit's own "New thread" action and prevents a Workbench
+    // send from inheriting a stuck or still-running conversation.
+    if (message.newThread) {
+      await control.setThreadId(null)
+    }
     await control.sendUserMessage(message)
     return {
       success: true,
@@ -103,12 +110,14 @@ function toSendUserMessageParams(payload: unknown): HostSendUserMessageParams {
   const state = isRecord(record['state']) ? record['state'] : undefined
   const followUpMode = getString(record['followUpMode'])
   const clientMessageId = getString(record['clientMessageId'])
+  const newThread = record['newThread'] === true
   const message: HostSendUserMessageParams = {
     text: getString(record['text']) ?? getString(record['input']) ?? '',
     ...(attachments.length ? { attachments } : {}),
     ...(references.length ? { references } : {}),
     ...(state ? { state } : {}),
     ...(followUpMode ? { followUpMode: followUpMode as SendUserMessageParams['followUpMode'] } : {}),
+    ...(newThread ? { newThread: true } : {}),
     ...(files.length ? { files } : {}),
     ...(clientMessageId ? { clientMessageId } : {})
   }

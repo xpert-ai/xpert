@@ -8,6 +8,9 @@ export type KnowledgebaseCitationEffectTarget = {
   knowledgebaseId?: string
   documentId: string
   chunkId?: string
+  page?: number
+  sourceBlockIds?: string[]
+  evidenceText?: string
   documentName?: string
   citationUrl?: string
 }
@@ -34,6 +37,9 @@ export function getKnowledgebaseCitationTargetFromEffectEvent(
   const documentId = readString(data?.['documentId'])
   const knowledgebaseId = readString(data?.['knowledgebaseId'])
   const chunkId = readString(data?.['chunkId'])
+  const page = readPositiveInteger(data?.['page'])
+  const sourceBlockIds = readStringArray(data?.['sourceBlockIds'])
+  const evidenceText = readString(data?.['evidenceText'])
   const documentName = readString(data?.['documentName'])
   const citationUrl = readString(data?.['citationUrl'])
   if (!documentId) {
@@ -44,6 +50,9 @@ export function getKnowledgebaseCitationTargetFromEffectEvent(
     documentId,
     ...(knowledgebaseId ? { knowledgebaseId } : {}),
     ...(chunkId ? { chunkId } : {}),
+    ...(page ? { page } : {}),
+    ...(sourceBlockIds.length ? { sourceBlockIds } : {}),
+    ...(evidenceText ? { evidenceText } : {}),
     ...(documentName ? { documentName } : {}),
     ...(citationUrl ? { citationUrl } : {})
   }
@@ -85,6 +94,23 @@ function createEventId(parts: Array<string | undefined>) {
 
 function readString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function readPositiveInteger(value: unknown) {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : 0
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+function readStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 20)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

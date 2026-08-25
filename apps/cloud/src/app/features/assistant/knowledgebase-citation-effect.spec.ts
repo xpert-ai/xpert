@@ -13,6 +13,9 @@ describe('knowledgebase citation effect helpers', () => {
           knowledgebaseId: 'kb-1',
           documentId: 'doc-1',
           chunkId: 'chunk-1',
+          page: 8,
+          sourceBlockIds: ['block-3', 'block-4'],
+          evidenceText: 'Automotive motor protection shall be IP67.',
           documentName: 'handbook.pdf',
           citationUrl: 'xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1'
         }
@@ -35,6 +38,9 @@ describe('knowledgebase citation effect helpers', () => {
           knowledgebaseId: 'kb-1',
           documentId: 'doc-1',
           chunkId: 'chunk-1',
+          page: 8,
+          sourceBlockIds: ['block-3', 'block-4'],
+          evidenceText: 'Automotive motor protection shall be IP67.',
           documentName: 'handbook.pdf',
           citationUrl: 'xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1'
         }
