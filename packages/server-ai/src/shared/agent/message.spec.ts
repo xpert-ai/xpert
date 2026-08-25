@@ -17,7 +17,9 @@ jest.mock('@xpert-ai/server-core', () => {
 })
 
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
+import type { TChatRequestHuman } from '@xpert-ai/contracts'
 import { GetStorageFileQuery } from '@xpert-ai/server-core'
+import fs from 'fs'
 import { GetFileAssetByStorageFileQuery } from '../../file-understanding/queries/get-file-asset-by-storage-file.query'
 import { GetFileAssetQuery } from '../../file-understanding/queries/get-file-asset.query'
 import { GetFilePreviewQuery } from '../../file-understanding/queries/get-file-preview.query'
@@ -290,6 +292,46 @@ describe('createHumanMessage', () => {
                 text: expect.stringContaining('[Image] reference-only.png')
             }
         ])
+    })
+
+    it('preserves audio attachments as standard LangChain audio blocks', async () => {
+        const readFile = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(Buffer.from('audio bytes'))
+
+        const message = await createHumanMessage(
+            {
+                execute: jest.fn()
+            } as unknown as CommandBus,
+            {
+                execute: jest.fn()
+            } as unknown as QueryBus,
+            {
+                human: {
+                    input: 'Transcribe this recording',
+                    files: [
+                        {
+                            filePath: '/tmp/mcp-app-audio.wav',
+                            originalName: 'mcp-app-audio.wav',
+                            mimeType: 'audio/wav'
+                        }
+                    ]
+                } as unknown as TChatRequestHuman
+            },
+            undefined
+        )
+
+        expect(message.content).toEqual([
+            {
+                type: 'audio',
+                source_type: 'base64',
+                data: Buffer.from('audio bytes').toString('base64'),
+                mime_type: 'audio/wav'
+            },
+            {
+                type: 'text',
+                text: 'Transcribe this recording'
+            }
+        ])
+        expect(readFile).toHaveBeenCalledWith('/tmp/mcp-app-audio.wav')
     })
 
     it('overrides client-supplied image workspace paths with the authoritative file asset path', async () => {

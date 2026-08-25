@@ -50,5 +50,6 @@ export type IEnvironment = {
 
   API_BASE_URL: string
   CHATKIT_FRAME_URL: string
+  mcpOAuthEnabled: boolean
   settingsExtensions?: SettingsExtensions
 }

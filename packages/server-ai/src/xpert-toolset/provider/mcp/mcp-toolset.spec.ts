@@ -8,7 +8,7 @@ describe('MCPToolset transport cleanup', () => {
         expect(content).toContain('function omitSignalFromRunnableConfig')
         expect(content).toContain('delete nextConfig.signal')
         expect(content).toContain('const result = await tool.func(input, runManager, runnableConfig)')
-        expect(content).toContain('.map((tool) => wrapMCPTool(tool, client, this.toolset))')
+        expect(content).toContain('wrapMCPTool(tool, client, this.toolset, this.params?.userId)')
     })
 
     it('force-closes EventSource transports before and after client close', () => {

@@ -15,7 +15,7 @@ import {
     resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 
-export type PluginResourceInstallTarget = 'workspace' | 'xpert'
+export type PluginResourceInstallTarget = 'organization' | 'workspace' | 'xpert'
 
 export function isPluginResourceInstallableForTarget(
     componentType: PluginComponentType,
@@ -23,6 +23,9 @@ export function isPluginResourceInstallableForTarget(
 ) {
     if (!target) {
         return componentType !== PLUGIN_COMPONENT_TYPE.ASSET
+    }
+    if (target === 'organization') {
+        return componentType === PLUGIN_COMPONENT_TYPE.TOOLSET
     }
     if (target === 'workspace') {
         return (

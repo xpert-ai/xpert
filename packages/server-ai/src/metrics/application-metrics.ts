@@ -44,6 +44,26 @@ type ToolComponentMetricInput = {
     data?: unknown
 }
 
+type McpRequestMetricInput = {
+    publicationId?: MetricLabelValue
+    method?: MetricLabelValue
+    status?: MetricLabelValue
+    authMethod?: MetricLabelValue
+    durationMs?: number | null
+}
+
+type McpToolCallMetricInput = {
+    publicationId?: MetricLabelValue
+    toolName?: MetricLabelValue
+    status?: MetricLabelValue
+    authMethod?: MetricLabelValue
+    durationMs?: number | null
+}
+
+type McpPublicationMetricInput = {
+    publicationId?: MetricLabelValue
+}
+
 class CounterMetric {
     private readonly samples = new Map<string, { labels: MetricLabels; value: number }>()
 
@@ -219,6 +239,30 @@ export class ApplicationMetricsRegistry {
     )
     private readonly toolCalls = new CounterMetric('xpert_tool_calls_total', 'Total Xpert tool calls.')
     private readonly toolDuration = new HistogramMetric('xpert_tool_duration_seconds', 'Xpert tool call duration.')
+    private readonly mcpRequests = new CounterMetric('xpert_mcp_requests_total', 'Total Xpert MCP requests.')
+    private readonly mcpRequestDuration = new HistogramMetric(
+        'xpert_mcp_request_duration_seconds',
+        'Xpert MCP request duration.'
+    )
+    private readonly mcpToolCalls = new CounterMetric('xpert_mcp_tool_calls_total', 'Total Xpert MCP tool calls.')
+    private readonly mcpToolCallDuration = new HistogramMetric(
+        'xpert_mcp_tool_call_duration_seconds',
+        'Xpert MCP tool call duration.'
+    )
+    private readonly mcpAuthFailures = new CounterMetric(
+        'xpert_mcp_auth_failures_total',
+        'Total rejected Xpert MCP authentication attempts.'
+    )
+    private readonly mcpRateLimitRejections = new CounterMetric(
+        'xpert_mcp_rate_limit_rejections_total',
+        'Total rejected Xpert MCP requests due to rate limits.'
+    )
+    private readonly mcpTasksActive = new GaugeMetric('xpert_mcp_tasks_active', 'Active Xpert MCP tasks.')
+    private readonly mcpAppInstancesActive = new GaugeMetric(
+        'xpert_mcp_app_instances_active',
+        'Active Xpert MCP app instances.'
+    )
+    private readonly mcpAppRpc = new CounterMetric('xpert_mcp_app_rpc_total', 'Total Xpert MCP app RPC calls.')
 
     constructor() {
         this.reset()
@@ -236,6 +280,15 @@ export class ApplicationMetricsRegistry {
         this.llmResponseLatency.reset()
         this.toolCalls.reset()
         this.toolDuration.reset()
+        this.mcpRequests.reset()
+        this.mcpRequestDuration.reset()
+        this.mcpToolCalls.reset()
+        this.mcpToolCallDuration.reset()
+        this.mcpAuthFailures.reset()
+        this.mcpRateLimitRejections.reset()
+        this.mcpTasksActive.reset()
+        this.mcpAppInstancesActive.reset()
+        this.mcpAppRpc.reset()
         this.info.set({ service: process.env.OTEL_SERVICE_NAME || process.env.SERVICE_NAME || 'xpert-api' }, 1)
     }
 
@@ -339,6 +392,85 @@ export class ApplicationMetricsRegistry {
         this.recordToolMessage(mergeToolMessageMetricInput(previousData, data))
     }
 
+    recordMcpRequest(input: Required<Pick<McpRequestMetricInput, 'status'>> & McpRequestMetricInput) {
+        const labels = {
+            auth_method: labelValue(input.authMethod),
+            method: labelValue(input.method),
+            publication_id: labelValue(input.publicationId),
+            status: labelValue(input.status)
+        }
+        this.mcpRequests.inc(labels)
+        this.observeDuration(
+            this.mcpRequestDuration,
+            {
+                method: labels.method,
+                publication_id: labels.publication_id,
+                status: labels.status
+            },
+            input.durationMs
+        )
+    }
+
+    recordMcpToolCall(input: Required<Pick<McpToolCallMetricInput, 'status'>> & McpToolCallMetricInput) {
+        const labels = {
+            auth_method: labelValue(input.authMethod),
+            publication_id: labelValue(input.publicationId),
+            status: labelValue(input.status),
+            tool_name: labelValue(input.toolName)
+        }
+        this.mcpToolCalls.inc(labels)
+        this.observeDuration(
+            this.mcpToolCallDuration,
+            {
+                publication_id: labels.publication_id,
+                status: labels.status,
+                tool_name: labels.tool_name
+            },
+            input.durationMs
+        )
+    }
+
+    recordMcpAuthFailure(
+        input: McpPublicationMetricInput & { authMethod?: MetricLabelValue; reason?: MetricLabelValue }
+    ) {
+        this.mcpAuthFailures.inc({
+            auth_method: labelValue(input.authMethod),
+            publication_id: labelValue(input.publicationId),
+            reason: labelValue(input.reason)
+        })
+    }
+
+    recordMcpRateLimitRejection(input: McpPublicationMetricInput & { scope?: MetricLabelValue }) {
+        this.mcpRateLimitRejections.inc({
+            publication_id: labelValue(input.publicationId),
+            scope: labelValue(input.scope)
+        })
+    }
+
+    startMcpTask(input: McpPublicationMetricInput) {
+        this.mcpTasksActive.inc({ publication_id: labelValue(input.publicationId) })
+    }
+
+    finishMcpTask(input: McpPublicationMetricInput) {
+        this.mcpTasksActive.dec({ publication_id: labelValue(input.publicationId) })
+    }
+
+    startMcpAppInstance(input: McpPublicationMetricInput) {
+        this.mcpAppInstancesActive.inc({ publication_id: labelValue(input.publicationId) })
+    }
+
+    finishMcpAppInstance(input: McpPublicationMetricInput) {
+        this.mcpAppInstancesActive.dec({ publication_id: labelValue(input.publicationId) })
+    }
+
+    recordMcpAppRpc(input: McpPublicationMetricInput & { method?: MetricLabelValue; status?: MetricLabelValue }) {
+        this.mcpAppRpc.inc({
+            method: labelValue(input.method),
+            publication_id: labelValue(input.publicationId),
+            status: labelValue(input.status)
+        })
+    }
+
     render() {
         return (
             [
@@ -352,7 +484,16 @@ export class ApplicationMetricsRegistry {
                 this.llmCost.render(),
                 this.llmResponseLatency.render(),
                 this.toolCalls.render(),
-                this.toolDuration.render()
+                this.toolDuration.render(),
+                this.mcpRequests.render(),
+                this.mcpRequestDuration.render(),
+                this.mcpToolCalls.render(),
+                this.mcpToolCallDuration.render(),
+                this.mcpAuthFailures.render(),
+                this.mcpRateLimitRejections.render(),
+                this.mcpTasksActive.render(),
+                this.mcpAppInstancesActive.render(),
+                this.mcpAppRpc.render()
             ].join('\n') + '\n'
         )
     }

@@ -1,6 +1,6 @@
 import { hasInstallableMarketplaceContribution } from './plugin-marketplace-installability'
 
-const displayOnlyTypes = ['app', 'tool', 'view', 'feature', 'middleware'] as const
+const displayOnlyTypes = ['app', 'tool', 'mcp', 'view', 'feature', 'middleware'] as const
 const shortcutTypes = ['assistant-template', 'skill', 'hook'] as const
 
 describe('plugin marketplace installability', () => {

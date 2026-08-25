@@ -20,6 +20,7 @@ export const prodEnvironment: IEnvironment = {
     IS_DOCKER: process.env.IS_DOCKER
   },
   pro: process.env.PRO === 'true',
+  mcpOAuthEnabled: false,
 
   secretsEncryptionKey: process.env.SECRETS_ENCRYPTION_KEY || 'default_secrets_encryption_key',
   EXPRESS_SESSION_SECRET: 'xpert',

@@ -6,5 +6,6 @@ export const environment: IEnvironment = {
   DEMO: false,
   deploymentTarget: 'local',
   API_BASE_URL: 'http://localhost:3000',
-  CHATKIT_FRAME_URL: '/chatkit'
+  CHATKIT_FRAME_URL: '/chatkit',
+  mcpOAuthEnabled: false
 }

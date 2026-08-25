@@ -36,6 +36,7 @@ export const PLUGIN_LOAD_STATUS = {
 export const PLUGIN_COMPONENT_TYPE = {
   SKILL: 'skill',
   MCP_SERVER: 'mcp_server',
+  TOOLSET: 'toolset',
   APP: 'app',
   HOOK: 'hook',
   ASSET: 'asset'
@@ -111,6 +112,7 @@ export type PluginMarketplaceContributionType =
   | 'feature'
   | 'skill'
   | 'tool'
+  | 'mcp'
   | 'hook'
   | 'assistant-template'
   | (string & {})
@@ -215,6 +217,8 @@ export interface XpertPluginBundleManifest {
   keywords?: string[]
   skills?: string | string[]
   mcpServers?: string | string[] | JSONValue
+  /** Host-native toolset providers contributed by the loaded plugin. */
+  toolsets?: string | string[] | JSONValue
   apps?: string | string[] | JSONValue
   connectors?: string | string[] | JSONValue
   hooks?: string | string[] | JSONValue | JSONValue[]
@@ -702,6 +706,7 @@ export interface PluginComponentSummary {
   total: number
   skills: number
   mcpServers: number
+  toolsets: number
   apps: number
   hooks: number
 }
@@ -749,7 +754,7 @@ export interface IPluginResourceInstallation extends IBasePerTenantAndOrganizati
   pluginName: PluginName
   componentType: PluginComponentType
   componentKey: string
-  workspaceId: string
+  workspaceId?: string | null
   xpertId?: string | null
   agentKey?: string | null
   runtimeType: PluginResourceRuntimeType
@@ -769,6 +774,10 @@ export interface IPluginResourceInstallResult {
 
 export interface PluginResourceInstallWorkspaceInput {
   workspaceId: string
+  components?: PluginResourceComponentSelector[]
+}
+
+export interface PluginResourceInstallOrganizationInput {
   components?: PluginResourceComponentSelector[]
 }
 

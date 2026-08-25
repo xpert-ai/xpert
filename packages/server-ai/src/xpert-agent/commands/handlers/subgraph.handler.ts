@@ -1652,12 +1652,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 Object.keys(subgraphBuilder.nodes)
         )
 
-        const compiledGraph = subgraphBuilder.compile({
-            checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
-            interruptBefore,
-            name: agentKey,
-            store: options.store
-        })
+        let compiledGraph: ReturnType<typeof subgraphBuilder.compile>
+        try {
+            compiledGraph = subgraphBuilder.compile({
+                checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
+                interruptBefore,
+                name: agentKey,
+                store: options.store
+            })
+        } catch (error) {
+            await closeToolsets()
+            throw error
+        }
         installGraphCloseHook(compiledGraph)
 
         return {

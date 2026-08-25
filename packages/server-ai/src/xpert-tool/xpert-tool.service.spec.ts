@@ -41,9 +41,7 @@ describe('XpertToolService', () => {
             schema: latestSchema
         }
         const queryBus = {
-            execute: jest.fn(async () => [
-                latestTool
-            ])
+            execute: jest.fn(async () => [latestTool])
         }
         const testingModule = await Test.createTestingModule({
             providers: [
@@ -101,5 +99,42 @@ describe('XpertToolService', () => {
                 })
             })
         )
+    })
+
+    it.each([false, true])('closes the runtime after parameter schema inspection (fails=%s)', async (fails) => {
+        const close = jest.fn().mockResolvedValue(undefined)
+        const runtime = {
+            initTools: fails ? jest.fn().mockRejectedValue(new Error('schema failure')) : jest.fn(),
+            getTool: jest.fn().mockReturnValue({
+                lc_kwargs: { schema: { type: 'object', properties: { query: { type: 'string' } } } }
+            }),
+            close
+        }
+        const commandBus = { execute: jest.fn().mockResolvedValue([runtime]) }
+        const testingModule = await Test.createTestingModule({
+            providers: [
+                XpertToolService,
+                { provide: getRepositoryToken(XpertTool), useValue: {} },
+                { provide: XpertToolsetService, useValue: {} },
+                { provide: CommandBus, useValue: commandBus },
+                { provide: QueryBus, useValue: { execute: jest.fn() } }
+            ]
+        }).compile()
+        const service = testingModule.get(XpertToolService)
+        jest.spyOn(service, 'getTool').mockResolvedValue(
+            Object.assign(new XpertTool(), {
+                id: 'tool-id',
+                name: 'search',
+                toolsetId: 'toolset-1',
+                toolset: Object.assign(new XpertToolset(), { workspaceId: 'workspace-1' })
+            })
+        )
+
+        if (fails) {
+            await expect(service.getParamsFaker('tool-id')).rejects.toThrow('schema failure')
+        } else {
+            await expect(service.getParamsFaker('tool-id')).resolves.toEqual(expect.any(Object))
+        }
+        expect(close).toHaveBeenCalledTimes(1)
     })
 })

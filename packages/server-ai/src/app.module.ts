@@ -59,6 +59,7 @@ import { ArtifactsModule } from './artifacts'
 import { CollaborationModule } from './collaboration'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
 import { AgentEvolutionModule } from './agent-evolution'
+import { McpPublicationModule } from './mcp-publication'
 
 @Module({
     imports: [
@@ -120,7 +121,8 @@ import { AgentEvolutionModule } from './agent-evolution'
         ArtifactsModule,
         CollaborationModule,
         WorkspaceFileAccessModule,
-        AgentEvolutionModule
+        AgentEvolutionModule,
+        McpPublicationModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]

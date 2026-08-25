@@ -783,14 +783,16 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     }
                 },
                 finalize: async () => {
-                    if (aiMessage) {
-                        try {
+                    try {
+                        if (aiMessage) {
                             // Update ai message
                             aiMessage.status = status
                             await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
-                        } catch (err) {
-                            this.#logger.error(err)
                         }
+                    } catch (err) {
+                        this.#logger.error(err)
+                    } finally {
+                        abortController.abort()
                     }
                 }
             })

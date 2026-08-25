@@ -1,3 +1,5 @@
+import 'reflect-metadata'
+
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
@@ -12,7 +14,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 		ENTITIES: 'plugin:entities',
 		SUBSCRIBERS: 'plugin:subscribers'
 	},
-	PLUGIN_METADATA_KEY: 'plugin-metadata'
+	PLUGIN_METADATA_KEY: 'plugin-metadata',
+	PLUGIN_VERSION_METADATA_KEY: 'plugin-version-metadata'
 }))
 
 jest.mock('./organization-plugin.store', () => ({
@@ -367,6 +370,7 @@ describe('plugin helper registerPluginsAsync', () => {
 			'tenant:tenant-bom:global'
 		)
 		expect(Reflect.getMetadata('plugin-metadata', TenantRuntimePluginController)).toBe('@xpert-ai/plugin-bom')
+		expect(Reflect.getMetadata('plugin-version-metadata', TenantRuntimePluginController)).toBe('1.0.0')
 
 		loaded.length = 0
 		await expect(
