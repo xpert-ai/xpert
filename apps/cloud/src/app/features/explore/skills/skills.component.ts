@@ -70,6 +70,7 @@ export class ExploreSkillsComponent {
   readonly mode = input<ExploreViewMode>('square')
   readonly workspace = input<IXpertWorkspace | null>(null)
   readonly installFromRepositoryNonce = input(0)
+  readonly installedCountChange = output<number>()
   readonly searchChange = output<string>()
 
   readonly #dialog = inject(Dialog)
@@ -293,6 +294,7 @@ export class ExploreSkillsComponent {
   async loadInstalledSkills(workspaceId: string | null) {
     const version = ++this.#mineQueryVersion
     this.installedSkills.set([])
+    this.installedCountChange.emit(0)
 
     if (!workspaceId) {
       this.loadingInstalledSkills.set(false)
@@ -312,7 +314,9 @@ export class ExploreSkillsComponent {
         return
       }
 
-      this.installedSkills.set(items ?? [])
+      const installedItems = items ?? []
+      this.installedSkills.set(installedItems)
+      this.installedCountChange.emit(installedItems.length)
     } catch (error) {
       if (version === this.#mineQueryVersion) {
         this.installedSkills.set([])
@@ -576,11 +580,11 @@ export class ExploreSkillsComponent {
 
     const workspaceId = this.workspace()?.id
     if (!workspaceId) {
-      this.#router.navigate(['/xpert/w'])
+      void this.#router.navigate(['/xpert/w'], { queryParams: { section: 'skills' } })
       return
     }
 
-    this.#router.navigate(['/xpert/w', workspaceId, 'skills'])
+    void this.#router.navigate(['/xpert/w', workspaceId, 'clawxpert-skills'])
   }
 
   isLocalSkill(item: ISkillPackage) {

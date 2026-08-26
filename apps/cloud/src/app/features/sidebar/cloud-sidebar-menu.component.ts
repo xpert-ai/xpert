@@ -12,9 +12,8 @@ import { CloudSidebarRecentTasksComponent } from './cloud-sidebar-recent-tasks.c
 import { ClawXpertConversationStartIntentService } from '../chat/clawxpert/clawxpert-conversation-start-intent.service'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import {
-  addWorkspaceConnectorMenuItem,
+  addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
-  addWorkspaceSkillMenuItem,
   buildWorkspaceModuleMenuLink,
   buildCloudSidebarMenuGroups,
   type CloudWorkspaceModuleSection,
@@ -22,6 +21,7 @@ import {
   getWorkspaceModuleSection,
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
+  isCloudMarketplaceHubRoute,
   isExternalCloudMenuItem,
   isCloudWorkspaceShellMenuItem,
   isCloudWorkspaceStandaloneRoute,
@@ -70,10 +70,7 @@ export class CloudSidebarMenuComponent {
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
 
     return addWorkspaceMoreMenuItem(
-      addWorkspaceSkillMenuItem(
-        addWorkspaceConnectorMenuItem(buildCloudSidebarMenuGroups(this.menus()), workspaceId),
-        workspaceId
-      ),
+      addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus())),
       workspaceId
     )
   })
@@ -95,6 +92,10 @@ export class CloudSidebarMenuComponent {
     }
 
     const currentUrl = normalizeMenuPath(this.currentUrl())
+    if (item.data?.translationKey === 'ExpertSkillsConnectors' && isCloudMarketplaceHubRoute(currentUrl)) {
+      return true
+    }
+
     if (isCloudWorkspaceShellMenuItem(item)) {
       if (isCloudWorkspaceStandaloneRoute(currentUrl) || this.isMoreMenuExpanded()) {
         return false

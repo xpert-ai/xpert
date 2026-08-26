@@ -16,38 +16,56 @@
   <header class="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-xl">
     <div class="flex flex-col gap-3 px-6 py-3 xl:px-10">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex min-w-0 items-end gap-6">
+        <nav
+          class="flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border/70 bg-muted/50 p-1"
+          aria-label="{{ 'XP.Explore.NavigationLabel' | translate: { Default: 'Marketplace navigation' } }}"
+        >
           <button
             type="button"
-            [class]="
-              tab() === 'skills'
-                ? 'origin-bottom truncate text-3xl font-semibold leading-none text-foreground transition-[font-size,transform,color] duration-200 hover:scale-[1.03]'
-                : 'origin-bottom truncate text-lg font-semibold leading-none text-muted-foreground transition-[font-size,transform,color] duration-200 hover:scale-110 hover:text-foreground md:hover:text-xl'
-            "
+            class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
+            [class.bg-background]="tab() === 'agent-square'"
+            [class.text-foreground]="tab() === 'agent-square'"
+            [class.text-muted-foreground]="tab() !== 'agent-square'"
+            [class.cursor-not-allowed]="!agentMarketplaceEnabled()"
+            [class.cursor-pointer]="agentMarketplaceEnabled()"
+            [class.opacity-50]="!agentMarketplaceEnabled()"
+            [disabled]="!agentMarketplaceEnabled()"
+            [attr.aria-pressed]="tab() === 'agent-square'"
+            (click)="setTab('agent-square')"
+          >
+            <i class="ri-team-line text-base"></i>
+            {{ 'XP.Explore.ExpertsTab' | translate: { Default: 'Experts' } }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
+            [class.bg-background]="tab() === 'skills'"
+            [class.text-foreground]="tab() === 'skills'"
+            [class.text-muted-foreground]="tab() !== 'skills'"
+            [attr.aria-pressed]="tab() === 'skills'"
             (click)="setTab('skills')"
           >
-            {{ 'XP.Explore.SkillPlaza' | translate: { Default: 'Skill Plaza' } }}
+            <i class="ri-pencil-ruler-line text-base"></i>
+            {{ 'XP.Explore.SkillsTab' | translate: { Default: 'Skills' } }}
           </button>
-          @if (agentMarketplaceEnabled()) {
-            <button
-              type="button"
-              [class]="
-                tab() === 'agent-square'
-                  ? 'origin-bottom truncate text-3xl font-semibold leading-none text-foreground transition-[font-size,transform,color] duration-200 hover:scale-[1.03]'
-                  : 'origin-bottom truncate text-lg font-semibold leading-none text-muted-foreground transition-[font-size,transform,color] duration-200 hover:scale-110 hover:text-foreground md:hover:text-xl'
-              "
-              (click)="setTab('agent-square')"
-            >
-              {{ 'XP.Explore.AgentSquare.Tab' | translate: { Default: 'Agent Square' } }}
-            </button>
-          }
-        </div>
+          <button
+            type="button"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors"
+            [class.bg-background]="tab() === 'connectors'"
+            [class.text-foreground]="tab() === 'connectors'"
+            [attr.aria-pressed]="tab() === 'connectors'"
+            (click)="setTab('connectors')"
+          >
+            <i class="ri-plug-line text-base"></i>
+            {{ 'XP.Explore.ConnectorsTab' | translate: { Default: 'Connectors' } }}
+          </button>
+        </nav>
 
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <z-input-group class="w-full sm:w-[320px]" zSize="sm" [zAddonBefore]="headerSearchIcon">
+          <z-input-group class="w-full sm:w-[360px]" zSize="default" [zAddonBefore]="headerSearchIcon">
             <input
               z-input
-              zSize="sm"
+              zSize="default"
               class="pr-8"
               [placeholder]="
                 tab() === 'skills'
@@ -61,7 +79,14 @@
           </z-input-group>
 
           @if (search()) {
-            <button z-button zType="ghost" zSize="sm" type="button" class="sm:-ml-11" (click)="clearSearch()">
+            <button
+              z-button
+              zType="ghost"
+              zSize="default"
+              type="button"
+              class="cursor-pointer sm:-ml-11"
+              (click)="clearSearch()"
+            >
               <z-icon zType="x" zSize="sm" />
             </button>
           }
@@ -69,21 +94,32 @@
           @if (tab() === 'skills') {
             <button
               z-button
-              zSize="sm"
+              zType="outline"
+              zSize="default"
+              type="button"
+              class="cursor-pointer"
+              (click)="openSkillManagement()"
+            >
+              <z-icon zType="archive" zSize="sm" />
+              {{ 'XP.Explore.InstalledSkills' | translate: { Default: 'Installed' } }}
+              <span
+                class="ml-1 inline-flex size-6 items-center justify-center rounded-full bg-secondary px-1 text-sm font-semibold text-secondary-foreground"
+                >{{ installedSkillsCount() }}</span
+              >
+            </button>
+
+            <button
+              z-button
+              zSize="default"
               type="button"
               z-menu
               zPlacement="bottomRight"
               [zMenuTriggerFor]="createMenu"
-              class="bg-primary text-primary-foreground hover:bg-primary/90"
+              class="cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <z-icon zType="plus" zSize="sm" />
-              {{ 'XP.ACTIONS.Create' | translate: { Default: 'Create' } }}
+              {{ 'XP.Explore.AddSkill' | translate: { Default: 'Add skill' } }}
               <z-icon zType="chevron-down" zSize="sm" />
-            </button>
-
-            <button z-button zType="outline" zSize="sm" type="button" (click)="openSkillManagement()">
-              <z-icon zType="settings" zSize="sm" />
-              {{ 'XP.Explore.ManageSkills' | translate: { Default: 'Manage Skills' } }}
             </button>
           }
         </div>
@@ -121,6 +157,7 @@
           [search]="search()"
           [workspace]="defaultWorkspace()"
           [installFromRepositoryNonce]="installFromRepositoryNonce()"
+          (installedCountChange)="installedSkillsCount.set($event)"
           (searchChange)="search.set($event)"
         />
       }
