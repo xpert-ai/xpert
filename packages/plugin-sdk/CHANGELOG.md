@@ -1,5 +1,29 @@
 # @xpert-ai/plugin-sdk
 
+## 3.17.4
+
+### Patch Changes
+
+- 7b6954a: project
+- Updated dependencies [7b6954a]
+  - @xpert-ai/contracts@3.17.4
+
+## 3.17.3
+
+### Patch Changes
+
+- 754866e: Add reusable enterprise H5 identity and single-assistant session contracts.
+- Updated dependencies [754866e]
+  - @xpert-ai/contracts@3.17.3
+
+## 3.17.2
+
+### Patch Changes
+
+- fa1306a: Add conditional LLM pricing rules, provider-reported price authority, cache and add-on components, mixed cache-write TTL pricing, recurring daily price windows frozen at invocation start, and component-aware multi-unit usage reporting for specialized models.
+- Updated dependencies [fa1306a]
+  - @xpert-ai/contracts@3.17.2
+
 ## 3.17.1
 
 ### Patch Changes
