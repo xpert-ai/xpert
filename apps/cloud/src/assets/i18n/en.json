@@ -1662,7 +1662,13 @@
     },
     "Explore": {
       "Square": "Square",
-      "SkillPlaza": "Skill Plaza",
+      "SkillPlaza": "Skills",
+      "ExpertsTab": "Experts",
+      "SkillsTab": "Skills",
+      "ConnectorsTab": "Connectors",
+      "InstalledSkills": "Installed",
+      "AddSkill": "Add skill",
+      "NavigationLabel": "Experts, skills, and connectors",
       "Mine": "Mine",
       "Skills": "Skills",
       "Agents": "Agents",
@@ -1786,7 +1792,7 @@
       "InstallNow": "Install Now",
       "InstallOrUpdate": "Install or Update",
       "AgentSquare": {
-        "Tab": "Agent Square",
+        "Tab": "Experts",
         "SearchPlaceholder": "Search agents, scenarios, capabilities, or templates",
         "HeroTitle": "Find the right agent for the current task",
         "HeroSubtitle": "Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.",

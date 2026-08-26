@@ -1216,7 +1216,13 @@
     },
     "Explore": {
       "Square": "广场",
-      "SkillPlaza": "技能广场",
+      "SkillPlaza": "技能",
+      "ExpertsTab": "专家",
+      "SkillsTab": "技能",
+      "ConnectorsTab": "连接器",
+      "InstalledSkills": "我安装的",
+      "AddSkill": "添加技能",
+      "NavigationLabel": "专家、技能和连接器",
       "Mine": "我的",
       "Skills": "技能",
       "Agents": "智能体",
@@ -1340,7 +1346,7 @@
       "InstallNow": "立即安装",
       "InstallOrUpdate": "安装或更新",
       "AgentSquare": {
-        "Tab": "智能体广场",
+        "Tab": "专家",
         "SearchPlaceholder": "搜索智能体、场景、能力或模板",
         "HeroTitle": "找到最适合当前任务的智能体",
         "HeroSubtitle": "按业务场景、协作方式和技术能力浏览已发布智能体。受保护智能体需要申请并审批后才能使用。",
