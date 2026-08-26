@@ -17,7 +17,7 @@ import {
 } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
-import { ViewExtensionFileActionFile } from './host-definition.interface'
+import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
 import {
@@ -40,8 +40,8 @@ export class ViewExtensionService {
 		private readonly cacheService: ViewExtensionCacheService
 	) {}
 
-	async listSlotViews(hostType: string, hostId: string, slot: string) {
-		const context = await this.resolveHostContext(hostType, hostId)
+	async listSlotViews(hostType: string, hostId: string, slot: string, options?: ViewHostResolutionOptions) {
+		const context = await this.resolveHostContext(hostType, hostId, options)
 		this.ensureSlotExists(context, slot)
 
 		return this.cacheService.getOrSetSlotViews(context, slot, 60 * 1000, async () => {
@@ -331,7 +331,7 @@ export class ViewExtensionService {
 		throw new NotFoundException(`View '${publicViewKey}' was not found`)
 	}
 
-	private async resolveHostContext(hostType: string, hostId: string) {
+	private async resolveHostContext(hostType: string, hostId: string, options?: ViewHostResolutionOptions) {
 		this.assertEnterpriseXpertViewHost(hostType, hostId)
 		const definition = this.hostDefinitionRegistry.get(hostType)
 		if (!definition) {
@@ -339,13 +339,13 @@ export class ViewExtensionService {
 		}
 
 		const baseContext = buildBaseViewHostContext(hostType, hostId)
-		const resolution = await Promise.resolve(definition.resolve(hostId))
+		const resolution = await Promise.resolve(definition.resolve(hostId, options))
 
 		if (!resolution) {
 			throw new NotFoundException(`View host '${hostType}:${hostId}' was not found`)
 		}
 
-		await this.permissionService.assertHostReadable(definition, baseContext, resolution)
+		await this.permissionService.assertHostReadable(definition, baseContext, resolution, options)
 
 		const contextExtension = isRecord(resolution.context) ? resolution.context : {}
 
