@@ -93,14 +93,14 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         }
     }
 
-    async canRead(context: XpertViewHostContext, _resolution: ViewHostResolution, options?: ViewHostResolutionOptions) {
+    async canRead(context: XpertViewHostContext, resolution: ViewHostResolution, options?: ViewHostResolutionOptions) {
         if (options?.isDraft) {
             if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
                 return false
             }
 
             try {
-                await this.xpertService.assertCanAuthorById(context.hostId)
+                await this.xpertService.assertCanAuthorById(context.hostId, resolution.workspaceId)
                 return true
             } catch (error) {
                 if (error instanceof ForbiddenException || error instanceof NotFoundException) {

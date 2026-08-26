@@ -185,6 +185,41 @@ describe('XpertService command facade', () => {
         expect(workspaceAccessService.assertCanAuthor).toHaveBeenCalledWith('workspace-1')
     })
 
+    it('also requires authoring access when the resolved draft workspace differs from the persisted workspace', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const { service, repository, workspaceAccessService } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-1'
+        })
+        workspaceAccessService.assertCanAuthor
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new ForbiddenException('Access denied to workspace'))
+
+        await expect(service.assertCanAuthorById('xpert-1', 'workspace-2')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(workspaceAccessService.assertCanAuthor.mock.calls).toEqual([['workspace-1'], ['workspace-2']])
+    })
+
+    it('falls back to legacy creator and organization checks when no workspace is resolved', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const { service, repository, workspaceAccessService } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: null,
+            createdById: 'owner-1'
+        })
+
+        await expect(service.assertCanAuthorById('xpert-1', null)).resolves.toBeUndefined()
+        expect(workspaceAccessService.assertCanAuthor).not.toHaveBeenCalled()
+    })
+
     it('publish forwards to XpertPublishCommand', async () => {
         const { service, commandBus } = createService()
 

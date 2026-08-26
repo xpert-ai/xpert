@@ -316,20 +316,26 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return entity
     }
 
-    async assertCanAuthorById(id: string): Promise<void> {
+    async assertCanAuthorById(id: string, resolvedWorkspaceId?: string | null): Promise<void> {
         const xpert = await this.findOneByIdWithinTenant(id, {
             select: ['id', 'organizationId', 'workspaceId', 'createdById']
         })
 
-        if (xpert.workspaceId) {
-            await this.workspaceAccessService.assertCanAuthor(xpert.workspaceId)
-            return
+        const persistedWorkspaceId = xpert.workspaceId?.trim()
+        if (persistedWorkspaceId) {
+            await this.workspaceAccessService.assertCanAuthor(persistedWorkspaceId)
+        } else {
+            const isCreator = xpert.createdById === RequestContext.currentUserId()
+            const isCurrentOrganization =
+                (xpert.organizationId ?? null) === (RequestContext.getOrganizationId() ?? null)
+            if (!isCreator || !isCurrentOrganization) {
+                throw new ForbiddenException('Access denied to xpert')
+            }
         }
 
-        const isCreator = xpert.createdById === RequestContext.currentUserId()
-        const isCurrentOrganization = (xpert.organizationId ?? null) === (RequestContext.getOrganizationId() ?? null)
-        if (!isCreator || !isCurrentOrganization) {
-            throw new ForbiddenException('Access denied to xpert')
+        const targetWorkspaceId = resolvedWorkspaceId?.trim()
+        if (targetWorkspaceId && targetWorkspaceId !== persistedWorkspaceId) {
+            await this.workspaceAccessService.assertCanAuthor(targetWorkspaceId)
         }
     }
 

@@ -213,7 +213,7 @@ describe('AgentViewHostDefinition', () => {
         )
         const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         const context = { hostId: 'agent-host-1' } as XpertViewHostContext
-        const resolution = {} as ViewHostResolution
+        const resolution = { workspaceId: 'draft-workspace-2' } as ViewHostResolution
 
         await expect(definition.canRead(context, resolution, { isDraft: true })).resolves.toBe(false)
         expect(xpertService.assertCanAuthorById).not.toHaveBeenCalled()
@@ -222,7 +222,7 @@ describe('AgentViewHostDefinition', () => {
         permission.mockReturnValue(true)
         xpertService.assertCanAuthorById.mockRejectedValueOnce(new ForbiddenException('Access denied to workspace'))
         await expect(definition.canRead(context, resolution, { isDraft: true })).resolves.toBe(false)
-        expect(xpertService.assertCanAuthorById).toHaveBeenCalledWith('agent-host-1')
+        expect(xpertService.assertCanAuthorById).toHaveBeenCalledWith('agent-host-1', 'draft-workspace-2')
 
         xpertService.assertCanAuthorById.mockResolvedValueOnce(undefined)
         await expect(definition.canRead(context, resolution, { isDraft: true })).resolves.toBe(true)
