@@ -7,21 +7,21 @@ import { FindThreadQuery } from '../thread-find.query'
 
 @QueryHandler(FindThreadQuery)
 export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
-	constructor(private readonly queryBus: QueryBus) {}
+    constructor(private readonly queryBus: QueryBus) {}
 
-	public async execute(command: FindThreadQuery): Promise<ThreadDTO> {
-		const chatConversation = await this.queryBus.execute(
-			new GetChatConversationQuery({ threadId: command.threadId }, command.relations)
-		)
-		assertPublicXpertSessionConversationAccess(chatConversation)
+    public async execute(command: FindThreadQuery): Promise<ThreadDTO> {
+        const chatConversation = await this.queryBus.execute(
+            new GetChatConversationQuery({ threadId: command.threadId }, command.relations)
+        )
+        assertPublicXpertSessionConversationAccess(chatConversation)
 
-		const tuple = await this.queryBus.execute(
-			new CopilotCheckpointGetTupleQuery({
-				thread_id: command.threadId,
-				checkpoint_ns: ''
-			})
-		)
+        const tuple = await this.queryBus.execute(
+            new CopilotCheckpointGetTupleQuery({
+                thread_id: command.threadId,
+                checkpoint_ns: ''
+            })
+        )
 
-		return new ThreadDTO(chatConversation, tuple.checkpoint.channel_values)
-	}
+        return new ThreadDTO(chatConversation, tuple?.checkpoint.channel_values ?? {})
+    }
 }

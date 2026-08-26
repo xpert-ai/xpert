@@ -51,7 +51,7 @@ export class LangChainMcpConnection implements McpConsumerConnection {
     constructor(readonly adapter: MultiServerMCPClient) {}
 
     serverNames(): string[] {
-        return Object.keys(this.adapter.config.mcpServers ?? {})
+        return Object.keys(adapterConfig(this.adapter).mcpServers ?? {})
     }
 
     resolveServerName(serverName?: string): string {
@@ -75,10 +75,9 @@ export class LangChainMcpConnection implements McpConsumerConnection {
 
     formatToolName(serverName: string, toolName: string): string {
         const resolvedName = this.resolveServerName(serverName)
-        const additionalPrefix = this.adapter.config.additionalToolNamePrefix
-            ? `${this.adapter.config.additionalToolNamePrefix}__`
-            : ''
-        const serverPrefix = this.adapter.config.prefixToolNameWithServerName ? `${resolvedName}__` : ''
+        const config = adapterConfig(this.adapter)
+        const additionalPrefix = config.additionalToolNamePrefix ? `${config.additionalToolNamePrefix}__` : ''
+        const serverPrefix = config.prefixToolNameWithServerName ? `${resolvedName}__` : ''
         return `${additionalPrefix}${serverPrefix}${toolName}`
     }
 
@@ -206,7 +205,7 @@ export class LangChainMcpConnection implements McpConsumerConnection {
     }
 
     private connection(serverName: string): Connection {
-        const connection = this.adapter.config.mcpServers?.[serverName]
+        const connection = adapterConfig(this.adapter).mcpServers?.[serverName]
         if (!connection) {
             throw new Error(`MCP server '${serverName}' is not configured`)
         }
@@ -316,6 +315,17 @@ export class LangChainMcpConnection implements McpConsumerConnection {
             throw error
         }
     }
+}
+
+function adapterConfig(adapter: MultiServerMCPClient): MultiServerMCPClient['config'] {
+    const runtimeConfig = Reflect.get(adapter, '_config')
+    return isAdapterConfig(runtimeConfig) ? runtimeConfig : adapter.config
+}
+
+function isAdapterConfig(value: unknown): value is MultiServerMCPClient['config'] {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+    const mcpServers = Reflect.get(value, 'mcpServers')
+    return typeof mcpServers === 'object' && mcpServers !== null && !Array.isArray(mcpServers)
 }
 
 function modernRequestParams(params?: object) {

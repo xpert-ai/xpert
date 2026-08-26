@@ -1,4 +1,5 @@
-import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
+import { MultiServerMCPClient } from '@langchain/mcp-adapters'
+import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { applicationTracing } from '../../tracing/application-tracing'
 import { LangChainMcpConnection } from './langchain-mcp-connection'
@@ -79,6 +80,65 @@ describe('LangChainMcpConnection', () => {
                 })
             })
         )
+    })
+
+    it('uses a runtime OAuth provider without serializing its circular service graph', async () => {
+        const serviceGraph: { manager?: object } = {}
+        serviceGraph.manager = serviceGraph
+        const provider = {
+            serviceGraph,
+            redirectUrl: 'http://localhost/oauth/callback',
+            clientMetadata: {
+                redirect_uris: ['http://localhost/oauth/callback']
+            },
+            state: jest.fn(() => 'state'),
+            clientInformation: jest.fn(),
+            saveClientInformation: jest.fn(),
+            tokens: jest.fn().mockResolvedValue({ access_token: 'oauth-token', token_type: 'Bearer' }),
+            saveTokens: jest.fn(),
+            redirectToAuthorization: jest.fn(),
+            saveCodeVerifier: jest.fn(),
+            codeVerifier: jest.fn()
+        } satisfies OAuthClientProvider & { serviceGraph: typeof serviceGraph }
+        const adapter = new MultiServerMCPClient({
+            mcpServers: {
+                generic: {
+                    transport: 'http',
+                    url: 'https://mcp.example.test/rpc',
+                    authProvider: provider
+                }
+            }
+        })
+        expect(() => adapter.config).toThrow('Converting circular structure to JSON')
+        global.fetch = jest.fn().mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'response-1',
+                    result: {
+                        resultType: 'complete',
+                        taskId: 'task-1',
+                        status: 'completed',
+                        createdAt: '2026-08-20T00:00:00.000Z',
+                        lastUpdatedAt: '2026-08-20T00:00:01.000Z',
+                        ttlMs: 59_000,
+                        result: { ok: true }
+                    }
+                }),
+                { status: 200, headers: { 'content-type': 'application/json' } }
+            )
+        )
+        const connection = new LangChainMcpConnection(adapter)
+
+        await connection.requestExtension(
+            'generic',
+            { method: 'tasks/get', params: { taskId: 'task-1' } },
+            mcpTaskResultSchema,
+            { routing: { method: 'tasks/get', name: 'task-1' } }
+        )
+
+        const [, init] = jest.mocked(global.fetch).mock.calls[0]
+        expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer oauth-token')
     })
 
     it('parses subscription notifications from an SSE response', async () => {

@@ -167,7 +167,8 @@ export class MCPToolset extends _BaseToolset {
                   this.params.commandBus,
                   JSON.parse(this.toolset.schema),
                   this.params.env,
-                  this.params?.xpertId
+                  this.params?.xpertId,
+                  this.params
               )
             : await createMCPClient(
                   this.toolset,
