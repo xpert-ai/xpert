@@ -50,5 +50,8 @@ export type IEnvironment = {
 
   API_BASE_URL: string
   CHATKIT_FRAME_URL: string
+  mcpOAuthEnabled: boolean
+  MCP_APP_SANDBOX_PROXY_URL?: string
+  MCP_APP_SANDBOX_ALLOWED_DOMAINS?: string
   settingsExtensions?: SettingsExtensions
 }

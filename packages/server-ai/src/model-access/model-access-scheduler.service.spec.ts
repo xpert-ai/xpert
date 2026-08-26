@@ -1,26 +1,17 @@
-import { DataSource } from 'typeorm'
+import { RedisLockRunResult, RedisLockService } from '@xpert-ai/server-core'
 import { Cache } from 'cache-manager'
 import { ModelAccessSchedulerService } from './model-access-scheduler.service'
 import { ModelAccessService } from './model-access.service'
 
-type QueryRunnerMock = {
-    query: jest.Mock<Promise<unknown>, [string, unknown[]?]>
-    connect: jest.Mock<Promise<void>, []>
-    release: jest.Mock<Promise<void>, []>
-}
-
-function createQueryRunner(): QueryRunnerMock {
-    return {
-        query: jest.fn(),
-        connect: jest.fn().mockResolvedValue(undefined),
-        release: jest.fn().mockResolvedValue(undefined)
-    }
-}
-
 function createService() {
-    const queryRunner = createQueryRunner()
-    const dataSource = {
-        createQueryRunner: jest.fn(() => queryRunner)
+    const runWithLock = jest.fn<Promise<RedisLockRunResult<unknown>>, [string, number, () => Promise<unknown>]>(
+        async (_key, _ttl, operation) => ({
+            acquired: true,
+            value: await operation()
+        })
+    )
+    const redisLockService = {
+        runWithLock
     }
     const modelAccessService = {
         processAllDueGrants: jest.fn().mockResolvedValue(1),
@@ -36,12 +27,12 @@ function createService() {
         set: jest.fn().mockResolvedValue(undefined)
     }
     const service = new ModelAccessSchedulerService(
-        dataSource as unknown as DataSource,
         modelAccessService as unknown as ModelAccessService,
-        cacheManager as unknown as Cache
+        cacheManager as unknown as Cache,
+        redisLockService as unknown as RedisLockService
     )
 
-    return { service, queryRunner, modelAccessService, cacheManager }
+    return { service, redisLockService, modelAccessService, cacheManager }
 }
 
 describe('ModelAccessSchedulerService', () => {
@@ -53,20 +44,18 @@ describe('ModelAccessSchedulerService', () => {
         )
     })
 
-    it('skips reconciliation while another instance holds the advisory lock', async () => {
-        const { service, queryRunner, modelAccessService } = createService()
-        queryRunner.query.mockResolvedValueOnce([{ locked: false }])
+    it('skips reconciliation while another instance holds the Redis lock', async () => {
+        const { service, redisLockService, modelAccessService } = createService()
+        redisLockService.runWithLock.mockResolvedValueOnce({ acquired: false })
 
         await service.expireDueGrants()
 
         expect(modelAccessService.processAllDueGrants).not.toHaveBeenCalled()
         expect(modelAccessService.reconcileLifecycleBatch).not.toHaveBeenCalled()
-        expect(queryRunner.release).toHaveBeenCalledTimes(1)
     })
 
-    it('expires grants, reconciles lifecycle state, and releases the advisory lock', async () => {
-        const { service, queryRunner, modelAccessService } = createService()
-        queryRunner.query.mockResolvedValueOnce([{ locked: true }]).mockResolvedValueOnce([{ unlocked: true }])
+    it('expires grants and reconciles lifecycle state under a renewable Redis lock', async () => {
+        const { service, redisLockService, modelAccessService } = createService()
 
         await service.expireDueGrants()
 
@@ -76,13 +65,15 @@ describe('ModelAccessSchedulerService', () => {
             grantAfterId: null,
             limit: 200
         })
-        expect(queryRunner.query.mock.calls[1][0]).toContain('pg_advisory_unlock')
-        expect(queryRunner.release).toHaveBeenCalledTimes(1)
+        expect(redisLockService.runWithLock).toHaveBeenCalledWith(
+            'scheduler:model-access-lifecycle',
+            5 * 60 * 1000,
+            expect.any(Function)
+        )
     })
 
     it('continues from the shared lifecycle cursor and stores the next batch position', async () => {
-        const { service, queryRunner, modelAccessService, cacheManager } = createService()
-        queryRunner.query.mockResolvedValueOnce([{ locked: true }]).mockResolvedValueOnce([{ unlocked: true }])
+        const { service, modelAccessService, cacheManager } = createService()
         cacheManager.get.mockResolvedValueOnce({
             requestAfterId: 'request-100',
             grantAfterId: 'grant-100'

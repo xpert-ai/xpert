@@ -1,4 +1,4 @@
-import { TenantModule } from '@xpert-ai/server-core'
+import { RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -19,12 +19,39 @@ import { McpRuntimeAuditService } from './mcp-runtime-audit.service'
 import { McpRuntimeInstanceEntity } from './mcp-runtime-instance.entity'
 import { PluginResourceInstallation } from '../plugin-resource/plugin-resource-installation.entity'
 import { ChatMessageModule } from '../chat-message'
+import { ToolRuntimeService } from '../tool-runtime'
+import { McpCapabilityCatalog } from '../mcp-publication/entities/mcp-capability-catalog.entity'
+import { McpPublicationCapability } from '../mcp-publication/entities/mcp-publication-capability.entity'
+import { McpSubscriptionService } from '../mcp-publication/mcp-subscription.service'
+import {
+    McpAppAudit,
+    McpAppAuditService,
+    McpAppInstanceStoreService,
+    McpAppToolApprovalService
+} from '../mcp-app-runtime'
+import {
+    McpConsumerOAuthController,
+    McpConsumerOAuthCredential,
+    McpConsumerOAuthService,
+    McpConsumerOAuthSession
+} from '../mcp-consumer/auth'
+import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } from '../mcp-consumer'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
-        TypeOrmModule.forFeature([XpertToolset, McpRuntimeInstanceEntity, PluginResourceInstallation]),
+        TypeOrmModule.forFeature([
+            XpertToolset,
+            McpRuntimeInstanceEntity,
+            PluginResourceInstallation,
+            McpCapabilityCatalog,
+            McpPublicationCapability,
+            McpAppAudit,
+            McpConsumerOAuthCredential,
+            McpConsumerOAuthSession
+        ]),
         DiscoveryModule,
+        RedisModule,
         TenantModule,
         CqrsModule,
         CopilotModule,
@@ -32,15 +59,35 @@ import { ChatMessageModule } from '../chat-message'
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => XpertAgentModule)
     ],
-    controllers: [XpertToolsetController, McpAppsController, McpRuntimeController],
+    controllers: [
+        XpertToolsetController,
+        McpAppsController,
+        McpRuntimeController,
+        McpConsumerOAuthController,
+        McpConsumerCapabilitiesController
+    ],
     providers: [
         XpertToolsetService,
         McpAppsService,
         McpRuntimeAuditService,
+        McpAppAuditService,
+        McpAppInstanceStoreService,
+        McpAppToolApprovalService,
+        McpConsumerOAuthService,
+        McpConsumerCapabilitiesService,
+        McpSubscriptionService,
+        ToolRuntimeService,
         ToolsetRegistry,
         ...QueryHandlers,
         ...CommandHandlers
     ],
-    exports: [XpertToolsetService, ToolsetRegistry]
+    exports: [
+        XpertToolsetService,
+        ToolRuntimeService,
+        ToolsetRegistry,
+        McpConsumerOAuthService,
+        McpConsumerCapabilitiesService,
+        McpSubscriptionService
+    ]
 })
 export class XpertToolsetModule {}

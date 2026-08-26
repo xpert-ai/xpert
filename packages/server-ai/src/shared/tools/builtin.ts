@@ -11,7 +11,12 @@ import {
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import type { ManagedQueueService, TToolModelRuntime } from '@xpert-ai/plugin-sdk'
+import type {
+    ManagedQueueService,
+    McpCapabilityDefinitions,
+    McpCapabilityRuntimeProvider,
+    TToolModelRuntime
+} from '@xpert-ai/plugin-sdk'
 import { _BaseToolset } from './toolset'
 
 export type { TToolModelRuntime, TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
@@ -26,6 +31,8 @@ export type TBuiltinToolsetParams = TToolsetParams & {
     modelRuntime?: TToolModelRuntime
     managedQueue?: ManagedQueueService
     pluginScopeKey?: string
+    pluginName?: string
+    pluginVersion?: string
 }
 
 export interface IBuiltinToolset {
@@ -34,7 +41,7 @@ export interface IBuiltinToolset {
 
 export abstract class BuiltinToolset<T extends StructuredToolInterface = StructuredToolInterface, C = TToolCredentials>
     extends _BaseToolset<T>
-    implements IBuiltinToolset
+    implements IBuiltinToolset, McpCapabilityRuntimeProvider
 {
     static provider = ''
     protected logger = new Logger(this.constructor.name)
@@ -42,6 +49,7 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
     providerType: XpertToolsetCategoryEnum.BUILTIN
 
     credentialsSchema?: { [key: string]: ToolProviderCredentials }
+    protected mcpCapabilities: McpCapabilityDefinitions = {}
 
     get tenantId() {
         return this.params?.tenantId
@@ -91,6 +99,17 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
 
     getCredentials() {
         return this.toolset?.credentials as C
+    }
+
+    getMcpCapabilityDefinitions(): Readonly<McpCapabilityDefinitions> {
+        return this.mcpCapabilities
+    }
+
+    getMcpCapabilitySource() {
+        return {
+            ...(this.params?.pluginName ? { pluginName: this.params.pluginName } : {}),
+            ...(this.params?.pluginVersion ? { pluginVersion: this.params.pluginVersion } : {})
+        }
     }
 
     getToolTitle(name: string): string | I18nObject {

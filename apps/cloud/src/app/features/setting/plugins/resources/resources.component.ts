@@ -36,10 +36,11 @@ export type PluginResourcesDialogData = {
   }>
   initialWorkspaceId?: string
   initialInstallMode?: InstallMode
+  allowedInstallModes?: InstallMode[]
   closeOnSuccess?: boolean
 }
 
-type InstallMode = 'workspace' | 'xpert'
+type InstallMode = 'organization' | 'workspace' | 'xpert'
 
 type PluginComponentGroup = {
   type: PluginComponentType
@@ -66,6 +67,7 @@ type PluginComponentBadge = {
 }
 
 type PluginResourceStateRequest =
+  | { pluginName: string; target: 'organization' }
   | { pluginName: string; target: 'workspace'; workspaceId: string }
   | { pluginName: string; target: 'xpert'; workspaceId: string; xpertId: string; agentKey?: string }
   | null
@@ -75,6 +77,7 @@ const WORKSPACE_COMPONENT_TYPES: PluginComponentType[] = [
   PLUGIN_COMPONENT_TYPE.MCP_SERVER,
   PLUGIN_COMPONENT_TYPE.APP
 ]
+const ORGANIZATION_COMPONENT_TYPES: PluginComponentType[] = [PLUGIN_COMPONENT_TYPE.TOOLSET]
 const XPERT_COMPONENT_TYPES: PluginComponentType[] = [PLUGIN_COMPONENT_TYPE.HOOK]
 
 @Component({
@@ -92,7 +95,14 @@ export class PluginResourcesComponent {
   private readonly toastr = injectToastr()
 
   readonly plugin = signal(this.data.plugin)
-  readonly installMode = model<InstallMode>(this.data.initialInstallMode ?? 'workspace')
+  readonly availableInstallModes = resolveAvailableInstallModes(this.data.allowedInstallModes)
+  readonly installMode = model<InstallMode>(
+    this.data.initialInstallMode && this.availableInstallModes.includes(this.data.initialInstallMode)
+      ? this.data.initialInstallMode
+      : this.data.allowedInstallModes?.length
+        ? (this.availableInstallModes[0] ?? 'workspace')
+        : 'workspace'
+  )
   readonly selectedWorkspaceId = model<string>(this.data.initialWorkspaceId ?? '')
   readonly selectedXpertId = model<string>('')
   readonly selectedAgentKey = model<string>('')
@@ -133,8 +143,17 @@ export class PluginResourcesComponent {
   readonly #componentStates = myRxResource<PluginResourceStateRequest, IPluginResourceComponentState[]>({
     request: () => {
       const pluginName = this.plugin()?.name
+      if (!pluginName) {
+        return null
+      }
+      if (this.installMode() === 'organization') {
+        return {
+          pluginName,
+          target: 'organization' as const
+        }
+      }
       const workspaceId = this.selectedWorkspaceId()
-      if (!pluginName || !workspaceId) {
+      if (!workspaceId) {
         return null
       }
       if (this.installMode() === 'xpert') {
@@ -244,6 +263,12 @@ export class PluginResourcesComponent {
     const components = this.targetComponents()
     return [
       {
+        type: PLUGIN_COMPONENT_TYPE.TOOLSET,
+        labelKey: 'XP.Plugin.ResourceGroupToolsets',
+        defaultLabel: 'Native MCP capabilities',
+        items: components.filter((item) => item.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET)
+      },
+      {
         type: PLUGIN_COMPONENT_TYPE.SKILL,
         labelKey: 'XP.Plugin.ResourceGroupSkills',
         defaultLabel: 'Skills',
@@ -282,6 +307,10 @@ export class PluginResourcesComponent {
 
     if (!this.selectedComponents().length) {
       return false
+    }
+
+    if (this.installMode() === 'organization') {
+      return true
     }
 
     if (!this.selectedWorkspaceId()) {
@@ -374,6 +403,10 @@ export class PluginResourcesComponent {
     return workspace.name?.trim() || workspace.id
   }
 
+  isInstallModeAvailable(mode: InstallMode) {
+    return this.availableInstallModes.includes(mode)
+  }
+
   xpertLabel(xpert: XpertOption) {
     return xpert.title?.trim() || xpert.name || xpert.id
   }
@@ -422,6 +455,12 @@ export class PluginResourcesComponent {
         defaultLabel: 'MCP'
       }
     }
+    if (component.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET) {
+      return {
+        labelKey: 'XP.Plugin.ResourceTypeToolset',
+        defaultLabel: 'Native MCP'
+      }
+    }
     if (component.componentType === PLUGIN_COMPONENT_TYPE.APP) {
       return {
         labelKey: 'XP.Plugin.ResourceTypeApp',
@@ -453,7 +492,7 @@ export class PluginResourcesComponent {
   async submit() {
     const pluginName = this.plugin()?.name
     const workspaceId = this.selectedWorkspaceId()
-    if (!pluginName || !workspaceId || !this.canSubmit()) {
+    if (!pluginName || !this.canSubmit()) {
       return
     }
 
@@ -468,28 +507,34 @@ export class PluginResourcesComponent {
       }))
 
       const result =
-        this.installMode() === 'workspace'
-          ? await firstValueFrom(this.pluginAPI.installResourcesToWorkspace(pluginName, { workspaceId, components }))
-          : await firstValueFrom(
-              this.pluginAPI.installResourcesToXpert(pluginName, {
-                xpertId: this.selectedXpertId(),
-                agentKey: this.selectedAgentKey() || undefined,
-                components
-              })
-            )
+        this.installMode() === 'organization'
+          ? await firstValueFrom(this.pluginAPI.installResourcesToOrganization(pluginName, { components }))
+          : this.installMode() === 'workspace'
+            ? await firstValueFrom(this.pluginAPI.installResourcesToWorkspace(pluginName, { workspaceId, components }))
+            : await firstValueFrom(
+                this.pluginAPI.installResourcesToXpert(pluginName, {
+                  xpertId: this.selectedXpertId(),
+                  agentKey: this.selectedAgentKey() || undefined,
+                  components
+                })
+              )
 
       this.actionResult.set(result)
       this.#componentStates.reload()
       this.data.reload?.()
       const successKey =
-        this.installMode() === 'workspace'
-          ? 'XP.Plugin.ResourcesInstalledToWorkspace'
-          : 'XP.Plugin.ResourcesInstalledToXpert'
+        this.installMode() === 'organization'
+          ? 'XP.Plugin.ResourcesInstalledToOrganization'
+          : this.installMode() === 'workspace'
+            ? 'XP.Plugin.ResourcesInstalledToWorkspace'
+            : 'XP.Plugin.ResourcesInstalledToXpert'
       this.toastr.success(successKey, {
         Default:
-          this.installMode() === 'workspace'
-            ? 'Plugin resources initialized in the workspace.'
-            : 'Plugin resources initialized and attached to the Xpert.'
+          this.installMode() === 'organization'
+            ? 'Native plugin capabilities installed for the organization.'
+            : this.installMode() === 'workspace'
+              ? 'Plugin resources initialized in the workspace.'
+              : 'Plugin resources initialized and attached to the Xpert.'
       })
       if (this.data.closeOnSuccess) {
         this.dialogRef.close(result)
@@ -526,7 +571,13 @@ export class PluginResourcesComponent {
   }
 
   private isInstallableInMode(component: Pick<IPluginComponentDefinition, 'componentType'>, mode: InstallMode) {
-    return (mode === 'workspace' ? WORKSPACE_COMPONENT_TYPES : XPERT_COMPONENT_TYPES).includes(component.componentType)
+    const componentTypes =
+      mode === 'organization'
+        ? ORGANIZATION_COMPONENT_TYPES
+        : mode === 'workspace'
+          ? WORKSPACE_COMPONENT_TYPES
+          : XPERT_COMPONENT_TYPES
+    return componentTypes.includes(component.componentType)
   }
 
   private toAgentOptions(xpert: IXpert): Array<{ key: string; label: string }> {
@@ -562,6 +613,14 @@ export class PluginResourcesComponent {
   }
 }
 
+function resolveAvailableInstallModes(allowed?: InstallMode[]): InstallMode[] {
+  const modes = allowed?.filter(
+    (mode, index): mode is InstallMode =>
+      (mode === 'organization' || mode === 'workspace' || mode === 'xpert') && allowed.indexOf(mode) === index
+  )
+  return modes?.length ? modes : ['organization', 'workspace', 'xpert']
+}
+
 function samePluginResourceStateRequest(a: PluginResourceStateRequest, b: PluginResourceStateRequest) {
   if (a === b) {
     return true
@@ -569,7 +628,13 @@ function samePluginResourceStateRequest(a: PluginResourceStateRequest, b: Plugin
   if (!a || !b) {
     return false
   }
-  if (a.pluginName !== b.pluginName || a.target !== b.target || a.workspaceId !== b.workspaceId) {
+  if (a.pluginName !== b.pluginName || a.target !== b.target) {
+    return false
+  }
+  if (a.target === 'organization' || b.target === 'organization') {
+    return true
+  }
+  if (a.workspaceId !== b.workspaceId) {
     return false
   }
   if (a.target === 'workspace' || b.target === 'workspace') {

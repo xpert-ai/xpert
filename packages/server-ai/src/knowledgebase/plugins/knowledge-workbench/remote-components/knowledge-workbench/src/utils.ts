@@ -26,6 +26,29 @@ export function isCompletedStatus(status?: DocumentStatus | null): status is typ
     return status === COMPLETED_DOCUMENT_STATUS
 }
 
+export type KnowledgeWorkbenchCitationTarget = {
+    knowledgebaseId?: string
+    documentId: string
+    chunkId?: string
+}
+
+export function extractInitialCitationTarget(initialQuery: unknown): KnowledgeWorkbenchCitationTarget | null {
+    const query = getUnknownRecord(initialQuery)
+    const parameters = getUnknownRecord(query?.parameters)
+    const documentId = getStringValue(parameters?.documentId)
+    if (!documentId) {
+        return null
+    }
+
+    const knowledgebaseId = getStringValue(parameters?.knowledgebaseId)
+    const chunkId = getStringValue(parameters?.chunkId)
+    return {
+        documentId,
+        ...(knowledgebaseId ? { knowledgebaseId } : {}),
+        ...(chunkId ? { chunkId } : {})
+    }
+}
+
 export function extractCitationTarget(event: any) {
     if (event?.type === 'assistant.citation.open') {
         const data = getUnknownRecord(event?.data)

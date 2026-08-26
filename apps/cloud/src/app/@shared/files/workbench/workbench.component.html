@@ -1,42 +1,82 @@
-<xp-file-tree
-  class="min-h-0"
+<aside
+  class="xp-file-workbench__navigation min-h-0"
   [class.hidden]="mobilePane() !== 'tree'"
   [ngClass]="{
-    'lg:block': fileTreeVisible(),
+    'lg:flex': fileTreeVisible(),
     'lg:hidden': !fileTreeVisible()
   }"
-  [title]="'XP.Files.FileTree' | translate: { Default: 'File Tree' }"
-  [zSize]="treeSize()"
-  [hasContext]="!!rootId()"
-  [subtitle]="
-    rootLabel() || ('XP.Files.SelectItemForTree' | translate: { Default: 'Select an item to inspect its files' })
-  "
-  [items]="fileTree()"
-  [activePath]="treeActivePath()"
-  [loading]="treeLoading()"
-  [loadingPaths]="fileTreeLoadingPaths()"
-  [canUpload]="canUploadFiles()"
-  [uploadDisabled]="uploading()"
-  [uploading]="uploading()"
-  [uploadTargetHint]="uploadTargetHint()"
-  [canDownload]="canDownloadFiles()"
-  [canDownloadDirectory]="canDownloadDirectories()"
-  [canDelete]="canDeleteFiles()"
-  [downloadingPaths]="downloadingPaths()"
-  [deletingPaths]="deletingPaths()"
-  [emptyTitle]="'XP.Files.NoFilesFound' | translate: { Default: 'No files found yet.' }"
-  [emptyHint]="
-    'XP.Files.NoFilesFoundHint'
-      | translate: { Default: 'This item does not expose any files at the current root, or the tree is still loading.' }
-  "
-  [selectTitle]="'XP.Files.SelectItem' | translate: { Default: 'Select an item' }"
-  [selectHint]="'XP.Files.SelectItemTreeHint' | translate: { Default: 'Choose an item to load its file tree.' }"
-  (fileSelect)="openFile($event)"
-  (directoryToggle)="toggleDirectory($event)"
-  (uploadRequest)="requestUpload($event)"
-  (fileDownload)="downloadTreeFile($event)"
-  (fileDelete)="deleteTreeFile($event)"
-/>
+>
+  @if (layout() === 'library') {
+    <div class="xp-file-workbench__library-header">
+      <div class="flex min-w-0 items-center gap-2.5">
+        <i class="ri-book-open-line shrink-0 text-xl text-text-primary"></i>
+        <h1 class="truncate text-xl font-semibold text-text-primary">
+          {{ navigationTitle() || ('XP.WorkspaceFiles.Title' | translate: { Default: 'Resource library' }) }}
+        </h1>
+      </div>
+
+      <label class="xp-file-workbench__search">
+        <i class="ri-search-line shrink-0 text-base text-text-tertiary"></i>
+        <input
+          type="search"
+          class="min-w-0 flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-placeholder"
+          [value]="treeSearchQuery()"
+          [placeholder]="
+            searchPlaceholder() || ('XP.WorkspaceFiles.SearchPlaceholder' | translate: { Default: 'Search files' })
+          "
+          (input)="updateTreeSearch($event)"
+        />
+        @if (treeSearchQuery()) {
+          <button
+            type="button"
+            class="flex size-6 shrink-0 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary"
+            [attr.aria-label]="'XP.WorkspaceFiles.ClearSearch' | translate: { Default: 'Clear search' }"
+            (click)="clearTreeSearch()"
+          >
+            <i class="ri-close-line"></i>
+          </button>
+        }
+      </label>
+    </div>
+  }
+
+  <xp-file-tree
+    class="min-h-0 flex-1"
+    [surface]="layout() === 'library' ? 'plain' : 'card'"
+    [title]="treeTitle() || ('XP.Files.FileTree' | translate: { Default: 'File Tree' })"
+    [zSize]="treeSize()"
+    [hasContext]="!!rootId()"
+    [subtitle]="
+      rootLabel() || ('XP.Files.SelectItemForTree' | translate: { Default: 'Select an item to inspect its files' })
+    "
+    [items]="visibleFileTree()"
+    [activePath]="treeActivePath()"
+    [loading]="treeLoading()"
+    [loadingPaths]="fileTreeLoadingPaths()"
+    [canUpload]="canUploadFiles()"
+    [uploadDisabled]="uploading()"
+    [uploading]="uploading()"
+    [uploadTargetHint]="uploadTargetHint()"
+    [canDownload]="canDownloadFiles()"
+    [canDownloadDirectory]="canDownloadDirectories()"
+    [canDelete]="canDeleteFiles()"
+    [downloadingPaths]="downloadingPaths()"
+    [deletingPaths]="deletingPaths()"
+    [emptyTitle]="'XP.Files.NoFilesFound' | translate: { Default: 'No files found yet.' }"
+    [emptyHint]="
+      'XP.Files.NoFilesFoundHint'
+        | translate
+          : { Default: 'This item does not expose any files at the current root, or the tree is still loading.' }
+    "
+    [selectTitle]="'XP.Files.SelectItem' | translate: { Default: 'Select an item' }"
+    [selectHint]="'XP.Files.SelectItemTreeHint' | translate: { Default: 'Choose an item to load its file tree.' }"
+    (fileSelect)="openFile($event)"
+    (directoryToggle)="toggleDirectory($event)"
+    (uploadRequest)="requestUpload($event)"
+    (fileDownload)="downloadTreeFile($event)"
+    (fileDelete)="deleteTreeFile($event)"
+  />
+</aside>
 
 <input #uploadInput type="file" class="hidden" multiple (change)="onUploadFiles($event, 'file')" />
 <input
@@ -51,6 +91,7 @@
 
 <xp-file-viewer
   class="lg:block min-h-[320px]"
+  [surface]="layout() === 'library' ? 'plain' : 'card'"
   [file]="activeFile()"
   [class.hidden]="mobilePane() !== 'file'"
   [filePath]="activeFilePath()"
@@ -60,6 +101,9 @@
   [readable]="fileReadable()"
   [editable]="isActiveFileEditable()"
   [markdown]="isMarkdownFile()"
+  [docx]="isDocxFile()"
+  [documentBuffer]="documentBuffer()"
+  [spreadsheet]="isSpreadsheetFile()"
   [dirty]="dirty()"
   [downloadable]="canDownloadActiveFile()"
   [referenceable]="referenceable()"
@@ -92,6 +136,10 @@
   "
   (modeChange)="switchPanelMode($event)"
   (contentChange)="draftContent.set($event)"
+  (documentDirtyChange)="docxDirty.set($event)"
+  (documentSave)="saveActiveFile($event)"
+  (documentError)="handleDocumentError($event)"
+  (spreadsheetDirtyChange)="spreadsheetDirty.set($event)"
   (discard)="discardActiveFileChanges()"
   (save)="saveActiveFile()"
   (refresh)="refreshActiveFile()"

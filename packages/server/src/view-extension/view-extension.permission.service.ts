@@ -1,16 +1,17 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { XpertExtensionViewManifest, XpertViewActionDefinition, XpertViewHostContext } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
-import { ViewHostDefinitionContract, ViewHostResolution } from './host-definition.interface'
+import { ViewHostDefinitionContract, ViewHostResolution, ViewHostResolutionOptions } from './host-definition.interface'
 
 @Injectable()
 export class ViewExtensionPermissionService {
 	assertHostReadable(
 		definition: ViewHostDefinitionContract,
 		context: XpertViewHostContext,
-		resolution: ViewHostResolution
+		resolution: ViewHostResolution,
+		options?: ViewHostResolutionOptions
 	) {
-		return Promise.resolve(definition.canRead(context, resolution)).then((readable) => {
+		return Promise.resolve(definition.canRead(context, resolution, options)).then((readable) => {
 			if (readable) {
 				return
 			}

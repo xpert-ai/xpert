@@ -1,5 +1,9 @@
 import { environment as env, getConfig, setConfig } from '@xpert-ai/server-config'
-import { API_PRINCIPAL_USER_ID_HEADER } from '@xpert-ai/contracts'
+import {
+  API_PRINCIPAL_USER_ID_HEADER,
+  MCP_HTTP_CORS_EXPOSED_HEADERS,
+  MCP_HTTP_CORS_REQUEST_HEADERS
+} from '@xpert-ai/contracts'
 import { initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
 import {
   AppService,
@@ -36,6 +40,7 @@ import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
+import { createMcpPublicationJsonBodyParser } from './mcp-publication-body-parser'
 import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
 import { configureSession } from './session'
 import { configureTrustProxy } from './trust-proxy'
@@ -81,6 +86,7 @@ export async function bootstrap(options: { title: string; version: string }) {
   app.useGlobalGuards(new AuthGuard(reflector), new PluginScopeGuard(reflector))
 
   app.use(cookieParser())
+  app.use('/api/mcp/p', createMcpPublicationJsonBodyParser())
   app.use(
     text({
       limit: '50mb',
@@ -110,7 +116,8 @@ export async function bootstrap(options: { title: string; version: string }) {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders:
       `Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}, ` +
-      headersForOpenAI
+      `${headersForOpenAI}, ${MCP_HTTP_CORS_REQUEST_HEADERS.join(', ')}`,
+    exposedHeaders: MCP_HTTP_CORS_EXPOSED_HEADERS.join(', ')
   })
 
   // Sessions
@@ -120,7 +127,9 @@ export async function bootstrap(options: { title: string; version: string }) {
   })
 
   const globalPrefix = 'api'
-  app.setGlobalPrefix(globalPrefix, { exclude: ['artifacts/share', 'artifacts/share/(.*)'] })
+  app.setGlobalPrefix(globalPrefix, {
+    exclude: ['artifacts/share', 'artifacts/share/(.*)', '.well-known/oauth-protected-resource/(.*)']
+  })
 
   // Seed default values
   const serverService = app.select(ServerAppModule).get(AppService)

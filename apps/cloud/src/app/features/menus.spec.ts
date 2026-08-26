@@ -202,7 +202,7 @@ describe('getFeatureMenus', () => {
     expect(tasks?.data?.translationKey).toBe('Scheduled')
   })
 
-  it('adds MCP Monitor beside Plugins for super admins', () => {
+  it('adds MCP Management beside Plugins for super admins', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const pluginIndex = menus.findIndex((item) => item.link === '/plugins')
     const operations = menus.find((item) => item.link === '/operations')
@@ -210,12 +210,12 @@ describe('getFeatureMenus', () => {
     expect(pluginIndex).toBeGreaterThanOrEqual(0)
     expect(menus[pluginIndex + 1]?.link).toBe('/operations')
     expect(operations).toMatchObject({
-      title: 'MCP Monitor',
+      title: 'MCP Management',
       icon: 'ri-pulse-line',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'
     })
-    expect(operations?.data?.translationKey).toBe('MCP Monitor')
+    expect(operations?.data?.translationKey).toBe('MCP Management')
     expect(operations?.data?.permissionKeys).toEqual([RolesEnum.SUPER_ADMIN])
   })
 

@@ -10,6 +10,7 @@ import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { MembershipModule } from '../membership'
 import { ModelAccessModule } from '../model-access'
 import { ModelGatewayModule } from '../model-gateway'
+import { AssistantBindingModule } from '../assistant-binding'
 import { AI_BOOTSTRAP_QUEUE } from './constants'
 import { ServerAIBootstrapProcessor } from './bootstrap.processor'
 import { ServerAIBootstrapService } from './bootstrap.service'
@@ -31,7 +32,8 @@ import { ServerAIBootstrapService } from './bootstrap.service'
         XpertTemplateModule,
         MembershipModule,
         ModelAccessModule,
-        ModelGatewayModule
+        ModelGatewayModule,
+        AssistantBindingModule
     ],
     providers: [ServerAIBootstrapProcessor, ServerAIBootstrapService]
 })

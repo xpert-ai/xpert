@@ -41,6 +41,10 @@ class MembershipAllowedModelDto implements IMembershipAllowedModel {
     @IsNotEmpty()
     @MaxLength(255)
     model: string
+
+    @IsOptional()
+    @IsUUID()
+    copilotId?: string
 }
 
 class MembershipModelMultiplierDto implements IMembershipModelMultiplier {

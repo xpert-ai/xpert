@@ -168,7 +168,8 @@ async function configureComponent(options?: {
     )
   }
   const toastr = {
-    error: jest.fn()
+    error: jest.fn(),
+    success: jest.fn()
   }
   const dialog = options?.dialog ?? {
     open: jest.fn(() => ({
@@ -434,9 +435,175 @@ describe('ClawXpertToolPreferencesComponent', () => {
     expect(fixture.nativeElement.querySelector('nav')).toBeNull()
     expect(fixture.nativeElement.querySelector('h1')).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Workspace Search')
-    expect(fixture.nativeElement.textContent).toContain('XP.Skill.UploadSkills')
-    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.InstallOrRefreshSkills')
+    expect(fixture.nativeElement.textContent).toContain('XP.Explore.InstalledSkills')
+    expect(fixture.nativeElement.querySelector('input[type="search"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-skill-bulk-management]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('z-switch')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Skill.UploadSkills')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.InstallOrRefreshSkills')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.SkillCatalogTitle')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.ACTIONS.Refresh')
     expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.InstallWorkspaceSkillsTitle')
     expect(fixture.nativeElement.textContent).not.toContain('XP.Common.Tools')
+  })
+
+  it('filters installed skills and supports selecting all, clearing, and cancelling batch management', async () => {
+    const skillPackageService = {
+      getAllByWorkspace: jest.fn(() =>
+        of({
+          items: [
+            createSkillPackage(),
+            createSkillPackage('skill-package-2', {
+              name: 'Canvas Design',
+              metadata: {
+                displayName: 'Canvas Design',
+                summary: 'Create visual assets'
+              },
+              skillIndex: {
+                id: 'index-2',
+                skillId: 'skill.canvas',
+                name: 'Canvas Design',
+                description: 'Create visual assets',
+                repository: {
+                  id: 'repository-1',
+                  name: 'anthropics/skills',
+                  provider: 'github'
+                }
+              }
+            })
+          ]
+        })
+      ),
+      installPackage: jest.fn(() => of({ id: 'installed-skill-package' }))
+    }
+    const { component, fixture } = await configureComponent({ skillPackageService })
+
+    component.skillsOnly = true
+    component.skillSearch.set('canvas')
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Canvas Design')
+    expect(fixture.nativeElement.textContent).not.toContain('Workspace Search')
+
+    component.skillSearch.set('')
+    fixture.detectChanges()
+
+    const bulkButton = fixture.nativeElement.querySelector('[data-skill-bulk-management]') as HTMLButtonElement
+    bulkButton.click()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelectorAll('input[type="checkbox"]')).toHaveLength(2)
+    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.SelectedSkills')
+    expect(fixture.nativeElement.querySelector('[data-skill-bulk-enable]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-skill-bulk-disable]')).not.toBeNull()
+
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]
+    buttons.find((button) => button.textContent?.includes('XP.Chat.ClawXpert.SelectAll'))?.click()
+    fixture.detectChanges()
+
+    expect(component.selectedSkillIds().size).toBe(2)
+    expect(fixture.nativeElement.querySelector('[data-skill-bulk-uninstall]').disabled).toBe(false)
+
+    buttons.find((button) => button.textContent?.includes('XP.Chat.ClawXpert.ClearSelection'))?.click()
+    fixture.detectChanges()
+
+    expect(component.selectedSkillIds().size).toBe(0)
+
+    const cancelButton = (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).find(
+      (button) => button.textContent?.includes('XP.Chat.ClawXpert.Cancel')
+    )
+    cancelButton?.click()
+    fixture.detectChanges()
+
+    expect(component.bulkManaging()).toBe(false)
+    expect(fixture.nativeElement.querySelectorAll('input[type="checkbox"]')).toHaveLength(0)
+  })
+
+  it('enables and disables every selected skill through the batch actions', async () => {
+    const skillPackageService = {
+      getAllByWorkspace: jest.fn(() =>
+        of({
+          items: [createSkillPackage(), createSkillPackage('skill-package-2')]
+        })
+      ),
+      installPackage: jest.fn(() => of({ id: 'installed-skill-package' }))
+    }
+    const { component, facade, toastr } = await configureComponent({ skillPackageService })
+
+    component.skillsOnly = true
+    component.startBulkManagement()
+    component.selectAllFilteredSkills()
+
+    await component.setSelectedSkillsEnabled(true)
+
+    expect(facade.setSkillEnabled).toHaveBeenNthCalledWith(1, 'workspace-1', 'skill-package-1', true)
+    expect(facade.setSkillEnabled).toHaveBeenNthCalledWith(2, 'workspace-1', 'skill-package-2', true)
+    expect(toastr.success).toHaveBeenCalledWith('XP.Chat.ClawXpert.SelectedSkillsEnabled')
+
+    facade.setSkillEnabled.mockClear()
+    toastr.success.mockClear()
+
+    await component.setSelectedSkillsEnabled(false)
+
+    expect(facade.setSkillEnabled).toHaveBeenNthCalledWith(1, 'workspace-1', 'skill-package-1', false)
+    expect(facade.setSkillEnabled).toHaveBeenNthCalledWith(2, 'workspace-1', 'skill-package-2', false)
+    expect(toastr.success).toHaveBeenCalledWith('XP.Chat.ClawXpert.SelectedSkillsDisabled')
+  })
+
+  it('keeps unrelated skill switches interactive while one skill preference is saving', async () => {
+    let resolveSave: ((value: boolean) => void) | undefined
+    const facade = createFacadeMock()
+    facade.setSkillEnabled.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveSave = resolve
+        })
+    )
+    const skillPackageService = {
+      getAllByWorkspace: jest.fn(() =>
+        of({
+          items: [createSkillPackage(), createSkillPackage('skill-package-2')]
+        })
+      ),
+      installPackage: jest.fn(() => of({ id: 'installed-skill-package' }))
+    }
+    const { component } = await configureComponent({ facade, skillPackageService })
+    const [firstSkill, secondSkill] = component.skillItems()
+
+    const savePromise = component.toggleSkill(firstSkill, false)
+
+    expect(component.isSkillToggleDisabled(firstSkill.id)).toBe(true)
+    expect(component.isSkillToggleDisabled(secondSkill.id)).toBe(false)
+
+    await Promise.resolve()
+    if (!resolveSave) {
+      throw new Error('Expected the skill preference save to start')
+    }
+    resolveSave(true)
+    await savePromise
+
+    expect(component.isSkillToggleDisabled(firstSkill.id)).toBe(false)
+    expect(component.isSkillToggleDisabled(secondSkill.id)).toBe(false)
+  })
+
+  it('offers download and uninstall actions from each installed skill card', async () => {
+    const skillPackageService = {
+      getAllByWorkspace: jest.fn(() => of({ items: [createSkillPackage()] })),
+      installPackage: jest.fn(() => of({ id: 'installed-skill-package' }))
+    }
+    const { component, fixture } = await configureComponent({ skillPackageService })
+
+    component.skillsOnly = true
+    fixture.detectChanges()
+
+    const actionsButton = (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).find(
+      (button) => button.getAttribute('aria-label')?.includes('XP.Chat.ClawXpert.SkillActions')
+    )
+    actionsButton?.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(document.body.textContent).toContain('XP.Chat.ClawXpert.DownloadSkillPackage')
+    expect(document.body.textContent).toContain('XP.Chat.ClawXpert.Uninstall')
   })
 })

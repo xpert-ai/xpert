@@ -52,8 +52,8 @@
         {{ filePath() || ('XP.Files.NoFileSelected' | translate: { Default: 'No file selected' }) }}
       </div>
       <div class="xp-file-heading mt-1 flex flex-wrap items-center gap-2" data-file-content-heading="viewer">
-        <div class="text-sm font-semibold text-text-primary">
-          {{ 'XP.Files.FileContent' | translate: { Default: 'File Content' } }}
+        <div class="truncate text-sm font-semibold text-text-primary">
+          {{ displayFileName() || ('XP.Files.FileContent' | translate: { Default: 'File Content' }) }}
         </div>
         @if (dirty()) {
           <span
@@ -73,7 +73,7 @@
           zSize="sm"
           type="button"
           data-refresh-button="viewer"
-          [disabled]="loading() || saving()"
+          [zDisabled]="loading() || saving()"
           (click)="refresh.emit()"
         >
           <i class="ri-refresh-line mr-1" [class.animate-spin]="loading()"></i>
@@ -132,7 +132,7 @@
           zSize="sm"
           type="button"
           data-discard-button="viewer"
-          [disabled]="!dirty()"
+          [zDisabled]="!dirty()"
           (click)="discard.emit()"
         >
           {{ 'XP.Files.Discard' | translate: { Default: 'Discard' } }}
@@ -143,7 +143,7 @@
           zSize="sm"
           type="button"
           data-save-button="viewer"
-          [disabled]="!dirty() || saving()"
+          [zDisabled]="!dirty() || saving()"
           (click)="save.emit()"
         >
           @if (saving()) {
@@ -161,18 +161,46 @@
         <xp-spin
           class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"
         />
-      } @else if (mode() === 'edit' && editable()) {
-        <xp-file-editor
+      } @else if (spreadsheet() && editable() && previewUrl()) {
+        <xp-spreadsheet-editor
           class="h-full"
-          [referenceable]="editorReferenceable()"
-          [editable]="true"
-          lineNumbers
-          wordWrap
-          [fileName]="filePath() || ''"
-          [content]="content()"
-          (contentChange)="contentChange.emit($event)"
-          (referenceSelection)="referenceSelection.emit($event)"
+          data-spreadsheet-editor="univer"
+          [sourceUrl]="previewUrl() || ''"
+          [fileName]="displayFileName() || filePath() || 'workbook.xlsx'"
+          [editable]="mode() === 'edit'"
+          (dirtyChange)="spreadsheetDirtyChange.emit($event)"
         />
+      } @else if (mode() === 'edit' && editable()) {
+        @if (docx() && documentBuffer()) {
+          <xp-docx-editor
+            class="h-full"
+            [documentBuffer]="documentBuffer()"
+            [fileName]="displayFileName() || filePath() || 'document.docx'"
+            [editable]="true"
+            (dirtyChange)="documentDirtyChange.emit($event)"
+            (saveRequest)="documentSave.emit($event)"
+            (editorError)="documentError.emit($event)"
+          />
+        } @else if (markdown()) {
+          <xp-markdown-editor
+            class="xp-milkdown-editor h-full"
+            [content]="content()"
+            [placeholder]="'XP.Files.MarkdownPlaceholder' | translate: { Default: 'Start writing...' }"
+            (contentChange)="contentChange.emit($event)"
+          />
+        } @else {
+          <xp-file-editor
+            class="h-full"
+            [referenceable]="editorReferenceable()"
+            [editable]="true"
+            lineNumbers
+            wordWrap
+            [fileName]="filePath() || ''"
+            [content]="content()"
+            (contentChange)="contentChange.emit($event)"
+            (referenceSelection)="referenceSelection.emit($event)"
+          />
+        }
       } @else if (showEnhancedPreview()) {
         <xp-file-preview-content
           class="h-full"

@@ -1,238 +1,158 @@
-import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { Test, TestingModule } from '@nestjs/testing'
-import { MANAGED_QUEUE_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
-import * as dotenv from 'dotenv'
-import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
-import { ToolNotSupportedError, XpertToolsetService } from '../../../xpert-toolset'
+import { ToolParameterForm, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
+import { BadRequestException } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
+import { Test } from '@nestjs/testing'
+import { ToolRuntimeService } from '../../../tool-runtime'
 import { ToolInvokeCommand } from '../tool-invoke.command'
 import { ToolInvokeHandler } from './tool-invoke.handler'
 
-dotenv.config({ path: '.env' })
-
 describe('ToolInvokeHandler', () => {
     let handler: ToolInvokeHandler
-    let commandBus: CommandBus
+    let queryExecute: jest.Mock
+    let executeTool: jest.Mock
 
     beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
+        queryExecute = jest.fn().mockResolvedValue({ API_HOST: 'https://api.example.test' })
+        executeTool = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'done' }] })
+        const module = await Test.createTestingModule({
             providers: [
                 ToolInvokeHandler,
-                {
-                    provide: CommandBus,
-                    useValue: {
-                        execute: jest.fn()
-                    }
-                },
-                { provide: QueryBus, useValue: { execute: jest.fn() } },
-                { provide: XpertToolsetService, useValue: {} },
-                {
-                    provide: AgentMiddlewareRuntimeService,
-                    useValue: { createScopedApi: jest.fn().mockReturnValue({ createModelClient: jest.fn() }) }
-                },
-                { provide: MANAGED_QUEUE_SERVICE_TOKEN, useValue: { enqueue: jest.fn() } }
+                { provide: QueryBus, useValue: { execute: queryExecute } },
+                { provide: ToolRuntimeService, useValue: { executeTool } }
             ]
         }).compile()
-
-        handler = module.get<ToolInvokeHandler>(ToolInvokeHandler)
-        commandBus = module.get<CommandBus>(CommandBus)
+        handler = module.get(ToolInvokeHandler)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1' } as never)
     })
 
-    it('should be defined', () => {
-        expect(handler).toBeDefined()
-    })
+    afterEach(() => jest.restoreAllMocks())
 
-    it('should handle openapi toolset type', async () => {
-        const tool = {
-            name: 'testTool',
-            toolset: { type: 'openapi' } as IXpertToolset,
-            schema: { parameters: [] },
-            parameters: {}
-        }
-        const command = new ToolInvokeCommand(tool)
-
-        const result = await handler.execute(command)
-
-        expect(result).toBeDefined()
-    })
-
-    it('should handle builtin toolset category', async () => {
-        const tool = {
-            name: 'testTool',
-            toolset: {
-                name: 'Test tavily',
-                type: 'tavily',
-                category: XpertToolsetCategoryEnum.BUILTIN,
-                credentials: {
-                    tavily_api_key: process.env.TAVILY_API_KEY
+    it.each([
+        [XpertToolsetCategoryEnum.BUILTIN, 'native-plugin'],
+        [XpertToolsetCategoryEnum.API, 'openapi'],
+        [XpertToolsetCategoryEnum.MCP, 'mcp']
+    ])('delegates %s preview execution to the shared runtime', async (category, type) => {
+        const result = await handler.execute(
+            new ToolInvokeCommand({
+                name: 'search',
+                schema: {
+                    parameters: [{ name: 'query', form: ToolParameterForm.LLM, schema: { type: 'string' } }]
+                },
+                parameters: { query: 'xpert' },
+                toolset: {
+                    id: 'toolset-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'organization-1',
+                    workspaceId: 'workspace-1',
+                    name: 'Search',
+                    type,
+                    category
                 }
-            } as IXpertToolset,
-            parameters: { query: 'test query' }
-        }
-        const command = new ToolInvokeCommand(tool)
+            })
+        )
 
-        const result = await handler.execute(command)
-
-        expect(result).toBeDefined()
+        expect(result).toEqual({ content: [{ type: 'text', text: 'done' }] })
+        expect(executeTool).toHaveBeenCalledWith(
+            expect.objectContaining({
+                source: 'api',
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1',
+                workspaceId: 'workspace-1',
+                toolsetId: 'toolset-1',
+                toolName: 'search',
+                principal: { type: 'user', id: 'user-1', userId: 'user-1' },
+                arguments: { query: 'xpert' },
+                executionId: expect.any(String),
+                requestId: expect.any(String),
+                env: { API_HOST: 'https://api.example.test' },
+                configurable: expect.objectContaining({ subscriber: expect.any(Object) }),
+                toolsetSnapshots: [
+                    expect.objectContaining({
+                        id: 'toolset-1',
+                        category,
+                        type,
+                        tools: [expect.objectContaining({ name: 'search', enabled: true })]
+                    })
+                ]
+            })
+        )
     })
 
-    it('should throw ToolNotSupportedError for unsupported toolset type', async () => {
-        const tool = {
-            name: 'testTool',
-            toolset: { type: 'unsupportedType' } as IXpertToolset
-        }
-        const command = new ToolInvokeCommand(tool)
+    it('keeps form parameters in explicit runtime context and converts LLM parameter values', async () => {
+        await handler.execute(
+            new ToolInvokeCommand({
+                name: 'generate',
+                schema: {
+                    parameters: [
+                        { name: 'limit', form: ToolParameterForm.LLM, schema: { type: 'number' } },
+                        { name: 'xpertId', form: ToolParameterForm.FORM, schema: { type: 'string' } },
+                        { name: 'agentKey', form: ToolParameterForm.FORM, schema: { type: 'string' } }
+                    ]
+                },
+                parameters: { limit: '3', xpertId: 'xpert-1', agentKey: 'agent-1' },
+                toolset: {
+                    workspaceId: 'workspace-1',
+                    name: 'Generate',
+                    type: 'native-plugin',
+                    category: XpertToolsetCategoryEnum.BUILTIN
+                }
+            })
+        )
 
-        await expect(handler.execute(command)).rejects.toThrow(ToolNotSupportedError)
+        expect(executeTool).toHaveBeenCalledWith(
+            expect.objectContaining({
+                toolsetId: expect.any(String),
+                arguments: { limit: 3 },
+                xpertId: 'xpert-1',
+                agentKey: 'agent-1'
+            })
+        )
+    })
+
+    it('returns legacy subscriber events together with the normalized runtime result', async () => {
+        executeTool.mockImplementation(async (request) => {
+            request.configurable.subscriber.next({ type: 'progress', value: 1 })
+            return { structuredContent: { ok: true } }
+        })
+
+        await expect(handler.execute(new ToolInvokeCommand(previewTool()))).resolves.toEqual({
+            events: [{ type: 'progress', value: 1 }],
+            result: { structuredContent: { ok: true } }
+        })
+    })
+
+    it('rejects preview execution without an explicit workspace', async () => {
+        await expect(
+            handler.execute(
+                new ToolInvokeCommand({
+                    name: 'search',
+                    toolset: {
+                        name: 'Search',
+                        type: 'native-plugin',
+                        category: XpertToolsetCategoryEnum.BUILTIN
+                    }
+                })
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(executeTool).not.toHaveBeenCalled()
     })
 })
 
-describe('ToolInvokeHandler OData', () => {
-    let handler: ToolInvokeHandler
-    let commandBus: CommandBus
-    let toolset: IXpertToolset
-    let purchaseOrderToolset: IXpertToolset
-    const odataUrl = 'https://services.odata.org/TripPinRESTierService/(S(gpti0o5qv3p14bmkguhklnz0))'
-    const sapPurchaseOrderOdataUrl =
-        process.env.ODATA_TOOL_SAP_SYSTEM + `/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV`
-
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ToolInvokeHandler,
-                {
-                    provide: CommandBus,
-                    useValue: {
-                        execute: jest.fn()
-                    }
-                },
-                { provide: QueryBus, useValue: { execute: jest.fn() } },
-                { provide: XpertToolsetService, useValue: {} },
-                {
-                    provide: AgentMiddlewareRuntimeService,
-                    useValue: { createScopedApi: jest.fn().mockReturnValue({ createModelClient: jest.fn() }) }
-                },
-                { provide: MANAGED_QUEUE_SERVICE_TOKEN, useValue: { enqueue: jest.fn() } }
-            ]
-        }).compile()
-
-        handler = module.get<ToolInvokeHandler>(ToolInvokeHandler)
-        commandBus = module.get<CommandBus>(CommandBus)
-        toolset = {
-            type: 'odata',
-            category: XpertToolsetCategoryEnum.API,
-            options: {
-                baseUrl: odataUrl
-            }
-        } as IXpertToolset
-
-        purchaseOrderToolset = {
-            name: 'Purchase Order',
-            type: 'odata',
-            category: XpertToolsetCategoryEnum.API,
-            options: {
-                baseUrl: sapPurchaseOrderOdataUrl
-            },
-            credentials: {
-                auth_type: 'basic',
-                username: process.env.ODATA_TOOL_SAP_USERNAME,
-                password: process.env.ODATA_TOOL_SAP_PASSWORD
-            }
-        } as IXpertToolset
-    })
-
-    it('should be defined', () => {
-        expect(handler).toBeDefined()
-    })
-
-    it('should handle odata toolset query entity', async () => {
-        const tool = {
-            name: 'Query People',
-            enabled: true,
-            toolset,
-            schema: {
-                name: 'People',
-                method: 'query',
-                parameters: [
-                    {
-                        name: 'UserName',
-                        isKey: true,
-                        schema: {
-                            type: 'string'
-                        }
-                    }
-                ]
-            },
-            parameters: {
-                UserName: '123'
-            }
-        } as IXpertTool
-        const command = new ToolInvokeCommand(tool)
-
-        const result = await handler.execute(command)
-
-        console.log(result)
-
-        expect(result).toBeDefined()
-    }, 10000)
-
-    it('should handle odata toolset get one entity', async () => {
-        const tool = {
-            name: 'Get People',
-            enabled: true,
-            toolset,
-            schema: {
-                name: 'People',
-                method: 'get',
-                parameters: [
-                    {
-                        name: 'UserName',
-                        isKey: true,
-                        schema: {
-                            type: 'string'
-                        }
-                    }
-                ]
-            },
-            parameters: {
-                UserName: 'scottketchum'
-            }
-        } as IXpertTool
-        const command = new ToolInvokeCommand(tool)
-
-        const result = await handler.execute(command)
-
-        expect(result.FirstName).toEqual('Scott')
-    }, 10000)
-
-    it('should authenticate sap odata', async () => {
-        const tool = {
-            name: 'Get People',
-            enabled: true,
-            toolset: purchaseOrderToolset,
-            schema: {
-                name: 'A_PurchaseOrder',
-                method: 'get',
-                parameters: [
-                    {
-                        name: 'PurchaseOrder',
-                        isKey: true,
-                        schema: {
-                            type: 'string'
-                        }
-                    }
-                ]
-            },
-            parameters: {
-                PurchaseOrder: 'xxx'
-            }
-        } as IXpertTool
-        const command = new ToolInvokeCommand(tool)
-
-        const result = await handler.execute(command)
-
-        console.log(result)
-
-        expect(result.PurchaseOrder).toEqual('xxx')
-    }, 10000)
-})
+function previewTool() {
+    return {
+        name: 'generate',
+        schema: { parameters: [] },
+        parameters: {},
+        toolset: {
+            id: 'toolset-1',
+            workspaceId: 'workspace-1',
+            name: 'Generate',
+            type: 'native-plugin',
+            category: XpertToolsetCategoryEnum.BUILTIN
+        }
+    }
+}

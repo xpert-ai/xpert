@@ -10,6 +10,7 @@ import {
   EnvironmentService,
   getErrorMessage,
   IEnvironment,
+  IMcpConsumerServerCapabilities,
   injectToastr,
   isToolEnabled,
   IXpertTool,
@@ -28,7 +29,7 @@ import { injectConfirmDelete, injectConfirmUnique, XpSpinComponent } from '@xper
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, of, startWith, tap } from 'rxjs'
+import { firstValueFrom, map, of, startWith, tap } from 'rxjs'
 import { EmojiAvatarComponent } from '../../avatar'
 import { TagSelectComponent } from '../../tag'
 import { XpertToolNameInputComponent } from '../../xpert'
@@ -213,6 +214,9 @@ export class XpertMCPManageComponent {
   readonly atLeastOne = computed(() => this.tools()?.some((_) => isToolEnabled(_, this.disableToolDefault())))
   readonly canSave = computed(() => this.name() && this.atLeastOne())
   readonly saved = signal(false)
+  readonly capabilityLoading = signal(false)
+  readonly capabilityError = signal<string>(null)
+  readonly capabilityServers = signal<IMcpConsumerServerCapabilities[]>([])
 
   constructor() {
     // effect(() => {
@@ -222,6 +226,23 @@ export class XpertMCPManageComponent {
 
   selectTool(tool: IXpertTool) {
     this.selectedTool.set(tool?.name)
+  }
+
+  async discoverCapabilities() {
+    const workspaceId = this.workspaceId()
+    const toolsetId = this.toolsetId() ?? this.toolset()?.id
+    if (!workspaceId || !toolsetId) return
+    this.capabilityLoading.set(true)
+    this.capabilityError.set(null)
+    try {
+      this.capabilityServers.set(
+        await firstValueFrom(this.toolsetService.discoverMcpCapabilities(workspaceId, toolsetId))
+      )
+    } catch (error) {
+      this.capabilityError.set(getErrorMessage(error))
+    } finally {
+      this.capabilityLoading.set(false)
+    }
   }
 
   updateTool(value: Partial<IXpertTool>) {

@@ -4,6 +4,7 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { RouterLink } from '@angular/router'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import {
+  AiProviderRole,
   ICopilotWithProvider,
   IMembershipAdminUser,
   IMembershipAllowedModel,
@@ -43,11 +44,20 @@ type MembershipModelOption = {
   value: string
   provider: string
   model: string
+  available: boolean
+  copilotId?: string
+  copilotLabel?: string
 }
 
 type MembershipAdminTab = 'plans' | 'users'
 
 const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'day', 'week', 'cycle']
+const COPILOT_ROLE_NAMES: Record<AiProviderRole, string> = {
+  [AiProviderRole.Primary]: 'Primary',
+  [AiProviderRole.Secondary]: 'Secondary',
+  [AiProviderRole.Embedding]: 'Embedding',
+  [AiProviderRole.Reasoning]: 'Reasoning'
+}
 
 @Component({
   standalone: true,
@@ -123,6 +133,7 @@ export class MembershipAdminComponent implements OnInit {
   )
   readonly rateLimitPeriods = MEMBERSHIP_RATE_LIMIT_PERIODS
   readonly modelOptions = signal<MembershipModelOption[]>([])
+  readonly allowedModelOptions = signal<MembershipModelOption[]>([])
   readonly globalModelTargetValue = modelOptionValue('', '*')
 
   MembershipPlanStatusEnum = MembershipPlanStatusEnum
@@ -187,6 +198,7 @@ export class MembershipAdminComponent implements OnInit {
         this.scopeStatus.set(status)
         this.plans.set(editablePlans)
         this.modelOptions.set(this.toModelOptions(models))
+        this.allowedModelOptions.set(this.toAllowedModelOptions(models))
         const selectedPlanId = this.selectedPlanId()
         if (!selectedPlanId || !editablePlans.some((plan) => plan.id === selectedPlanId)) {
           this.selectedPlanId.set(editablePlans.find((plan) => plan.isDefault)?.id ?? editablePlans[0]?.id ?? null)
@@ -717,12 +729,12 @@ export class MembershipAdminComponent implements OnInit {
   }
 
   allowedModelValues() {
-    return this.allowedModels.map((item) => modelOptionValue(item.provider, item.model))
+    return this.allowedModels.map((item) => allowedModelOptionValue(item.provider, item.model, item.copilotId))
   }
 
   setAllowedModelValues(value: string | number | Array<string | number>) {
     this.allowedModels = selectionValues(value)
-      .map(decodeModelOptionValue)
+      .map(decodeAllowedModelOptionValue)
       .filter((item): item is IMembershipAllowedModel => !!item?.provider && !!item.model)
   }
 
@@ -794,15 +806,24 @@ export class MembershipAdminComponent implements OnInit {
   }
 
   modelTargetLabel(option: MembershipModelOption) {
+    let label: string
     if (!option.provider) {
-      return this.#translate.instant('XP.Membership.AllModels', { Default: 'All models' })
-    }
-    if (option.model === '*') {
-      return `${option.provider} · ${this.#translate.instant('XP.Membership.AllProviderModels', {
+      label = this.#translate.instant('XP.Membership.AllModels', { Default: 'All models' })
+    } else if (option.model === '*') {
+      label = `${option.provider} · ${this.#translate.instant('XP.Membership.AllProviderModels', {
         Default: 'All provider models'
       })}`
+    } else {
+      label = `${option.provider} · ${option.model}`
     }
-    return `${option.provider} · ${option.model}`
+    if (option.copilotLabel) {
+      label = `${option.copilotLabel} · ${label}`
+    }
+    return option.available
+      ? label
+      : `${label} · ${this.#translate.instant('XP.Membership.HistoricalModelUnavailable', {
+          Default: 'Removed / unavailable'
+        })}`
   }
 
   private buildPayload(): Partial<IMembershipPlan> | null {
@@ -883,15 +904,47 @@ export class MembershipAdminComponent implements OnInit {
       if (!provider) {
         continue
       }
-      addModelOption(options, provider, '*')
+      addModelOption(options, provider, '*', true)
       for (const model of copilot.providerWithModels.models ?? []) {
         const modelName = model.model?.trim()
         if (modelName) {
-          addModelOption(options, provider, modelName)
+          addModelOption(options, provider, modelName, true)
         }
       }
     }
     return sortModelOptions(Array.from(options.values()))
+  }
+
+  private toAllowedModelOptions(copilots: ICopilotWithProvider[]): MembershipModelOption[] {
+    const options = new Map<string, MembershipModelOption>()
+    for (const copilot of copilots) {
+      const provider = copilot.providerWithModels?.provider?.trim()
+      const copilotId = copilot.id
+      if (!provider || !copilotId) {
+        continue
+      }
+      const copilotLabel = this.copilotProviderLabel(copilot)
+      addAllowedModelOption(options, provider, '*', copilotId, copilotLabel, true)
+      for (const model of copilot.providerWithModels.models ?? []) {
+        const modelName = model.model?.trim()
+        if (modelName) {
+          addAllowedModelOption(options, provider, modelName, copilotId, copilotLabel, true)
+        }
+      }
+    }
+    return sortModelOptions(Array.from(options.values()))
+  }
+
+  private copilotProviderLabel(copilot: ICopilotWithProvider) {
+    const name = copilot.name?.trim()
+    if (name) {
+      return name
+    }
+
+    const roleName = COPILOT_ROLE_NAMES[copilot.role]
+    const roleLabel = this.#translate.instant(`XP.KEY_WORDS.${roleName}`, { Default: roleName })
+    const providerLabel = this.#translate.instant('XP.KEY_WORDS.Provider', { Default: 'Provider' })
+    return `${roleLabel} ${providerLabel}`
   }
 
   private includeStoredModelOptions() {
@@ -901,10 +954,27 @@ export class MembershipAdminComponent implements OnInit {
       const provider = rule.provider?.trim() ?? ''
       const model = rule.model?.trim() || '*'
       if (provider || model !== '*') {
-        addModelOption(options, provider, model)
+        addModelOption(options, provider, model, false)
       }
     }
     this.modelOptions.set(sortModelOptions(Array.from(options.values())))
+
+    const allowedOptions = new Map(this.allowedModelOptions().map((option) => [option.value, option]))
+    for (const rule of this.allowedModels) {
+      const provider = rule.provider.trim()
+      const model = rule.model.trim()
+      const copilotId = rule.copilotId?.trim()
+      const value = allowedModelOptionValue(provider, model, copilotId)
+      if (!allowedOptions.has(value)) {
+        const available =
+          !copilotId &&
+          Array.from(allowedOptions.values()).some(
+            (option) => option.provider === provider && option.model === model && option.available
+          )
+        addAllowedModelOption(allowedOptions, provider, model, copilotId, copilotId, available)
+      }
+    }
+    this.allowedModelOptions.set(sortModelOptions(Array.from(allowedOptions.values())))
   }
 }
 
@@ -930,14 +1000,56 @@ function decodeModelOptionValue(value?: string): IMembershipAllowedModel | null 
   }
 }
 
+function allowedModelOptionValue(provider: string, model: string, copilotId?: string) {
+  return [copilotId ?? '', provider, model].map(encodeURIComponent).join('|')
+}
+
+function decodeAllowedModelOptionValue(value?: string): IMembershipAllowedModel | null {
+  if (!value) {
+    return null
+  }
+  const parts = value.split('|')
+  if (parts.length !== 3) {
+    return null
+  }
+  try {
+    const [copilotId, provider, model] = parts.map(decodeURIComponent)
+    if (!provider || !model) {
+      return null
+    }
+    return copilotId ? { provider, model, copilotId } : { provider, model }
+  } catch {
+    return null
+  }
+}
+
 function selectionValues(value: string | number | Array<string | number>) {
   return (Array.isArray(value) ? value : [value]).map(String)
 }
 
-function addModelOption(options: Map<string, MembershipModelOption>, provider: string, model: string) {
+function addModelOption(
+  options: Map<string, MembershipModelOption>,
+  provider: string,
+  model: string,
+  available: boolean
+) {
   const value = modelOptionValue(provider, model)
   if (!options.has(value)) {
-    options.set(value, { value, provider, model })
+    options.set(value, { value, provider, model, available })
+  }
+}
+
+function addAllowedModelOption(
+  options: Map<string, MembershipModelOption>,
+  provider: string,
+  model: string,
+  copilotId: string | undefined,
+  copilotLabel: string | undefined,
+  available: boolean
+) {
+  const value = allowedModelOptionValue(provider, model, copilotId)
+  if (!options.has(value)) {
+    options.set(value, { value, provider, model, copilotId, copilotLabel, available })
   }
 }
 

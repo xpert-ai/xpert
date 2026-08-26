@@ -15,7 +15,7 @@ import {
     resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 
-export type PluginResourceInstallTarget = 'workspace' | 'xpert'
+export type PluginResourceInstallTarget = 'organization' | 'workspace' | 'xpert'
 
 export function isPluginResourceInstallableForTarget(
     componentType: PluginComponentType,
@@ -23,6 +23,9 @@ export function isPluginResourceInstallableForTarget(
 ) {
     if (!target) {
         return componentType !== PLUGIN_COMPONENT_TYPE.ASSET
+    }
+    if (target === 'organization') {
+        return componentType === PLUGIN_COMPONENT_TYPE.TOOLSET
     }
     if (target === 'workspace') {
         return (
@@ -44,6 +47,7 @@ export function readPluginResourceComponents(pluginName: string, rootDir: string
 }
 
 export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugins: LoadedPluginRecord[]) {
+    const normalizedPluginName = normalizePluginName(pluginName)
     const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
     const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
     const organizationScopeKey =
@@ -51,7 +55,7 @@ export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugin
     const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
     const candidates = loadedPlugins.filter((item) => {
         const names = [item.name, item.packageName].filter((value): value is string => !!value)
-        return names.some((name) => normalizePluginName(name) === pluginName)
+        return names.some((name) => normalizePluginName(name) === normalizedPluginName)
     })
     const record =
         candidates.find((item) => (item.scopeKey ?? item.organizationId) === organizationScopeKey) ??
@@ -59,9 +63,14 @@ export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugin
             ? candidates.find((item) => (item.scopeKey ?? item.organizationId) === globalScopeKey)
             : null) ??
         candidates.find((item) => (item.scopeKey ?? item.organizationId) === SYSTEM_GLOBAL_SCOPE)
-    const root = record ? resolveLoadedPluginBundleRoot(record) : null
+    if (!record) {
+        throw new NotFoundException(`Loaded plugin '${normalizedPluginName}' was not found`)
+    }
+    const root = resolveLoadedPluginBundleRoot(record)
     if (!root) {
-        throw new NotFoundException(`Loaded plugin '${pluginName}' was not found`)
+        throw new NotFoundException(
+            `Loaded plugin '${normalizedPluginName}' does not expose a portable resource manifest`
+        )
     }
     return root
 }

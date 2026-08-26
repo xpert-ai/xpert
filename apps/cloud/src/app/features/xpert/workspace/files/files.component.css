@@ -5,23 +5,7 @@
 }
 
 .workspace-files-page {
-  @apply flex h-full min-h-0 flex-col gap-5 overflow-hidden bg-background-body px-8 py-8 xl:px-12;
-}
-
-.workspace-files-page__header {
-  @apply flex shrink-0 items-start gap-3 border-b border-divider-regular pb-6;
-}
-
-.workspace-files-page__icon {
-  @apply flex size-10 shrink-0 items-center justify-center rounded-lg border border-divider-regular bg-background-default-subtle text-xl text-text-primary;
-}
-
-h1 {
-  @apply text-2xl font-semibold tracking-normal text-text-primary;
-}
-
-p {
-  @apply mt-1 max-w-3xl text-sm text-text-secondary;
+  @apply flex h-full min-h-0 flex-col overflow-hidden bg-background-body;
 }
 
 .workspace-files-page__workbench {
@@ -29,7 +13,7 @@ p {
 }
 
 .workspace-files-page__empty {
-  @apply flex min-h-64 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-divider-regular text-sm text-text-secondary;
+  @apply m-8 flex min-h-64 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-divider-regular text-sm text-text-secondary;
 }
 
 .workspace-files-page__empty i {

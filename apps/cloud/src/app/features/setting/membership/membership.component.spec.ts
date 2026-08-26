@@ -5,6 +5,8 @@ import { TranslateService } from '@ngx-translate/core'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  AiModelTypeEnum,
+  AiProviderRole,
   IMembershipPlan,
   MembershipBulkActionEnum,
   MembershipPeriodEnum,
@@ -144,6 +146,112 @@ describe('MembershipAdminComponent', () => {
 
     expect(component.plans()).toEqual([targetPlan])
     expect(component.selectedPlanId()).toBe(targetPlan.id)
+  })
+
+  it('marks stored models that are no longer in the current provider catalog', () => {
+    const plan = {
+      ...targetPlan,
+      allowedModels: [
+        { provider: 'moonshot', model: 'kimi-k3' },
+        { provider: 'moonshot', model: 'kimi-k2-thinking' }
+      ]
+    }
+    membershipService.getModelOptions.mockReturnValue(
+      of([
+        {
+          id: 'copilot-1',
+          providerWithModels: {
+            provider: 'moonshot',
+            models: [{ model: 'kimi-k3', model_type: AiModelTypeEnum.LLM }]
+          }
+        }
+      ])
+    )
+    membershipService.getPlans.mockReturnValue(of([plan]))
+
+    component.load()
+    component.edit(plan)
+
+    expect(component.allowedModelOptions()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: 'moonshot', model: 'kimi-k3', available: true }),
+        expect.objectContaining({ provider: 'moonshot', model: 'kimi-k2-thinking', available: false })
+      ])
+    )
+    const unavailable = component.allowedModelOptions().find((option) => option.model === 'kimi-k2-thinking')
+    expect(unavailable && component.modelTargetLabel(unavailable)).toContain('XP.Membership.HistoricalModelUnavailable')
+  })
+
+  it('keeps same-named models separate by Copilot id', () => {
+    membershipService.getModelOptions.mockReturnValue(
+      of([
+        {
+          id: 'copilot-1',
+          role: AiProviderRole.Primary,
+          providerWithModels: {
+            provider: 'tongyi',
+            models: [{ model: 'qwen3.7-plus', model_type: AiModelTypeEnum.LLM }]
+          }
+        },
+        {
+          id: 'copilot-2',
+          role: AiProviderRole.Embedding,
+          name: 'kimikimi',
+          providerWithModels: {
+            provider: 'tongyi',
+            models: [{ model: 'qwen3.7-plus', model_type: AiModelTypeEnum.LLM }]
+          }
+        }
+      ])
+    )
+
+    component.load()
+
+    const options = component
+      .allowedModelOptions()
+      .filter((option) => option.provider === 'tongyi' && option.model === 'qwen3.7-plus')
+    expect(options).toHaveLength(2)
+    expect(options[0].value).not.toBe(options[1].value)
+    expect(component.modelTargetLabel(options[0])).toBe(
+      'XP.KEY_WORDS.Primary XP.KEY_WORDS.Provider · tongyi · qwen3.7-plus'
+    )
+    expect(component.modelTargetLabel(options[1])).toBe('kimikimi · tongyi · qwen3.7-plus')
+    expect(component.modelTargetLabel(options[0])).not.toContain('copilot-1')
+    expect(component.modelTargetLabel(options[1])).not.toContain('copilot-2')
+
+    component.setAllowedModelValues(options[0].value)
+    expect(component.allowedModels).toEqual([
+      { provider: 'tongyi', model: 'qwen3.7-plus', copilotId: options[0].copilotId }
+    ])
+  })
+
+  it('round-trips legacy allowed model rules without assigning a Copilot id', () => {
+    const plan = {
+      ...targetPlan,
+      allowedModels: [{ provider: 'tongyi', model: 'qwen3.7-plus' }]
+    }
+    membershipService.getModelOptions.mockReturnValue(
+      of([
+        {
+          id: 'copilot-1',
+          providerWithModels: {
+            provider: 'tongyi',
+            models: [{ model: 'qwen3.7-plus', model_type: AiModelTypeEnum.LLM }]
+          }
+        }
+      ])
+    )
+    membershipService.getPlans.mockReturnValue(of([plan]))
+
+    component.load()
+    component.edit(plan)
+
+    const values = component.allowedModelValues()
+    expect(component.allowedModelOptions()).toEqual(
+      expect.arrayContaining([expect.objectContaining({ value: values[0], copilotId: undefined })])
+    )
+    component.setAllowedModelValues(values)
+    expect(component.allowedModels).toEqual(plan.allowedModels)
   })
 
   it('archives a plan only after confirmation', async () => {

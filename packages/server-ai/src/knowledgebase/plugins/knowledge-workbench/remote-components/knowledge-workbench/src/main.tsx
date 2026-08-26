@@ -52,7 +52,14 @@ import type {
     GraphSummary,
     KnowledgebaseRow
 } from './types'
-import { compact, extractCitationTarget, normalizeFileSize, readError } from './utils'
+import {
+    compact,
+    extractCitationTarget,
+    extractInitialCitationTarget,
+    normalizeFileSize,
+    readError,
+    type KnowledgeWorkbenchCitationTarget
+} from './utils'
 
 declare const ReactDOM: any
 
@@ -89,6 +96,9 @@ function App() {
     const [focusedGraphNodeDetail, setFocusedGraphNodeDetail] = React.useState<GraphNodeDetail | null>(null)
     const [graphDetailLoading, setGraphDetailLoading] = React.useState(false)
     const [highlightedChunkId, setHighlightedChunkId] = React.useState<string | null>(null)
+    const [initialCitationTarget, setInitialCitationTarget] = React.useState<KnowledgeWorkbenchCitationTarget | null>(
+        null
+    )
     const [searchOpen, setSearchOpen] = React.useState(false)
     const [sortMode, setSortMode] = React.useState<'updated' | 'name'>('updated')
     const [createFolderDialogOpen, setCreateFolderDialogOpen] = React.useState(false)
@@ -259,10 +269,18 @@ function App() {
                 setLocale(message.locale)
                 applyTheme(message.theme)
                 installShadcnThemeVars({ density: 'compact' })
-                const initialKb = message.initialQuery?.parameters?.knowledgebaseId
+                const citationTarget = extractInitialCitationTarget(message.initialQuery)
+                const initialKb = citationTarget?.knowledgebaseId ?? message.initialQuery?.parameters?.knowledgebaseId
                 if (typeof initialKb === 'string') {
                     setActiveKnowledgebaseId(initialKb)
                 }
+                if (citationTarget) {
+                    setViewMode('documents')
+                    setHighlightedChunkId(citationTarget.chunkId ?? null)
+                    setParentId(null)
+                    setPage(1)
+                }
+                setInitialCitationTarget(citationTarget)
                 setReady(true)
                 return
             }
@@ -298,10 +316,20 @@ function App() {
     }, [loadData])
 
     React.useEffect(() => {
-        if (ready) {
-            void loadData()
+        if (!ready) {
+            return
         }
-    }, [ready])
+        if (initialCitationTarget) {
+            void loadData({
+                documentId: initialCitationTarget.documentId,
+                chunkId: initialCitationTarget.chunkId,
+                nextParentId: null,
+                nextKbId: initialCitationTarget.knowledgebaseId
+            })
+            return
+        }
+        void loadData()
+    }, [ready, initialCitationTarget])
 
     React.useEffect(() => {
         if (!graphSupported && viewMode === 'graph') {

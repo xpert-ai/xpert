@@ -144,6 +144,8 @@ describe('ExploreSkillsComponent', () => {
 
     const routerNavigate = jest.spyOn(TestBed.inject(Router), 'navigate')
     const fixture = TestBed.createComponent(ExploreSkillsComponent)
+    const installedCounts: number[] = []
+    fixture.componentInstance.installedCountChange.subscribe((count) => installedCounts.push(count))
     fixture.componentRef.setInput('mode', 'mine')
     fixture.componentRef.setInput('workspace', {
       id: 'workspace-1',
@@ -161,6 +163,7 @@ describe('ExploreSkillsComponent', () => {
     )
 
     expect(shareButtons).toHaveLength(1)
+    expect(installedCounts.at(-1)).toBe(2)
 
     shareButtons[0].click()
     fixture.detectChanges()

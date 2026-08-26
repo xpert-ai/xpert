@@ -8,6 +8,7 @@ type CreateTaskDialogOptions = {
   xpertId?: string | null
   agentKey?: string | null
   lockXpertSelection?: boolean
+  task?: Partial<IXpertTask>
 }
 
 @Injectable({ providedIn: 'root' })
@@ -17,19 +18,21 @@ export class XpertTaskDialogService {
   openCreateTask(options?: CreateTaskDialogOptions): DialogRef<IXpertTask | undefined> {
     const xpertId = options?.xpertId?.trim()
     const agentKey = options?.agentKey?.trim()
+    const task = {
+      ...options?.task,
+      ...(xpertId
+        ? {
+            xpertId,
+            ...(agentKey ? { agentKey } : {})
+          }
+        : {})
+    }
 
     return this.#dialog.open<IXpertTask>(XpertTaskDialogComponent, {
       data: {
         total: options?.total ?? undefined,
         lockXpertSelection: !!options?.lockXpertSelection,
-        ...(xpertId
-          ? {
-              task: {
-                xpertId,
-                ...(agentKey ? { agentKey } : {})
-              }
-            }
-          : {})
+        ...(Object.keys(task).length ? { task } : {})
       },
       disableClose: true,
       backdropClass: 'xp-overlay-share-sheet',

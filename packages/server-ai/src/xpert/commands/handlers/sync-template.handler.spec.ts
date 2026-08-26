@@ -171,6 +171,28 @@ describe('XpertSyncTemplateHandler', () => {
         )
     })
 
+    it('does not treat plugin prerequisites as portable resources during template sync', async () => {
+        const { handler, commandBus } = buildHandler(
+            {
+                id: 'xpert-1',
+                name: 'My Assistant',
+                options: {
+                    templateSource: {
+                        templateId: '@xpert-ai/plugin-example:assistant',
+                        templateKey: 'assistant',
+                        pluginName: '@xpert-ai/plugin-example'
+                    }
+                }
+            },
+            { dependencies: { plugins: ['@xpert-ai/plugin-example'] } }
+        )
+
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(XpertImportCommand)
+    })
+
     it('enriches an older tracked source from its data-xpert plugin declaration', async () => {
         const xpert = {
             id: 'xpert-1',

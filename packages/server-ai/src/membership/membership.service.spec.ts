@@ -527,6 +527,21 @@ describe('MembershipService', () => {
                 'qwen-max'
             )
         ).toBe(false)
+        const exactPlan = createPlan({
+            allowedModels: [{ provider: 'tongyi', model: 'qwen3.6-plus', copilotId: 'copilot-1' }]
+        })
+        expect(service.isModelAllowed(exactPlan, 'tongyi', 'qwen3.6-plus', 'copilot-1')).toBe(true)
+        expect(service.isModelAllowed(exactPlan, 'tongyi', 'qwen3.6-plus', 'copilot-2')).toBe(false)
+    })
+
+    it('keeps legacy allowed model rules compatible with runtime Copilot ids', () => {
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const legacyPlan = createPlan({
+            allowedModels: [{ provider: 'tongyi', model: 'qwen3.6-plus' }]
+        })
+
+        expect(service.isModelAllowed(legacyPlan, 'tongyi', 'qwen3.6-plus', 'copilot-1')).toBe(true)
+        expect(service.isModelAllowed(legacyPlan, 'tongyi', 'qwen3.6-plus', 'copilot-2')).toBe(true)
     })
 
     function createScopeInitializationHarness(
@@ -1229,10 +1244,22 @@ describe('MembershipService', () => {
         await service.createPlan({
             code: 'restricted-models',
             name: 'Restricted models',
-            allowedModels: [{ provider: ' tongyi ', model: ' qwen3.6-plus ' }]
+            allowedModels: [
+                {
+                    provider: ' tongyi ',
+                    model: ' qwen3.6-plus ',
+                    copilotId: ' 112f87f9-409f-40f0-8cf4-52bb9f033258 '
+                }
+            ]
         })
 
-        expect(plans[0].allowedModels).toEqual([{ provider: 'tongyi', model: 'qwen3.6-plus' }])
+        expect(plans[0].allowedModels).toEqual([
+            {
+                provider: 'tongyi',
+                model: 'qwen3.6-plus',
+                copilotId: '112f87f9-409f-40f0-8cf4-52bb9f033258'
+            }
+        ])
         await expect(
             service.createPlan({
                 code: 'invalid-models',
@@ -1705,6 +1732,30 @@ describe('MembershipService', () => {
             })
         ).resolves.toBe(true)
         expect(requestedScopes).toEqual(['org-1', null])
+    })
+
+    it('treats any active organization plan as configured, including catalog-derived plans', async () => {
+        const planRepository = {
+            count: jest.fn().mockResolvedValue(1)
+        }
+        const service = createMembershipService(
+            {} as never,
+            planRepository as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+
+        await expect(service.hasActiveMembershipPlan({ tenantId: 'tenant-1', organizationId: 'org-1' })).resolves.toBe(
+            true
+        )
+        expect(planRepository.count).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                status: MembershipPlanStatusEnum.Active
+            }
+        })
     })
 
     it('rejects membership admin reads when membership plan feature is disabled', async () => {

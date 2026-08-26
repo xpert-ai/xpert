@@ -57,6 +57,7 @@ export class CopilotConfigFormComponent {
     switch (this.role()) {
       case AiProviderRole.Primary:
       case AiProviderRole.Secondary:
+      case AiProviderRole.Reasoning:
         return AiModelTypeEnum.LLM
       case AiProviderRole.Embedding:
         return AiModelTypeEnum.TEXT_EMBEDDING

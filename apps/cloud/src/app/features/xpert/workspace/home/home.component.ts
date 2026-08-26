@@ -115,7 +115,7 @@ export class XpertWorkspaceHomeComponent {
     { initialValue: this.router.url }
   )
   readonly isStandaloneWorkspaceRoute = computed(() =>
-    /\/(?:connectors|skills|files|knowledges|settings)(?:\/|$)/.test(this.currentUrl())
+    /\/(?:clawxpert-connectors|clawxpert-skills|files|clawxpert-knowledges|settings)(?:\/|$)/.test(this.currentUrl())
   )
 
   readonly loading = signal(true)
@@ -389,17 +389,21 @@ export class XpertWorkspaceHomeComponent {
       return
     }
 
+    const requestedSection = urlTree.queryParams['section']
+    const routeSegment =
+      requestedSection === 'skills'
+        ? 'clawxpert-skills'
+        : requestedSection === 'knowledges'
+          ? 'clawxpert-knowledges'
+          : requestedSection === 'connectors'
+            ? 'clawxpert-connectors'
+            : requestedSection === 'files' || requestedSection === 'settings'
+              ? requestedSection
+              : null
     const nextSegments =
       primarySegments.length >= 3
         ? ['xpert', 'w', workspace.id, ...primarySegments.slice(3)]
-        : [
-            'xpert',
-            'w',
-            workspace.id,
-            ...(urlTree.queryParams['section'] === 'skills' || urlTree.queryParams['section'] === 'connectors'
-              ? [urlTree.queryParams['section']]
-              : [])
-          ]
+        : ['xpert', 'w', workspace.id, ...(routeSegment ? [routeSegment] : [])]
 
     await this.router.navigate(nextSegments, {
       queryParams: Object.fromEntries(Object.entries(urlTree.queryParams).filter(([key]) => key !== 'section')),

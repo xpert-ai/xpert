@@ -164,6 +164,11 @@ export class XpertTaskController extends CrudController<XpertTask> {
         return this.service.archive(id)
     }
 
+    @Put(':id/unarchive')
+    async unarchive(@Param('id') id: string) {
+        return this.service.unarchive(id)
+    }
+
     @Post(':id/test')
     async test(
         @Param('id') id: string,

@@ -6,7 +6,6 @@ import {
     IXpertAgent,
     IXpertTool,
     JSONValue,
-    MCPServerType,
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_MCP_TOOL_APPROVAL_MODE,
     PLUGIN_RESOURCE_ERROR_CODE,
@@ -16,7 +15,6 @@ import {
     PluginResourceComponentSelector,
     PluginResourceRuntimeType,
     SkillMetadata,
-    TMCPServer,
     TXpertTeamConnection,
     TXpertTeamDraft,
     TXpertTeamNode,
@@ -29,15 +27,16 @@ import {
     LOADED_PLUGINS,
     LoadedPluginRecord,
     normalizePluginName,
-    PluginBundleComponentRegistration
+    PluginBundleComponentRegistration,
+    readPluginBundleManifest
 } from '@xpert-ai/server-core'
 import { BadRequestException, HttpStatus, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile, realpath } from 'node:fs/promises'
 import { t } from 'i18next'
-import { In, Repository } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { SkillPackage } from '../skill-package/skill-package.entity'
 import { SkillPackageService } from '../skill-package/skill-package.service'
 import { SKILLS_MIDDLEWARE_NAME } from '../skill-package/types'
@@ -55,6 +54,14 @@ import {
     resolveLoadedPluginResourceRoot
 } from './plugin-resource-components'
 import { PluginResourceInstallation } from './plugin-resource-installation.entity'
+import { applyPluginResourceOrganizationScope } from './plugin-resource-installation-scope'
+import {
+    mergePluginMcpPolicies,
+    parsePluginMcpCapabilityDeclarations,
+    parsePluginMcpServerConfig,
+    ParsedPluginMcpServer
+} from './plugin-mcp-server-contract'
+import { McpCapabilityCatalogService } from '../mcp-publication/mcp-capability-catalog.service'
 
 export type PluginResourceInstallComponent = PluginResourceComponentSelector & {
     targetAgentKey?: string
@@ -71,17 +78,13 @@ export type PluginResourceInstallResult = {
 
 export type RuntimeComponent = {
     pluginName: string
+    pluginVersion?: string
     component: PluginBundleComponentRegistration
     rootDir: string
     targetAgentKey?: string
     policyOverrides?: XpertPluginMcpServerPolicy
     events?: string[]
     auth?: 'on_install' | 'on_first_use'
-}
-
-type ParsedMcpServer = {
-    server: TMCPServer
-    policy?: XpertPluginMcpServerPolicy
 }
 
 export function selectPluginResourceComponents(
@@ -117,7 +120,8 @@ export function expandPluginRuntimeComponents(
     components: PluginBundleComponentRegistration[],
     selectors: PluginResourceInstallComponent[],
     normalizedPluginName: string,
-    rootDir: string
+    rootDir: string,
+    pluginVersion?: string
 ): RuntimeComponent[] {
     return selectors.flatMap((selector) => {
         if (selector.pluginName && normalizePluginName(selector.pluginName) !== normalizedPluginName) {
@@ -131,6 +135,7 @@ export function expandPluginRuntimeComponents(
             )
             .map((component) => ({
                 pluginName: normalizedPluginName,
+                pluginVersion,
                 component,
                 rootDir,
                 targetAgentKey: selector.targetAgentKey,
@@ -139,6 +144,48 @@ export function expandPluginRuntimeComponents(
                 auth: selector.auth
             }))
     })
+}
+
+export function buildPluginManagedMcpToolsetEntity(
+    runtimeComponent: RuntimeComponent,
+    workspaceId: string,
+    xpertId: string | null,
+    parsed: ParsedPluginMcpServer
+): Partial<XpertToolset> {
+    const policy = mergePluginMcpPolicies(parsed.policy, runtimeComponent.policyOverrides)
+    const enabledTools = policy.enabledTools ?? []
+    const tools: IXpertTool[] = enabledTools.map((name) => ({
+        name,
+        disabled: false,
+        enabled: true,
+        options: {
+            approvalMode: policy.tools?.[name]?.approvalMode ?? policy.defaultToolsApprovalMode
+        }
+    }))
+    return {
+        workspaceId,
+        name: `${runtimeComponent.component.componentKey} MCP`,
+        type: runtimeComponent.component.componentKey,
+        category: XpertToolsetCategoryEnum.MCP,
+        description: `Plugin-managed MCP server from ${runtimeComponent.pluginName}`,
+        schema: JSON.stringify({
+            mcpServers: {
+                [runtimeComponent.component.componentKey]: parsed.server
+            }
+        }),
+        options: {
+            disableToolDefault: policy.enabledTools !== undefined,
+            needSandbox: true,
+            pluginManaged: true,
+            pluginName: runtimeComponent.pluginName,
+            componentKey: runtimeComponent.component.componentKey,
+            ...(xpertId ? { xpertId } : {}),
+            definitionHash: runtimeComponent.component.definitionHash,
+            ...(policy.runtime ? { mcpRuntime: policy.runtime } : {}),
+            policy
+        },
+        tools
+    }
 }
 
 @Injectable()
@@ -155,6 +202,7 @@ export class PluginResourceInstallerService {
         private readonly workspaceAccess: XpertWorkspaceAccessService,
         private readonly skillPackageService: SkillPackageService,
         private readonly toolsetService: XpertToolsetService,
+        private readonly capabilityCatalog: McpCapabilityCatalogService,
         private readonly xpertService: XpertService,
         @Optional()
         @Inject(LOADED_PLUGINS)
@@ -183,6 +231,18 @@ export class PluginResourceInstallerService {
             installations,
             pendingAuth
         }
+    }
+
+    async installToOrganization(
+        pluginName: string,
+        components?: PluginResourceInstallComponent[]
+    ): Promise<PluginResourceInstallResult> {
+        const runtimeComponents = await this.resolveRuntimeComponents(pluginName, components, 'organization')
+        const installations: PluginResourceInstallation[] = []
+        for (const runtimeComponent of runtimeComponents) {
+            installations.push(await this.installRuntimeComponent(runtimeComponent, null, null))
+        }
+        return { installations, pendingAuth: [] }
     }
 
     async installToXpert(
@@ -257,6 +317,7 @@ export class PluginResourceInstallerService {
     ): Promise<RuntimeComponent[]> {
         const normalizedPluginName = normalizePluginName(pluginName)
         const rootDir = resolveLoadedPluginResourceRoot(normalizedPluginName, this.loadedPlugins)
+        const pluginVersion = readPluginBundleManifest(rootDir)?.manifest.version
         const components = readPluginResourceComponents(normalizedPluginName, rootDir)
         const selected = selectors?.length
             ? selectPluginResourceComponents(components, selectors, normalizedPluginName)
@@ -278,6 +339,7 @@ export class PluginResourceInstallerService {
         if (!selectors?.length) {
             return installable.map((component) => ({
                 pluginName: normalizedPluginName,
+                pluginVersion,
                 component,
                 rootDir
             }))
@@ -288,12 +350,12 @@ export class PluginResourceInstallerService {
         // expand them back through every selector here instead of keeping only
         // the first targetAgentKey. Each expanded entry creates an Agent-scoped
         // installation and updates that Agent's middleware independently.
-        return expandPluginRuntimeComponents(installable, selectors, normalizedPluginName, rootDir)
+        return expandPluginRuntimeComponents(installable, selectors, normalizedPluginName, rootDir, pluginVersion)
     }
 
     private async installRuntimeComponent(
         runtimeComponent: RuntimeComponent,
-        workspaceId: string,
+        workspaceId: string | null,
         xpertId: string | null,
         agentKey: string | null = null
     ) {
@@ -315,7 +377,7 @@ export class PluginResourceInstallerService {
             this.installationRepo.create({
                 tenantId: RequestContext.currentTenantId(),
                 organizationId: RequestContext.getOrganizationId() ?? undefined,
-                workspaceId,
+                ...(workspaceId ? { workspaceId } : {}),
                 xpertId,
                 agentKey,
                 pluginName: runtimeComponent.pluginName,
@@ -334,10 +396,19 @@ export class PluginResourceInstallerService {
 
     private async ensureRuntime(
         runtimeComponent: RuntimeComponent,
-        workspaceId: string,
+        workspaceId: string | null,
         xpertId: string | null,
         runtimeType: PluginResourceRuntimeType
     ) {
+        if (runtimeComponent.component.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET) {
+            const toolset = await this.ensureNativeToolset(runtimeComponent)
+            return toolset.id ?? null
+        }
+        if (!workspaceId) {
+            throw new BadRequestException(
+                `Plugin component '${runtimeComponent.component.componentKey}' requires a workspace installation target`
+            )
+        }
         if (runtimeType === PLUGIN_RESOURCE_RUNTIME_TYPE.SKILL_PACKAGE) {
             const skillRoot = this.resolveSkillRoot(runtimeComponent)
             const sharedSkillId = `plugin:${runtimeComponent.pluginName}:skill:${runtimeComponent.component.componentKey}`
@@ -402,49 +473,62 @@ export class PluginResourceInstallerService {
     private async ensureMcpToolset(runtimeComponent: RuntimeComponent, workspaceId: string, xpertId: string | null) {
         await this.ensureRuntimePaths(runtimeComponent, workspaceId)
         const parsed = this.parseMcpServer(runtimeComponent)
-        const policy = this.mergeMcpPolicies(parsed.policy, runtimeComponent.policyOverrides)
+        const capabilities = await this.loadMcpCapabilities(runtimeComponent, parsed)
         const toolset = await this.findPluginManagedToolset(workspaceId, xpertId, runtimeComponent)
-        const enabledTools = policy.enabledTools ?? []
-        const tools: IXpertTool[] = enabledTools.map((name) => ({
-            name,
-            disabled: false,
-            enabled: true,
-            options: {
-                approvalMode: policy.tools?.[name]?.approvalMode ?? policy.defaultToolsApprovalMode
-            }
-        }))
-        const entity: Partial<XpertToolset> = {
-            workspaceId,
-            name: `${runtimeComponent.component.componentKey} MCP`,
-            type: runtimeComponent.component.componentKey,
-            category: XpertToolsetCategoryEnum.MCP,
-            description: `Plugin-managed MCP server from ${runtimeComponent.pluginName}`,
-            schema: JSON.stringify({
-                mcpServers: {
-                    [runtimeComponent.component.componentKey]: parsed.server
-                }
-            }),
-            options: {
-                disableToolDefault: enabledTools.length > 0,
-                needSandbox: true,
-                pluginManaged: true,
-                pluginName: runtimeComponent.pluginName,
-                componentKey: runtimeComponent.component.componentKey,
-                ...(xpertId ? { xpertId } : {}),
-                definitionHash: runtimeComponent.component.definitionHash,
-                ...(policy.runtime ? { mcpRuntime: policy.runtime } : {}),
-                policy
-            },
-            tools
-        }
+        const entity = buildPluginManagedMcpToolsetEntity(runtimeComponent, workspaceId, xpertId, parsed)
 
+        let persisted: XpertToolset
         if (toolset?.id) {
             await this.toolRepo.delete({ toolsetId: toolset.id })
             await this.toolsetService.update(toolset.id, entity)
-            return this.toolsetRepo.findOneOrFail({ where: { id: toolset.id }, relations: ['tools'] })
+            persisted = await this.toolsetRepo.findOneOrFail({ where: { id: toolset.id }, relations: ['tools'] })
+        } else {
+            persisted = await this.toolsetService.create(entity)
         }
+        if (!persisted.id || !persisted.tenantId) {
+            throw new Error('Persisted plugin-managed toolset is missing its identity scope')
+        }
+        await this.capabilityCatalog.replaceToolsetCapabilities({
+            tenantId: persisted.tenantId,
+            organizationId: persisted.organizationId,
+            toolsetId: persisted.id,
+            pluginName: runtimeComponent.pluginName,
+            pluginVersion: runtimeComponent.pluginVersion,
+            capabilities
+        })
+        return persisted
+    }
 
-        return this.toolsetService.create(entity)
+    private async loadMcpCapabilities(runtimeComponent: RuntimeComponent, parsed: ParsedPluginMcpServer) {
+        if (!parsed.capabilitySource) {
+            return parsed.capabilities
+        }
+        const capabilityFile = this.resolvePluginPath(runtimeComponent.rootDir, parsed.capabilitySource)
+        const [pluginRoot, resolvedFile] = await Promise.all([
+            realpath(runtimeComponent.rootDir),
+            realpath(capabilityFile)
+        ])
+        const relativePath = relative(pluginRoot, resolvedFile)
+        if (isAbsolute(relativePath) || relativePath.startsWith('..')) {
+            throw new BadRequestException(
+                `Plugin MCP capability file is outside plugin root: ${parsed.capabilitySource}`
+            )
+        }
+        let value: unknown
+        try {
+            value = JSON.parse(await readFile(resolvedFile, 'utf8'))
+        } catch (error) {
+            throw new BadRequestException(
+                `Unable to read MCP capability file '${parsed.capabilitySource}': ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            )
+        }
+        try {
+            return parsePluginMcpCapabilityDeclarations(value, runtimeComponent.component.componentKey)
+        } catch (error) {
+            throw new BadRequestException(error instanceof Error ? error.message : String(error))
+        }
     }
 
     private ensureSkillsMiddlewareNode(draft: TXpertTeamDraft, agentKey: string, skillPackageId: string) {
@@ -583,8 +667,8 @@ export class PluginResourceInstallerService {
     }
 
     private applyMcpApprovalPolicy(draft: TXpertTeamDraft, runtimeComponent: RuntimeComponent) {
-        const policy = this.mergeMcpPolicies(
-            this.readMcpPolicy(runtimeComponent.component.config),
+        const policy = mergePluginMcpPolicies(
+            this.parseMcpServer(runtimeComponent).policy,
             runtimeComponent.policyOverrides
         )
         const promptTools = (policy.enabledTools ?? []).filter((toolName) => {
@@ -665,137 +749,15 @@ export class PluginResourceInstallerService {
         await mkdir(pluginData, { recursive: true })
     }
 
-    private parseMcpServer(runtimeComponent: RuntimeComponent): ParsedMcpServer {
-        if (!isObjectValue(runtimeComponent.component.config)) {
-            throw new BadRequestException(
-                `MCP component '${runtimeComponent.component.componentKey}' has invalid config`
+    private parseMcpServer(runtimeComponent: RuntimeComponent): ParsedPluginMcpServer {
+        try {
+            return parsePluginMcpServerConfig(
+                runtimeComponent.component.config,
+                runtimeComponent.component.componentKey
             )
+        } catch (error) {
+            throw new BadRequestException(error instanceof Error ? error.message : String(error))
         }
-        const command = readStringField(runtimeComponent.component.config, 'command')
-        const url = readStringField(runtimeComponent.component.config, 'url')
-        const explicitType = readStringField(runtimeComponent.component.config, 'type')
-        const serverType = this.normalizeMcpServerType(explicitType ?? (command ? 'stdio' : url ? 'http' : undefined))
-        if (!serverType) {
-            throw new BadRequestException(
-                `MCP component '${runtimeComponent.component.componentKey}' has invalid transport`
-            )
-        }
-        const policy = this.readMcpPolicy(runtimeComponent.component.config)
-
-        const server: TMCPServer = {
-            type: serverType,
-            ...(command ? { command } : {}),
-            ...(url ? { url } : {}),
-            ...this.readStringArrayProperty(runtimeComponent.component.config, 'args'),
-            ...this.readStringMapProperty(runtimeComponent.component.config, 'env'),
-            ...this.readStringMapProperty(runtimeComponent.component.config, 'headers'),
-            ...(readStringField(runtimeComponent.component.config, 'encoding')
-                ? { encoding: readStringField(runtimeComponent.component.config, 'encoding') }
-                : {}),
-            ...(readStringField(runtimeComponent.component.config, 'encodingErrorHandler')
-                ? { encodingErrorHandler: readStringField(runtimeComponent.component.config, 'encodingErrorHandler') }
-                : {}),
-            ...(policy.runtime ? { runtime: policy.runtime } : {})
-        }
-
-        return {
-            server,
-            policy
-        }
-    }
-
-    private readStringArrayProperty(source: object, key: string) {
-        const value = Reflect.get(source, key)
-        if (!Array.isArray(value)) {
-            return {}
-        }
-        const args = value
-            .map((item) => (typeof item === 'string' ? item : null))
-            .filter((item): item is string => item !== null)
-        return args.length ? { [key]: args } : {}
-    }
-
-    private readStringMapProperty(source: object, key: 'env' | 'headers') {
-        const value = Reflect.get(source, key)
-        if (!isObjectValue(value)) {
-            return {}
-        }
-        const entries: Array<[string, string]> = []
-        for (const [entryKey, entryValue] of Object.entries(value)) {
-            if (typeof entryValue === 'string') {
-                entries.push([entryKey, entryValue])
-            }
-        }
-        return entries.length ? { [key]: Object.fromEntries(entries) } : {}
-    }
-
-    private normalizeMcpServerType(value: string | undefined): MCPServerType | null {
-        if (value === MCPServerType.STDIO) {
-            return MCPServerType.STDIO
-        }
-        if (value === MCPServerType.SSE) {
-            return MCPServerType.SSE
-        }
-        if (value === MCPServerType.HTTP) {
-            return MCPServerType.HTTP
-        }
-        if (value === MCPServerType.CODE) {
-            return MCPServerType.CODE
-        }
-        return null
-    }
-
-    private readMcpPolicy(value: JSONValue | null | undefined): XpertPluginMcpServerPolicy {
-        if (!isObjectValue(value)) {
-            return {}
-        }
-        const policyValue = Reflect.get(value, 'policy')
-        if (!isObjectValue(policyValue)) {
-            return {}
-        }
-        const enabledTools = Array.isArray(Reflect.get(policyValue, 'enabledTools'))
-            ? (Reflect.get(policyValue, 'enabledTools') as unknown[]).filter(
-                  (item): item is string => typeof item === 'string'
-              )
-            : undefined
-        const defaultToolsApprovalMode = readApprovalMode(Reflect.get(policyValue, 'defaultToolsApprovalMode'))
-        const toolsValue = Reflect.get(policyValue, 'tools')
-        const runtime = readRuntimePolicy(Reflect.get(policyValue, 'runtime'))
-        const tools: XpertPluginMcpServerPolicy['tools'] = {}
-        if (isObjectValue(toolsValue)) {
-            for (const [toolName, toolPolicy] of Object.entries(toolsValue)) {
-                if (isObjectValue(toolPolicy)) {
-                    const approvalMode = readApprovalMode(Reflect.get(toolPolicy, 'approvalMode'))
-                    if (approvalMode) {
-                        tools[toolName] = { approvalMode }
-                    }
-                }
-            }
-        }
-        return removeUndefinedPolicy({
-            enabled:
-                typeof Reflect.get(policyValue, 'enabled') === 'boolean'
-                    ? Reflect.get(policyValue, 'enabled')
-                    : undefined,
-            defaultToolsApprovalMode,
-            enabledTools,
-            runtime,
-            tools: Object.keys(tools).length ? tools : undefined
-        })
-    }
-
-    private mergeMcpPolicies(base?: XpertPluginMcpServerPolicy, override?: XpertPluginMcpServerPolicy) {
-        const mergedTools = {
-            ...(base?.tools ?? {}),
-            ...(override?.tools ?? {})
-        }
-        return removeUndefinedPolicy({
-            enabled: override?.enabled ?? base?.enabled,
-            defaultToolsApprovalMode: override?.defaultToolsApprovalMode ?? base?.defaultToolsApprovalMode,
-            enabledTools: override?.enabledTools ?? base?.enabledTools,
-            runtime: override?.runtime ?? base?.runtime,
-            tools: Object.keys(mergedTools).length ? mergedTools : undefined
-        })
     }
 
     private buildInstallationConfig(runtimeComponent: RuntimeComponent): JSONValue | null {
@@ -827,6 +789,9 @@ export class PluginResourceInstallerService {
         if (componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER) {
             return PLUGIN_RESOURCE_RUNTIME_TYPE.TOOLSET
         }
+        if (componentType === PLUGIN_COMPONENT_TYPE.TOOLSET) {
+            return PLUGIN_RESOURCE_RUNTIME_TYPE.TOOLSET
+        }
         if (componentType === PLUGIN_COMPONENT_TYPE.HOOK) {
             return PLUGIN_RESOURCE_RUNTIME_TYPE.HOOK_PROFILE
         }
@@ -837,7 +802,7 @@ export class PluginResourceInstallerService {
     }
 
     private async findInstallation(
-        workspaceId: string,
+        workspaceId: string | null,
         xpertId: string | null,
         agentKey: string | null,
         pluginName: string,
@@ -846,10 +811,15 @@ export class PluginResourceInstallerService {
     ) {
         const query = this.installationRepo
             .createQueryBuilder('installation')
-            .where('installation.workspaceId = :workspaceId', { workspaceId })
-            .andWhere('installation.pluginName = :pluginName', { pluginName })
+            .where('installation.pluginName = :pluginName', { pluginName })
             .andWhere('installation.componentType = :componentType', { componentType })
             .andWhere('installation.componentKey = :componentKey', { componentKey })
+        if (workspaceId) {
+            query.andWhere('installation.workspaceId = :workspaceId', { workspaceId })
+        } else {
+            query.andWhere('installation.workspaceId IS NULL')
+            applyPluginResourceOrganizationScope(query, 'installation')
+        }
         if (xpertId) {
             query.andWhere('installation.xpertId = :xpertId', { xpertId })
             if (agentKey) {
@@ -862,6 +832,55 @@ export class PluginResourceInstallerService {
             query.andWhere('installation.agentKey IS NULL')
         }
         return query.getOne()
+    }
+
+    private async ensureNativeToolset(runtimeComponent: RuntimeComponent) {
+        const config = runtimeComponent.component.config
+        if (!isObjectValue(config)) {
+            throw new BadRequestException(
+                `Native toolset component '${runtimeComponent.component.componentKey}' has invalid config`
+            )
+        }
+        const provider = readStringField(config, 'provider')
+        if (!provider) {
+            throw new BadRequestException(
+                `Native toolset component '${runtimeComponent.component.componentKey}' requires provider`
+            )
+        }
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId() ?? null
+        const candidates = await this.toolsetRepo.find({
+            where: {
+                tenantId,
+                organizationId: organizationId ?? IsNull(),
+                workspaceId: IsNull(),
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                type: provider
+            }
+        })
+        const current = candidates.find((toolset) =>
+            isPluginNativeToolset(toolset, runtimeComponent.pluginName, runtimeComponent.component.componentKey)
+        )
+        const name = readStringField(config, 'name') ?? `${runtimeComponent.component.componentKey} MCP Capabilities`
+        const description =
+            readStringField(config, 'description') ?? `Host-native MCP capabilities from ${runtimeComponent.pluginName}`
+        const toolset = await this.toolsetService.createBuiltinToolset(provider, {
+            ...(current?.id ? { id: current.id } : {}),
+            name,
+            description,
+            credentials: {},
+            options: {
+                pluginManaged: true,
+                pluginName: runtimeComponent.pluginName,
+                componentKey: runtimeComponent.component.componentKey,
+                definitionHash: runtimeComponent.component.definitionHash
+            }
+        })
+        if (!toolset.id) {
+            throw new Error('Persisted native plugin toolset is missing its identity')
+        }
+        await this.capabilityCatalog.discoverAndReplaceMcpToolset(toolset.id)
+        return toolset
     }
 
     private async findPluginManagedToolset(
@@ -902,31 +921,16 @@ function readStringField(value: object, key: string): string | undefined {
     return typeof field === 'string' && field.trim() ? field.trim() : undefined
 }
 
-function readApprovalMode(value: unknown) {
-    if (
-        value === PLUGIN_MCP_TOOL_APPROVAL_MODE.PROMPT ||
-        value === PLUGIN_MCP_TOOL_APPROVAL_MODE.APPROVE ||
-        value === PLUGIN_MCP_TOOL_APPROVAL_MODE.DENY
-    ) {
-        return value
+function isPluginNativeToolset(toolset: XpertToolset, pluginName: string, componentKey: string) {
+    const options = toolset.options
+    if (!isObjectValue(options)) {
+        return false
     }
-    return undefined
-}
-
-function readPositiveNumberField(value: object, key: string): number | undefined {
-    const field = Reflect.get(value, key)
-    return typeof field === 'number' && Number.isFinite(field) && field > 0 ? field : undefined
-}
-
-function readStringArrayField(value: object, key: string): string[] | undefined {
-    const field = Reflect.get(value, key)
-    if (!Array.isArray(field)) {
-        return undefined
-    }
-    const items = field
-        .map((item) => (typeof item === 'string' ? item.trim() : ''))
-        .filter((item): item is string => Boolean(item))
-    return items.length ? items : undefined
+    return (
+        Reflect.get(options, 'pluginManaged') === true &&
+        Reflect.get(options, 'pluginName') === pluginName &&
+        Reflect.get(options, 'componentKey') === componentKey
+    )
 }
 
 function buildSkillMetadataOverrides(value: unknown): Partial<SkillMetadata> | null {
@@ -995,30 +999,6 @@ function readIconDefinitionField(value: object, key: string): IconDefinition | u
     }
 
     return field as IconDefinition
-}
-
-function readRuntimePolicy(value: unknown): XpertPluginMcpServerPolicy['runtime'] | undefined {
-    if (!isObjectValue(value)) {
-        return undefined
-    }
-    const runtime = {
-        provider: readStringField(value, 'provider'),
-        startupTimeoutMs: readPositiveNumberField(value, 'startupTimeoutMs'),
-        idleTimeoutMs: readPositiveNumberField(value, 'idleTimeoutMs'),
-        maxLifetimeMs: readPositiveNumberField(value, 'maxLifetimeMs'),
-        allowedCommands: readStringArrayField(value, 'allowedCommands')
-    }
-    return Object.values(runtime).some((item) => item !== undefined) ? runtime : undefined
-}
-
-function removeUndefinedPolicy(policy: XpertPluginMcpServerPolicy): XpertPluginMcpServerPolicy {
-    return {
-        ...(typeof policy.enabled === 'boolean' ? { enabled: policy.enabled } : {}),
-        ...(policy.defaultToolsApprovalMode ? { defaultToolsApprovalMode: policy.defaultToolsApprovalMode } : {}),
-        ...(policy.enabledTools?.length ? { enabledTools: policy.enabledTools } : {}),
-        ...(policy.runtime ? { runtime: policy.runtime } : {}),
-        ...(policy.tools && Object.keys(policy.tools).length ? { tools: policy.tools } : {})
-    }
 }
 
 function safePathSegment(value: string) {

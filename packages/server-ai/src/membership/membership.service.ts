@@ -241,6 +241,23 @@ export class MembershipService {
         return this.isMembershipPlanEnabledForScope({ tenantId: scope.tenantId, organizationId: null }, manager)
     }
 
+    /** Includes catalog-derived plans because they also configure effective organization access. */
+    async hasActiveMembershipPlan(input?: ResolveScopeInput, manager?: EntityManager): Promise<boolean> {
+        const scope = this.resolveScope(input)
+        const repository = manager?.getRepository(MembershipPlan) ?? this.planRepository
+        if (!repository?.count) {
+            return false
+        }
+        return (
+            (await repository.count({
+                where: {
+                    ...this.scopeWhere(scope.tenantId, scope.organizationId),
+                    status: MembershipPlanStatusEnum.Active
+                }
+            })) > 0
+        )
+    }
+
     async findPlans(): Promise<MembershipPlan[]> {
         const scope = this.requireCurrentScope()
         await this.assertMembershipPlanFeatureEnabled(scope)
@@ -2567,7 +2584,14 @@ export class MembershipService {
     async assertCanUse(
         input: Pick<
             RecordUsageInput,
-            'tenantId' | 'organizationId' | 'copilotOrganizationId' | 'userId' | 'xpertId' | 'provider' | 'model'
+            | 'tenantId'
+            | 'organizationId'
+            | 'copilotOrganizationId'
+            | 'userId'
+            | 'xpertId'
+            | 'copilotId'
+            | 'provider'
+            | 'model'
         >,
         modelAccess?: IModelAccessResolution
     ): Promise<void> {
@@ -2599,7 +2623,12 @@ export class MembershipService {
         }
         if (modelAccess?.accessSource !== ModelAccessSourceEnum.Grant) {
             this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
-            this.assertModelAllowed(access.membership.plan, input.provider, input.model)
+            this.assertModelAllowed(
+                access.membership.plan,
+                input.provider,
+                input.model,
+                modelAccess?.copilotId ?? input.copilotId
+            )
         }
 
         const pointsRemaining = this.pointsRemaining(access.membership)
@@ -2675,7 +2704,7 @@ export class MembershipService {
             }
             if (input.modelAccess?.accessSource !== ModelAccessSourceEnum.Grant) {
                 this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
-                this.assertModelAllowed(access.membership.plan, input.provider, input.model)
+                this.assertModelAllowed(access.membership.plan, input.provider, input.model, input.copilotId)
             }
 
             const { membership, organizationId } = access
@@ -3045,7 +3074,12 @@ export class MembershipService {
         return (await this.getPersonalPointsBalance(access.tenantId, access.membership.userId)) > 0
     }
 
-    isModelAllowed(plan: Pick<IMembershipPlan, 'allowedModels'>, provider?: string, model?: string): boolean {
+    isModelAllowed(
+        plan: Pick<IMembershipPlan, 'allowedModels'>,
+        provider?: string,
+        model?: string,
+        copilotId?: string
+    ): boolean {
         const allowedModels = plan.allowedModels ?? []
         if (!allowedModels.length) {
             return true
@@ -3060,7 +3094,8 @@ export class MembershipService {
         return allowedModels.some(
             (rule) =>
                 (rule.provider === '*' || rule.provider === providerName) &&
-                (rule.model === '*' || rule.model === modelName)
+                (rule.model === '*' || rule.model === modelName) &&
+                (!rule.copilotId?.trim() || rule.copilotId.trim() === copilotId?.trim())
         )
     }
 
@@ -5033,8 +5068,8 @@ export class MembershipService {
         }
     }
 
-    private assertModelAllowed(plan: IMembershipPlan, provider?: string, model?: string) {
-        if (!this.isModelAllowed(plan, provider, model)) {
+    private assertModelAllowed(plan: IMembershipPlan, provider?: string, model?: string, copilotId?: string) {
+        if (!this.isModelAllowed(plan, provider, model, copilotId)) {
             throw new ExceedingLimitException(
                 this.translateMembershipError(
                     'server-ai:Error.CopilotModelUnavailableForMembershipPlan',
@@ -5145,6 +5180,10 @@ export class MembershipService {
                 typeof item === 'object' && item !== null && 'model' in item && typeof item.model === 'string'
                     ? item.model.trim()
                     : ''
+            const copilotId =
+                typeof item === 'object' && item !== null && 'copilotId' in item && typeof item.copilotId === 'string'
+                    ? item.copilotId.trim()
+                    : undefined
             if (!provider || !model) {
                 throw new BadRequestException(
                     this.translateMembershipError(
@@ -5153,7 +5192,7 @@ export class MembershipService {
                     )
                 )
             }
-            return { provider, model }
+            return copilotId ? { provider, model, copilotId } : { provider, model }
         })
     }
 

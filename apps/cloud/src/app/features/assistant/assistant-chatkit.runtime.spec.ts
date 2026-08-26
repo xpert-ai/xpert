@@ -18,7 +18,8 @@ import {
 import {
   hasAssistantBindingSource,
   hasCompleteAssistantBinding,
-  injectHostedAssistantChatkitControl
+  injectHostedAssistantChatkitControl,
+  resolveAssistantMcpAppsOptions
 } from './assistant-chatkit.runtime'
 
 jest.mock('../../app.service', () => ({
@@ -87,6 +88,19 @@ describe('assistant chatkit runtime helpers', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     environment.API_BASE_URL = originalApiBaseUrl
+  })
+
+  it('normalizes host-owned MCP App sandbox configuration', () => {
+    expect(
+      resolveAssistantMcpAppsOptions(
+        ' https://sandbox.example.com/mcp-app-sandbox-proxy.html ',
+        ' *.apps.example.com, app.example.com,*.apps.example.com '
+      )
+    ).toEqual({
+      sandboxProxyUrl: 'https://sandbox.example.com/mcp-app-sandbox-proxy.html',
+      allowedDomains: ['*.apps.example.com', 'app.example.com']
+    })
+    expect(resolveAssistantMcpAppsOptions('DOCKER_MCP_APP_SANDBOX_PROXY_URL', '')).toBeNull()
   })
 
   afterEach(() => {

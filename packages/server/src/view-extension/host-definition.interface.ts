@@ -18,13 +18,24 @@ export interface ViewHostResolution {
 	context?: Record<string, unknown>
 }
 
+export interface ViewHostResolutionOptions {
+	isDraft?: boolean
+}
+
 export interface ViewHostDefinitionContract {
 	readonly hostType: string
 	readonly slots: XpertViewSlot[]
 
-	resolve(hostId: string): Promise<ViewHostResolution | null> | ViewHostResolution | null
+	resolve(
+		hostId: string,
+		options?: ViewHostResolutionOptions
+	): Promise<ViewHostResolution | null> | ViewHostResolution | null
 
-	canRead(context: XpertViewHostContext, resolution: ViewHostResolution): Promise<boolean> | boolean
+	canRead(
+		context: XpertViewHostContext,
+		resolution: ViewHostResolution,
+		options?: ViewHostResolutionOptions
+	): Promise<boolean> | boolean
 
 	prepareFileAction?(
 		context: XpertResolvedViewHostContext,

@@ -173,7 +173,9 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
             throw new ToolProviderNotFoundError(`Builtin tool provider '${provider}' not found!`)
         }
 
-        const envState = await this.queryBus.execute(new EnvStateQuery(entity.workspaceId))
+        const envState = entity.workspaceId
+            ? await this.queryBus.execute(new EnvStateQuery(entity.workspaceId))
+            : undefined
         const scopedModelRuntime = this.agentMiddlewareRuntime.createScopedApi({ tenantId, organizationId })
         const toolproviderController: BuiltinToolset = await createBuiltinToolset(provider, null, {
             tenantId,

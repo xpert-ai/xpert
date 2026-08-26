@@ -12,6 +12,7 @@ import {
   ZardTabGroupComponent
 } from '@xpert-ai/headless-ui'
 import { XpAuthRoutingModule } from './auth-routing.module'
+import { OidcConsentComponent } from './consent/consent.component'
 import {
   defaultAuthOptions,
   XpAuthOptions,
@@ -67,7 +68,8 @@ export function nbOptionsFactory(options) {
     ResetPasswordComponent,
     VarifyEmailComponent,
     SsoBindComponent,
-    CurrentUserSsoConfirmComponent
+    CurrentUserSsoConfirmComponent,
+    OidcConsentComponent
   ],
   imports: [
     CommonModule,

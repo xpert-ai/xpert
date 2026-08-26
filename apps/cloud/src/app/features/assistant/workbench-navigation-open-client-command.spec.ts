@@ -119,7 +119,7 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       WORKBENCH_NAVIGATION_OPEN_COMMAND,
       {
         target: WORKBENCH_EXTENSION_VIEW_TARGET,
-        viewKey: 'bom_lifecycle_super_bom',
+        viewKey: 'plugin_custom_review',
         selectionId: 'version-1',
         parameters: { section: 'features' }
       },
@@ -127,7 +127,7 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     )
 
     expect(openWorkbenchView).toHaveBeenCalledWith({
-      viewKey: 'bom_lifecycle_super_bom',
+      viewKey: 'plugin_custom_review',
       selectionId: 'version-1',
       parameters: { section: 'features' }
     })
@@ -135,7 +135,7 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       expect.objectContaining({
         success: true,
         target: WORKBENCH_EXTENSION_VIEW_TARGET,
-        viewKey: 'bom_lifecycle_super_bom',
+        viewKey: 'plugin_custom_review',
         selectionId: 'version-1'
       })
     )

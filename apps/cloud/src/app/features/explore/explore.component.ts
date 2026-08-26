@@ -19,7 +19,7 @@ import { ExploreAgentSquareComponent } from './agent-square/agent-square.compone
 import { ExploreSkillsComponent } from './skills/skills.component'
 
 type ExploreMode = 'square' | 'mine'
-type ExploreTab = 'skills' | 'agent-square'
+type ExploreTab = 'skills' | 'agent-square' | 'connectors'
 
 const DEFAULT_MODE: ExploreMode = 'square'
 const DEFAULT_TAB: ExploreTab = 'skills'
@@ -56,6 +56,7 @@ export class ExploreComponent {
   readonly #querySearch = injectQueryParams('search')
 
   readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
+  readonly installedSkillsCount = signal(0)
   readonly installFromRepositoryNonce = signal(0)
   readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
     initialValue: this.#store.featureContextHydrated
@@ -98,11 +99,23 @@ export class ExploreComponent {
 
   constructor() {
     void this.loadDefaultWorkspace()
+    if (this.#queryTab() === 'connectors') {
+      queueMicrotask(() => this.openConnectorManagement())
+    }
   }
 
   setTab(tab: ExploreTab) {
     if (tab === 'agent-square' && !this.agentMarketplaceEnabled()) {
       return
+    }
+
+    if (tab === 'connectors') {
+      this.openConnectorManagement()
+      return
+    }
+
+    if (tab === 'skills') {
+      this.mode.set(DEFAULT_MODE)
     }
 
     this.tab.set(tab)
@@ -114,7 +127,18 @@ export class ExploreComponent {
 
   openSkillManagement() {
     const workspaceId = this.defaultWorkspace()?.id
-    this.#router.navigate(workspaceId ? ['/xpert/w', workspaceId, 'skills'] : ['/xpert/w'])
+    void this.#router.navigate(
+      workspaceId ? ['/xpert/w', workspaceId, 'clawxpert-skills'] : ['/xpert/w'],
+      workspaceId ? undefined : { queryParams: { section: 'skills' } }
+    )
+  }
+
+  openConnectorManagement() {
+    const workspaceId = this.defaultWorkspace()?.id
+    void this.#router.navigate(
+      workspaceId ? ['/xpert/w', workspaceId, 'clawxpert-connectors'] : ['/xpert/w'],
+      workspaceId ? undefined : { queryParams: { section: 'connectors' } }
+    )
   }
 
   openSkillSquare() {
@@ -152,6 +176,9 @@ function normalizeMode(value: string | null | undefined): ExploreMode {
 function normalizeTab(value: string | null | undefined, agentMarketplaceEnabled: boolean): ExploreTab {
   if (agentMarketplaceEnabled && (value === 'agent-square' || value === 'agents')) {
     return 'agent-square'
+  }
+  if (value === 'connectors') {
+    return 'connectors'
   }
   return DEFAULT_TAB
 }

@@ -111,7 +111,9 @@ describe('XpertWorkbenchInitialLayoutSettingsComponent', () => {
     const fixture = TestBed.createComponent(XpertWorkbenchInitialLayoutSettingsComponent)
     await settle(fixture)
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'xpert-1', 'agent.workbench.fixed')
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'xpert-1', 'agent.workbench.fixed', {
+      isDraft: true
+    })
     expect(fixture.componentInstance.viewOptions()).toEqual([
       { key: 'provider__review', label: 'Review' },
       { key: 'provider__metrics', label: 'Metrics' }

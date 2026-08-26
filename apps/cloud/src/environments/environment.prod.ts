@@ -15,5 +15,8 @@ export const environment: IEnvironment = {
   /**
    * Replace this with the actual ChatKit frame URL in env file
    */
-  CHATKIT_FRAME_URL: 'DOCKER_CHATKIT_FRAME_URL'
+  CHATKIT_FRAME_URL: 'DOCKER_CHATKIT_FRAME_URL',
+  mcpOAuthEnabled: false,
+  MCP_APP_SANDBOX_PROXY_URL: 'DOCKER_MCP_APP_SANDBOX_PROXY_URL',
+  MCP_APP_SANDBOX_ALLOWED_DOMAINS: 'DOCKER_MCP_APP_SANDBOX_ALLOWED_DOMAINS'
 }

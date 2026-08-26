@@ -12,6 +12,7 @@ import type {
   IXpertProjectTask
 } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
+import { getErrorMessage } from '@cloud/app/@core'
 import { XpertProjectApiService, XpertProjectOverview, XpertProjectTaskRelations } from './project-api.service'
 
 const itemsOf = <T>(value: T[] | { items: T[]; total: number } | undefined) =>
@@ -49,7 +50,7 @@ export class XpertProjectFacade {
       this.projects.set(response.items ?? [])
       return response.items ?? []
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Failed to load projects')
+      this.error.set(getErrorMessage(error) || 'Failed to load projects')
       return []
     } finally {
       this.loading.set(false)
@@ -71,7 +72,7 @@ export class XpertProjectFacade {
       return overview
     } catch (error) {
       if (sequence !== this.#projectLoadSequence) return null
-      const message = error instanceof Error ? error.message : 'Failed to load project'
+      const message = getErrorMessage(error) || 'Failed to load project'
       this.projectError.set(message)
       this.error.set(message)
       return null
@@ -98,7 +99,7 @@ export class XpertProjectFacade {
       this.conversations.set(items)
       return items
     } catch (error) {
-      this.conversationsError.set(error instanceof Error ? error.message : 'Failed to load conversations')
+      this.conversationsError.set(getErrorMessage(error) || 'Failed to load conversations')
       this.conversations.set([])
       return []
     } finally {
@@ -283,7 +284,7 @@ export class XpertProjectFacade {
       if (!options.parentId) this.assetCount.set(response.total ?? items.length)
       return response
     } catch (error) {
-      this.assetsError.set(error instanceof Error ? error.message : 'Failed to load assets')
+      this.assetsError.set(getErrorMessage(error) || 'Failed to load assets')
       return { items: [], total: skip }
     } finally {
       this.assetsLoading.set(false)

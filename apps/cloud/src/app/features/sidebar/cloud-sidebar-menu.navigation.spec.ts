@@ -37,10 +37,10 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
   })
 
   it.each([
-    ['skills', '/xpert/w/workspace-1/skills'],
-    ['connectors', '/xpert/w/workspace-1/connectors'],
+    ['skills', '/xpert/w/workspace-1/clawxpert-skills'],
+    ['connectors', '/xpert/w/workspace-1/clawxpert-connectors'],
     ['files', '/xpert/w/workspace-1/files'],
-    ['knowledges', '/xpert/w/workspace-1/knowledges'],
+    ['knowledges', '/xpert/w/workspace-1/clawxpert-knowledges'],
     ['settings', '/xpert/w/workspace-1/settings']
   ] as const)('navigates the %s entry directly to its original workspace page', async (section, expectedUrl) => {
     const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
@@ -67,7 +67,7 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     const preventDefault = jest.spyOn(event, 'preventDefault')
 
     component.onChildClick(event, {
-      title: '我的文件',
+      title: '资源库',
       data: { workspaceSection: 'files' }
     } as CloudMenuItem)
     await Promise.resolve()

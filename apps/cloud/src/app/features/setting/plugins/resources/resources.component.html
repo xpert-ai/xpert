@@ -23,80 +23,115 @@
         <div class="text-sm font-medium text-text-primary">
           {{ 'XP.Plugin.InstallationTarget' | translate: { Default: 'Initialization target' } }}
         </div>
-        <div class="mt-3 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            class="rounded-xl border px-3 py-3 text-left transition-colors"
-            [class]="
-              installMode() === 'workspace'
-                ? 'border-primary-500 bg-primary-500/10 text-text-primary'
-                : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
-            "
-            (click)="installMode.set('workspace')"
-          >
-            <div class="text-sm font-medium">
-              {{ 'XP.Plugin.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
-            </div>
-            <div class="mt-1 text-xs text-text-tertiary">
-              {{
-                'XP.Plugin.InstallToWorkspaceDesc'
-                  | translate
-                    : {
-                        Default: 'Install Skills, MCP servers, and Apps into the selected workspace.'
-                      }
-              }}
-            </div>
-          </button>
-
-          <button
-            type="button"
-            class="rounded-xl border px-3 py-3 text-left transition-colors"
-            [class]="
-              installMode() === 'xpert'
-                ? 'border-primary-500 bg-primary-500/10 text-text-primary'
-                : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
-            "
-            (click)="installMode.set('xpert')"
-          >
-            <div class="text-sm font-medium">
-              {{ 'XP.Plugin.InstallToXpert' | translate: { Default: 'Install to existing Xpert' } }}
-            </div>
-            <div class="mt-1 text-xs text-text-tertiary">
-              {{
-                'XP.Plugin.InstallToXpertDesc'
-                  | translate
-                    : {
-                        Default: 'Install Hooks and attach them to a selected agent in an existing Xpert.'
-                      }
-              }}
-            </div>
-          </button>
-        </div>
-
-        <div class="mt-4">
-          <div class="text-sm font-medium text-text-primary">
-            {{ 'XP.Plugin.TargetWorkspace' | translate: { Default: 'Target workspace' } }}
-          </div>
-          <div class="mt-2">
-            @if (workspaceLoading()) {
-              <div class="flex items-center gap-2 text-sm text-text-tertiary">
-                <xp-spin small />
-                <span>{{ 'XP.Plugin.LoadingWorkspaces' | translate: { Default: 'Loading workspaces...' } }}</span>
+        <div class="mt-3 grid gap-2" [class]="availableInstallModes.length === 1 ? '' : 'sm:grid-cols-3'">
+          @if (isInstallModeAvailable('organization')) {
+            <button
+              type="button"
+              data-install-mode="organization"
+              class="rounded-xl border px-3 py-3 text-left transition-colors"
+              [class]="
+                installMode() === 'organization'
+                  ? 'border-primary-500 bg-primary-500/10 text-text-primary'
+                  : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
+              "
+              (click)="installMode.set('organization')"
+            >
+              <div class="text-sm font-medium">
+                {{ 'XP.Plugin.InstallToOrganization' | translate: { Default: 'Install for organization' } }}
               </div>
-            } @else if (workspaceError()) {
-              <div class="text-sm text-text-destructive">{{ workspaceError() }}</div>
-            } @else {
-              <select
-                class="w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-primary outline-none"
-                [(ngModel)]="selectedWorkspaceId"
-              >
-                @for (workspace of workspaces(); track workspace.id) {
-                  <option [value]="workspace.id">{{ workspaceLabel(workspace) }}</option>
-                }
-              </select>
-            }
-          </div>
+              <div class="mt-1 text-xs text-text-tertiary">
+                {{
+                  'XP.Plugin.InstallToOrganizationDesc'
+                    | translate
+                      : {
+                          Default: 'Register host-native MCP capabilities without binding them to a workspace.'
+                        }
+                }}
+              </div>
+            </button>
+          }
+
+          @if (isInstallModeAvailable('workspace')) {
+            <button
+              type="button"
+              data-install-mode="workspace"
+              class="rounded-xl border px-3 py-3 text-left transition-colors"
+              [class]="
+                installMode() === 'workspace'
+                  ? 'border-primary-500 bg-primary-500/10 text-text-primary'
+                  : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
+              "
+              (click)="installMode.set('workspace')"
+            >
+              <div class="text-sm font-medium">
+                {{ 'XP.Plugin.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
+              </div>
+              <div class="mt-1 text-xs text-text-tertiary">
+                {{
+                  'XP.Plugin.InstallToWorkspaceDesc'
+                    | translate
+                      : {
+                          Default: 'Install Skills, MCP servers, and Apps into the selected workspace.'
+                        }
+                }}
+              </div>
+            </button>
+          }
+
+          @if (isInstallModeAvailable('xpert')) {
+            <button
+              type="button"
+              data-install-mode="xpert"
+              class="rounded-xl border px-3 py-3 text-left transition-colors"
+              [class]="
+                installMode() === 'xpert'
+                  ? 'border-primary-500 bg-primary-500/10 text-text-primary'
+                  : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
+              "
+              (click)="installMode.set('xpert')"
+            >
+              <div class="text-sm font-medium">
+                {{ 'XP.Plugin.InstallToXpert' | translate: { Default: 'Install to existing Xpert' } }}
+              </div>
+              <div class="mt-1 text-xs text-text-tertiary">
+                {{
+                  'XP.Plugin.InstallToXpertDesc'
+                    | translate
+                      : {
+                          Default: 'Install Hooks and attach them to a selected agent in an existing Xpert.'
+                        }
+                }}
+              </div>
+            </button>
+          }
         </div>
+
+        @if (installMode() !== 'organization') {
+          <div class="mt-4">
+            <div class="text-sm font-medium text-text-primary">
+              {{ 'XP.Plugin.TargetWorkspace' | translate: { Default: 'Target workspace' } }}
+            </div>
+            <div class="mt-2">
+              @if (workspaceLoading()) {
+                <div class="flex items-center gap-2 text-sm text-text-tertiary">
+                  <xp-spin small />
+                  <span>{{ 'XP.Plugin.LoadingWorkspaces' | translate: { Default: 'Loading workspaces...' } }}</span>
+                </div>
+              } @else if (workspaceError()) {
+                <div class="text-sm text-text-destructive">{{ workspaceError() }}</div>
+              } @else {
+                <select
+                  class="w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-primary outline-none"
+                  [(ngModel)]="selectedWorkspaceId"
+                >
+                  @for (workspace of workspaces(); track workspace.id) {
+                    <option [value]="workspace.id">{{ workspaceLabel(workspace) }}</option>
+                  }
+                </select>
+              }
+            </div>
+          </div>
+        }
 
         @if (installMode() === 'xpert') {
           <div class="mt-4">
@@ -149,10 +184,20 @@
           <div class="min-w-0 flex-1">
             <div class="text-sm font-medium text-text-primary">
               {{
-                (installMode() === 'workspace' ? 'XP.Plugin.WorkspaceResources' : 'XP.Plugin.AssistantResources')
+                (installMode() === 'organization'
+                  ? 'XP.Plugin.OrganizationResources'
+                  : installMode() === 'workspace'
+                    ? 'XP.Plugin.WorkspaceResources'
+                    : 'XP.Plugin.AssistantResources'
+                )
                   | translate
                     : {
-                        Default: installMode() === 'workspace' ? 'Workspace resources' : 'Assistant resources'
+                        Default:
+                          installMode() === 'organization'
+                            ? 'Organization capabilities'
+                            : installMode() === 'workspace'
+                              ? 'Workspace resources'
+                              : 'Assistant resources'
                       }
               }}
             </div>
@@ -230,16 +275,20 @@
           } @else if (!targetComponents().length) {
             <div class="rounded-xl border border-divider-regular bg-components-card-bg p-6 text-sm text-text-tertiary">
               {{
-                (installMode() === 'workspace'
-                  ? 'XP.Plugin.NoWorkspaceResourcesFound'
-                  : 'XP.Plugin.NoAssistantResourcesFound'
+                (installMode() === 'organization'
+                  ? 'XP.Plugin.NoOrganizationResourcesFound'
+                  : installMode() === 'workspace'
+                    ? 'XP.Plugin.NoWorkspaceResourcesFound'
+                    : 'XP.Plugin.NoAssistantResourcesFound'
                 )
                   | translate
                     : {
                         Default:
-                          installMode() === 'workspace'
-                            ? 'This plugin does not expose workspace resources.'
-                            : 'This plugin does not expose assistant resources.'
+                          installMode() === 'organization'
+                            ? 'This plugin does not expose organization capabilities.'
+                            : installMode() === 'workspace'
+                              ? 'This plugin does not expose workspace resources.'
+                              : 'This plugin does not expose assistant resources.'
                       }
               }}
             </div>
@@ -376,10 +425,20 @@
     </button>
     <button type="button" class="btn btn-primary btn-large" [disabled]="!canSubmit()" (click)="submit()">
       {{
-        (installMode() === 'workspace' ? 'XP.Plugin.InstallToWorkspace' : 'XP.Plugin.InstallToXpert')
+        (installMode() === 'organization'
+          ? 'XP.Plugin.InstallToOrganization'
+          : installMode() === 'workspace'
+            ? 'XP.Plugin.InstallToWorkspace'
+            : 'XP.Plugin.InstallToXpert'
+        )
           | translate
             : {
-                Default: installMode() === 'workspace' ? 'Install to workspace' : 'Install to existing Xpert'
+                Default:
+                  installMode() === 'organization'
+                    ? 'Install for organization'
+                    : installMode() === 'workspace'
+                      ? 'Install to workspace'
+                      : 'Install to existing Xpert'
               }
       }}
     </button>

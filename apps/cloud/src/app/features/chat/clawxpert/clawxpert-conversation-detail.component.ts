@@ -5,6 +5,7 @@ import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import { ASSISTANT_CITATION_OPEN_EVENT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type {
   IconDefinition,
   I18nObject,
@@ -753,9 +754,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #fixedViewsHostId: string | null = null
   #markReadRequestVersion = 0
   #chatkitResizeCleanup: (() => void) | null = null
-  #activeWorkbenchLayoutAssistantId: string | null = null
-  #initializedWorkbenchLayoutAssistantId: string | null = null
-  #pendingWorkbenchLayoutRestore: { assistantId: string | null; state: ClawXpertWorkbenchLayoutState } | null = null
+  #activeWorkbenchLayoutPreferenceKey: string | null = null
+  #initializedWorkbenchLayoutPreferenceKey: string | null = null
+  #pendingWorkbenchLayoutRestore: { preferenceKey: string; state: ClawXpertWorkbenchLayoutState } | null = null
   #lastNonFixedTabId: string | null = null
   #activeChatkitControl: ChatKitControl | null = null
   #lastSyncedRoutedThreadId: string | null = null
@@ -1008,35 +1009,42 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     effect(() => {
       const assistantId = this.#workbenchLayoutAssistantId()
+      const userId = this.facade.userId()?.trim() || null
       const viewState = this.facade.viewState()
+      const configuredInitialLayout = this.facade.initialLayout()
       const currentState = this.#workbenchLayoutState()
+      const preferenceKey = assistantId ? JSON.stringify([userId, assistantId]) : null
 
-      if (assistantId !== this.#activeWorkbenchLayoutAssistantId) {
-        this.#activeWorkbenchLayoutAssistantId = assistantId
-        this.#initializedWorkbenchLayoutAssistantId = null
+      if (preferenceKey !== this.#activeWorkbenchLayoutPreferenceKey) {
+        this.#activeWorkbenchLayoutPreferenceKey = preferenceKey
+        this.#initializedWorkbenchLayoutPreferenceKey = null
         this.#pendingWorkbenchLayoutRestore = null
       }
 
-      if (!assistantId || viewState !== 'ready') {
+      if (!assistantId || !preferenceKey || viewState !== 'ready') {
         return
       }
 
-      if (assistantId !== this.#initializedWorkbenchLayoutAssistantId) {
-        this.#initializedWorkbenchLayoutAssistantId = assistantId
-        const nextState: ClawXpertWorkbenchLayoutState = 'minimized'
-        this.#pendingWorkbenchLayoutRestore = { assistantId, state: nextState }
+      if (preferenceKey !== this.#initializedWorkbenchLayoutPreferenceKey) {
+        this.#initializedWorkbenchLayoutPreferenceKey = preferenceKey
+        const restoredState = userId ? this.#workbenchLayoutStorage.load(userId, assistantId) : null
+        const configuredState = toConfiguredWorkbenchLayoutState(configuredInitialLayout)
+        const nextState = restoredState ?? configuredState ?? 'minimized'
+        this.#pendingWorkbenchLayoutRestore = { preferenceKey, state: nextState }
         this.applyWorkbenchLayoutState(nextState)
         return
       }
 
       const pendingRestore = this.#pendingWorkbenchLayoutRestore
-      if (pendingRestore?.assistantId === assistantId && pendingRestore.state === currentState) {
+      if (pendingRestore?.preferenceKey === preferenceKey && pendingRestore.state === currentState) {
         this.#pendingWorkbenchLayoutRestore = null
         return
       }
 
       this.#pendingWorkbenchLayoutRestore = null
-      this.#workbenchLayoutStorage.save(assistantId, currentState)
+      if (userId) {
+        this.#workbenchLayoutStorage.save(userId, assistantId, currentState)
+      }
     })
 
     effect(() => {
@@ -1502,7 +1510,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: urlMode === 'replace' })
       }
     }
-    this.openDetailPanel()
+    if (urlMode !== 'none') {
+      this.openDetailPanel()
+    }
   }
 
   private findLastNonFixedTab() {
@@ -1641,9 +1651,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   openWorkbenchView(request: WorkbenchExtensionViewOpenRequest) {
-    const menuItem = this.fixedViewMenuItems().find(
-      (item) => item.viewKey === request.viewKey || item.viewKey.endsWith(`__${request.viewKey}`)
-    )
+    const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), request.viewKey)
     if (!menuItem) throw new Error(`Workbench view '${request.viewKey}' is not available.`)
     const resolvedViewKey = menuItem.viewKey
     const query: XpertViewQuery = {
@@ -1936,47 +1944,82 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     if (requestedTab) {
       this.activeTabId.set(requestedTab.id)
+    } else if (!activeTabId) {
+      const initialTab =
+        nextNonFixedTabs[0] ?? findFixedViewTab(nextFixedTabs, this.facade.defaultViewKey()) ?? nextFixedTabs[0]
+      this.activeTabId.set(initialTab?.id ?? '')
     } else if (activeTabId && !nextTabs.some((tab) => tab.id === activeTabId)) {
       const selectedTab = nextNonFixedTabs[0] ?? nextTabs[0]
       this.activeTabId.set(selectedTab?.id ?? '')
     }
 
-    if (requestedTab) {
-      this.openDetailPanel()
-    } else if (nextFixedTabs.length === 0 && requestedViewKey) {
+    if (nextFixedTabs.length === 0 && requestedViewKey) {
       void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: true })
     }
   }
 
   private publishKnowledgebaseCitationEvent(event: XpertViewHostEventMessage) {
-    const shouldRepublish = this.focusKnowledgebaseWorkbenchTab()
+    const target = getKnowledgebaseCitationTarget(event)
+    const openedWorkbench = target ? this.focusKnowledgebaseWorkbenchTab(target) : false
     this.#hostEvents.publish(event)
 
-    if (shouldRepublish && typeof window !== 'undefined') {
-      window.setTimeout(() => {
-        this.#hostEvents.publish({
-          ...event,
-          id: `${event.id}:deferred`
-        })
-      }, 180)
+    if (!openedWorkbench && target) {
+      void this.openKnowledgebaseCitationFallback(target)
     }
   }
 
-  private focusKnowledgebaseWorkbenchTab() {
-    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
-    if (existing) {
-      const wasActive = this.activeTabId() === existing.id
-      this.activateWorkspaceTab(existing.id, 'push')
-      return !wasActive
-    }
-
-    const menuItem = this.fixedViewMenuItems().find((item) => item.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+  private focusKnowledgebaseWorkbenchTab(target: KnowledgebaseCitationTarget) {
+    const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
     if (!menuItem) {
       return false
     }
 
-    this.openFixedViewTab(menuItem)
+    this.openWorkbenchView({
+      viewKey: menuItem.viewKey,
+      parameters: {
+        ...(target.knowledgebaseId ? { knowledgebaseId: target.knowledgebaseId } : {}),
+        documentId: target.documentId,
+        ...(target.chunkId ? { chunkId: target.chunkId } : {})
+      }
+    })
     return true
+  }
+
+  private openKnowledgebaseCitationFallback(target: KnowledgebaseCitationTarget) {
+    if (!target.knowledgebaseId) {
+      return Promise.resolve(false)
+    }
+
+    const queryParams: Record<string, string> = {}
+    if (target.chunkId) queryParams['chunkId'] = target.chunkId
+    if (target.page) {
+      queryParams['view'] = 'analysis'
+      queryParams['page'] = String(target.page)
+    } else if (target.chunkId) {
+      queryParams['view'] = 'chunks'
+    }
+    if (target.sourceBlockIds?.[0]) queryParams['block'] = target.sourceBlockIds[0]
+
+    return this.#router.navigate(
+      ['/xpert/knowledges', target.knowledgebaseId, 'documents', target.documentId],
+      Object.keys(queryParams).length || target.evidenceText
+        ? {
+            ...(Object.keys(queryParams).length ? { queryParams } : {}),
+            ...(target.evidenceText
+              ? {
+                  state: {
+                    knowledgeEvidence: {
+                      text: target.evidenceText.slice(0, 4000),
+                      ...(target.chunkId ? { chunkId: target.chunkId } : {}),
+                      ...(target.page ? { page: target.page } : {}),
+                      ...(target.sourceBlockIds?.length ? { sourceBlockIds: target.sourceBlockIds } : {})
+                    }
+                  }
+                }
+              : {})
+          }
+        : undefined
+    )
   }
 
   private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {
@@ -2253,6 +2296,21 @@ function clampChatkitWidth(width: number) {
   return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
 }
 
+function toConfiguredWorkbenchLayoutState(
+  layout: XpertWorkbenchInitialLayoutEnum | null
+): ClawXpertWorkbenchLayoutState | null {
+  if (layout === null || layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
+    return 'normal'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
+    return 'minimized'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized) {
+    return 'maximized'
+  }
+  return null
+}
+
 function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {
   if (typeof target.serviceId === 'string' && target.serviceId.trim() && tab.serviceId === target.serviceId) {
     return true
@@ -2312,12 +2370,66 @@ function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
 }
 
 function findFixedViewTab(tabs: ClawXpertFixedViewTab[], viewKey: string | null | undefined) {
+  return findResolvedViewByKey(tabs, viewKey)
+}
+
+function findResolvedViewByKey<T extends { viewKey: string }>(items: T[], viewKey: string | null | undefined) {
   const normalizedViewKey = viewKey?.trim()
   if (!normalizedViewKey) {
     return undefined
   }
 
-  return tabs.find((tab) => tab.viewKey === normalizedViewKey || tab.viewKey.endsWith(`__${normalizedViewKey}`))
+  const exact = items.find((item) => item.viewKey === normalizedViewKey)
+  if (exact) {
+    return exact
+  }
+
+  const aliases = items.filter((item) => item.viewKey.endsWith(`__${normalizedViewKey}`))
+  return aliases.length === 1 ? aliases[0] : undefined
+}
+
+type KnowledgebaseCitationTarget = {
+  knowledgebaseId?: string
+  documentId: string
+  chunkId?: string
+  page?: number
+  sourceBlockIds?: string[]
+  evidenceText?: string
+}
+
+function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): KnowledgebaseCitationTarget | null {
+  if (event.type !== ASSISTANT_CITATION_OPEN_EVENT || !event.data) {
+    return null
+  }
+
+  const documentId = getString(event.data['documentId'])
+  if (!documentId) {
+    return null
+  }
+
+  const knowledgebaseId = getString(event.data['knowledgebaseId'])
+  const chunkId = getString(event.data['chunkId'])
+  const evidenceText = getString(event.data['evidenceText'])
+  const pageValue = event.data['page']
+  const parsedPage = typeof pageValue === 'number' ? pageValue : typeof pageValue === 'string' ? Number(pageValue) : 0
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined
+  const sourceBlockIdsValue = event.data['sourceBlockIds']
+  const sourceBlockIds = Array.isArray(sourceBlockIdsValue)
+    ? sourceBlockIdsValue
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 20)
+    : []
+
+  return {
+    documentId,
+    ...(knowledgebaseId ? { knowledgebaseId } : {}),
+    ...(chunkId ? { chunkId } : {}),
+    ...(page ? { page } : {}),
+    ...(sourceBlockIds.length ? { sourceBlockIds } : {}),
+    ...(evidenceText ? { evidenceText } : {})
+  }
 }
 
 function hasTaskSummaryRefresh(

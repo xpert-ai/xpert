@@ -127,7 +127,9 @@ function mergeInstalledPluginMarketplaceMetadata(
   marketplace?: PluginTargetAppMarketplaceMetadata,
   installed?: PluginTargetAppMarketplaceMetadata
 ): PluginTargetAppMarketplaceMetadata | undefined {
-  const contents = mergeMarketplaceContributions(marketplace?.contents, installed?.contents)
+  const contents = installed?.contents
+    ? mergeAuthoritativeMarketplaceContributions(marketplace?.contents, installed.contents)
+    : mergeMarketplaceContributions(marketplace?.contents)
   const merged: PluginTargetAppMarketplaceMetadata = {
     ...(marketplace ?? {}),
     ...(installed ?? {})
@@ -138,6 +140,20 @@ function mergeInstalledPluginMarketplaceMetadata(
   }
 
   return Object.keys(merged).length ? merged : undefined
+}
+
+function mergeAuthoritativeMarketplaceContributions(
+  fallback: readonly PluginMarketplaceContribution[] | undefined,
+  authoritative: readonly PluginMarketplaceContribution[]
+) {
+  const fallbackByKey = new Map(
+    (fallback ?? []).map((contribution) => [getMarketplaceContributionKey(contribution), contribution])
+  )
+
+  return authoritative.map((contribution) => ({
+    ...(fallbackByKey.get(getMarketplaceContributionKey(contribution)) ?? {}),
+    ...contribution
+  }))
 }
 
 export function mergeMarketplaceContributions(

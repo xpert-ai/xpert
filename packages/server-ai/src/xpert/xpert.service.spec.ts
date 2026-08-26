@@ -39,6 +39,7 @@ jest.mock('./types', () => ({
     }
 }))
 
+import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
@@ -72,6 +73,7 @@ describe('XpertService command facade', () => {
             findAll: jest.fn()
         }
         const workspaceAccessService = {
+            assertCanAuthor: jest.fn(),
             buildAccess: jest.fn(async (workspace: { id: string; organizationId?: string | null }) => ({
                 workspace,
                 capabilities: {
@@ -158,6 +160,64 @@ describe('XpertService command facade', () => {
                 createdAt: 'DESC'
             }
         })
+    })
+
+    it('requires target workspace authoring access for an xpert draft', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const { service, repository, workspaceAccessService } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-1'
+        })
+        workspaceAccessService.assertCanAuthor.mockRejectedValue(new ForbiddenException('Access denied to workspace'))
+
+        await expect(service.assertCanAuthorById('xpert-1')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(repository.findOne).toHaveBeenCalledWith({
+            select: ['id', 'organizationId', 'workspaceId', 'createdById'],
+            where: {
+                id: 'xpert-1',
+                tenantId: 'tenant-1'
+            }
+        })
+        expect(workspaceAccessService.assertCanAuthor).toHaveBeenCalledWith('workspace-1')
+    })
+
+    it('also requires authoring access when the resolved draft workspace differs from the persisted workspace', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const { service, repository, workspaceAccessService } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-1'
+        })
+        workspaceAccessService.assertCanAuthor
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new ForbiddenException('Access denied to workspace'))
+
+        await expect(service.assertCanAuthorById('xpert-1', 'workspace-2')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(workspaceAccessService.assertCanAuthor.mock.calls).toEqual([['workspace-1'], ['workspace-2']])
+    })
+
+    it('falls back to legacy creator and organization checks when no workspace is resolved', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const { service, repository, workspaceAccessService } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: null,
+            createdById: 'owner-1'
+        })
+
+        await expect(service.assertCanAuthorById('xpert-1', null)).resolves.toBeUndefined()
+        expect(workspaceAccessService.assertCanAuthor).not.toHaveBeenCalled()
     })
 
     it('publish forwards to XpertPublishCommand', async () => {

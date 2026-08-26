@@ -21,6 +21,8 @@ const mockStructuredContent = {
 type MockMcpClientInstance = {
     config: {
         mcpServers: Record<string, unknown>
+        prefixToolNameWithServerName?: boolean
+        additionalToolNamePrefix?: string
     }
     _loadToolsOptions: Record<string, { additionalToolNamePrefix?: string }>
     _clients: {
@@ -28,6 +30,7 @@ type MockMcpClientInstance = {
     }
     getTools: jest.Mock<Promise<MockMcpTool[]>, []>
     getClient: jest.Mock<Promise<Client>, [string]>
+    close: jest.Mock<Promise<void>, []>
 }
 
 type MockMcpTool = {
@@ -41,10 +44,14 @@ type MockMcpClientConstruction = {
     instance: MockMcpClientInstance
     sdkClient: Client
     tool: MockMcpTool
+    originalGetTools: jest.Mock
+    originalGetClient: jest.Mock
 }
 
 const mockConstructedClients: MockMcpClientConstruction[] = []
 const mockLoadedPlugins: Array<Record<string, unknown>> = []
+const mockPluginComponents: Array<Record<string, unknown>> = []
+let mockNextGetToolsError: Error | null = null
 const tempRoots: string[] = []
 const mockResolveLoadedPluginBundleRoot = jest.fn((plugin: Record<string, unknown>) =>
     typeof plugin.bundleRoot === 'string' ? plugin.bundleRoot : null
@@ -52,6 +59,16 @@ const mockResolveLoadedPluginBundleRoot = jest.fn((plugin: Record<string, unknow
 
 jest.mock('@langchain/mcp-adapters', () => ({
     MultiServerMCPClient: jest.fn().mockImplementation((config: unknown) => {
+        const configuredMcpServers: Record<string, unknown> = {}
+        const mcpServersValue =
+            typeof config === 'object' && config !== null && !Array.isArray(config)
+                ? Reflect.get(config, 'mcpServers')
+                : undefined
+        if (typeof mcpServersValue === 'object' && mcpServersValue !== null && !Array.isArray(mcpServersValue)) {
+            for (const [serverName, serverConfig] of Object.entries(mcpServersValue)) {
+                configuredMcpServers[serverName] = serverConfig
+            }
+        }
         const sdkClient = {
             listTools: jest.fn(async () => ({
                 tools: [
@@ -87,11 +104,23 @@ jest.mock('@langchain/mcp-adapters', () => ({
                 return ['{"ok":true}', []]
             })
         }
+        const originalGetTools = jest.fn(async () => {
+            if (mockNextGetToolsError) {
+                const error = mockNextGetToolsError
+                mockNextGetToolsError = null
+                throw error
+            }
+            return [tool]
+        })
+        const originalGetClient = jest.fn(async (_serverName: string) => {
+            void _serverName
+            return sdkClient
+        })
         const instance = {
             config: {
-                mcpServers: {
-                    default: {}
-                }
+                mcpServers: configuredMcpServers,
+                prefixToolNameWithServerName: false,
+                additionalToolNamePrefix: 'dx'
             },
             _loadToolsOptions: {
                 default: {
@@ -101,14 +130,12 @@ jest.mock('@langchain/mcp-adapters', () => ({
             _clients: {
                 default: sdkClient
             },
-            getTools: jest.fn(async () => [tool]),
-            getClient: jest.fn(async (_serverName: string) => {
-                void _serverName
-                return sdkClient
-            })
+            getTools: originalGetTools,
+            getClient: originalGetClient,
+            close: jest.fn(async () => undefined)
         } satisfies MockMcpClientInstance
 
-        mockConstructedClients.push({ config, instance, sdkClient, tool })
+        mockConstructedClients.push({ config, instance, sdkClient, tool, originalGetTools, originalGetClient })
         return instance as unknown as MultiServerMCPClient
     })
 }))
@@ -125,6 +152,8 @@ jest.mock('@xpert-ai/server-core', () => ({
     },
     loaded: mockLoadedPlugins,
     resolveLoadedPluginBundleRoot: mockResolveLoadedPluginBundleRoot,
+    readPluginBundleManifest: jest.fn(() => ({ manifest: { name: '@xpert-ai/mock-plugin' } })),
+    collectPluginBundleComponents: jest.fn(() => mockPluginComponents),
     runScript: jest.fn()
 }))
 
@@ -134,6 +163,8 @@ jest.mock('i18next', () => ({
 
 import { MultiServerMCPClient as MockedMultiServerMCPClient } from '@langchain/mcp-adapters'
 import { createMCPClient } from './types'
+import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
+import { configureMcpConsumerAuthProviderResolver } from '../../../mcp-consumer/auth/mcp-consumer-auth.registry'
 
 type McpClientConfig = {
     outputHandling?: {
@@ -156,8 +187,8 @@ const schema: TMCPSchema = {
     }
 }
 
-function getCreatedClient(): MockMcpClientConstruction {
-    const created = mockConstructedClients[0]
+function getCreatedClient(index = 0): MockMcpClientConstruction {
+    const created = mockConstructedClients[index]
     if (!created) {
         throw new Error('Expected MultiServerMCPClient to be constructed')
     }
@@ -195,7 +226,18 @@ function decodeRunnerSpec(server: Record<string, unknown>) {
         args: string[]
         cwd: string
         env: Record<string, string>
+        startupTimeoutMs: number
+        maxLifetimeMs: number
     }
+}
+
+function registerMcpComponent(componentKey: string, config: Record<string, unknown>) {
+    mockPluginComponents.push({
+        componentType: 'mcp_server',
+        componentKey,
+        config,
+        definitionHash: `hash:${componentKey}`
+    })
 }
 
 async function expectMcpMetaArtifactBridgeInstalled(tool: MockMcpTool) {
@@ -210,16 +252,32 @@ async function expectMcpMetaArtifactBridgeInstalled(tool: MockMcpTool) {
 }
 
 describe('MCP client factories', () => {
+    const originalFetch = global.fetch
+
     beforeEach(() => {
         mockConstructedClients.length = 0
         mockLoadedPlugins.length = 0
+        mockPluginComponents.length = 0
+        mockNextGetToolsError = null
         mockResolveLoadedPluginBundleRoot.mockClear()
         process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED = 'true'
         jest.clearAllMocks()
+        configureMcpConsumerAuthProviderResolver(null)
+        global.fetch = jest.fn().mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'legacy-probe',
+                    error: { code: -32601, message: 'Method not found' }
+                }),
+                { status: 200, headers: { 'content-type': 'application/json' } }
+            )
+        )
     })
 
     afterEach(() => {
         delete process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED
+        global.fetch = originalFetch
         while (tempRoots.length) {
             const root = tempRoots.pop()
             if (root) {
@@ -255,8 +313,126 @@ describe('MCP client factories', () => {
         })
     })
 
+    it('does not initialize the legacy SDK for a modern 2026 HTTP server', async () => {
+        global.fetch = jest.fn().mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'modern-probe',
+                    result: {
+                        resultType: 'complete',
+                        supportedVersions: ['2026-07-28'],
+                        capabilities: { tools: {} }
+                    }
+                }),
+                { status: 200, headers: { 'content-type': 'application/json' } }
+            )
+        )
+
+        await createMCPClient(toolset, schema, {}, 'xpert-1')
+
+        const created = getCreatedClient()
+        expect(created.originalGetTools).not.toHaveBeenCalled()
+        expect(created.originalGetClient).not.toHaveBeenCalled()
+    })
+
+    it('resolves explicit API key authentication without leaking the auth config to the transport', async () => {
+        await createMCPClient(
+            toolset,
+            {
+                servers: {
+                    default: {
+                        type: MCPServerType.HTTP,
+                        url: 'https://mcp.example.test',
+                        auth: { type: 'api_key', headerName: 'x-api-key', value: 'secret-from-environment' }
+                    }
+                }
+            },
+            {}
+        )
+
+        const server = getConfiguredMcpServer(getCreatedClient(), 'default')
+        expect(server.headers).toEqual({ 'x-api-key': 'secret-from-environment' })
+        expect(server).not.toHaveProperty('auth')
+    })
+
+    it('attaches a persisted OAuth provider only to Streamable HTTP connections', async () => {
+        const provider = { tokens: jest.fn() }
+        const resolver = jest.fn().mockResolvedValue(provider)
+        configureMcpConsumerAuthProviderResolver(resolver)
+
+        await createMCPClient(
+            { ...toolset, tenantId: 'tenant-1', organizationId: 'org-1' },
+            {
+                servers: {
+                    default: {
+                        type: MCPServerType.HTTP,
+                        url: 'https://mcp.example.test',
+                        auth: { type: 'oauth', binding: 'user', scopes: ['tools:read'] }
+                    }
+                }
+            },
+            {},
+            undefined,
+            {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1'
+            }
+        )
+
+        expect(resolver).toHaveBeenCalledWith(expect.objectContaining({ serverName: 'default', userId: 'user-1' }))
+        expect(getConfiguredMcpServer(getCreatedClient(), 'default').authProvider).toBe(provider)
+    })
+
+    it('runs a generic stdio server without a plugin installation', async () => {
+        const result = await createMCPClient(
+            {
+                ...toolset,
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1'
+            },
+            {
+                servers: {
+                    generic: {
+                        type: MCPServerType.STDIO,
+                        command: 'node',
+                        args: ['generic-mcp-server.js'],
+                        env: { GENERIC_MCP_TOKEN: 'generic-token' },
+                        runtime: { provider: 'local-process', allowedCommands: ['node'] }
+                    }
+                }
+            },
+            {}
+        )
+
+        const server = getConfiguredMcpServer(getCreatedClient(), 'generic')
+        const runnerSpec = decodeRunnerSpec(server)
+        expect(mockLoadedPlugins).toEqual([])
+        expect(mockPluginComponents).toEqual([])
+        expect(runnerSpec).toMatchObject({
+            command: 'node',
+            args: ['generic-mcp-server.js'],
+            env: { GENERIC_MCP_TOKEN: 'generic-token' }
+        })
+        expect(mcpStdioRuntimeManager.list({ toolsetId: toolset.id })).toEqual([
+            expect.objectContaining({ serverName: 'generic', pluginManaged: false })
+        ])
+
+        await result.destroy?.()
+        expect(mcpStdioRuntimeManager.list({ toolsetId: toolset.id })).toEqual([])
+    })
+
     it('resolves plugin-managed MCP server placeholders from the currently loaded plugin root', async () => {
         const pluginRoot = createLoadedPluginRoot()
+        registerMcpComponent('echarts-drilldown', {
+            type: 'stdio',
+            command: 'node',
+            args: ['${PLUGIN_ROOT}/dist/mcp-server.js'],
+            env: { ECHARTS_DATA: '${PLUGIN_DATA}/cache' },
+            policy: { runtime: { provider: 'local-process', allowedCommands: ['node'] } }
+        })
         mockLoadedPlugins.push({
             organizationId: 'org-1',
             name: '@xpert-ai/plugin-echarts-mcp-app@runtime__new',
@@ -313,6 +489,12 @@ describe('MCP client factories', () => {
 
     it('rewrites stale plugin runtime roots in existing plugin-managed MCP toolsets', async () => {
         const pluginRoot = createLoadedPluginRoot()
+        registerMcpComponent('echarts-drilldown', {
+            type: 'stdio',
+            command: 'node',
+            args: ['${PLUGIN_ROOT}/dist/mcp-server.js'],
+            policy: { runtime: { provider: 'local-process', allowedCommands: ['node'] } }
+        })
         mockLoadedPlugins.push({
             organizationId: 'org-1',
             name: '@xpert-ai/plugin-echarts-mcp-app@runtime__new',
@@ -354,5 +536,166 @@ describe('MCP client factories', () => {
         })
         expect(runnerSpec.args).toEqual([pluginEntryPath(pluginRoot)])
         await result.destroy?.()
+    })
+
+    it('uses the current plugin manifest command, args, and runtime policy instead of request overrides', async () => {
+        const pluginRoot = createLoadedPluginRoot()
+        registerMcpComponent('demo', {
+            type: 'stdio',
+            command: 'node',
+            args: ['${PLUGIN_ROOT}/dist/mcp-server.js'],
+            policy: {
+                enabledTools: ['demo_create', 'demo_validate', 'demo_apply', 'demo_compare'],
+                runtime: {
+                    provider: 'local-process',
+                    startupTimeoutMs: 15_000,
+                    idleTimeoutMs: 900_000,
+                    maxLifetimeMs: 3_600_000,
+                    allowedCommands: ['node']
+                }
+            }
+        })
+        mockLoadedPlugins.push({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: '@xpert-ai/plugin-demo@runtime__current',
+            packageName: '@xpert-ai/plugin-demo',
+            bundleRoot: pluginRoot
+        })
+
+        const result = await createMCPClient(
+            {
+                ...toolset,
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                options: {
+                    pluginManaged: true,
+                    pluginName: '@xpert-ai/plugin-demo',
+                    componentKey: 'demo',
+                    mcpRuntime: {
+                        provider: 'sidecar',
+                        startupTimeoutMs: 60_000,
+                        maxLifetimeMs: 86_400_000,
+                        allowedCommands: ['python']
+                    }
+                }
+            },
+            {
+                mcpServers: {
+                    attacker: {
+                        type: MCPServerType.STDIO,
+                        command: 'python',
+                        args: ['/tmp/attacker.py'],
+                        runtime: {
+                            provider: 'sidecar',
+                            startupTimeoutMs: 60_000,
+                            maxLifetimeMs: 86_400_000,
+                            allowedCommands: ['python']
+                        }
+                    }
+                }
+            },
+            {},
+            'xpert-1'
+        )
+
+        const created = getCreatedClient()
+        const server = getConfiguredMcpServer(created, 'demo')
+        const runnerSpec = decodeRunnerSpec(server)
+        expect(Object.keys((created.config as { mcpServers: object }).mcpServers)).toEqual(['demo'])
+        expect(runnerSpec).toMatchObject({
+            command: process.execPath,
+            args: [pluginEntryPath(pluginRoot)],
+            startupTimeoutMs: 15_000,
+            maxLifetimeMs: 3_600_000
+        })
+        await result.destroy?.()
+    })
+
+    it('isolates plugin runtime data directories by tenant and workspace', async () => {
+        const pluginRoot = createLoadedPluginRoot()
+        registerMcpComponent('demo', {
+            type: 'stdio',
+            command: 'node',
+            args: ['${PLUGIN_ROOT}/dist/mcp-server.js'],
+            env: { DEMO_CACHE: '${PLUGIN_DATA}/cache' },
+            policy: { runtime: { provider: 'local-process', allowedCommands: ['node'] } }
+        })
+        mockLoadedPlugins.push({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: '@xpert-ai/plugin-demo@runtime__current',
+            packageName: '@xpert-ai/plugin-demo',
+            bundleRoot: pluginRoot
+        })
+        const createForWorkspace = (workspaceId: string) =>
+            createMCPClient(
+                {
+                    ...toolset,
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    workspaceId,
+                    options: {
+                        pluginManaged: true,
+                        pluginName: '@xpert-ai/plugin-demo',
+                        componentKey: 'demo'
+                    }
+                },
+                { mcpServers: { demo: { type: MCPServerType.STDIO, command: 'ignored' } } },
+                {}
+            )
+
+        const first = await createForWorkspace('workspace-1')
+        const second = await createForWorkspace('workspace-2')
+        const firstSpec = decodeRunnerSpec(getConfiguredMcpServer(getCreatedClient(0), 'demo'))
+        const secondSpec = decodeRunnerSpec(getConfiguredMcpServer(getCreatedClient(1), 'demo'))
+
+        expect(firstSpec.cwd).toContain('/tenant-1/workspace-1/_xpert-ai_plugin-demo/demo')
+        expect(secondSpec.cwd).toContain('/tenant-1/workspace-2/_xpert-ai_plugin-demo/demo')
+        expect(firstSpec.cwd).not.toBe(secondSpec.cwd)
+        expect(firstSpec.env.DEMO_CACHE).toBe(`${firstSpec.cwd}/cache`)
+        expect(secondSpec.env.DEMO_CACHE).toBe(`${secondSpec.cwd}/cache`)
+        await first.destroy?.()
+        await second.destroy?.()
+    })
+
+    it('closes the client and removes the plugin runtime when MCP initialization fails', async () => {
+        const pluginRoot = createLoadedPluginRoot()
+        registerMcpComponent('demo', {
+            type: 'stdio',
+            command: 'node',
+            args: ['${PLUGIN_ROOT}/dist/mcp-server.js'],
+            policy: { runtime: { provider: 'local-process', allowedCommands: ['node'] } }
+        })
+        mockLoadedPlugins.push({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: '@xpert-ai/plugin-demo@runtime__current',
+            packageName: '@xpert-ai/plugin-demo',
+            bundleRoot: pluginRoot
+        })
+        mockNextGetToolsError = new Error('plugin initialization failed')
+
+        await expect(
+            createMCPClient(
+                {
+                    ...toolset,
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    workspaceId: 'workspace-1',
+                    options: {
+                        pluginManaged: true,
+                        pluginName: '@xpert-ai/plugin-demo',
+                        componentKey: 'demo'
+                    }
+                },
+                { mcpServers: { demo: { type: MCPServerType.STDIO, command: 'ignored' } } },
+                {}
+            )
+        ).rejects.toThrow('plugin initialization failed')
+
+        expect(getCreatedClient().instance.close).toHaveBeenCalled()
+        expect(mcpStdioRuntimeManager.list({ pluginName: '@xpert-ai/plugin-demo' })).toEqual([])
     })
 })

@@ -1,0 +1,60 @@
+.xp-milkdown-editor .milkdown {
+  --crepe-color-background: var(--sys-surface-elevated);
+  --crepe-color-on-background: var(--sys-text-primary);
+  --crepe-color-surface: var(--sys-surface-overlay);
+  --crepe-color-surface-low: var(--sys-surface-subtle);
+  --crepe-color-on-surface: var(--sys-text-primary);
+  --crepe-color-on-surface-variant: var(--sys-text-secondary);
+  --crepe-color-outline: var(--sys-border-strong);
+  --crepe-color-primary: var(--sys-primary);
+  --crepe-color-secondary: var(--sys-surface-subtle);
+  --crepe-color-on-secondary: var(--sys-text-primary);
+  --crepe-color-inverse: var(--sys-text-primary);
+  --crepe-color-on-inverse: var(--sys-surface-elevated);
+  --crepe-color-inline-code: var(--sys-danger);
+  --crepe-color-error: var(--sys-danger);
+  --crepe-color-hover: var(--sys-state-hover);
+  --crepe-color-selected: color-mix(in oklab, var(--sys-primary) 18%, transparent);
+  --crepe-color-inline-area: var(--sys-border);
+  --crepe-base-font-size: 15px;
+  --crepe-font-title: var(--font-xp-sans);
+  --crepe-font-default: var(--font-xp-sans);
+  --crepe-font-code: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  --crepe-shadow-1: 0 1px 3px color-mix(in oklab, var(--sys-text-primary) 15%, transparent);
+  --crepe-shadow-2: 0 8px 24px color-mix(in oklab, var(--sys-text-primary) 18%, transparent);
+
+  height: 100%;
+  overflow: auto;
+  background: var(--sys-surface-elevated);
+}
+
+.xp-milkdown-editor .milkdown .milkdown-top-bar {
+  border-bottom-color: var(--sys-border);
+}
+
+.xp-milkdown-editor .milkdown .ProseMirror {
+  box-sizing: border-box;
+  width: min(100%, 920px);
+  min-height: calc(100% - 45px);
+  margin: 0 auto;
+  padding: 40px clamp(24px, 5%, 72px) 96px;
+  line-height: 1.7;
+}
+
+.xp-milkdown-editor .milkdown .ProseMirror h1 {
+  font-size: 2.25em;
+}
+
+.xp-milkdown-editor .milkdown .ProseMirror h2 {
+  font-size: 1.75em;
+}
+
+.xp-milkdown-editor .milkdown .ProseMirror h3 {
+  font-size: 1.4em;
+}
+
+@media (max-width: 640px) {
+  .xp-milkdown-editor .milkdown .ProseMirror {
+    padding: 28px 20px 72px;
+  }
+}

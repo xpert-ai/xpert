@@ -10,7 +10,8 @@ const transformSeedPackages = [
     'lodash-es',
     'ali-oss',
     'form-data-encoder',
-    'nanoid'
+    'nanoid',
+    'jose'
 ]
 
 const readPackageJson = (packageName: string): Record<string, any> | null => {

@@ -13,6 +13,7 @@ export type WorkbenchChatDefinition = {
 export type WorkbenchChatFacade = {
   definition: WorkbenchChatDefinition
   identity: Signal<string | null>
+  userId: Signal<string | null>
   assistantId: Signal<string | null>
   xpertId: Signal<string | null>
   initialLayout: Signal<XpertWorkbenchInitialLayoutEnum | null>
