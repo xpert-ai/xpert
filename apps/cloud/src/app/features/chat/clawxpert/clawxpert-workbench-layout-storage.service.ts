@@ -3,41 +3,43 @@ import { inject, Injectable } from '@angular/core'
 
 export type ClawXpertWorkbenchLayoutState = 'minimized' | 'normal' | 'maximized'
 
-const STORAGE_KEY_PREFIX = 'xpert.clawxpert.workbench.layout.v1:'
+const STORAGE_KEY_PREFIX = 'xpert.clawxpert.workbench.layout.v2:'
 
-export function getClawXpertWorkbenchLayoutStorageKey(assistantId: string) {
-  return `${STORAGE_KEY_PREFIX}${encodeURIComponent(assistantId.trim())}`
+export function getClawXpertWorkbenchLayoutStorageKey(userId: string, assistantId: string) {
+  return `${STORAGE_KEY_PREFIX}${encodeURIComponent(userId.trim())}:${encodeURIComponent(assistantId.trim())}`
 }
 
 @Injectable({ providedIn: 'root' })
 export class ClawXpertWorkbenchLayoutStorage {
   readonly #document = inject(DOCUMENT)
 
-  load(assistantId: string): ClawXpertWorkbenchLayoutState | null {
+  load(userId: string, assistantId: string): ClawXpertWorkbenchLayoutState | null {
+    const normalizedUserId = userId.trim()
     const normalizedAssistantId = assistantId.trim()
     const storage = this.getStorage()
-    if (!normalizedAssistantId || !storage) {
+    if (!normalizedUserId || !normalizedAssistantId || !storage) {
       return null
     }
 
     try {
       return normalizeWorkbenchLayoutState(
-        storage.getItem(getClawXpertWorkbenchLayoutStorageKey(normalizedAssistantId))
+        storage.getItem(getClawXpertWorkbenchLayoutStorageKey(normalizedUserId, normalizedAssistantId))
       )
     } catch {
       return null
     }
   }
 
-  save(assistantId: string, state: ClawXpertWorkbenchLayoutState): boolean {
+  save(userId: string, assistantId: string, state: ClawXpertWorkbenchLayoutState): boolean {
+    const normalizedUserId = userId.trim()
     const normalizedAssistantId = assistantId.trim()
     const storage = this.getStorage()
-    if (!normalizedAssistantId || !storage) {
+    if (!normalizedUserId || !normalizedAssistantId || !storage) {
       return false
     }
 
     try {
-      storage.setItem(getClawXpertWorkbenchLayoutStorageKey(normalizedAssistantId), state)
+      storage.setItem(getClawXpertWorkbenchLayoutStorageKey(normalizedUserId, normalizedAssistantId), state)
       return true
     } catch {
       return false

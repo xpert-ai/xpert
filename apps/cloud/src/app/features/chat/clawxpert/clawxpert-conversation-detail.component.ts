@@ -5,7 +5,7 @@ import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
-import { ASSISTANT_CITATION_OPEN_EVENT } from '@xpert-ai/contracts'
+import { ASSISTANT_CITATION_OPEN_EVENT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type {
   IconDefinition,
   I18nObject,
@@ -754,9 +754,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #fixedViewsHostId: string | null = null
   #markReadRequestVersion = 0
   #chatkitResizeCleanup: (() => void) | null = null
-  #activeWorkbenchLayoutAssistantId: string | null = null
-  #initializedWorkbenchLayoutAssistantId: string | null = null
-  #pendingWorkbenchLayoutRestore: { assistantId: string | null; state: ClawXpertWorkbenchLayoutState } | null = null
+  #activeWorkbenchLayoutPreferenceKey: string | null = null
+  #initializedWorkbenchLayoutPreferenceKey: string | null = null
+  #pendingWorkbenchLayoutRestore: { preferenceKey: string; state: ClawXpertWorkbenchLayoutState } | null = null
   #lastNonFixedTabId: string | null = null
   #activeChatkitControl: ChatKitControl | null = null
   #lastSyncedRoutedThreadId: string | null = null
@@ -1009,35 +1009,42 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     effect(() => {
       const assistantId = this.#workbenchLayoutAssistantId()
+      const userId = this.facade.userId()?.trim() || null
       const viewState = this.facade.viewState()
+      const configuredInitialLayout = this.facade.initialLayout()
       const currentState = this.#workbenchLayoutState()
+      const preferenceKey = assistantId ? JSON.stringify([userId, assistantId]) : null
 
-      if (assistantId !== this.#activeWorkbenchLayoutAssistantId) {
-        this.#activeWorkbenchLayoutAssistantId = assistantId
-        this.#initializedWorkbenchLayoutAssistantId = null
+      if (preferenceKey !== this.#activeWorkbenchLayoutPreferenceKey) {
+        this.#activeWorkbenchLayoutPreferenceKey = preferenceKey
+        this.#initializedWorkbenchLayoutPreferenceKey = null
         this.#pendingWorkbenchLayoutRestore = null
       }
 
-      if (!assistantId || viewState !== 'ready') {
+      if (!assistantId || !preferenceKey || viewState !== 'ready') {
         return
       }
 
-      if (assistantId !== this.#initializedWorkbenchLayoutAssistantId) {
-        this.#initializedWorkbenchLayoutAssistantId = assistantId
-        const nextState: ClawXpertWorkbenchLayoutState = 'minimized'
-        this.#pendingWorkbenchLayoutRestore = { assistantId, state: nextState }
+      if (preferenceKey !== this.#initializedWorkbenchLayoutPreferenceKey) {
+        this.#initializedWorkbenchLayoutPreferenceKey = preferenceKey
+        const restoredState = userId ? this.#workbenchLayoutStorage.load(userId, assistantId) : null
+        const configuredState = toConfiguredWorkbenchLayoutState(configuredInitialLayout)
+        const nextState = restoredState ?? configuredState ?? 'minimized'
+        this.#pendingWorkbenchLayoutRestore = { preferenceKey, state: nextState }
         this.applyWorkbenchLayoutState(nextState)
         return
       }
 
       const pendingRestore = this.#pendingWorkbenchLayoutRestore
-      if (pendingRestore?.assistantId === assistantId && pendingRestore.state === currentState) {
+      if (pendingRestore?.preferenceKey === preferenceKey && pendingRestore.state === currentState) {
         this.#pendingWorkbenchLayoutRestore = null
         return
       }
 
       this.#pendingWorkbenchLayoutRestore = null
-      this.#workbenchLayoutStorage.save(assistantId, currentState)
+      if (userId) {
+        this.#workbenchLayoutStorage.save(userId, assistantId, currentState)
+      }
     })
 
     effect(() => {
@@ -1503,7 +1510,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: urlMode === 'replace' })
       }
     }
-    this.openDetailPanel()
+    if (urlMode !== 'none') {
+      this.openDetailPanel()
+    }
   }
 
   private findLastNonFixedTab() {
@@ -1935,14 +1944,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     if (requestedTab) {
       this.activeTabId.set(requestedTab.id)
+    } else if (!activeTabId) {
+      const initialTab =
+        nextNonFixedTabs[0] ?? findFixedViewTab(nextFixedTabs, this.facade.defaultViewKey()) ?? nextFixedTabs[0]
+      this.activeTabId.set(initialTab?.id ?? '')
     } else if (activeTabId && !nextTabs.some((tab) => tab.id === activeTabId)) {
       const selectedTab = nextNonFixedTabs[0] ?? nextTabs[0]
       this.activeTabId.set(selectedTab?.id ?? '')
     }
 
-    if (requestedTab) {
-      this.openDetailPanel()
-    } else if (nextFixedTabs.length === 0 && requestedViewKey) {
+    if (nextFixedTabs.length === 0 && requestedViewKey) {
       void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: true })
     }
   }
@@ -2283,6 +2294,21 @@ function resolveConversationId(metadata?: { id?: string }) {
 
 function clampChatkitWidth(width: number) {
   return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
+}
+
+function toConfiguredWorkbenchLayoutState(
+  layout: XpertWorkbenchInitialLayoutEnum | null
+): ClawXpertWorkbenchLayoutState | null {
+  if (layout === null || layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
+    return 'normal'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
+    return 'minimized'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized) {
+    return 'maximized'
+  }
+  return null
 }
 
 function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {

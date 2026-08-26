@@ -131,6 +131,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
   })
+  readonly userId = signal(this.#store.userId ?? null)
   readonly currentUrl = toSignal(
     this.#router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
