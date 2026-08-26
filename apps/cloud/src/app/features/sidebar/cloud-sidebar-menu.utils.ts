@@ -165,7 +165,7 @@ export function addWorkspaceMoreMenuItem(groups: CloudSidebarMenuGroup[], worksp
       translationKey: 'More'
     },
     children: [
-      createWorkspaceChild('我的文件', 'My files', 'ri-folder-line', 'files', normalizedWorkspaceId),
+      createWorkspaceChild('资源库', 'Library', 'ri-book-open-line', 'files', normalizedWorkspaceId),
       createWorkspaceChild('我的知识库', 'My knowledgebases', 'ri-book-2-line', 'knowledges', normalizedWorkspaceId),
       createWorkspaceChild('工作区设置', 'Workspace settings', 'ri-equalizer-line', 'settings', normalizedWorkspaceId)
     ]

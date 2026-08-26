@@ -1209,9 +1209,12 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "WorkspaceFiles": {
-      "Title": "My files",
-      "Description": "Browse and manage files in the Claw Xpert workspace independently of the current task or conversation.",
+      "Title": "Resource library",
+      "Description": "Browse, manage, and edit resources in the Claw Xpert workspace.",
       "RootLabel": "Claw Xpert workspace files",
+      "WorkspaceFiles": "Workspace files",
+      "SearchPlaceholder": "Search workspace files",
+      "ClearSearch": "Clear search",
       "Unavailable": "Configure Claw Xpert first."
     },
     "WorkspaceKnowledge": {
@@ -1277,7 +1280,8 @@
       "Skills": "Skills",
       "Connectors": "Connectors",
       "More": "More",
-      "My files": "My files",
+      "My files": "Resource library",
+      "Library": "Resource library",
       "My knowledgebases": "My knowledgebases",
       "Workspace settings": "Workspace settings",
       "Business Area": "Business Area",

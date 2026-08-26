@@ -67,7 +67,7 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     const preventDefault = jest.spyOn(event, 'preventDefault')
 
     component.onChildClick(event, {
-      title: '我的文件',
+      title: '资源库',
       data: { workspaceSection: 'files' }
     } as CloudMenuItem)
     await Promise.resolve()

@@ -8,6 +8,10 @@
   @apply relative flex h-full flex-col overflow-hidden;
 }
 
+:host([data-surface='plain']) .xp-file-pane {
+  @apply bg-components-panel-bg;
+}
+
 .xp-pane-header {
   @apply flex items-start justify-between gap-3;
   container-type: inline-size;

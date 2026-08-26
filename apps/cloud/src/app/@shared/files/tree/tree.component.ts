@@ -6,6 +6,7 @@ import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.compon
 import { FileTreeNode, flattenFileTree } from './tree.utils'
 
 export type FileTreeUploadKind = 'file' | 'folder'
+export type FileTreeSurface = 'card' | 'plain'
 
 @Component({
   standalone: true,
@@ -15,12 +16,14 @@ export type FileTreeUploadKind = 'file' | 'folder'
   imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardLoaderComponent, ...ZardTooltipImports],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '[attr.data-size]': 'zSize()'
+    '[attr.data-size]': 'zSize()',
+    '[attr.data-surface]': 'surface()'
   }
 })
 export class FileTreeComponent {
   cx = cx
   readonly zSize = input<FileTreeSizeVariants>('default')
+  readonly surface = input<FileTreeSurface>('card')
   readonly title = input<string>('File Tree')
   readonly subtitle = input<string | null>(null)
   readonly hasContext = input(false)
