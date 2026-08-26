@@ -380,7 +380,7 @@ describe('FindCopilotModelsHandler', () => {
         })
     })
 
-    it('loads only models from the current organization scope for membership management', async () => {
+    it('loads only current-organization models matching the configured model type for membership management', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         const service = {
@@ -397,8 +397,24 @@ describe('FindCopilotModelsHandler', () => {
                 {
                     id: 'copilot-organization',
                     organizationId: 'org-1',
+                    copilotModel: {
+                        model: 'paid-model',
+                        modelType: AiModelTypeEnum.LLM
+                    },
                     modelProvider: {
                         id: 'provider-organization',
+                        providerName: 'openai-compatible'
+                    }
+                },
+                {
+                    id: 'copilot-embedding',
+                    organizationId: 'org-1',
+                    copilotModel: {
+                        model: 'embedding-model',
+                        modelType: AiModelTypeEnum.TEXT_EMBEDDING
+                    },
+                    modelProvider: {
+                        id: 'provider-embedding',
                         providerName: 'openai-compatible'
                     }
                 }
