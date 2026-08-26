@@ -1,22 +1,13 @@
 <div class="workspace-files-page">
-  <header class="workspace-files-page__header">
-    <div class="workspace-files-page__icon"><i class="ri-folder-line"></i></div>
-    <div class="min-w-0">
-      <h1>{{ 'XP.WorkspaceFiles.Title' | translate: { Default: '我的文件' } }}</h1>
-      <p>
-        {{
-          'XP.WorkspaceFiles.Description'
-            | translate: { Default: '浏览和管理 Claw Xpert 工作区中的文件，不依赖当前任务或对话。' }
-        }}
-      </p>
-    </div>
-  </header>
-
   @if (xpertId()) {
     <xp-file-workbench
       class="workspace-files-page__workbench"
+      layout="library"
       [rootId]="xpertId()"
-      [rootLabel]="'XP.WorkspaceFiles.RootLabel' | translate: { Default: 'Claw Xpert 工作区文件' }"
+      [navigationTitle]="'XP.WorkspaceFiles.Title' | translate: { Default: 'Resource library' }"
+      [treeTitle]="'XP.WorkspaceFiles.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
+      [searchPlaceholder]="'XP.WorkspaceFiles.SearchPlaceholder' | translate: { Default: 'Search workspace files' }"
+      [rootLabel]="'XP.WorkspaceFiles.RootLabel' | translate: { Default: 'Claw Xpert workspace files' }"
       [filesLoader]="loadFiles"
       [fileLoader]="loadFile"
       [fileSaver]="saveFile"
@@ -27,7 +18,7 @@
   } @else {
     <div class="workspace-files-page__empty">
       <i class="ri-folder-open-line"></i>
-      <div>{{ 'XP.WorkspaceFiles.Unavailable' | translate: { Default: '请先配置 Claw Xpert。' } }}</div>
+      <div>{{ 'XP.WorkspaceFiles.Unavailable' | translate: { Default: 'Configure Claw Xpert first.' } }}</div>
     </div>
   }
 </div>

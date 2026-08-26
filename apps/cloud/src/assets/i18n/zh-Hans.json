@@ -1285,6 +1285,9 @@
       "RefreshFile": "刷新",
       "UnsavedChanges": "未保存更改",
       "Discard": "放弃",
+      "MarkdownPlaceholder": "开始编写内容...",
+      "LoadingMarkdownEditor": "正在加载 Markdown 编辑器...",
+      "MarkdownEditorLoadFailed": "Markdown 编辑器加载失败。",
       "Upload": "上传",
       "Download": "下载",
       "Delete": "删除",
@@ -2677,9 +2680,12 @@
       }
     },
     "WorkspaceFiles": {
-      "Title": "我的文件",
-      "Description": "浏览和管理 Claw Xpert 工作区中的文件，不依赖当前任务或对话。",
+      "Title": "资源库",
+      "Description": "浏览、管理和编辑 Claw Xpert 工作区中的资源。",
       "RootLabel": "Claw Xpert 工作区文件",
+      "WorkspaceFiles": "工作区文件",
+      "SearchPlaceholder": "搜索工作区文件",
+      "ClearSearch": "清除搜索",
       "Unavailable": "请先配置 Claw Xpert。"
     },
     "WorkspaceKnowledge": {
@@ -2744,7 +2750,8 @@
       "Skills": "技能",
       "Connectors": "连接器",
       "More": "更多",
-      "My files": "我的文件",
+      "My files": "资源库",
+      "Library": "资源库",
       "My knowledgebases": "我的知识库",
       "Workspace settings": "工作区设置",
       "ReferralRelationships": "邀请关系",

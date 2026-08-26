@@ -197,7 +197,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       'More'
     ])
     expect(more?.children).toMatchObject([
-      { title: '我的文件', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
+      { title: '资源库', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
       { title: '我的知识库', link: '/xpert/w/workspace%2F1/knowledges', data: { workspaceSection: 'knowledges' } },
       { title: '工作区设置', link: '/xpert/w/workspace%2F1/settings', data: { workspaceSection: 'settings' } }
     ])
