@@ -1,4 +1,4 @@
-import { ActorTokenModule, TenantModule } from '@xpert-ai/server-core'
+import { ActorTokenModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { BullModule } from '@nestjs/bull'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -32,6 +32,7 @@ import { XpertModule } from '../xpert/xpert.module'
             ScheduledTaskExecution
         ]),
         TenantModule,
+        RedisModule,
         ActorTokenModule,
         CqrsModule,
         forwardRef(() => XpertAgentModule),

@@ -1,4 +1,11 @@
-import { Feature, FeatureOrganization, FeatureModule, IntegrationModule, TenantModule } from '@xpert-ai/server-core'
+import {
+    Feature,
+    FeatureOrganization,
+    FeatureModule,
+    IntegrationModule,
+    RedisModule,
+    TenantModule
+} from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -59,6 +66,7 @@ import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
             FeatureOrganization
         ]),
         TenantModule,
+        RedisModule,
         FeatureModule,
         CqrsModule,
         IntegrationModule,

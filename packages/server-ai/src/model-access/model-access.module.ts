@@ -1,4 +1,4 @@
-import { FeatureOrganization, Organization, User } from '@xpert-ai/server-core'
+import { FeatureOrganization, Organization, RedisModule, User } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
@@ -30,6 +30,7 @@ import { ModelGatewayPublication } from '../model-gateway/model-gateway-publicat
             FeatureOrganization
         ]),
         CqrsModule,
+        RedisModule,
         AIModelModule,
         MembershipModule
     ],
