@@ -24,7 +24,7 @@ import {
   TMembershipPlanReassignInput,
   TMembershipPointAdjustInput
 } from '@xpert-ai/contracts'
-import { BehaviorSubject, catchError, combineLatest, map, of, switchMap, tap } from 'rxjs'
+import { BehaviorSubject, catchError, combineLatest, forkJoin, map, of, switchMap, tap } from 'rxjs'
 import { API_COPILOT, API_MEMBERSHIP } from '../constants/app.constants'
 import { CopilotServerService } from './copilot-server.service'
 
@@ -44,9 +44,13 @@ export class MembershipService {
   }
 
   getModelOptions() {
-    return this.#http.get<ICopilotWithProvider[]>(`${API_COPILOT}/membership-models`, {
-      params: { type: AiModelTypeEnum.LLM }
-    })
+    return forkJoin(
+      Object.values(AiModelTypeEnum).map((type) =>
+        this.#http.get<ICopilotWithProvider[]>(`${API_COPILOT}/membership-models`, {
+          params: { type }
+        })
+      )
+    ).pipe(map((modelsByType) => modelsByType.flat()))
   }
 
   initializeScope() {

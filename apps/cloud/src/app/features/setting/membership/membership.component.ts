@@ -4,6 +4,7 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { RouterLink } from '@angular/router'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import {
+  AiProviderRole,
   ICopilotWithProvider,
   IMembershipAdminUser,
   IMembershipAllowedModel,
@@ -51,6 +52,12 @@ type MembershipModelOption = {
 type MembershipAdminTab = 'plans' | 'users'
 
 const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'day', 'week', 'cycle']
+const COPILOT_ROLE_NAMES: Record<AiProviderRole, string> = {
+  [AiProviderRole.Primary]: 'Primary',
+  [AiProviderRole.Secondary]: 'Secondary',
+  [AiProviderRole.Embedding]: 'Embedding',
+  [AiProviderRole.Reasoning]: 'Reasoning'
+}
 
 @Component({
   standalone: true,
@@ -809,8 +816,8 @@ export class MembershipAdminComponent implements OnInit {
     } else {
       label = `${option.provider} · ${option.model}`
     }
-    if (option.copilotId) {
-      label = `${label} · ${option.copilotLabel || option.copilotId}`
+    if (option.copilotLabel) {
+      label = `${option.copilotLabel} · ${label}`
     }
     return option.available
       ? label
@@ -916,7 +923,7 @@ export class MembershipAdminComponent implements OnInit {
       if (!provider || !copilotId) {
         continue
       }
-      const copilotLabel = copilot.name?.trim() || copilotId
+      const copilotLabel = this.copilotProviderLabel(copilot)
       addAllowedModelOption(options, provider, '*', copilotId, copilotLabel, true)
       for (const model of copilot.providerWithModels.models ?? []) {
         const modelName = model.model?.trim()
@@ -926,6 +933,18 @@ export class MembershipAdminComponent implements OnInit {
       }
     }
     return sortModelOptions(Array.from(options.values()))
+  }
+
+  private copilotProviderLabel(copilot: ICopilotWithProvider) {
+    const name = copilot.name?.trim()
+    if (name) {
+      return name
+    }
+
+    const roleName = COPILOT_ROLE_NAMES[copilot.role]
+    const roleLabel = this.#translate.instant(`XP.KEY_WORDS.${roleName}`, { Default: roleName })
+    const providerLabel = this.#translate.instant('XP.KEY_WORDS.Provider', { Default: 'Provider' })
+    return `${roleLabel} ${providerLabel}`
   }
 
   private includeStoredModelOptions() {
