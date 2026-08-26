@@ -1,8 +1,10 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import type { ToolSchemaBase } from '@langchain/core/tools'
 import type { RunnableConfig } from '@langchain/core/runnables'
+import { interrupt } from '@langchain/langgraph'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
+import type { HITLRequest, HITLResponse } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import {
     MCP_CLIENT_CAPABILITIES_META_KEY,
@@ -12,10 +14,25 @@ import {
 import { McpConsumerTaskStart, mcpTaskStartResultSchema } from '../tasks/task-schemas'
 import type {
     McpConsumerElicitationHandler,
-    McpConsumerElicitationRequest
+    McpConsumerElicitationRequest,
+    McpConsumerElicitationResult
 } from '../elicitation/mcp-consumer-elicitation'
 import { McpConsumerCallToolResult, mcpConsumerCallToolResultSchema } from './mcp-consumer-call-tool-result'
 import { createMcpToolAppMeta, type McpToolLike } from '../../xpert-toolset/provider/mcp/app-support'
+
+// Release bridge until xpert-pro consumes the ChatKit package with this additive metadata contract.
+type MCPBooleanElicitationHITLRequest = HITLRequest & {
+    elicitation: {
+        kind: 'mcp_elicitation'
+        actionName: string
+        field: {
+            name: string
+            type: 'boolean'
+            title?: string
+            required: true
+        }
+    }
+}
 
 export class McpConsumerTools {
     private taskRunner?: (
@@ -309,14 +326,14 @@ function isTextBlock(value: unknown): value is { type: 'text'; text: string } {
 function elicitationHandlerFromConfig(config?: RunnableConfig): McpConsumerElicitationHandler | undefined {
     const executionContext = config?.configurable?.toolExecutionContext
     if (typeof executionContext !== 'object' || executionContext === null || Array.isArray(executionContext)) {
-        return undefined
+        return approvalInterruptHandler
     }
     const host = Reflect.get(executionContext, 'host')
-    if (typeof host !== 'object' || host === null || Array.isArray(host)) return undefined
+    if (typeof host !== 'object' || host === null || Array.isArray(host)) return approvalInterruptHandler
     const input = Reflect.get(host, 'input')
-    if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) return approvalInterruptHandler
     const requestInput = Reflect.get(input, 'request')
-    if (typeof requestInput !== 'function') return undefined
+    if (typeof requestInput !== 'function') return approvalInterruptHandler
 
     return async (request) => {
         const response = await Reflect.apply(requestInput, input, [toToolInputRequest(request)])
@@ -326,6 +343,77 @@ function elicitationHandlerFromConfig(config?: RunnableConfig): McpConsumerElici
         }
         return { action: 'accept', content: Object.fromEntries(Object.entries(response)) }
     }
+}
+
+async function approvalInterruptHandler(request: McpConsumerElicitationRequest): Promise<McpConsumerElicitationResult> {
+    const field = approvalBooleanField(request)
+    if (!field) {
+        throw new Error('ChatKit MCP Elicitation currently supports one required boolean approval field')
+    }
+    const actionName = 'MCP Elicitation'
+    const hitlRequest: MCPBooleanElicitationHITLRequest = {
+        elicitation: {
+            kind: 'mcp_elicitation',
+            actionName,
+            field: {
+                name: field.name,
+                type: 'boolean',
+                ...(field.title ? { title: field.title } : {}),
+                required: true
+            }
+        },
+        actionRequests: [
+            {
+                name: actionName,
+                args: { [field.name]: false },
+                description: request.message
+            }
+        ],
+        reviewConfigs: [
+            {
+                actionName,
+                allowedDecisions: ['approve', 'reject'],
+                argsSchema: field.schema
+            }
+        ]
+    }
+    const response = interrupt(hitlRequest) as HITLResponse
+    const decision = response.decisions?.[0]
+    if (decision?.type === 'approve') {
+        return { action: 'accept', content: { [field.name]: true } }
+    }
+    if (decision?.type === 'reject') {
+        return { action: 'accept', content: { [field.name]: false } }
+    }
+    throw new Error('ChatKit MCP Elicitation returned an unsupported approval decision')
+}
+
+function approvalBooleanField(
+    request: McpConsumerElicitationRequest
+): { name: string; title?: string; schema: Record<string, unknown> } | null {
+    if (request.mode === 'url') return null
+    const properties = Reflect.get(request.requestedSchema, 'properties')
+    const required = Reflect.get(request.requestedSchema, 'required')
+    if (
+        typeof properties !== 'object' ||
+        properties === null ||
+        Array.isArray(properties) ||
+        !Array.isArray(required)
+    ) {
+        return null
+    }
+    const names = Object.keys(properties)
+    if (names.length !== 1 || required.length !== 1 || required[0] !== names[0]) return null
+    const property = Reflect.get(properties, names[0])
+    if (typeof property !== 'object' || property === null || Array.isArray(property)) return null
+    const title = Reflect.get(property, 'title')
+    return Reflect.get(property, 'type') === 'boolean'
+        ? {
+              name: names[0],
+              ...(typeof title === 'string' && title.trim() ? { title: title.trim() } : {}),
+              schema: Object.fromEntries(Object.entries(request.requestedSchema))
+          }
+        : null
 }
 
 function toToolInputRequest(request: McpConsumerElicitationRequest) {

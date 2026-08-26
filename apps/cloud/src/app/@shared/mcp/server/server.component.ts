@@ -152,7 +152,7 @@ export class MCPServerFormComponent {
       workspaceId: this.workspaceId(),
       category: XpertToolsetCategoryEnum.MCP,
       type: this.types()[0],
-      id: this.#tempId(),
+      id: this.toolsetId() ?? this.#tempId(),
       schema: JSON.stringify({
         mcpServers: {
           '': {

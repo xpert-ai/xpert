@@ -718,11 +718,10 @@ async function listClientTools(
 }
 
 export async function listMcpToolAppMetadata(client: MultiServerMCPClient): Promise<TMcpToolAppMeta[]> {
-    const config = client.config
-    const serverNames = Object.keys(config.mcpServers ?? {})
+    const connection = new LangChainMcpConnection(client)
+    const serverNames = connection.serverNames()
     const loadOptions = (client as unknown as McpClientPrivateState)._loadToolsOptions ?? {}
     const metadata: TMcpToolAppMeta[] = []
-    const connection = new LangChainMcpConnection(client)
 
     for (const serverName of serverNames) {
         for (const tool of await listClientTools(client, connection, serverName)) {

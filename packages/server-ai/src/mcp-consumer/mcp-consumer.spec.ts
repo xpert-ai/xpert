@@ -2,6 +2,13 @@ import type { DynamicStructuredTool } from '@langchain/core/tools'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { MCP_APP_RESOURCE_MIME_TYPE } from '@xpert-ai/contracts'
 import { z } from 'zod'
+
+const mockInterrupt = jest.fn()
+
+jest.mock('@langchain/langgraph', () => ({
+    ...jest.requireActual('@langchain/langgraph'),
+    interrupt: (value: unknown) => mockInterrupt(value)
+}))
 import {
     McpConsumerConnection,
     McpConsumerExtensionRequest,
@@ -440,6 +447,68 @@ describe('McpConsumer', () => {
                 inputResponses: {
                     details: { action: 'accept', content: { topic: 'MCP' } }
                 }
+            })
+        )
+    })
+
+    it('maps a boolean approval elicitation to the ChatKit HITL interrupt when no host input API exists', async () => {
+        const connection = new FakeConnection(createSdkClient(), ['generic'], true)
+        connection.extensionResponses.push(
+            { resultType: 'complete', tools: [{ name: 'approve_action', inputSchema: { type: 'object' } }] },
+            {
+                resultType: 'input_required',
+                inputRequests: {
+                    approval: {
+                        method: 'elicitation/create',
+                        params: {
+                            mode: 'form',
+                            message: 'Approve OAuth MCP tool test',
+                            requestedSchema: {
+                                type: 'object',
+                                properties: { approved: { type: 'boolean', title: 'Approve' } },
+                                required: ['approved']
+                            }
+                        }
+                    }
+                },
+                requestState: 'state-1'
+            },
+            { resultType: 'complete', content: [{ type: 'text', text: 'accepted false' }] }
+        )
+        mockInterrupt.mockReturnValue({ decisions: [{ type: 'reject', message: 'No write' }] })
+        const [tool] = await new McpConsumer(connection).tools.asLangChain()
+
+        await expect(tool.func({})).resolves.toEqual(['accepted false', []])
+        expect(mockInterrupt).toHaveBeenCalledWith({
+            elicitation: {
+                kind: 'mcp_elicitation',
+                actionName: 'MCP Elicitation',
+                field: {
+                    name: 'approved',
+                    type: 'boolean',
+                    title: 'Approve',
+                    required: true
+                }
+            },
+            actionRequests: [
+                {
+                    name: 'MCP Elicitation',
+                    args: { approved: false },
+                    description: 'Approve OAuth MCP tool test'
+                }
+            ],
+            reviewConfigs: [
+                {
+                    actionName: 'MCP Elicitation',
+                    allowedDecisions: ['approve', 'reject'],
+                    argsSchema: expect.objectContaining({ type: 'object' })
+                }
+            ]
+        })
+        expect(connection.extensionCalls[2].request.params).toEqual(
+            expect.objectContaining({
+                requestState: 'state-1',
+                inputResponses: { approval: { action: 'accept', content: { approved: false } } }
             })
         )
     })

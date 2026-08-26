@@ -507,4 +507,29 @@ describe('MCP App instance lifecycle', () => {
         ])
         detachMcpAppInstancesForClient(client)
     })
+
+    it('lists app metadata without cloning a stateful OAuth provider', async () => {
+        const authProvider = {}
+        Reflect.set(authProvider, 'manager', authProvider)
+        const runtimeConfig = {
+            mcpServers: {
+                default: {
+                    transport: 'http',
+                    url: 'https://mcp.example.test/rpc',
+                    authProvider
+                }
+            }
+        }
+        const client = {
+            _config: runtimeConfig,
+            get config() {
+                return JSON.parse(JSON.stringify(runtimeConfig))
+            },
+            getClient: jest.fn().mockResolvedValue({
+                listTools: jest.fn().mockResolvedValue({ tools: [] })
+            })
+        } as unknown as MultiServerMCPClient
+
+        await expect(listMcpToolAppMetadata(client)).resolves.toEqual([])
+    })
 })
