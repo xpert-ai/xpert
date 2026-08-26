@@ -1,10 +1,87 @@
-@reference "../../../../styles/tailwind-reference.css";
-
 :host {
-  @apply h-full grid min-h-0 gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)];
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  gap: 1rem;
+}
+
+.xp-file-workbench__navigation {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.xp-file-workbench__library-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--sys-border);
+  padding: 1.25rem 1rem 1rem;
+}
+
+.xp-file-workbench__search {
+  display: flex;
+  height: 2.25rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--sys-border);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--sys-surface-overlay);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.xp-file-workbench__search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+@media (max-width: 639px) {
+  :host {
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .xp-file-workbench__navigation.hidden,
+  xp-file-viewer.hidden {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  :host(.xp-file-workbench--library) {
+    gap: 0;
+    grid-template-columns: minmax(250px, 296px) minmax(0, 1fr);
+  }
+
+  :host(.xp-file-workbench--library.xp-file-workbench--tree-hidden) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :host(.xp-file-workbench--library.xp-file-workbench--tree-hidden) .xp-file-workbench__navigation {
+    display: none;
+  }
+
+  :host(.xp-file-workbench--library:not(.xp-file-workbench--tree-hidden)) .xp-file-workbench__navigation {
+    display: flex;
+  }
+
+  :host(.xp-file-workbench--library) xp-file-viewer.hidden {
+    display: block;
+  }
+
+  :host(.xp-file-workbench--library) .xp-file-workbench__navigation {
+    border-right: 1px solid var(--sys-border);
+    background: var(--color-background-default-subtle);
+  }
 }
 
 @media (min-width: 1024px) {
+  :host {
+    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  }
+
   :host(.xp-file-workbench--tree-hidden) {
     grid-template-columns: minmax(0, 1fr);
   }

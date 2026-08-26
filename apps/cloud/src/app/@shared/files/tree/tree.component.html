@@ -27,7 +27,7 @@
               [zTooltip]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
               zPosition="top"
               [attr.aria-label]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
-              [disabled]="uploadDisabled() || uploading()"
+              [zDisabled]="uploadDisabled() || uploading()"
               (click)="onUploadClick('file')"
             >
               <i class="ri-upload-2-line"></i>
@@ -43,7 +43,7 @@
               [zTooltip]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
               zPosition="top"
               [attr.aria-label]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
-              [disabled]="uploadDisabled() || uploading()"
+              [zDisabled]="uploadDisabled() || uploading()"
               (click)="onUploadClick('folder')"
             >
               <i class="ri-folder-upload-line"></i>

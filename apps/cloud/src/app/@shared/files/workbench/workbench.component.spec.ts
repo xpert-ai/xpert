@@ -43,9 +43,23 @@ jest.mock('../../../@core', () => ({
   injectToastr: () => mockToastr
 }))
 
-jest.mock('@xpert-ai/headless-ui', () => ({
-  injectConfirmDelete: () => (_config: unknown, action: () => ReturnType<typeof of>) => action()
-}))
+jest.mock('@xpert-ai/headless-ui', () => {
+  const { Directive, Input } = jest.requireActual('@angular/core')
+
+  @Directive({
+    standalone: true,
+    selector: '[z-button]'
+  })
+  class ZardButtonComponent {
+    @Input() zType?: string
+    @Input() zSize?: string
+  }
+
+  return {
+    injectConfirmDelete: () => (_config: unknown, action: () => ReturnType<typeof of>) => action(),
+    ZardButtonComponent
+  }
+})
 
 var MockFileTreeComponent: any
 jest.mock('../tree/tree.component', () => {
@@ -56,6 +70,7 @@ jest.mock('../tree/tree.component', () => {
   })
   class MockFileTreeComponentImpl {
     @Input() zSize?: 'sm' | 'default' | 'lg'
+    @Input() surface?: 'card' | 'plain'
     @Input() title?: string
     @Input() subtitle?: string | null
     @Input() hasContext?: boolean
@@ -97,6 +112,7 @@ jest.mock('../viewer/viewer.component', () => {
     template: ''
   })
   class MockFileViewerComponentImpl {
+    @Input() surface?: 'card' | 'plain'
     @Input() file?: TFile | null
     @Input() filePath?: string | null
     @Input() content?: string
@@ -105,6 +121,9 @@ jest.mock('../viewer/viewer.component', () => {
     @Input() readable?: boolean
     @Input() editable?: boolean
     @Input() markdown?: boolean
+    @Input() docx?: boolean
+    @Input() documentBuffer?: ArrayBuffer | null
+    @Input() spreadsheet?: boolean
     @Input() dirty?: boolean
     @Input() downloadable?: boolean
     @Input() referenceable?: boolean
@@ -117,6 +136,10 @@ jest.mock('../viewer/viewer.component', () => {
     @Input() unsupportedPreviewHint?: string
     @Output() readonly modeChange = new EventEmitter<'view' | 'edit'>()
     @Output() readonly contentChange = new EventEmitter<string>()
+    @Output() readonly documentDirtyChange = new EventEmitter<boolean>()
+    @Output() readonly documentSave = new EventEmitter<File>()
+    @Output() readonly documentError = new EventEmitter<Error>()
+    @Output() readonly spreadsheetDirtyChange = new EventEmitter<boolean>()
     @Output() readonly discard = new EventEmitter<void>()
     @Output() readonly save = new EventEmitter<void>()
     @Output() readonly refresh = new EventEmitter<void>()
@@ -126,6 +149,37 @@ jest.mock('../viewer/viewer.component', () => {
     @Output() readonly referenceElement = new EventEmitter()
     @Output() readonly referenceSelection = new EventEmitter<FileEditorSelection>()
     @Output() readonly sideMenuToggle = new EventEmitter<void>()
+
+    exportSpreadsheetFile() {
+      return Promise.resolve(
+        new File(['updated workbook'], this.filePath?.split('/').pop() || 'workbook.xlsx', {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+      )
+    }
+
+    reloadSpreadsheet() {
+      return Promise.resolve()
+    }
+
+    markSpreadsheetSaved() {
+      return undefined
+    }
+
+    exportDocxFile() {
+      const file = new File(['updated document'], this.filePath?.split('/').pop() || 'document.docx', {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      })
+      Object.defineProperty(file, 'arrayBuffer', {
+        configurable: true,
+        value: () => Promise.resolve(new ArrayBuffer(16))
+      })
+      return Promise.resolve(file)
+    }
+
+    reloadDocx() {
+      return undefined
+    }
   }
 
   MockFileViewerComponent = MockFileViewerComponentImpl
@@ -251,9 +305,33 @@ async function setup(options?: {
 }
 
 describe('FileWorkbenchComponent', () => {
+  const originalCreateObjectURL = URL.createObjectURL
+  const originalRevokeObjectURL = URL.revokeObjectURL
+
+  beforeEach(() => {
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: jest.fn(() => 'blob:spreadsheet-preview')
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: jest.fn()
+    })
+  })
+
   afterEach(() => {
     TestBed.resetTestingModule()
     jest.clearAllMocks()
+    if (originalCreateObjectURL) {
+      Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
+    } else {
+      Reflect.deleteProperty(URL, 'createObjectURL')
+    }
+    if (originalRevokeObjectURL) {
+      Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectURL })
+    } else {
+      Reflect.deleteProperty(URL, 'revokeObjectURL')
+    }
   })
 
   it('loads the root tree and defaults to SKILL.md', async () => {
@@ -280,6 +358,21 @@ describe('FileWorkbenchComponent', () => {
     expect(
       (component.fileTree().find((item) => item.fullPath === 'docs')?.children as FileTreeNode[])?.[0]?.fullPath
     ).toBe('docs/guide.md')
+  })
+
+  it('filters loaded workspace files by path in library search', async () => {
+    const { component } = await setup()
+    const docsNode = component.fileTree().find((item) => item.fullPath === 'docs')
+    if (!docsNode) {
+      throw new Error('Expected docs node to be present')
+    }
+
+    await component.toggleDirectory(docsNode)
+    component.treeSearchQuery.set('guide')
+
+    expect(component.visibleFileTree()).toHaveLength(1)
+    expect(component.visibleFileTree()[0]?.fullPath).toBe('docs')
+    expect((component.visibleFileTree()[0]?.children as FileTreeNode[])?.[0]?.fullPath).toBe('docs/guide.md')
   })
 
   it('downloads folder nodes through the configured downloader', async () => {
@@ -327,6 +420,116 @@ describe('FileWorkbenchComponent', () => {
     expect(toastr.success).toHaveBeenCalled()
   })
 
+  it('opens spreadsheets in Univer edit mode and saves them through binary upload', async () => {
+    const fileDownloader = jest.fn(() =>
+      of({
+        kind: 'blob',
+        blob: new Blob(['workbook'], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }),
+        fileName: 'budget.xlsx'
+      })
+    )
+    const { component, fixture, fileUploader } = await setup({
+      rootFiles: [
+        {
+          filePath: 'SKILL.md',
+          fullPath: 'SKILL.md',
+          fileType: 'md',
+          hasChildren: false
+        },
+        {
+          filePath: 'budget.xlsx',
+          fullPath: 'reports/budget.xlsx',
+          fileType: 'xlsx',
+          hasChildren: false
+        }
+      ],
+      fileContents: {
+        'SKILL.md': {
+          filePath: 'SKILL.md',
+          fileType: 'md',
+          contents: '# Skill\n'
+        },
+        'reports/budget.xlsx': {
+          filePath: 'reports/budget.xlsx',
+          fileType: 'xlsx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      },
+      fileDownloader
+    })
+    const spreadsheetNode = component.fileTree().find((item) => item.fullPath === 'reports/budget.xlsx')
+    expect(spreadsheetNode).toBeDefined()
+    if (!spreadsheetNode) {
+      throw new Error('Expected spreadsheet node')
+    }
+
+    await component.openFile(spreadsheetNode)
+    fixture.detectChanges()
+
+    expect(component.isSpreadsheetFile()).toBe(true)
+    expect(component.isActiveFileEditable()).toBe(true)
+    expect(component.panelMode()).toBe('edit')
+
+    component.spreadsheetDirty.set(true)
+    await component.saveActiveFile()
+
+    expect(fileUploader).toHaveBeenCalledWith(expect.objectContaining({ name: 'budget.xlsx' }), 'reports')
+    expect(component.dirty()).toBe(false)
+    expect(component.panelMode()).toBe('view')
+  })
+
+  it('opens DOCX files in direct edit mode and saves the editor output through binary upload', async () => {
+    const fileDownloader = jest.fn(() =>
+      of({
+        kind: 'blob',
+        blob: {
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(16))
+        } as unknown as Blob,
+        fileName: 'brief.docx'
+      })
+    )
+    const { component, fixture, fileUploader } = await setup({
+      rootFiles: [
+        {
+          filePath: 'brief.docx',
+          fullPath: 'docs/brief.docx',
+          fileType: 'docx',
+          hasChildren: false
+        }
+      ],
+      fileContents: {
+        'docs/brief.docx': {
+          filePath: 'docs/brief.docx',
+          fileType: 'docx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        }
+      },
+      fileDownloader
+    })
+    const docxNode = component.fileTree().find((item) => item.fullPath === 'docs/brief.docx')
+    expect(docxNode).toBeDefined()
+    if (!docxNode) {
+      throw new Error('Expected DOCX node')
+    }
+
+    await component.openFile(docxNode)
+    fixture.detectChanges()
+
+    expect(component.isDocxFile()).toBe(true)
+    expect(component.isActiveFileEditable()).toBe(true)
+    expect(component.panelMode()).toBe('edit')
+    expect(component.documentBuffer()).toBeInstanceOf(ArrayBuffer)
+
+    component.docxDirty.set(true)
+    await component.saveActiveFile()
+
+    expect(fileUploader).toHaveBeenCalledWith(expect.objectContaining({ name: 'brief.docx' }), 'docs')
+    expect(component.dirty()).toBe(false)
+    expect(component.panelMode()).toBe('view')
+  })
+
   it('uses root as the upload target until a tree item is selected', async () => {
     const { component } = await setup()
 
@@ -372,12 +575,12 @@ describe('FileWorkbenchComponent', () => {
 
   it('toggles the desktop file tree from the viewer header control', async () => {
     const { component, fixture } = await setup()
-    const tree = fixture.debugElement.query(By.directive(MockFileTreeComponent))
+    const navigation = fixture.debugElement.query(By.css('.xp-file-workbench__navigation'))
     const viewer = fixture.debugElement.query(By.directive(MockFileViewerComponent)).componentInstance as any
 
     expect(viewer.sideMenuToggleVisible).toBe(true)
     expect(viewer.sideMenuVisible).toBe(true)
-    expect(tree.nativeElement.classList.contains('lg:block')).toBe(true)
+    expect(navigation.nativeElement.classList.contains('lg:flex')).toBe(true)
     expect(fixture.nativeElement.classList.contains('xp-file-workbench--tree-hidden')).toBe(false)
 
     viewer.sideMenuToggle.emit()
@@ -385,7 +588,7 @@ describe('FileWorkbenchComponent', () => {
 
     expect(component.fileTreeVisible()).toBe(false)
     expect(viewer.sideMenuVisible).toBe(false)
-    expect(tree.nativeElement.classList.contains('lg:hidden')).toBe(true)
+    expect(navigation.nativeElement.classList.contains('lg:hidden')).toBe(true)
     expect(fixture.nativeElement.classList.contains('xp-file-workbench--tree-hidden')).toBe(true)
   })
 

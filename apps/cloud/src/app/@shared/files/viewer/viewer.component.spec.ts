@@ -138,6 +138,55 @@ jest.mock('../editor/editor.component', () => {
   }
 })
 
+jest.mock('../markdown-editor/markdown-editor.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'xp-markdown-editor',
+    template: ''
+  })
+  class MarkdownEditorComponent {
+    @Input() content?: string
+    @Input() placeholder?: string
+    @Output() contentChange = new EventEmitter<string>()
+  }
+
+  return {
+    MarkdownEditorComponent
+  }
+})
+
+jest.mock('../docx-editor/docx-editor.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'xp-docx-editor',
+    template: ''
+  })
+  class DocxEditorComponent {
+    @Input() documentBuffer?: ArrayBuffer | null
+    @Input() fileName?: string
+    @Input() editable?: boolean
+    @Output() dirtyChange = new EventEmitter<boolean>()
+    @Output() saveRequest = new EventEmitter<File>()
+    @Output() editorError = new EventEmitter<Error>()
+
+    save() {
+      return Promise.resolve(null)
+    }
+
+    reload() {
+      return undefined
+    }
+  }
+
+  return {
+    DocxEditorComponent
+  }
+})
+
 jest.mock('../preview/file-preview-content.component', () => {
   const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
 
@@ -394,7 +443,7 @@ describe('FileViewerComponent', () => {
     expect(fixture.debugElement.query(By.css('[data-html-inspect-button="viewer"]'))).toBeNull()
   })
 
-  it('enables the inline selection action for markdown files after switching to edit mode', () => {
+  it('uses the visual Markdown editor in edit mode and emits its latest content', () => {
     const fixture = TestBed.createComponent(FileViewerComponent)
     fixture.componentRef.setInput('filePath', 'README.md')
     fixture.componentRef.setInput('content', '# Title\n')
@@ -405,7 +454,49 @@ describe('FileViewerComponent', () => {
     fixture.componentRef.setInput('mode', 'edit')
     fixture.detectChanges()
 
-    expect(fixture.componentInstance.editorReferenceable()).toBe(true)
+    const markdownEditor = fixture.debugElement.query(By.css('xp-markdown-editor'))
+    const contentChanges: string[] = []
+    fixture.componentInstance.contentChange.subscribe((content) => contentChanges.push(content))
+
+    expect(markdownEditor).not.toBeNull()
+    expect(markdownEditor.componentInstance.content).toBe('# Title\n')
+    expect(fixture.componentInstance.editorReferenceable()).toBe(false)
+
+    markdownEditor.componentInstance.contentChange.emit('# Updated title\n')
+
+    expect(contentChanges).toEqual(['# Updated title\n'])
+  })
+
+  it('mounts the DOCX editor in edit mode and forwards editor events', () => {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', 'proposal.docx')
+    fixture.componentRef.setInput('editable', true)
+    fixture.componentRef.setInput('docx', true)
+    fixture.componentRef.setInput('documentBuffer', new ArrayBuffer(8))
+    fixture.componentRef.setInput('mode', 'edit')
+    fixture.detectChanges()
+
+    const docxEditor = fixture.debugElement.query(By.css('xp-docx-editor'))
+    const dirtyChanges: boolean[] = []
+    const savedFiles: File[] = []
+    const errors: Error[] = []
+    fixture.componentInstance.documentDirtyChange.subscribe((dirty) => dirtyChanges.push(dirty))
+    fixture.componentInstance.documentSave.subscribe((file) => savedFiles.push(file))
+    fixture.componentInstance.documentError.subscribe((error) => errors.push(error))
+
+    expect(docxEditor).not.toBeNull()
+    expect(docxEditor.componentInstance.fileName).toBe('proposal.docx')
+    expect(docxEditor.componentInstance.documentBuffer).toBeInstanceOf(ArrayBuffer)
+
+    const savedFile = new File(['saved'], 'proposal.docx')
+    const editorError = new Error('editor failed')
+    docxEditor.componentInstance.dirtyChange.emit(true)
+    docxEditor.componentInstance.saveRequest.emit(savedFile)
+    docxEditor.componentInstance.editorError.emit(editorError)
+
+    expect(dirtyChanges).toEqual([true])
+    expect(savedFiles).toEqual([savedFile])
+    expect(errors).toEqual([editorError])
   })
 
   it('enables preview selection references for document previews with extracted text', () => {

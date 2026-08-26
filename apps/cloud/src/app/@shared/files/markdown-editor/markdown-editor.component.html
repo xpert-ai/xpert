@@ -1,0 +1,17 @@
+<div class="xp-markdown-editor">
+  <div #editorHost class="xp-markdown-editor__host"></div>
+
+  @if (!ready() && !loadError()) {
+    <div class="xp-markdown-editor__state" aria-live="polite">
+      <span class="xp-markdown-editor__spinner" aria-hidden="true"></span>
+      <span>{{ 'XP.Files.LoadingMarkdownEditor' | translate: { Default: 'Loading Markdown editor...' } }}</span>
+    </div>
+  } @else if (loadError()) {
+    <div class="xp-markdown-editor__state xp-markdown-editor__state--error" role="alert">
+      <i class="ri-error-warning-line" aria-hidden="true"></i>
+      <span>
+        {{ 'XP.Files.MarkdownEditorLoadFailed' | translate: { Default: 'Unable to load the Markdown editor.' } }}
+      </span>
+    </div>
+  }
+</div>

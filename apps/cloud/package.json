@@ -13,6 +13,9 @@
   },
   "dependencies": {
     "@a2ui/lit": "0.8.3",
+    "@eigenpal/docx-editor-core": "^1.9.0",
+    "@eigenpal/docx-editor-i18n": "^1.9.0",
+    "@eigenpal/docx-editor-react": "^1.9.0",
     "@foblex/2d": "^1.2.2",
     "@foblex/drag-toolkit": "^1.1.0",
     "@foblex/flow": "^17.5.0",
@@ -20,6 +23,9 @@
     "@foblex/platform": "^1.0.4",
     "@foblex/utils": "^1.1.1",
     "@langchain/anthropic": "^0.3.26",
+    "@milkdown/crepe": "^7.22.1",
+    "@univerjs/preset-sheets-core": "0.25.1",
+    "@univerjs/presets": "0.25.1",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "@xpert-ai/chatkit-angular": "~0.4.1",
@@ -33,6 +39,7 @@
     "i18next-browser-languagedetector": "^8.0.5",
     "i18next-http-backend": "^3.0.2",
     "json-2-csv": "^5.5.9",
-    "ngx-json-viewer": "^3.2.1"
+    "ngx-json-viewer": "^3.2.1",
+    "xlsx": "^0.18.5"
   }
 }

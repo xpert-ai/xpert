@@ -30,8 +30,12 @@ import { FormsModule } from '@angular/forms'
 import { FilePreviewContentComponent } from '../preview/file-preview-content.component'
 import { createFilePreviewState, toFilePreviewSource } from '../preview/file-preview.utils'
 import { clamp, inferTextPreviewSelection, toSelectionElement } from '../preview/preview-selection.utils'
+import { MarkdownEditorComponent } from '../markdown-editor/markdown-editor.component'
+import { SpreadsheetEditorComponent } from '../spreadsheet-editor/spreadsheet-editor.component'
+import { DocxEditorComponent } from '../docx-editor/docx-editor.component'
 
 export type FilePanelMode = 'view' | 'edit'
+export type FileViewerSurface = 'card' | 'plain'
 
 type FileViewerPreviewSelection = {
   left: number
@@ -55,15 +59,22 @@ type FileViewerPreviewSelection = {
     ZardSegmentedItemComponent,
     ...ZardTooltipImports,
     FileEditorComponent,
+    MarkdownEditorComponent,
+    SpreadsheetEditorComponent,
+    DocxEditorComponent,
     FilePreviewContentComponent
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[attr.data-surface]': 'surface()'
+  }
 })
 export class FileViewerComponent {
   readonly #httpClient = inject(HttpClient)
   readonly #destroyRef = inject(DestroyRef)
 
   readonly file = input<TFile | null>(null)
+  readonly surface = input<FileViewerSurface>('card')
   readonly filePath = input<string | null>(null)
   readonly content = input<string>('')
   readonly loading = input(false)
@@ -71,6 +82,9 @@ export class FileViewerComponent {
   readonly readable = input(false)
   readonly editable = input(false)
   readonly markdown = input(false)
+  readonly docx = input(false)
+  readonly spreadsheet = input(false)
+  readonly documentBuffer = input<ArrayBuffer | null>(null)
   readonly dirty = input(false)
   readonly downloadable = input(false)
   readonly referenceable = input(false)
@@ -119,10 +133,11 @@ export class FileViewerComponent {
   )
   readonly htmlInspectMode = signal(false)
   readonly showEnhancedPreview = computed(
-    () => this.isPreviewMode() && this.previewKind() !== 'unsupported' && !this.markdown()
+    () => this.isPreviewMode() && this.previewKind() !== 'unsupported' && !this.markdown() && !this.spreadsheet()
   )
   readonly editorReferenceable = computed(
-    () => this.referenceable() && this.readable() && (this.mode() === 'edit' || !this.isPreviewMode())
+    () =>
+      this.referenceable() && this.readable() && !this.markdown() && (this.mode() === 'edit' || !this.isPreviewMode())
   )
   readonly markdownPreviewReferenceable = computed(
     () => this.referenceable() && this.readable() && this.markdown() && this.isPreviewMode()
@@ -155,8 +170,14 @@ export class FileViewerComponent {
     this.markdownPreviewReferenceable() ? this.#markdownPreviewSelection() : null
   )
   private readonly markdownPreviewHost = viewChild<ElementRef<HTMLElement>>('markdownPreviewHost')
+  private readonly spreadsheetEditor = viewChild(SpreadsheetEditorComponent)
+  private readonly docxEditor = viewChild(DocxEditorComponent)
 
   readonly contentChange = output<string>()
+  readonly documentDirtyChange = output<boolean>()
+  readonly documentSave = output<File>()
+  readonly documentError = output<Error>()
+  readonly spreadsheetDirtyChange = output<boolean>()
   readonly discard = output<void>()
   readonly save = output<void>()
   readonly refresh = output<void>()
@@ -224,6 +245,30 @@ export class FileViewerComponent {
     }
 
     this.referenceFile.emit()
+  }
+
+  exportSpreadsheetFile() {
+    const editor = this.spreadsheetEditor()
+    if (!editor) {
+      throw new Error('Spreadsheet editor is not ready')
+    }
+    return editor.exportFile()
+  }
+
+  exportDocxFile() {
+    return this.docxEditor()?.save() ?? Promise.resolve(null)
+  }
+
+  reloadDocx() {
+    this.docxEditor()?.reload()
+  }
+
+  reloadSpreadsheet() {
+    return this.spreadsheetEditor()?.reload() ?? Promise.resolve()
+  }
+
+  markSpreadsheetSaved() {
+    this.spreadsheetEditor()?.markSaved()
   }
 
   toggleHtmlInspectMode() {

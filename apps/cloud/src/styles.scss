@@ -10,6 +10,21 @@
 @source "../../../legacies/**/*.{ts,html,scss,sass,css}";
 @include meta.load-css('../../../packages/ui/src/styles.css');
 @include meta.load-css('@xterm/xterm/css/xterm.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/prosemirror.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/reset.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/block-edit.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/code-mirror.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/cursor.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/image-block.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/link-tooltip.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/list-item.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/placeholder.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/toolbar.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/table.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/latex.css');
+@include meta.load-css('@milkdown/crepe/lib/theme/common/top-bar.css');
+@include meta.load-css('@univerjs/preset-sheets-core/lib/index.css');
+@include meta.load-css('styles/milkdown.css');
 
 @import 'remixicon/fonts/remixicon.css';
 @include meta.load-css('app/@core/font-face');

@@ -1,0 +1,15 @@
+<div #container class="xp-univer-editor__container" [class.invisible]="!ready()"></div>
+
+@if (loading()) {
+  <xp-spin class="absolute inset-0 z-10 flex items-center justify-center bg-components-panel-bg" />
+} @else if (error()) {
+  <div class="absolute inset-0 flex items-center justify-center p-6">
+    <div class="max-w-lg text-center">
+      <i class="ri-file-excel-2-line text-4xl text-text-tertiary"></i>
+      <div class="mt-3 font-medium text-text-primary">
+        {{ 'XP.Files.SpreadsheetOpenFailed' | translate: { Default: 'Unable to open this spreadsheet' } }}
+      </div>
+      <div class="mt-2 text-sm text-text-tertiary">{{ error() }}</div>
+    </div>
+  </div>
+}
