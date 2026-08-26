@@ -82,8 +82,26 @@ jest.mock('../model-gateway', () => ({
     ModelGatewayService: class ModelGatewayService {}
 }))
 
+jest.mock('../assistant-binding', () => ({
+    AssistantBindingService: class AssistantBindingService {}
+}))
+
+jest.mock('../plugin-resource', () => ({
+    PluginTemplateInstallCommand: class PluginTemplateInstallCommand {
+        constructor(
+            public readonly templateId: string,
+            public readonly workspaceId: string,
+            public readonly language: string,
+            public readonly basic?: unknown,
+            public readonly publish = false
+        ) {}
+    }
+}))
+
 import { ServerAIBootstrapService } from './bootstrap.service'
 import { XpertImportCommand } from '../xpert'
+import { PluginTemplateInstallCommand } from '../plugin-resource'
+import type { AssistantBindingService } from '../assistant-binding'
 import type { MembershipService } from '../membership'
 import type { ModelAccessService } from '../model-access'
 import type { ModelGatewayService } from '../model-gateway'
@@ -92,6 +110,7 @@ import type {
     PluginManagementService,
     UserOrganizationCreatedEvent
 } from '@xpert-ai/server-core'
+import { AiModelTypeEnum, AssistantBindingScope, AssistantCode, LanguagesEnum } from '@xpert-ai/contracts'
 
 type PluginManagementServiceMock = jest.Mocked<Pick<PluginManagementService, 'findLoadedPlugin' | 'installPlugin'>>
 
@@ -209,7 +228,8 @@ describe('ServerAIBootstrapService', () => {
             repository: {
                 createQueryBuilder: jest.fn()
             },
-            validateName: jest.fn().mockResolvedValue(true)
+            validateName: jest.fn().mockResolvedValue(true),
+            publish: jest.fn()
         }
         const xpertTemplateService = {
             getTemplateDetail: jest.fn().mockResolvedValue({
@@ -257,6 +277,10 @@ describe('ServerAIBootstrapService', () => {
         const modelGatewayService = {
             revokeOrganizationKeysForRemovedUser: jest.fn().mockResolvedValue(undefined)
         }
+        const assistantBindingService = {
+            getBinding: jest.fn().mockResolvedValue(null),
+            upsertBinding: jest.fn()
+        }
         const pluginManagementService: PluginManagementServiceMock = {
             findLoadedPlugin: jest.fn().mockReturnValue(undefined),
             installPlugin: jest.fn().mockResolvedValue({
@@ -282,6 +306,7 @@ describe('ServerAIBootstrapService', () => {
             xpertTemplateService as any,
             templateSkillSyncService as any,
             toPluginManagementService(pluginManagementService),
+            assistantBindingService as unknown as AssistantBindingService,
             membershipService as unknown as MembershipService,
             modelAccessService as unknown as ModelAccessService,
             modelGatewayService as unknown as ModelGatewayService
@@ -292,6 +317,7 @@ describe('ServerAIBootstrapService', () => {
         )
 
         return {
+            assistantBindingService,
             commandBus,
             configService,
             environmentService,
@@ -312,6 +338,44 @@ describe('ServerAIBootstrapService', () => {
             xpertService,
             xpertTemplateService
         }
+    }
+
+    function configureAvailableClawXpertModel({
+        queryBus,
+        userService,
+        workspaceService,
+        xpertService
+    }: ReturnType<typeof createService>) {
+        userService.findOne.mockResolvedValue({
+            id: 'member-1',
+            preferredLanguage: LanguagesEnum.English,
+            role: {
+                name: 'ADMIN'
+            }
+        })
+        workspaceService.findUserDefaultWorkspace.mockResolvedValue(null)
+        workspaceService.create.mockResolvedValue({
+            id: 'workspace-2',
+            ownerId: 'member-1'
+        })
+        queryBus.execute.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                providerWithModels: {
+                    models: [
+                        {
+                            model: 'gpt-4o',
+                            model_type: 'llm'
+                        }
+                    ]
+                }
+            }
+        ])
+        xpertService.repository.createQueryBuilder.mockReturnValue({
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getOne: jest.fn().mockResolvedValue(null)
+        })
     }
 
     it('keeps organization bootstrap focused on workspace and membership setup', async () => {
@@ -689,6 +753,197 @@ connections: []`
             workspaceId: 'workspace-2',
             createdNewUserDefaultWorkspace: true
         })
+    })
+
+    it('initializes and binds ClawXpert when an LLM is available after user organization bootstrap', async () => {
+        const setup = createService()
+        const {
+            assistantBindingService,
+            commandBus,
+            environmentService,
+            membershipService,
+            pluginManagementService,
+            queryBus,
+            service,
+            xpertService,
+            xpertTemplateService
+        } = setup
+        configureAvailableClawXpertModel(setup)
+        xpertTemplateService.getTemplateDetail.mockResolvedValue({
+            id: 'xpert-my-claw-xpert',
+            name: 'ClawXpert',
+            dependencies: {
+                plugins: ['@xpert-ai/plugin-file-memory']
+            },
+            export_data: 'team:\n  name: ClawXpert\n'
+        })
+        commandBus.execute.mockResolvedValue({
+            xpert: {
+                id: 'clawxpert-1'
+            }
+        })
+        xpertService.publish.mockResolvedValue({
+            id: 'clawxpert-1'
+        })
+        assistantBindingService.upsertBinding.mockResolvedValue({
+            assistantId: 'clawxpert-1'
+        })
+
+        await service.bootstrapUserInOrganization({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'member-1'
+        } as UserOrganizationCreatedEvent)
+
+        expect(membershipService.ensureUserAssignedIfScopeInitialized.mock.invocationCallOrder[0]).toBeLessThan(
+            queryBus.execute.mock.invocationCallOrder[0]
+        )
+        expect(pluginManagementService.installPlugin).toHaveBeenCalledWith({
+            pluginName: '@xpert-ai/plugin-file-memory'
+        })
+        expect(pluginManagementService.installPlugin.mock.invocationCallOrder[0]).toBeLessThan(
+            commandBus.execute.mock.invocationCallOrder[0]
+        )
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                templateId: 'xpert-my-claw-xpert',
+                workspaceId: 'workspace-2',
+                language: LanguagesEnum.English,
+                basic: {
+                    name: 'clawxpert-workspace-2',
+                    title: 'ClawXpert',
+                    copilotModel: {
+                        copilotId: 'copilot-1',
+                        model: 'gpt-4o',
+                        modelType: AiModelTypeEnum.LLM
+                    }
+                },
+                publish: false
+            } satisfies Partial<PluginTemplateInstallCommand>)
+        )
+        expect(xpertService.publish).toHaveBeenCalledWith(
+            'clawxpert-1',
+            false,
+            'environment-1',
+            'Initial ClawXpert bootstrap release.'
+        )
+        expect(assistantBindingService.upsertBinding).toHaveBeenCalledWith({
+            code: AssistantCode.CLAWXPERT,
+            scope: AssistantBindingScope.USER,
+            assistantId: 'clawxpert-1'
+        })
+        expect(environmentService.create).toHaveBeenCalled()
+    })
+
+    it('continues ClawXpert initialization when plugin preparation fails', async () => {
+        const setup = createService()
+        const {
+            assistantBindingService,
+            commandBus,
+            pluginManagementService,
+            service,
+            xpertService,
+            xpertTemplateService
+        } = setup
+        configureAvailableClawXpertModel(setup)
+        xpertTemplateService.getTemplateDetail.mockResolvedValue({
+            id: 'xpert-my-claw-xpert',
+            name: 'ClawXpert',
+            dependencies: {
+                plugins: ['@xpert-ai/plugin-file-memory']
+            },
+            export_data: 'team:\n  name: ClawXpert\n'
+        })
+        pluginManagementService.installPlugin.mockRejectedValue(new Error('install failed'))
+        commandBus.execute.mockResolvedValue({
+            xpert: {
+                id: 'clawxpert-1'
+            }
+        })
+        xpertService.publish.mockResolvedValue({
+            id: 'clawxpert-1'
+        })
+        assistantBindingService.upsertBinding.mockResolvedValue({
+            assistantId: 'clawxpert-1'
+        })
+
+        await expect(
+            service.bootstrapUserInOrganization({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'member-1'
+            } as UserOrganizationCreatedEvent)
+        ).resolves.toEqual({
+            workspaceId: 'workspace-2',
+            createdNewUserDefaultWorkspace: true
+        })
+
+        expect(pluginManagementService.installPlugin).toHaveBeenCalledWith({
+            pluginName: '@xpert-ai/plugin-file-memory'
+        })
+        expect(commandBus.execute).toHaveBeenCalledWith(expect.any(PluginTemplateInstallCommand))
+        expect(assistantBindingService.upsertBinding).toHaveBeenCalledWith({
+            code: AssistantCode.CLAWXPERT,
+            scope: AssistantBindingScope.USER,
+            assistantId: 'clawxpert-1'
+        })
+    })
+
+    it('does not fail user organization bootstrap when ClawXpert creation fails', async () => {
+        const setup = createService()
+        const { commandBus, membershipService, service } = setup
+        configureAvailableClawXpertModel(setup)
+        commandBus.execute.mockRejectedValue(new Error('template install failed'))
+
+        await expect(
+            service.bootstrapUserInOrganization({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'member-1'
+            } as UserOrganizationCreatedEvent)
+        ).resolves.toEqual({
+            workspaceId: 'workspace-2',
+            createdNewUserDefaultWorkspace: true
+        })
+
+        expect(membershipService.ensureUserAssignedIfScopeInitialized).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'member-1',
+            assignedById: 'member-1'
+        })
+    })
+
+    it('skips ClawXpert initialization when no LLM is available', async () => {
+        const { assistantBindingService, commandBus, queryBus, service, userService, workspaceService, xpertService } =
+            createService()
+        userService.findOne.mockResolvedValue({
+            id: 'member-1',
+            preferredLanguage: 'en_US',
+            role: {
+                name: 'ADMIN'
+            }
+        })
+        workspaceService.findUserDefaultWorkspace.mockResolvedValue({
+            id: 'workspace-existing',
+            ownerId: 'member-1'
+        })
+        queryBus.execute.mockResolvedValue([])
+
+        await expect(
+            service.bootstrapUserInOrganization({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'member-1'
+            } as UserOrganizationCreatedEvent)
+        ).resolves.toEqual({
+            workspaceId: 'workspace-existing',
+            createdNewUserDefaultWorkspace: false
+        })
+
+        expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(PluginTemplateInstallCommand))
+        expect(xpertService.publish).not.toHaveBeenCalled()
+        expect(assistantBindingService.upsertBinding).not.toHaveBeenCalled()
     })
 
     it('assigns the tenant default membership to trial users while preserving organization assignment', async () => {

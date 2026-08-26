@@ -24,8 +24,13 @@ export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
 type AssistantChatKitEventHandlers = ChatKitEventHandlers
+type AssistantMcpAppsOptions = {
+  sandboxProxyUrl?: string
+  allowedDomains?: string[]
+}
 type AssistantChatKitOptions = ChatKitOptions & {
   messageNavigation?: ChatKitMessageNavigationOptions
+  mcpApps?: AssistantMcpAppsOptions
 } & AssistantChatKitEventHandlers
 type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
 type AssistantHostedClientSecret =
@@ -318,6 +323,10 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
     const currentControl = untracked(() => control())
     const currentRuntimeKey = untracked(() => activeRuntimeKey())
+    const mcpApps = resolveAssistantMcpAppsOptions(
+      environment.MCP_APP_SANDBOX_PROXY_URL,
+      environment.MCP_APP_SANDBOX_ALLOWED_DOMAINS
+    )
 
     if (!key || !assistantId || !frameUrl) {
       if (currentRuntimeKey !== null) activeRuntimeKey.set(null)
@@ -343,6 +352,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       pet: input.pet,
       taskSummary: input.taskSummary,
       workbench: input.workbench,
+      ...(mcpApps ? { mcpApps } : {}),
       toolOutputAttachments: {
         onRequestPreview: async ({ attachment }) => {
           if (!artifactService) {
@@ -422,6 +432,26 @@ export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
   }
 
   return normalized
+}
+
+export function resolveAssistantMcpAppsOptions(
+  sandboxProxyUrl?: string | null,
+  allowedDomains?: string | null
+): AssistantMcpAppsOptions | null {
+  const normalizedUrl = sandboxProxyUrl?.trim()
+  if (!normalizedUrl || normalizedUrl.startsWith('DOCKER_')) {
+    return null
+  }
+
+  const domains = (allowedDomains ?? '')
+    .split(',')
+    .map((domain) => domain.trim().toLowerCase())
+    .filter((domain, index, values) => !!domain && !domain.startsWith('DOCKER_') && values.indexOf(domain) === index)
+
+  return {
+    sandboxProxyUrl: normalizedUrl,
+    ...(domains.length ? { allowedDomains: domains } : {})
+  }
 }
 
 export function hasAssistantBindingSource(config?: IResolvedAssistantBinding | null) {

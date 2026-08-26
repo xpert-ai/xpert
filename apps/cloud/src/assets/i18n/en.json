@@ -1,4 +1,23 @@
 {
+  "Auth": {
+    "McpConsent": {
+      "Eyebrow": "Authorization request",
+      "UnknownClient": "An application",
+      "RequestsAccess": "requests access",
+      "ReviewRequest": "Review access request",
+      "Loading": "Loading authorization request…",
+      "Description": "Review the MCP services and identity permissions requested by this client before continuing.",
+      "Client": "Client",
+      "McpServices": "MCP services",
+      "NoMcpService": "No MCP service was specified.",
+      "Permissions": "Requested permissions",
+      "NoPermissions": "No additional permission scopes were requested.",
+      "SecurityHint": "Only allow access if you recognize this client. The client will receive access only to the services and permissions shown above.",
+      "InvalidRequest": "This authorization request is missing or expired.",
+      "Deny": "Deny",
+      "Allow": "Allow access"
+    }
+  },
   "MENU": {
     "TENANT": "Tenant",
     "ORGANIZATION": "Organization",
@@ -1254,6 +1273,7 @@
     },
     "MENU": {
       "New task": "New task",
+      "ExpertSkillsConnectors": "Experts · Skills · Connectors",
       "Skills": "Skills",
       "Connectors": "Connectors",
       "More": "More",
@@ -1642,7 +1662,13 @@
     },
     "Explore": {
       "Square": "Square",
-      "SkillPlaza": "Skill Plaza",
+      "SkillPlaza": "Skills",
+      "ExpertsTab": "Experts",
+      "SkillsTab": "Skills",
+      "ConnectorsTab": "Connectors",
+      "InstalledSkills": "Installed",
+      "AddSkill": "Add skill",
+      "NavigationLabel": "Experts, skills, and connectors",
       "Mine": "Mine",
       "Skills": "Skills",
       "Agents": "Agents",
@@ -1766,7 +1792,7 @@
       "InstallNow": "Install Now",
       "InstallOrUpdate": "Install or Update",
       "AgentSquare": {
-        "Tab": "Agent Square",
+        "Tab": "Experts",
         "SearchPlaceholder": "Search agents, scenarios, capabilities, or templates",
         "HeroTitle": "Find the right agent for the current task",
         "HeroSubtitle": "Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.",
@@ -2046,6 +2072,93 @@
       "NoInstruction": "No instruction",
       "SelectTaskTitle": "Select a task",
       "UnknownStatus": "Unknown",
+      "ExecutionCompleted": "Execution completed",
+      "LocalTimeZone": "Local time zone",
+      "TaskUnarchived": "Task restored to paused.",
+      "Automation": {
+        "ScheduledTasks": "Scheduled tasks",
+        "RunHistory": "Run history",
+        "ArchivedTasks": "Archived tasks",
+        "PageViews": "Scheduled task views",
+        "SearchPlaceholder": "Search tasks or records",
+        "BatchManagement": "Batch management",
+        "ExitManagement": "Exit management",
+        "SelectAll": "Select all",
+        "ClearSelection": "Clear selection",
+        "SelectedCount": "{{count}} selected",
+        "SelectedTaskCount": "{{count}} selected tasks",
+        "BatchDeleteTitle": "Delete scheduled tasks",
+        "SoftDeleteInformation": "The selected tasks will be paused and removed from the task list. Their data will be retained.",
+        "TasksDeleted": "Selected tasks deleted.",
+        "DeleteTaskTitle": "Delete scheduled task",
+        "DeleteTaskInformation": "This task will be paused and removed from the task list. Its data will be retained.",
+        "TaskDeleted": "Task deleted.",
+        "AddAutomation": "Add automation",
+        "AddFromTemplate": "Add from template",
+        "EmptyTitle": "Start your first automation task",
+        "TemplateHeading": "Automation templates",
+        "TemplatePickerDescription": "Choose a starting point, then adjust it in the task editor.",
+        "TaskCount": "{{count}} tasks",
+        "NoMatchingTasks": "No matching tasks",
+        "TryAnotherFilter": "Try a different search or status filter.",
+        "RunHistoryDescription": "Review execution results from all scheduled tasks.",
+        "NoRunHistory": "No run history yet",
+        "NoRunHistoryDescription": "Execution results will appear here after a scheduled task runs.",
+        "ArchivedDescription": "Archived tasks are paused and can be restored at any time.",
+        "NoArchivedDescription": "Tasks you archive will be kept here.",
+        "TotalRuns": "Total runs",
+        "SuccessRate": "Success rate",
+        "LastRun": "Last run",
+        "NotRunYet": "Not run yet",
+        "RunNow": "Run now"
+      },
+      "AutomationTemplates": {
+        "DailyAiNews": {
+          "Title": "Daily AI news",
+          "Description": "A concise briefing of the most important AI news each morning.",
+          "Prompt": "Summarize the most important AI news from the last 24 hours. Explain why each item matters and include source links when available."
+        },
+        "DailyEnglishWords": {
+          "Title": "Five English words a day",
+          "Description": "Learn five practical English words with examples every day.",
+          "Prompt": "Teach me five practical English words. For each word include pronunciation, a concise definition, one example sentence, and a short memory tip."
+        },
+        "BedtimeStory": {
+          "Title": "Daily bedtime story",
+          "Description": "Create a calm three-to-five-minute bedtime story for children.",
+          "Prompt": "Write a warm bedtime story for a child that takes three to five minutes to read. Keep it gentle, imaginative, and suitable for winding down."
+        },
+        "WeeklyWorkReport": {
+          "Title": "Weekly work report",
+          "Description": "Turn the week's progress, risks, and next steps into a report.",
+          "Prompt": "Prepare my weekly work report. Organize it into completed work, measurable outcomes, open risks, decisions needed, and priorities for next week."
+        },
+        "ClassicMovie": {
+          "Title": "Classic movie recommendation",
+          "Description": "Recommend one acclaimed classic with a spoiler-free introduction.",
+          "Prompt": "Recommend one acclaimed classic movie. Include a spoiler-free premise, why it is worth watching, its style, and who is most likely to enjoy it."
+        },
+        "TodayInHistory": {
+          "Title": "Today in history",
+          "Description": "Discover one meaningful event that happened on this date.",
+          "Prompt": "Choose one meaningful event that happened on today's date. Explain the context, what happened, and its longer-term impact in a concise narrative."
+        },
+        "DailyWhy": {
+          "Title": "One why a day",
+          "Description": "Explore one curious everyday question with a clear explanation.",
+          "Prompt": "Ask one interesting why-question about science, technology, society, or everyday life, then answer it clearly with a concrete example."
+        },
+        "MeetingPreparation": {
+          "Title": "Meeting preparation",
+          "Description": "Prepare objectives, talking points, and decisions before meetings.",
+          "Prompt": "Prepare a concise meeting brief with the objective, context, agenda, key questions, decisions required, and a checklist of materials to bring."
+        },
+        "InterviewPreparation": {
+          "Title": "Interview preparation",
+          "Description": "Review interview topics and practice one focused question each day.",
+          "Prompt": "Create a focused interview preparation session with one common question, a strong answer structure, likely follow-ups, and a short practice exercise."
+        }
+      },
       "UntitledConversation": "Untitled conversation",
       "ClawXpert": {
         "Title": "ClawXpert",
@@ -2065,6 +2178,32 @@
         "SkillPreferenceUnavailableDesc": "The ClawXpert shell must be ready before skills can be managed.",
         "WorkspaceSkillsPageDesc": "Upload team skill packages, or install and refresh built-in platform skills. These actions do not republish the business assistant.",
         "InstallOrRefreshSkills": "Install/refresh built-in skills",
+        "SearchInstalledSkills": "Search installed skills",
+        "BulkManagement": "Batch management",
+        "EnableSelectedSkills": "Enable",
+        "DisableSelectedSkills": "Disable",
+        "Uninstall": "Uninstall",
+        "Cancel": "Cancel",
+        "SelectedSkills": "{{count}} selected",
+        "SelectAll": "Select all",
+        "ClearSelection": "Clear",
+        "SkillActions": "Skill actions",
+        "DownloadSkillPackage": "Download skill package",
+        "NoMatchingSkills": "No matching skills",
+        "TryAnotherSkillSearch": "Try another skill name or description.",
+        "UninstallSkillTitle": "Uninstall skill",
+        "UninstallSkillInfo": "This skill will be removed from the current workspace. This action cannot be undone.",
+        "UninstallSelectedSkillsTitle": "Uninstall selected skills",
+        "UninstallSelectedSkillsInfo": "The selected skills will be removed from the current workspace. This action cannot be undone.",
+        "SelectedSkillsValue": "{{count}} skills",
+        "SkillUninstalled": "Skill uninstalled",
+        "SelectedSkillsUninstalled": "Selected skills uninstalled",
+        "SelectedSkillsEnabled": "Selected skills enabled",
+        "SelectedSkillsDisabled": "Selected skills disabled",
+        "DownloadSkillFailed": "Failed to download the selected skill.",
+        "UninstallSkillFailed": "Failed to uninstall the selected skill.",
+        "UninstallSelectedSkillsFailed": "Failed to uninstall the selected skills.",
+        "UpdateSelectedSkillsFailed": "Failed to update the selected skills.",
         "LoadFailed": "Failed to load ClawXpert.",
         "LoadFailedDesc": "Check your assistant access and try again.",
         "ReferenceUnavailable": "Chat composer is not ready yet. Try again in a moment.",
@@ -3732,6 +3871,7 @@
       "History": "History",
       "Instruction": "Instruction",
       "Archive": "Archive",
+      "Unarchive": "Unarchive",
       "Records": "records",
       "NameOfTask": "Name of task",
       "SelectExpert": "Select Expert",

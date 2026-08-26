@@ -2,29 +2,27 @@ import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { CronTime } from 'cron'
 import { InjectRepository } from '@nestjs/typeorm'
+import { RedisLockService } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { XpertProjectAutomation } from '../entities/project-automation.entity'
 import { XpertProjectAutomationService } from './project-automation.service'
 
+const PROJECT_AUTOMATION_LOCK_KEY = 'scheduler:xpert-project-automation'
+const PROJECT_AUTOMATION_LOCK_TTL = 5 * 60 * 1000
+
 @Injectable()
 export class XpertProjectAutomationSchedulerService {
     readonly #logger = new Logger(XpertProjectAutomationSchedulerService.name)
-    readonly #lockKey = 87124931
 
     constructor(
         @InjectRepository(XpertProjectAutomation) private readonly repository: Repository<XpertProjectAutomation>,
-        private readonly automationService: XpertProjectAutomationService
+        private readonly automationService: XpertProjectAutomationService,
+        private readonly redisLockService: RedisLockService
     ) {}
 
     @Cron('*/30 * * * * *')
     async scan() {
-        const queryRunner = this.repository.manager.connection.createQueryRunner()
-        await queryRunner.connect()
-        try {
-            const [{ locked }] = (await queryRunner.query('SELECT pg_try_advisory_lock($1) AS locked', [
-                this.#lockKey
-            ])) as Array<{ locked: boolean }>
-            if (!locked) return
+        await this.redisLockService.runWithLock(PROJECT_AUTOMATION_LOCK_KEY, PROJECT_AUTOMATION_LOCK_TTL, async () => {
             const due = await this.repository
                 .createQueryBuilder('automation')
                 .where('automation.enabled = :enabled', { enabled: true })
@@ -46,10 +44,7 @@ export class XpertProjectAutomationSchedulerService {
                     )
                 }
             }
-        } finally {
-            await queryRunner.query('SELECT pg_advisory_unlock($1)', [this.#lockKey]).catch(() => undefined)
-            await queryRunner.release()
-        }
+        })
     }
 }
 

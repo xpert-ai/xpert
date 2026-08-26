@@ -6,6 +6,7 @@ import { BullModule } from '@nestjs/bull'
 import {
     FeatureOrganization,
     Organization,
+    RedisModule,
     TenantModule,
     TenantSetting,
     User,
@@ -43,6 +44,7 @@ import { MembershipBackfillQueueService, MEMBERSHIP_MAINTENANCE_QUEUE } from './
             Organization
         ]),
         TenantModule,
+        RedisModule,
         CqrsModule
     ],
     controllers: [MembershipController],

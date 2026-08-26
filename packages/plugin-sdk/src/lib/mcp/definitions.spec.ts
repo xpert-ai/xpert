@@ -7,7 +7,7 @@ import {
 } from './index'
 import { defineXpertTool } from '../toolset/define-tool'
 import type { ToolExecutionContext } from '../toolset/tool-execution-context'
-import { z } from 'zod'
+import { z } from 'zod/v3'
 
 const context: ToolExecutionContext = {
   source: 'mcp',

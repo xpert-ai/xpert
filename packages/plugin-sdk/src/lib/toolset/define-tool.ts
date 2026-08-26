@@ -1,5 +1,5 @@
 import type { McpRequiredContext, McpToolBehavior } from '@xpert-ai/contracts'
-import type { ZodTypeAny, infer as ZodInfer } from 'zod'
+import type { ZodTypeAny, infer as ZodInfer } from 'zod/v3'
 import type { McpTaskExecutionPolicy } from '../mcp/task'
 import type { ToolExecutionContext } from './tool-execution-context'
 import type { XpertToolResult } from './tool-result'
