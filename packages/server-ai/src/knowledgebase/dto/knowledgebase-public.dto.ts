@@ -1,49 +1,52 @@
 import {
-	IKnowledgebase,
-	IUser,
-	KBMetadataFieldDef,
-	KnowledgebasePermission,
-	KnowledgebaseStatusEnum,
-	TAvatar
+    IKnowledgebase,
+    IUser,
+    KBMetadataFieldDef,
+    KnowledgebasePermission,
+    KnowledgebaseStatusEnum,
+    TAvatar
 } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Exclude()
 export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
-	@Expose()
-	declare id: string
+    @Expose()
+    declare id: string
 
-	@Expose()
-	declare name: string
+    @Expose()
+    declare workspaceId?: string
 
-	@Expose()
-	declare language?: 'Chinese' | 'English'
+    @Expose()
+    declare name: string
 
-	@Expose()
-	declare avatar?: TAvatar
+    @Expose()
+    declare language?: 'Chinese' | 'English'
 
-	@Expose()
-	declare description?: string
+    @Expose()
+    declare avatar?: TAvatar
 
-	@Expose()
-	declare status: KnowledgebaseStatusEnum
+    @Expose()
+    declare description?: string
 
-	@Expose()
-	metadataSchema?: KBMetadataFieldDef[];
+    @Expose()
+    declare status: KnowledgebaseStatusEnum
 
-	@Expose()
-	declare permission?: KnowledgebasePermission
+    @Expose()
+    metadataSchema?: KBMetadataFieldDef[]
 
-	@Expose()
-	declare createdBy?: IUser
+    @Expose()
+    declare permission?: KnowledgebasePermission
 
-	@Expose()
-	pipelineId?: string
+    @Expose()
+    declare createdBy?: IUser
 
-	@Expose()
-	declare createdAt: Date
+    @Expose()
+    pipelineId?: string
 
-	constructor(partial: IKnowledgebase) {
-		Object.assign(this, partial)
-	}
+    @Expose()
+    declare createdAt: Date
+
+    constructor(partial: IKnowledgebase) {
+        Object.assign(this, partial)
+    }
 }
