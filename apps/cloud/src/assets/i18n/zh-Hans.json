@@ -2939,6 +2939,7 @@
     },
     "MENU": {
       "New task": "新建任务",
+      "ExpertSkillsConnectors": "专家·技能·连接器",
       "Skills": "技能",
       "Connectors": "连接器",
       "More": "更多",

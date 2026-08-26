@@ -1,5 +1,6 @@
 import {
   addWorkspaceConnectorMenuItem,
+  addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
   addWorkspaceSkillMenuItem,
   buildWorkspaceModuleMenuLink,
@@ -7,6 +8,7 @@ import {
   getWorkspaceModuleSection,
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
+  isCloudMarketplaceHubRoute,
   isCloudWorkspaceShellMenuItem,
   isCloudWorkspaceStandaloneRoute,
   isExternalCloudMenuItem
@@ -208,6 +210,28 @@ describe('buildCloudSidebarMenuGroups', () => {
       { title: '工作区设置', link: '/xpert/w/workspace%2F1/settings', data: { workspaceSection: 'settings' } }
     ])
   })
+
+  it('merges the marketplace entry and removes the old explore menu item', () => {
+    const groups = buildCloudSidebarMenuGroups([
+      menu({ title: 'New task', link: '/chat/clawxpert/c' }),
+      menu({ title: 'Explore', link: '/explore' }),
+      menu({ title: 'Data', link: '/data' })
+    ])
+
+    const updated = addWorkspaceExpertSkillsConnectorsMenuItem(groups)
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.data?.translationKey ?? item.link)).toEqual([
+      '/chat/clawxpert/c',
+      'ExpertSkillsConnectors'
+    ])
+    expect(updated.find((group) => group.key === 'modules')?.items.map((item) => item.link)).toEqual(['/data'])
+    expect(work?.items[1]).toMatchObject({
+      title: '专家·技能·连接器',
+      link: '/explore',
+      data: { translationKey: 'ExpertSkillsConnectors' }
+    })
+  })
 })
 
 describe('cloud sidebar menu helpers', () => {
@@ -235,6 +259,14 @@ describe('cloud sidebar menu helpers', () => {
     expect(isCloudWorkspaceStandaloneRoute('/xpert/w/workspace-1')).toBe(false)
     expect(isCloudWorkspaceShellMenuItem(menu({ link: '/xpert' }))).toBe(true)
     expect(isCloudWorkspaceShellMenuItem(menu({ link: '/xpert/w/workspace-1' }))).toBe(false)
+  })
+
+  it('recognizes the shared marketplace hub and its standalone pages', () => {
+    expect(isCloudMarketplaceHubRoute('/explore')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/explore?tab=skills')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/xpert/w/workspace-1/clawxpert-skills')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/xpert/w/workspace-1/clawxpert-connectors')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/xpert/w/workspace-1')).toBe(false)
   })
 
   it('detects external links from either the flag or URL', () => {
