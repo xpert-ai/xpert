@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { IsObject, IsOptional, IsString } from 'class-validator'
 import type { Response } from 'express'
 import { SecretTokenBindingType, type XpertViewScalar } from '@xpert-ai/contracts'
+import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { TransformInterceptor } from '../core/interceptors'
 import { AllowClientSecretBindings, Public } from '../shared/decorators'
 import { ApiKeyOrClientSecretAuthGuard } from '../shared/guards'
@@ -58,9 +59,11 @@ export class ViewExtensionController {
 	async getSlotViews(
 		@Param('hostType') hostType: string,
 		@Param('hostId') hostId: string,
-		@Param('slot') slot: string
+		@Param('slot') slot: string,
+		@Query('isDraft') isDraftQuery?: string | string[]
 	) {
-		return this.service.listSlotViews(hostType, hostId, slot)
+		const isDraft = parseQueryBoolean(isDraftQuery)
+		return this.service.listSlotViews(hostType, hostId, slot, isDraft ? { isDraft: true } : undefined)
 	}
 
 	@Get(':hostType/:hostId/views/:viewKey/data')

@@ -1,14 +1,15 @@
 import {
     AIPermissionsEnum,
-    figureOutXpert,
     getAgentMiddlewareNodes,
     IWFNMiddleware,
     IXpert,
     normalizeMiddlewareProvider,
+    resolveRuntimeXpert,
     type TXpertTeamNode,
     TXpertFeatures,
     XpertResolvedViewHostContext,
     XpertViewActionRequest,
+    XpertViewHostContext,
     XpertTypeEnum,
     XpertViewHostCapabilities,
     XpertViewHostState,
@@ -19,10 +20,12 @@ import {
     RequestContext,
     ViewExtensionFileActionFile,
     ViewHostDefinition,
-    ViewHostDefinitionContract
+    ViewHostDefinitionContract,
+    ViewHostResolution,
+    ViewHostResolutionOptions
 } from '@xpert-ai/server-core'
 import { normalizeUploadedFileName } from '@xpert-ai/server-common'
-import { Inject, Injectable } from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
@@ -58,7 +61,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         private readonly volumeClient: VolumeClient
     ) {}
 
-    async resolve(hostId: string) {
+    async resolve(hostId: string, options?: ViewHostResolutionOptions) {
         const xpert = await this.xpertService.findOneByIdWithinTenant(hostId, {
             relations: ['agent']
         })
@@ -66,18 +69,19 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             return null
         }
 
-        const agentContext = this.resolveAgentContext(xpert as IXpert)
+        const runtimeXpert = resolveRuntimeXpert(xpert as IXpert, options?.isDraft === true)
+        const agentContext = this.resolveAgentContext(runtimeXpert)
 
         return {
-            workspaceId: xpert.workspaceId ?? null,
+            workspaceId: runtimeXpert.workspaceId ?? null,
             hostSnapshot: {
-                id: xpert.id,
-                name: xpert.name,
-                title: xpert.title ?? null,
-                type: xpert.type,
-                active: xpert.active ?? true,
-                environmentId: xpert.environmentId ?? null,
-                workspaceId: xpert.workspaceId ?? null,
+                id: runtimeXpert.id,
+                name: runtimeXpert.name,
+                title: runtimeXpert.title ?? null,
+                type: runtimeXpert.type,
+                active: runtimeXpert.active ?? true,
+                environmentId: runtimeXpert.environmentId ?? null,
+                workspaceId: runtimeXpert.workspaceId ?? null,
                 agent: {
                     key: agentContext.agentKey ?? null
                 }
@@ -89,7 +93,23 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         }
     }
 
-    async canRead(context: Parameters<ViewHostDefinitionContract['canRead']>[0]) {
+    async canRead(context: XpertViewHostContext, _resolution: ViewHostResolution, options?: ViewHostResolutionOptions) {
+        if (options?.isDraft) {
+            if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
+                return false
+            }
+
+            try {
+                await this.xpertService.assertCanAuthorById(context.hostId)
+                return true
+            } catch (error) {
+                if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+                    return false
+                }
+                throw error
+            }
+        }
+
         if (RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
             return true
         }
@@ -165,13 +185,12 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         capabilities: XpertViewHostCapabilities
         hostState: XpertViewHostState
     } {
-        const runtimeXpert = figureOutXpert(xpert, false) as IXpert
-        const features = new Set<string>(this.getEnabledXpertFeatures(runtimeXpert.features))
+        const features = new Set<string>(this.getEnabledXpertFeatures(xpert.features))
         const middlewareProviders = new Set<string>()
         const middlewareNodeKeys = new Set<string>()
-        const graph = runtimeXpert.graph
-        const agentKey = runtimeXpert.agent?.key ?? this.findPrimaryAgentKey(graph)
-        const knowledgebaseIds = runtimeXpert.agent?.knowledgebaseIds ?? []
+        const graph = xpert.graph
+        const agentKey = xpert.agent?.key ?? this.findPrimaryAgentKey(graph)
+        const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
 
         if (graph && agentKey) {
             for (const node of getAgentMiddlewareNodes(graph, agentKey)) {

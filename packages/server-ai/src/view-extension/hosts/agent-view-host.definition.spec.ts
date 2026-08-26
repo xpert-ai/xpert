@@ -1,4 +1,6 @@
-import { WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import { WorkflowNodeTypeEnum, XpertTypeEnum, type XpertViewHostContext } from '@xpert-ai/contracts'
+import { RequestContext, type ViewHostResolution } from '@xpert-ai/server-core'
+import { ForbiddenException } from '@nestjs/common'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -95,6 +97,141 @@ describe('AgentViewHostDefinition', () => {
             }
         })
         expect((resolved?.hostSnapshot as any).agent.key).toBe('Agent_BusinessAssistant')
+    })
+
+    it('derives view capabilities from the draft graph only when draft resolution is requested', async () => {
+        const xpertService = {
+            findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+                id: 'agent-host-1',
+                type: XpertTypeEnum.Agent,
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                name: 'Published Assistant',
+                active: true,
+                agent: {
+                    key: 'Agent_Published'
+                },
+                graph: {
+                    nodes: [
+                        {
+                            key: 'Agent_Published',
+                            type: 'agent',
+                            entity: {
+                                key: 'Agent_Published',
+                                name: 'Published Assistant'
+                            }
+                        }
+                    ],
+                    connections: []
+                },
+                draft: {
+                    team: {
+                        name: 'Story Studio',
+                        agent: {
+                            key: 'Agent_StoryStudio'
+                        }
+                    },
+                    nodes: [
+                        {
+                            key: 'Agent_StoryStudio',
+                            type: 'agent',
+                            entity: {
+                                key: 'Agent_StoryStudio',
+                                name: 'Story Studio'
+                            }
+                        },
+                        {
+                            key: 'Middleware_StoryStudio',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'StoryStudioMiddleware'
+                            }
+                        }
+                    ],
+                    connections: [
+                        {
+                            key: 'Agent_StoryStudio/Middleware_StoryStudio',
+                            type: 'workflow',
+                            from: 'Agent_StoryStudio',
+                            to: 'Middleware_StoryStudio'
+                        }
+                    ]
+                }
+            })
+        }
+        const middlewareRegistry = {
+            get: jest.fn().mockReturnValue({
+                meta: {
+                    features: ['story-studio']
+                }
+            })
+        }
+        const definition = new AgentViewHostDefinition(
+            xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[1],
+            middlewareRegistry as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[2],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[3]
+        )
+
+        const published = await definition.resolve('agent-host-1')
+        const draft = await definition.resolve('agent-host-1', { isDraft: true })
+
+        expect(published?.context).toMatchObject({
+            capabilities: { features: [] },
+            hostState: {
+                agent: {
+                    key: 'Agent_Published',
+                    middlewareProviders: []
+                }
+            }
+        })
+        expect(draft?.context).toMatchObject({
+            capabilities: { features: ['story-studio'] },
+            hostState: {
+                agent: {
+                    key: 'Agent_StoryStudio',
+                    middlewareProviders: ['StoryStudioMiddleware']
+                }
+            }
+        })
+    })
+
+    it('requires edit permission and xpert authoring access for draft view discovery', async () => {
+        const xpertService = {
+            assertCanAuthorById: jest.fn()
+        }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn()
+        }
+        const definition = new AgentViewHostDefinition(
+            xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[1],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[2],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[3]
+        )
+        const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        const context = { hostId: 'agent-host-1' } as XpertViewHostContext
+        const resolution = {} as ViewHostResolution
+
+        await expect(definition.canRead(context, resolution, { isDraft: true })).resolves.toBe(false)
+        expect(xpertService.assertCanAuthorById).not.toHaveBeenCalled()
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+
+        permission.mockReturnValue(true)
+        xpertService.assertCanAuthorById.mockRejectedValueOnce(new ForbiddenException('Access denied to workspace'))
+        await expect(definition.canRead(context, resolution, { isDraft: true })).resolves.toBe(false)
+        expect(xpertService.assertCanAuthorById).toHaveBeenCalledWith('agent-host-1')
+
+        xpertService.assertCanAuthorById.mockResolvedValueOnce(undefined)
+        await expect(definition.canRead(context, resolution, { isDraft: true })).resolves.toBe(true)
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+
+        xpertService.assertCanAuthorById.mockRejectedValueOnce(new Error('database unavailable'))
+        await expect(definition.canRead(context, resolution, { isDraft: true })).rejects.toThrow('database unavailable')
+
+        permission.mockRestore()
     })
 
     it('uploads workspace file actions into the xpert workspace before provider execution', async () => {
