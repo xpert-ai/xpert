@@ -1,5 +1,6 @@
 import {
   addWorkspaceConnectorMenuItem,
+  addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
   addWorkspaceSkillMenuItem,
   buildWorkspaceModuleMenuLink,
@@ -7,6 +8,9 @@ import {
   getWorkspaceModuleSection,
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
+  isCloudMarketplaceHubRoute,
+  isCloudWorkspaceShellMenuItem,
+  isCloudWorkspaceStandaloneRoute,
   isExternalCloudMenuItem
 } from './cloud-sidebar-menu.utils'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
@@ -31,7 +35,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       menu({ title: 'Scheduled', link: '/chat/tasks' }),
       menu({ title: 'Settings', link: '/settings', admin: true }),
       menu({ title: 'Data', link: '/data' }),
-      menu({ title: 'MCP Monitor', link: '/operations' }),
+      menu({ title: 'MCP Management', link: '/operations' }),
       menu({ title: 'Plugins', link: '/plugins' }),
       menu({ title: 'Model Providers', link: '/copilot/basic', admin: true }),
       menu({ title: 'Xpert Access Requests', link: '/xpert-access-requests', admin: true }),
@@ -99,7 +103,7 @@ describe('buildCloudSidebarMenuGroups', () => {
 
     expect(work?.items.map((item) => item.link)).toEqual([
       '/chat/clawxpert/c',
-      '/xpert/w/workspace%2F1/connectors',
+      '/xpert/w/workspace%2F1/clawxpert-connectors',
       '/chat/tasks'
     ])
     expect(work?.items[1]).toMatchObject({
@@ -142,8 +146,8 @@ describe('buildCloudSidebarMenuGroups', () => {
     const work = updated.find((group) => group.key === 'work')
 
     expect(work?.items.map((item) => item.link)).toEqual([
-      '/xpert/w/workspace%2F1/skills',
-      '/xpert/w/workspace%2F1/connectors'
+      '/xpert/w/workspace%2F1/clawxpert-skills',
+      '/xpert/w/workspace%2F1/clawxpert-connectors'
     ])
     expect(work?.entries.at(-1)).toEqual({ kind: 'assistants', item: null })
   })
@@ -160,8 +164,8 @@ describe('buildCloudSidebarMenuGroups', () => {
 
     expect(work?.items.map((item) => item.link)).toEqual([
       '/chat/clawxpert/c',
-      '/xpert/w/workspace%2F1/skills',
-      '/xpert/w/workspace%2F1/connectors',
+      '/xpert/w/workspace%2F1/clawxpert-skills',
+      '/xpert/w/workspace%2F1/clawxpert-connectors',
       '/chat/tasks'
     ])
     expect(work?.items[0]).toMatchObject({
@@ -198,24 +202,71 @@ describe('buildCloudSidebarMenuGroups', () => {
     ])
     expect(more?.children).toMatchObject([
       { title: '资源库', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
-      { title: '我的知识库', link: '/xpert/w/workspace%2F1/knowledges', data: { workspaceSection: 'knowledges' } },
+      {
+        title: '我的知识库',
+        link: '/xpert/w/workspace%2F1/clawxpert-knowledges',
+        data: { workspaceSection: 'knowledges' }
+      },
       { title: '工作区设置', link: '/xpert/w/workspace%2F1/settings', data: { workspaceSection: 'settings' } }
     ])
+  })
+
+  it('merges the marketplace entry and removes the old explore menu item', () => {
+    const groups = buildCloudSidebarMenuGroups([
+      menu({ title: 'New task', link: '/chat/clawxpert/c' }),
+      menu({ title: 'Explore', link: '/explore' }),
+      menu({ title: 'Data', link: '/data' })
+    ])
+
+    const updated = addWorkspaceExpertSkillsConnectorsMenuItem(groups)
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.data?.translationKey ?? item.link)).toEqual([
+      '/chat/clawxpert/c',
+      'ExpertSkillsConnectors'
+    ])
+    expect(updated.find((group) => group.key === 'modules')?.items.map((item) => item.link)).toEqual(['/data'])
+    expect(work?.items[1]).toMatchObject({
+      title: '专家·技能·连接器',
+      link: '/explore',
+      data: { translationKey: 'ExpertSkillsConnectors' }
+    })
   })
 })
 
 describe('cloud sidebar menu helpers', () => {
   it('builds independent workspace module links without using task or conversation routes', () => {
-    expect(buildWorkspaceModuleMenuLink('skills', 'workspace/1')).toBe('/xpert/w/workspace%2F1/skills')
-    expect(buildWorkspaceModuleMenuLink('connectors', 'workspace/1')).toBe('/xpert/w/workspace%2F1/connectors')
+    expect(buildWorkspaceModuleMenuLink('skills', 'workspace/1')).toBe('/xpert/w/workspace%2F1/clawxpert-skills')
+    expect(buildWorkspaceModuleMenuLink('connectors', 'workspace/1')).toBe(
+      '/xpert/w/workspace%2F1/clawxpert-connectors'
+    )
     expect(buildWorkspaceModuleMenuLink('skills')).toBe('/xpert/w?section=skills')
     expect(buildWorkspaceModuleMenuLink('connectors')).toBe('/xpert/w?section=connectors')
     expect(buildWorkspaceModuleMenuLink('files', 'workspace/1')).toBe('/xpert/w/workspace%2F1/files')
-    expect(buildWorkspaceModuleMenuLink('knowledges', 'workspace/1')).toBe('/xpert/w/workspace%2F1/knowledges')
+    expect(buildWorkspaceModuleMenuLink('knowledges', 'workspace/1')).toBe(
+      '/xpert/w/workspace%2F1/clawxpert-knowledges'
+    )
     expect(buildWorkspaceModuleMenuLink('settings', 'workspace/1')).toBe('/xpert/w/workspace%2F1/settings')
     expect(getWorkspaceModuleSection(menu({ data: { workspaceSection: 'skills' }, link: '/chat/clawxpert/c' }))).toBe(
       'skills'
     )
+  })
+
+  it('keeps standalone workspace modules out of the parent workspace active state', () => {
+    expect(isCloudWorkspaceStandaloneRoute('/xpert/w/workspace-1/clawxpert-connectors')).toBe(true)
+    expect(isCloudWorkspaceStandaloneRoute('/xpert/w/workspace-1/clawxpert-skills')).toBe(true)
+    expect(isCloudWorkspaceStandaloneRoute('/xpert/w/workspace-1/clawxpert-knowledges')).toBe(true)
+    expect(isCloudWorkspaceStandaloneRoute('/xpert/w/workspace-1')).toBe(false)
+    expect(isCloudWorkspaceShellMenuItem(menu({ link: '/xpert' }))).toBe(true)
+    expect(isCloudWorkspaceShellMenuItem(menu({ link: '/xpert/w/workspace-1' }))).toBe(false)
+  })
+
+  it('recognizes the shared marketplace hub and its standalone pages', () => {
+    expect(isCloudMarketplaceHubRoute('/explore')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/explore?tab=skills')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/xpert/w/workspace-1/clawxpert-skills')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/xpert/w/workspace-1/clawxpert-connectors')).toBe(true)
+    expect(isCloudMarketplaceHubRoute('/xpert/w/workspace-1')).toBe(false)
   })
 
   it('detects external links from either the flag or URL', () => {

@@ -20,7 +20,7 @@ import {
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { Inject } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { EnvironmentService } from '../../../environment'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -38,11 +38,13 @@ import {
 } from '../../workflow'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { getXpertAgent } from '../../../xpert/utils'
-import { _BaseToolset, ARRAY_FILE_ITEMS } from '../../../shared'
+import { _BaseToolset, ARRAY_FILE_ITEMS, closeToolsets } from '../../../shared'
 import { refreshWorkflowInputVariableGroups } from './get-variables.utils'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
+    readonly #logger = new Logger(XpertAgentVariablesHandler.name)
+
     @Inject(WorkflowNodeRegistry)
     private readonly nodeRegistry: WorkflowNodeRegistry
 
@@ -369,16 +371,20 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                             workspaceId: agent.team?.workspaceId
                         })
                     )
-                    for await (const toolset of toolsets) {
-                        const toolVars = await toolset.getVariables()
-                        if (toolVars) {
-                            const states = toolVars.map(toolsetVariableToVariable)
-                            states.forEach((state) => {
-                                if (!variables.some((v) => v.name === state.name)) {
-                                    variables.push(state)
-                                }
-                            })
+                    try {
+                        for await (const toolset of toolsets) {
+                            const toolVars = await toolset.getVariables()
+                            if (toolVars) {
+                                const states = toolVars.map(toolsetVariableToVariable)
+                                states.forEach((state) => {
+                                    if (!variables.some((v) => v.name === state.name)) {
+                                        variables.push(state)
+                                    }
+                                })
+                            }
                         }
+                    } finally {
+                        await closeToolsets(toolsets, (error) => this.#logger.debug(error))
                     }
                 }
             }
@@ -511,11 +517,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
             variables.push(...agent.parameters.filter((_) => _.name).map(xpertParameterToVariable))
         }
 
-        for await (const toolset of toolsets) {
-            const toolVars = await toolset.getVariables()
-            if (toolVars) {
-                variables.push(...toolVars.map(toolsetVariableToVariable))
+        try {
+            for await (const toolset of toolsets) {
+                const toolVars = await toolset.getVariables()
+                if (toolVars) {
+                    variables.push(...toolVars.map(toolsetVariableToVariable))
+                }
             }
+        } finally {
+            await closeToolsets(toolsets, (error) => this.#logger.debug(error))
         }
 
         return variables

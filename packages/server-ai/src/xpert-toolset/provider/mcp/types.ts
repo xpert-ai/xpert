@@ -19,6 +19,8 @@ import { installMcpToolAppMetadataBridge, installMcpUiClientCapabilitiesBridge }
 import { resolvePluginManagedMcpSchema } from './plugin-managed-runtime'
 import { McpStdioRuntimeHandle, mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 import type { TBuiltinToolsetParams } from '../../../shared'
+import { resolveMcpConsumerAuthProvider } from '../../../mcp-consumer/auth/mcp-consumer-auth.registry'
+import { LangChainMcpConnection } from '../../../mcp-consumer/connection/langchain-mcp-connection'
 
 export async function createMCPClient(
     toolset: Partial<IXpertToolset>,
@@ -39,20 +41,34 @@ export async function createMCPClient(
         const name = serverName || toolset.name || 'default'
         const transport = server.type?.toLowerCase()
         if (transport === MCPServerType.HTTP) {
-            const headers = await buildMCPHeaders(server.headers, envState, xpertId)
+            const headers = await resolveRemoteHeaders(server, envState, xpertId)
+            const authProvider = await resolveMcpConsumerAuthProvider({
+                toolset,
+                serverName: name,
+                server,
+                tenantId: runtimeContext.tenantId ?? toolset.tenantId,
+                organizationId: runtimeContext.organizationId ?? toolset.organizationId,
+                userId: runtimeContext.userId
+            })
+            const remoteServer = withoutConsumerAuth(server)
             mcpServers[name] = omitBy(
                 {
-                    ...server,
+                    ...remoteServer,
                     transport: 'http',
-                    headers
+                    headers,
+                    authProvider
                 },
                 isNil
             )
         } else if (transport === MCPServerType.SSE || (!transport && server.url)) {
-            const headers = await buildMCPHeaders(server.headers, envState, xpertId)
+            if (server.auth?.type === 'oauth') {
+                throw new Error(`MCP OAuth requires Streamable HTTP; server '${name}' uses legacy SSE`)
+            }
+            const headers = await resolveRemoteHeaders(server, envState, xpertId)
+            const remoteServer = withoutConsumerAuth(server)
             mcpServers[name] = omitBy(
                 {
-                    ...server,
+                    ...remoteServer,
                     headers,
                     useNodeEventSource: true
                 },
@@ -147,7 +163,14 @@ export async function createMCPClient(
     installMcpMetaArtifactBridge(client)
     installMcpToolAppMetadataBridge(client)
     try {
-        await client.getTools()
+        const connection = new LangChainMcpConnection(client)
+        await connection.negotiateHttpProtocols()
+        const legacyServerNames = connection
+            .serverNames()
+            .filter((serverName) => !connection.usesModernHttp(serverName))
+        if (legacyServerNames.length) {
+            await client.getTools(...legacyServerNames)
+        }
         mcpStdioRuntimeManager.attachClient(client, stdioRuntimes)
     } catch (error) {
         mcpStdioRuntimeManager.failRuntimes(stdioRuntimes, error)
@@ -169,4 +192,17 @@ export async function createMCPClient(
         },
         logs
     }
+}
+
+async function resolveRemoteHeaders(server: TMCPServer, envState: Record<string, unknown>, xpertId?: string) {
+    const headers = await buildMCPHeaders(server.headers, envState, xpertId)
+    if (server.auth?.type !== 'api_key') return headers
+    const apiKeyHeader = await buildMCPHeaders({ [server.auth.headerName]: server.auth.value }, envState, xpertId)
+    return { ...headers, ...apiKeyHeader }
+}
+
+function withoutConsumerAuth(server: TMCPServer) {
+    const remoteServer: TMCPServer = { ...server }
+    delete remoteServer.auth
+    return remoteServer
 }

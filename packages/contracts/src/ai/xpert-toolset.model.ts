@@ -71,6 +71,11 @@ export type TXpertToolsetOptions = {
   toolPositions?: Record<string, number>
   disableToolDefault?: boolean
   needSandbox?: boolean
+  /** Installed plugin component metadata for organization-scoped native MCP toolsets. */
+  pluginManaged?: boolean
+  pluginName?: string
+  componentKey?: string
+  definitionHash?: string
   /**
    * Runtime policy requested for MCP stdio toolsets. The server clamps this
    * policy against platform and tenant-level security settings.

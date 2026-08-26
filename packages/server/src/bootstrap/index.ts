@@ -1,5 +1,9 @@
 // import csurf from 'csurf';
-import { API_PRINCIPAL_USER_ID_HEADER } from '@xpert-ai/contracts'
+import {
+	API_PRINCIPAL_USER_ID_HEADER,
+	MCP_HTTP_CORS_EXPOSED_HEADERS,
+	MCP_HTTP_CORS_REQUEST_HEADERS
+} from '@xpert-ai/contracts'
 import { INestApplication, Logger as NestLogger, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
@@ -49,7 +53,8 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 		origin: '*',
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
-		allowedHeaders: `Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}`
+		allowedHeaders: `Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}, ${MCP_HTTP_CORS_REQUEST_HEADERS.join(', ')}`,
+		exposedHeaders: MCP_HTTP_CORS_EXPOSED_HEADERS.join(', ')
 	})
 
 	// TODO: enable csurf
@@ -67,7 +72,9 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 
 	app.use(helmet())
 	const globalPrefix = 'api'
-	app.setGlobalPrefix(globalPrefix, { exclude: ['a', 'a/(.*)'] })
+	app.setGlobalPrefix(globalPrefix, {
+		exclude: ['a', 'a/(.*)', '.well-known/oauth-protected-resource/(.*)']
+	})
 
 	const service = app.select(ServerAppModule).get(AppService)
 	await service.seedDBIfEmpty()

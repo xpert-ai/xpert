@@ -129,7 +129,7 @@
             routerLinkActive="active"
           >
             <i class="ri-route-line text-lg mr-1"></i>
-            {{ 'XP.Xpert.MCPTool' | translate: { Default: 'MCP Tool' } }}
+            {{ 'XP.Xpert.MCPAccess' | translate: { Default: 'MCP access' } }}
           </li>
 
           <li
@@ -141,6 +141,20 @@
           >
             <i class="ri-links-line text-lg mr-1"></i>
             {{ 'XP.Xpert.APITool' | translate: { Default: 'API Tool' } }}
+          </li>
+          <li
+            [cdkOption]="'connectors'"
+            class="xpert-list-option"
+            [routerLink]="['connectors']"
+            routerLinkActive="active"
+            #rla9="routerLinkActive"
+          >
+            @if (rla9.isActive) {
+              <i class="ri-plug-fill text-lg mr-1"></i>
+            } @else {
+              <i class="ri-plug-line text-lg mr-1"></i>
+            }
+            {{ 'XP.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
           </li>
           <li
             [cdkOption]="'knowledgebase'"

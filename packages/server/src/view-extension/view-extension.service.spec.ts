@@ -69,7 +69,8 @@ describe('ViewExtensionService file actions', () => {
 			}))
 		}
 		const providerRegistry = {
-			get: jest.fn(() => provider)
+			get: jest.fn(() => provider),
+			listEntries: jest.fn(() => [{ providerKey: 'provider', provider }])
 		}
 		const hostDefinition = {
 			slots: [{ key: 'main', order: 1 }],
@@ -86,10 +87,12 @@ describe('ViewExtensionService file actions', () => {
 		}
 		const permissionService = {
 			assertHostReadable: jest.fn(),
+			filterVisibleManifests: jest.fn((manifests) => manifests),
 			ensureManifestVisible: jest.fn(),
 			ensureActionVisible: jest.fn()
 		}
 		const cacheService = {
+			getOrSetSlotViews: jest.fn(async (_context, _slot, _ttl, loader) => loader()),
 			invalidateView: jest.fn()
 		}
 		const service = new ViewExtensionService(
@@ -98,8 +101,22 @@ describe('ViewExtensionService file actions', () => {
 			permissionService as any,
 			cacheService as any
 		)
-		return { service, provider, cacheService }
+		return { service, provider, hostDefinition, permissionService, cacheService }
 	}
+
+	it('propagates draft resolution options through host discovery and permission checks', async () => {
+		const { service, hostDefinition, permissionService } = createService()
+
+		await service.listSlotViews('agent', 'assistant-1', 'main', { isDraft: true })
+
+		expect(hostDefinition.resolve).toHaveBeenCalledWith('assistant-1', { isDraft: true })
+		expect(permissionService.assertHostReadable).toHaveBeenCalledWith(
+			hostDefinition,
+			expect.objectContaining({ hostType: 'agent', hostId: 'assistant-1' }),
+			expect.any(Object),
+			{ isDraft: true }
+		)
+	})
 
 	it('loads remote component entries for vue runtime views', async () => {
 		const { service, provider } = createService()

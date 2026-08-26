@@ -256,7 +256,7 @@ export class XpertWorkbenchInitialLayoutSettingsComponent {
     this.loadingViews.set(true)
     try {
       const manifests = await firstValueFrom(
-        this.#viewExtensionApi.getSlotViews('agent', xpertId, AGENT_WORKBENCH_FIXED_SLOT)
+        this.#viewExtensionApi.getSlotViews('agent', xpertId, AGENT_WORKBENCH_FIXED_SLOT, { isDraft: true })
       )
       if (requestId !== this.#viewLoadRequestId) {
         return

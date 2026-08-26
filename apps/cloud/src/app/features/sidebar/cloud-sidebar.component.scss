@@ -43,6 +43,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   padding-top: 0;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
 }
 
 .cloud-sidebar__scroll::-webkit-scrollbar {
@@ -51,6 +53,14 @@
 
 .cloud-sidebar__scroll::-webkit-scrollbar-thumb {
   border-radius: 999px;
+  background: transparent;
+}
+
+.cloud-sidebar__scroll:hover {
+  scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 36%, transparent) transparent;
+}
+
+.cloud-sidebar__scroll:hover::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--color-text-tertiary) 36%, transparent);
 }
 

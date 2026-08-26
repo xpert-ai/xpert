@@ -12,9 +12,8 @@ import { CloudSidebarRecentTasksComponent } from './cloud-sidebar-recent-tasks.c
 import { ClawXpertConversationStartIntentService } from '../chat/clawxpert/clawxpert-conversation-start-intent.service'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import {
-  addWorkspaceConnectorMenuItem,
+  addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
-  addWorkspaceSkillMenuItem,
   buildWorkspaceModuleMenuLink,
   buildCloudSidebarMenuGroups,
   type CloudWorkspaceModuleSection,
@@ -22,7 +21,10 @@ import {
   getWorkspaceModuleSection,
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
+  isCloudMarketplaceHubRoute,
   isExternalCloudMenuItem,
+  isCloudWorkspaceShellMenuItem,
+  isCloudWorkspaceStandaloneRoute,
   isNewClawXpertTaskMenuItem,
   normalizeMenuPath
 } from './cloud-sidebar-menu.utils'
@@ -68,10 +70,7 @@ export class CloudSidebarMenuComponent {
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
 
     return addWorkspaceMoreMenuItem(
-      addWorkspaceSkillMenuItem(
-        addWorkspaceConnectorMenuItem(buildCloudSidebarMenuGroups(this.menus()), workspaceId),
-        workspaceId
-      ),
+      addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus())),
       workspaceId
     )
   })
@@ -93,6 +92,16 @@ export class CloudSidebarMenuComponent {
     }
 
     const currentUrl = normalizeMenuPath(this.currentUrl())
+    if (item.data?.translationKey === 'ExpertSkillsConnectors' && isCloudMarketplaceHubRoute(currentUrl)) {
+      return true
+    }
+
+    if (isCloudWorkspaceShellMenuItem(item)) {
+      if (isCloudWorkspaceStandaloneRoute(currentUrl) || this.isMoreMenuExpanded()) {
+        return false
+      }
+    }
+
     if (isCloudMenuRouteSuppressed(currentUrl, item)) {
       return false
     }
@@ -110,7 +119,17 @@ export class CloudSidebarMenuComponent {
   }
 
   isActive(item: CloudMenuItem) {
-    return this.isMenuItemActive(item, item.pathMatch !== 'prefix') || this.hasActiveChild(item)
+    return (
+      this.isMenuItemActive(item, item.pathMatch !== 'prefix') ||
+      this.hasActiveChild(item) ||
+      (item.data?.translationKey === 'More' && this.isExpanded(item))
+    )
+  }
+
+  private isMoreMenuExpanded() {
+    return this.groups()
+      .flatMap((group) => group.items)
+      .some((item) => item.data?.translationKey === 'More' && this.isExpanded(item))
   }
 
   isExpanded(menu: CloudMenuItem) {

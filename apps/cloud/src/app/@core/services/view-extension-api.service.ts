@@ -19,9 +19,15 @@ export class ViewExtensionApiService {
   private readonly baseUrl = `${this.apiBaseUrl}${API_PREFIX}/view-hosts`
   private readonly workspaceFilesBaseUrl = `${this.apiBaseUrl}${API_PREFIX}/workspace-files`
 
-  getSlotViews(hostType: string, hostId: string, slot: string) {
+  getSlotViews(hostType: string, hostId: string, slot: string, options: { isDraft?: boolean } = {}) {
+    let params = new HttpParams()
+    if (options.isDraft) {
+      params = params.set('isDraft', 'true')
+    }
+
     return this.httpClient.get<XpertExtensionViewManifest[]>(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/slots/${encodeURIComponent(slot)}/views`
+      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/slots/${encodeURIComponent(slot)}/views`,
+      { params }
     )
   }
 

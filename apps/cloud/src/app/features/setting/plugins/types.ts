@@ -14,7 +14,7 @@ export type TPluginMarketplaceOperation = PluginMarketplaceOperation
 export type TPluginMarketplaceContribution = PluginMarketplaceContribution
 
 export type TPluginResourceContribution = TPluginMarketplaceContribution & {
-  type: 'skill' | 'tool' | 'app' | 'hook'
+  type: 'skill' | 'mcp' | 'app' | 'hook'
   componentType: PluginComponentType
 }
 

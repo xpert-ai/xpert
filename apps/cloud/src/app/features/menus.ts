@@ -356,13 +356,13 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
-      title: 'MCP Monitor',
+      title: 'MCP Management',
       icon: 'ri-pulse-line',
       link: '/operations',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'MCP Monitor',
+        translationKey: 'MCP Management',
         permissionKeys: [RolesEnum.SUPER_ADMIN]
       }
     },

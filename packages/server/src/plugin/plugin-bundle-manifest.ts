@@ -301,6 +301,9 @@ export function normalizePluginBundleManifest(value: unknown): XpertPluginBundle
 	const mcpServers =
 		normalizeStringOrStringArray(Reflect.get(value, 'mcpServers')) ??
 		normalizeJsonValue(Reflect.get(value, 'mcpServers'))
+	const toolsets =
+		normalizeStringOrStringArray(Reflect.get(value, 'toolsets')) ??
+		normalizeJsonValue(Reflect.get(value, 'toolsets'))
 	const apps =
 		normalizeStringOrStringArray(Reflect.get(value, 'apps')) ?? normalizeJsonValue(Reflect.get(value, 'apps'))
 	const connectors =
@@ -322,6 +325,7 @@ export function normalizePluginBundleManifest(value: unknown): XpertPluginBundle
 		keywords: readStringArrayField(value, 'keywords'),
 		skills: normalizeStringOrStringArray(Reflect.get(value, 'skills')),
 		mcpServers,
+		toolsets,
 		apps,
 		connectors,
 		hooks,
@@ -376,6 +380,7 @@ export function collectPluginBundleComponents(
 	return [
 		...collectSkillComponents(rootDir, manifest.skills, manifest),
 		...collectMcpServerComponents(rootDir, manifest.mcpServers),
+		...collectToolsetComponents(rootDir, manifest.toolsets),
 		...collectAppComponents(rootDir, manifest.apps),
 		...collectAppComponents(rootDir, manifest.connectors),
 		...collectHookComponents(rootDir, manifest.hooks),
@@ -561,16 +566,40 @@ function collectMcpServerComponents(rootDir: string, value: unknown) {
 	return components
 }
 
-function readMcpServerMap(value: unknown): Array<[string, unknown]> {
-	if (!isJsonDictionary(value)) {
-		return []
+function collectToolsetComponents(rootDir: string, value: unknown) {
+	const sources = loadComponentSources(rootDir, value)
+	const components: PluginBundleComponentRegistration[] = []
+
+	for (const source of sources) {
+		for (const [componentKey, toolsetConfig] of readNamedComponentMap(source.value, 'toolsets')) {
+			const config = normalizeJsonValue(toolsetConfig)
+			if (config === undefined) continue
+			components.push(
+				createComponentRegistration({
+					componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+					componentKey,
+					sourcePath: source.sourcePath,
+					config,
+					metadata: { name: componentKey }
+				})
+			)
+		}
 	}
 
-	const wrapped = Reflect.get(value, 'mcp_servers') ?? Reflect.get(value, 'mcpServers')
-	const servers = isJsonDictionary(wrapped) ? wrapped : value
+	return components
+}
+
+function readMcpServerMap(value: unknown): Array<[string, unknown]> {
+	return readNamedComponentMap(value, 'mcpServers', 'mcp_servers')
+}
+
+function readNamedComponentMap(value: unknown, ...wrapperKeys: string[]): Array<[string, unknown]> {
+	if (!isJsonDictionary(value)) return []
+	const wrapped = wrapperKeys.map((key) => Reflect.get(value, key)).find(isJsonDictionary)
+	const items = wrapped ?? value
 	const result: Array<[string, unknown]> = []
-	for (const [key, config] of Object.entries(servers)) {
-		if (!key || key === 'mcp_servers' || key === 'mcpServers') {
+	for (const [key, config] of Object.entries(items)) {
+		if (!key || wrapperKeys.includes(key)) {
 			continue
 		}
 		if (isJsonDictionary(config)) {

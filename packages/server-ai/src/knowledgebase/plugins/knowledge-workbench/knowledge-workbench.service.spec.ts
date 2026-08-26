@@ -62,22 +62,25 @@ describe('KnowledgeWorkbenchService', () => {
             ],
             total: 1
         })
-        queryBus.execute.mockResolvedValueOnce([
-            {
-                pageContent: '质量控制内容',
-                metadata: {
-                    chunkId: 'chunk-1',
-                    documentId: 'doc-1',
-                    score: 0.89,
-                    relevanceScore: 0.93
-                },
-                document: {
-                    id: 'doc-1',
-                    name: '质量手册.pdf',
-                    fileUrl: 'https://files.local/doc-1.pdf'
-                }
-            } as DocumentInterface
-        ])
+        queryBus.execute.mockResolvedValueOnce({
+            documents: [
+                {
+                    pageContent: '质量控制内容',
+                    metadata: {
+                        chunkId: 'chunk-1',
+                        documentId: 'doc-1',
+                        score: 0.89,
+                        relevanceScore: 0.93
+                    },
+                    document: {
+                        id: 'doc-1',
+                        name: '质量手册.pdf',
+                        fileUrl: 'https://files.local/doc-1.pdf'
+                    }
+                } as DocumentInterface
+            ],
+            diagnostics: []
+        })
 
         const result = await service.searchDocuments({
             tenantId: 'tenant-1',
@@ -95,8 +98,13 @@ describe('KnowledgeWorkbenchService', () => {
                     tenantId: 'tenant-1',
                     organizationId: 'org-1',
                     knowledgebases: ['kb-1'],
-                    filter: {
-                        documentId: 'doc-1'
+                    filters: {
+                        request: {
+                            kind: 'condition',
+                            field: 'document.id',
+                            operator: 'in',
+                            value: { kind: 'literal', value: ['doc-1'] }
+                        }
                     },
                     k: 3
                 })

@@ -9,15 +9,17 @@ import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { Subscription } from 'rxjs'
-import { ToastrService, XpertToolsetService } from '../../../@core'
+import { firstValueFrom, Subscription } from 'rxjs'
+import { McpConsumerOAuthClientService, ToastrService, XpertToolsetService } from '../../../@core'
 import {
   ChatMessageTypeEnum,
   getErrorMessage,
+  IMcpConsumerOAuthStatus,
   IEnvironment,
   IXpertTool,
   IXpertToolset,
   MCPServerType,
+  McpConsumerAuthType,
   TMCPServer,
   TWorkflowVarGroup,
   uuid,
@@ -27,7 +29,13 @@ import {
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
 import { XpertEnvVarInputComponent } from '../../environment'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  type ZardSelectValue,
+  ZardInputDirective,
+  ZardSelectImports,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'mcp-server-form',
@@ -45,7 +53,9 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertEnvVarInputComponent,
     XpAutoScrollBottomDirective,
     XpTimerDirective,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardInputDirective,
+    ...ZardSelectImports
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -55,6 +65,7 @@ export class MCPServerFormComponent {
 
   readonly toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
+  readonly #oauthService = inject(McpConsumerOAuthClientService)
   protected cva = inject<NgxControlValueAccessor<Partial<TMCPServer> | null>>(NgxControlValueAccessor)
 
   readonly value$ = this.cva.value$
@@ -141,7 +152,7 @@ export class MCPServerFormComponent {
       workspaceId: this.workspaceId(),
       category: XpertToolsetCategoryEnum.MCP,
       type: this.types()[0],
-      id: this.#tempId(),
+      id: this.toolsetId() ?? this.#tempId(),
       schema: JSON.stringify({
         mcpServers: {
           '': {
@@ -160,6 +171,13 @@ export class MCPServerFormComponent {
   readonly files = computed(() => this.value$()?.files)
   readonly env = computed(() => this.value$()?.env ?? {})
   readonly headers = computed(() => this.value$()?.headers ?? {})
+  readonly authType = linkedModel<McpConsumerAuthType>({
+    initialValue: 'none',
+    compute: () => this.value$()?.auth?.type ?? (Object.keys(this.headers()).length ? 'manual_header' : 'none'),
+    update: (type) => this.updateAuthType(type)
+  })
+  readonly oauthStatus = signal<'disconnected' | 'pending' | 'connected' | 'expired' | 'error'>('disconnected')
+  readonly oauthMessage = signal<string>(null)
 
   private connectSub: Subscription = null
 
@@ -208,8 +226,137 @@ export class MCPServerFormComponent {
     })
   }
 
+  updateAuthType(type: McpConsumerAuthType) {
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      auth:
+        type === 'api_key'
+          ? { type, headerName: 'Authorization', value: '' }
+          : type === 'oauth'
+            ? { type, binding: 'user', scopes: [] }
+            : { type }
+    }))
+    this.oauthStatus.set('disconnected')
+    this.oauthMessage.set(null)
+  }
+
+  selectAuthType(value: ZardSelectValue | ZardSelectValue[]) {
+    if (value === 'none' || value === 'manual_header' || value === 'api_key' || value === 'oauth') {
+      this.authType.set(value)
+    }
+  }
+
+  selectOAuthBinding(value: ZardSelectValue | ZardSelectValue[]) {
+    if (value === 'user' || value === 'organization') {
+      this.oauthBinding = value
+    }
+  }
+
+  get apiKeyHeaderName() {
+    const auth = this.value$()?.auth
+    return auth?.type === 'api_key' ? auth.headerName : ''
+  }
+  set apiKeyHeaderName(headerName: string) {
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      auth: { type: 'api_key', headerName, value: state?.auth?.type === 'api_key' ? state.auth.value : '' }
+    }))
+  }
+
+  get apiKeyValue() {
+    const auth = this.value$()?.auth
+    return auth?.type === 'api_key' ? auth.value : ''
+  }
+  set apiKeyValue(value: string) {
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      auth: {
+        type: 'api_key',
+        headerName: state?.auth?.type === 'api_key' ? state.auth.headerName : 'Authorization',
+        value
+      }
+    }))
+  }
+
+  get oauthBinding() {
+    const auth = this.value$()?.auth
+    return auth?.type === 'oauth' ? auth.binding : 'user'
+  }
+  set oauthBinding(binding: 'user' | 'organization') {
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      auth: {
+        type: 'oauth',
+        binding,
+        scopes: state?.auth?.type === 'oauth' ? state.auth.scopes : []
+      }
+    }))
+  }
+
+  get oauthScopes() {
+    const auth = this.value$()?.auth
+    return auth?.type === 'oauth' ? (auth.scopes?.join(' ') ?? '') : ''
+  }
+  set oauthScopes(value: string) {
+    const scopes = [
+      ...new Set(
+        value
+          .split(/[\s,]+/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ]
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      auth: {
+        type: 'oauth',
+        binding: state?.auth?.type === 'oauth' ? state.auth.binding : 'user',
+        scopes
+      }
+    }))
+  }
+
+  async authorizeOAuth() {
+    const workspaceId = this.workspaceId()
+    const toolsetId = this.toolsetId()
+    if (!workspaceId || !toolsetId) return
+    try {
+      const status = await firstValueFrom(this.#oauthService.authorize(workspaceId, toolsetId, ''))
+      this.applyOAuthStatus(status)
+      if (status.authorizationUrl) window.open(status.authorizationUrl, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      this.oauthStatus.set('error')
+      this.oauthMessage.set(getErrorMessage(error))
+      this.#toastr.error(getErrorMessage(error))
+    }
+  }
+
+  async refreshOAuthStatus() {
+    const workspaceId = this.workspaceId()
+    const toolsetId = this.toolsetId()
+    if (!workspaceId || !toolsetId) return
+    const status = await firstValueFrom(this.#oauthService.status(workspaceId, toolsetId, ''))
+    this.applyOAuthStatus(status)
+  }
+
+  async disconnectOAuth() {
+    const workspaceId = this.workspaceId()
+    const toolsetId = this.toolsetId()
+    if (!workspaceId || !toolsetId) return
+    const status = await firstValueFrom(this.#oauthService.disconnect(workspaceId, toolsetId, ''))
+    this.applyOAuthStatus(status)
+  }
+
+  private applyOAuthStatus(status: IMcpConsumerOAuthStatus) {
+    this.oauthStatus.set(status.status)
+    this.oauthMessage.set(status.message ?? null)
+  }
+
   updateType(types: MCPServerType[]) {
     this.value$.update((state) => ({ ...(state ?? {}), type: types[0] }))
+    if (types[0] !== MCPServerType.HTTP && this.value$()?.auth?.type === 'oauth') {
+      this.updateAuthType('none')
+    }
     if (this.value$().type === MCPServerType.SSE || this.value$().type === MCPServerType.HTTP) {
       this.views.set(['tools'])
     }

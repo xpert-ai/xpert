@@ -231,107 +231,177 @@
         }
       </section>
 
-      @if (appContents().length) {
-        <section class="mt-6">
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold text-text-primary">
-              {{ 'XP.Plugin.Applications' | translate: { Default: 'Applications' } }}
-            </h3>
-            <span class="text-xs text-text-tertiary">
-              {{ appContents().length }}
-            </span>
-          </div>
+      @if (appContents().length || mcpContents().length) {
+        <div data-testid="plugin-primary-sections" class="mt-6 grid gap-6">
+          @if (appContents().length) {
+            <section>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-semibold text-text-primary">
+                  {{ 'XP.Plugin.Applications' | translate: { Default: 'Applications' } }}
+                </h3>
+                <span class="text-xs text-text-tertiary">
+                  {{ appContents().length }}
+                </span>
+              </div>
 
-          <div
-            class="mt-3 divide-y divide-divider-regular overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle"
-          >
-            @for (app of appContents(); track app.type + ':' + app.name) {
               <div
-                class="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition hover:bg-hover-bg"
-                [class.bg-components-input-bg-normal]="selectedApp()?.name === app.name"
-                role="button"
-                tabindex="0"
-                (click)="selectApp(app)"
-                (keydown.enter)="selectApp(app)"
+                class="mt-3 divide-y divide-divider-regular overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle"
               >
-                <span
-                  class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-panel-bg text-text-secondary"
-                >
-                  <i [class]="contentTypeIcon(app.type)"></i>
-                </span>
-                <span class="min-w-0 grow">
-                  <span class="flex flex-wrap items-center gap-2">
-                    <span class="font-medium text-text-primary">
-                      {{ app.displayName || app.name | i18n }}
-                    </span>
-                    <z-badge zType="outline" [class]="contentTypeBadgeClass(app.type)">
-                      {{ 'XP.Plugin.MarketplaceContentType_app' | translate: { Default: 'App' } }}
-                    </z-badge>
-                    @if (appCapabilities(app).length) {
-                      <z-badge zType="secondary">
-                        {{
-                          'XP.Plugin.CapabilityCount'
-                            | translate
-                              : {
-                                  Default: appCapabilities(app).length + ' capabilities',
-                                  count: appCapabilities(app).length
-                                }
-                        }}
-                      </z-badge>
-                    }
-                  </span>
-                  @if (app.description) {
-                    <span class="mt-1 block text-sm text-text-tertiary">
-                      {{ app.description | i18n }}
-                    </span>
-                  }
-                </span>
-                @if (showActions && appSetupAction(app); as action) {
-                  <span
-                    class="ml-3 mt-0.5 shrink-0"
-                    [title]="
-                      appActionRequiresInstalledPlugin(action) && !plugin.installed
-                        ? ('XP.Plugin.InstallPluginBeforeUseApp'
-                          | translate: { Default: 'Install or load this plugin before using the app.' })
-                        : ''
-                    "
+                @for (app of appContents(); track app.type + ':' + app.name) {
+                  <div
+                    class="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition hover:bg-hover-bg"
+                    [class.bg-components-input-bg-normal]="selectedApp()?.name === app.name"
+                    role="button"
+                    tabindex="0"
+                    (click)="selectApp(app)"
+                    (keydown.enter)="selectApp(app)"
                   >
-                    <button
-                      z-button
-                      type="button"
-                      zType="secondary"
-                      zSize="sm"
-                      class="gap-1 whitespace-nowrap"
-                      [zDisabled]="appActionRequiresInstalledPlugin(action) && !plugin.installed"
-                      (click)="handleAppAction(app, $event)"
+                    <span
+                      class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-panel-bg text-text-secondary"
                     >
-                      @switch (action.type) {
-                        @case ('install-app') {
-                          <i class="ri-apps-2-add-line"></i>
-                          <span>{{ 'XP.Plugin.InstallApp' | translate: { Default: 'Install app' } }}</span>
+                      <i [class]="contentTypeIcon(app.type)"></i>
+                    </span>
+                    <span class="min-w-0 grow">
+                      <span class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium text-text-primary">
+                          {{ app.displayName || app.name | i18n }}
+                        </span>
+                        <z-badge zType="outline" [class]="contentTypeBadgeClass(app.type)">
+                          {{ 'XP.Plugin.MarketplaceContentType_app' | translate: { Default: 'App' } }}
+                        </z-badge>
+                        @if (appCapabilities(app).length) {
+                          <z-badge zType="secondary">
+                            {{
+                              'XP.Plugin.CapabilityCount'
+                                | translate
+                                  : {
+                                      Default: appCapabilities(app).length + ' capabilities',
+                                      count: appCapabilities(app).length
+                                    }
+                            }}
+                          </z-badge>
                         }
-                        @case ('initialize-template') {
-                          <i class="ri-play-circle-line"></i>
-                          <span>{{
-                            'XP.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
-                          }}</span>
-                        }
-                        @case ('select-template') {
-                          <i class="ri-list-check-2"></i>
-                          <span>{{ 'XP.Plugin.ChooseTemplate' | translate: { Default: 'Choose template' } }}</span>
-                        }
-                        @default {
-                          <i class="ri-arrow-right-s-line"></i>
-                          <span>{{ 'XP.Plugin.ViewDetails' | translate: { Default: 'View details' } }}</span>
-                        }
+                      </span>
+                      @if (app.description) {
+                        <span class="mt-1 block text-sm text-text-tertiary">
+                          {{ app.description | i18n }}
+                        </span>
                       }
-                    </button>
-                  </span>
+                    </span>
+                    @if (showActions && appSetupAction(app); as action) {
+                      <span
+                        class="ml-3 mt-0.5 shrink-0"
+                        [title]="
+                          appActionRequiresInstalledPlugin(action) && !plugin.installed
+                            ? ('XP.Plugin.InstallPluginBeforeUseApp'
+                              | translate: { Default: 'Install or load this plugin before using the app.' })
+                            : ''
+                        "
+                      >
+                        <button
+                          z-button
+                          type="button"
+                          zType="secondary"
+                          zSize="sm"
+                          class="gap-1 whitespace-nowrap"
+                          [zDisabled]="appActionRequiresInstalledPlugin(action) && !plugin.installed"
+                          (click)="handleAppAction(app, $event)"
+                        >
+                          @switch (action.type) {
+                            @case ('install-app') {
+                              <i class="ri-apps-2-add-line"></i>
+                              <span>{{ 'XP.Plugin.InstallApp' | translate: { Default: 'Install app' } }}</span>
+                            }
+                            @case ('initialize-template') {
+                              <i class="ri-play-circle-line"></i>
+                              <span>{{
+                                'XP.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
+                              }}</span>
+                            }
+                            @case ('select-template') {
+                              <i class="ri-list-check-2"></i>
+                              <span>{{ 'XP.Plugin.ChooseTemplate' | translate: { Default: 'Choose template' } }}</span>
+                            }
+                            @default {
+                              <i class="ri-arrow-right-s-line"></i>
+                              <span>{{ 'XP.Plugin.ViewDetails' | translate: { Default: 'View details' } }}</span>
+                            }
+                          }
+                        </button>
+                      </span>
+                    }
+                  </div>
                 }
               </div>
-            }
-          </div>
-        </section>
+            </section>
+          }
+
+          @if (mcpContents().length) {
+            <section>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-semibold text-text-primary">
+                  {{ 'XP.Plugin.McpCapabilities' | translate: { Default: 'MCP' } }}
+                </h3>
+                <span class="text-xs text-text-tertiary">
+                  {{ mcpContents().length }}
+                </span>
+              </div>
+
+              <div
+                class="mt-3 divide-y divide-divider-regular overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle"
+              >
+                @for (mcp of mcpContents(); track mcp.type + ':' + mcp.name) {
+                  <div class="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-hover-bg">
+                    <span
+                      class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-panel-bg text-text-secondary"
+                    >
+                      <i [class]="contentTypeIcon(mcp.type)"></i>
+                    </span>
+                    <span class="min-w-0 grow">
+                      <span class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium text-text-primary">
+                          {{ mcp.displayName || mcp.name | i18n }}
+                        </span>
+                        <z-badge zType="outline" [class]="contentTypeBadgeClass(mcp.type)">
+                          {{ 'XP.Plugin.MarketplaceContentType_mcp' | translate: { Default: 'MCP' } }}
+                        </z-badge>
+                      </span>
+                      @if (mcp.description) {
+                        <span class="mt-1 block text-sm text-text-tertiary">
+                          {{ mcp.description | i18n }}
+                        </span>
+                      }
+                    </span>
+                    @if (showActions && resourceContribution(mcp); as resource) {
+                      <span
+                        class="ml-3 mt-0.5 shrink-0"
+                        [title]="
+                          plugin.installed
+                            ? ''
+                            : ('XP.Plugin.InstallPluginBeforeInitializeResource'
+                              | translate: { Default: 'Install or load this plugin before initializing the resource.' })
+                        "
+                      >
+                        <button
+                          z-button
+                          type="button"
+                          zType="secondary"
+                          zSize="sm"
+                          class="gap-1 whitespace-nowrap"
+                          [zDisabled]="!plugin.installed"
+                          (click)="initializeResource(resource, $event)"
+                        >
+                          <i class="ri-apps-2-add-line"></i>
+                          <span>{{ 'XP.Plugin.InstallResource' | translate: { Default: 'Install' } }}</span>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </div>
       }
 
       @if (selectedApp(); as app) {

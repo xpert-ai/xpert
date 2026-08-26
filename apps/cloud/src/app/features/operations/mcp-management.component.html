@@ -1,0 +1,43 @@
+<div class="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-background-default">
+  <div class="xp-page-header shrink-0">
+    <div class="min-w-0">
+      <div class="xp-page-title">
+        {{ 'XP.Operations.McpManagementTitle' | translate: { Default: 'MCP management' } }}
+      </div>
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{
+          'XP.Operations.McpManagementDescription'
+            | translate: { Default: 'Publish MCP services and inspect runtime instances started on demand.' }
+        }}
+      </div>
+    </div>
+
+    <nav
+      z-tab-nav-bar
+      class="xp-tab-nav-bar w-full"
+      color="accent"
+      alignTabs="start"
+      stretchTabs="false"
+      disableRipple
+      [tabPanel]="tabPanel"
+      [attr.aria-label]="'XP.Operations.McpManagementSections' | translate: { Default: 'MCP management sections' }"
+    >
+      <button z-tab-link type="button" [active]="activeSection() === 'services'" (click)="setSection('services')">
+        <z-icon zType="orbit"></z-icon>
+        {{ 'XP.Operations.McpServices' | translate: { Default: 'MCP services' } }}
+      </button>
+      <button z-tab-link type="button" [active]="activeSection() === 'runtimes'" (click)="setSection('runtimes')">
+        <z-icon zType="activity"></z-icon>
+        {{ 'XP.Operations.RuntimeInstances' | translate: { Default: 'Runtime instances' } }}
+      </button>
+    </nav>
+  </div>
+
+  <z-tab-nav-panel #tabPanel class="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+    @if (activeSection() === 'services') {
+      <xp-mcp-publications />
+    } @else {
+      <xp-mcp-runtimes />
+    }
+  </z-tab-nav-panel>
+</div>

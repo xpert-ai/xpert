@@ -57,6 +57,11 @@ const plugin: TInstalledPlugin = {
 
 const components: IPluginComponentDefinition[] = [
   {
+    componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+    componentKey: 'browser-native',
+    definitionHash: 'native-hash'
+  },
+  {
     componentType: PLUGIN_COMPONENT_TYPE.SKILL,
     componentKey: 'browser-research',
     definitionHash: 'skill-hash'
@@ -90,6 +95,7 @@ async function createComponent(
   const pluginAPI = {
     getPluginComponents: jest.fn(() => of({ items: components })),
     getPluginResourceStates: jest.fn(() => of({ items: componentStates })),
+    installResourcesToOrganization: jest.fn(() => of(installResult)),
     installResourcesToWorkspace: jest.fn(() => of(installResult)),
     installResourcesToXpert: jest.fn(() => of(installResult))
   }
@@ -231,6 +237,43 @@ describe('PluginResourcesComponent', () => {
       pluginName: '@xpert-ai/plugin-xpertai-browser-lab',
       target: 'workspace',
       workspaceId: 'workspace-2'
+    })
+  })
+
+  it('installs native toolsets for the organization without requiring a workspace', async () => {
+    const { component, fixture, pluginAPI } = await createComponent([], {
+      initialInstallMode: 'organization',
+      allowedInstallModes: ['organization'],
+      initialComponents: [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+          componentKey: 'browser-native'
+        }
+      ]
+    })
+
+    expect(component.availableInstallModes).toEqual(['organization'])
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll<HTMLElement>('[data-install-mode]')).map((element) =>
+        element.getAttribute('data-install-mode')
+      )
+    ).toEqual(['organization'])
+    expect(component.selectedComponents().map((item) => item.componentKey)).toEqual(['browser-native'])
+    expect(component.canSubmit()).toBe(true)
+
+    await component.submit()
+
+    expect(pluginAPI.getPluginResourceStates).toHaveBeenCalledWith('@xpert-ai/plugin-xpertai-browser-lab', {
+      pluginName: '@xpert-ai/plugin-xpertai-browser-lab',
+      target: 'organization'
+    })
+    expect(pluginAPI.installResourcesToOrganization).toHaveBeenCalledWith('@xpert-ai/plugin-xpertai-browser-lab', {
+      components: [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+          componentKey: 'browser-native'
+        }
+      ]
     })
   })
 

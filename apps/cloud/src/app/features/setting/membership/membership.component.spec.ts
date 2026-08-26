@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   AiModelTypeEnum,
+  AiProviderRole,
   IMembershipPlan,
   MembershipBulkActionEnum,
   MembershipPeriodEnum,
@@ -186,7 +187,7 @@ describe('MembershipAdminComponent', () => {
       of([
         {
           id: 'copilot-1',
-          name: 'Primary provider',
+          role: AiProviderRole.Primary,
           providerWithModels: {
             provider: 'tongyi',
             models: [{ model: 'qwen3.7-plus', model_type: AiModelTypeEnum.LLM }]
@@ -194,7 +195,8 @@ describe('MembershipAdminComponent', () => {
         },
         {
           id: 'copilot-2',
-          name: 'Backup provider',
+          role: AiProviderRole.Embedding,
+          name: 'kimikimi',
           providerWithModels: {
             provider: 'tongyi',
             models: [{ model: 'qwen3.7-plus', model_type: AiModelTypeEnum.LLM }]
@@ -210,6 +212,12 @@ describe('MembershipAdminComponent', () => {
       .filter((option) => option.provider === 'tongyi' && option.model === 'qwen3.7-plus')
     expect(options).toHaveLength(2)
     expect(options[0].value).not.toBe(options[1].value)
+    expect(component.modelTargetLabel(options[0])).toBe(
+      'XP.KEY_WORDS.Primary XP.KEY_WORDS.Provider · tongyi · qwen3.7-plus'
+    )
+    expect(component.modelTargetLabel(options[1])).toBe('kimikimi · tongyi · qwen3.7-plus')
+    expect(component.modelTargetLabel(options[0])).not.toContain('copilot-1')
+    expect(component.modelTargetLabel(options[1])).not.toContain('copilot-2')
 
     component.setAllowedModelValues(options[0].value)
     expect(component.allowedModels).toEqual([

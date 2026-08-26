@@ -189,5 +189,6 @@ describe('XpertToolsetService', () => {
             })
         )
         expect(validateCredentials).toHaveBeenCalledWith({})
+        expect(queryBus.execute.mock.calls.some(([query]) => query.constructor.name === 'EnvStateQuery')).toBe(false)
     })
 })

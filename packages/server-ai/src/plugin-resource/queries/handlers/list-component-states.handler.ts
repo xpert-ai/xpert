@@ -25,6 +25,7 @@ import {
     resolveLoadedPluginResourceRoot
 } from '../../plugin-resource-components'
 import { PluginResourceInstallation } from '../../plugin-resource-installation.entity'
+import { applyPluginResourceOrganizationScope } from '../../plugin-resource-installation-scope'
 import { ListPluginResourceComponentStatesQuery } from '../list-component-states.query'
 
 @QueryHandler(ListPluginResourceComponentStatesQuery)
@@ -44,17 +45,19 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
     async execute(query: ListPluginResourceComponentStatesQuery): Promise<IPluginResourceComponentState[]> {
         const pluginName = normalizePluginName(query.pluginName)
         const input = query.input
+        const target = input.target ?? (input.xpertId ? 'xpert' : 'workspace')
         const xpert = input.xpertId ? await this.xpertService.getTeam(input.xpertId) : null
         const workspaceId = xpert?.workspaceId ?? input.workspaceId
-        if (!workspaceId) {
+        if (target !== 'organization' && !workspaceId) {
             throw new BadRequestException('workspaceId is required')
         }
         if (input.workspaceId && xpert?.workspaceId && input.workspaceId !== xpert.workspaceId) {
             throw new BadRequestException('workspaceId does not match Xpert workspace')
         }
-        await this.workspaceAccess.assertCanAuthor(workspaceId)
+        if (workspaceId) {
+            await this.workspaceAccess.assertCanAuthor(workspaceId)
+        }
 
-        const target = input.target ?? (input.xpertId ? 'xpert' : 'workspace')
         const rootDir = resolveLoadedPluginResourceRoot(pluginName, this.loadedPlugins)
         const components = readPluginResourceComponents(pluginName, rootDir).filter((component) =>
             isPluginResourceInstallableForTarget(component.componentType, target)
@@ -64,7 +67,7 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
         }
 
         const installations = await this.findInstallationsForTarget(
-            workspaceId,
+            workspaceId ?? null,
             target === 'xpert' ? (input.xpertId ?? null) : null,
             pluginName,
             target === 'xpert' ? input.agentKey : undefined
@@ -78,11 +81,11 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
         }
 
         const skillPackagesBySharedId =
-            target === 'workspace'
+            target === 'workspace' && workspaceId
                 ? await this.findPluginSkillPackages(workspaceId, pluginName, components)
                 : new Map<string, SkillPackage>()
         const skillPackagesById =
-            target === 'workspace'
+            target === 'workspace' && workspaceId
                 ? await this.findSkillPackagesByInstallationRuntimeId(workspaceId, installations)
                 : new Map<string, SkillPackage>()
 
@@ -124,16 +127,21 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
     }
 
     private async findInstallationsForTarget(
-        workspaceId: string,
+        workspaceId: string | null,
         xpertId: string | null,
         pluginName: string,
         agentKey?: string
     ) {
         const query = this.installationRepo
             .createQueryBuilder('installation')
-            .where('installation.workspaceId = :workspaceId', { workspaceId })
-            .andWhere('installation.pluginName = :pluginName', { pluginName })
+            .where('installation.pluginName = :pluginName', { pluginName })
             .orderBy('installation.updatedAt', 'DESC')
+        if (workspaceId) {
+            query.andWhere('installation.workspaceId = :workspaceId', { workspaceId })
+        } else {
+            query.andWhere('installation.workspaceId IS NULL')
+            applyPluginResourceOrganizationScope(query, 'installation')
+        }
         if (xpertId) {
             query.andWhere('installation.xpertId = :xpertId', { xpertId })
             if (agentKey) {

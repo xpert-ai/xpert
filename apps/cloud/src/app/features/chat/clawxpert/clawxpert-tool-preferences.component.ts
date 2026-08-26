@@ -1,15 +1,17 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, Input, signal } from '@angular/core'
 import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
+import { injectConfirmDelete, XpI18nPipe } from '@xpert-ai/headless-ui'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
   ZardCardImports,
   ZardDialogService,
   ZardIconComponent,
+  ZardInputDirective,
   ZardSwitchComponent,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
@@ -64,6 +66,7 @@ type SkillPreferenceItem = {
   summary?: string | I18nObject | null
   repositoryName?: string | null
   provider?: string | null
+  skillPackage: ISkillPackage
 }
 
 type ToolPreferenceSourceError = {
@@ -103,16 +106,24 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
     CommonModule,
     FormsModule,
     TranslateModule,
+    CdkMenuModule,
     XpI18nPipe,
     ZardButtonComponent,
     ZardIconComponent,
+    ZardInputDirective,
     ZardSwitchComponent,
     ...ZardCardImports,
     ...ZardTabsImports
   ],
   template: `
-    <z-card class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border shadow-none">
-      <z-card-content class="flex min-h-0 flex-1 flex-col p-0">
+    <z-card
+      [class]="
+        skillsOnly
+          ? 'flex min-h-0 flex-col overflow-hidden border-0 bg-transparent shadow-none'
+          : 'flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border shadow-none'
+      "
+    >
+      <z-card-content class="flex min-h-0 flex-1 flex-col bg-transparent p-0">
         @if (isBlocked()) {
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <z-icon zType="toggle_on" class="text-3xl text-text-tertiary"></z-icon>
@@ -175,29 +186,16 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
           <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
             @if (activeTab() === 'skills') {
               <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div class="border-b border-divider-regular px-5 py-4">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      @if (skillsOnly) {
-                        <h1 class="text-2xl font-semibold text-text-primary">
-                          {{ 'XP.KEY_WORDS.Skills' | translate: { Default: '技能' } }}
-                        </h1>
-                      } @else {
+                @if (!skillsOnly) {
+                  <div
+                    class="flex flex-wrap items-start justify-between gap-3 border-b border-divider-regular px-5 py-4"
+                  >
+                    <div class="min-w-0">
+                      <div class="min-w-0">
                         <div class="text-sm font-medium text-text-primary">
                           {{ 'XP.Chat.ClawXpert.SkillPreferencesTitle' | translate: { Default: 'Skill preferences' } }}
                         </div>
-                      }
-                      <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-                        @if (skillsOnly) {
-                          {{
-                            'XP.Chat.ClawXpert.WorkspaceSkillsPageDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Upload team skill packages, or install and refresh built-in platform skills. These actions do not republish the business assistant.'
-                                  }
-                          }}
-                        } @else {
+                        <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                           {{
                             'XP.Chat.ClawXpert.SkillPreferencesDesc'
                               | translate
@@ -206,51 +204,169 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                                       'Choose which installed workspace skills stay available to this ClawXpert. Preferences are saved per user and used by runtime skill filtering.'
                                   }
                           }}
-                        }
-                      </p>
-                    </div>
-
-                    @if (skillsOnly) {
-                      <div class="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          z-button
-                          zType="outline"
-                          type="button"
-                          [disabled]="busy() || !skillWorkspaceId()"
-                          (click)="openSkillUploadDialog()"
-                        >
-                          <i class="ri-upload-2-line" aria-hidden="true"></i>
-                          {{ 'XP.Skill.UploadSkills' | translate: { Default: '上传技能' } }}
-                        </button>
-                        <button
-                          z-button
-                          zType="default"
-                          type="button"
-                          [disabled]="busy() || !skillWorkspaceId()"
-                          (click)="openSkillInstallDialog()"
-                        >
-                          <i class="ri-box-3-line" aria-hidden="true"></i>
-                          {{ 'XP.Chat.ClawXpert.InstallOrRefreshSkills' | translate: { Default: '安装/刷新内置技能' } }}
-                        </button>
+                        </p>
                       </div>
-                    } @else {
-                      <span
-                        class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
-                      >
-                        {{
-                          'XP.Chat.ClawXpert.SkillCount'
-                            | translate
-                              : {
-                                  Default: '{count} skills',
-                                  count: skillItems().length
-                                }
-                        }}
-                      </span>
-                    }
+                    </div>
+                    <span
+                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                    >
+                      {{
+                        'XP.Chat.ClawXpert.SkillCount'
+                          | translate
+                            : {
+                                Default: '{count} skills',
+                                count: skillItems().length
+                              }
+                      }}
+                    </span>
                   </div>
-                </div>
+                }
 
-                <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
+                <div
+                  [class]="skillsOnly ? 'min-h-0 flex-1 overflow-visible' : 'min-h-0 flex-1 overflow-auto px-5 py-4'"
+                >
+                  @if (skillsOnly) {
+                    <div class="mb-6 space-y-4">
+                      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="flex min-w-0 items-center gap-2">
+                          <h1 class="text-2xl font-semibold text-text-primary">
+                            {{ 'XP.Explore.InstalledSkills' | translate: { Default: 'Installed' } }}
+                          </h1>
+                          <span
+                            class="inline-flex min-w-6 items-center justify-center rounded-full bg-background-default-subtle px-2 py-0.5 text-sm font-medium text-text-secondary"
+                          >
+                            {{ skillItems().length }}
+                          </span>
+                        </div>
+
+                        <div class="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
+                          @if (!bulkManaging()) {
+                            <button
+                              z-button
+                              zType="outline"
+                              type="button"
+                              class="cursor-pointer"
+                              data-skill-bulk-management
+                              [disabled]="busy() || !skillItems().length"
+                              (click)="startBulkManagement()"
+                            >
+                              <i class="ri-checkbox-multiple-line" aria-hidden="true"></i>
+                              {{ 'XP.Chat.ClawXpert.BulkManagement' | translate: { Default: 'Batch management' } }}
+                            </button>
+                          }
+
+                          <div class="relative min-w-64 flex-1 lg:w-80 lg:flex-none">
+                            <i
+                              class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-text-tertiary"
+                              aria-hidden="true"
+                            ></i>
+                            <input
+                              z-input
+                              type="search"
+                              class="h-10 w-full pl-10 pr-9"
+                              [placeholder]="
+                                'XP.Chat.ClawXpert.SearchInstalledSkills'
+                                  | translate: { Default: 'Search installed skills' }
+                              "
+                              [ngModel]="skillSearch()"
+                              (ngModelChange)="skillSearch.set($event)"
+                            />
+                            @if (skillSearch()) {
+                              <button
+                                type="button"
+                                class="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
+                                [attr.aria-label]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+                                (click)="skillSearch.set('')"
+                              >
+                                <i class="ri-close-line text-lg" aria-hidden="true"></i>
+                              </button>
+                            }
+                          </div>
+                        </div>
+                      </div>
+
+                      @if (bulkManaging()) {
+                        <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-secondary">
+                          <div class="flex flex-wrap items-center gap-4">
+                            <span>
+                              {{
+                                'XP.Chat.ClawXpert.SelectedSkills'
+                                  | translate
+                                    : {
+                                        Default: '{count} selected',
+                                        count: selectedSkillIds().size
+                                      }
+                              }}
+                            </span>
+                            <button
+                              type="button"
+                              class="cursor-pointer font-medium text-text-primary hover:underline"
+                              (click)="selectAllFilteredSkills()"
+                            >
+                              {{ 'XP.Chat.ClawXpert.SelectAll' | translate: { Default: 'Select all' } }}
+                            </button>
+                            <button
+                              type="button"
+                              class="cursor-pointer font-medium text-text-primary hover:underline"
+                              (click)="clearSkillSelection()"
+                            >
+                              {{ 'XP.Chat.ClawXpert.ClearSelection' | translate: { Default: 'Clear' } }}
+                            </button>
+                          </div>
+
+                          <div class="flex items-center gap-2">
+                            <button
+                              z-button
+                              zType="secondary"
+                              type="button"
+                              class="cursor-pointer"
+                              data-skill-bulk-enable
+                              [disabled]="!selectedSkillIds().size || busy()"
+                              (click)="setSelectedSkillsEnabled(true)"
+                            >
+                              <i class="ri-checkbox-circle-line" aria-hidden="true"></i>
+                              {{ 'XP.Chat.ClawXpert.EnableSelectedSkills' | translate: { Default: 'Enable' } }}
+                            </button>
+                            <button
+                              z-button
+                              zType="secondary"
+                              type="button"
+                              class="cursor-pointer"
+                              data-skill-bulk-disable
+                              [disabled]="!selectedSkillIds().size || busy()"
+                              (click)="setSelectedSkillsEnabled(false)"
+                            >
+                              <i class="ri-close-circle-line" aria-hidden="true"></i>
+                              {{ 'XP.Chat.ClawXpert.DisableSelectedSkills' | translate: { Default: 'Disable' } }}
+                            </button>
+                            <button
+                              z-button
+                              zType="outline"
+                              type="button"
+                              class="cursor-pointer text-destructive hover:text-destructive"
+                              data-skill-bulk-uninstall
+                              [disabled]="!selectedSkillIds().size || busy()"
+                              (click)="uninstallSelectedSkills()"
+                            >
+                              <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                              {{ 'XP.Chat.ClawXpert.Uninstall' | translate: { Default: 'Uninstall' } }}
+                            </button>
+                            <button
+                              z-button
+                              zType="ghost"
+                              type="button"
+                              class="cursor-pointer"
+                              [disabled]="busy()"
+                              (click)="cancelBulkManagement()"
+                            >
+                              {{ 'XP.Chat.ClawXpert.Cancel' | translate: { Default: 'Cancel' } }}
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
                   @if (!skillWorkspaceId()) {
                     <div
                       class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center"
@@ -324,64 +440,163 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           </p>
                         </div>
                       } @else {
-                        <div class="grid gap-3 md:grid-cols-2">
-                          @for (item of skillItems(); track item.id) {
-                            <div
-                              class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4"
-                            >
-                              <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0 flex-1">
-                                  <div class="truncate text-base font-semibold text-text-primary">
-                                    {{ item.label | i18n }}
-                                  </div>
-                                  <div class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
-                                    {{
-                                      (item.summary | i18n) ||
-                                        ('XP.Chat.ClawXpert.SkillSummaryFallback'
-                                          | translate
-                                            : {
-                                                Default:
-                                                  'This skill is installed in the current workspace and can be enabled for ClawXpert runtime use.'
-                                              })
-                                    }}
-                                  </div>
-                                </div>
+                        @if (skillsOnly && !filteredSkillItems().length) {
+                          <div
+                            class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular px-6 text-center"
+                          >
+                            <i class="ri-search-line text-3xl text-text-tertiary" aria-hidden="true"></i>
+                            <div class="mt-3 text-base font-semibold text-text-primary">
+                              {{ 'XP.Chat.ClawXpert.NoMatchingSkills' | translate: { Default: 'No matching skills' } }}
+                            </div>
+                            <p class="mt-1 text-sm text-text-secondary">
+                              {{
+                                'XP.Chat.ClawXpert.TryAnotherSkillSearch'
+                                  | translate: { Default: 'Try another skill name or description.' }
+                              }}
+                            </p>
+                          </div>
+                        } @else {
+                          <div
+                            [class]="
+                              skillsOnly ? 'grid gap-4 md:grid-cols-2 2xl:grid-cols-3' : 'grid gap-3 md:grid-cols-2'
+                            "
+                          >
+                            @for (item of skillsOnly ? filteredSkillItems() : skillItems(); track item.id) {
+                              <div
+                                [class]="
+                                  skillsOnly
+                                    ? 'group/skill relative min-h-40 overflow-hidden rounded-xl border border-divider-regular bg-components-card-bg p-5 transition-colors hover:bg-background-default-subtle'
+                                    : 'rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4'
+                                "
+                              >
+                                @if (skillsOnly) {
+                                  <div class="flex items-start gap-3">
+                                    @if (bulkManaging()) {
+                                      <input
+                                        type="checkbox"
+                                        class="mt-3 size-4 shrink-0 cursor-pointer accent-primary"
+                                        [checked]="selectedSkillIds().has(item.id)"
+                                        [attr.aria-label]="item.label | i18n"
+                                        (change)="toggleSkillSelection(item.id, $event)"
+                                      />
+                                    }
 
-                                <z-switch
-                                  zSize="sm"
-                                  [ngModel]="facade.isSkillEnabled(item.workspaceId, item.packageId)"
-                                  [disabled]="busy()"
-                                  (ngModelChange)="toggleSkill(item, $event)"
-                                />
-                              </div>
-
-                              <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
-                                <div class="flex flex-wrap items-center gap-2">
-                                  @if (item.repositoryName) {
-                                    <span
-                                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
+                                    <div
+                                      class="flex size-11 shrink-0 items-center justify-center rounded-full bg-state-success-hover/20 text-text-success"
                                     >
-                                      {{ item.repositoryName }}
-                                    </span>
-                                  }
-                                  @if (item.provider) {
-                                    <span
-                                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
-                                    >
-                                      {{ item.provider }}
-                                    </span>
-                                  }
-                                </div>
+                                      <i class="ri-sparkling-line text-xl" aria-hidden="true"></i>
+                                    </div>
 
-                                @if (isSaving(item.id)) {
-                                  <span class="text-xs text-text-tertiary">
-                                    {{ 'XP.Common.Saving' | translate: { Default: 'Saving…' } }}
-                                  </span>
+                                    <div class="min-w-0 flex-1 pt-1">
+                                      <div class="flex min-w-0 items-center gap-2 pr-20">
+                                        <div class="truncate text-base font-semibold text-text-primary">
+                                          {{ item.label | i18n }}
+                                        </div>
+                                        @if (isSaving(item.id)) {
+                                          <span class="shrink-0 text-xs text-text-tertiary">
+                                            {{ 'XP.Common.Saving' | translate: { Default: 'Saving…' } }}
+                                          </span>
+                                        }
+                                      </div>
+
+                                      <div class="mt-4 line-clamp-2 text-sm leading-6 text-text-secondary">
+                                        {{
+                                          (item.summary | i18n) ||
+                                            ('XP.Chat.ClawXpert.SkillSummaryFallback'
+                                              | translate
+                                                : {
+                                                    Default:
+                                                      'This skill is installed in the current workspace and can be enabled for ClawXpert runtime use.'
+                                                  })
+                                        }}
+                                      </div>
+                                    </div>
+
+                                    <div class="absolute right-4 top-4 flex items-center gap-2">
+                                      @if (!bulkManaging()) {
+                                        <button
+                                          z-button
+                                          zType="ghost"
+                                          zShape="circle"
+                                          zSize="sm"
+                                          type="button"
+                                          class="size-8 cursor-pointer opacity-0 transition-opacity group-hover/skill:opacity-100 focus-visible:opacity-100"
+                                          #skillActionTrigger="cdkMenuTriggerFor"
+                                          [class.opacity-100]="skillActionTrigger.isOpen()"
+                                          [cdkMenuTriggerFor]="skillActionsMenu"
+                                          [cdkMenuTriggerData]="{ item: item }"
+                                          [attr.aria-label]="
+                                            'XP.Chat.ClawXpert.SkillActions' | translate: { Default: 'Skill actions' }
+                                          "
+                                        >
+                                          <i class="ri-more-fill text-lg" aria-hidden="true"></i>
+                                        </button>
+                                      }
+
+                                      <z-switch
+                                        zSize="sm"
+                                        [ngModel]="facade.isSkillEnabled(item.workspaceId, item.packageId)"
+                                        [disabled]="isSkillToggleDisabled(item.id)"
+                                        (ngModelChange)="toggleSkill(item, $event)"
+                                      />
+                                    </div>
+                                  </div>
+                                } @else {
+                                  <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1">
+                                      <div class="truncate text-base font-semibold text-text-primary">
+                                        {{ item.label | i18n }}
+                                      </div>
+                                      <div class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
+                                        {{
+                                          (item.summary | i18n) ||
+                                            ('XP.Chat.ClawXpert.SkillSummaryFallback'
+                                              | translate
+                                                : {
+                                                    Default:
+                                                      'This skill is installed in the current workspace and can be enabled for ClawXpert runtime use.'
+                                                  })
+                                        }}
+                                      </div>
+                                    </div>
+
+                                    <z-switch
+                                      zSize="sm"
+                                      [ngModel]="facade.isSkillEnabled(item.workspaceId, item.packageId)"
+                                      [disabled]="busy()"
+                                      (ngModelChange)="toggleSkill(item, $event)"
+                                    />
+                                  </div>
+
+                                  <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                      @if (item.repositoryName) {
+                                        <span
+                                          class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
+                                        >
+                                          {{ item.repositoryName }}
+                                        </span>
+                                      }
+                                      @if (item.provider) {
+                                        <span
+                                          class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
+                                        >
+                                          {{ item.provider }}
+                                        </span>
+                                      }
+                                    </div>
+
+                                    @if (isSaving(item.id)) {
+                                      <span class="text-xs text-text-tertiary">
+                                        {{ 'XP.Common.Saving' | translate: { Default: 'Saving…' } }}
+                                      </span>
+                                    }
+                                  </div>
                                 }
                               </div>
-                            </div>
-                          }
-                        </div>
+                            }
+                          </div>
+                        }
                       }
 
                       @if (!skillsOnly) {
@@ -574,6 +789,35 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
         }
       </z-card-content>
     </z-card>
+
+    <ng-template #skillActionsMenu let-item="item">
+      <div cdkMenu class="xp-cdk-menu min-w-48 p-1.5">
+        <button
+          cdkMenuItem
+          type="button"
+          class="xp-cdk-menu-item cursor-pointer gap-2"
+          [disabled]="isDownloadingSkill(item.packageId) || busy()"
+          (click)="downloadSkillPackage(item)"
+        >
+          <i
+            class="ri-download-2-line text-lg"
+            [class.animate-spin]="isDownloadingSkill(item.packageId)"
+            aria-hidden="true"
+          ></i>
+          {{ 'XP.Chat.ClawXpert.DownloadSkillPackage' | translate: { Default: 'Download skill package' } }}
+        </button>
+        <button
+          cdkMenuItem
+          type="button"
+          class="xp-cdk-menu-item danger cursor-pointer gap-2"
+          [disabled]="busy()"
+          (click)="uninstallSkill(item)"
+        >
+          <i class="ri-delete-bin-line text-lg" aria-hidden="true"></i>
+          {{ 'XP.Chat.ClawXpert.Uninstall' | translate: { Default: 'Uninstall' } }}
+        </button>
+      </div>
+    </ng-template>
   `
 })
 export class ClawXpertToolPreferencesComponent {
@@ -596,11 +840,21 @@ export class ClawXpertToolPreferencesComponent {
   readonly #xpertAgentService = inject(XpertAgentService)
   readonly #skillPackageService = inject(SkillPackageService)
   readonly #toastr = inject(ToastrService)
+  readonly #confirmDelete = injectConfirmDelete()
+  readonly #translate = inject(TranslateService)
 
   readonly activeTab = signal<ToolPreferenceTab>('skills')
   readonly pendingPreferenceItems = signal<Record<string, boolean>>({})
   readonly installingSkillPackage = signal(false)
+  readonly skillSearch = signal('')
+  readonly bulkManaging = signal(false)
+  readonly selectedSkillIds = signal<Set<string>>(new Set())
+  readonly downloadingSkillIds = signal<Set<string>>(new Set())
+  readonly uninstallingSkillIds = signal<Set<string>>(new Set())
+  readonly bulkUninstalling = signal(false)
+  readonly bulkUpdatingSkills = signal(false)
   readonly skillRefreshTick = signal(0)
+  #skillPreferenceSaveQueue: Promise<void> = Promise.resolve()
   readonly middlewareProviders = toSignal(this.#xpertAgentService.agentMiddlewares$, {
     initialValue: [] as TAgentMiddlewareDescriptor[]
   })
@@ -711,9 +965,32 @@ export class ClawXpertToolPreferencesComponent {
   readonly toolItems = computed(() => this.toolState().tools)
   readonly toolErrors = computed(() => this.toolState().errors)
   readonly skillItems = computed(() => this.skillState().skills)
-  readonly busy = computed(() => {
-    return Object.keys(this.pendingPreferenceItems()).length > 0 || this.installingSkillPackage()
+  readonly filteredSkillItems = computed(() => {
+    const term = this.skillSearch().trim().toLowerCase()
+    if (!term) {
+      return this.skillItems()
+    }
+
+    return this.skillItems().filter((item) =>
+      [item.label, item.summary, item.repositoryName, item.provider, item.skillId]
+        .map((value) => searchableSkillText(value))
+        .join(' ')
+        .toLowerCase()
+        .includes(term)
+    )
   })
+  readonly busy = computed(() => {
+    return (
+      Object.keys(this.pendingPreferenceItems()).length > 0 ||
+      this.installingSkillPackage() ||
+      this.uninstallingSkillIds().size > 0 ||
+      this.bulkUninstalling() ||
+      this.bulkUpdatingSkills()
+    )
+  })
+  readonly destructiveSkillBusy = computed(
+    () => this.installingSkillPackage() || this.uninstallingSkillIds().size > 0 || this.bulkUninstalling()
+  )
   readonly isBlocked = computed(() => this.facade.viewState() !== 'ready' || !this.facade.xpertId())
   readonly blockedState = computed(() => {
     if (this.skillsOnly) {
@@ -782,25 +1059,254 @@ export class ClawXpertToolPreferencesComponent {
       return
     }
 
-    this.pendingPreferenceItems.set({ [item.id]: true })
+    this.setPreferenceItemPending(item.id, true)
     try {
       await this.facade.setToolEnabled(item.sourceType, item.nodeKey, item.metadata, item.toolName, enabled)
     } finally {
-      this.pendingPreferenceItems.set({})
+      this.setPreferenceItemPending(item.id, false)
     }
   }
 
   async toggleSkill(item: SkillPreferenceItem, enabled: boolean) {
+    if (this.isSaving(item.id) || this.destructiveSkillBusy()) {
+      return
+    }
+
+    this.setPreferenceItemPending(item.id, true)
+    try {
+      await this.enqueueSkillPreferenceUpdate(item, enabled)
+    } finally {
+      this.setPreferenceItemPending(item.id, false)
+    }
+  }
+
+  isSkillToggleDisabled(skillId: string) {
+    return this.isSaving(skillId) || this.destructiveSkillBusy()
+  }
+
+  startBulkManagement() {
+    this.bulkManaging.set(true)
+    this.clearSkillSelection()
+  }
+
+  cancelBulkManagement() {
+    this.bulkManaging.set(false)
+    this.clearSkillSelection()
+  }
+
+  toggleSkillSelection(skillId: string, event: Event) {
+    const checked = (event.target as HTMLInputElement).checked
+    this.selectedSkillIds.update((selected) => {
+      const next = new Set(selected)
+      if (checked) {
+        next.add(skillId)
+      } else {
+        next.delete(skillId)
+      }
+      return next
+    })
+  }
+
+  selectAllFilteredSkills() {
+    this.selectedSkillIds.set(new Set(this.filteredSkillItems().map((item) => item.id)))
+  }
+
+  clearSkillSelection() {
+    this.selectedSkillIds.set(new Set())
+  }
+
+  async setSelectedSkillsEnabled(enabled: boolean) {
+    const selectedItems = this.skillItems().filter((item) => this.selectedSkillIds().has(item.id))
+    if (!selectedItems.length || this.busy()) {
+      return
+    }
+
+    this.bulkUpdatingSkills.set(true)
+    selectedItems.forEach((item) => this.setPreferenceItemPending(item.id, true))
+
+    try {
+      let allSaved = true
+      for (const item of selectedItems) {
+        const saved = await this.enqueueSkillPreferenceUpdate(item, enabled)
+        allSaved = saved && allSaved
+      }
+
+      if (allSaved) {
+        this.#toastr.success(
+          this.#translate.instant(
+            enabled ? 'XP.Chat.ClawXpert.SelectedSkillsEnabled' : 'XP.Chat.ClawXpert.SelectedSkillsDisabled',
+            {
+              Default: enabled ? 'Selected skills enabled' : 'Selected skills disabled'
+            }
+          )
+        )
+      }
+    } catch (error) {
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('XP.Chat.ClawXpert.UpdateSelectedSkillsFailed', {
+            Default: 'Failed to update the selected skills.'
+          })
+      )
+    } finally {
+      selectedItems.forEach((item) => this.setPreferenceItemPending(item.id, false))
+      this.bulkUpdatingSkills.set(false)
+    }
+  }
+
+  isDownloadingSkill(packageId: string) {
+    return this.downloadingSkillIds().has(packageId)
+  }
+
+  downloadSkillPackage(item: SkillPreferenceItem) {
+    if (this.isDownloadingSkill(item.packageId)) {
+      return
+    }
+
+    this.setDownloadingSkill(item.packageId, true)
+    this.#skillPackageService
+      .downloadPackage(item.workspaceId, item.packageId)
+      .pipe(take(1))
+      .subscribe({
+        next: (blob) => {
+          this.setDownloadingSkill(item.packageId, false)
+          triggerSkillPackageDownload(blob, `${toDownloadFileName(skillPackageName(item))}.zip`)
+        },
+        error: (error) => {
+          this.setDownloadingSkill(item.packageId, false)
+          this.#toastr.error(
+            getErrorMessage(error) ||
+              this.#translate.instant('XP.Chat.ClawXpert.DownloadSkillFailed', {
+                Default: 'Failed to download the selected skill.'
+              })
+          )
+        }
+      })
+  }
+
+  uninstallSkill(item: SkillPreferenceItem) {
     if (this.busy()) {
       return
     }
 
-    this.pendingPreferenceItems.set({ [item.id]: true })
-    try {
-      await this.facade.setSkillEnabled(item.workspaceId, item.packageId, enabled)
-    } finally {
-      this.pendingPreferenceItems.set({})
+    this.#confirmDelete(
+      {
+        title: this.#translate.instant('XP.Chat.ClawXpert.UninstallSkillTitle', {
+          Default: 'Uninstall skill'
+        }),
+        value: searchableSkillText(item.label) || item.skillId,
+        information: this.#translate.instant('XP.Chat.ClawXpert.UninstallSkillInfo', {
+          Default: 'This skill will be removed from the current workspace. This action cannot be undone.'
+        })
+      },
+      () => {
+        this.setUninstallingSkill(item.packageId, true)
+        return this.#skillPackageService.uninstallPackageInWorkspace(item.workspaceId, item.packageId)
+      }
+    ).subscribe({
+      next: () => {
+        this.setUninstallingSkill(item.packageId, false)
+        this.removeSelectedSkill(item.id)
+        this.#toastr.success(
+          this.#translate.instant('XP.Chat.ClawXpert.SkillUninstalled', { Default: 'Skill uninstalled' })
+        )
+        this.refreshSkills()
+      },
+      error: (error) => {
+        this.setUninstallingSkill(item.packageId, false)
+        this.#toastr.error(
+          getErrorMessage(error) ||
+            this.#translate.instant('XP.Chat.ClawXpert.UninstallSkillFailed', {
+              Default: 'Failed to uninstall the selected skill.'
+            })
+        )
+      }
+    })
+  }
+
+  uninstallSelectedSkills() {
+    const selectedItems = this.skillItems().filter((item) => this.selectedSkillIds().has(item.id))
+    if (!selectedItems.length || this.busy()) {
+      return
     }
+
+    this.#confirmDelete(
+      {
+        title: this.#translate.instant('XP.Chat.ClawXpert.UninstallSelectedSkillsTitle', {
+          Default: 'Uninstall selected skills'
+        }),
+        value: this.#translate.instant('XP.Chat.ClawXpert.SelectedSkillsValue', {
+          Default: `${selectedItems.length} skills`,
+          count: selectedItems.length
+        }),
+        information: this.#translate.instant('XP.Chat.ClawXpert.UninstallSelectedSkillsInfo', {
+          Default: 'The selected skills will be removed from the current workspace. This action cannot be undone.'
+        })
+      },
+      () => {
+        this.bulkUninstalling.set(true)
+        return forkJoin(
+          selectedItems.map((item) =>
+            this.#skillPackageService.uninstallPackageInWorkspace(item.workspaceId, item.packageId)
+          )
+        )
+      }
+    ).subscribe({
+      next: () => {
+        this.bulkUninstalling.set(false)
+        this.cancelBulkManagement()
+        this.#toastr.success(
+          this.#translate.instant('XP.Chat.ClawXpert.SelectedSkillsUninstalled', {
+            Default: 'Selected skills uninstalled'
+          })
+        )
+        this.refreshSkills()
+      },
+      error: (error) => {
+        this.bulkUninstalling.set(false)
+        this.#toastr.error(
+          getErrorMessage(error) ||
+            this.#translate.instant('XP.Chat.ClawXpert.UninstallSelectedSkillsFailed', {
+              Default: 'Failed to uninstall the selected skills.'
+            })
+        )
+      }
+    })
+  }
+
+  private setDownloadingSkill(packageId: string, downloading: boolean) {
+    this.downloadingSkillIds.update((items) => updateIdSet(items, packageId, downloading))
+  }
+
+  private setPreferenceItemPending(itemId: string, pending: boolean) {
+    this.pendingPreferenceItems.update((items) => {
+      const next = { ...items }
+      if (pending) {
+        next[itemId] = true
+      } else {
+        delete next[itemId]
+      }
+      return next
+    })
+  }
+
+  private enqueueSkillPreferenceUpdate(item: SkillPreferenceItem, enabled: boolean) {
+    const update = this.#skillPreferenceSaveQueue.then(() =>
+      this.facade.setSkillEnabled(item.workspaceId, item.packageId, enabled)
+    )
+    this.#skillPreferenceSaveQueue = update.then(
+      () => undefined,
+      () => undefined
+    )
+    return update
+  }
+
+  private setUninstallingSkill(packageId: string, uninstalling: boolean) {
+    this.uninstallingSkillIds.update((items) => updateIdSet(items, packageId, uninstalling))
+  }
+
+  private removeSelectedSkill(skillId: string) {
+    this.selectedSkillIds.update((items) => updateIdSet(items, skillId, false))
   }
 
   openSkillInstallDialog() {
@@ -876,7 +1382,7 @@ export class ClawXpertToolPreferencesComponent {
       })
   }
 
-  private refreshSkills() {
+  refreshSkills() {
     this.skillRefreshTick.update((value) => value + 1)
   }
 }
@@ -991,7 +1497,8 @@ function buildSkillPreferenceState(workspaceId: string, skills: ISkillPackage[])
         skill.skillIndex?.description ??
         null,
       repositoryName: skill.skillIndex?.repository?.name ?? null,
-      provider: skill.skillIndex?.repository?.provider ?? null
+      provider: skill.skillIndex?.repository?.provider ?? null,
+      skillPackage: skill
     })),
     errorMessage: null
   }
@@ -1011,4 +1518,51 @@ function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
   }
 
   return null
+}
+
+function searchableSkillText(value: unknown): string {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.values(value)
+      .filter((item): item is string => typeof item === 'string')
+      .join(' ')
+  }
+  return ''
+}
+
+function skillPackageName(item: SkillPreferenceItem): string {
+  return (
+    searchableSkillText(item.label) ||
+    searchableSkillText(item.skillPackage.metadata?.name) ||
+    searchableSkillText(item.skillPackage.name) ||
+    item.skillId ||
+    item.packageId
+  )
+}
+
+function updateIdSet(items: Set<string>, id: string, present: boolean): Set<string> {
+  const next = new Set(items)
+  if (present) {
+    next.add(id)
+  } else {
+    next.delete(id)
+  }
+  return next
+}
+
+function triggerSkillPackageDownload(blob: Blob, fileName: string) {
+  const anchor = document.createElement('a')
+  const objectUrl = URL.createObjectURL(blob)
+  anchor.href = objectUrl
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(objectUrl)
+}
+
+function toDownloadFileName(value: string) {
+  return value.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'skill'
 }

@@ -1093,15 +1093,18 @@ describe('AgentMiddlewareRuntimeService', () => {
     it('exposes knowledgebase search through the runtime facade', async () => {
         queryBus.execute.mockImplementation(async (query: unknown) => {
             if (query instanceof KnowledgeSearchQuery) {
-                return [
-                    {
-                        pageContent: 'BOM profile',
-                        metadata: {
-                            rootId: 'root-1',
-                            score: 0.92
+                return {
+                    documents: [
+                        {
+                            pageContent: 'Product profile',
+                            metadata: {
+                                rootId: 'root-1',
+                                score: 0.92
+                            }
                         }
-                    }
-                ]
+                    ],
+                    diagnostics: []
+                }
             }
 
             throw new Error(`Unexpected query: ${query?.constructor?.name}`)
@@ -1127,7 +1130,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             requestId: 'request-1'
         })
 
-        expect(docs?.[0].metadata?.['rootId']).toBe('root-1')
+        expect(docs?.documents[0].metadata?.['rootId']).toBe('root-1')
         const query = queryBus.execute.mock.calls[0][0] as KnowledgeSearchQuery
         expect(query.input).toEqual(
             expect.objectContaining({
@@ -1147,7 +1150,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 return [
                     {
                         id: 'kb-1',
-                        name: 'BOM 知识库',
+                        name: '业务知识库',
                         type: 'Standard',
                         status: 'ready',
                         permission: 'Private',
@@ -1169,7 +1172,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(items).toEqual([
             expect.objectContaining({
                 id: 'kb-1',
-                name: 'BOM 知识库',
+                name: '业务知识库',
                 workspaceId: 'workspace-1',
                 documentNum: 3,
                 chunkNum: 12
@@ -1211,7 +1214,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         const capability = service.api.capabilities?.require(KnowledgebaseProvisioningRuntimeCapability)
         const ensured = await capability?.ensure({
             workspaceId: 'workspace-1',
-            namespace: 'bom_lifecycle_four_layer',
+            namespace: 'managed_knowledge_four_layer',
             inheritEmbeddingModel: true,
             knowledgebases: [
                 {
@@ -1928,7 +1931,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 source: 'test'
             },
             humanInput: {
-                caseKnowledgeFolders: { source: 'customers/JNGL/cases/26B31301' }
+                knowledgeFolders: { source: 'departments/sales/source' }
             }
         })
 
@@ -1947,7 +1950,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 message: expect.objectContaining({
                     input: expect.objectContaining({
                         input: '重新解析合同',
-                        caseKnowledgeFolders: { source: 'customers/JNGL/cases/26B31301' },
+                        knowledgeFolders: { source: 'departments/sales/source' },
                         files: [
                             expect.objectContaining({
                                 fileId: 'file-asset-1',

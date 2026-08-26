@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { TestBed } from '@angular/core/testing'
 import { Store } from '@cloud/app/@core/state'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { BehaviorSubject, of } from 'rxjs'
 import { MembershipService } from './membership.service'
 import { CopilotServerService } from './copilot-server.service'
@@ -54,5 +55,27 @@ describe('MembershipService', () => {
     expect(http.get).toHaveBeenCalledTimes(2)
 
     subscription.unsubscribe()
+  })
+
+  it('loads every model type for membership plan configuration', () => {
+    http.get.mockImplementation((_url, options) =>
+      of([
+        {
+          id: `copilot-${options.params.type}`,
+          providerWithModels: {
+            provider: 'provider',
+            models: [{ model: `model-${options.params.type}`, model_type: options.params.type }]
+          }
+        }
+      ])
+    )
+    const modelTypes = Object.values(AiModelTypeEnum)
+    const results: Array<{ id: string }> = []
+
+    service.getModelOptions().subscribe((models) => results.push(...models))
+
+    expect(http.get).toHaveBeenCalledTimes(modelTypes.length)
+    expect(http.get.mock.calls.map(([, options]) => options.params.type)).toEqual(modelTypes)
+    expect(results.map(({ id }) => id)).toEqual(modelTypes.map((type) => `copilot-${type}`))
   })
 })

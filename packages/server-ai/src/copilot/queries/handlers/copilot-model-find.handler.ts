@@ -38,7 +38,11 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
         const managementCopilots = await this.service.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId)
         const copilots =
             command.catalogMode === CopilotModelCatalogMode.MembershipManagement
-                ? managementCopilots.filter((copilot) => (copilot.organizationId ?? null) === (organizationId ?? null))
+                ? managementCopilots.filter(
+                      (copilot) =>
+                          (copilot.organizationId ?? null) === (organizationId ?? null) &&
+                          copilot.copilotModel?.modelType === command.type
+                  )
                 : managementCopilots
         const copilotSchemas: CopilotWithProviderDto[] = []
         for (const copilot of copilots) {

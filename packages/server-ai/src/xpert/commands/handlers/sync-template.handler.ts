@@ -82,7 +82,7 @@ function hasRuntimeDependencies(dependencies: unknown): boolean {
     if (!dependencies || typeof dependencies !== 'object') {
         return false
     }
-    return ['skills', 'mcpServers', 'hooks', 'apps', 'plugins'].some((key) => {
+    return ['skills', 'mcpServers', 'hooks', 'apps'].some((key) => {
         const value = Reflect.get(dependencies, key)
         return Array.isArray(value) && value.length > 0
     })

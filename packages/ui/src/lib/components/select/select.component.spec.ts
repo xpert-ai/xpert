@@ -6,7 +6,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
 import { provideUiI18nAdapter } from '../../core/i18n/ui-i18n.service'
 import { ZardSelectItemComponent } from './select-item.component'
-import { ZardSelectComponent } from './select.component'
+import { ZardSelectComponent, type ZardSelectValue } from './select.component'
 
 function dispatchPointerDown(element: Element) {
   if (typeof PointerEvent !== 'function') {
@@ -79,6 +79,20 @@ class AsyncOptionsHostComponent {
 })
 class MultiSelectHostComponent {
   readonly control = new FormControl<Array<string>>(['SUPER_ADMIN', 'ADMIN'], { nonNullable: true })
+}
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, ZardSelectComponent, ZardSelectItemComponent],
+  template: `
+    <z-select [formControl]="control" [zMultiple]="true" zPlaceholder="Select roles">
+      <z-select-item zValue="ADMIN">ADMIN</z-select-item>
+      <z-select-item zValue="VIEWER">VIEWER</z-select-item>
+    </z-select>
+  `
+})
+class LegacyScalarMultiSelectHostComponent {
+  readonly control = new FormControl<ZardSelectValue | ZardSelectValue[]>('ADMIN', { nonNullable: true })
 }
 
 function createI18nProvider(language: WritableSignal<string>) {
@@ -226,5 +240,57 @@ describe('ZardSelectComponent', () => {
 
     trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement
     expect(trigger.textContent).toContain('还有 1 项已选择')
+  })
+
+  it('writes the complete selection to a reactive form in multiple mode', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [MultiSelectHostComponent]
+    }).createComponent(MultiSelectHostComponent)
+    const overlayContainer = TestBed.inject(OverlayContainer)
+
+    fixture.detectChanges()
+
+    const trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const options = overlayContainer.getContainerElement().querySelectorAll('z-select-item')
+    const viewerOption = options[2] as HTMLElement
+
+    dispatchPointerDown(viewerOption)
+    dispatchMouseDown(viewerOption)
+    viewerOption.click()
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.control.value).toEqual(['SUPER_ADMIN', 'ADMIN', 'VIEWER'])
+  })
+
+  it('normalizes a scalar form value before adding another selection in multiple mode', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [LegacyScalarMultiSelectHostComponent]
+    }).createComponent(LegacyScalarMultiSelectHostComponent)
+    const overlayContainer = TestBed.inject(OverlayContainer)
+
+    fixture.detectChanges()
+
+    const trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const options = overlayContainer.getContainerElement().querySelectorAll('z-select-item')
+    const viewerOption = options[1] as HTMLElement
+
+    dispatchPointerDown(viewerOption)
+    dispatchMouseDown(viewerOption)
+    viewerOption.click()
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.control.value).toEqual(['ADMIN', 'VIEWER'])
   })
 })

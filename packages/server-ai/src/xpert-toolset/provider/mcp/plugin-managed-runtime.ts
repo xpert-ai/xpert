@@ -1,8 +1,15 @@
-import { loaded as loadedPlugins, resolveLoadedPluginBundleRoot } from '@xpert-ai/server-core'
-import type { IXpertToolset, TMCPSchema, TMCPServer } from '@xpert-ai/contracts'
+import {
+    collectPluginBundleComponents,
+    loaded as loadedPlugins,
+    readPluginBundleManifest,
+    resolveLoadedPluginBundleRoot
+} from '@xpert-ai/server-core'
+import { PLUGIN_COMPONENT_TYPE } from '@xpert-ai/contracts'
+import type { IXpertToolset, TMCPSchema, TMCPServer, XpertPluginMcpServerPolicy } from '@xpert-ai/contracts'
 import type { LoadedPluginRecord } from '@xpert-ai/server-core'
 import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { resolve } from 'node:path'
+import { parsePluginMcpServerConfig } from '../../../plugin-resource/plugin-mcp-server-contract'
 
 type PluginManagedToolsetOptions = {
     pluginManaged?: boolean
@@ -13,6 +20,12 @@ type PluginManagedToolsetOptions = {
 export type PluginRuntimePaths = {
     pluginRoot: string
     pluginData: string
+}
+
+export type PluginManagedMcpContract = PluginRuntimePaths & {
+    componentKey: string
+    server: TMCPServer
+    policy: XpertPluginMcpServerPolicy
 }
 
 const PLUGIN_ROOT_PATTERN = /\$\{PLUGIN_ROOT\}|\$PLUGIN_ROOT|\$\{XPERT_PLUGIN_ROOT\}|\$XPERT_PLUGIN_ROOT/g
@@ -102,6 +115,34 @@ export function resolvePluginManagedRuntimePaths(toolset: Partial<IXpertToolset>
     }
 }
 
+export function resolvePluginManagedMcpContract(toolset: Partial<IXpertToolset>): PluginManagedMcpContract | null {
+    const options = readPluginManagedOptions(toolset)
+    if (!options?.componentKey) {
+        return null
+    }
+    const paths = resolvePluginManagedRuntimePaths(toolset)
+    if (!paths) {
+        return null
+    }
+    const manifestResult = readPluginBundleManifest(paths.pluginRoot)
+    if (!manifestResult) {
+        return null
+    }
+    const component = collectPluginBundleComponents(paths.pluginRoot, manifestResult.manifest).find(
+        (item) => item.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER && item.componentKey === options.componentKey
+    )
+    if (!component) {
+        return null
+    }
+    const parsed = parsePluginMcpServerConfig(component.config, options.componentKey)
+    return {
+        ...paths,
+        componentKey: options.componentKey,
+        server: resolvePluginManagedServer(parsed.server, options.pluginName, paths),
+        policy: parsed.policy
+    }
+}
+
 function escapeRegExp(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -153,27 +194,13 @@ export function resolvePluginManagedMcpSchema(toolset: Partial<IXpertToolset>, s
     if (!options) {
         return schema
     }
-
-    const paths = resolvePluginManagedRuntimePaths(toolset)
-    if (!paths) {
-        return schema
-    }
-
-    const resolveServers = (servers?: Record<string, TMCPServer>) => {
-        if (!servers) {
-            return undefined
-        }
-        return Object.fromEntries(
-            Object.entries(servers).map(([name, server]) => [
-                name,
-                resolvePluginManagedServer(server, options.pluginName, paths)
-            ])
+    const contract = resolvePluginManagedMcpContract(toolset)
+    if (!contract) {
+        throw new Error(
+            `Plugin-managed MCP component '${options.pluginName}:${options.componentKey ?? 'missing'}' is not available in the current plugin manifest`
         )
     }
-
-    return {
-        ...schema,
-        ...(schema.servers ? { servers: resolveServers(schema.servers) } : {}),
-        ...(schema.mcpServers ? { mcpServers: resolveServers(schema.mcpServers) } : {})
-    }
+    return schema.servers
+        ? { servers: { [contract.componentKey]: contract.server } }
+        : { mcpServers: { [contract.componentKey]: contract.server } }
 }

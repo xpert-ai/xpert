@@ -18,7 +18,7 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { OptionParams, PaginationParams, RequestContext, transformWhere, UserGroupService } from '@xpert-ai/server-core'
-import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -314,6 +314,29 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         }
 
         return entity
+    }
+
+    async assertCanAuthorById(id: string, resolvedWorkspaceId?: string | null): Promise<void> {
+        const xpert = await this.findOneByIdWithinTenant(id, {
+            select: ['id', 'organizationId', 'workspaceId', 'createdById']
+        })
+
+        const persistedWorkspaceId = xpert.workspaceId?.trim()
+        if (persistedWorkspaceId) {
+            await this.workspaceAccessService.assertCanAuthor(persistedWorkspaceId)
+        } else {
+            const isCreator = xpert.createdById === RequestContext.currentUserId()
+            const isCurrentOrganization =
+                (xpert.organizationId ?? null) === (RequestContext.getOrganizationId() ?? null)
+            if (!isCreator || !isCurrentOrganization) {
+                throw new ForbiddenException('Access denied to xpert')
+            }
+        }
+
+        const targetWorkspaceId = resolvedWorkspaceId?.trim()
+        if (targetWorkspaceId && targetWorkspaceId !== persistedWorkspaceId) {
+            await this.workspaceAccessService.assertCanAuthor(targetWorkspaceId)
+        }
     }
 
     async save(entity: Xpert) {

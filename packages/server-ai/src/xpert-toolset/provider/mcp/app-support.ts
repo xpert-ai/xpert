@@ -1,7 +1,12 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { Client as McpSdkClient, type Client } from '@modelcontextprotocol/sdk/client/index.js'
-import type { CallToolResult, ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
+import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
+import {
+    ListResourcesResultSchema,
+    ListToolsResultSchema,
+    ReadResourceResultSchema
+} from '@modelcontextprotocol/sdk/types.js'
 import {
     MCP_APP_RESOURCE_MIME_TYPE,
     type IXpertTool,
@@ -19,21 +24,35 @@ import {
     isToolEnabled
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
+import type { McpAppInstanceSnapshot } from '../../../mcp-app-runtime'
+import { LangChainMcpConnection } from '../../../mcp-consumer/connection/langchain-mcp-connection'
+import {
+    McpConsumerCallToolResult,
+    mcpConsumerCallToolResultSchema
+} from '../../../mcp-consumer/tools/mcp-consumer-call-tool-result'
+import { applicationMetrics } from '../../../metrics/application-metrics'
 
 const MCP_APP_INSTANCE_TTL_MS = 30 * 60 * 1000
 const MCP_APP_RESOURCE_MAX_BYTES = 2 * 1024 * 1024
 const MCP_APP_HISTORY_TOOL_RESULT_MAX_BYTES = 128 * 1024
+const MCP_APP_MESSAGE_MAX_BYTES = 25 * 1024 * 1024
+const MCP_APP_LOG_MAX_BYTES = 64 * 1024
+const MCP_APP_MESSAGE_MAX_CONTENT_BLOCKS = 100
+const MCP_APP_PERSISTED_TEXT_PREVIEW_LENGTH = 4_096
 const MCP_APP_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui'
 const bridgedMcpAppClients = new WeakSet<MultiServerMCPClient>()
 let mcpUiClientCapabilitiesBridgeInstalled = false
 
-type McpToolLike = {
+export type McpToolLike = {
     name: string
     description?: string
     inputSchema?: Record<string, unknown>
     annotations?: Record<string, unknown>
+    execution?: {
+        taskSupport?: 'required' | 'optional' | 'forbidden'
+    }
     _meta?: Record<string, unknown>
 }
 
@@ -56,6 +75,7 @@ type McpSdkClientWithCapabilities = Client & {
 
 export type McpAppInstance = {
     id: string
+    userId?: string
     client: MultiServerMCPClient
     destroy?: (() => Promise<void>) | null
     closeClientOnExpire?: boolean
@@ -71,11 +91,137 @@ export type McpAppInstance = {
     }
     messages: unknown[]
     logs: unknown[]
+    stateVersion: number
     createdAt: number
     expiresAt: number
 }
 
+type McpAppMessageContentBlock =
+    | (Record<string, unknown> & { type: 'text'; text: string })
+    | (Record<string, unknown> & { type: 'image' | 'audio'; data: string; mimeType: string })
+    | (Record<string, unknown> & {
+          type: 'resource'
+          resource: Record<string, unknown> &
+              ({ uri: string; mimeType?: string; text: string } | { uri: string; mimeType?: string; blob: string })
+      })
+    | (Record<string, unknown> & { type: 'resource_link'; uri: string })
+
 const mcpAppInstances = new Map<string, McpAppInstance>()
+
+type McpAppInstancePersistence = {
+    save(snapshot: McpAppInstanceSnapshot): Promise<boolean>
+    get(appInstanceId: string): Promise<McpAppInstanceSnapshot | null>
+    delete(appInstanceId: string): Promise<void>
+    onError?(operation: 'save' | 'delete', error: unknown): void
+}
+
+let mcpAppInstancePersistence: McpAppInstancePersistence | null = null
+const pendingMcpAppInstancePersistence = new Map<string, Promise<void>>()
+const pendingMcpAppInstanceMutations = new Map<string, Promise<unknown>>()
+
+export function configureMcpAppInstancePersistence(persistence: McpAppInstancePersistence | null) {
+    mcpAppInstancePersistence = persistence
+}
+
+export function snapshotMcpAppInstance(instance: McpAppInstance): McpAppInstanceSnapshot {
+    const resourceUri = instance.toolMeta.ui?.resourceUri
+    if (!resourceUri) throw new Error('MCP App instance does not have a resource URI')
+    return {
+        version: 1,
+        stateVersion: instance.stateVersion,
+        appInstanceId: instance.id,
+        tenantId: instance.toolset.tenantId,
+        organizationId: instance.toolset.organizationId,
+        workspaceId: instance.toolset.workspaceId,
+        userId: instance.userId,
+        toolsetId: instance.toolset.id,
+        serverName: instance.toolMeta.serverName,
+        toolName: instance.toolMeta.name,
+        displayName: instance.toolMeta.displayName,
+        resourceUri,
+        toolCallId: instance.toolCallId,
+        toolInput: instance.toolInput,
+        toolResult: instance.toolResult,
+        modelContext: instance.modelContext,
+        messages: instance.messages.slice(-20).map(persistedMcpAppMessageSummary),
+        logs: instance.logs.slice(-50).map(persistedMcpAppLogSummary),
+        createdAt: instance.createdAt,
+        expiresAt: instance.expiresAt
+    }
+}
+
+function persistMcpAppInstance(instance: McpAppInstance) {
+    if (!mcpAppInstancePersistence) return Promise.resolve()
+    const persistence = mcpAppInstancePersistence
+    const snapshot = snapshotMcpAppInstance(instance)
+    return enqueueMcpAppInstancePersistence(instance.id, persistence, 'save', async () => {
+        const saved = await persistence.save(snapshot)
+        if (saved) return
+
+        const current = await persistence.get(instance.id)
+        if (current) {
+            applyMcpAppInstanceSnapshot(instance, current, { allowEqualVersion: true })
+        } else {
+            deleteMcpAppInstanceRecord(instance.id)
+            closeMcpAppInstanceClient({ ...instance, closeClientOnExpire: true })
+        }
+        throw new Error('MCP App state changed on another API replica; retry the request')
+    })
+}
+
+function deletePersistedMcpAppInstance(appInstanceId: string) {
+    if (!mcpAppInstancePersistence) return Promise.resolve()
+    const persistence = mcpAppInstancePersistence
+    return enqueueMcpAppInstancePersistence(appInstanceId, persistence, 'delete', () =>
+        persistence.delete(appInstanceId)
+    )
+}
+
+function enqueueMcpAppInstancePersistence(
+    appInstanceId: string,
+    persistence: McpAppInstancePersistence,
+    operation: 'save' | 'delete',
+    task: () => Promise<void>
+) {
+    const previous = pendingMcpAppInstancePersistence.get(appInstanceId) ?? Promise.resolve()
+    const pending = previous.catch(() => undefined).then(task)
+    pendingMcpAppInstancePersistence.set(appInstanceId, pending)
+    pending.then(
+        () => {
+            if (pendingMcpAppInstancePersistence.get(appInstanceId) === pending) {
+                pendingMcpAppInstancePersistence.delete(appInstanceId)
+            }
+        },
+        (error) => {
+            persistence.onError?.(operation, error)
+            if (pendingMcpAppInstancePersistence.get(appInstanceId) === pending) {
+                pendingMcpAppInstancePersistence.delete(appInstanceId)
+            }
+        }
+    )
+    return pending
+}
+
+export function waitForMcpAppInstancePersistence(appInstanceId: string) {
+    return pendingMcpAppInstancePersistence.get(appInstanceId) ?? Promise.resolve()
+}
+
+export function runMcpAppInstanceMutation<T>(appInstanceId: string, task: () => Promise<T>): Promise<T> {
+    const previous = pendingMcpAppInstanceMutations.get(appInstanceId) ?? Promise.resolve()
+    const pending = previous.catch(() => undefined).then(task)
+    pendingMcpAppInstanceMutations.set(appInstanceId, pending)
+    pending.then(
+        () => clearMcpAppInstanceMutation(appInstanceId, pending),
+        () => clearMcpAppInstanceMutation(appInstanceId, pending)
+    )
+    return pending
+}
+
+function clearMcpAppInstanceMutation(appInstanceId: string, pending: Promise<unknown>) {
+    if (pendingMcpAppInstanceMutations.get(appInstanceId) === pending) {
+        pendingMcpAppInstanceMutations.delete(appInstanceId)
+    }
+}
 
 type McpAppInstanceTokenPayload = {
     v: 1
@@ -83,6 +229,7 @@ type McpAppInstanceTokenPayload = {
     tenantId?: string
     organizationId?: string
     workspaceId?: string
+    userId?: string
     toolsetId?: string
     serverName?: string
     toolName?: string
@@ -103,6 +250,7 @@ export type McpAppInstanceTokenExpected = Partial<
         | 'tenantId'
         | 'organizationId'
         | 'workspaceId'
+        | 'userId'
         | 'toolsetId'
         | 'serverName'
         | 'toolName'
@@ -186,6 +334,7 @@ export function createMcpAppInstanceToken(instance: McpAppInstance) {
         tenantId: instance.toolset.tenantId,
         organizationId: instance.toolset.organizationId,
         workspaceId: instance.toolset.workspaceId,
+        userId: instance.userId,
         toolsetId: instance.toolset.id,
         serverName: instance.toolMeta.serverName,
         toolName: instance.toolMeta.name,
@@ -250,6 +399,7 @@ export function verifyMcpAppInstanceToken(
     assertTokenField(payload, expected, 'tenantId')
     assertTokenField(payload, expected, 'organizationId')
     assertTokenField(payload, expected, 'workspaceId')
+    assertTokenField(payload, expected, 'userId')
     assertTokenField(payload, expected, 'toolsetId')
     assertTokenField(payload, expected, 'serverName')
     assertTokenField(payload, expected, 'toolName')
@@ -260,6 +410,8 @@ export function verifyMcpAppInstanceToken(
 
 export function refreshMcpAppInstanceToken(instance: McpAppInstance, now = Date.now()) {
     instance.expiresAt = now + MCP_APP_INSTANCE_TTL_MS
+    markMcpAppInstanceChanged(instance)
+    persistMcpAppInstance(instance)
     return createMcpAppInstanceToken(instance)
 }
 
@@ -282,6 +434,10 @@ export function installMcpUiClientCapabilitiesBridge(): void {
     ) {
         if (!this.transport && typeof this.registerCapabilities === 'function') {
             this.registerCapabilities({
+                elicitation: {
+                    form: {},
+                    url: {}
+                },
                 extensions: {
                     [MCP_APP_UI_EXTENSION_ID]: {
                         mimeTypes: [MCP_APP_RESOURCE_MIME_TYPE]
@@ -532,34 +688,95 @@ async function listSdkTools(sdkClient: Client): Promise<McpToolLike[]> {
     return tools
 }
 
+async function listClientTools(
+    client: MultiServerMCPClient,
+    connection: LangChainMcpConnection,
+    serverName: string
+): Promise<McpToolLike[]> {
+    if (!connection.usesModernHttp(serverName)) {
+        const sdkClient = await client.getClient(serverName)
+        return sdkClient ? listSdkTools(sdkClient) : []
+    }
+
+    const tools: McpToolLike[] = []
+    let cursor: string | undefined
+    do {
+        const response = await connection.requestExtension(
+            serverName,
+            { method: 'tools/list', params: cursor ? { cursor } : {} },
+            ListToolsResultSchema,
+            { routing: { method: 'tools/list' } }
+        )
+        for (const tool of response.tools) {
+            if (typeof tool.name === 'string' && tool.name) {
+                tools.push(normalizeMcpToolLike({ ...tool, name: tool.name }))
+            }
+        }
+        cursor = response.nextCursor
+    } while (cursor)
+    return tools
+}
+
 export async function listMcpToolAppMetadata(client: MultiServerMCPClient): Promise<TMcpToolAppMeta[]> {
-    const config = client.config
-    const serverNames = Object.keys(config.mcpServers ?? {})
+    const connection = new LangChainMcpConnection(client)
+    const serverNames = connection.serverNames()
     const loadOptions = (client as unknown as McpClientPrivateState)._loadToolsOptions ?? {}
     const metadata: TMcpToolAppMeta[] = []
 
     for (const serverName of serverNames) {
-        const sdkClient = await client.getClient(serverName)
-        if (!sdkClient) {
-            continue
-        }
-
-        for (const tool of await listSdkTools(sdkClient)) {
-            const meta = isRecord(tool._meta) ? tool._meta : undefined
-            metadata.push({
-                serverName,
-                name: tool.name,
-                displayName: getToolDisplayName(serverName, tool.name, loadOptions[serverName]),
-                inputSchema: normalizeInputSchema(tool.inputSchema),
-                visibility: extractMcpAppVisibility(meta),
-                ui: extractMcpAppUiMeta(meta),
-                annotations: tool.annotations,
-                _meta: meta
-            })
+        for (const tool of await listClientTools(client, connection, serverName)) {
+            metadata.push(
+                createMcpToolAppMeta(
+                    serverName,
+                    getToolDisplayName(serverName, tool.name, loadOptions[serverName]),
+                    tool
+                )
+            )
         }
     }
 
     return metadata
+}
+
+function normalizeMcpToolLike(tool: {
+    name: string
+    description?: string
+    inputSchema?: object
+    annotations?: object
+}): McpToolLike {
+    const metaValue = Reflect.get(tool, '_meta')
+    const executionValue = Reflect.get(tool, 'execution')
+    const taskSupport =
+        typeof executionValue === 'object' && executionValue !== null && !Array.isArray(executionValue)
+            ? Reflect.get(executionValue, 'taskSupport')
+            : undefined
+    return {
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema ? Object.fromEntries(Object.entries(tool.inputSchema)) : undefined,
+        annotations: tool.annotations ? Object.fromEntries(Object.entries(tool.annotations)) : undefined,
+        ...(taskSupport === 'required' || taskSupport === 'optional' || taskSupport === 'forbidden'
+            ? { execution: { taskSupport } }
+            : {}),
+        ...(typeof metaValue === 'object' && metaValue !== null && !Array.isArray(metaValue)
+            ? { _meta: Object.fromEntries(Object.entries(metaValue)) }
+            : {})
+    }
+}
+
+export function createMcpToolAppMeta(serverName: string, displayName: string, tool: McpToolLike): TMcpToolAppMeta {
+    const meta = isRecord(tool._meta) ? tool._meta : undefined
+    return {
+        serverName,
+        name: tool.name,
+        displayName,
+        inputSchema: normalizeInputSchema(tool.inputSchema),
+        visibility: extractMcpAppVisibility(meta),
+        ui: extractMcpAppUiMeta(meta),
+        annotations: tool.annotations,
+        execution: tool.execution,
+        _meta: meta
+    }
 }
 
 export function getMcpToolAppMeta(tool: DynamicStructuredTool): TMcpToolAppMeta | undefined {
@@ -787,7 +1004,7 @@ function closeMcpAppInstanceClient(instance: McpAppInstance) {
 function pruneExpiredMcpAppInstances(now = Date.now()) {
     for (const [id, instance] of mcpAppInstances) {
         if (instance.expiresAt <= now) {
-            mcpAppInstances.delete(id)
+            deleteMcpAppInstanceRecord(id)
             closeMcpAppInstanceClient(instance)
         }
     }
@@ -803,6 +1020,7 @@ export function isMcpAppsEnabled(): boolean {
 
 export function registerMcpAppInstance(options: {
     client: MultiServerMCPClient
+    userId?: string
     toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     tool: DynamicStructuredTool
     toolCallId?: string
@@ -837,6 +1055,7 @@ export function registerMcpAppInstance(options: {
     const id = randomUUID()
     const instance: McpAppInstance = {
         id,
+        userId: options.userId,
         client: options.client,
         destroy: null,
         closeClientOnExpire: false,
@@ -850,11 +1069,14 @@ export function registerMcpAppInstance(options: {
         toolResult,
         messages: [],
         logs: [],
+        stateVersion: 1,
         createdAt: now,
         expiresAt: now + MCP_APP_INSTANCE_TTL_MS
     }
 
     mcpAppInstances.set(id, instance)
+    applicationMetrics.startMcpAppInstance({ publicationId: 'consumer' })
+    persistMcpAppInstance(instance)
     mcpStdioRuntimeManager.attachAppInstance(options.client, id)
 
     return {
@@ -883,12 +1105,19 @@ export function registerMcpAppInstance(options: {
 export function restoreMcpAppInstance(options: {
     id: string
     client: MultiServerMCPClient
+    userId?: string
     destroy?: (() => Promise<void>) | null
     toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     toolMeta: TMcpToolAppMeta
     toolCallId?: string
     toolInput?: unknown
     toolResult?: unknown
+    modelContext?: McpAppInstance['modelContext']
+    messages?: unknown[]
+    logs?: unknown[]
+    stateVersion?: number
+    createdAt?: number
+    expiresAt?: number
 }): McpAppInstance | null {
     if (!isMcpAppsEnabled()) {
         return null
@@ -905,9 +1134,13 @@ export function restoreMcpAppInstance(options: {
 
     const now = Date.now()
     pruneExpiredMcpAppInstances(now)
+    const expiresAt = Math.max(now + MCP_APP_INSTANCE_TTL_MS, options.expiresAt ?? 0)
+    const stateVersion =
+        (options.stateVersion ?? 1) + (options.expiresAt !== undefined && expiresAt > options.expiresAt ? 1 : 0)
 
     const instance: McpAppInstance = {
         id: options.id,
+        userId: options.userId,
         client: options.client,
         destroy: options.destroy ?? null,
         closeClientOnExpire: true,
@@ -916,21 +1149,66 @@ export function restoreMcpAppInstance(options: {
         toolCallId: options.toolCallId,
         toolInput: isRecord(options.toolInput) ? options.toolInput : {},
         toolResult: normalizeMcpAppToolResult(options.toolResult),
-        messages: [],
-        logs: [],
-        createdAt: now,
-        expiresAt: now + MCP_APP_INSTANCE_TTL_MS
+        modelContext: options.modelContext,
+        messages: options.messages?.slice(-20) ?? [],
+        logs: options.logs?.slice(-50) ?? [],
+        stateVersion,
+        createdAt: options.createdAt ?? now,
+        expiresAt
     }
 
+    const isNewInstance = !mcpAppInstances.has(options.id)
     mcpAppInstances.set(options.id, instance)
+    if (isNewInstance) applicationMetrics.startMcpAppInstance({ publicationId: 'consumer' })
+    persistMcpAppInstance(instance)
     return instance
+}
+
+/** Refreshes only Redis-backed mutable state while retaining this process's live MCP client. */
+export function applyMcpAppInstanceSnapshot(
+    instance: McpAppInstance,
+    snapshot: McpAppInstanceSnapshot,
+    options?: { allowEqualVersion?: boolean }
+) {
+    if (
+        snapshot.appInstanceId !== instance.id ||
+        snapshot.toolsetId !== instance.toolset.id ||
+        snapshot.serverName !== instance.toolMeta.serverName ||
+        snapshot.toolName !== instance.toolMeta.name ||
+        snapshot.resourceUri !== instance.toolMeta.ui?.resourceUri ||
+        (snapshot.userId !== undefined && instance.userId !== undefined && snapshot.userId !== instance.userId) ||
+        snapshot.stateVersion < instance.stateVersion ||
+        (snapshot.stateVersion === instance.stateVersion && !options?.allowEqualVersion)
+    ) {
+        return false
+    }
+    instance.userId = snapshot.userId ?? instance.userId
+    instance.toolCallId = snapshot.toolCallId
+    instance.toolInput = isRecord(snapshot.toolInput) ? snapshot.toolInput : {}
+    instance.toolResult = normalizeMcpAppToolResult(snapshot.toolResult)
+    instance.modelContext = isRecord(snapshot.modelContext)
+        ? {
+              content: snapshot.modelContext.content,
+              structuredContent: isRecord(snapshot.modelContext.structuredContent)
+                  ? snapshot.modelContext.structuredContent
+                  : undefined,
+              updatedAt:
+                  typeof snapshot.modelContext.updatedAt === 'number' ? snapshot.modelContext.updatedAt : Date.now()
+          }
+        : undefined
+    instance.messages = snapshot.messages?.slice(-20) ?? []
+    instance.logs = snapshot.logs?.slice(-50) ?? []
+    instance.stateVersion = snapshot.stateVersion
+    instance.createdAt = snapshot.createdAt
+    instance.expiresAt = snapshot.expiresAt
+    return true
 }
 
 export function detachMcpAppInstancesForClient(client: MultiServerMCPClient) {
     let detached = 0
     for (const [id, instance] of mcpAppInstances) {
         if (instance.client === client) {
-            mcpAppInstances.delete(id)
+            deleteMcpAppInstanceRecord(id)
             detached++
         }
     }
@@ -941,18 +1219,32 @@ export function getMcpAppInstance(appInstanceId: string): McpAppInstance | null 
     pruneExpiredMcpAppInstances()
     const instance = mcpAppInstances.get(appInstanceId)
     if (!instance || instance.expiresAt <= Date.now()) {
-        mcpAppInstances.delete(appInstanceId)
+        deleteMcpAppInstanceRecord(appInstanceId)
         if (instance) {
             closeMcpAppInstanceClient(instance)
         }
         return null
     }
     if (!mcpStdioRuntimeManager.isClientRuntimeUsable(instance.client)) {
-        mcpAppInstances.delete(appInstanceId)
+        deleteMcpAppInstanceRecord(appInstanceId)
         closeMcpAppInstanceClient(instance)
         return null
     }
     return instance
+}
+
+export function removeMcpAppInstance(appInstanceId: string) {
+    const instance = mcpAppInstances.get(appInstanceId)
+    deleteMcpAppInstanceRecord(appInstanceId)
+    deletePersistedMcpAppInstance(appInstanceId)
+    if (instance) closeMcpAppInstanceClient({ ...instance, closeClientOnExpire: true })
+    return Boolean(instance)
+}
+
+function deleteMcpAppInstanceRecord(appInstanceId: string) {
+    const deleted = mcpAppInstances.delete(appInstanceId)
+    if (deleted) applicationMetrics.finishMcpAppInstance({ publicationId: 'consumer' })
+    return deleted
 }
 
 export function buildMcpAppComponentMessage(data: TMcpAppComponentData) {
@@ -1014,13 +1306,24 @@ export function normalizeMcpResourceContent(result: ReadResourceResult, expected
 }
 
 async function readListedMcpResourceUiMeta(
-    sdkClient: Client,
+    client: MultiServerMCPClient,
+    connection: LangChainMcpConnection,
+    serverName: string,
     resourceUri: string
 ): Promise<Partial<Omit<TMcpAppUiMeta, 'resourceUri'>> | undefined> {
     try {
         let cursor: string | undefined
         do {
-            const response = await sdkClient.listResources(cursor ? { cursor } : undefined)
+            const response = connection.usesModernHttp(serverName)
+                ? await connection.requestExtension(
+                      serverName,
+                      { method: 'resources/list', params: cursor ? { cursor } : {} },
+                      ListResourcesResultSchema,
+                      { routing: { method: 'resources/list' } }
+                  )
+                : await (
+                      await requireLegacyMcpClient(client, serverName)
+                  ).listResources(cursor ? { cursor } : undefined)
             const resource = response.resources?.find((item) => item.uri === resourceUri)
             if (resource) {
                 return extractMcpAppResourceUiMeta(resource)
@@ -1033,19 +1336,37 @@ async function readListedMcpResourceUiMeta(
     return undefined
 }
 
-export async function readMcpAppResource(instance: McpAppInstance) {
-    const sdkClient = await instance.client.getClient(instance.toolMeta.serverName)
-    if (!sdkClient) {
-        throw new Error(`MCP server '${instance.toolMeta.serverName}' is not connected`)
-    }
+async function requireLegacyMcpClient(client: MultiServerMCPClient, serverName: string): Promise<Client> {
+    const sdkClient = await client.getClient(serverName)
+    if (!sdkClient) throw new Error(`MCP server '${serverName}' is not connected`)
+    return sdkClient
+}
 
+async function readClientResource(
+    client: MultiServerMCPClient,
+    connection: LangChainMcpConnection,
+    serverName: string,
+    uri: string
+): Promise<ReadResourceResult> {
+    return connection.usesModernHttp(serverName)
+        ? connection.requestExtension(
+              serverName,
+              { method: 'resources/read', params: { uri } },
+              ReadResourceResultSchema,
+              { routing: { method: 'resources/read', name: uri } }
+          )
+        : (await requireLegacyMcpClient(client, serverName)).readResource({ uri })
+}
+
+export async function readMcpAppResource(instance: McpAppInstance) {
     const resourceUri = instance.toolMeta.ui?.resourceUri
     if (!resourceUri?.startsWith('ui://')) {
         throw new Error('MCP App resource URI must use the ui:// scheme')
     }
 
     mcpStdioRuntimeManager.touchClient(instance.client)
-    const result = await sdkClient.readResource({ uri: resourceUri })
+    const connection = new LangChainMcpConnection(instance.client)
+    const result = await readClientResource(instance.client, connection, instance.toolMeta.serverName, resourceUri)
     const resource = normalizeMcpResourceContent(result, resourceUri)
     const listedUi =
         resource.title &&
@@ -1053,7 +1374,7 @@ export async function readMcpAppResource(instance: McpAppInstance) {
         resource.icon &&
         (resource.csp || resource.permissions || resource.domain || resource.prefersBorder !== undefined)
             ? undefined
-            : await readListedMcpResourceUiMeta(sdkClient, resourceUri)
+            : await readListedMcpResourceUiMeta(instance.client, connection, instance.toolMeta.serverName, resourceUri)
     const resourceUi = {
         title: resource.title ?? listedUi?.title,
         description: resource.description ?? listedUi?.description,
@@ -1081,11 +1402,12 @@ export async function readMcpAppResource(instance: McpAppInstance) {
     }
 }
 
-export async function callMcpAppTool(instance: McpAppInstance, name: string, args: unknown): Promise<CallToolResult> {
-    const toolMetadata = await listMcpToolAppMetadata(instance.client)
-    const toolMeta = toolMetadata.find(
-        (item) => item.serverName === instance.toolMeta.serverName && (item.name === name || item.displayName === name)
-    )
+export async function callMcpAppTool(
+    instance: McpAppInstance,
+    name: string,
+    args: unknown
+): Promise<McpConsumerCallToolResult> {
+    const toolMeta = await getMcpAppToolMetadata(instance, name)
     if (!toolMeta) {
         throw new Error(`MCP App tool '${name}' was not found on this server`)
     }
@@ -1096,16 +1418,43 @@ export async function callMcpAppTool(instance: McpAppInstance, name: string, arg
         throw new Error(`MCP App tool '${name}' is disabled`)
     }
 
-    const sdkClient = await instance.client.getClient(instance.toolMeta.serverName)
-    if (!sdkClient) {
-        throw new Error(`MCP server '${instance.toolMeta.serverName}' is not connected`)
-    }
-
     mcpStdioRuntimeManager.touchClient(instance.client)
-    return sdkClient.callTool({
-        name: toolMeta.name,
-        arguments: isRecord(args) ? args : {}
-    })
+    const connection = new LangChainMcpConnection(instance.client)
+    return connection.usesModernHttp(instance.toolMeta.serverName)
+        ? connection.requestExtension(
+              instance.toolMeta.serverName,
+              {
+                  method: 'tools/call',
+                  params: { name: toolMeta.name, arguments: isRecord(args) ? args : {} }
+              },
+              mcpConsumerCallToolResultSchema,
+              { routing: { method: 'tools/call', name: toolMeta.name } }
+          )
+        : mcpConsumerCallToolResultSchema.parse(
+              await (
+                  await requireLegacyMcpClient(instance.client, instance.toolMeta.serverName)
+              ).callTool({
+                  name: toolMeta.name,
+                  arguments: isRecord(args) ? args : {}
+              })
+          )
+}
+
+export async function getMcpAppToolMetadata(instance: McpAppInstance, name: string) {
+    const toolMetadata = await listMcpToolAppMetadata(instance.client)
+    return toolMetadata.find(
+        (item) => item.serverName === instance.toolMeta.serverName && (item.name === name || item.displayName === name)
+    )
+}
+
+export async function listMcpAppVisibleToolMetadata(instance: McpAppInstance) {
+    const metadata = await listMcpToolAppMetadata(instance.client)
+    return metadata.filter(
+        (item) =>
+            item.serverName === instance.toolMeta.serverName &&
+            item.visibility.includes('app') &&
+            resolveToolEnabled(instance.toolset, item.name, item.displayName)
+    )
 }
 
 export async function readMcpAppServerResource(instance: McpAppInstance, uri: string): Promise<ReadResourceResult> {
@@ -1117,13 +1466,9 @@ export async function readMcpAppServerResource(instance: McpAppInstance, uri: st
         throw new Error(`MCP App resource reads do not allow the ${scheme}:// scheme`)
     }
 
-    const sdkClient = await instance.client.getClient(instance.toolMeta.serverName)
-    if (!sdkClient) {
-        throw new Error(`MCP server '${instance.toolMeta.serverName}' is not connected`)
-    }
-
     mcpStdioRuntimeManager.touchClient(instance.client)
-    const result = await sdkClient.readResource({ uri })
+    const connection = new LangChainMcpConnection(instance.client)
+    const result = await readClientResource(instance.client, connection, instance.toolMeta.serverName, uri)
     let totalBytes = 0
     for (const content of result.contents ?? []) {
         totalBytes += typeof content.text === 'string' ? Buffer.byteLength(content.text, 'utf8') : 0
@@ -1147,27 +1492,288 @@ export function updateMcpAppModelContext(instance: McpAppInstance, params: unkno
     if (!isRecord(params)) {
         throw new Error('ui/update-model-context params must be an object')
     }
+    if (params.content !== undefined && !Array.isArray(params.content)) {
+        throw new Error('ui/update-model-context params.content must be an array')
+    }
+    if (params.structuredContent !== undefined && !isRecord(params.structuredContent)) {
+        throw new Error('ui/update-model-context params.structuredContent must be an object')
+    }
+
+    const content = Array.isArray(params.content)
+        ? params.content.map((item, index) => {
+              const block = normalizeMcpAppMessageContentBlock(item, index)
+              if (block.type !== 'text') {
+                  throw new Error('ui/update-model-context only accepts negotiated text content blocks')
+              }
+              return block
+          })
+        : undefined
+    const structuredContent = isRecord(params.structuredContent) ? params.structuredContent : undefined
+    const contextBytes = getSerializedByteSize({ content, structuredContent })
+    if (contextBytes > MCP_APP_MESSAGE_MAX_BYTES) {
+        throw new Error('ui/update-model-context content exceeds the 25 MiB limit')
+    }
+
     instance.modelContext = {
-        content: params.content,
-        structuredContent: isRecord(params.structuredContent) ? params.structuredContent : undefined,
+        content,
+        structuredContent,
         updatedAt: Date.now()
     }
+    markMcpAppInstanceChanged(instance)
+    persistMcpAppInstance(instance)
 }
 
 export function appendMcpAppMessage(instance: McpAppInstance, params: unknown) {
     if (!isRecord(params) || params.role !== 'user' || !Array.isArray(params.content)) {
         throw new Error('ui/message params must include role "user" and content blocks')
     }
+    if (!params.content.length) {
+        throw new Error('ui/message content must not be empty')
+    }
+    if (params.content.length > MCP_APP_MESSAGE_MAX_CONTENT_BLOCKS) {
+        throw new Error(`ui/message accepts at most ${MCP_APP_MESSAGE_MAX_CONTENT_BLOCKS} content blocks`)
+    }
+
+    let messageBytes = 0
+    const content = params.content.map((item, index) => {
+        const block = normalizeMcpAppMessageContentBlock(item, index)
+        switch (block.type) {
+            case 'text':
+                messageBytes += Buffer.byteLength(block.text, 'utf8')
+                break
+            case 'image':
+            case 'audio':
+                if (!block.mimeType.toLowerCase().startsWith(`${block.type}/`)) {
+                    throw new Error(`ui/message ${block.type} block ${index + 1} has an invalid MIME type`)
+                }
+                messageBytes += validatedBase64ByteLength(block.data, index)
+                break
+            case 'resource':
+                if (typeof block.resource.text === 'string') {
+                    messageBytes += Buffer.byteLength(block.resource.text, 'utf8')
+                } else if (typeof block.resource.blob === 'string') {
+                    messageBytes += validatedBase64ByteLength(block.resource.blob, index)
+                }
+                break
+            case 'resource_link':
+                messageBytes += Buffer.byteLength(JSON.stringify(block), 'utf8')
+                break
+            default:
+                throw new Error(`ui/message content block ${index + 1} uses an unsupported type`)
+        }
+
+        if (messageBytes > MCP_APP_MESSAGE_MAX_BYTES) {
+            throw new Error('ui/message content exceeds the 25 MiB limit')
+        }
+        return block
+    })
+
     instance.messages.push({
         ...params,
+        content,
         receivedAt: new Date().toISOString(),
         modelContext: instance.modelContext
     })
+    instance.messages = instance.messages.slice(-20)
+    markMcpAppInstanceChanged(instance)
+    persistMcpAppInstance(instance)
+}
+
+function validatedBase64ByteLength(value: string, index: number) {
+    const data = value.replace(/\s/g, '')
+    if (!data || data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(data)) {
+        throw new Error(`ui/message content block ${index + 1} contains invalid base64 data`)
+    }
+    const padding = data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0
+    return (data.length / 4) * 3 - padding
+}
+
+function normalizeMcpAppMessageContentBlock(value: unknown, index: number): McpAppMessageContentBlock {
+    if (!isRecord(value) || typeof value.type !== 'string') {
+        throw new Error(`ui/message content block ${index + 1} is invalid`)
+    }
+
+    switch (value.type) {
+        case 'text':
+            if (typeof value.text !== 'string') {
+                throw new Error(`ui/message text block ${index + 1} is invalid`)
+            }
+            return { ...value, type: 'text', text: value.text }
+        case 'image':
+        case 'audio':
+            if (typeof value.data !== 'string' || typeof value.mimeType !== 'string') {
+                throw new Error(`ui/message ${value.type} block ${index + 1} is invalid`)
+            }
+            return { ...value, type: value.type, data: value.data, mimeType: value.mimeType }
+        case 'resource': {
+            const resource = value.resource
+            if (!isRecord(resource) || typeof resource.uri !== 'string') {
+                throw new Error(`ui/message resource block ${index + 1} is invalid`)
+            }
+            const uri = resource.uri
+            if (resource.mimeType !== undefined && typeof resource.mimeType !== 'string') {
+                throw new Error(`ui/message resource block ${index + 1} has an invalid MIME type`)
+            }
+            const mimeType = typeof resource.mimeType === 'string' ? resource.mimeType : undefined
+            if (typeof resource.text === 'string' && resource.blob === undefined) {
+                return {
+                    ...value,
+                    type: 'resource',
+                    resource: {
+                        ...resource,
+                        uri,
+                        mimeType,
+                        text: resource.text
+                    }
+                }
+            }
+            if (typeof resource.blob === 'string' && resource.text === undefined) {
+                return {
+                    ...value,
+                    type: 'resource',
+                    resource: {
+                        ...resource,
+                        uri,
+                        mimeType,
+                        blob: resource.blob
+                    }
+                }
+            }
+            throw new Error(`ui/message resource block ${index + 1} must contain either text or blob`)
+        }
+        case 'resource_link':
+            if (typeof value.uri !== 'string') {
+                throw new Error(`ui/message resource link block ${index + 1} is invalid`)
+            }
+            if (
+                (value.name !== undefined && typeof value.name !== 'string') ||
+                (value.description !== undefined && typeof value.description !== 'string') ||
+                (value.mimeType !== undefined && typeof value.mimeType !== 'string') ||
+                (value.size !== undefined && typeof value.size !== 'number')
+            ) {
+                throw new Error(`ui/message resource link block ${index + 1} is invalid`)
+            }
+            return { ...value, type: 'resource_link', uri: value.uri }
+        default:
+            throw new Error(`ui/message content block ${index + 1} uses an unsupported type`)
+    }
 }
 
 export function appendMcpAppLog(instance: McpAppInstance, params: unknown) {
+    if (getSerializedByteSize(params) > MCP_APP_LOG_MAX_BYTES) {
+        throw new Error(`MCP App log message exceeds the ${MCP_APP_LOG_MAX_BYTES} byte limit`)
+    }
     instance.logs.push({
         params,
         receivedAt: new Date().toISOString()
     })
+    instance.logs = instance.logs.slice(-50)
+    markMcpAppInstanceChanged(instance)
+    persistMcpAppInstance(instance)
+}
+
+function markMcpAppInstanceChanged(instance: McpAppInstance) {
+    instance.stateVersion += 1
+}
+
+function persistedMcpAppMessageSummary(value: unknown) {
+    if (!isRecord(value)) return persistedValueSummary(value)
+    if (value.kind === 'mcp_app_message_summary') return value
+    const role = typeof value.role === 'string' ? value.role : undefined
+    const receivedAt = typeof value.receivedAt === 'string' ? value.receivedAt : undefined
+    const content = Array.isArray(value.content) ? value.content.map(persistedMcpAppContentSummary) : undefined
+    return {
+        kind: 'mcp_app_message_summary',
+        ...(role ? { role } : {}),
+        ...(receivedAt ? { receivedAt } : {}),
+        ...(content ? { content } : {}),
+        digest: persistedValueDigest(value)
+    }
+}
+
+function persistedMcpAppContentSummary(value: unknown) {
+    if (!isRecord(value) || typeof value.type !== 'string') return persistedValueSummary(value)
+    switch (value.type) {
+        case 'text':
+            return {
+                type: 'text',
+                ...persistedTextSummary(typeof value.text === 'string' ? value.text : '')
+            }
+        case 'image':
+        case 'audio':
+            return {
+                type: value.type,
+                ...(typeof value.mimeType === 'string' ? { mimeType: value.mimeType } : {}),
+                ...persistedValueSummary(value.data)
+            }
+        case 'resource': {
+            const resource = value.resource
+            if (!isRecord(resource)) return persistedValueSummary(value)
+            return {
+                type: 'resource',
+                resource: {
+                    ...(typeof resource.uri === 'string'
+                        ? { uri: resource.uri.slice(0, MCP_APP_PERSISTED_TEXT_PREVIEW_LENGTH) }
+                        : {}),
+                    ...(typeof resource.mimeType === 'string' ? { mimeType: resource.mimeType } : {}),
+                    ...(typeof resource.text === 'string'
+                        ? { text: persistedTextSummary(resource.text) }
+                        : typeof resource.blob === 'string'
+                          ? { blob: persistedValueSummary(resource.blob) }
+                          : {})
+                }
+            }
+        }
+        case 'resource_link':
+            return {
+                type: 'resource_link',
+                ...(typeof value.uri === 'string'
+                    ? { uri: value.uri.slice(0, MCP_APP_PERSISTED_TEXT_PREVIEW_LENGTH) }
+                    : {}),
+                ...(typeof value.name === 'string'
+                    ? { name: value.name.slice(0, MCP_APP_PERSISTED_TEXT_PREVIEW_LENGTH) }
+                    : {}),
+                ...(typeof value.mimeType === 'string' ? { mimeType: value.mimeType } : {}),
+                ...(typeof value.size === 'number' ? { size: value.size } : {})
+            }
+        default:
+            return persistedValueSummary(value)
+    }
+}
+
+function persistedMcpAppLogSummary(value: unknown) {
+    if (!isRecord(value)) return persistedValueSummary(value)
+    if (value.kind === 'mcp_app_log_summary') return value
+    const params = value.params
+    const receivedAt = typeof value.receivedAt === 'string' ? value.receivedAt : undefined
+    return {
+        kind: 'mcp_app_log_summary',
+        ...(receivedAt ? { receivedAt } : {}),
+        params: persistedValueSummary(params)
+    }
+}
+
+function persistedTextSummary(value: string) {
+    return {
+        preview: value.slice(0, MCP_APP_PERSISTED_TEXT_PREVIEW_LENGTH),
+        bytes: Buffer.byteLength(value, 'utf8'),
+        digest: persistedValueDigest(value)
+    }
+}
+
+function persistedValueSummary(value: unknown) {
+    return {
+        bytes: getSerializedByteSize(value),
+        digest: persistedValueDigest(value)
+    }
+}
+
+function persistedValueDigest(value: unknown) {
+    try {
+        return createHash('sha256')
+            .update(JSON.stringify(value) ?? 'null')
+            .digest('hex')
+    } catch {
+        return 'unserializable'
+    }
 }

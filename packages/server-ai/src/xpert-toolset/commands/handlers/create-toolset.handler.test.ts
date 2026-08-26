@@ -26,7 +26,12 @@ describe('CreateToolsetHandler', () => {
                     provide: ToolsetRegistry,
                     useValue: {
                         get: jest.fn().mockReturnValue(strategy),
-                        getSource: jest.fn().mockReturnValue({ scopeKey: 'organization-1' })
+                        getSource: jest.fn().mockReturnValue({
+                            kind: 'plugin',
+                            pluginName: '@xpert-ai/plugin-seedream',
+                            pluginVersion: '2.1.0',
+                            scopeKey: 'organization-1'
+                        })
                     }
                 }
             ]
@@ -48,7 +53,9 @@ describe('CreateToolsetHandler', () => {
         expect(result).toBe(createdToolset)
         expect(strategy.create).toHaveBeenCalledWith(toolset, {
             ...params,
-            pluginScopeKey: 'organization-1'
+            pluginScopeKey: 'organization-1',
+            pluginName: '@xpert-ai/plugin-seedream',
+            pluginVersion: '2.1.0'
         })
     })
 })

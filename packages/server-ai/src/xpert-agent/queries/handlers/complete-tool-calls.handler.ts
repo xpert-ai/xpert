@@ -11,14 +11,17 @@ import {
     TToolCallType,
     XpertParameterTypeEnum
 } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { _BaseToolset, BuiltinToolset, findChannelByTool, identifyAgent } from '../../../shared'
+import { _BaseToolset, BuiltinToolset, closeToolsets, findChannelByTool, identifyAgent } from '../../../shared'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { CompleteToolCallsQuery } from '../complete-tool-calls.query'
 
 @QueryHandler(CompleteToolCallsQuery)
 export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCallsQuery> {
+    readonly #logger = new Logger(CompleteToolCallsHandler.name)
+
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
@@ -55,98 +58,102 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
                         workspaceId: agent.team?.workspaceId
                     })
                 )
-                const subAgents: Record<string, IXpertAgent> = {}
-                if (agent.collaborators) {
-                    for await (const collaborator of agent.collaborators) {
-                        const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-                            new GetXpertAgentQuery(collaborator.id)
-                        )
-                        const uniqueName = agentUniqueName(agent)
-                        subAgents[uniqueName] = agent
-                    }
-                }
-
-                if (agent.followers) {
-                    for (const follower of agent.followers) {
-                        const uniqueName = agentUniqueName(follower)
-                        subAgents[uniqueName] = follower
-                    }
-                }
-
-                const tools = []
-                for await (const toolset of toolsets) {
-                    const items = await toolset.initTools()
-                    tools.push(
-                        ...items.map((tool) => {
-                            const lc_name =
-                                tool instanceof DynamicStructuredTool
-                                    ? tool.name
-                                    : get_lc_unique_name(tool.constructor as typeof Serializable)
-                            let toolsetDefinition: IXpertToolset = null
-                            if (toolset instanceof BuiltinToolset) {
-                                toolsetDefinition = toolset.getToolset()
-                            }
-                            return {
-                                tool,
-                                definition: toolsetDefinition?.tools.find((_) => _.name === lc_name)
-                            }
-                        })
-                    )
-                }
-
-                // Find in agents
-                if (subAgents[toolCall.name]) {
-                    const parameters = [
-                        {
-                            name: STATE_VARIABLE_INPUT,
-                            title: 'Input',
-                            description: 'Input content',
-                            type: XpertParameterTypeEnum.TEXT
+                try {
+                    const subAgents: Record<string, IXpertAgent> = {}
+                    if (agent.collaborators) {
+                        for await (const collaborator of agent.collaborators) {
+                            const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+                                new GetXpertAgentQuery(collaborator.id)
+                            )
+                            const uniqueName = agentUniqueName(agent)
+                            subAgents[uniqueName] = agent
                         }
-                    ]
-                    subAgents[toolCall.name].parameters?.forEach((param) =>
-                        parameters.push({
-                            name: param.name,
-                            title: param.title,
-                            description: param.description as string,
-                            type: param.type
-                        })
-                    )
-                    return {
-                        ...task,
-                        call: toolCall as TToolCall,
-                        type: 'agent' as TToolCallType,
-                        info: {
-                            name: subAgents[toolCall.name].name,
-                            title: subAgents[toolCall.name].title,
-                            description: subAgents[toolCall.name].description
-                        },
-                        parameters,
-                        agent: identifyAgent(agent)
                     }
-                } else {
-                    const tool = tools.find((_) => _.tool.name === toolCall.name)
-                    if (tool) {
+
+                    if (agent.followers) {
+                        for (const follower of agent.followers) {
+                            const uniqueName = agentUniqueName(follower)
+                            subAgents[uniqueName] = follower
+                        }
+                    }
+
+                    const tools = []
+                    for await (const toolset of toolsets) {
+                        const items = await toolset.initTools()
+                        tools.push(
+                            ...items.map((tool) => {
+                                const lc_name =
+                                    tool instanceof DynamicStructuredTool
+                                        ? tool.name
+                                        : get_lc_unique_name(tool.constructor as typeof Serializable)
+                                let toolsetDefinition: IXpertToolset = null
+                                if (toolset instanceof BuiltinToolset) {
+                                    toolsetDefinition = toolset.getToolset()
+                                }
+                                return {
+                                    tool,
+                                    definition: toolsetDefinition?.tools.find((_) => _.name === lc_name)
+                                }
+                            })
+                        )
+                    }
+
+                    // Find in agents
+                    if (subAgents[toolCall.name]) {
+                        const parameters = [
+                            {
+                                name: STATE_VARIABLE_INPUT,
+                                title: 'Input',
+                                description: 'Input content',
+                                type: XpertParameterTypeEnum.TEXT
+                            }
+                        ]
+                        subAgents[toolCall.name].parameters?.forEach((param) =>
+                            parameters.push({
+                                name: param.name,
+                                title: param.title,
+                                description: param.description as string,
+                                type: param.type
+                            })
+                        )
                         return {
                             ...task,
-                            call: toolCall,
-                            type: 'tool' as TToolCallType,
+                            call: toolCall as TToolCall,
+                            type: 'agent' as TToolCallType,
                             info: {
-                                name: tool.tool.name,
-                                description: tool.tool.description
+                                name: subAgents[toolCall.name].name,
+                                title: subAgents[toolCall.name].title,
+                                description: subAgents[toolCall.name].description
                             },
-                            parameters: tool.definition?.schema?.parameters?.map((param) => ({
-                                name: param.name,
-                                title: param.label,
-                                description: param.human_description,
-                                placeholder: param.placeholder,
-                                type: param.type
-                            })),
+                            parameters,
                             agent: identifyAgent(agent)
                         }
-                    }
+                    } else {
+                        const tool = tools.find((_) => _.tool.name === toolCall.name)
+                        if (tool) {
+                            return {
+                                ...task,
+                                call: toolCall,
+                                type: 'tool' as TToolCallType,
+                                info: {
+                                    name: tool.tool.name,
+                                    description: tool.tool.description
+                                },
+                                parameters: tool.definition?.schema?.parameters?.map((param) => ({
+                                    name: param.name,
+                                    title: param.label,
+                                    description: param.human_description,
+                                    placeholder: param.placeholder,
+                                    type: param.type
+                                })),
+                                agent: identifyAgent(agent)
+                            }
+                        }
 
-                    return task
+                        return task
+                    }
+                } finally {
+                    await closeToolsets(toolsets, (error) => this.#logger.debug(error))
                 }
             })
         )

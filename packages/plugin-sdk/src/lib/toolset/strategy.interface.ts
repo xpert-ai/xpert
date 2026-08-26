@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { I18nObject, IconDefinition } from '@xpert-ai/contracts'
-import { ZodSchema } from 'zod'
+import type { ZodSchema } from 'zod/v3'
 import { BuiltinToolset, TBuiltinToolsetParams } from './builtin'
 import type { VideoGenerationToolsetCapability } from '../core/permissions/video-generation'
 

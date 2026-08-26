@@ -56,12 +56,11 @@ export async function resolveTemplateRuntimeDependencyComponents(
         })
     }
 
-    // Explicit resource selectors are authoritative. Plugin-wide expansion is
-    // only the compatibility path for templates that declare a plugin alone.
+    // dependencies.plugins declares runtime prerequisites only. Portable
+    // resources must be selected explicitly so a template never installs every
+    // Skill/MCP/Hook/App exported by a plugin as an accidental side effect.
     if (!components.length) {
-        return dependencies?.plugins?.includes(pluginName)
-            ? await installer.resolveRuntimeComponents(pluginName, undefined)
-            : []
+        return []
     }
 
     // Resolve each owning plugin independently so cross-plugin dependencies

@@ -67,6 +67,27 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
     })
 
     it.each([
+        ['tenantId', { tenantId: 'tenant-2' }, 'tenantId'],
+        ['organizationId', { organizationId: 'organization-2' }, 'organizationId']
+    ])('rejects a portable reference whose %s conflicts with the execution scope', async (_label, override, field) => {
+        const serverRoot = await temporaryRoot()
+        const service = createService(serverRoot, '/host/project-1')
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            projectId: 'project-1'
+        })
+
+        await expect(
+            scoped.resolveRuntimeReference({
+                ...reference('media/source.mov'),
+                ...override
+            })
+        ).rejects.toThrow(`Workspace file ${field} is outside the current execution scope`)
+    })
+
+    it.each([
         ['FileAsset id', '8d70766b-c87b-465e-b06c-c900eb18f79a'],
         ['StorageFile id', '36d672e4-063d-4e75-89ca-b39ca14588f1']
     ])('resolves a conversation-scoped %s into its projected Workspace path', async (_label, handle) => {

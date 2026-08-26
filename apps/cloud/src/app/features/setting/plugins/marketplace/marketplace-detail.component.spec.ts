@@ -72,6 +72,7 @@ jest.mock('@cloud/app/@core/state', () => {
     APP: 'app',
     HOOK: 'hook',
     MCP_SERVER: 'mcp_server',
+    TOOLSET: 'toolset',
     SKILL: 'skill'
   }
 
@@ -1062,14 +1063,17 @@ describe('PluginMarketplaceDetailComponent', () => {
     )
   })
 
-  it('does not expose install action for tool contributions without a real MCP server component', async () => {
+  it('keeps app-owned tool declarations out of standalone resources without a native toolset component', async () => {
     const { component } = await createComponent(
       createPlugin({
         contributions: [
           {
             type: 'tool',
             name: 'CanvasMiddleware',
-            displayName: 'Canvas Agent Tools'
+            displayName: 'Canvas Agent Tools',
+            metadata: {
+              app: 'canvas'
+            }
           }
         ]
       }),
@@ -1081,12 +1085,76 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(component.resourceContribution(component.marketplaceContents()[0])).toBeNull()
   })
 
-  it('keeps install action for tool contributions backed by a real MCP server component', async () => {
+  it('keeps standalone MCP declarations outside app capabilities while component definitions load', async () => {
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'app',
+            name: 'cut',
+            displayName: 'Cut'
+          },
+          {
+            type: 'mcp',
+            name: 'cut',
+            displayName: 'Cut MCP Capabilities',
+            metadata: {
+              protocol: 'native',
+              provider: 'cut'
+            }
+          }
+        ]
+      }),
+      []
+    )
+
+    const app = component.appContents()[0]
+
+    expect(component.contents()).toEqual([])
+    expect(component.mcpContents().map((content) => content.displayName)).toEqual(['Cut MCP Capabilities'])
+    expect(component.appCapabilities(app)).toEqual([])
+    expect(component.resourceContribution(component.mcpContents()[0])).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Cut MCP Capabilities')
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll<HTMLElement>('h3')).map((heading) =>
+        heading.textContent?.trim()
+      )
+    ).toEqual(expect.arrayContaining(['Applications', 'MCP']))
+    expect(fixture.nativeElement.querySelector('[data-testid="plugin-primary-sections"]').classList).not.toContain(
+      'lg:grid-cols-2'
+    )
+  })
+
+  it('shows declared standalone MCP resources before the plugin is installed', async () => {
+    const { component } = await createComponent(
+      createPlugin({
+        installed: false,
+        contributions: [
+          {
+            type: 'mcp',
+            name: 'cut',
+            displayName: 'Cut MCP Capabilities'
+          }
+        ]
+      }),
+      []
+    )
+
+    const content = component.mcpContents()[0]
+
+    expect(content.displayName).toBe('Cut MCP Capabilities')
+    expect(component.resourceContribution(content)).toMatchObject({
+      type: 'mcp',
+      componentType: PLUGIN_COMPONENT_TYPE.TOOLSET
+    })
+  })
+
+  it('installs MCP contributions backed by a native toolset at organization scope', async () => {
     const { component, dialog } = await createComponent(
       createPlugin({
         contributions: [
           {
-            type: 'tool',
+            type: 'mcp',
             name: 'browser-lab-mcp',
             displayName: 'Browser Lab MCP'
           }
@@ -1094,15 +1162,15 @@ describe('PluginMarketplaceDetailComponent', () => {
       }),
       [
         {
-          componentType: PLUGIN_COMPONENT_TYPE.MCP_SERVER,
+          componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
           componentKey: 'browser-lab-mcp',
           definitionHash: 'mcp-hash'
         }
       ]
     )
 
-    const resource = component.resourceContribution(component.contents()[0])
-    expect(resource?.componentType).toBe('mcp_server')
+    const resource = component.resourceContribution(component.mcpContents()[0])
+    expect(resource?.componentType).toBe('toolset')
 
     if (!resource) {
       throw new Error('Expected MCP resource contribution')
@@ -1115,11 +1183,12 @@ describe('PluginMarketplaceDetailComponent', () => {
         data: expect.objectContaining({
           initialComponents: [
             {
-              componentType: 'mcp_server',
+              componentType: 'toolset',
               componentKey: 'browser-lab-mcp'
             }
           ],
-          initialInstallMode: 'workspace'
+          initialInstallMode: 'organization',
+          allowedInstallModes: ['organization']
         })
       })
     )

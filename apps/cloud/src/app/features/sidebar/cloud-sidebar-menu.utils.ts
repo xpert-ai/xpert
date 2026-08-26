@@ -119,6 +119,43 @@ export function addWorkspaceSkillMenuItem(groups: CloudSidebarMenuGroup[], works
   })
 }
 
+/**
+ * Adds the single marketplace entry used by the cloud sidebar. The old
+ * skill/connector entries remain available to callers that still need the
+ * workspace modules, but the primary navigation now opens the shared plaza.
+ */
+export function addWorkspaceExpertSkillsConnectorsMenuItem(groups: CloudSidebarMenuGroup[]) {
+  const expertTools: CloudMenuItem = {
+    title: '专家·技能·连接器',
+    icon: 'ri-team-line',
+    link: '/explore',
+    pathMatch: 'prefix',
+    data: {
+      translationKey: 'ExpertSkillsConnectors'
+    }
+  }
+
+  const withoutStandaloneExplore = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.link !== '/explore'),
+      entries: group.entries.filter((entry) => entry.item?.link !== '/explore')
+    }))
+    .filter((group) => group.key === 'work' || group.items.length > 0)
+  const workGroups = ensureWorkMenuGroup(withoutStandaloneExplore)
+
+  return workGroups.map((group) => {
+    if (
+      group.key !== 'work' ||
+      group.items.some((item) => item.data?.translationKey === expertTools.data?.translationKey)
+    ) {
+      return group
+    }
+
+    return sortWorkMenuGroup(group, expertTools)
+  })
+}
+
 export function addWorkspaceMoreMenuItem(groups: CloudSidebarMenuGroup[], workspaceId?: string | null) {
   const normalizedWorkspaceId = workspaceId?.trim()
   const more: CloudMenuItem = {
@@ -161,8 +198,21 @@ export function isNewClawXpertTaskMenuItem(item: CloudMenuItem) {
 export function buildWorkspaceModuleMenuLink(section: CloudWorkspaceModuleSection, workspaceId?: string | null) {
   const normalizedWorkspaceId = workspaceId?.trim()
   return normalizedWorkspaceId
-    ? `/xpert/w/${encodeURIComponent(normalizedWorkspaceId)}/${section}`
+    ? `/xpert/w/${encodeURIComponent(normalizedWorkspaceId)}/${workspaceModuleRouteSegment(section)}`
     : `/xpert/w?section=${section}`
+}
+
+function workspaceModuleRouteSegment(section: CloudWorkspaceModuleSection) {
+  if (section === 'skills') {
+    return 'clawxpert-skills'
+  }
+  if (section === 'knowledges') {
+    return 'clawxpert-knowledges'
+  }
+  if (section === 'connectors') {
+    return 'clawxpert-connectors'
+  }
+  return section
 }
 
 function ensureWorkMenuGroup(groups: CloudSidebarMenuGroup[]) {
@@ -223,6 +273,9 @@ function workMenuRank(item: CloudMenuItem | null) {
   if (item?.data?.workspaceSection === 'connectors') {
     return 2
   }
+  if (item?.data?.translationKey === 'ExpertSkillsConnectors') {
+    return 1
+  }
   if (path === '/chat/tasks') {
     return 3
   }
@@ -256,6 +309,27 @@ export function isCloudMenuRouteForcedActive(currentUrl: string, item: CloudMenu
       (prefix) => typeof prefix === 'string' && (currentUrl === prefix || currentUrl.startsWith(`${prefix}/`))
     )
   )
+}
+
+/**
+ * Workspace pages promoted to standalone sidebar modules should not also
+ * activate the parent workspace entry.
+ */
+export function isCloudWorkspaceStandaloneRoute(currentUrl: string) {
+  return /^\/xpert\/w\/[^/]+\/(?:clawxpert-connectors|clawxpert-skills|files|clawxpert-knowledges|settings)(?:\/|$)/.test(
+    currentUrl
+  )
+}
+
+export function isCloudMarketplaceHubRoute(currentUrl: string) {
+  return (
+    normalizeMenuPath(currentUrl) === '/explore' ||
+    /^\/xpert\/w\/[^/]+\/clawxpert-(?:connectors|skills)(?:\/|$)/.test(normalizeMenuPath(currentUrl))
+  )
+}
+
+export function isCloudWorkspaceShellMenuItem(item: CloudMenuItem) {
+  return normalizeMenuPath(item.link ?? '') === '/xpert'
 }
 
 function isWorkCloudMenuItem(item: CloudMenuItem) {

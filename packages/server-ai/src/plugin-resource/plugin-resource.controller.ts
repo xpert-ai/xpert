@@ -1,6 +1,21 @@
-import { PLUGIN_COMPONENT_TYPE, PluginComponentType, PluginResourceComponentSelector } from '@xpert-ai/contracts'
-import { TransformInterceptor } from '@xpert-ai/server-core'
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseInterceptors } from '@nestjs/common'
+import {
+    PLUGIN_COMPONENT_TYPE,
+    PluginComponentType,
+    PluginResourceComponentSelector,
+    RolesEnum
+} from '@xpert-ai/contracts'
+import { RoleGuard, Roles, TransformInterceptor } from '@xpert-ai/server-core'
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Param,
+    Post,
+    Query,
+    UseGuards,
+    UseInterceptors
+} from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PluginResourceInstallComponent, PluginResourceInstallerService } from './plugin-resource-installer.service'
@@ -29,6 +44,13 @@ export class PluginResourceController {
     async installWorkspace(@Param('name') name: string, @Body() body: unknown) {
         const input = parseWorkspaceInstallInput(body)
         return this.installer.installToWorkspace(name, input.workspaceId, input.components)
+    }
+
+    @Post('install-organization')
+    @UseGuards(RoleGuard)
+    @Roles(RolesEnum.SUPER_ADMIN)
+    async installOrganization(@Param('name') name: string, @Body() body: unknown) {
+        return this.installer.installToOrganization(name, parseOrganizationInstallInput(body))
     }
 
     @Post('install-xpert')
@@ -71,6 +93,13 @@ function parseWorkspaceInstallInput(value: unknown) {
         workspaceId,
         components: normalizeComponentSelectors(Reflect.get(value, 'components'))
     }
+}
+
+function parseOrganizationInstallInput(value: unknown) {
+    if (!isObjectValue(value)) {
+        throw new BadRequestException('Request body is required')
+    }
+    return normalizeComponentSelectors(Reflect.get(value, 'components'))
 }
 
 function parseXpertInstallInput(value: unknown) {
@@ -121,17 +150,18 @@ function isPluginComponentType(value: unknown): value is PluginComponentType {
     return (
         value === PLUGIN_COMPONENT_TYPE.SKILL ||
         value === PLUGIN_COMPONENT_TYPE.MCP_SERVER ||
+        value === PLUGIN_COMPONENT_TYPE.TOOLSET ||
         value === PLUGIN_COMPONENT_TYPE.APP ||
         value === PLUGIN_COMPONENT_TYPE.HOOK ||
         value === PLUGIN_COMPONENT_TYPE.ASSET
     )
 }
 
-function parseInstallTarget(value: unknown): 'workspace' | 'xpert' {
-    if (value === 'workspace' || value === 'xpert') {
+function parseInstallTarget(value: unknown): 'organization' | 'workspace' | 'xpert' {
+    if (value === 'organization' || value === 'workspace' || value === 'xpert') {
         return value
     }
-    throw new BadRequestException('target must be workspace or xpert')
+    throw new BadRequestException('target must be organization, workspace or xpert')
 }
 
 function isObjectValue(value: unknown): value is object {
