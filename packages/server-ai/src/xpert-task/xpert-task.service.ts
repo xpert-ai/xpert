@@ -22,7 +22,12 @@ import {
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
-import { OutboundActorTokenProvider, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import {
+    OutboundActorTokenProvider,
+    RedisLockService,
+    RequestContext,
+    TenantOrganizationAwareCrudService
+} from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Cron, SchedulerRegistry } from '@nestjs/schedule'
@@ -51,11 +56,12 @@ import {
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 
 const SCHEDULED_TASK_HEARTBEAT_MS = 60 * 1000
+const AUTO_TASK_CRON_LOCK_KEY = 'scheduler:xpert-auto-task'
+const AUTO_TASK_CRON_LOCK_TTL = 5 * 60 * 1000
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
     readonly #logger = new Logger(XpertTaskService.name)
-    readonly #autoTaskCronLockKey = 90241001
 
     @Inject(ConfigService)
     protected readonly configService: ConfigService
@@ -78,6 +84,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
+        private readonly redisLockService: RedisLockService,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider,
         @Optional()
@@ -157,10 +164,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     clearInterval(heartbeat)
                 }
                 if (scheduledExecution) {
-                    void this.finishScheduledTaskExecution(task, scheduledExecution, status, error)
-                        .catch((finishError) => {
+                    void this.finishScheduledTaskExecution(task, scheduledExecution, status, error).catch(
+                        (finishError) => {
                             this.#logger.error(`Scheduled task state update failed: ${getErrorMessage(finishError)}`)
-                        })
+                        }
+                    )
                 }
             }
 
@@ -350,17 +358,10 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     expiredExecution.scheduledAt
                 )
                 if (claimed) {
-                    await this.executeTask(
-                        task.id,
-                        { timeZone: task.timeZone },
-                        expiredExecution.scheduledAt,
-                        claimed
-                    )
+                    await this.executeTask(task.id, { timeZone: task.timeZone }, expiredExecution.scheduledAt, claimed)
                 }
             }).catch((error) => {
-                this.#logger.error(
-                    `Scheduled task recovery failed: ${expiredExecution.id} ${getErrorMessage(error)}`
-                )
+                this.#logger.error(`Scheduled task recovery failed: ${expiredExecution.id} ${getErrorMessage(error)}`)
             })
         }
     }
@@ -1683,13 +1684,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     @Cron('0 * * * * *')
     async runDueAutoTasks() {
-        const lockAcquired = await this.acquireAutoTaskCronLock()
-        if (!lockAcquired) {
-            return
-        }
-
-        const now = new Date()
-        try {
+        await this.redisLockService.runWithLock(AUTO_TASK_CRON_LOCK_KEY, AUTO_TASK_CRON_LOCK_TTL, async () => {
+            const now = new Date()
             const dueTasks = await this.autoTaskRepository
                 .createQueryBuilder('task')
                 .leftJoinAndSelect('task.createdBy', 'createdBy')
@@ -1706,37 +1702,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     this.#logger.error(`Auto task execution failed: ${task.id} ${getErrorMessage(error)}`)
                 })
             }
-        } finally {
-            await this.releaseAutoTaskCronLock()
-        }
-    }
-
-    private async acquireAutoTaskCronLock(): Promise<boolean> {
-        try {
-            const rows = await this.autoTaskRepository.query('select pg_try_advisory_lock($1) as locked', [
-                this.#autoTaskCronLockKey
-            ])
-            if (!Array.isArray(rows) || rows.length === 0) {
-                return false
-            }
-            const first = rows[0]
-            if (!first || typeof first !== 'object' || !('locked' in first)) {
-                return false
-            }
-            const locked = first.locked
-            return locked === true || locked === 't' || locked === 1
-        } catch (error) {
-            this.#logger.warn(`Auto task cron lock unavailable, skip this tick: ${getErrorMessage(error)}`)
-            return false
-        }
-    }
-
-    private async releaseAutoTaskCronLock() {
-        try {
-            await this.autoTaskRepository.query('select pg_advisory_unlock($1)', [this.#autoTaskCronLockKey])
-        } catch (error) {
-            this.#logger.warn(`Auto task cron unlock failed: ${getErrorMessage(error)}`)
-        }
+        })
     }
 
     private async executeAutoTask(task: AutoTask) {

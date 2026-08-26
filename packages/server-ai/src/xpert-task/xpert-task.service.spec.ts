@@ -10,6 +10,7 @@ import {
 } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
+import { RedisLockRunResult, RedisLockService } from '@xpert-ai/server-core'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { Repository, UpdateResult } from 'typeorm'
 import { of } from 'rxjs'
@@ -36,6 +37,33 @@ type AgentMiddlewareRegistryMock = {
 }
 
 describe('XpertTaskService', () => {
+    it('scans due auto tasks under a renewable Redis lock', async () => {
+        const autoTaskQuery = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([])
+        }
+        const autoTaskRepository = createRepositoryMock<AutoTask>()
+        jest.mocked(autoTaskRepository.createQueryBuilder).mockReturnValue(autoTaskQuery as never)
+        const redisLockService = createRedisLockServiceMock()
+        const service = createService(createCommandBusMock(), undefined, undefined, undefined, undefined, {
+            autoTaskRepository,
+            redisLockService
+        })
+
+        await service.runDueAutoTasks()
+
+        expect(autoTaskQuery.getMany).toHaveBeenCalledTimes(1)
+        expect(redisLockService.runWithLock).toHaveBeenCalledWith(
+            'scheduler:xpert-auto-task',
+            5 * 60 * 1000,
+            expect.any(Function)
+        )
+    })
+
     it('restores an archived task as paused without scheduling it', async () => {
         const service = createService(createCommandBusMock())
         const task = createTaskFixture({ status: ScheduleTaskStatus.ARCHIVED })
@@ -397,21 +425,40 @@ function createService(
     xpertService = createXpertServiceMock(),
     agentMiddlewareRegistry = createAgentMiddlewareRegistryMock(),
     repository = createRepositoryMock<XpertTask>(),
-    conversationRepository = createRepositoryMock<ChatConversation>()
+    conversationRepository = createRepositoryMock<ChatConversation>(),
+    options: {
+        autoTaskRepository?: Repository<AutoTask>
+        redisLockService?: ReturnType<typeof createRedisLockServiceMock>
+    } = {}
 ) {
+    const autoTaskRepository = options.autoTaskRepository ?? createRepositoryMock<AutoTask>()
+    const redisLockService = options.redisLockService ?? createRedisLockServiceMock()
     return new XpertTaskService(
         repository,
         createRepositoryMock<ScheduleNote>(),
         conversationRepository,
-        createRepositoryMock<AutoTask>(),
+        autoTaskRepository,
         createRepositoryMock<AutoTaskTemplate>(),
         createRepositoryMock<XpertTaskTemplate>(),
         createSchedulerRegistryMock(),
         xpertService as unknown as XpertService,
         agentMiddlewareRegistry as unknown as AgentMiddlewareRegistry,
         commandBus as unknown as CommandBus,
-        createQueryBusMock()
+        createQueryBusMock(),
+        redisLockService as unknown as RedisLockService
     )
+}
+
+function createRedisLockServiceMock() {
+    const runWithLock = jest.fn<Promise<RedisLockRunResult<unknown>>, [string, number, () => Promise<unknown>]>(
+        async (_key, _ttl, operation) => ({
+            acquired: true,
+            value: await operation()
+        })
+    )
+    return {
+        runWithLock
+    }
 }
 
 function createAgentMiddlewareRegistryMock(strategies: Record<string, unknown> = {}): AgentMiddlewareRegistryMock {

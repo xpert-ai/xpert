@@ -2,28 +2,19 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
-import { DataSource } from 'typeorm'
+import { RedisLockRunResult, RedisLockService } from '@xpert-ai/server-core'
 import { MembershipPeriodSchedulerService } from './membership-period-scheduler.service'
 import { MembershipService } from './membership.service'
 
-type QueryRunnerMock = {
-    query: jest.Mock<Promise<unknown>, [string, unknown[]?]>
-    connect: jest.Mock<Promise<void>, []>
-    release: jest.Mock<Promise<void>, []>
-}
-
-function createQueryRunner(): QueryRunnerMock {
-    return {
-        query: jest.fn(),
-        connect: jest.fn().mockResolvedValue(undefined),
-        release: jest.fn().mockResolvedValue(undefined)
-    }
-}
-
 function createService() {
-    const queryRunner = createQueryRunner()
-    const dataSource = {
-        createQueryRunner: jest.fn(() => queryRunner)
+    const runWithLock = jest.fn<Promise<RedisLockRunResult<unknown>>, [string, number, () => Promise<unknown>]>(
+        async (_key, _ttl, operation) => ({
+            acquired: true,
+            value: await operation()
+        })
+    )
+    const redisLockService = {
+        runWithLock
     }
     const membershipService = {
         processDueMembershipPeriods: jest.fn().mockResolvedValue({
@@ -34,11 +25,11 @@ function createService() {
         })
     }
     const service = new MembershipPeriodSchedulerService(
-        dataSource as unknown as DataSource,
-        membershipService as unknown as MembershipService
+        membershipService as unknown as MembershipService,
+        redisLockService as unknown as RedisLockService
     )
 
-    return { service, queryRunner, membershipService }
+    return { service, redisLockService, membershipService }
 }
 
 describe('MembershipPeriodSchedulerService', () => {
@@ -50,24 +41,25 @@ describe('MembershipPeriodSchedulerService', () => {
         )
     })
 
-    it('skips settlement while another instance holds the advisory lock', async () => {
-        const { service, queryRunner, membershipService } = createService()
-        queryRunner.query.mockResolvedValueOnce([{ locked: false }])
+    it('skips settlement while another instance holds the Redis lock', async () => {
+        const { service, redisLockService, membershipService } = createService()
+        redisLockService.runWithLock.mockResolvedValueOnce({ acquired: false })
 
         await service.settleDueMembershipPeriods()
 
         expect(membershipService.processDueMembershipPeriods).not.toHaveBeenCalled()
-        expect(queryRunner.release).toHaveBeenCalledTimes(1)
     })
 
-    it('settles due periods and releases the advisory lock', async () => {
-        const { service, queryRunner, membershipService } = createService()
-        queryRunner.query.mockResolvedValueOnce([{ locked: true }]).mockResolvedValueOnce([{ unlocked: true }])
+    it('settles due periods under a renewable Redis lock', async () => {
+        const { service, redisLockService, membershipService } = createService()
 
         await service.settleDueMembershipPeriods()
 
         expect(membershipService.processDueMembershipPeriods).toHaveBeenCalledTimes(1)
-        expect(queryRunner.query.mock.calls[1][0]).toContain('pg_advisory_unlock')
-        expect(queryRunner.release).toHaveBeenCalledTimes(1)
+        expect(redisLockService.runWithLock).toHaveBeenCalledWith(
+            'scheduler:membership-period-settlement',
+            5 * 60 * 1000,
+            expect.any(Function)
+        )
     })
 })
