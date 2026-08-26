@@ -14,8 +14,6 @@
   "dependencies": {
     "@a2ui/lit": "0.8.3",
     "@eigenpal/docx-editor-core": "^1.9.0",
-    "@eigenpal/docx-editor-i18n": "^1.9.0",
-    "@eigenpal/docx-editor-react": "^1.9.0",
     "@foblex/2d": "^1.2.2",
     "@foblex/drag-toolkit": "^1.1.0",
     "@foblex/flow": "^17.5.0",
@@ -40,6 +38,15 @@
     "i18next-http-backend": "^3.0.2",
     "json-2-csv": "^5.5.9",
     "ngx-json-viewer": "^3.2.1",
+    "prosemirror-commands": "^1.7.2",
+    "prosemirror-dropcursor": "^1.8.3",
+    "prosemirror-history": "^1.5.0",
+    "prosemirror-keymap": "^1.2.3",
+    "prosemirror-model": "^1.25.11",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-tables": "^1.8.5",
+    "prosemirror-transform": "^1.12.0",
+    "prosemirror-view": "^1.42.3",
     "xlsx": "^0.18.5"
   }
 }

@@ -83,7 +83,8 @@
         "styles": [
           "packages/ui/styles.css",
           "apps/cloud/src/styles.scss",
-          "node_modules/@eigenpal/docx-editor-react/dist/styles.css",
+          "node_modules/prosemirror-view/style/prosemirror.css",
+          "node_modules/@eigenpal/docx-editor-core/dist/prosemirror/editor.css",
           "node_modules/@ctrl/ngx-emoji-mart/picker.css"
         ],
         "stylePreprocessorOptions": {
