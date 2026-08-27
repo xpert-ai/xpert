@@ -44,7 +44,7 @@ Validation options:
   --build-cwd <path>         Working directory for --build-command
   --test-command <cmd>       Override the detected test command
   --test-cwd <path>          Working directory for --test-command
-  --skip-build               Skip the build step
+  --skip-build               Skip generation; package verify:dist still runs when declared
   --skip-test                Skip the test step
 
 API and scope options:
@@ -243,12 +243,19 @@ async function main() {
         scriptName: 'test',
         workspacePath
       })
+  const distVerificationPlan = createCommandPlan({
+    packageJson,
+    pluginName,
+    scriptName: 'verify:dist',
+    workspacePath
+  })
 
   if (args.skipBuild) {
     console.log('[plugin:deploy:local] Build skipped by request.')
   } else {
     runCommandPlan('build', buildPlan, args.dryRun)
   }
+  runCommandPlan('deploy output verification', distVerificationPlan, args.dryRun)
   if (args.skipTest) {
     console.log('[plugin:deploy:local] Test skipped by request.')
   } else {

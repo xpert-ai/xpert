@@ -13,11 +13,11 @@ const DEPLOY_SCRIPT_PATH = path.join(scriptDir, 'deploy-local-plugin.mjs')
 const INSTALL_SCRIPT_PATH = path.join(scriptDir, 'install-local-plugin.mjs')
 const REINSTALL_SCRIPT_PATH = path.join(scriptDir, 'reinstall-local-plugin.mjs')
 
-function createPluginWorkspace() {
+function createPluginWorkspace(packageJson = {}) {
   const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-plugin-deploy-'))
   fs.writeFileSync(
     path.join(workspacePath, 'package.json'),
-    JSON.stringify({ name: '@xpert-ai/plugin-test-deploy', version: '0.1.0' })
+    JSON.stringify({ name: '@xpert-ai/plugin-test-deploy', version: '0.1.0', ...packageJson })
   )
   return workspacePath
 }
@@ -113,6 +113,35 @@ test('refreshes and verifies an existing local plugin without printing the token
   assert.equal(requests[0].body.pluginName, '@xpert-ai/plugin-test-deploy')
   assert.doesNotMatch(result.stdout + result.stderr, /secret-test-token/)
   assert.match(result.stdout, /refreshed and verified successfully/)
+})
+
+test('does not let skip-build bypass declared deploy output verification', async (t) => {
+  const workspacePath = createPluginWorkspace({
+    scripts: { 'verify:dist': 'node verify-dist.mjs' }
+  })
+  fs.writeFileSync(
+    path.join(workspacePath, 'verify-dist.mjs'),
+    "throw new Error('dist assets are stale; run the complete plugin build')\n"
+  )
+  t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
+  const requests = []
+  const server = await listen(async (request, response) => {
+    requests.push(request.url)
+    response.setHeader('content-type', 'application/json')
+    response.end(JSON.stringify({ success: true }))
+  })
+  t.after(() => server.close())
+
+  const result = await runCli(
+    DEPLOY_SCRIPT_PATH,
+    [workspacePath, '--skip-build', '--skip-test', '--no-keychain', '--api-url', server.url, '--org-id', 'org-test'],
+    { XPERT_TOKEN: 'secret-test-token' }
+  )
+
+  assert.notEqual(result.code, 0)
+  assert.deepEqual(requests, [])
+  assert.match(result.stdout + result.stderr, /dist assets are stale/i)
+  assert.match(result.stderr, /deploy output verification failed/i)
 })
 
 test('reports that a staged system plugin requires an API restart', async (t) => {
