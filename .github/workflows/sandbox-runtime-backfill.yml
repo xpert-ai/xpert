@@ -1,0 +1,217 @@
+# Why this exists: platform tags only alias Runtime Suite tags that were published earlier.
+# This manual recovery path builds a missing family from the exact released source tag.
+# Invariants: the source is in main history, immutable tags are never overwritten, and images pass smoke tests before publishing.
+name: Backfill Sandbox Runtime image
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: Existing platform source tag, for example 3.17.5
+        required: true
+        type: string
+      family:
+        description: Missing Runtime image family
+        required: true
+        type: choice
+        options:
+          - browser
+          - browser-ai
+          - browser-video
+          - document
+      confirm_publish:
+        description: Publish the missing immutable tag to all registries
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: sandbox-runtime-backfill-${{ inputs.source_tag }}-${{ inputs.family }}
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    name: Backfill Sandbox Runtime / ${{ inputs.family }}
+    if: inputs.confirm_publish == true
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.source_tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve and validate the released image target
+        id: target
+        env:
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          FAMILY: ${{ inputs.family }}
+        shell: bash
+        run: |
+          if [[ ! "$SOURCE_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid platform source tag: $SOURCE_TAG" >&2
+            exit 1
+          fi
+
+          source_sha=$(git rev-parse "refs/tags/$SOURCE_TAG^{commit}")
+          if [[ "$source_sha" != "$(git rev-parse HEAD)" ]]; then
+            echo "Checked out commit does not match refs/tags/$SOURCE_TAG" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$source_sha" origin/main; then
+            echo "Source tag $SOURCE_TAG is not contained in main history" >&2
+            exit 1
+          fi
+
+          node packages/sandbox-runtime/scripts/verify-catalog.mjs
+          matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs)
+          target=$(jq -c --arg family "$FAMILY" '[.include[] | select(.family == $family)] | if length == 1 then .[0] else empty end' <<< "$matrix")
+          if [[ -z "$target" ]]; then
+            echo "Runtime image family $FAMILY is not defined at $SOURCE_TAG" >&2
+            exit 1
+          fi
+
+          version_tag=$(jq -r '.versionTag' <<< "$target")
+          dockerfile=$(jq -r '.dockerfile' <<< "$target")
+          repositories=$(jq -c '.repositories' <<< "$target")
+          if [[ ! "$version_tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(pw[0-9.]+|lo[0-9]+)$ ]]; then
+            echo "Invalid derived Runtime version tag: $version_tag" >&2
+            exit 1
+          fi
+          if [[ "$dockerfile" != packages/sandbox-runtime/* || ! -f "$dockerfile" ]]; then
+            echo "Invalid Runtime Dockerfile: $dockerfile" >&2
+            exit 1
+          fi
+          if [[ "$(jq 'length' <<< "$repositories")" -ne 3 ]]; then
+            echo "Expected exactly three Runtime registries" >&2
+            exit 1
+          fi
+
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$version_tag" >> "$GITHUB_OUTPUT"
+          echo "dockerfile=$dockerfile" >> "$GITHUB_OUTPUT"
+          echo "repositories=$repositories" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Reject an existing immutable release tag
+        env:
+          REPOSITORIES: ${{ steps.target.outputs.repositories }}
+          VERSION_TAG: ${{ steps.target.outputs.version_tag }}
+        shell: bash
+        run: |
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            if docker buildx imagetools inspect "$repository:$VERSION_TAG" >/dev/null 2>&1; then
+              echo "Refusing to overwrite $repository:$VERSION_TAG" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build release candidate locally
+        env:
+          DOCKERFILE: ${{ steps.target.outputs.dockerfile }}
+          LOCAL_IMAGE: xpert-sandbox-runtime-backfill:${{ steps.target.outputs.source_sha }}
+        run: docker buildx build --platform linux/amd64 --load --file "$DOCKERFILE" --tag "$LOCAL_IMAGE" .
+
+      - name: Smoke test release candidate
+        env:
+          FAMILY: ${{ inputs.family }}
+          LOCAL_IMAGE: xpert-sandbox-runtime-backfill:${{ steps.target.outputs.source_sha }}
+        run: node packages/sandbox-runtime/scripts/verify-image.mjs --family "$FAMILY" --image "$LOCAL_IMAGE"
+
+      - name: Push verified commit candidates to all registries
+        env:
+          LOCAL_IMAGE: xpert-sandbox-runtime-backfill:${{ steps.target.outputs.source_sha }}
+          REPOSITORIES: ${{ steps.target.outputs.repositories }}
+          SOURCE_SHA: ${{ steps.target.outputs.source_sha }}
+        shell: bash
+        run: |
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            docker tag "$LOCAL_IMAGE" "$repository:sha-$SOURCE_SHA"
+            docker push "$repository:sha-$SOURCE_SHA"
+          done
+
+      - name: Publish the missing immutable release tag
+        env:
+          REPOSITORIES: ${{ steps.target.outputs.repositories }}
+          SOURCE_SHA: ${{ steps.target.outputs.source_sha }}
+          VERSION_TAG: ${{ steps.target.outputs.version_tag }}
+        shell: bash
+        run: |
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            if docker buildx imagetools inspect "$repository:$VERSION_TAG" >/dev/null 2>&1; then
+              echo "Refusing to overwrite $repository:$VERSION_TAG" >&2
+              exit 1
+            fi
+          done
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            source="$repository:sha-$SOURCE_SHA"
+            docker buildx imagetools inspect "$source" >/dev/null
+            docker buildx imagetools create --tag "$repository:$VERSION_TAG" "$source"
+          done
+
+      - name: Verify registry digests
+        env:
+          REPOSITORIES: ${{ steps.target.outputs.repositories }}
+          VERSION_TAG: ${{ steps.target.outputs.version_tag }}
+        shell: bash
+        run: |
+          expected=
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            digest=$(docker buildx imagetools inspect "$repository:$VERSION_TAG" --raw | sha256sum | cut -d ' ' -f 1)
+            if [[ -z "$expected" ]]; then
+              expected="$digest"
+            elif [[ "$digest" != "$expected" ]]; then
+              echo "Registry digest mismatch for $repository:$VERSION_TAG" >&2
+              exit 1
+            fi
+          done
+          echo "Published $VERSION_TAG with digest sha256:$expected"
+
+      - name: Render immutable Runtime Artifact catalogs
+        env:
+          FAMILY: ${{ inputs.family }}
+          REPOSITORIES: ${{ steps.target.outputs.repositories }}
+          VERSION_TAG: ${{ steps.target.outputs.version_tag }}
+        shell: bash
+        run: |
+          mkdir -p runtime-artifact-catalogs
+          while IFS=$'\t' read -r registry repository; do
+            digest="sha256:$(docker buildx imagetools inspect "$repository:$VERSION_TAG" --raw | sha256sum | cut -d ' ' -f 1)"
+            node packages/sandbox-runtime/scripts/render-artifact-catalog.mjs \
+              --family "$FAMILY" \
+              --image "$repository@$digest" \
+              --output "runtime-artifact-catalogs/$FAMILY-$registry.json"
+          done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' <<< "$REPOSITORIES")
+
+      - name: Upload Runtime Artifact catalogs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-runtime-backfill-${{ inputs.family }}-${{ steps.target.outputs.version_tag }}
+          path: runtime-artifact-catalogs/*.json
+          if-no-files-found: error
