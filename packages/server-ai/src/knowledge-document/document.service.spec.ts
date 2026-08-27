@@ -17,7 +17,6 @@ jest.mock('@xpert-ai/server-core', () => ({
         currentTenantId: jest.fn(() => 'tenant-1'),
         currentUserId: jest.fn(() => 'user-1')
     },
-    transformWhere: jest.fn((where) => where),
     StorageFileService: class StorageFileService {},
     TenantBaseEntity: class TenantBaseEntity {},
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
@@ -58,7 +57,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     }
 }))
 
-import { ConflictException, ForbiddenException } from '@nestjs/common'
+import { ConflictException } from '@nestjs/common'
 import {
     DocumentSourceProviderCategoryEnum,
     DocumentTypeEnum,
@@ -102,20 +101,13 @@ function createService(
             }
         }))
     } as unknown as KnowledgeWorkAreaResolver
-    const knowledgebaseService = {
-        findReadableKnowledgebaseIds: jest.fn(async () => ['kb-1']),
-        findOne: jest.fn(async (id: string) => ({ id })),
-        assertKnowledgebaseWriteAccess: jest.fn(async (id: string) => ({ id })),
-        assertNotRebuilding: jest.fn(),
-        ...(overrides?.knowledgebaseService ?? {})
-    }
 
     const service = new KnowledgeDocumentService(
         repo,
         (overrides?.dataSource ?? {}) as DataSource,
         storageFileService,
         knowledgeWorkAreaResolver,
-        knowledgebaseService as unknown as KnowledgebaseService,
+        (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
         (overrides?.commandBus ?? {}) as CommandBus,
         {} as Queue
     )
@@ -126,51 +118,6 @@ function createService(
     })
     return service
 }
-
-describe('KnowledgeDocumentService knowledgebase permissions', () => {
-    it('filters document lists through the readable knowledgebase set', async () => {
-        const findAndCount = jest.fn(async () => [[], 0])
-        const findReadableKnowledgebaseIds = jest.fn(async () => ['kb-public', 'kb-organization'])
-        const service = createService([], {
-            repo: { findAndCount },
-            knowledgebaseService: { findReadableKnowledgebaseIds }
-        })
-
-        await service.findAll({ where: { knowledgebaseId: 'kb-public' } })
-
-        expect(findReadableKnowledgebaseIds).toHaveBeenCalled()
-        expect(findAndCount).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: expect.objectContaining({
-                    tenantId: 'tenant-1',
-                    knowledgebaseId: expect.objectContaining({ _type: 'and' })
-                })
-            })
-        )
-    })
-
-    it('propagates the owning knowledgebase write denial for document mutations', async () => {
-        const denial = new ForbiddenException()
-        const assertKnowledgebaseWriteAccess = jest.fn().mockRejectedValue(denial)
-        const service = createService([], {
-            repo: {
-                findOne: jest.fn(async () => ({
-                    id: 'doc-public',
-                    tenantId: 'tenant-1',
-                    organizationId: 'org-2',
-                    knowledgebaseId: 'kb-public'
-                }))
-            },
-            knowledgebaseService: {
-                findOne: jest.fn(async () => ({ id: 'kb-public' })),
-                assertKnowledgebaseWriteAccess
-            }
-        })
-
-        await expect(service.assertDocumentWriteAccess('doc-public')).rejects.toBe(denial)
-        expect(assertKnowledgebaseWriteAccess).toHaveBeenCalledWith('kb-public')
-    })
-})
 
 describe('KnowledgeDocumentService logical folder paths', () => {
     it('orders ancestors from the root to the selected entity', async () => {

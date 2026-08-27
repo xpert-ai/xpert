@@ -15,7 +15,7 @@ import { BadRequestException, Inject, InternalServerErrorException, Logger } fro
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'
 import { isNil, sortBy } from 'lodash'
-import { Raw } from 'typeorm'
+import { In, IsNull, Not, Raw } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery, KnowledgeSearchResult } from '../knowledge-search.query'
@@ -54,10 +54,14 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const organizationId = command.input.organizationId ?? RequestContext.getOrganizationId()
         const topK = k ?? 1000
 
-        const readableIds = knowledgebases?.length
-            ? [...new Set(knowledgebases)]
-            : await this.knowledgebaseService.findReadableKnowledgebaseIds()
-        const _knowledgebases = await Promise.all(readableIds.map((id) => this.knowledgebaseService.findOne(id)))
+        const result = await this.knowledgebaseService.findAll({
+            where: {
+                tenantId,
+                organizationId,
+                id: knowledgebases ? In(knowledgebases) : Not(IsNull())
+            }
+        })
+        const _knowledgebases = result.items
 
         const documents: DocumentInterface<DocumentMetadata>[] = []
         const diagnostics: KnowledgeFilterDiagnostics[] = []
@@ -80,14 +84,12 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             hitCount: docs.length
                         }
                     } else {
-                        const knowledgebaseTenantId = kb.tenantId ?? tenantId
-                        const knowledgebaseOrganizationId = kb.organizationId ?? organizationId
                         const searchResult = await this.searchInternalKnowledgebase(
                             kb,
                             query,
                             {
-                                tenantId: knowledgebaseTenantId,
-                                organizationId: knowledgebaseOrganizationId,
+                                tenantId,
+                                organizationId,
                                 xpertId: command.input.xpertId,
                                 threadId: command.input.threadId
                             },

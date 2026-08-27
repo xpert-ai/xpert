@@ -99,17 +99,6 @@ export class XpertWorkspaceBaseCrudService<T> extends OrganizationBaseCrudServic
       params
     })
   }
-
-  getAllByWorkspaceOnly(id: string, options?: PaginationParams<T>, published?: boolean) {
-    let params = toHttpParams(options)
-    params = (params ?? new HttpParams()).append('scope', 'current')
-    if (published) {
-      params = params.append('published', published)
-    }
-    return this.httpClient.get<{ items: T[] }>(`${this.apiBaseUrl}/by-workspace/${id}`, {
-      params
-    })
-  }
 }
 
 export function injectWorkspaceService() {

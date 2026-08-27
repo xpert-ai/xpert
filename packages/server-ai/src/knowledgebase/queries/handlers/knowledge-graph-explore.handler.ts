@@ -24,10 +24,19 @@ export class KnowledgeGraphExploreHandler implements IQueryHandler<KnowledgeGrap
 
     async execute(query: KnowledgeGraphExploreQuery) {
         const { input } = query
-        const knowledgebase = await this.knowledgebaseService.findOne(input.knowledgebaseId)
-        const tenantId = knowledgebase.tenantId ?? input.tenantId ?? RequestContext.currentTenantId()
-        const organizationId =
-            knowledgebase.organizationId ?? input.organizationId ?? RequestContext.getOrganizationId()
+        const tenantId = input.tenantId ?? RequestContext.currentTenantId()
+        const organizationId = input.organizationId ?? RequestContext.getOrganizationId()
+        const result = await this.knowledgebaseService.findAll({
+            where: {
+                id: input.knowledgebaseId,
+                tenantId,
+                organizationId
+            }
+        })
+        const knowledgebase = result.items[0]
+        if (!knowledgebase) {
+            throw new NotFoundException(`Knowledgebase '${input.knowledgebaseId}' was not found.`)
+        }
         if (!knowledgebase.graphRag?.enabled || knowledgebase.graphStatus === KnowledgeGraphStatus.DISABLED) {
             throw new BadRequestException('GraphRAG is not enabled for this knowledgebase.')
         }

@@ -111,16 +111,9 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     async getAllByWorkspace(
         @Param('workspaceId') workspaceId: string,
         @Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>,
-        @Query('published') published?: boolean,
-        @Query('scope') scope?: 'all' | 'current'
+        @Query('published') published?: boolean
     ) {
-        const result = await this.service.getAllByWorkspace(
-            workspaceId,
-            data,
-            published,
-            RequestContext.currentUser(),
-            scope === 'current' ? 'current' : 'all'
-        )
+        const result = await this.service.getAllByWorkspace(workspaceId, data, published, RequestContext.currentUser())
         return {
             ...result,
             items: result.items.map((item) => new KnowledgebasePublicDTO(item))
@@ -287,7 +280,6 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         @Body('path') subpath: string,
         @UploadedFile() file: Express.Multer.File
     ) {
-        await this.service.assertKnowledgebaseWriteAccess(id)
         await this.service.assertNotRebuilding(id)
         let parentFolder = ''
         if (parentId) {

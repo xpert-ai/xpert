@@ -8,8 +8,6 @@ import { KnowledgeGraphExploreHandler } from './knowledge-graph-explore.handler'
 
 const knowledgebase = {
     id: 'kb-1',
-    tenantId: 'tenant-1',
-    organizationId: 'org-1',
     name: '工程知识库',
     graphRag: { enabled: true },
     graphStatus: KnowledgeGraphStatus.READY,
@@ -25,7 +23,7 @@ const fixedFilter = {
 
 function createHandler(queryResult: unknown, evidence: unknown[]) {
     const knowledgebaseService = {
-        findOne: jest.fn().mockResolvedValue(knowledgebase),
+        findAll: jest.fn().mockResolvedValue({ items: [knowledgebase] }),
         listStructuredGraphEvidence: jest.fn().mockResolvedValue(evidence)
     }
     const graphFilterScopeService = {

@@ -2,16 +2,6 @@ import { IKnowledgebase, IKnowledgeDocument, KDocumentSourceType, KnowledgebaseP
 
 export type KnowledgeDocumentEditorKind = 'markdown' | 'spreadsheet' | 'docx'
 
-export function mergeKnowledgebases(...groups: IKnowledgebase[][]) {
-  const items = new Map<string, IKnowledgebase>()
-  groups.flat().forEach((item) => {
-    if (item?.id) {
-      items.set(item.id, item)
-    }
-  })
-  return [...items.values()]
-}
-
 export function splitKnowledgebases(items: IKnowledgebase[]) {
   return {
     personal: items.filter((item) => !item.permission || item.permission === KnowledgebasePermission.Private),
@@ -65,9 +55,8 @@ export async function createBlankSpreadsheetFile(name: string) {
   const XLSX = await import('xlsx')
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([]), 'Sheet1')
-  const data: unknown = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
-  const blobPart = data instanceof ArrayBuffer ? data : new Blob([data as any])
-  return new File([blobPart], name, {
+  const data = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+  return new File([data], name, {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   })
 }

@@ -1,12 +1,5 @@
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import {
-    AiModelTypeEnum,
-    KnowledgebasePermission,
-    LanguagesEnum,
-    RolesEnum,
-    WorkflowNodeTypeEnum
-} from '@xpert-ai/contracts'
-import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { AiModelTypeEnum, LanguagesEnum, RolesEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import type { IWFNTrigger, IXpert, TXpertGraph } from '@xpert-ai/contracts'
 import { IntegrationService, runWithRequestContext } from '@xpert-ai/server-core'
 import { instanceToPlain } from 'class-transformer'
@@ -30,8 +23,7 @@ type RequestUser = {
     }
 }
 
-type KnowledgebaseRepositoryMock = Pick<Repository<Knowledgebase>, 'findOne' | 'delete'> &
-    Partial<Pick<Repository<Knowledgebase>, 'find' | 'findAndCount'>>
+type KnowledgebaseRepositoryMock = Pick<Repository<Knowledgebase>, 'findOne' | 'delete'>
 type XpertServiceMock = Pick<XpertService, 'updateXpert'>
 type CommandBusMock = Pick<CommandBus, 'execute'>
 type QueryBusMock = Pick<QueryBus, 'execute'>
@@ -223,8 +215,6 @@ describe('KnowledgebaseService', () => {
             tenantId: 'tenant-1',
             organizationId: 'org-1',
             workspaceId: null,
-            createdById: 'user-1',
-            permission: KnowledgebasePermission.Private,
             pipelineId: pipeline.id,
             pipeline
         } as Knowledgebase
@@ -429,153 +419,5 @@ describe('KnowledgebaseService', () => {
         expect(payload).not.toHaveProperty('organizationId')
         expect(payload.xperts[0]).not.toHaveProperty('graph')
         expect(payload.pipeline).not.toHaveProperty('graph')
-    })
-
-    it('allows tenant-wide reads for public knowledgebases without requiring source workspace membership', async () => {
-        const knowledgebase = {
-            id: 'kb-public',
-            tenantId: 'tenant-1',
-            organizationId: 'org-2',
-            workspaceId: 'workspace-2',
-            permission: KnowledgebasePermission.Public
-        } as Knowledgebase
-        const repository = {
-            findOne: jest.fn().mockResolvedValue(knowledgebase),
-            delete: jest.fn()
-        } as jest.Mocked<KnowledgebaseRepositoryMock>
-        const workspaceAccessService = {
-            assertCan: jest.fn()
-        } as jest.Mocked<WorkspaceAccessServiceMock>
-        const service = createService({
-            repository,
-            commandBus: { execute: jest.fn() },
-            xpertService: { updateXpert: jest.fn() },
-            workspaceAccessService
-        })
-
-        await expect(runInRequestContext(() => service.findOne('kb-public'))).resolves.toBe(knowledgebase)
-        expect(workspaceAccessService.assertCan).not.toHaveBeenCalled()
-    })
-
-    it('requires write access to the owning workspace even when the knowledgebase is public', async () => {
-        const knowledgebase = {
-            id: 'kb-public',
-            tenantId: 'tenant-1',
-            organizationId: 'org-2',
-            workspaceId: 'workspace-2',
-            permission: KnowledgebasePermission.Public
-        } as Knowledgebase
-        const repository = {
-            findOne: jest.fn().mockResolvedValue(knowledgebase),
-            delete: jest.fn()
-        } as jest.Mocked<KnowledgebaseRepositoryMock>
-        const workspaceAccessService = {
-            assertCan: jest.fn().mockRejectedValue(new ForbiddenException())
-        } as jest.Mocked<WorkspaceAccessServiceMock>
-        const service = createService({
-            repository,
-            commandBus: { execute: jest.fn() },
-            xpertService: { updateXpert: jest.fn() },
-            workspaceAccessService
-        })
-
-        await expect(
-            runInRequestContext(() => service.assertKnowledgebaseWriteAccess('kb-public'))
-        ).rejects.toBeInstanceOf(ForbiddenException)
-        expect(workspaceAccessService.assertCan).toHaveBeenCalledWith('workspace-2', 'write')
-    })
-
-    it('allows organization knowledgebases only in their owning organization', async () => {
-        const sameOrganization = {
-            id: 'kb-org',
-            tenantId: 'tenant-1',
-            organizationId: 'org-1',
-            workspaceId: 'workspace-2',
-            permission: KnowledgebasePermission.Organization
-        } as Knowledgebase
-        const repository = {
-            findOne: jest.fn().mockResolvedValue(sameOrganization),
-            delete: jest.fn()
-        } as jest.Mocked<KnowledgebaseRepositoryMock>
-        const service = createService({
-            repository,
-            commandBus: { execute: jest.fn() },
-            xpertService: { updateXpert: jest.fn() }
-        })
-
-        await expect(runInRequestContext(() => service.findOne('kb-org'))).resolves.toBe(sameOrganization)
-
-        repository.findOne.mockResolvedValue({
-            ...sameOrganization,
-            id: 'kb-other-org',
-            organizationId: 'org-2'
-        })
-        await expect(runInRequestContext(() => service.findOne('kb-other-org'))).rejects.toBeInstanceOf(
-            NotFoundException
-        )
-    })
-
-    it('lists public knowledgebases across tenant organizations while keeping organization knowledgebases scoped', async () => {
-        const findAndCount = jest.fn().mockResolvedValue([[], 0])
-        const repository = {
-            findOne: jest.fn(),
-            findAndCount,
-            delete: jest.fn()
-        } as jest.Mocked<KnowledgebaseRepositoryMock>
-        const queryBus = {
-            execute: jest.fn().mockResolvedValue({
-                id: 'workspace-1',
-                tenantId: 'tenant-1',
-                organizationId: 'org-1'
-            })
-        }
-        const service = createService({
-            repository,
-            queryBus,
-            commandBus: { execute: jest.fn() },
-            xpertService: { updateXpert: jest.fn() }
-        })
-
-        await runInRequestContext(() =>
-            service.getAllByWorkspace('workspace-1', {} as any, false, {
-                id: 'user-1',
-                tenantId: 'tenant-1'
-            } as any)
-        )
-
-        const where = findAndCount.mock.calls[0][0].where as Array<Record<string, unknown>>
-        const publicCondition = where.find((item) => item.permission === KnowledgebasePermission.Public)
-        const organizationCondition = where.find((item) => item.permission === KnowledgebasePermission.Organization)
-        expect(publicCondition).toEqual(expect.objectContaining({ tenantId: 'tenant-1' }))
-        expect(publicCondition).not.toHaveProperty('organizationId')
-        expect(organizationCondition).toEqual(
-            expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1' })
-        )
-    })
-
-    it('intersects generic list filters with readable knowledgebase ids', async () => {
-        const findAndCount = jest.fn().mockResolvedValue([[], 0])
-        const repository = {
-            findOne: jest.fn(),
-            findAndCount,
-            delete: jest.fn()
-        } as jest.Mocked<KnowledgebaseRepositoryMock>
-        const service = createService({
-            repository,
-            commandBus: { execute: jest.fn() },
-            xpertService: { updateXpert: jest.fn() }
-        })
-        jest.spyOn(service, 'findReadableKnowledgebaseIds').mockResolvedValue(['kb-public', 'kb-org'])
-
-        await runInRequestContext(() => service.findAll({ where: { id: 'kb-public' } }))
-
-        expect(findAndCount).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: expect.objectContaining({
-                    tenantId: 'tenant-1',
-                    id: expect.objectContaining({ _type: 'and' })
-                })
-            })
-        )
     })
 })
