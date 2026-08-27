@@ -39,7 +39,8 @@ import {
     KNOWLEDGE_PROCESSING_MODE_NAME,
     KBMetadataFieldDef,
     MetadataFieldType,
-    KnowledgeFilterJSONValue
+    KnowledgeFilterJSONValue,
+    IPagination
 } from '@xpert-ai/contracts'
 import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { IntegrationService, PaginationParams, RequestContext, transformWhere } from '@xpert-ai/server-core'
@@ -69,7 +70,11 @@ import { I18nService } from 'nestjs-i18n'
 import {
     DataSource,
     DeleteResult,
+    And,
+    Equal,
+    FindManyOptions,
     FindOneOptions,
+    FindOperator,
     FindOptionsSelect,
     FindOptionsWhere,
     In,
@@ -355,6 +360,46 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             })
             return { items, total }
         }
+    }
+
+    /**
+     * Apply the knowledgebase permission scope to generic list queries as well
+     * as the workspace-specific endpoints.
+     */
+    override async findAll(filter?: FindManyOptions<Knowledgebase>): Promise<IPagination<Knowledgebase>> {
+        // System jobs may run without a request context; preserve the base service
+        // behavior for those internal calls.
+        if (!RequestContext.currentTenantId()) {
+            return super.findAll(filter)
+        }
+
+        const readableKnowledgebaseIds = await this.findReadableKnowledgebaseIds()
+        const whereItems = (Array.isArray(filter?.where) ? filter.where : [filter?.where ?? {}]).map(
+            (item) =>
+                transformWhere<Knowledgebase>(item as Record<string, never>) ?? ({} as FindOptionsWhere<Knowledgebase>)
+        )
+        const where = whereItems.map((item) => {
+            const currentKnowledgebaseId = item.id
+            const readableCondition = In(readableKnowledgebaseIds)
+            return {
+                ...item,
+                tenantId: this.requireKnowledgebaseTenantId(),
+                id:
+                    currentKnowledgebaseId == null
+                        ? readableCondition
+                        : And(
+                              currentKnowledgebaseId instanceof FindOperator
+                                  ? currentKnowledgebaseId
+                                  : Equal(currentKnowledgebaseId as string),
+                              readableCondition
+                          )
+            } as FindOptionsWhere<Knowledgebase>
+        })
+        const [items, total] = await this.repository.findAndCount({
+            ...(filter ?? {}),
+            where: Array.isArray(filter?.where) ? where : where[0]
+        })
+        return { items, total }
     }
 
     override async findOne(

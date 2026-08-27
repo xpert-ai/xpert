@@ -552,4 +552,30 @@ describe('KnowledgebaseService', () => {
             expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1' })
         )
     })
+
+    it('intersects generic list filters with readable knowledgebase ids', async () => {
+        const findAndCount = jest.fn().mockResolvedValue([[], 0])
+        const repository = {
+            findOne: jest.fn(),
+            findAndCount,
+            delete: jest.fn()
+        } as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+        jest.spyOn(service, 'findReadableKnowledgebaseIds').mockResolvedValue(['kb-public', 'kb-org'])
+
+        await runInRequestContext(() => service.findAll({ where: { id: 'kb-public' } }))
+
+        expect(findAndCount).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    id: expect.objectContaining({ _type: 'and' })
+                })
+            })
+        )
+    })
 })
