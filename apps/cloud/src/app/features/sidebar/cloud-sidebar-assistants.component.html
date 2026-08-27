@@ -213,20 +213,22 @@
                 [zTooltip]="assistantLabel(xpert)"
                 zPosition="right"
                 [zDisabled]="!collapsed()"
+                (click)="openAssistant($event, xpert)"
               >
                 @if (!collapsed()) {
                   <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
                 <div class="cloud-sidebar-assistants__item-layout">
-                  <button
+                  <!-- <button
                     type="button"
                     class="cloud-sidebar-assistants__item-main"
                     [attr.aria-label]="assistantLabel(xpert)"
                     (click)="openAssistant($event, xpert)"
-                  ></button>
+                  ></button> -->
 
                   <emoji-avatar
-                    class="cloud-sidebar-assistants__avatar pointer-events-none"
+                    xs
+                    class="cloud-sidebar-assistants__avatar"
                     [avatar]="xpert.avatar"
                     [alt]="assistantLabel(xpert)"
                     [fallbackLabel]="assistantLabel(xpert)"
@@ -337,9 +339,9 @@
                       >
                         @if (item.icon) {
                           <xp-icon
-                            class="cloud-sidebar-assistants__child-icon"
+                            class="cloud-sidebar-assistants__child-icon flex items-center justify-center"
                             [icon]="item.icon"
-                            [size]="16"
+                            [size]="14"
                             aria-hidden="true"
                           />
                         } @else {
