@@ -1048,7 +1048,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
   })
 
-  it('opens an assistant when the visible avatar is clicked', async () => {
+  it('keeps the visible avatar pointer-transparent so the overlay button receives clicks', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
@@ -1057,8 +1057,11 @@ describe('CloudSidebarAssistantsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const avatar = fixture.nativeElement.querySelector('[data-testid="emoji-avatar"]')
-    avatar.click()
+    const avatar = fixture.nativeElement.querySelector('emoji-avatar')
+    expect(avatar.classList).toContain('pointer-events-none')
+
+    const overlayButton = avatar.parentElement.querySelector('.cloud-sidebar-assistants__item-main')
+    overlayButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
   })

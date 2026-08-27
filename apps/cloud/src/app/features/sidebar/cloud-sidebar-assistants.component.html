@@ -217,15 +217,16 @@
                 @if (!collapsed()) {
                   <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
-                <div class="cloud-sidebar-assistants__item-layout" (click)="openAssistant($event, xpert)">
+                <div class="cloud-sidebar-assistants__item-layout">
                   <button
                     type="button"
                     class="cloud-sidebar-assistants__item-main"
                     [attr.aria-label]="assistantLabel(xpert)"
+                    (click)="openAssistant($event, xpert)"
                   ></button>
 
                   <emoji-avatar
-                    class="cloud-sidebar-assistants__avatar"
+                    class="cloud-sidebar-assistants__avatar pointer-events-none"
                     [avatar]="xpert.avatar"
                     [alt]="assistantLabel(xpert)"
                     [fallbackLabel]="assistantLabel(xpert)"
