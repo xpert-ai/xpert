@@ -90,12 +90,11 @@
       <a
         z-button
         zType="outline"
-        [routerLink]="workspaceId() ? ['/xpert/w', workspaceId(), 'knowledges'] : ['/xpert/w']"
+        [routerLink]="['/xpert/knowledges']"
+        [queryParams]="knowledgebase()?.id ? { knowledgebaseId: knowledgebase()?.id } : undefined"
       >
         <z-icon zType="arrow-left" />
-        <span class="hidden xl:inline">{{
-          'XP.Knowledgebase.BackToWorkspace' | translate: { Default: 'Workspace' }
-        }}</span>
+        <span class="hidden xl:inline">{{ 'XP.ACTIONS.Back' | translate: { Default: '返回' } }}</span>
       </a>
       <button z-button zType="ghost" zSize="icon-sm" [cdkMenuTriggerFor]="serviceApiMenu">
         <span

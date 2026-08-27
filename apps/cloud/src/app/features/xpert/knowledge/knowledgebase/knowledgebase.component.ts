@@ -83,7 +83,6 @@ export class KnowledgebaseComponent {
   readonly knowledgebase = this.#knowledgebase.value
 
   readonly type = computed(() => this.knowledgebase()?.type)
-  readonly workspaceId = computed(() => this.knowledgebase()?.workspaceId)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly external = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.External)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
