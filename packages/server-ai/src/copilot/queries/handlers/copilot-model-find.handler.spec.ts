@@ -380,7 +380,7 @@ describe('FindCopilotModelsHandler', () => {
         })
     })
 
-    it('loads only current-organization models matching the configured model type for membership management', async () => {
+    it('loads current-organization provider models for membership management without requiring a matching default model', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         const service = {
@@ -395,26 +395,23 @@ describe('FindCopilotModelsHandler', () => {
                     }
                 },
                 {
-                    id: 'copilot-organization',
+                    id: 'copilot-without-default',
                     organizationId: 'org-1',
-                    copilotModel: {
-                        model: 'paid-model',
-                        modelType: AiModelTypeEnum.LLM
-                    },
+                    copilotModel: null,
                     modelProvider: {
-                        id: 'provider-organization',
+                        id: 'provider-without-default',
                         providerName: 'openai-compatible'
                     }
                 },
                 {
-                    id: 'copilot-embedding',
+                    id: 'copilot-with-other-default-type',
                     organizationId: 'org-1',
                     copilotModel: {
                         model: 'embedding-model',
                         modelType: AiModelTypeEnum.TEXT_EMBEDDING
                     },
                     modelProvider: {
-                        id: 'provider-embedding',
+                        id: 'provider-with-other-default-type',
                         providerName: 'openai-compatible'
                     }
                 }
@@ -457,8 +454,14 @@ describe('FindCopilotModelsHandler', () => {
             new FindCopilotModelsQuery(AiModelTypeEnum.LLM, CopilotModelCatalogMode.MembershipManagement)
         )
 
-        expect(result.map((copilot) => copilot.id)).toEqual(['copilot-organization'])
-        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['paid-model'])
+        expect(result.map((copilot) => copilot.id)).toEqual([
+            'copilot-without-default',
+            'copilot-with-other-default-type'
+        ])
+        expect(result.map((copilot) => copilot.providerWithModels.models.map((model) => model.model))).toEqual([
+            ['paid-model'],
+            ['paid-model']
+        ])
         expect(service.findAllAvailablesCopilots).not.toHaveBeenCalled()
         expect(service.findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
         expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()
