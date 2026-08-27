@@ -38,7 +38,10 @@ import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.componen
 
 function createFacadeMock(viewState: 'organization-required' | 'wizard' | 'ready' | 'error' = 'ready') {
   return {
-    viewState: signal(viewState)
+    viewState: signal(viewState),
+    hasLoadedXperts: signal(false),
+    isConversationRoute: signal(false),
+    navigateToOverview: jest.fn()
   }
 }
 
@@ -132,6 +135,34 @@ describe('ClawXpertComponent', () => {
     const { dialog } = await setup('wizard')
 
     expect(dialog.open).not.toHaveBeenCalled()
+  })
+
+  it('opens the binding overview when a conversation route finishes loading without a valid binding', async () => {
+    const { facade, fixture } = await setup('wizard')
+
+    facade.isConversationRoute.set(true)
+    facade.hasLoadedXperts.set(true)
+    fixture.detectChanges()
+
+    expect(facade.navigateToOverview).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not leave the conversation route before binding availability finishes loading', async () => {
+    const { facade, fixture } = await setup('wizard')
+
+    facade.isConversationRoute.set(true)
+    fixture.detectChanges()
+
+    expect(facade.navigateToOverview).not.toHaveBeenCalled()
+  })
+
+  it('keeps the binding wizard on the overview route', async () => {
+    const { facade, fixture } = await setup('wizard')
+
+    facade.hasLoadedXperts.set(true)
+    fixture.detectChanges()
+
+    expect(facade.navigateToOverview).not.toHaveBeenCalled()
   })
 
   it('opens the onboarding dialog when the entry guide routes with the ClawXpert onboarding flag', async () => {
