@@ -1,4 +1,4 @@
-import { AiModelTypeEnum, FetchFrom } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AiProviderRole, FetchFrom } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { FindCopilotModelsHandler } from './copilot-model-find.handler'
@@ -380,7 +380,7 @@ describe('FindCopilotModelsHandler', () => {
         })
     })
 
-    it('loads current-organization provider models for membership management without requiring a matching default model', async () => {
+    it('matches membership provider catalogs to copilot roles without requiring a default model', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         const service = {
@@ -389,50 +389,120 @@ describe('FindCopilotModelsHandler', () => {
                 {
                     id: 'copilot-tenant',
                     organizationId: null,
+                    role: AiProviderRole.Primary,
                     modelProvider: {
                         id: 'provider-tenant',
                         providerName: 'openai-compatible'
                     }
                 },
                 {
-                    id: 'copilot-without-default',
+                    id: 'copilot-primary',
                     organizationId: 'org-1',
+                    role: AiProviderRole.Primary,
                     copilotModel: null,
                     modelProvider: {
-                        id: 'provider-without-default',
+                        id: 'provider-primary',
                         providerName: 'openai-compatible'
                     }
                 },
                 {
-                    id: 'copilot-with-other-default-type',
+                    id: 'copilot-secondary',
                     organizationId: 'org-1',
+                    role: AiProviderRole.Secondary,
+                    copilotModel: null,
+                    modelProvider: {
+                        id: 'provider-secondary',
+                        providerName: 'openai-compatible'
+                    }
+                },
+                {
+                    id: 'copilot-embedding',
+                    organizationId: 'org-1',
+                    role: AiProviderRole.Embedding,
                     copilotModel: {
-                        model: 'embedding-model',
-                        modelType: AiModelTypeEnum.TEXT_EMBEDDING
+                        model: 'llm-model',
+                        modelType: AiModelTypeEnum.LLM
                     },
                     modelProvider: {
-                        id: 'provider-with-other-default-type',
+                        id: 'provider-embedding',
+                        providerName: 'openai-compatible'
+                    }
+                },
+                {
+                    id: 'copilot-reasoning',
+                    organizationId: 'org-1',
+                    role: AiProviderRole.Reasoning,
+                    copilotModel: null,
+                    modelProvider: {
+                        id: 'provider-reasoning',
+                        providerName: 'openai-compatible'
+                    }
+                },
+                {
+                    id: 'copilot-legacy-rerank',
+                    organizationId: 'org-1',
+                    role: null,
+                    copilotModel: {
+                        model: 'rerank-model',
+                        modelType: AiModelTypeEnum.RERANK
+                    },
+                    modelProvider: {
+                        id: 'provider-legacy-rerank',
                         providerName: 'openai-compatible'
                     }
                 }
             ])
         }
-        const providersService = {
-            getProvider: jest.fn().mockReturnValue({
-                getProviderModels: jest.fn().mockReturnValue([
+        const getProviderModels = jest.fn((modelType: AiModelTypeEnum) => {
+            if (modelType === AiModelTypeEnum.LLM) {
+                return [
                     {
-                        model: 'paid-model',
+                        model: 'llm-model',
                         model_type: AiModelTypeEnum.LLM,
                         fetch_from: FetchFrom.PREDEFINED_MODEL,
                         model_properties: {},
                         features: [],
-                        label: { zh_Hans: 'Paid', en_US: 'Paid' }
+                        label: { zh_Hans: 'LLM', en_US: 'LLM' }
                     }
-                ]),
+                ]
+            }
+            if (modelType === AiModelTypeEnum.TEXT_EMBEDDING) {
+                return [
+                    {
+                        model: 'embedding-model',
+                        model_type: AiModelTypeEnum.TEXT_EMBEDDING,
+                        fetch_from: FetchFrom.PREDEFINED_MODEL,
+                        model_properties: {},
+                        features: [],
+                        label: { zh_Hans: 'Embedding', en_US: 'Embedding' }
+                    }
+                ]
+            }
+            if (modelType === AiModelTypeEnum.RERANK) {
+                return [
+                    {
+                        model: 'rerank-model',
+                        model_type: AiModelTypeEnum.RERANK,
+                        fetch_from: FetchFrom.PREDEFINED_MODEL,
+                        model_properties: {},
+                        features: [],
+                        label: { zh_Hans: 'Rerank', en_US: 'Rerank' }
+                    }
+                ]
+            }
+            return []
+        })
+        const providersService = {
+            getProvider: jest.fn().mockReturnValue({
+                getProviderModels,
                 getProviderSchema: jest.fn().mockReturnValue({
                     provider: 'openai-compatible',
                     label: { zh_Hans: 'OpenAI Compatible', en_US: 'OpenAI Compatible' },
-                    supported_model_types: [AiModelTypeEnum.LLM],
+                    supported_model_types: [
+                        AiModelTypeEnum.LLM,
+                        AiModelTypeEnum.TEXT_EMBEDDING,
+                        AiModelTypeEnum.RERANK
+                    ],
                     models: []
                 })
             })
@@ -450,18 +520,30 @@ describe('FindCopilotModelsHandler', () => {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
         })
 
-        const result = await handler.execute(
+        const llmResult = await handler.execute(
             new FindCopilotModelsQuery(AiModelTypeEnum.LLM, CopilotModelCatalogMode.MembershipManagement)
         )
+        const embeddingResult = await handler.execute(
+            new FindCopilotModelsQuery(AiModelTypeEnum.TEXT_EMBEDDING, CopilotModelCatalogMode.MembershipManagement)
+        )
+        const rerankResult = await handler.execute(
+            new FindCopilotModelsQuery(AiModelTypeEnum.RERANK, CopilotModelCatalogMode.MembershipManagement)
+        )
 
-        expect(result.map((copilot) => copilot.id)).toEqual([
-            'copilot-without-default',
-            'copilot-with-other-default-type'
+        expect(llmResult.map((copilot) => copilot.id)).toEqual([
+            'copilot-primary',
+            'copilot-secondary',
+            'copilot-reasoning'
         ])
-        expect(result.map((copilot) => copilot.providerWithModels.models.map((model) => model.model))).toEqual([
-            ['paid-model'],
-            ['paid-model']
+        expect(llmResult.map((copilot) => copilot.providerWithModels.models.map((model) => model.model))).toEqual([
+            ['llm-model'],
+            ['llm-model'],
+            ['llm-model']
         ])
+        expect(embeddingResult.map((copilot) => copilot.id)).toEqual(['copilot-embedding'])
+        expect(embeddingResult[0].providerWithModels.models.map((model) => model.model)).toEqual(['embedding-model'])
+        expect(rerankResult.map((copilot) => copilot.id)).toEqual(['copilot-legacy-rerank'])
+        expect(rerankResult[0].providerWithModels.models.map((model) => model.model)).toEqual(['rerank-model'])
         expect(service.findAllAvailablesCopilots).not.toHaveBeenCalled()
         expect(service.findAllEnabledCopilotsWithoutMembership).toHaveBeenCalledWith('tenant-1', 'org-1')
         expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()

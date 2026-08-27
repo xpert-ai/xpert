@@ -1,4 +1,11 @@
-import { AiModelTypeEnum, FetchFrom, ICopilotProviderModel, ModelFeature, ProviderModel } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    AiProviderRole,
+    FetchFrom,
+    ICopilotProviderModel,
+    ModelFeature,
+    ProviderModel
+} from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
 import { RequestContext } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
@@ -38,7 +45,11 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
         const managementCopilots = await this.service.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId)
         const copilots =
             command.catalogMode === CopilotModelCatalogMode.MembershipManagement
-                ? managementCopilots.filter((copilot) => (copilot.organizationId ?? null) === (organizationId ?? null))
+                ? managementCopilots.filter(
+                      (copilot) =>
+                          (copilot.organizationId ?? null) === (organizationId ?? null) &&
+                          (modelTypeForCopilotRole(copilot.role) ?? copilot.copilotModel?.modelType) === command.type
+                  )
                 : managementCopilots
         const copilotSchemas: CopilotWithProviderDto[] = []
         for (const copilot of copilots) {
@@ -147,6 +158,19 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
             )
         }
         return copilots.filter((copilot) => copilot.providerWithModels.models.length)
+    }
+}
+
+function modelTypeForCopilotRole(role: AiProviderRole | null | undefined): AiModelTypeEnum | null {
+    switch (role) {
+        case AiProviderRole.Primary:
+        case AiProviderRole.Secondary:
+        case AiProviderRole.Reasoning:
+            return AiModelTypeEnum.LLM
+        case AiProviderRole.Embedding:
+            return AiModelTypeEnum.TEXT_EMBEDDING
+        default:
+            return null
     }
 }
 
