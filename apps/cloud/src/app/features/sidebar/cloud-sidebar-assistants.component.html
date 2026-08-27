@@ -17,6 +17,7 @@
         >
           <emoji-avatar
             class="cloud-sidebar-assistants__current-avatar"
+            xs
             [avatar]="currentAssistantAvatar()"
             [alt]="currentAssistantLabel()"
             [fallbackLabel]="currentAssistantLabel()"
@@ -33,6 +34,7 @@
             >
               <emoji-avatar
                 class="cloud-sidebar-assistants__current-avatar"
+                xs
                 [avatar]="currentAssistantAvatar()"
                 [alt]="currentAssistantLabel()"
                 [fallbackLabel]="currentAssistantLabel()"
@@ -224,7 +226,7 @@
                   ></button>
 
                   <emoji-avatar
-                    class="cloud-sidebar-assistants__avatar"
+                    class="cloud-sidebar-assistants__avatar pointer-events-none"
                     [avatar]="xpert.avatar"
                     [alt]="assistantLabel(xpert)"
                     [fallbackLabel]="assistantLabel(xpert)"

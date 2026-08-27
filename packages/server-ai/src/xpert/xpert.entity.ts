@@ -226,8 +226,8 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     @JoinColumn()
     user?: User
 
-    @Column({ nullable: true })
-    environmentId?: string
+    @Column({ type: 'uuid', nullable: true })
+    environmentId?: string | null
 
     @ManyToOne(() => Environment, { nullable: true })
     @JoinColumn()

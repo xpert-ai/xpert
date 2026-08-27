@@ -44,6 +44,16 @@ export class ClawXpertComponent implements OnDestroy {
     })
 
     effect(() => {
+      if (
+        this.#facade.hasLoadedXperts() &&
+        this.#facade.isConversationRoute() &&
+        this.#facade.viewState() === 'wizard'
+      ) {
+        this.#facade.navigateToOverview()
+      }
+    })
+
+    effect(() => {
       this.#facade.viewState()
 
       if (this.#entryOnboardingRequested()) {

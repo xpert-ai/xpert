@@ -459,7 +459,7 @@ export class XpertController extends CrudController<Xpert> {
         @Param('id') id: string,
         @Query('newVersion') newVersion: string,
         @Body()
-        body: { environmentId: string; releaseNotes: string; businessAreaId?: unknown; marketplace?: unknown }
+        body: { environmentId?: string | null; releaseNotes: string; businessAreaId?: unknown; marketplace?: unknown }
     ) {
         const marketplace = parseXpertPublishMarketplaceInput(body.marketplace)
         const businessAreaId = parseXpertPublishBusinessAreaId(body.businessAreaId)

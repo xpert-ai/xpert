@@ -16,6 +16,10 @@ jest.mock('../../xpert/dto', () => ({
     }
 }))
 
+jest.mock('../../environment', () => ({
+    EnvironmentService: class EnvironmentService {}
+}))
+
 jest.mock('../../xpert/xpert.service', () => ({
     XpertService: class XpertService {}
 }))
@@ -41,6 +45,7 @@ jest.mock('../plugin-resource-installer.service', () => ({
 }))
 
 import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { EnvironmentService } from '../../environment'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
@@ -117,9 +122,35 @@ describe('PluginTemplateInstallHandler', () => {
         expect(publishCommand).toMatchObject({
             id: 'xpert-1',
             newVersion: false,
-            environmentId: '',
+            environmentId: 'environment-1',
             notes: 'Installed from template'
         })
+    })
+
+    it('publishes without an environment binding when the workspace has no default environment', async () => {
+        const { handler, commandBus, xpertService } = createHandler({
+            templateDsl: createSandboxTemplateDsl(),
+            defaultEnvironmentId: null
+        })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-project:project-assistant',
+                'workspace-1',
+                LanguagesEnum.English,
+                undefined,
+                true
+            )
+        )
+
+        const publishCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof XpertPublishCommand)
+        expect(publishCommand).toMatchObject({
+            id: 'xpert-1',
+            environmentId: null
+        })
+        expect(xpertService.delete).not.toHaveBeenCalled()
     })
 
     it('keeps the default template installation as a draft', async () => {
@@ -335,6 +366,7 @@ function createHandler(options?: {
     toolsets?: any[]
     templateDsl?: string
     sandboxProviders?: Array<{ type: string }>
+    defaultEnvironmentId?: string | null
 }) {
     const importedXpert = {
         id: 'xpert-1',
@@ -455,6 +487,13 @@ function createHandler(options?: {
             skipped: []
         }))
     }
+    const environmentService = {
+        getDefaultByWorkspace: jest.fn(() =>
+            Promise.resolve(
+                options?.defaultEnvironmentId === null ? null : { id: options?.defaultEnvironmentId ?? 'environment-1' }
+            )
+        )
+    }
     const xpertService = {
         getSandboxProviders: jest.fn(() =>
             Promise.resolve(options?.sandboxProviders ?? [{ type: 'local-shell-sandbox' }])
@@ -471,6 +510,7 @@ function createHandler(options?: {
         workspaceAccess as any,
         templateService as any,
         templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
+        environmentService as unknown as EnvironmentService,
         commandBus as any,
         xpertService as any,
         toolsetRepo as any
@@ -482,6 +522,7 @@ function createHandler(options?: {
         workspaceAccess,
         templateService,
         templateWorkspaceInitializer,
+        environmentService,
         commandBus,
         xpertService,
         toolsetRepo

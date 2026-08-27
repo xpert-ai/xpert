@@ -10,7 +10,7 @@ export class XpertPublishCommand implements ICommand {
     constructor(
         public readonly id: string,
         public readonly newVersion: boolean,
-        public readonly environmentId: string,
+        public readonly environmentId: string | null | undefined,
         public readonly notes: string,
         public readonly marketplace?: TXpertPublishMarketplaceInput,
         public readonly businessAreaId?: string | null

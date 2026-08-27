@@ -39,6 +39,16 @@ describe('AgentViewHostDefinition', () => {
                             }
                         },
                         {
+                            key: 'Agent_BomEngineer',
+                            type: 'agent',
+                            entity: {
+                                id: 'internal-agent-node-id',
+                                key: 'Agent_BomEngineer',
+                                title: 'BOM Engineer',
+                                description: 'BOM engineering role'
+                            }
+                        },
+                        {
                             key: 'Middleware_BOM',
                             type: 'workflow',
                             entity: {
@@ -84,6 +94,18 @@ describe('AgentViewHostDefinition', () => {
             },
             hostState: {
                 agent: {
+                    availableAgents: [
+                        {
+                            key: 'Agent_BomEngineer',
+                            role: 'BOM engineering role',
+                            title: 'BOM Engineer'
+                        },
+                        {
+                            key: 'Agent_BusinessAssistant',
+                            role: 'CEO Assistant',
+                            title: 'CEO Assistant'
+                        }
+                    ],
                     connections: [
                         {
                             id: 'kb-1',
@@ -97,6 +119,10 @@ describe('AgentViewHostDefinition', () => {
             }
         })
         expect((resolved?.hostSnapshot as any).agent.key).toBe('Agent_BusinessAssistant')
+        expect(JSON.stringify((resolved?.context.hostState as any).agent.availableAgents)).not.toContain(
+            'internal-agent-node-id'
+        )
+        expect((resolved?.context.hostState as any).agent.availableAgents[0]).not.toHaveProperty('id')
     })
 
     it('derives view capabilities from the draft graph only when draft resolution is requested', async () => {

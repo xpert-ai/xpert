@@ -2,6 +2,7 @@ import { TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { EnvironmentModule } from '../environment'
 import { SkillPackageModule } from '../skill-package'
 import { SkillPackage } from '../skill-package/skill-package.entity'
 import { XpertModule } from '../xpert'
@@ -24,6 +25,7 @@ import { McpPublicationModule } from '../mcp-publication'
         TypeOrmModule.forFeature([PluginResourceInstallation, SkillPackage, XpertToolset, XpertTool]),
         TenantModule,
         CqrsModule,
+        EnvironmentModule,
         forwardRef(() => XpertModule),
         XpertTemplateModule,
         forwardRef(() => SkillPackageModule),

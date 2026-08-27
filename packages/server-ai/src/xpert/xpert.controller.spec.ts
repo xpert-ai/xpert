@@ -326,6 +326,19 @@ describe('XpertController', () => {
         )
     })
 
+    it('allows publishing without an environment binding', async () => {
+        const result = { id: 'xpert-1', version: '1' }
+        xpertService.publish.mockResolvedValue(result)
+
+        await expect(
+            controller.publish('xpert-1', 'false', {
+                environmentId: null,
+                releaseNotes: 'Release notes'
+            })
+        ).resolves.toBe(result)
+        expect(xpertService.publish).toHaveBeenCalledWith('xpert-1', false, null, 'Release notes', undefined, undefined)
+    })
+
     it('rejects an invalid business area id at the publish boundary', async () => {
         await expect(
             controller.publish('xpert-1', 'false', {
