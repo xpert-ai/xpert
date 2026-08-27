@@ -7,16 +7,12 @@ import { DocumentInterface } from '@langchain/core/documents'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
-  AssistantBindingScope,
-  AssistantBindingService,
-  AssistantCode,
   IKnowledgebase,
   IKnowledgeDocument,
   KDocumentSourceType,
   KnowledgebaseService,
   KnowledgeDocumentService,
-  OrderTypeEnum,
-  XpertAPIService
+  OrderTypeEnum
 } from '../../../../@core'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
@@ -34,10 +30,8 @@ type DocumentSort = 'updatedAt' | 'name'
 export class XpertWorkspaceKnowledgesPageComponent {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
-  readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #knowledgeDocumentService = inject(KnowledgeDocumentService)
-  readonly #xpertService = inject(XpertAPIService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
 
   readonly workspace = this.homeComponent.workspace
@@ -48,6 +42,12 @@ export class XpertWorkspaceKnowledgesPageComponent {
   readonly activeKnowledgebaseId = signal<string | null>(null)
   readonly activeKnowledgebase = computed(
     () => this.knowledgebases().find((item) => item.id === this.activeKnowledgebaseId()) ?? null
+  )
+  readonly canWriteActiveKnowledgebase = computed(
+    () =>
+      this.canWriteWorkspace() &&
+      !!this.activeKnowledgebase()?.workspaceId &&
+      this.activeKnowledgebase()?.workspaceId === this.workspaceId()
   )
 
   readonly documents = signal<IKnowledgeDocument[]>([])
@@ -158,30 +158,37 @@ export class XpertWorkspaceKnowledgesPageComponent {
       })
       .closed.subscribe((knowledgebase) => {
         if (knowledgebase?.id) {
-          this.activeKnowledgebaseId.set(knowledgebase.id)
-          this.knowledgebaseRefreshVersion.update((value) => value + 1)
+          void this.#router.navigate(['/xpert/knowledges', knowledgebase.id], {
+            queryParams: { returnTo: this.workspaceReturnTo() }
+          })
         }
       })
   }
 
   openKnowledgebaseSettings() {
     const id = this.activeKnowledgebaseId()
-    if (id) {
-      void this.#router.navigate(['/xpert/knowledges', id, 'configuration'])
+    if (id && this.canWriteActiveKnowledgebase()) {
+      void this.#router.navigate(['/xpert/knowledges', id, 'configuration'], {
+        queryParams: { returnTo: this.workspaceReturnTo() }
+      })
     }
   }
 
   createDocument() {
     const id = this.activeKnowledgebaseId()
-    if (id && this.canWriteWorkspace()) {
-      void this.#router.navigate(['/xpert/knowledges', id, 'documents', 'create'])
+    if (id && this.canWriteActiveKnowledgebase()) {
+      void this.#router.navigate(['/xpert/knowledges', id, 'documents', 'create'], {
+        queryParams: { returnTo: this.workspaceReturnTo() }
+      })
     }
   }
 
   openDocument(document: IKnowledgeDocument) {
     const knowledgebaseId = this.activeKnowledgebaseId()
     if (knowledgebaseId) {
-      void this.#router.navigate(['/xpert/knowledges', knowledgebaseId, 'documents', document.id])
+      void this.#router.navigate(['/xpert/knowledges', knowledgebaseId, 'documents', document.id], {
+        queryParams: { returnTo: this.workspaceReturnTo() }
+      })
     }
   }
 
@@ -251,18 +258,13 @@ export class XpertWorkspaceKnowledgesPageComponent {
     this.loadingKnowledgebases.set(true)
     this.loadError.set(null)
     try {
-      const [workspaceKnowledgebases, connectedKnowledgebases] = await Promise.all([
-        firstValueFrom(
-          this.#knowledgebaseService.getAllByWorkspace(workspaceId, {
-            relations: ['createdBy'],
-            order: { updatedAt: OrderTypeEnum.DESC }
-          })
-        )
-          .then((result) => result.items ?? [])
-          .catch(() => []),
-        this.loadConnectedKnowledgebases()
-      ])
-      const items = this.mergeKnowledgebases(workspaceKnowledgebases, connectedKnowledgebases)
+      const result = await firstValueFrom(
+        this.#knowledgebaseService.getAllByWorkspace(workspaceId, {
+          relations: ['createdBy'],
+          order: { updatedAt: OrderTypeEnum.DESC }
+        })
+      )
+      const items = result.items ?? []
       if (requestVersion !== this.#knowledgebaseRequestVersion) {
         return
       }
@@ -283,56 +285,6 @@ export class XpertWorkspaceKnowledgesPageComponent {
         this.loadingKnowledgebases.set(false)
       }
     }
-  }
-
-  private async loadConnectedKnowledgebases() {
-    try {
-      const binding = await firstValueFrom(
-        this.#assistantBindingService.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-      )
-      const assistantId = binding?.assistantId?.trim()
-      if (!assistantId) {
-        return []
-      }
-
-      const xpert = await firstValueFrom(
-        this.#xpertService.getById(assistantId, {
-          relations: ['agent', 'knowledgebases']
-        })
-      )
-      const embeddedKnowledgebases = [...(xpert.knowledgebases ?? []), ...(xpert.agent?.knowledgebases ?? [])]
-      const embeddedIds = new Set(embeddedKnowledgebases.map((item) => item.id))
-      const knowledgebaseIds = new Set([
-        ...(xpert.agent?.knowledgebaseIds ?? []),
-        ...(xpert.draft?.team?.agent?.knowledgebaseIds ?? [])
-      ])
-      const missingIds = [...knowledgebaseIds].filter((id) => id && !embeddedIds.has(id))
-      const resolvedKnowledgebases = await Promise.all(
-        missingIds.map((id) =>
-          firstValueFrom(this.#knowledgebaseService.getById(id, { relations: ['createdBy'] })).catch(() => null)
-        )
-      )
-
-      return this.mergeKnowledgebases(
-        embeddedKnowledgebases,
-        resolvedKnowledgebases.filter((item): item is IKnowledgebase => !!item)
-      )
-    } catch {
-      return []
-    }
-  }
-
-  private mergeKnowledgebases(workspaceItems: IKnowledgebase[], connectedItems: IKnowledgebase[]) {
-    const items = new Map<string, IKnowledgebase>()
-    for (const item of [...connectedItems, ...workspaceItems]) {
-      if (item?.id) {
-        items.set(item.id, item)
-      }
-    }
-    return [...items.values()].sort(
-      (left, right) =>
-        this.toTimestamp(right.updatedAt ?? right.createdAt) - this.toTimestamp(left.updatedAt ?? left.createdAt)
-    )
   }
 
   private async loadDocuments(knowledgebaseId: string | null) {
@@ -392,5 +344,9 @@ export class XpertWorkspaceKnowledgesPageComponent {
     }
     const timestamp = new Date(value).getTime()
     return Number.isNaN(timestamp) ? 0 : timestamp
+  }
+
+  private workspaceReturnTo() {
+    return `/xpert/w/${this.workspaceId()}/clawxpert-knowledges`
   }
 }

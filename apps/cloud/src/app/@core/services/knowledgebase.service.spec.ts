@@ -49,4 +49,32 @@ describe('KnowledgebaseService', () => {
       name: 'Knowledgebase'
     })
   })
+
+  it('loads only knowledgebases owned by the requested workspace', () => {
+    let itemIds: string[] = []
+    service
+      .getAllByWorkspaceOnly('workspace-1', { relations: ['createdBy'] })
+      .subscribe(({ items }) => (itemIds = items.map(({ id }) => id)))
+
+    const request = httpMock.expectOne(
+      (item) => item.method === 'GET' && item.url === '/api/knowledgebase/by-workspace/workspace-1'
+    )
+
+    expect(request.request.params.has('scope')).toBe(false)
+    expect(request.request.params.get('data')).toBe(
+      JSON.stringify({
+        relations: ['createdBy']
+      })
+    )
+
+    request.flush({
+      items: [
+        { id: 'kb-owned', workspaceId: 'workspace-1' },
+        { id: 'kb-shared', workspaceId: 'workspace-2' }
+      ],
+      total: 2
+    })
+
+    expect(itemIds).toEqual(['kb-owned'])
+  })
 })

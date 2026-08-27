@@ -83,7 +83,6 @@ export class KnowledgebaseComponent {
   readonly knowledgebase = this.#knowledgebase.value
 
   readonly type = computed(() => this.knowledgebase()?.type)
-  readonly workspaceId = computed(() => this.knowledgebase()?.workspaceId)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly external = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.External)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
@@ -135,6 +134,18 @@ export class KnowledgebaseComponent {
 
   toggleSideMenu() {
     this.sideMenuOpened.update((state) => !state)
+  }
+
+  back() {
+    const returnTo = this.#route.snapshot.queryParamMap.get('returnTo')
+    if (returnTo?.startsWith('/xpert/') && !returnTo.includes('\\')) {
+      void this.#router.navigateByUrl(returnTo)
+      return
+    }
+
+    void this.#router.navigate(['/xpert/knowledges'], {
+      queryParams: this.knowledgebase()?.id ? { knowledgebaseId: this.knowledgebase().id } : undefined
+    })
   }
 
   deleteKnowledgebase() {

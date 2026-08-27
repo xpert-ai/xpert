@@ -36,7 +36,7 @@ import {
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, interval, of } from 'rxjs'
 import { v4 as uuidv4 } from 'uuid'
-import { catchError, filter, shareReplay, switchMap, takeWhile, tap } from 'rxjs/operators'
+import { catchError, filter, map, shareReplay, switchMap, takeWhile, tap } from 'rxjs/operators'
 import { getErrorMessage, uuid } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
@@ -103,6 +103,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
           params: toHttpParams(options)
         })
       )
+    )
+  }
+
+  getAllByWorkspaceOnly(id: string, options?: PaginationParams<IKnowledgebase>, published?: boolean) {
+    return this.getAllByWorkspace(id, options, published).pipe(
+      map(({ items }) => ({ items: (items ?? []).filter((item) => item.workspaceId === id) }))
     )
   }
 

@@ -112,7 +112,9 @@ export class XpertWorkspaceSettingsPageComponent {
               take: queryLimit
             })
           ),
-          knowledgebases: countItems(this.#knowledgebaseService.getAllByWorkspace(workspaceId, { take: queryLimit }))
+          knowledgebases: countItems(
+            this.#knowledgebaseService.getAllByWorkspaceOnly(workspaceId, { take: queryLimit })
+          )
         }).pipe(
           map((counts) => ({ loading: false, counts })),
           startWith({ loading: true, counts: EMPTY_COUNTS })

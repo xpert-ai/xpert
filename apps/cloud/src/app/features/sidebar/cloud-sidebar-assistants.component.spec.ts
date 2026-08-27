@@ -1049,6 +1049,24 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
   })
 
+  it('keeps the visible avatar pointer-transparent so the overlay button receives clicks', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const avatar = fixture.nativeElement.querySelector('emoji-avatar')
+    expect(avatar.classList).toContain('pointer-events-none')
+
+    const overlayButton = avatar.parentElement.querySelector('.cloud-sidebar-assistants__item-main')
+    overlayButton.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
+  })
+
   it('opens the latest unread history thread when an assistant has unread messages', async () => {
     conversationService.getUnreadByXperts.mockReturnValue(
       of([
