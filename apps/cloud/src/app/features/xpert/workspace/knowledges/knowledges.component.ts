@@ -97,7 +97,9 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   openKnowledgebase(id: string) {
-    this.#router.navigate(['/xpert/knowledges', id])
+    this.#router.navigate(['/xpert/knowledges', id], {
+      queryParams: { returnTo: this.workspaceReturnTo() }
+    })
   }
 
   newKnowledgebase() {
@@ -114,22 +116,26 @@ export class XpertWorkspaceKnowledgesComponent {
       .closed.subscribe({
         next: (knowledgebase) => {
           if (knowledgebase) {
-            this.#router.navigate(['/xpert/knowledges/', knowledgebase.id])
+            this.#router.navigate(['/xpert/knowledges', knowledgebase.id], {
+              queryParams: { returnTo: this.workspaceReturnTo() }
+            })
           }
         }
       })
   }
 
   edit(item: IKnowledgebase) {
-    if (!this.canWriteWorkspace()) {
+    if (!this.canManage(item)) {
       return
     }
 
-    this.#router.navigate(['/xpert/knowledges/', item.id, 'configuration'])
+    this.#router.navigate(['/xpert/knowledges', item.id, 'configuration'], {
+      queryParams: { returnTo: this.workspaceReturnTo() }
+    })
   }
 
   remove(item: IKnowledgebase) {
-    if (!this.canWriteWorkspace()) {
+    if (!this.canManage(item)) {
       return
     }
 
@@ -150,5 +156,13 @@ export class XpertWorkspaceKnowledgesComponent {
         this._toastrService.error(getErrorMessage(error), 'Error')
       }
     })
+  }
+
+  canManage(item: IKnowledgebase) {
+    return this.canWriteWorkspace() && !!item.workspaceId && item.workspaceId === this.workspaceId()
+  }
+
+  private workspaceReturnTo() {
+    return `/xpert/w/${this.workspaceId()}/knowledges`
   }
 }

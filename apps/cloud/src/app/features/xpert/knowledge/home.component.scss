@@ -1,4 +1,357 @@
 @reference "../../../../styles/tailwind-reference.css";
+
 :host {
-  @apply w-full flex flex-col overflow-auto;
+  @apply block h-full w-full overflow-hidden;
+}
+
+.knowledge-home {
+  @apply flex h-full min-h-0 min-w-0 flex-col bg-components-card-bg;
+}
+
+.knowledge-home__header {
+  @apply flex shrink-0 items-center justify-between gap-4 border-b border-border px-8 py-6;
+}
+
+.knowledge-home__header h1 {
+  @apply text-2xl font-semibold text-text-primary;
+}
+
+.knowledge-home__header p {
+  @apply mt-1 text-sm text-text-tertiary;
+}
+
+.knowledge-summary__actions,
+.knowledge-editor__actions {
+  @apply flex items-center gap-2;
+}
+
+.text-action,
+.icon-action,
+.primary-action,
+.sidebar-add,
+.new-knowledgebase-link,
+.knowledge-nav-item,
+.knowledge-file-row,
+.knowledge-breadcrumbs button,
+.knowledge-menu button {
+  @apply transition-colors;
+}
+
+.text-action {
+  @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-50;
+}
+
+.icon-action {
+  @apply inline-flex size-9 items-center justify-center rounded-md text-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-40;
+}
+
+.icon-action--muted {
+  @apply text-text-tertiary;
+}
+
+.primary-action {
+  @apply inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50;
+}
+
+.knowledge-home__body {
+  @apply flex min-h-0 flex-1;
+}
+
+.knowledge-sidebar {
+  @apply flex w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border bg-components-card-bg px-4 py-6;
+}
+
+.knowledge-sidebar__section-title,
+.knowledge-sidebar__section-heading {
+  @apply px-4 text-sm font-semibold text-text-tertiary;
+}
+
+.knowledge-sidebar__section-title {
+  @apply mb-3 mt-4;
+}
+
+.knowledge-sidebar__section-heading {
+  @apply mt-8 flex items-center justify-between py-3;
+}
+
+.knowledge-sidebar__empty {
+  @apply px-4 py-2 text-sm text-text-tertiary;
+}
+
+.knowledge-nav-item {
+  @apply flex min-h-14 w-full items-center gap-3 rounded-md px-4 text-left text-base text-text-secondary hover:bg-hover-bg;
+}
+
+.knowledge-nav-item.active {
+  @apply bg-components-card-bg font-semibold text-text-primary;
+}
+
+.knowledge-nav-item__avatar {
+  @apply size-9 shrink-0 overflow-hidden rounded-md;
+}
+
+.knowledge-nav-item__name {
+  @apply min-w-0 flex-1 truncate;
+}
+
+.knowledge-nav-item__scope {
+  @apply inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-background-default-subtle text-base text-text-tertiary;
+}
+
+.sidebar-add {
+  @apply inline-flex size-7 items-center justify-center rounded-md text-base text-text-tertiary hover:bg-hover-bg hover:text-text-primary;
+}
+
+.new-knowledgebase-link {
+  @apply flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-text-secondary hover:bg-hover-bg hover:text-text-primary;
+}
+
+.new-knowledgebase-link--top {
+  @apply mb-2 shrink-0;
+}
+
+.knowledge-main {
+  @apply flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden;
+}
+
+.knowledge-summary {
+  @apply flex shrink-0 items-center justify-between gap-6 border-b border-border px-12 py-10;
+}
+
+.knowledge-summary__identity {
+  @apply flex min-w-0 items-center gap-5;
+}
+
+.knowledge-summary__avatar {
+  @apply size-20 shrink-0 overflow-hidden rounded-xl;
+}
+
+.knowledge-summary__title-row {
+  @apply flex flex-wrap items-center gap-3;
+}
+
+.knowledge-summary h2 {
+  @apply truncate text-2xl font-semibold text-text-primary;
+}
+
+.knowledge-summary p {
+  @apply mt-2 max-w-2xl truncate text-base text-text-tertiary;
+}
+
+.scope-badge {
+  @apply inline-flex items-center gap-1 rounded-full bg-background-default-subtle px-2 py-1 text-xs text-text-tertiary;
+}
+
+.knowledge-files {
+  @apply flex min-h-0 flex-1 flex-col px-12 py-9;
+}
+
+.knowledge-files__toolbar {
+  @apply flex shrink-0 items-center justify-between gap-4;
+}
+
+.knowledge-files__heading {
+  @apply flex items-baseline gap-3;
+}
+
+.knowledge-files__heading h3 {
+  @apply text-2xl font-semibold text-text-primary;
+}
+
+.knowledge-files__heading span {
+  @apply text-base text-text-tertiary;
+}
+
+.knowledge-files__tools {
+  @apply flex items-center gap-2;
+}
+
+.knowledge-search {
+  @apply flex h-9 w-56 items-center gap-2 rounded-md border border-border px-3 text-text-tertiary focus-within:border-primary;
+}
+
+.knowledge-search input {
+  @apply min-w-0 flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary;
+}
+
+.knowledge-breadcrumbs {
+  @apply mt-6 flex min-h-9 items-center gap-1 overflow-x-auto border-b border-border pb-3 text-sm;
+}
+
+.knowledge-breadcrumbs button {
+  @apply shrink-0 rounded px-1 text-text-tertiary hover:bg-hover-bg hover:text-text-primary;
+}
+
+.knowledge-breadcrumbs button.current {
+  @apply font-medium text-text-primary;
+}
+
+.knowledge-breadcrumbs i {
+  @apply shrink-0 text-text-tertiary;
+}
+
+.knowledge-file-list {
+  @apply min-h-0 flex-1 overflow-y-auto;
+}
+
+.knowledge-file-list__header,
+.knowledge-file-row {
+  @apply grid grid-cols-[minmax(0,1fr)_12rem] items-center gap-4;
+}
+
+.knowledge-file-list__header {
+  @apply border-b border-border px-5 py-4 text-sm font-medium text-text-tertiary;
+}
+
+.knowledge-file-row {
+  @apply min-h-16 w-full border-b border-border/70 px-5 text-left text-base text-text-secondary hover:bg-hover-bg;
+}
+
+.knowledge-file-row__name {
+  @apply flex min-w-0 items-center gap-3;
+}
+
+.knowledge-file-row__updated {
+  @apply text-xs text-text-tertiary;
+}
+
+.file-icon {
+  @apply inline-flex size-10 shrink-0 items-center justify-center rounded-md text-xl;
+}
+
+.file-icon.folder,
+.file-icon.presentation {
+  background-color: var(--color-status-warning-bg);
+  color: var(--color-text-warning);
+}
+
+.file-icon.pdf {
+  background-color: var(--color-status-error-bg);
+  color: var(--color-text-destructive);
+}
+
+.file-icon.document {
+  background-color: var(--color-text-highlight-bg);
+  color: var(--color-text-accent);
+}
+
+.file-icon.spreadsheet {
+  background-color: color-mix(in srgb, var(--color-text-success) 16%, transparent);
+  color: var(--color-text-success);
+}
+
+.file-icon.file {
+  @apply bg-background-default-subtle text-text-tertiary;
+}
+
+.knowledge-state,
+.knowledge-empty-home {
+  @apply flex min-h-56 flex-1 flex-col items-center justify-center gap-2 text-center text-sm text-text-tertiary;
+}
+
+.knowledge-state > i,
+.knowledge-empty-home > i {
+  @apply text-3xl;
+}
+
+.knowledge-state strong,
+.knowledge-empty-home h2 {
+  @apply font-medium text-text-secondary;
+}
+
+.knowledge-state span,
+.knowledge-empty-home p {
+  @apply text-xs text-text-tertiary;
+}
+
+.knowledge-state--error {
+  color: var(--color-text-destructive);
+}
+
+.knowledge-editor-overlay {
+  @apply fixed inset-0 z-50 p-4 backdrop-blur-sm;
+  background-color: color-mix(in srgb, var(--color-background-body) 80%, transparent);
+}
+
+.knowledge-editor {
+  @apply flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-components-card-bg shadow-xl;
+}
+
+.knowledge-editor__header {
+  @apply flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-3;
+}
+
+.knowledge-editor__title {
+  @apply flex min-w-0 items-center gap-3 text-sm text-text-primary;
+}
+
+.knowledge-editor__title strong {
+  @apply truncate;
+}
+
+.editor-status {
+  @apply text-xs text-text-tertiary;
+}
+
+.knowledge-editor__body {
+  @apply min-h-0 flex-1 overflow-hidden;
+}
+
+.knowledge-markdown-editor,
+.knowledge-spreadsheet-editor,
+.knowledge-docx-editor {
+  @apply block h-full min-h-0 w-full;
+}
+
+.knowledge-menu {
+  @apply min-w-52 rounded-lg border border-border bg-components-card-bg p-1 shadow-lg;
+}
+
+.knowledge-menu button {
+  @apply flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary;
+}
+
+.knowledge-menu button i {
+  @apply w-4 text-base text-text-tertiary;
+}
+
+@media (max-width: 768px) {
+  .knowledge-home__header,
+  .knowledge-summary,
+  .knowledge-files {
+    @apply px-4;
+  }
+
+  .knowledge-sidebar {
+    @apply w-52;
+  }
+
+  .knowledge-summary {
+    @apply items-start;
+  }
+
+  .knowledge-summary__avatar {
+    @apply size-12;
+  }
+
+  .knowledge-files__toolbar {
+    @apply items-start;
+  }
+
+  .knowledge-search {
+    @apply w-40;
+  }
+
+  .knowledge-file-list__header,
+  .knowledge-file-row {
+    @apply grid-cols-[minmax(0,1fr)_7rem] px-2;
+  }
+
+  .knowledge-editor-overlay {
+    @apply p-0;
+  }
+
+  .knowledge-editor {
+    @apply rounded-none border-0;
+  }
 }
