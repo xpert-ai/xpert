@@ -72,7 +72,7 @@ export class XpertWorkspaceKnowledgesComponent {
       switchMap((workspaceId) =>
         this.refresh$.pipe(
           switchMap(() =>
-            this.knowledgebaseService.getAllByWorkspace(workspaceId, {
+            this.knowledgebaseService.getAllByWorkspaceOnly(workspaceId, {
               relations: ['createdBy'],
               order: { updatedAt: OrderTypeEnum.DESC }
             })

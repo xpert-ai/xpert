@@ -244,7 +244,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         workspaceId: string,
         data: PaginationParams<Knowledgebase>,
         published: boolean,
-        user: IUser
+        user: IUser,
+        scope: 'all' | 'current' = 'all'
     ) {
         const { relations, order, take } = data ?? {}
         let { where } = data ?? {}
@@ -270,6 +271,22 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             const workspace = await this.queryBus.execute(new GetXpertWorkspaceQuery(user, { id: workspaceId }))
             if (!workspace) {
                 throw new NotFoundException(`Not found or no auth for xpert workspace '${workspaceId}'`)
+            }
+
+            if (scope === 'current') {
+                const currentWorkspaceWhere = {
+                    ...(<FindOptionsWhere<Knowledgebase>>where),
+                    workspaceId
+                }
+                if (published) {
+                    currentWorkspaceWhere.publishAt = Not(IsNull())
+                }
+                return this.findAll({
+                    where: currentWorkspaceWhere,
+                    relations,
+                    order,
+                    take
+                })
             }
 
             // Build where conditions array to include:

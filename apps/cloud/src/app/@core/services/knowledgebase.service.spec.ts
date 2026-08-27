@@ -49,4 +49,23 @@ describe('KnowledgebaseService', () => {
       name: 'Knowledgebase'
     })
   })
+
+  it('loads only knowledgebases owned by the requested workspace', () => {
+    service.getAllByWorkspaceOnly('workspace-1', { relations: ['createdBy'] }).subscribe()
+
+    const request = httpMock.expectOne(
+      (item) =>
+        item.method === 'GET' &&
+        item.url === '/api/knowledgebase/by-workspace/workspace-1' &&
+        item.params.get('scope') === 'current'
+    )
+
+    expect(request.request.params.get('data')).toBe(
+      JSON.stringify({
+        relations: ['createdBy']
+      })
+    )
+
+    request.flush({ items: [], total: 0 })
+  })
 })
