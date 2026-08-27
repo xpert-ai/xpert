@@ -72,7 +72,7 @@ export class XpertWorkspaceKnowledgesComponent {
       switchMap((workspaceId) =>
         this.refresh$.pipe(
           switchMap(() =>
-            this.knowledgebaseService.getAllByWorkspaceOnly(workspaceId, {
+            this.knowledgebaseService.getAllByWorkspace(workspaceId, {
               relations: ['createdBy'],
               order: { updatedAt: OrderTypeEnum.DESC }
             })
@@ -121,7 +121,7 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   edit(item: IKnowledgebase) {
-    if (!this.canWriteWorkspace()) {
+    if (!this.canManage(item)) {
       return
     }
 
@@ -129,7 +129,7 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   remove(item: IKnowledgebase) {
-    if (!this.canWriteWorkspace()) {
+    if (!this.canManage(item)) {
       return
     }
 
@@ -150,5 +150,9 @@ export class XpertWorkspaceKnowledgesComponent {
         this._toastrService.error(getErrorMessage(error), 'Error')
       }
     })
+  }
+
+  canManage(item: IKnowledgebase) {
+    return this.canWriteWorkspace() && !!item.workspaceId && item.workspaceId === this.workspaceId()
   }
 }

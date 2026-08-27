@@ -43,6 +43,12 @@ export class XpertWorkspaceKnowledgesPageComponent {
   readonly activeKnowledgebase = computed(
     () => this.knowledgebases().find((item) => item.id === this.activeKnowledgebaseId()) ?? null
   )
+  readonly canWriteActiveKnowledgebase = computed(
+    () =>
+      this.canWriteWorkspace() &&
+      !!this.activeKnowledgebase()?.workspaceId &&
+      this.activeKnowledgebase()?.workspaceId === this.workspaceId()
+  )
 
   readonly documents = signal<IKnowledgeDocument[]>([])
   readonly documentSearch = signal('')
@@ -160,14 +166,14 @@ export class XpertWorkspaceKnowledgesPageComponent {
 
   openKnowledgebaseSettings() {
     const id = this.activeKnowledgebaseId()
-    if (id) {
+    if (id && this.canWriteActiveKnowledgebase()) {
       void this.#router.navigate(['/xpert/knowledges', id, 'configuration'])
     }
   }
 
   createDocument() {
     const id = this.activeKnowledgebaseId()
-    if (id && this.canWriteWorkspace()) {
+    if (id && this.canWriteActiveKnowledgebase()) {
       void this.#router.navigate(['/xpert/knowledges', id, 'documents', 'create'])
     }
   }
@@ -246,7 +252,7 @@ export class XpertWorkspaceKnowledgesPageComponent {
     this.loadError.set(null)
     try {
       const result = await firstValueFrom(
-        this.#knowledgebaseService.getAllByWorkspaceOnly(workspaceId, {
+        this.#knowledgebaseService.getAllByWorkspace(workspaceId, {
           relations: ['createdBy'],
           order: { updatedAt: OrderTypeEnum.DESC }
         })
