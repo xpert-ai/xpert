@@ -88,17 +88,17 @@ export class KnowledgebaseHomeComponent {
   readonly #workspaceService = inject(XpertWorkspaceService)
   readonly confirmUnique = injectConfirmUnique()
   readonly newKnowledgebaseTitle = injectTranslate('XP.Knowledgebase.NewKnowledgebase', {
-    Default: '新建知识库'
+    Default: 'New knowledge base'
   })
   readonly newDocumentTitle = injectTranslate('XP.Knowledgebase.NewOnlineDocument', {
-    Default: '新建文档'
+    Default: 'New document'
   })
   readonly newSpreadsheetTitle = injectTranslate('XP.Knowledgebase.NewSpreadsheet', {
-    Default: '新建表格'
+    Default: 'New spreadsheet'
   })
-  readonly newFolderTitle = injectTranslate('XP.Knowledgebase.NewFolder', { Default: '新建文件夹' })
+  readonly newFolderTitle = injectTranslate('XP.Knowledgebase.NewFolder', { Default: 'New folder' })
   readonly discardChangesText = injectTranslate('XP.Knowledgebase.DiscardUnsavedChanges', {
-    Default: '放弃未保存的修改吗？'
+    Default: 'Discard unsaved changes?'
   })
 
   readonly #clawXpertContext = toSignal(
@@ -350,7 +350,7 @@ export class KnowledgebaseHomeComponent {
       this.knowledgebaseService.create({ name, permission, workspaceId })
     ).subscribe({
       next: (knowledgebase) => {
-        this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: '创建成功！' })
+        this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
         void this.loadKnowledgebases(knowledgebase.id)
       },
       error: (error) => this.#toastr.error(getErrorMessage(error))
@@ -413,7 +413,7 @@ export class KnowledgebaseHomeComponent {
         await this.uploadAndCreateDocument(file, true)
       }
       await this.loadDocuments()
-      this.#toastr.success('XP.Messages.UploadSuccessfully', { Default: '上传成功' })
+      this.#toastr.success('XP.Messages.UploadSuccessfully', { Default: 'Uploaded successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
@@ -530,7 +530,7 @@ export class KnowledgebaseHomeComponent {
       }
       this.editorDirty.set(false)
       this.spreadsheetEditor()?.markSaved()
-      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: '保存成功' })
+      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {

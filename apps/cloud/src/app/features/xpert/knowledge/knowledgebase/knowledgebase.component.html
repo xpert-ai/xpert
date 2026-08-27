@@ -94,7 +94,7 @@
         [queryParams]="knowledgebase()?.id ? { knowledgebaseId: knowledgebase()?.id } : undefined"
       >
         <z-icon zType="arrow-left" />
-        <span class="hidden xl:inline">{{ 'XP.ACTIONS.Back' | translate: { Default: '返回' } }}</span>
+        <span class="hidden xl:inline">{{ 'XP.ACTIONS.Back' | translate: { Default: 'Back' } }}</span>
       </a>
       <button z-button zType="ghost" zSize="icon-sm" [cdkMenuTriggerFor]="serviceApiMenu">
         <span

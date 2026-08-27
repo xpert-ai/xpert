@@ -3,9 +3,9 @@
 <div class="knowledge-home">
   <header class="knowledge-home__header">
     <div>
-      <h1>{{ 'XP.Knowledgebase.WorkbenchTitle' | translate: { Default: '知识库' } }}</h1>
+      <h1>{{ 'XP.Knowledgebase.WorkbenchTitle' | translate: { Default: 'Knowledge base' } }}</h1>
       <p>
-        {{ 'XP.Knowledgebase.WorkbenchDescription' | translate: { Default: '团队知识共享、协作与管理' } }}
+        {{ 'XP.Knowledgebase.WorkbenchDescription' | translate: { Default: 'Share, organize, and manage knowledge.' } }}
       </p>
     </div>
   </header>
@@ -18,11 +18,11 @@
         [cdkMenuTriggerFor]="newKnowledgebaseMenu"
       >
         <i class="ri-add-line"></i>
-        {{ 'XP.Knowledgebase.NewKnowledgebase' | translate: { Default: '新建知识库' } }}
+        {{ 'XP.Knowledgebase.NewKnowledgebase' | translate: { Default: 'New knowledge base' } }}
       </button>
 
       <div class="knowledge-sidebar__section-title">
-        {{ 'XP.Knowledgebase.PersonalKnowledge' | translate: { Default: '个人知识库' } }}
+        {{ 'XP.Knowledgebase.PersonalKnowledge' | translate: { Default: 'Personal knowledge bases' } }}
       </div>
       @for (knowledgebase of personalKnowledgebases(); track knowledgebase.id) {
         <button
@@ -36,12 +36,12 @@
         </button>
       } @empty {
         <div class="knowledge-sidebar__empty">
-          {{ 'XP.Knowledgebase.NoPersonalKnowledge' | translate: { Default: '暂无个人知识库' } }}
+          {{ 'XP.Knowledgebase.NoPersonalKnowledge' | translate: { Default: 'No personal knowledge bases' } }}
         </div>
       }
 
       <div class="knowledge-sidebar__section-heading">
-        <span>{{ 'XP.Knowledgebase.TeamKnowledge' | translate: { Default: '团队知识库' } }}</span>
+        <span>{{ 'XP.Knowledgebase.TeamKnowledge' | translate: { Default: 'Team knowledge bases' } }}</span>
       </div>
       @for (knowledgebase of teamKnowledgebases(); track knowledgebase.id) {
         <button
@@ -62,7 +62,7 @@
         </button>
       } @empty {
         <div class="knowledge-sidebar__empty">
-          {{ 'XP.Knowledgebase.NoTeamKnowledge' | translate: { Default: '暂无团队知识库' } }}
+          {{ 'XP.Knowledgebase.NoTeamKnowledge' | translate: { Default: 'No team knowledge bases' } }}
         </div>
       }
     </aside>
@@ -78,17 +78,17 @@
                 @if (!knowledgebase.permission || knowledgebase.permission === KnowledgebasePermission.Private) {
                   <span class="scope-badge"
                     ><i class="ri-lock-line"></i
-                    >{{ 'XP.Knowledgebase.Permission_Private' | translate: { Default: '私有' } }}</span
+                    >{{ 'XP.Knowledgebase.Permission_Private' | translate: { Default: 'Private' } }}</span
                   >
                 } @else if (knowledgebase.permission === KnowledgebasePermission.Public) {
                   <span class="scope-badge"
                     ><i class="ri-earth-line"></i
-                    >{{ 'XP.Knowledgebase.Permission_Public' | translate: { Default: '公开' } }}</span
+                    >{{ 'XP.Knowledgebase.Permission_Public' | translate: { Default: 'Public' } }}</span
                   >
                 } @else {
                   <span class="scope-badge"
                     ><i class="ri-team-line"></i
-                    >{{ 'XP.Knowledgebase.Permission_Organization' | translate: { Default: '组织内' } }}</span
+                    >{{ 'XP.Knowledgebase.Permission_Organization' | translate: { Default: 'Organization' } }}</span
                   >
                 }
               </div>
@@ -96,7 +96,7 @@
                 {{
                   knowledgebase.description ||
                     ('XP.Knowledgebase.WorkbenchEmptyDescription'
-                      | translate: { Default: '整理文件，让知识更易查找。' })
+                      | translate: { Default: 'Keep your files organized and searchable.' })
                 }}
               </p>
             </div>
@@ -107,8 +107,8 @@
               class="icon-action"
               [disabled]="vectorMutationLocked() || mutating() || !canWriteWorkspace()"
               [cdkMenuTriggerFor]="createMenu"
-              [attr.aria-label]="'XP.ACTIONS.New' | translate: { Default: '新建' }"
-              [zTooltip]="'XP.ACTIONS.New' | translate: { Default: '新建' }"
+              [attr.aria-label]="'XP.ACTIONS.New' | translate: { Default: 'New' }"
+              [zTooltip]="'XP.ACTIONS.New' | translate: { Default: 'New' }"
               zPosition="top"
             >
               <i class="ri-add-line"></i>
@@ -118,8 +118,8 @@
               class="icon-action"
               [disabled]="vectorMutationLocked() || mutating() || !canWriteWorkspace()"
               (click)="openUploadPicker()"
-              [attr.aria-label]="'XP.ACTIONS.Upload' | translate: { Default: '上传' }"
-              [zTooltip]="'XP.ACTIONS.Upload' | translate: { Default: '上传' }"
+              [attr.aria-label]="'XP.ACTIONS.Upload' | translate: { Default: 'Upload' }"
+              [zTooltip]="'XP.ACTIONS.Upload' | translate: { Default: 'Upload' }"
               zPosition="top"
             >
               <i class="ri-upload-2-line"></i>
@@ -129,8 +129,8 @@
               class="icon-action"
               [disabled]="vectorMutationLocked() || mutating() || !canWriteWorkspace()"
               (click)="openConfiguration()"
-              [attr.aria-label]="'XP.KEY_WORDS.Configuration' | translate: { Default: '配置' }"
-              [zTooltip]="'XP.KEY_WORDS.Configuration' | translate: { Default: '配置' }"
+              [attr.aria-label]="'XP.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' }"
+              [zTooltip]="'XP.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' }"
               zPosition="top"
             >
               <i class="ri-settings-3-line"></i>
@@ -141,8 +141,8 @@
         <section class="knowledge-files">
           <div class="knowledge-files__toolbar">
             <div class="knowledge-files__heading">
-              <h3>{{ 'XP.Knowledgebase.AllKnowledge' | translate: { Default: '所有知识' } }}</h3>
-              <span>{{ documents().length }} {{ 'XP.Knowledgebase.Items' | translate: { Default: '项' } }}</span>
+              <h3>{{ 'XP.Knowledgebase.AllKnowledge' | translate: { Default: 'All knowledge' } }}</h3>
+              <span>{{ documents().length }} {{ 'XP.Knowledgebase.Items' | translate: { Default: 'items' } }}</span>
             </div>
             <div class="knowledge-files__tools">
               <label class="knowledge-search">
@@ -151,7 +151,7 @@
                   type="search"
                   [ngModel]="documentSearch()"
                   (ngModelChange)="documentSearch.set($event)"
-                  [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: '搜索' }"
+                  [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                 />
               </label>
               <button
@@ -159,7 +159,7 @@
                 class="icon-action icon-action--muted"
                 (click)="loadDocuments()"
                 [disabled]="loadingDocuments()"
-                [attr.aria-label]="'XP.ACTIONS.Refresh' | translate: { Default: '刷新' }"
+                [attr.aria-label]="'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' }"
               >
                 <i class="ri-refresh-line" [class.animate-spin]="loadingDocuments()"></i>
               </button>
@@ -187,22 +187,22 @@
           } @else if (loadingDocuments()) {
             <div class="knowledge-state">
               <i class="ri-loader-4-line animate-spin"></i
-              >{{ 'XP.KEY_WORDS.Loading' | translate: { Default: '加载中' } }}
+              >{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
             </div>
           } @else if (!visibleDocuments().length) {
             <div class="knowledge-state">
               <i class="ri-file-3-line"></i
-              ><strong>{{ 'XP.Knowledgebase.NoKnowledgeFiles' | translate: { Default: '当前目录暂无文件' } }}</strong
+              ><strong>{{ 'XP.Knowledgebase.NoKnowledgeFiles' | translate: { Default: 'No files here' } }}</strong
               ><span>{{
                 'XP.Knowledgebase.NoKnowledgeFilesDescription'
-                  | translate: { Default: '新建文档、上传文件或添加文件夹，开始整理知识。' }
+                  | translate: { Default: 'Create a document, upload a file, or add a folder to get started.' }
               }}</span>
             </div>
           } @else {
             <div class="knowledge-file-list">
               <div class="knowledge-file-list__header">
-                <span>{{ 'XP.Knowledgebase.FileName' | translate: { Default: '文件名' } }}</span
-                ><span>{{ 'XP.Knowledgebase.UpdatedAt' | translate: { Default: '更新时间' } }}</span>
+                <span>{{ 'XP.Knowledgebase.FileName' | translate: { Default: 'File name' } }}</span
+                ><span>{{ 'XP.Knowledgebase.UpdatedAt' | translate: { Default: 'Updated at' } }}</span>
               </div>
               @for (document of visibleDocuments(); track document.id) {
                 <button type="button" class="knowledge-file-row" (click)="openDocument(document)">
@@ -222,11 +222,11 @@
       } @else {
         <div class="knowledge-empty-home">
           <i class="ri-book-shelf-line"></i>
-          <h2>{{ 'XP.Knowledgebase.NoKnowledgebaseSelected' | translate: { Default: '请选择知识库' } }}</h2>
+          <h2>{{ 'XP.Knowledgebase.NoKnowledgebaseSelected' | translate: { Default: 'Select a knowledge base' } }}</h2>
           <p>
             {{
               'XP.Knowledgebase.NoKnowledgebaseSelectedDescription'
-                | translate: { Default: '从左侧选择个人知识库或团队知识库。' }
+                | translate: { Default: 'Choose a personal or team knowledge base from the sidebar.' }
             }}
           </p>
         </div>
@@ -244,7 +244,7 @@
             type="button"
             class="icon-action"
             (click)="closeEditor()"
-            [attr.aria-label]="'XP.KEY_WORDS.Close' | translate: { Default: '关闭' }"
+            [attr.aria-label]="'XP.KEY_WORDS.Close' | translate: { Default: 'Close' }"
           >
             <i class="ri-arrow-left-line"></i></button
           ><span class="file-icon" [class]="documentIconClass(document)"><i [class]="documentIcon(document)"></i></span
@@ -253,11 +253,11 @@
         <div class="knowledge-editor__actions">
           <span class="editor-status">
             @if (editorSaving()) {
-              {{ 'XP.Knowledgebase.Saving' | translate: { Default: '保存中...' } }}
+              {{ 'XP.Knowledgebase.Saving' | translate: { Default: 'Saving...' } }}
             } @else if (editorDirty()) {
-              {{ 'XP.Knowledgebase.UnsavedChanges' | translate: { Default: '有未保存的修改' } }}
+              {{ 'XP.Knowledgebase.UnsavedChanges' | translate: { Default: 'Unsaved changes' } }}
             } @else {
-              {{ 'XP.Knowledgebase.Saved' | translate: { Default: '已保存' } }}
+              {{ 'XP.Knowledgebase.Saved' | translate: { Default: 'Saved' } }}
             }</span
           ><button
             type="button"
@@ -265,14 +265,15 @@
             [disabled]="editorSaving() || !editorDirty() || !canWriteWorkspace()"
             (click)="saveEditor()"
           >
-            <i class="ri-save-line"></i>{{ 'XP.KEY_WORDS.Save' | translate: { Default: '保存' } }}
+            <i class="ri-save-line"></i>{{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
           </button>
         </div>
       </header>
       <div class="knowledge-editor__body">
         @if (editorLoading()) {
           <div class="knowledge-state">
-            <i class="ri-loader-4-line animate-spin"></i>{{ 'XP.KEY_WORDS.Loading' | translate: { Default: '加载中' } }}
+            <i class="ri-loader-4-line animate-spin"></i
+            >{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
           </div>
         } @else if (editorKind() === 'markdown') {
           <xp-markdown-editor
@@ -304,13 +305,15 @@
 <ng-template #createMenu>
   <div cdkMenu class="knowledge-menu">
     <button cdkMenuItem (click)="createOnlineDocument('document')">
-      <i class="ri-file-text-line"></i>{{ 'XP.Knowledgebase.NewOnlineDocument' | translate: { Default: '新建文档' } }}
+      <i class="ri-file-text-line"></i
+      >{{ 'XP.Knowledgebase.NewOnlineDocument' | translate: { Default: 'New document' } }}
     </button>
     <button cdkMenuItem (click)="createOnlineDocument('spreadsheet')">
-      <i class="ri-file-excel-2-line"></i>{{ 'XP.Knowledgebase.NewSpreadsheet' | translate: { Default: '新建表格' } }}
+      <i class="ri-file-excel-2-line"></i
+      >{{ 'XP.Knowledgebase.NewSpreadsheet' | translate: { Default: 'New spreadsheet' } }}
     </button>
     <button cdkMenuItem (click)="createFolder()">
-      <i class="ri-folder-add-line"></i>{{ 'XP.Knowledgebase.NewFolder' | translate: { Default: '新建文件夹' } }}
+      <i class="ri-folder-add-line"></i>{{ 'XP.Knowledgebase.NewFolder' | translate: { Default: 'New folder' } }}
     </button>
   </div>
 </ng-template>
@@ -318,10 +321,12 @@
 <ng-template #newKnowledgebaseMenu>
   <div cdkMenu class="knowledge-menu">
     <button cdkMenuItem (click)="newKnowledgebase(KnowledgebasePermission.Private)">
-      <i class="ri-lock-line"></i>{{ 'XP.Knowledgebase.NewPersonalKnowledge' | translate: { Default: '个人知识库' } }}
+      <i class="ri-lock-line"></i
+      >{{ 'XP.Knowledgebase.NewPersonalKnowledge' | translate: { Default: 'Personal knowledge base' } }}
     </button>
     <button cdkMenuItem (click)="newKnowledgebase(KnowledgebasePermission.Organization)">
-      <i class="ri-team-line"></i>{{ 'XP.Knowledgebase.NewTeamKnowledge' | translate: { Default: '团队知识库' } }}
+      <i class="ri-team-line"></i
+      >{{ 'XP.Knowledgebase.NewTeamKnowledge' | translate: { Default: 'Team knowledge base' } }}
     </button>
   </div>
 </ng-template>
