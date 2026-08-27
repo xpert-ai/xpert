@@ -418,7 +418,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Delete(':id/job')
     async stopJob(@Param('id') id: string) {
-        const knowledgeDocument = await this.service.findOne(id)
+        const knowledgeDocument = await this.service.assertDocumentWriteAccess(id)
         try {
             if (knowledgeDocument.jobId) {
                 const job = await this.docQueue.getJob(knowledgeDocument.jobId)

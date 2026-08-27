@@ -287,6 +287,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         @Body('path') subpath: string,
         @UploadedFile() file: Express.Multer.File
     ) {
+        await this.service.assertKnowledgebaseWriteAccess(id)
         await this.service.assertNotRebuilding(id)
         let parentFolder = ''
         if (parentId) {

@@ -19,6 +19,13 @@ function chunk(chunkId: string, metadata: Partial<DocumentMetadata> = {}): Docum
 const diagnostics = { filterVersion: 2 as const, filterStatus: 'not_applied' as const, hitCount: 0 }
 
 function attachHandlerServices(handler: KnowledgeSearchQueryHandler) {
+    const service = (handler as unknown as { knowledgebaseService: KnowledgebaseService }).knowledgebaseService
+    if (!service.findOne && service.findAll) {
+        service.findOne = jest.fn(async (id: string) => {
+            const result = await service.findAll()
+            return result.items.find((item) => item.id === id)
+        }) as KnowledgebaseService['findOne']
+    }
     Object.defineProperty(handler, 'retrievalLogService', { value: { create: jest.fn() } })
     Object.defineProperty(handler, 'chunkService', { value: { findAll: jest.fn(async () => ({ items: [] })) } })
 }

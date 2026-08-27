@@ -5,6 +5,7 @@ import {
     IKnowledgeDocumentChunk,
     IKnowledgeDocumentPage,
     IKnowledgebase,
+    IPagination,
     KnowledgeDocumentLastIncrementalSync,
     KnowledgeDocumentProcessingMode,
     KBMetadataFieldDef,
@@ -16,7 +17,12 @@ import {
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import {
+    RequestContext,
+    StorageFileService,
+    TenantOrganizationAwareCrudService,
+    transformWhere
+} from '@xpert-ai/server-core'
 import {
     BadRequestException,
     ConflictException,
@@ -38,7 +44,19 @@ import {
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash'
-import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository } from 'typeorm'
+import {
+    And,
+    DataSource,
+    DeepPartial,
+    Equal,
+    FindManyOptions,
+    FindOneOptions,
+    FindOperator,
+    FindOptionsWhere,
+    In,
+    Raw,
+    Repository
+} from 'typeorm'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeWorkAreaResolver, LoadStorageFileCommand } from '../shared'
@@ -87,6 +105,8 @@ type VersionedKnowledgeDocument = {
 type ShallowKnowledgeDocumentUpdater = {
     update(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<unknown>
 }
+
+const KNOWLEDGE_DOCUMENT_ACCESS_SELECT_FIELDS = ['id', 'tenantId', 'organizationId', 'knowledgebaseId'] as const
 
 export type IncrementalDocumentSyncItemResult = {
     document: KnowledgeDocument
@@ -363,6 +383,74 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         super(repo)
     }
 
+    override async findAll(filter?: FindManyOptions<KnowledgeDocument>): Promise<IPagination<KnowledgeDocument>> {
+        const tenantId = this.requireDocumentTenantId()
+        const readableKnowledgebaseIds = await this.knowledgebaseService.findReadableKnowledgebaseIds()
+        const whereItems = (Array.isArray(filter?.where) ? filter.where : [filter?.where ?? {}]).map(
+            (item) =>
+                transformWhere<KnowledgeDocument>(item as Record<string, never>) ??
+                ({} as FindOptionsWhere<KnowledgeDocument>)
+        )
+        const where = whereItems.map((item) => {
+            const currentKnowledgebaseId = item.knowledgebaseId
+            const readableCondition = In(readableKnowledgebaseIds)
+            return {
+                ...item,
+                tenantId,
+                knowledgebaseId:
+                    currentKnowledgebaseId == null
+                        ? readableCondition
+                        : And(
+                              currentKnowledgebaseId instanceof FindOperator
+                                  ? currentKnowledgebaseId
+                                  : Equal(currentKnowledgebaseId as string),
+                              readableCondition
+                          )
+            } as FindOptionsWhere<KnowledgeDocument>
+        })
+        const [items, total] = await this.repository.findAndCount({
+            ...(filter ?? {}),
+            where: Array.isArray(filter?.where) ? where : where[0]
+        })
+        return { items, total }
+    }
+
+    override async findOne(
+        id: string | number | FindOneOptions<KnowledgeDocument>,
+        options?: FindOneOptions<KnowledgeDocument>
+    ): Promise<KnowledgeDocument> {
+        if (typeof id !== 'string' && typeof id !== 'number') {
+            return super.findOne(id, options)
+        }
+
+        const scopedSelect = this.withDocumentAccessSelect(options)
+        const record = await this.repository.findOne({
+            ...(scopedSelect.options ?? {}),
+            where: this.mergeDocumentIdWithTenant(id, options?.where)
+        })
+        if (!record?.knowledgebaseId) {
+            throw new NotFoundException(`Knowledge document "${id}" not found`)
+        }
+        await this.knowledgebaseService.findOne(record.knowledgebaseId)
+        return this.stripDocumentAccessSelectFields(record, scopedSelect.addedFields)
+    }
+
+    override async findOneByIdString(
+        id: string,
+        options?: FindOneOptions<KnowledgeDocument>
+    ): Promise<KnowledgeDocument> {
+        return this.findOne(id, options)
+    }
+
+    async assertDocumentWriteAccess(
+        id: string,
+        options?: FindOneOptions<KnowledgeDocument>
+    ): Promise<KnowledgeDocument> {
+        const document = await this.findOne(id, options)
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
+        return document
+    }
+
     async findAncestors(id: string) {
         const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocument)
         const entity = await treeRepo.findOneBy({ id })
@@ -498,6 +586,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
+        if (!document.knowledgebaseId) {
+            throw new BadRequestException('knowledgebaseId is required')
+        }
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
         document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
@@ -653,6 +745,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     private async createOrReuseSourceDocument(
         document: Partial<IKnowledgeDocument>
     ): Promise<IncrementalDocumentSyncItemResult> {
+        if (!document.knowledgebaseId) {
+            throw new BadRequestException('knowledgebaseId is required')
+        }
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
         const sourceKey = resolveKnowledgeDocumentSourceKey(document)
@@ -832,6 +928,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         if (current.version !== expectedVersion) {
             throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
         }
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(current.knowledgebaseId)
         await this.knowledgebaseService.assertNotRebuilding(current.knowledgebaseId)
 
         const changes = { ...entity }
@@ -959,6 +1056,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         if (!knowledgebaseId || !documentId) {
             throw new BadRequestException('knowledgebaseId and documentId are required')
         }
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId)
         await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
         const document = await this.findOne(documentId, { relations: ['parent'] })
         if (document.knowledgebaseId !== knowledgebaseId) {
@@ -1074,7 +1172,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @deprecated use Chunks
      */
     async deletePage(documentId: string, id: string) {
-        const document = await this.findOne(documentId, {
+        const document = await this.assertDocumentWriteAccess(documentId, {
             relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
         })
         await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
@@ -1263,6 +1361,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      */
     async createChunk(id: string, entity: IKnowledgeDocumentChunk) {
         const { vectorStore, document } = await this.getDocumentVectorStore(id)
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         const metadata = {
             ...(entity.metadata ?? {})
         } as TDocChunkMetadata
@@ -1294,6 +1393,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async updateChunk(documentId: string, id: string, entity: IKnowledgeDocumentChunk) {
         try {
             const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+            await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
             const chunk = await this.mergeChunkUpdate(id, entity)
             validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
             const result = await this.chunkService.updateChunk(id, chunk)
@@ -1320,6 +1420,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         const expectedVersion = entity.version
         assertExpectedVersion(expectedVersion)
         const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         const chunk = await this.mergeChunkUpdate(id, entity)
         validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
         const result = await this.chunkService.updateWithVersion(id, chunk, expectedVersion)
@@ -1347,7 +1448,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async deleteChunk(documentId: string, id: string) {
-        const { vectorStore } = await this.getDocumentVectorStore(documentId)
+        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         // Delete entity
         await this.chunkService.delete(id)
         // Delete vector
@@ -1357,7 +1459,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
     async deleteChunkWithVersion(documentId: string, id: string, expectedVersion?: number) {
         assertExpectedVersion(expectedVersion)
-        const { vectorStore } = await this.getDocumentVectorStore(documentId)
+        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         await this.chunkService.deleteWithVersion(id, expectedVersion)
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
@@ -1397,6 +1500,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async updateDocument(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<void> {
+        if (!id) {
+            throw new BadRequestException('id is required')
+        }
+        const current = await this.findOne(id, { select: { id: true, knowledgebaseId: true } })
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(current.knowledgebaseId)
         // Keep TypeORM's recursive QueryDeepPartialEntity out of concrete call sites; ts-node/ts-jest can
         // otherwise exhaust the instantiation budget while expanding KnowledgeDocument relations.
         await (this as unknown as ShallowKnowledgeDocumentUpdater).update(id, entity)
@@ -1760,6 +1868,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     async previewFile(id: string) {
+        await this.findOne(id, { select: { id: true, knowledgebaseId: true } })
         try {
             const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
                 new LoadStorageFileCommand(id)
@@ -1787,7 +1896,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         const docs = items.filter((doc) => doc.status !== KBDocumentStatusEnum.RUNNING)
         const knowledgebaseIds = uniq(compact(docs.map((doc) => doc.knowledgebaseId)))
         await Promise.all(
-            knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId))
+            knowledgebaseIds.map(async (knowledgebaseId) => {
+                await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId)
+                await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
+            })
         )
 
         const job = await this.docQueue.add({
@@ -1846,6 +1958,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async deleteResolvedDocument(document: KnowledgeDocument, expectedVersion?: number) {
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
         await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
         if (expectedVersion) {
             await this.deleteDocumentArtifacts(document)
@@ -1886,6 +1999,68 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.knowledgebaseService.updateKnowledgebase(document.knowledgebaseId, {
             documentNum: document.knowledgebase.documentNum
         })
+    }
+
+    private mergeDocumentIdWithTenant(
+        id: string | number,
+        where?: FindOneOptions<KnowledgeDocument>['where']
+    ): FindOneOptions<KnowledgeDocument>['where'] {
+        const scope = { id: String(id), tenantId: this.requireDocumentTenantId() }
+        if (Array.isArray(where)) {
+            return where.map((item) => ({ ...item, ...scope }))
+        }
+        return { ...(where ?? {}), ...scope } as FindOptionsWhere<KnowledgeDocument>
+    }
+
+    private withDocumentAccessSelect(options?: FindOneOptions<KnowledgeDocument>): {
+        options?: FindOneOptions<KnowledgeDocument>
+        addedFields: string[]
+    } {
+        if (!options?.select) {
+            return { options, addedFields: [] }
+        }
+
+        if (Array.isArray(options.select)) {
+            const selectedFields = options.select as string[]
+            const addedFields = KNOWLEDGE_DOCUMENT_ACCESS_SELECT_FIELDS.filter(
+                (field) => !selectedFields.includes(field)
+            )
+            return {
+                options: {
+                    ...options,
+                    select: [...selectedFields, ...addedFields] as FindOneOptions<KnowledgeDocument>['select']
+                },
+                addedFields: [...addedFields]
+            }
+        }
+
+        const selectedFields = options.select as Record<string, unknown>
+        const addedFields = KNOWLEDGE_DOCUMENT_ACCESS_SELECT_FIELDS.filter((field) => selectedFields[field] !== true)
+        return {
+            options: {
+                ...options,
+                select: {
+                    ...selectedFields,
+                    ...Object.fromEntries(addedFields.map((field) => [field, true]))
+                } as FindOneOptions<KnowledgeDocument>['select']
+            },
+            addedFields: [...addedFields]
+        }
+    }
+
+    private stripDocumentAccessSelectFields(record: KnowledgeDocument, addedFields: string[]) {
+        for (const field of addedFields) {
+            delete (record as unknown as Record<string, unknown>)[field]
+        }
+        return record
+    }
+
+    private requireDocumentTenantId() {
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId) {
+            throw new NotFoundException('The requested knowledge document was not found')
+        }
+        return tenantId
     }
 
     // Document source connection

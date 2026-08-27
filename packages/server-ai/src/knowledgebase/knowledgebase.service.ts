@@ -42,10 +42,11 @@ import {
     KnowledgeFilterJSONValue
 } from '@xpert-ai/contracts'
 import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
-import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
+import { IntegrationService, PaginationParams, RequestContext, transformWhere } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
     BadRequestException,
+    ForbiddenException,
     Inject,
     Injectable,
     InternalServerErrorException,
@@ -68,6 +69,7 @@ import { I18nService } from 'nestjs-i18n'
 import {
     DataSource,
     DeleteResult,
+    FindOneOptions,
     FindOptionsSelect,
     FindOptionsWhere,
     In,
@@ -178,6 +180,15 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     }
 }
 
+const KNOWLEDGEBASE_ACCESS_SELECT_FIELDS = [
+    'id',
+    'tenantId',
+    'organizationId',
+    'workspaceId',
+    'permission',
+    'createdById'
+] as const
+
 function getQueryFailedErrorCode(error: QueryFailedError) {
     const driverError: unknown = error.driverError
     if (!driverError || typeof driverError !== 'object') {
@@ -247,10 +258,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         user: IUser,
         scope: 'all' | 'current' = 'all'
     ) {
-        const { relations, order, take } = data ?? {}
+        const { select, relations, order, take, skip } = data ?? {}
         let { where } = data ?? {}
-        where = where ?? {}
-        const organizationId = RequestContext.getOrganizationId() ?? IsNull()
+        where = transformWhere(where ?? {}) ?? {}
+        const tenantId = this.requireKnowledgebaseTenantId()
 
         if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
             where = {
@@ -261,12 +272,19 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             if (published) {
                 where.publishAt = Not(IsNull())
             }
-            return this.findAll({
-                where,
+            const [items, total] = await this.repository.findAndCount({
+                select,
+                where: {
+                    ...(<FindOptionsWhere<Knowledgebase>>where),
+                    tenantId,
+                    organizationId: RequestContext.getOrganizationId() ?? IsNull()
+                },
                 relations,
                 order,
-                take
+                take,
+                skip
             })
+            return { items, total }
         } else {
             const workspace = await this.queryBus.execute(new GetXpertWorkspaceQuery(user, { id: workspaceId }))
             if (!workspace) {
@@ -281,40 +299,43 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 if (published) {
                     currentWorkspaceWhere.publishAt = Not(IsNull())
                 }
-                return this.findAll({
-                    where: currentWorkspaceWhere,
+                const [items, total] = await this.repository.findAndCount({
+                    select,
+                    where: {
+                        ...currentWorkspaceWhere,
+                        tenantId,
+                        organizationId: workspace.organizationId ?? IsNull()
+                    },
                     relations,
                     order,
-                    take
+                    take,
+                    skip
                 })
+                return { items, total }
             }
 
-            // Build where conditions array to include:
-            // 1. Knowledgebases that belong to this workspace
-            // 2. Public knowledgebases from any workspace in the same organization
-            // 3. Organization knowledgebases from other workspaces in the same organization
+            // Include the current workspace, organization-shared knowledgebases in the
+            // current organization, and public knowledgebases across the tenant.
             const whereConditions: FindOptionsWhere<Knowledgebase>[] = [
                 {
                     ...(<FindOptionsWhere<Knowledgebase>>where),
-                    workspaceId: workspaceId
+                    tenantId,
+                    organizationId: workspace.organizationId ?? IsNull(),
+                    workspaceId
                 }
             ]
 
-            // Add Public knowledgebases from any workspace (excluding those already in this workspace)
-            // Note: Using Not(In([workspaceId])) to exclude the current workspace
             whereConditions.push({
                 ...(<FindOptionsWhere<Knowledgebase>>where),
-                permission: KnowledgebasePermission.Public,
-                organizationId: organizationId,
-                workspaceId: Not(In([workspaceId]))
+                tenantId,
+                permission: KnowledgebasePermission.Public
             })
 
-            // Add Organization knowledgebases from other workspaces in the same organization
             whereConditions.push({
                 ...(<FindOptionsWhere<Knowledgebase>>where),
+                tenantId,
                 permission: KnowledgebasePermission.Organization,
-                organizationId: organizationId,
-                workspaceId: Not(In([workspaceId]))
+                organizationId: workspace.organizationId ?? IsNull()
             })
 
             // Apply published filter if needed
@@ -324,13 +345,207 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 })
             }
 
-            return this.findAll({
+            const [items, total] = await this.repository.findAndCount({
+                select,
                 where: whereConditions,
                 relations,
                 order,
-                take
+                take,
+                skip
+            })
+            return { items, total }
+        }
+    }
+
+    override async findOne(
+        id: string | number | FindOneOptions<Knowledgebase>,
+        options?: FindOneOptions<Knowledgebase>
+    ): Promise<Knowledgebase> {
+        if (typeof id !== 'string' && typeof id !== 'number') {
+            return super.findOne(id, options)
+        }
+
+        const scopedSelect = this.withKnowledgebaseAccessSelect(options)
+        const record = await this.repository.findOne({
+            ...(scopedSelect.options ?? {}),
+            where: this.mergeKnowledgebaseIdWithTenant(id, options?.where)
+        })
+        await this.assertKnowledgebaseRecordReadable(record)
+        return this.stripKnowledgebaseAccessSelectFields(record, scopedSelect.addedFields)
+    }
+
+    override async findOneByIdString(id: string, options?: FindOneOptions<Knowledgebase>): Promise<Knowledgebase> {
+        return this.findOne(id, options)
+    }
+
+    async assertKnowledgebaseWriteAccess(id: string): Promise<Knowledgebase> {
+        const record = await this.repository.findOne({
+            where: {
+                id,
+                tenantId: this.requireKnowledgebaseTenantId()
+            },
+            select: Object.fromEntries(KNOWLEDGEBASE_ACCESS_SELECT_FIELDS.map((field) => [field, true]))
+        })
+        if (!record) {
+            throw new NotFoundException('The requested knowledgebase was not found')
+        }
+
+        if (record.workspaceId) {
+            await this.assertWorkspaceWriteAccess(record.workspaceId)
+            return record
+        }
+
+        const sameOrganization = (record.organizationId ?? null) === (RequestContext.getOrganizationId() ?? null)
+        if (!sameOrganization || record.createdById !== RequestContext.currentUserId()) {
+            throw new ForbiddenException('Write access denied to knowledgebase')
+        }
+        return record
+    }
+
+    async findReadableKnowledgebaseIds(): Promise<string[]> {
+        const tenantId = this.requireKnowledgebaseTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const currentUserId = RequestContext.currentUserId()
+        const workspaces = await this.workspaceAccessService.findAccessibleWorkspaces()
+        const workspaceIds = workspaces.map(({ id }) => id).filter(Boolean)
+        const where: FindOptionsWhere<Knowledgebase>[] = [
+            {
+                tenantId,
+                permission: KnowledgebasePermission.Public
+            }
+        ]
+
+        if (organizationId) {
+            where.push({
+                tenantId,
+                organizationId,
+                permission: KnowledgebasePermission.Organization
             })
         }
+        if (workspaceIds.length) {
+            where.push({
+                tenantId,
+                workspaceId: In(workspaceIds),
+                permission: KnowledgebasePermission.Private
+            })
+            where.push({
+                tenantId,
+                workspaceId: In(workspaceIds),
+                permission: IsNull()
+            })
+        }
+        if (currentUserId) {
+            where.push({
+                tenantId,
+                organizationId: organizationId ?? IsNull(),
+                workspaceId: IsNull(),
+                createdById: currentUserId,
+                permission: KnowledgebasePermission.Private
+            })
+            where.push({
+                tenantId,
+                organizationId: organizationId ?? IsNull(),
+                workspaceId: IsNull(),
+                createdById: currentUserId,
+                permission: IsNull()
+            })
+        }
+
+        const items = await this.repository.find({
+            select: { id: true },
+            where
+        })
+        return items.map(({ id }) => id)
+    }
+
+    private async assertKnowledgebaseRecordReadable(record: Knowledgebase | null): Promise<void> {
+        if (!record) {
+            throw new NotFoundException('The requested knowledgebase was not found')
+        }
+
+        switch (record.permission ?? KnowledgebasePermission.Private) {
+            case KnowledgebasePermission.Public:
+                return
+            case KnowledgebasePermission.Organization:
+                if ((record.organizationId ?? null) === (RequestContext.getOrganizationId() ?? null)) {
+                    return
+                }
+                break
+            case KnowledgebasePermission.Private:
+            default:
+                if (record.workspaceId) {
+                    await this.assertWorkspaceReadAccess(record.workspaceId)
+                    return
+                }
+                if (
+                    (record.organizationId ?? null) === (RequestContext.getOrganizationId() ?? null) &&
+                    record.createdById === RequestContext.currentUserId()
+                ) {
+                    return
+                }
+        }
+
+        throw new NotFoundException('The requested knowledgebase was not found')
+    }
+
+    private mergeKnowledgebaseIdWithTenant(
+        id: string | number,
+        where?: FindOneOptions<Knowledgebase>['where']
+    ): FindOneOptions<Knowledgebase>['where'] {
+        const scope = { id: String(id), tenantId: this.requireKnowledgebaseTenantId() }
+        if (Array.isArray(where)) {
+            return where.map((item) => ({ ...item, ...scope }))
+        }
+        return { ...(where ?? {}), ...scope } as FindOptionsWhere<Knowledgebase>
+    }
+
+    private withKnowledgebaseAccessSelect(options?: FindOneOptions<Knowledgebase>): {
+        options?: FindOneOptions<Knowledgebase>
+        addedFields: string[]
+    } {
+        if (!options?.select) {
+            return { options, addedFields: [] }
+        }
+
+        if (Array.isArray(options.select)) {
+            const selectedFields = options.select as string[]
+            const addedFields = KNOWLEDGEBASE_ACCESS_SELECT_FIELDS.filter((field) => !selectedFields.includes(field))
+            return {
+                options: {
+                    ...options,
+                    select: [...selectedFields, ...addedFields] as FindOneOptions<Knowledgebase>['select']
+                },
+                addedFields: [...addedFields]
+            }
+        }
+
+        const selectedFields = options.select as Record<string, unknown>
+        const addedFields = KNOWLEDGEBASE_ACCESS_SELECT_FIELDS.filter((field) => selectedFields[field] !== true)
+        return {
+            options: {
+                ...options,
+                select: {
+                    ...selectedFields,
+                    ...Object.fromEntries(addedFields.map((field) => [field, true]))
+                } as FindOneOptions<Knowledgebase>['select']
+            },
+            addedFields: [...addedFields]
+        }
+    }
+
+    private stripKnowledgebaseAccessSelectFields(record: Knowledgebase, addedFields: string[]) {
+        for (const field of addedFields) {
+            delete (record as unknown as Record<string, unknown>)[field]
+        }
+        return record
+    }
+
+    private requireKnowledgebaseTenantId() {
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId) {
+            throw new ForbiddenException('Tenant context is required to access knowledgebase')
+        }
+        return tenantId
     }
 
     async create(entity: Partial<IKnowledgebase>) {
@@ -366,12 +581,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             return super.delete(criteria)
         }
 
+        await this.assertKnowledgebaseWriteAccess(criteria)
         const knowledgebase = await this.findOneByIdString(criteria, {
             relations: ['pipeline']
         })
-        if (knowledgebase.workspaceId) {
-            await this.assertWorkspaceWriteAccess(knowledgebase.workspaceId)
-        }
         await this.cleanupPipelineBeforeDelete(knowledgebase)
 
         return super.delete(criteria)
@@ -463,6 +676,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async updateKnowledgebase(id: string, entity: Partial<Knowledgebase>) {
+        await this.assertKnowledgebaseWriteAccess(id)
         const _entity = await super.findOne(id, {
             relations: [
                 'copilotModel',
@@ -1023,6 +1237,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async cancelPendingEmbeddingModel(id: string) {
+        await this.assertKnowledgebaseWriteAccess(id)
         const knowledgebase = await this.findOne(id, {
             relations: this.getPendingVectorStoreRelations()
         })
@@ -1038,6 +1253,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async startEmbeddingRebuild(id: string) {
+        await this.assertKnowledgebaseWriteAccess(id)
         const knowledgebase = await this.findOne(id, {
             relations: [
                 'copilotModel',
@@ -1269,6 +1485,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
      * @returns
      */
     async createPipeline(id: string) {
+        await this.assertKnowledgebaseWriteAccess(id)
         const knowledgebase = await this.findOne(id)
         const sourceKey = genPipelineSourceKey()
         const knowledgebaseKey = genPipelineKnowledgeBaseKey()
@@ -1712,6 +1929,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
      * If the task status is running, start immediately.
      */
     async createTask(knowledgebaseId: string, task: Partial<IKnowledgebaseTask>) {
+        await this.assertKnowledgebaseWriteAccess(knowledgebaseId)
         if (task.status === 'running') {
             await this.assertNotRebuilding(knowledgebaseId)
         }
@@ -1743,6 +1961,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async getTask(knowledgebaseId: string, taskId: string, params?: PaginationParams<KnowledgebaseTask>) {
+        await this.assertKnowledgebaseWriteAccess(knowledgebaseId)
         const where = { ...(params?.where ?? {}), id: taskId, knowledgebaseId } as FindOptionsWhere<KnowledgebaseTask>
 
         return this.taskService.findOneByOptions({
@@ -1765,6 +1984,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             isDraft?: boolean
         }
     ) {
+        await this.assertKnowledgebaseWriteAccess(knowledgebaseId)
         await this.assertNotRebuilding(knowledgebaseId)
         const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
         const execution = await this.commandBus.execute(
@@ -1806,6 +2026,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async previewFile(id: string, filePath: string) {
+        await this.findOne(id)
         const extension = filePath.split('.').pop().toLowerCase()
         try {
             const results = await this.transformDocuments(

@@ -1,5 +1,5 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { compileKnowledgeFilterToPostgres, prepareKnowledgeFilter } from '../../filter'
 import { KnowledgebaseService } from '../../knowledgebase.service'
@@ -11,19 +11,10 @@ export class KnowledgeFilterValueOptionsHandler implements IQueryHandler<Knowled
 
     async execute(query: KnowledgeFilterValueOptionsQuery): Promise<KnowledgeFilterValueOptionsResult> {
         const { input } = query
-        const tenantId = input.tenantId ?? RequestContext.currentTenantId()
-        const organizationId = input.organizationId ?? RequestContext.getOrganizationId()
-        const result = await this.knowledgebaseService.findAll({
-            where: {
-                id: input.knowledgebaseId,
-                tenantId,
-                organizationId
-            }
-        })
-        const knowledgebase = result.items[0]
-        if (!knowledgebase) {
-            throw new NotFoundException(`Knowledgebase '${input.knowledgebaseId}' was not found.`)
-        }
+        const knowledgebase = await this.knowledgebaseService.findOne(input.knowledgebaseId)
+        const tenantId = knowledgebase.tenantId ?? input.tenantId ?? RequestContext.currentTenantId()
+        const organizationId =
+            knowledgebase.organizationId ?? input.organizationId ?? RequestContext.getOrganizationId()
 
         const prepared = prepareKnowledgeFilter({
             knowledgebase,
