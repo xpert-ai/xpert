@@ -439,7 +439,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     async publish(
         id: string,
         newVersion: boolean,
-        environmentId: string,
+        environmentId: string | null | undefined,
         notes: string,
         marketplace?: TXpertPublishMarketplaceInput,
         businessAreaId?: string | null

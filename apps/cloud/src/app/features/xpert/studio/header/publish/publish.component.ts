@@ -157,7 +157,7 @@ export class XpertPublishVersionComponent {
     })
   })
 
-  readonly environmentId = model<string>(this.xpert().environmentId)
+  readonly environmentId = model<string | null>(this.xpert().environmentId ?? null)
 
   readonly loading = signal(false)
 

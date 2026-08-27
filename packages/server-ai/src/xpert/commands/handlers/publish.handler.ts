@@ -156,8 +156,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.releaseNotes ??= ''
         xpert.releaseNotes += (xpert.releaseNotes ? '\n\n' : '') + notes
 
-        // Env
-        xpert.environmentId = environmentId
+        // An environment binding is optional. Normalize legacy blank values so
+        // nullable UUID columns never receive an empty string.
+        xpert.environmentId = normalizeEnvironmentId(environmentId)
 
         if (businessArea !== undefined) {
             xpert.businessAreaId = businessArea?.id ?? null
@@ -445,6 +446,11 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             }
         }
     }
+}
+
+function normalizeEnvironmentId(environmentId: string | null | undefined): string | null {
+    const normalized = environmentId?.trim()
+    return normalized || null
 }
 
 /**

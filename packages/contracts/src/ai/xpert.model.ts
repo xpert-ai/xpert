@@ -270,7 +270,7 @@ export type TXpert = {
  * Digital Expert
  */
 export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
-  environmentId?: string
+  environmentId?: string | null
   environment?: IEnvironment
   /**
    * When type is 'knowledge', it must binding a knowledgebase

@@ -131,7 +131,19 @@ describe('XpertPublishHandler', () => {
         const result = await handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))
 
         expect(result).toBe(publishResult)
+        expect(xpert.environmentId).toBeNull()
         expect(publishSpy).toHaveBeenCalledWith(xpert, '1', xpert.draft, undefined)
+    })
+
+    it('keeps a concrete environment binding after trimming surrounding whitespace', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+
+        const { handler, xpert } = createHandler()
+        jest.spyOn(handler, 'publish').mockResolvedValue({ id: 'xpert-1', version: '1' } as Xpert)
+
+        await handler.execute(new XpertPublishCommand('xpert-1', false, '  env-1  ', 'release notes'))
+
+        expect(xpert.environmentId).toBe('env-1')
     })
 
     it('passes marketplace metadata into the publish snapshot step', async () => {

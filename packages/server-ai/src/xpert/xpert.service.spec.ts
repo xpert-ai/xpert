@@ -238,6 +238,19 @@ describe('XpertService command facade', () => {
         )
     })
 
+    it('publish forwards a null optional environment binding', async () => {
+        const { service, commandBus } = createService()
+
+        await service.publish('xpert-1', false, null, 'release note')
+
+        const [command] = commandBus.execute.mock.calls[0]
+        expect(command).toEqual(
+            expect.objectContaining({
+                environmentId: null
+            })
+        )
+    })
+
     it('getTriggerProviders returns providers meta from trigger registry', async () => {
         const { service, triggerRegistry } = createService()
         triggerRegistry.list.mockReturnValue([

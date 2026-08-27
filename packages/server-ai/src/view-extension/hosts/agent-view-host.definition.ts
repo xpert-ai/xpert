@@ -190,6 +190,16 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         const middlewareNodeKeys = new Set<string>()
         const graph = xpert.graph
         const agentKey = xpert.agent?.key ?? this.findPrimaryAgentKey(graph)
+        const availableAgents = (graph?.nodes ?? [])
+            .filter((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
+            .map((node) => ({
+                key: node.entity?.key ?? node.key,
+                title: node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key,
+                role:
+                    node.entity?.description ?? node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key
+            }))
+            .filter((agent) => Boolean(agent.key))
+            .sort((left, right) => left.key.localeCompare(right.key))
         const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
 
         if (graph && agentKey) {
@@ -227,6 +237,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             hostState: {
                 agent: {
                     key: agentKey,
+                    availableAgents,
                     middlewareProviders: Array.from(middlewareProviders).sort(),
                     middlewareNodeKeys: Array.from(middlewareNodeKeys).sort(),
                     connections: knowledgebaseIds.map((id) => ({

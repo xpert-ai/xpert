@@ -1,5 +1,6 @@
 {
     "Error": {
+        "TemplateInstallDefaultEnvironmentRequired": "发布已安装的 Assistant 模板前，目标工作空间必须配置默认环境。",
         "McpPublicationNotFound": "未找到 MCP 服务，或该服务已停用。",
         "McpPublicationInvalidName": "MCP 服务名称不能为空，且不能超过 191 个字符。",
         "McpPublicationInvalidSlug": "MCP 服务标识只能包含小写字母、数字和连字符。",
