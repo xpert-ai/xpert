@@ -158,8 +158,9 @@ export class XpertWorkspaceKnowledgesPageComponent {
       })
       .closed.subscribe((knowledgebase) => {
         if (knowledgebase?.id) {
-          this.activeKnowledgebaseId.set(knowledgebase.id)
-          this.knowledgebaseRefreshVersion.update((value) => value + 1)
+          void this.#router.navigate(['/xpert/knowledges', knowledgebase.id], {
+            queryParams: { returnTo: this.workspaceReturnTo() }
+          })
         }
       })
   }
@@ -167,21 +168,27 @@ export class XpertWorkspaceKnowledgesPageComponent {
   openKnowledgebaseSettings() {
     const id = this.activeKnowledgebaseId()
     if (id && this.canWriteActiveKnowledgebase()) {
-      void this.#router.navigate(['/xpert/knowledges', id, 'configuration'])
+      void this.#router.navigate(['/xpert/knowledges', id, 'configuration'], {
+        queryParams: { returnTo: this.workspaceReturnTo() }
+      })
     }
   }
 
   createDocument() {
     const id = this.activeKnowledgebaseId()
     if (id && this.canWriteActiveKnowledgebase()) {
-      void this.#router.navigate(['/xpert/knowledges', id, 'documents', 'create'])
+      void this.#router.navigate(['/xpert/knowledges', id, 'documents', 'create'], {
+        queryParams: { returnTo: this.workspaceReturnTo() }
+      })
     }
   }
 
   openDocument(document: IKnowledgeDocument) {
     const knowledgebaseId = this.activeKnowledgebaseId()
     if (knowledgebaseId) {
-      void this.#router.navigate(['/xpert/knowledges', knowledgebaseId, 'documents', document.id])
+      void this.#router.navigate(['/xpert/knowledges', knowledgebaseId, 'documents', document.id], {
+        queryParams: { returnTo: this.workspaceReturnTo() }
+      })
     }
   }
 
@@ -337,5 +344,9 @@ export class XpertWorkspaceKnowledgesPageComponent {
     }
     const timestamp = new Date(value).getTime()
     return Number.isNaN(timestamp) ? 0 : timestamp
+  }
+
+  private workspaceReturnTo() {
+    return `/xpert/w/${this.workspaceId()}/clawxpert-knowledges`
   }
 }

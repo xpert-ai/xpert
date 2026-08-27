@@ -136,6 +136,18 @@ export class KnowledgebaseComponent {
     this.sideMenuOpened.update((state) => !state)
   }
 
+  back() {
+    const returnTo = this.#route.snapshot.queryParamMap.get('returnTo')
+    if (returnTo?.startsWith('/xpert/') && !returnTo.includes('\\')) {
+      void this.#router.navigateByUrl(returnTo)
+      return
+    }
+
+    void this.#router.navigate(['/xpert/knowledges'], {
+      queryParams: this.knowledgebase()?.id ? { knowledgebaseId: this.knowledgebase().id } : undefined
+    })
+  }
+
   deleteKnowledgebase() {
     const knowledgebase = this.knowledgebase()
     this.confirmDelete(

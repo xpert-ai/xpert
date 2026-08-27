@@ -270,7 +270,9 @@ export class KnowledgebaseHomeComponent {
       return
     }
 
-    void this.#router.navigate(['/xpert/knowledges', knowledgebaseId, 'configuration'])
+    void this.#router.navigate(['/xpert/knowledges', knowledgebaseId, 'configuration'], {
+      queryParams: { returnTo: this.personalKnowledgebaseReturnTo(knowledgebaseId) }
+    })
   }
 
   async loadDocuments() {
@@ -672,5 +674,13 @@ export class KnowledgebaseHomeComponent {
 
   private toTimestamp(value: Date | string | null | undefined) {
     return value ? new Date(value).getTime() || 0 : 0
+  }
+
+  private personalKnowledgebaseReturnTo(knowledgebaseId: string) {
+    return this.#router.serializeUrl(
+      this.#router.createUrlTree(['/xpert/knowledges'], {
+        queryParams: { knowledgebaseId }
+      })
+    )
   }
 }

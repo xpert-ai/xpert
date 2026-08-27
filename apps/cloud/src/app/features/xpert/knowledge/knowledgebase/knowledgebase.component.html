@@ -29,6 +29,7 @@
         <a
           z-tab-link
           [routerLink]="['./', 'documents']"
+          queryParamsHandling="preserve"
           [routerLinkActiveOptions]="{ exact: false }"
           routerLinkActive=""
           #documentsActive="routerLinkActive"
@@ -40,6 +41,7 @@
         <a
           z-tab-link
           [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
+          queryParamsHandling="preserve"
           [routerLinkActiveOptions]="{ exact: false }"
           routerLinkActive=""
           #pipelineActive="routerLinkActive"
@@ -51,6 +53,7 @@
         <a
           z-tab-link
           [routerLink]="['./', 'graph']"
+          queryParamsHandling="preserve"
           [routerLinkActiveOptions]="{ exact: false }"
           routerLinkActive=""
           #graphActive="routerLinkActive"
@@ -63,6 +66,7 @@
       <a
         z-tab-link
         [routerLink]="['./', 'test']"
+        queryParamsHandling="preserve"
         [routerLinkActiveOptions]="{ exact: false }"
         routerLinkActive=""
         #testActive="routerLinkActive"
@@ -74,6 +78,7 @@
       <a
         z-tab-link
         [routerLink]="['./', 'configuration']"
+        queryParamsHandling="preserve"
         [routerLinkActiveOptions]="{ exact: false }"
         routerLinkActive=""
         #configurationActive="routerLinkActive"
@@ -87,15 +92,10 @@
     </nav>
 
     <div class="flex shrink-0 items-center gap-1.5">
-      <a
-        z-button
-        zType="outline"
-        [routerLink]="['/xpert/knowledges']"
-        [queryParams]="knowledgebase()?.id ? { knowledgebaseId: knowledgebase()?.id } : undefined"
-      >
+      <button type="button" z-button zType="outline" (click)="back()">
         <z-icon zType="arrow-left" />
         <span class="hidden xl:inline">{{ 'XP.ACTIONS.Back' | translate: { Default: 'Back' } }}</span>
-      </a>
+      </button>
       <button z-button zType="ghost" zSize="icon-sm" [cdkMenuTriggerFor]="serviceApiMenu">
         <span
           class="size-2 rounded-full"
