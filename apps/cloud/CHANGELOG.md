@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.17.6
+
+### Patch Changes
+
+- afb69b7: Release Xpert 3.17.6 after publishing the complete Sandbox Runtime image suite.
+
 ## 3.17.5
 
 ### Patch Changes
