@@ -2,11 +2,11 @@
 
 This private package is the single source of truth for Xpert Sandbox OCI images, local Runtime assets, immutable Runtime Artifact catalogs, build metadata, and smoke tests. Provider-neutral Runtime Definitions are embedded in OSS Core so production API processes can perform capability discovery without installing this package. Runtime Suite tooling consumes those Definitions when validating images and producing release catalogs.
 
-The suite contains three provider-neutral profiles. `browser/playwright-1.61/v1` supplies Node.js 20.20.2 for general browser automation. `browser/ai-playwright-1.61/v1` adds an immutable, hash-verified AI resource catalog (initially multilingual `Xenova/whisper-tiny:q4` and ONNX Runtime Web) without putting models in plugin packages. `browser/video-playwright-1.61/v1` supplies Node.js 22.17.1, Playwright 1.61.0 with matching Chromium, FFmpeg 6.1, CJK/Emoji fonts, and larger media-oriented resource limits. All profiles use the same generic Runner Host. Plugins contribute versioned Sandbox Action Bundles; they never select an image or pass a command.
+The suite contains four provider-neutral profiles. `browser/playwright-1.61/v1` supplies Node.js 20.20.2 for general browser automation. `browser/ai-playwright-1.61/v1` adds an immutable, hash-verified AI resource catalog (initially multilingual `Xenova/whisper-tiny:q4` and ONNX Runtime Web) without putting models in plugin packages. `browser/video-playwright-1.61/v1` supplies Node.js 22.17.1, Playwright 1.61.0 with matching Chromium, FFmpeg 6.1, CJK/Emoji fonts, and larger media-oriented resource limits. `document/libreoffice-7/v1` supplies headless LibreOffice for document conversion. All profiles use the same generic Runner Host. Plugins contribute versioned Sandbox Action Bundles; they never select an image or pass a command.
 
 ## Add an image family
 
-Add the family below `images/`, declare it once in `images/catalog.json`, and implement its image manifest, Artifact Catalog template, Dockerfile, and smoke tests. Add its provider-neutral Runtime Definition to the OSS Core catalog and reference that file from `image.json`. Release workflows derive their build matrix only from the image catalog.
+Add the family below `images/`, declare it once in `images/catalog.json`, and implement its image manifest, Artifact Catalog template, Dockerfile, and smoke tests. Add its provider-neutral Runtime Definition to the OSS Core catalog and reference that file from `image.json`. Release workflows derive their build matrix only from the image catalog. Every image-affecting change must also include a Changeset for `@xpert-ai/sandbox-runtime`; otherwise the immutable source tag required by a platform release cannot be produced.
 
 ## Local verification
 
@@ -41,6 +41,10 @@ Application images and Runtime images intentionally use different workflows:
 - `.github/workflows/publish-npm-packages.yml` publishes immutable Runtime Suite version tags when `@xpert-ai/sandbox-runtime` is versioned.
 
 Pull requests that touch `packages/sandbox-runtime/**` or Runtime Definitions build and smoke-test the affected image families but do not push images. Pushes to `develop` for the same paths build, smoke-test, and push only `develop-candidate` and `sha-<commit>` aliases. Platform git tags do not rebuild Runtime images; they create `xpert-<tag>` aliases for already-published Runtime Suite version tags.
+
+Before creating any platform aliases, the tag workflow verifies that every family-specific immutable source exists in all configured registries. A missing source therefore stops the release without creating a partial set of platform aliases.
+
+For recovery of a candidate that passed the existing build and smoke-test workflow but missed immutable promotion, manually dispatch this workflow with `promote_version_tag`, `runtime_family`, `runtime_version`, and the full candidate `source_sha`. The recovery job derives the family-specific version tag from the catalog, verifies the candidate in every registry, and refuses to replace an immutable tag with different content. It does not create a platform alias; rerun the failed platform-tag jobs after the immutable source has been restored.
 
 ## Ownership boundary
 

@@ -20,6 +20,23 @@ on:
         required: false
         type: boolean
         default: false
+      promote_version_tag:
+        description: Promote one verified sha-<commit> candidate to a missing immutable Runtime Suite version tag
+        required: false
+        type: boolean
+        default: false
+      runtime_family:
+        description: Image family to promote, for example document
+        required: false
+        type: string
+      runtime_version:
+        description: Runtime Suite version to promote, for example 1.2.0
+        required: false
+        type: string
+      source_sha:
+        description: Full commit SHA of the verified candidate image
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -40,9 +57,28 @@ jobs:
 
       - name: Select image families
         id: matrix
+        env:
+          PROMOTE_VERSION_TAG: ${{ inputs.promote_version_tag }}
+          PUBLISH_CANDIDATE: ${{ inputs.publish_candidate }}
+          RUNTIME_FAMILY: ${{ inputs.runtime_family }}
+          RUNTIME_VERSION: ${{ inputs.runtime_version }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$PROMOTE_VERSION_TAG" == "true" ]]; then
+            if [[ "$PUBLISH_CANDIDATE" == "true" ]]; then
+              echo "publish_candidate and promote_version_tag cannot both be enabled" >&2
+              exit 1
+            fi
+            if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "source_sha must be a full lowercase commit SHA" >&2
+              exit 1
+            fi
+            git cat-file -e "${SOURCE_SHA}^{commit}"
+            matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs \
+              --family "$RUNTIME_FAMILY" \
+              --version "$RUNTIME_VERSION")
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
             matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs --changed-from "${{ github.event.pull_request.base.sha }}")
           elif [[ "${{ github.ref }}" == refs/heads/develop ]]; then
             matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs --changed-from "${{ github.event.before }}")
@@ -52,6 +88,12 @@ jobs:
           count=$(jq '.include | length' <<< "$matrix")
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           [[ "$count" -gt 0 ]] && echo "changed=true" >> "$GITHUB_OUTPUT" || echo "changed=false" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Runtime Suite release metadata
+        if: github.event_name == 'pull_request'
+        run: >-
+          node packages/sandbox-runtime/scripts/verify-release-change.mjs
+          --changed-from "${{ github.event.pull_request.base.sha }}"
 
       - name: Verify Runtime Suite catalog
         if: steps.matrix.outputs.changed == 'true'
@@ -64,7 +106,11 @@ jobs:
       needs.prepare.outputs.changed == 'true' &&
       (
         github.event_name == 'pull_request' ||
-        (github.event_name == 'workflow_dispatch' && inputs.publish_candidate != true)
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.publish_candidate != true &&
+          inputs.promote_version_tag != true
+        )
       )
     runs-on: ubuntu-latest
     strategy:
@@ -92,7 +138,11 @@ jobs:
       needs.prepare.outputs.changed == 'true' &&
       (
         github.ref == 'refs/heads/develop' ||
-        (github.event_name == 'workflow_dispatch' && inputs.publish_candidate == true)
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.publish_candidate == true &&
+          inputs.promote_version_tag != true
+        )
       )
     runs-on: ubuntu-latest
     environment: production
@@ -147,10 +197,138 @@ jobs:
             done
           done
 
-  alias-platform-release:
-    name: Alias Runtime Suite / ${{ matrix.family }}
+  promote-version-tag:
+    name: Promote Runtime Suite version / ${{ matrix.family }}
+    needs: prepare
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.promote_version_tag == true &&
+      needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Promote a verified candidate without overwriting immutable content
+        env:
+          REPOSITORIES: ${{ toJSON(matrix.repositories) }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          VERSION_TAG: ${{ matrix.versionTag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          image_digest() {
+            docker buildx imagetools inspect "$1" --format '{{json .Manifest.Digest}}'
+          }
+
+          declare -a missing_targets=()
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            source="$repository:sha-$SOURCE_SHA"
+            target="$repository:$VERSION_TAG"
+            source_digest=$(image_digest "$source")
+            if target_digest=$(image_digest "$target" 2>/dev/null); then
+              if [[ "$target_digest" != "$source_digest" ]]; then
+                echo "Refusing to overwrite $target with different content" >&2
+                exit 1
+              fi
+              echo "$target already points to $source_digest"
+            else
+              missing_targets+=("$repository")
+            fi
+          done
+
+          for repository in "${missing_targets[@]}"; do
+            source="$repository:sha-$SOURCE_SHA"
+            target="$repository:$VERSION_TAG"
+            source_digest=$(image_digest "$source")
+            docker buildx imagetools create --tag "$target" "$source"
+            published_digest=$(image_digest "$target")
+            if [[ "$published_digest" != "$source_digest" ]]; then
+              echo "$target digest $published_digest does not match $source digest $source_digest" >&2
+              exit 1
+            fi
+          done
+
+  preflight-platform-release:
+    name: Preflight Runtime Suite release / ${{ matrix.family }}
     needs: prepare
     if: startsWith(github.ref, 'refs/tags/') && needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Verify every immutable source exists
+        env:
+          REPOSITORIES: ${{ toJSON(matrix.repositories) }}
+          VERSION_TAG: ${{ matrix.versionTag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            docker buildx imagetools inspect "$repository:$VERSION_TAG" >/dev/null
+          done
+
+  alias-platform-release:
+    name: Alias Runtime Suite / ${{ matrix.family }}
+    needs:
+      - prepare
+      - preflight-platform-release
+    if: >-
+      startsWith(github.ref, 'refs/tags/') &&
+      needs.prepare.outputs.changed == 'true' &&
+      needs.preflight-platform-release.result == 'success'
     runs-on: ubuntu-latest
     environment: production
     strategy:
