@@ -143,16 +143,8 @@ jest.mock('./clawxpert-preferences-editor.component', () => ({
   ClawXpertPreferencesEditorComponent: mockOverviewChild('xp-clawxpert-preferences-editor')
 }))
 
-jest.mock('./clawxpert-scheduled-tasks.component', () => ({
-  ClawXpertScheduledTasksComponent: mockOverviewChild('xp-clawxpert-scheduled-tasks')
-}))
-
 jest.mock('./clawxpert-trigger-config-editor.component', () => ({
   ClawXpertTriggerConfigEditorComponent: mockOverviewChild('xp-clawxpert-trigger-config-editor')
-}))
-
-jest.mock('./clawxpert-tool-preferences.component', () => ({
-  ClawXpertToolPreferencesComponent: mockOverviewChild('xp-clawxpert-tool-preferences')
 }))
 
 import { signal } from '@angular/core'

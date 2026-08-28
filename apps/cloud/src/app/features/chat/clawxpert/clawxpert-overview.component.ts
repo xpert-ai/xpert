@@ -10,15 +10,13 @@ import {
   ZardIconComponent,
   ZardMenuImports
 } from '@xpert-ai/headless-ui'
-import { AiModelTypeEnum, ICopilotModel, IXpert, XpertTypeEnum } from '../../../@core'
+import { AiModelTypeEnum, ICopilotModel, IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { countDisplayTextUnits } from '../../../@shared/text-count.utils'
 import { ClawXpertBindingWizardComponent } from './clawxpert-binding-wizard.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
-import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
-import { ClawXpertToolPreferencesComponent } from './clawxpert-tool-preferences.component'
 import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
 import { buildHeatmapLegend, buildHeatmapStyles } from './clawxpert-heatmap.utils'
 
@@ -76,9 +74,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
     CopilotModelSelectComponent,
     EmojiAvatarComponent,
     ClawXpertPreferencesEditorComponent,
-    ClawXpertScheduledTasksComponent,
     ClawXpertTriggerConfigEditorComponent,
-    ClawXpertToolPreferencesComponent,
     ClawXpertBindingWizardComponent,
     ...ZardMenuImports,
     ...ZardCardImports
@@ -438,8 +434,6 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
           <div class="flex-1 min-h-0 p-4 flex flex-col gap-4 overflow-hidden">
             <xp-clawxpert-preferences-editor />
             <xp-clawxpert-trigger-config-editor />
-            <xp-clawxpert-scheduled-tasks />
-            <xp-clawxpert-tool-preferences />
           </div>
         </div>
       }
