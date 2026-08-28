@@ -166,7 +166,15 @@ export function addWorkspaceMoreMenuItem(groups: CloudSidebarMenuGroup[], worksp
     },
     children: [
       createWorkspaceChild('资源库', 'Library', 'ri-book-open-line', 'files', normalizedWorkspaceId),
-      createWorkspaceChild('我的知识库', 'My knowledgebases', 'ri-book-2-line', 'knowledges', normalizedWorkspaceId),
+      {
+        title: '我的知识库',
+        icon: 'ri-book-2-line',
+        link: '/xpert/knowledges',
+        pathMatch: 'prefix',
+        data: {
+          translationKey: 'My knowledgebases'
+        }
+      },
       createWorkspaceChild('工作区设置', 'Workspace settings', 'ri-equalizer-line', 'settings', normalizedWorkspaceId)
     ]
   }
