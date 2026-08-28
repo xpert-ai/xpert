@@ -1,14 +1,12 @@
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core'
+import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core'
 import { FormControl, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
-  ZardBadgeComponent,
   ZardButtonComponent,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { getConnectorAuthMethods } from '@xpert-ai/plugin-sdk/connector'
@@ -19,9 +17,10 @@ import type {
   ConnectorInstance,
   ConnectorStrategyDefinition
 } from '@xpert-ai/plugin-sdk/connector'
-import { AlertCircle, Cable, Link2Off, LoaderCircle, RefreshCw, Unplug } from 'lucide-angular'
+import { AlertCircle, Cable, Link2Off, LoaderCircle } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
+import { IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 
 type ConnectorStatusLabel = {
@@ -36,15 +35,14 @@ type ConnectorStatusLabel = {
     ReactiveFormsModule,
     TranslateModule,
     XpI18nPipe,
-    XpSpinComponent,
-    ZardBadgeComponent,
+    IconComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports
   ],
-  templateUrl: './workspace-connectors.component.html'
+  templateUrl: './connectors.component.html'
 })
 export class XpertConnectorsComponent {
   readonly #connectorService = inject(XpertConnectorService)
@@ -59,6 +57,29 @@ export class XpertConnectorsComponent {
 
   readonly definitions = signal<ConnectorStrategyDefinition[]>([])
   readonly connectors = signal<ConnectorInstance[]>([])
+  readonly searchQuery = this.homeComponent.connectorSearchQuery
+  readonly selectedProvider = signal<string | null>(null)
+  readonly filteredDefinitions = computed(() => {
+    const query = this.searchQuery().trim().toLocaleLowerCase()
+    if (!query) {
+      return this.definitions()
+    }
+
+    return this.definitions().filter((definition) => {
+      const searchableText = [
+        definition.provider,
+        this.searchableText(definition.label),
+        this.searchableText(this.descriptionFor(definition))
+      ]
+        .join(' ')
+        .toLocaleLowerCase()
+      return searchableText.includes(query)
+    })
+  })
+  readonly selectedDefinition = computed(() => {
+    const provider = this.selectedProvider()
+    return provider ? (this.definitions().find((definition) => definition.provider === provider) ?? null) : null
+  })
   readonly loading = signal(false)
   readonly errorMessage = signal<string | null>(null)
   readonly connectingProvider = signal<string | null>(null)
@@ -68,8 +89,6 @@ export class XpertConnectorsComponent {
   readonly reloadKey = signal(0)
   readonly skeletonCards = [0, 1, 2, 3]
   readonly connectorIcon = Cable
-  readonly refreshIcon = RefreshCw
-  readonly disconnectActionIcon = Unplug
   readonly errorIcon = AlertCircle
   readonly loadingIcon = LoaderCircle
   readonly disconnectIcon = Link2Off
@@ -117,9 +136,27 @@ export class XpertConnectorsComponent {
     }
   }
 
-  refresh() {
-    if (this.workspaceId()) {
-      this.reloadKey.update((value) => value + 1)
+  openConnectorDialog(definition: ConnectorStrategyDefinition) {
+    this.selectedProvider.set(definition.provider)
+  }
+
+  async quickConnect(definition: ConnectorStrategyDefinition) {
+    if (this.credentialFieldsFor(this.selectedAuthMethod(definition)).length) {
+      this.openConnectorDialog(definition)
+      return
+    }
+
+    await this.connect(definition)
+  }
+
+  closeConnectorDialog() {
+    this.selectedProvider.set(null)
+  }
+
+  @HostListener('document:keydown.escape')
+  closeConnectorDialogOnEscape() {
+    if (this.selectedProvider()) {
+      this.closeConnectorDialog()
     }
   }
 
@@ -190,6 +227,9 @@ export class XpertConnectorsComponent {
     try {
       await firstValueFrom(this.#connectorService.disconnect(workspaceId, connector.id))
       this.clearPendingAuthorizationUrl(connector.id)
+      if (this.selectedProvider() === connector.provider) {
+        this.closeConnectorDialog()
+      }
       this.reloadKey.update((value) => value + 1)
       this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
     } catch (error) {
@@ -270,8 +310,18 @@ export class XpertConnectorsComponent {
     }
   }
 
-  iconImageUrl(definition: ConnectorStrategyDefinition) {
-    return definition.icon?.type === 'image' && typeof definition.icon.value === 'string' ? definition.icon.value : null
+  statusDotClass(connector?: ConnectorInstance | null) {
+    switch (connector?.status) {
+      case 'active':
+        return 'bg-[var(--color-status-success-indicator-bg)]'
+      case 'pending':
+      case 'expired':
+        return 'bg-[var(--color-status-warning-indicator-bg)]'
+      case 'error':
+        return 'bg-[var(--color-status-error-indicator-bg)]'
+      default:
+        return 'bg-text-tertiary'
+    }
   }
 
   descriptionFor(definition: ConnectorStrategyDefinition) {
@@ -376,6 +426,18 @@ export class XpertConnectorsComponent {
       }
     }
     return Object.keys(values).length ? values : undefined
+  }
+
+  private searchableText(value: unknown): string {
+    if (typeof value === 'string') {
+      return value
+    }
+    if (value && typeof value === 'object') {
+      return Object.values(value)
+        .filter((item): item is string => typeof item === 'string')
+        .join(' ')
+    }
+    return ''
   }
 
   private openAuthorizationPopup() {
@@ -491,8 +553,7 @@ export class XpertConnectorsComponent {
     ReactiveFormsModule,
     TranslateModule,
     XpI18nPipe,
-    XpSpinComponent,
-    ZardBadgeComponent,
+    IconComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,

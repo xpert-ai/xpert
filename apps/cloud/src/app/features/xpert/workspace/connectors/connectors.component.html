@@ -1,250 +1,387 @@
-<div class="relative min-h-full bg-background-body px-8 py-8 xl:px-12">
-  <header class="flex flex-wrap items-start justify-between gap-4 border-b border-divider-regular pb-6">
-    <div class="flex min-w-0 items-start gap-3">
-      <div
-        class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-background-default-subtle"
-      >
-        <z-icon [zType]="connectorIcon" class="text-xl text-text-primary"></z-icon>
-      </div>
-      <div class="min-w-0">
-        <h1 class="text-2xl font-semibold tracking-normal text-text-primary">
-          {{ 'XP.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
-        </h1>
-        <p class="mt-1 max-w-3xl text-sm text-text-secondary">
-          {{
-            'XP.Xpert.ConnectorsDescription'
-              | translate
-                : {
-                    Default:
-                      'Connect external services to the workspace with authorization and credentials managed by xpert.'
-                  }
-          }}
-        </p>
-      </div>
-    </div>
-  </header>
-
-  <section class="mt-8 space-y-4">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div class="space-y-1">
-        <h2 class="text-base font-medium text-text-primary">
-          {{ 'XP.Xpert.ConnectorCatalogTitle' | translate: { Default: 'Connector catalog' } }}
-        </h2>
-        <p class="text-sm text-text-secondary">
-          {{
-            'XP.Xpert.ConnectorCatalogDescription'
-              | translate
-                : {
-                    Default:
-                      'Choose an authentication method and configure a connection. Status stays synchronized with xpert.'
-                  }
-          }}
-        </p>
-      </div>
-      <button z-button zType="outline" zSize="sm" type="button" (click)="refresh()">
-        <z-icon [zType]="refreshIcon"></z-icon>
-        {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
-      </button>
-    </div>
-
+<div class="relative min-h-full bg-background-body px-5 py-5 lg:px-8 xl:px-10">
+  <div class="mx-auto w-full max-w-[1440px]">
     @if (errorMessage(); as error) {
       <div
         class="flex items-start gap-2 rounded-lg border border-danger-500/30 bg-danger-500/10 px-3 py-2 text-sm text-text-danger"
       >
-        <z-icon [zType]="errorIcon" class="mt-0.5 size-4 shrink-0"></z-icon>
+        <z-icon [zType]="errorIcon" class="mt-0.5 size-4 shrink-0" />
         <span>{{ error }}</span>
       </div>
     }
 
-    @if (loading() && definitions().length === 0) {
-      <div class="grid gap-4 lg:grid-cols-2">
-        @for (card of skeletonCards; track card) {
-          <div class="h-72 animate-pulse rounded-xl border border-divider-regular bg-components-card-bg"></div>
-        }
-      </div>
-    } @else if (definitions().length === 0) {
-      <div
-        class="rounded-xl border border-dashed border-divider-regular px-4 py-14 text-center text-sm text-text-secondary"
-      >
-        {{
-          'XP.Xpert.NoConnectorsAvailable' | translate: { Default: 'No connectors are currently available from xpert.' }
-        }}
-      </div>
-    } @else {
-      <div class="grid gap-4 xl:grid-cols-2">
-        @for (definition of definitions(); track definition.provider) {
-          @let connector = connectorFor(definition);
-          @let status = statusLabelFor(connector);
-          @let authMethods = authMethodsFor(definition);
-          @let authMethod = selectedAuthMethod(definition);
-          @let credentialForm = credentialFormFor(authMethod);
+    <section aria-label="Connector catalog">
+      @if (loading() && definitions().length === 0) {
+        <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          @for (card of skeletonCards; track card) {
+            <div class="h-[116px] animate-pulse rounded-lg border border-divider-regular bg-components-card-bg"></div>
+          }
+        </div>
+      } @else if (definitions().length === 0) {
+        <div class="flex min-h-56 flex-col items-center justify-center gap-2 text-center">
+          <z-icon [zType]="connectorIcon" class="size-8 text-text-tertiary" />
+          <p class="text-sm font-medium text-text-primary">
+            {{ 'XP.Xpert.NoConnectorsAvailable' | translate: { Default: 'No connectors are currently available.' } }}
+          </p>
+        </div>
+      } @else if (filteredDefinitions().length === 0) {
+        <div class="flex min-h-56 flex-col items-center justify-center gap-2 text-center">
+          <z-icon zType="search" class="size-8 text-text-tertiary" />
+          <p class="text-sm font-medium text-text-primary">
+            {{ 'XP.Xpert.NoMatchingConnectors' | translate: { Default: 'No matching connectors found.' } }}
+          </p>
+          <button z-button zType="ghost" zSize="sm" type="button" (click)="searchQuery.set('')">
+            {{ 'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' } }}
+          </button>
+        </div>
+      } @else {
+        <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          @for (definition of filteredDefinitions(); track definition.provider) {
+            @let connector = connectorFor(definition);
+            @let status = statusLabelFor(connector);
 
-          <div class="relative min-w-0 rounded-xl border border-divider-regular bg-components-card-bg">
-            <div class="space-y-5 p-5">
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex min-w-0 items-center gap-3">
-                  <div
-                    class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-background-default-subtle"
-                  >
-                    @if (iconImageUrl(definition); as iconUrl) {
-                      <img class="size-7 rounded-md object-contain" [src]="iconUrl" [alt]="definition.provider" />
-                    } @else {
-                      <z-icon [zType]="connectorIcon" class="size-6 text-text-secondary"></z-icon>
-                    }
-                  </div>
-                  <div class="min-w-0">
-                    <h3 class="truncate font-medium text-text-primary">
-                      {{ definition.label | i18n }}
-                    </h3>
-                    <p class="mt-0.5 line-clamp-2 text-sm text-text-secondary">
-                      {{ descriptionFor(definition) | i18n }}
-                    </p>
-                  </div>
-                </div>
-                <z-badge class="shrink-0" [zType]="statusBadgeType(connector)" zShape="pill">
-                  {{ status.key | translate: { Default: status.defaultLabel } }}
-                </z-badge>
-              </div>
-
-              @if (authMethods.length > 1 || !connector) {
-                <form class="grid gap-3" [formGroup]="formFor(definition)">
-                  @if (authMethods.length > 1) {
-                    <z-form-field>
-                      <z-form-label>
-                        {{ 'XP.Xpert.ConnectorAuthenticationMethod' | translate: { Default: 'Authentication method' } }}
-                      </z-form-label>
-                      <z-select
-                        class="w-full"
-                        formControlName="authMethodId"
-                        [zDisabled]="!!connector || !canManageWorkspace()"
-                        (zSelectionChange)="selectAuthMethod(definition, $event)"
-                      >
-                        @for (method of authMethods; track method.id) {
-                          <z-select-item [zValue]="method.id">{{ method.label | i18n }}</z-select-item>
-                        }
-                      </z-select>
-                    </z-form-field>
+            <article
+              [class]="
+                connector
+                  ? 'group relative flex min-h-[116px] items-start gap-2 rounded-lg border border-divider-regular bg-background-default-subtle p-4 transition-colors'
+                  : 'group relative flex min-h-[116px] items-start gap-2 rounded-lg border border-divider-regular bg-components-card-bg p-4 transition-colors hover:bg-background-default-subtle'
+              "
+              [attr.data-connector-provider]="definition.provider"
+            >
+              <button
+                type="button"
+                class="flex min-w-0 flex-1 cursor-pointer items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+                [attr.aria-label]="definition.label | i18n"
+                (click)="openConnectorDialog(definition)"
+              >
+                <div
+                  class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg"
+                >
+                  @if (definition.icon; as icon) {
+                    <xp-icon
+                      [icon]="icon"
+                      [size]="28"
+                      class="flex size-7 items-center justify-center text-2xl leading-none"
+                    />
+                  } @else {
+                    <z-icon [zType]="connectorIcon" class="size-5 text-text-secondary" />
                   }
+                </div>
 
-                  @if (!connector) {
-                    <div class="grid gap-3 sm:grid-cols-2">
-                      @for (field of credentialFieldsFor(authMethod); track field.name) {
-                        <z-form-field>
-                          <z-form-label>
-                            {{ field.label | i18n }}
-                            @if (field.required) {
-                              <span aria-hidden="true"> *</span>
-                            }
-                          </z-form-label>
-                          <input
-                            z-input
-                            [attr.data-credential-field]="field.name"
-                            [type]="field.type === 'password' || field.secret ? 'password' : 'text'"
-                            [formControlName]="field.name"
-                            [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
-                            [attr.autocomplete]="field.type === 'password' || field.secret ? 'new-password' : 'off'"
-                            [attr.disabled]="!canManageWorkspace() ? true : null"
-                          />
-                          @if (field.description) {
-                            <z-form-message>{{ field.description | i18n }}</z-form-message>
-                          }
-                          @if (
-                            fieldControl(definition, field)?.touched &&
-                            fieldControl(definition, field)?.hasError('required')
-                          ) {
-                            <z-form-message>
-                              {{
-                                'XP.Xpert.ConnectorCredentialRequired'
-                                  | translate: { Default: 'This field is required.' }
-                              }}
-                            </z-form-message>
-                          }
-                        </z-form-field>
-                      }
-                    </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex min-w-0 items-center gap-2">
+                    <h2 class="truncate text-base font-semibold text-text-primary">{{ definition.label | i18n }}</h2>
+                    <span class="inline-flex shrink-0 items-center gap-1.5 text-sm text-text-secondary">
+                      <span class="size-1.5 rounded-full" [class]="statusDotClass(connector)"></span>
+                      {{ status.key | translate: { Default: status.defaultLabel } }}
+                    </span>
+                  </div>
+                  <p class="mt-1.5 line-clamp-2 text-sm leading-5 text-text-secondary">
+                    {{ descriptionFor(definition) | i18n }}
+                  </p>
+                </div>
+              </button>
 
-                    @if (credentialForm?.help; as help) {
-                      <a
-                        class="w-fit text-xs text-text-secondary underline underline-offset-2"
-                        [href]="help.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {{ help.label | i18n }}
-                      </a>
-                    }
+              @if (connector?.status !== 'active' && connector?.status !== 'pending') {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon-sm"
+                  type="button"
+                  class="!size-10 shrink-0 cursor-pointer rounded-lg !bg-hover-bg text-text-secondary transition-[background-color,color,transform] hover:!bg-components-list-option-active-bg hover:text-text-primary active:scale-95 disabled:cursor-default"
+                  data-connector-action="quick-connect"
+                  [zDisabled]="loading() || isConnecting(definition) || !canManageWorkspace()"
+                  [attr.aria-label]="'XP.Xpert.ConnectConnector' | translate: { Default: 'Connect connector' }"
+                  [title]="'XP.Xpert.ConnectConnector' | translate: { Default: 'Connect connector' }"
+                  (click)="quickConnect(definition)"
+                >
+                  @if (isConnecting(definition)) {
+                    <z-icon [zType]="loadingIcon" class="!size-5 animate-spin" />
+                  } @else {
+                    <z-icon zType="plus" class="!size-5" />
                   }
-                </form>
+                </button>
+              } @else if (connector?.status === 'active') {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon-sm"
+                  type="button"
+                  class="!size-10 shrink-0 cursor-pointer rounded-lg !bg-hover-bg text-text-secondary transition-[background-color,color,transform] hover:!bg-status-error-bg hover:text-text-destructive active:scale-95 disabled:cursor-default"
+                  data-connector-action="quick-disconnect"
+                  [zDisabled]="loading() || isDisconnecting(connector) || !canManageWorkspace()"
+                  [attr.aria-label]="'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect connector' }"
+                  [title]="'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect connector' }"
+                  (click)="disconnect(connector)"
+                >
+                  @if (isDisconnecting(connector)) {
+                    <z-icon [zType]="loadingIcon" class="!size-5 animate-spin" />
+                  } @else {
+                    <z-icon [zType]="disconnectIcon" class="!size-5" />
+                  }
+                </button>
+              } @else if (connector?.status === 'pending' && pendingAuthorizationUrl(connector)) {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  type="button"
+                  class="!h-10 shrink-0 cursor-pointer gap-1.5 rounded-lg !bg-hover-bg px-3 text-text-primary transition-[background-color,color,transform] hover:!bg-components-list-option-active-bg active:scale-[0.98] disabled:cursor-default"
+                  data-connector-action="continue-authorization"
+                  [zDisabled]="loading() || !canManageWorkspace()"
+                  (click)="openPendingAuthorizationUrl(connector)"
+                >
+                  <z-icon zType="arrow-up-right" class="!size-5" />
+                  {{ 'XP.Xpert.ConnectorOpenAuthorization' | translate: { Default: 'Continue authorization' } }}
+                </button>
               }
+            </article>
+          }
+        </div>
+      }
+    </section>
+  </div>
+</div>
 
-              @if (!canManageWorkspace()) {
-                <div class="text-xs text-text-secondary">
-                  {{
-                    'XP.Xpert.ConnectorsReadonly'
-                      | translate
-                        : { Default: 'Only workspace managers can connect or disconnect workspace connectors.' }
-                  }}
-                </div>
-              }
+@if (selectedDefinition(); as definition) {
+  @let connector = connectorFor(definition);
+  @let status = statusLabelFor(connector);
+  @let authMethods = authMethodsFor(definition);
+  @let authMethod = selectedAuthMethod(definition);
+  @let credentialForm = credentialFormFor(authMethod);
 
-              @if (connector?.profile) {
-                <div class="rounded-lg border border-divider-regular bg-background-default-subtle px-3 py-2.5 text-sm">
-                  <span class="text-text-secondary">
-                    {{ 'XP.Xpert.ConnectorConnectedAccount' | translate: { Default: 'Connected account:' } }}
-                  </span>
-                  <span class="font-medium text-text-primary">{{ profileLabel(connector) }}</span>
-                </div>
-              }
-
-              @if (connector?.lastError) {
-                <p class="text-sm text-text-danger">{{ connector.lastError }}</p>
-              }
-
-              <div class="flex justify-end">
-                @if (connector) {
-                  <button
-                    z-button
-                    zType="outline"
-                    zSize="sm"
-                    type="button"
-                    data-connector-action="disconnect"
-                    [zDisabled]="!canManageWorkspace() || loading() || isDisconnecting(connector)"
-                    (click)="disconnect(connector)"
-                  >
-                    @if (isDisconnecting(connector)) {
-                      <z-icon [zType]="loadingIcon" class="animate-spin"></z-icon>
-                    } @else {
-                      <z-icon [zType]="disconnectActionIcon"></z-icon>
-                    }
-                    {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect' } }}
-                  </button>
-                } @else {
-                  <button
-                    z-button
-                    zType="default"
-                    zSize="sm"
-                    type="button"
-                    data-connector-action="connect"
-                    [zDisabled]="!canManageWorkspace() || loading() || isConnecting(definition)"
-                    (click)="connect(definition)"
-                  >
-                    @if (isConnecting(definition)) {
-                      <z-icon [zType]="loadingIcon" class="animate-spin"></z-icon>
-                    } @else {
-                      <z-icon [zType]="connectorIcon"></z-icon>
-                    }
-                    {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: 'Connect' } }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            @if (loading()) {
-              <xp-spin class="absolute top-0 left-0 h-full w-full"></xp-spin>
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-backdrop-strong)] p-4"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="definition.label | i18n"
+    data-connector-dialog
+    (click)="closeConnectorDialog()"
+  >
+    <div
+      class="max-h-[min(760px,calc(100vh-32px))] w-full max-w-lg overflow-auto rounded-lg border border-divider-regular bg-components-card-bg shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="flex items-start justify-between gap-4 border-b border-divider-regular px-5 py-4">
+        <div class="flex min-w-0 items-center gap-3">
+          <div
+            class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-divider-regular bg-background-default-subtle"
+          >
+            @if (definition.icon; as icon) {
+              <xp-icon
+                [icon]="icon"
+                [size]="32"
+                class="flex size-8 items-center justify-center text-3xl leading-none"
+              />
+            } @else {
+              <z-icon [zType]="connectorIcon" class="size-6 text-text-secondary" />
             }
           </div>
+          <div class="min-w-0">
+            <h2 class="truncate text-base font-semibold text-text-primary">{{ definition.label | i18n }}</h2>
+            <div class="mt-1 flex items-center gap-1.5 text-xs text-text-secondary">
+              <span class="size-1.5 rounded-full" [class]="statusDotClass(connector)"></span>
+              {{ status.key | translate: { Default: status.defaultLabel } }}
+            </div>
+          </div>
+        </div>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon-sm"
+          type="button"
+          class="size-8 shrink-0"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          [title]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="closeConnectorDialog()"
+        >
+          <z-icon zType="x" />
+        </button>
+      </header>
+
+      <div class="space-y-5 px-5 py-5">
+        <p class="text-sm leading-6 text-text-secondary">{{ descriptionFor(definition) | i18n }}</p>
+
+        @if (!canManageWorkspace()) {
+          <div class="rounded-lg bg-background-default-subtle px-3 py-2.5 text-xs text-text-secondary">
+            {{
+              'XP.Xpert.ConnectorsReadonly'
+                | translate: { Default: 'Only workspace managers can connect or disconnect workspace connectors.' }
+            }}
+          </div>
+        }
+
+        @if (connector?.status === 'active' || connector?.status === 'pending') {
+          <div class="divide-y divide-divider-regular rounded-lg border border-divider-regular">
+            <div class="flex items-center justify-between gap-4 px-3 py-3 text-sm">
+              <span class="text-text-secondary">{{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}</span>
+              <span class="inline-flex items-center gap-1.5 font-medium text-text-primary">
+                <span class="size-1.5 rounded-full" [class]="statusDotClass(connector)"></span>
+                {{ status.key | translate: { Default: status.defaultLabel } }}
+              </span>
+            </div>
+            @if (connector.profile) {
+              <div class="flex items-center justify-between gap-4 px-3 py-3 text-sm">
+                <span class="text-text-secondary">
+                  {{ 'XP.Xpert.ConnectorConnectedAccount' | translate: { Default: 'Connected account' } }}
+                </span>
+                <span class="max-w-[65%] truncate font-medium text-text-primary">{{ profileLabel(connector) }}</span>
+              </div>
+            }
+            @if (connector.authMethodId) {
+              <div class="flex items-center justify-between gap-4 px-3 py-3 text-sm">
+                <span class="text-text-secondary">
+                  {{ 'XP.Xpert.ConnectorAuthenticationMethod' | translate: { Default: 'Authentication method' } }}
+                </span>
+                <span class="max-w-[65%] truncate font-medium text-text-primary">{{ connector.authMethodId }}</span>
+              </div>
+            }
+          </div>
+
+          @if (connector.lastError) {
+            <div class="flex items-start gap-2 rounded-lg bg-danger-500/10 px-3 py-2.5 text-sm text-text-danger">
+              <z-icon [zType]="errorIcon" class="mt-0.5 size-4 shrink-0" />
+              <span>{{ connector.lastError }}</span>
+            </div>
+          }
+
+          @if (connector.status === 'pending') {
+            <div class="flex flex-wrap items-center gap-2">
+              @if (pendingAuthorizationUrl(connector)) {
+                <button
+                  z-button
+                  type="button"
+                  zType="default"
+                  zSize="sm"
+                  (click)="openPendingAuthorizationUrl(connector)"
+                >
+                  <z-icon zType="arrow-up-right" />
+                  {{ 'XP.Xpert.ConnectorOpenAuthorization' | translate: { Default: 'Continue authorization' } }}
+                </button>
+              }
+              @if (isPolling(connector)) {
+                <span class="inline-flex items-center gap-1.5 text-xs text-text-tertiary">
+                  <z-icon [zType]="loadingIcon" class="animate-spin" />
+                  {{
+                    'XP.Xpert.ConnectorAuthorizationPending'
+                      | translate: { Default: 'Waiting for authorization to complete' }
+                  }}
+                </span>
+              }
+            </div>
+          }
+        } @else {
+          @if (connector?.lastError) {
+            <div class="flex items-start gap-2 rounded-lg bg-danger-500/10 px-3 py-2.5 text-sm text-text-danger">
+              <z-icon [zType]="errorIcon" class="mt-0.5 size-4 shrink-0" />
+              <span>{{ connector.lastError }}</span>
+            </div>
+          }
+
+          <form class="grid gap-4" [formGroup]="formFor(definition)" (ngSubmit)="connect(definition)">
+            @if (authMethods.length > 1) {
+              <z-form-field>
+                <z-form-label>
+                  {{ 'XP.Xpert.ConnectorAuthenticationMethod' | translate: { Default: 'Authentication method' } }}
+                </z-form-label>
+                <z-select
+                  class="w-full"
+                  formControlName="authMethodId"
+                  [zDisabled]="!canManageWorkspace()"
+                  (zSelectionChange)="selectAuthMethod(definition, $event)"
+                >
+                  @for (method of authMethods; track method.id) {
+                    <z-select-item [zValue]="method.id">{{ method.label | i18n }}</z-select-item>
+                  }
+                </z-select>
+              </z-form-field>
+            }
+
+            @for (field of credentialFieldsFor(authMethod); track field.name) {
+              <z-form-field>
+                <z-form-label>
+                  {{ field.label | i18n }}
+                  @if (field.required) {
+                    <span aria-hidden="true"> *</span>
+                  }
+                </z-form-label>
+                <input
+                  z-input
+                  [attr.data-credential-field]="field.name"
+                  [type]="field.type === 'password' || field.secret ? 'password' : 'text'"
+                  [formControlName]="field.name"
+                  [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
+                  [attr.autocomplete]="field.type === 'password' || field.secret ? 'new-password' : 'off'"
+                  [attr.disabled]="!canManageWorkspace() ? true : null"
+                />
+                @if (field.description) {
+                  <z-form-message>{{ field.description | i18n }}</z-form-message>
+                }
+                @if (
+                  fieldControl(definition, field)?.touched && fieldControl(definition, field)?.hasError('required')
+                ) {
+                  <z-form-message>
+                    {{ 'XP.Xpert.ConnectorCredentialRequired' | translate: { Default: 'This field is required.' } }}
+                  </z-form-message>
+                }
+              </z-form-field>
+            }
+
+            @if (credentialForm?.help; as help) {
+              <a
+                class="inline-flex w-fit items-center gap-1 text-xs text-text-secondary underline underline-offset-2"
+                [href]="help.url"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ help.label | i18n }}
+                <z-icon zType="arrow-up-right" class="size-3.5" />
+              </a>
+            }
+          </form>
         }
       </div>
-    }
-  </section>
-</div>
+
+      <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-divider-regular px-5 py-4">
+        <button z-button zType="ghost" zSize="sm" type="button" (click)="closeConnectorDialog()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        @if (connector?.status === 'active' || connector?.status === 'pending') {
+          <button
+            z-button
+            zType="outline"
+            zSize="sm"
+            type="button"
+            class="text-text-danger"
+            data-connector-action="disconnect"
+            [zDisabled]="!canManageWorkspace() || loading() || isDisconnecting(connector)"
+            (click)="disconnect(connector)"
+          >
+            @if (isDisconnecting(connector)) {
+              <z-icon [zType]="loadingIcon" class="animate-spin" />
+            } @else {
+              <z-icon [zType]="disconnectIcon" />
+            }
+            {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect connector' } }}
+          </button>
+        } @else {
+          <button
+            z-button
+            zType="default"
+            zSize="sm"
+            type="button"
+            data-connector-action="connect"
+            [zDisabled]="!canManageWorkspace() || loading() || isConnecting(definition)"
+            (click)="connect(definition)"
+          >
+            @if (isConnecting(definition)) {
+              <z-icon [zType]="loadingIcon" class="animate-spin" />
+            } @else {
+              <z-icon [zType]="connectorIcon" />
+            }
+            {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: 'Connect' } }}
+          </button>
+        }
+      </footer>
+    </div>
+  </div>
+}
