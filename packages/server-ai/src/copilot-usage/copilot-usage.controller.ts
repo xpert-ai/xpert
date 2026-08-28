@@ -32,6 +32,33 @@ import { CopilotUsageService } from './copilot-usage.service'
 export class CopilotUsageController {
     constructor(private readonly service: CopilotUsageService) {}
 
+    @Get('ledger/accounts')
+    async getLedgerAccounts(
+        @Query() query: ModelUsageLedgerQuery,
+        @Query('$take') take?: number,
+        @Query('$skip') skip?: number
+    ) {
+        return this.service.findModelUsageAccountPage(query, { take, skip })
+    }
+
+    @Get('ledger/models')
+    async getLedgerModels(
+        @Query() query: ModelUsageLedgerQuery,
+        @Query('$take') take?: number,
+        @Query('$skip') skip?: number
+    ) {
+        return this.service.findModelUsageBreakdownPage(query, 'model', { take, skip })
+    }
+
+    @Get('ledger/providers')
+    async getLedgerProviders(
+        @Query() query: ModelUsageLedgerQuery,
+        @Query('$take') take?: number,
+        @Query('$skip') skip?: number
+    ) {
+        return this.service.findModelUsageBreakdownPage(query, 'provider', { take, skip })
+    }
+
     @Get('ledger')
     async getLedger(
         @Query() query: ModelUsageLedgerQuery,

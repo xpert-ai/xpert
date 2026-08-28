@@ -8,6 +8,9 @@ import {
     IModelUsageLedger,
     IPagination,
     MembershipLedgerSourceEnum,
+    ModelUsageAccountSummary,
+    ModelUsageBreakdownDimension,
+    ModelUsageBreakdownSummary,
     ModelUsageLedgerQuery,
     ModelUsageLedgerTotals,
     ModelUsagePricingSnapshot,
@@ -135,6 +138,21 @@ export class CopilotUsageService {
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<IModelUsageLedger>> {
         return this.modelUsageLedger.findPage(query, options)
+    }
+
+    findModelUsageAccountPage(
+        query: ModelUsageLedgerQuery,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<ModelUsageAccountSummary>> {
+        return this.modelUsageLedger.findAccountPage(query, options)
+    }
+
+    findModelUsageBreakdownPage(
+        query: ModelUsageLedgerQuery,
+        dimension: ModelUsageBreakdownDimension,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<ModelUsageBreakdownSummary>> {
+        return this.modelUsageLedger.findBreakdownPage(query, dimension, options)
     }
 
     findModelUsageTotals(query: ModelUsageLedgerQuery): Promise<ModelUsageLedgerTotals[]> {
