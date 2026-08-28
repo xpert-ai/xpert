@@ -204,8 +204,8 @@ describe('buildCloudSidebarMenuGroups', () => {
       { title: '资源库', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
       {
         title: '我的知识库',
-        link: '/xpert/w/workspace%2F1/clawxpert-knowledges',
-        data: { workspaceSection: 'knowledges' }
+        link: '/xpert/knowledges',
+        data: { translationKey: 'My knowledgebases' }
       },
       { title: '工作区设置', link: '/chat/clawxpert', data: { workspaceSection: 'settings' } }
     ])
