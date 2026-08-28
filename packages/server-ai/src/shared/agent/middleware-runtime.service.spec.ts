@@ -121,7 +121,9 @@ import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { FindAgentExecutionsQuery } from '../../xpert-agent-execution/queries/find.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
 import { CollaborationService } from '../../collaboration'
 import { CopilotService } from '../../copilot/copilot.service'
@@ -1940,7 +1942,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             taskId: 'task-1',
             conversationId: 'conversation-1',
             threadId: 'thread-1',
-            executionId: 'execution-1'
+            executionId: 'execution-1',
+            executorXpertId: 'assistant-1',
+            executorAgentKey: 'agent-main'
         })
         const command = commandBus.execute.mock.calls[2][0] as XpertChatCommand
         expect(command.request).toEqual(
@@ -2000,6 +2004,204 @@ describe('AgentMiddlewareRuntimeService', () => {
                 threadId: 'thread-1'
             })
         )
+    })
+
+    it('starts a workbench task on the one directly bound official external Assistant', async () => {
+        const requester = orchestratorFixture(['bom-assistant-1'])
+        const executor = roleAssistantFixture('bom-assistant-1')
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof FindXpertQuery) {
+                return query.conditions.id === requester.id ? requester : executor
+            }
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ChatConversationUpsertCommand) {
+                return { ...command.entity, threadId: 'thread-external' }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) return command.execution
+            if (command instanceof XpertChatCommand) return of({ data: { event: 'done' } } as MessageEvent)
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+            xpertId: requester.id,
+            agentKey: 'Agent_BomEngineer',
+            target: {
+                kind: 'external_assistant',
+                requesterXpertId: requester.id,
+                requesterAgentKey: 'Agent_LifecycleOrchestrator',
+                expectation: {
+                    pluginName: '@xpert-ai/plugin-bom-lifecycle',
+                    templateKey: 'bom-lifecycle-bom-engineer',
+                    agentKey: 'Agent_BomEngineer'
+                }
+            },
+            prompt: '执行技术 BOM 草稿节点',
+            correlation: {
+                namespace: 'bom_lifecycle.flow_node',
+                operationId: 'operation-1',
+                subjectId: 'case-1',
+                attributes: { nodeKey: 'technical-bom-draft' }
+            }
+        })
+
+        expect(result).toMatchObject({
+            status: 'running',
+            executorXpertId: executor.id,
+            executorAgentKey: 'Agent_BomEngineer',
+            executorAssistantTemplateKey: 'bom-lifecycle-bom-engineer',
+            executorAssistantTitle: 'BOM 工程助手（组织实例）',
+            executorPublishedVersion: '10'
+        })
+        const conversation = commandBus.execute.mock.calls[0][0] as ChatConversationUpsertCommand
+        expect(conversation.entity.xpertId).toBe(executor.id)
+        const execution = commandBus.execute.mock.calls[1][0] as XpertAgentExecutionUpsertCommand
+        expect(execution.execution).toEqual(
+            expect.objectContaining({
+                xpertId: executor.id,
+                agentKey: 'Agent_BomEngineer',
+                metadata: expect.objectContaining({
+                    requesterXpertId: requester.id,
+                    correlation: expect.objectContaining({ operationId: 'operation-1', subjectId: 'case-1' })
+                })
+            })
+        )
+        const chat = commandBus.execute.mock.calls[2][0] as XpertChatCommand
+        expect(chat.options).toEqual(expect.objectContaining({ xpertId: executor.id, agentKey: 'Agent_BomEngineer' }))
+    })
+
+    it.each([
+        ['assistant_binding_missing', [], []],
+        [
+            'assistant_binding_ambiguous',
+            ['bom-assistant-1', 'bom-assistant-2'],
+            [roleAssistantFixture('bom-assistant-1'), roleAssistantFixture('bom-assistant-2')]
+        ],
+        [
+            'assistant_binding_incompatible',
+            ['bom-assistant-1'],
+            [roleAssistantFixture('bom-assistant-1', { templateKey: 'bom-lifecycle-commercial-engineer' })]
+        ],
+        ['assistant_unpublished', ['bom-assistant-1'], [roleAssistantFixture('bom-assistant-1', { published: false })]],
+        [
+            'assistant_binding_incompatible',
+            ['bom-assistant-1'],
+            [roleAssistantFixture('bom-assistant-1', { organizationId: 'org-2' })]
+        ]
+    ])('rejects external Assistant target with %s', async (expectedCode, targetIds, candidates) => {
+        const requester = orchestratorFixture(targetIds)
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (!(query instanceof FindXpertQuery)) throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+            if (query.conditions.id === requester.id) return requester
+            const candidate = candidates.find((value) => value.id === query.conditions.id)
+            if (!candidate) throw new Error('not found')
+            return candidate
+        })
+
+        await expect(
+            service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+                xpertId: requester.id,
+                agentKey: 'Agent_BomEngineer',
+                target: {
+                    kind: 'external_assistant',
+                    requesterXpertId: requester.id,
+                    requesterAgentKey: 'Agent_LifecycleOrchestrator',
+                    expectation: {
+                        pluginName: '@xpert-ai/plugin-bom-lifecycle',
+                        templateKey: 'bom-lifecycle-bom-engineer',
+                        agentKey: 'Agent_BomEngineer'
+                    }
+                },
+                prompt: '执行节点'
+            })
+        ).rejects.toThrow(expectedCode)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('lists only correlated executions from currently bound external Assistants', async () => {
+        const requester = orchestratorFixture(['bom-assistant-1'])
+        const executor = roleAssistantFixture('bom-assistant-1')
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof FindXpertQuery) {
+                return query.conditions.id === requester.id ? requester : executor
+            }
+            if (query instanceof FindAgentExecutionsQuery) {
+                return {
+                    items: [
+                        {
+                            id: 'execution-correlated',
+                            xpertId: executor.id,
+                            agentKey: undefined,
+                            parentId: 'execution-parent',
+                            threadId: 'thread-correlated',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            createdAt: new Date('2026-08-28T08:00:00Z'),
+                            updatedAt: new Date('2026-08-28T08:05:00Z'),
+                            inputs: {
+                                flowExecution: JSON.stringify({
+                                    contractVersion: 'flow-node-execution@1',
+                                    caseId: 'case-1',
+                                    flowTemplateKey: 'full_lifecycle',
+                                    flowTemplateVersion: 3,
+                                    nodeKey: 'technical-bom-draft',
+                                    expectedCaseRevision: 4,
+                                    flowRouteRevision: 1,
+                                    operationId: 'operation-correlated'
+                                }),
+                                executionCorrelation: JSON.stringify({
+                                    namespace: 'bom_lifecycle.flow_node',
+                                    operationId: 'operation-correlated',
+                                    subjectId: 'case-1'
+                                })
+                            },
+                            metadata: {
+                                requesterXpertId: requester.id
+                            }
+                        },
+                        {
+                            id: 'execution-unrelated',
+                            xpertId: executor.id,
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            metadata: { requesterXpertId: 'other-orchestrator' }
+                        }
+                    ]
+                }
+            }
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities
+            ?.require(AssistantTaskRuntimeCapability)
+            .listCorrelatedExecutions?.({
+                requesterXpertId: requester.id,
+                requesterAgentKey: 'Agent_LifecycleOrchestrator',
+                namespace: 'bom_lifecycle.flow_node',
+                subjectId: 'case-1'
+            })
+
+        expect(result).toEqual([
+            expect.objectContaining({
+                operationId: 'operation-correlated',
+                subjectId: 'case-1',
+                status: 'succeeded',
+                executionId: 'execution-correlated',
+                parentExecutionId: 'execution-parent',
+                executorXpertId: executor.id,
+                executorAgentKey: 'Agent_BomEngineer',
+                executorAssistantTemplateKey: 'bom-lifecycle-bom-engineer',
+                executorAssistantTitle: 'BOM 工程助手（组织实例）',
+                executorPublishedVersion: '10',
+                attributes: expect.objectContaining({
+                    contractVersion: 'flow-node-execution@1',
+                    flowTemplateKey: 'full_lifecycle',
+                    flowTemplateVersion: 3,
+                    nodeKey: 'technical-bom-draft',
+                    expectedCaseRevision: 4,
+                    flowRouteRevision: 1
+                })
+            })
+        ])
     })
 
     it('does not write a generated assistant task id into chat conversation taskId', async () => {
@@ -2139,6 +2341,54 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
     })
 })
+
+function orchestratorFixture(targetIds: string[]) {
+    return {
+        id: 'orchestrator-1',
+        name: 'orchestrator',
+        title: 'BOM 全流程协同助手',
+        organizationId: 'org-1',
+        active: true,
+        version: '40',
+        agent: { key: 'Agent_LifecycleOrchestrator' },
+        graph: {
+            nodes: [
+                { type: 'agent', key: 'Agent_LifecycleOrchestrator' },
+                ...targetIds.map((key) => ({ type: 'xpert', key }))
+            ],
+            connections: targetIds.map((to) => ({
+                type: 'xpert',
+                from: 'Agent_LifecycleOrchestrator',
+                to,
+                required: true
+            }))
+        }
+    } as any
+}
+
+function roleAssistantFixture(
+    id: string,
+    overrides: { templateKey?: string; published?: boolean; organizationId?: string } = {}
+) {
+    const templateKey = overrides.templateKey ?? 'bom-lifecycle-bom-engineer'
+    return {
+        id,
+        name: templateKey,
+        title: 'BOM 工程助手（组织实例）',
+        organizationId: overrides.organizationId ?? 'org-1',
+        active: true,
+        version: '10',
+        agent: { key: 'Agent_BomEngineer' },
+        graph: overrides.published === false ? null : { nodes: [], connections: [] },
+        options: {
+            templateSource: {
+                templateId: `@xpert-ai/plugin-bom-lifecycle:${templateKey}`,
+                templateKey,
+                pluginName: '@xpert-ai/plugin-bom-lifecycle'
+            }
+        }
+    } as any
+}
 
 function createTestVolumeHandle(scope: Record<string, unknown>, root: string) {
     return {

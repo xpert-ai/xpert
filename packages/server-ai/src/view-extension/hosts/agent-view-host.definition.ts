@@ -29,6 +29,11 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nest
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
+import {
+    describeExternalAssistantBinding,
+    directExternalAssistantIds,
+    safeExternalAssistantBinding
+} from '../../xpert/external-assistant-binding'
 
 export const AGENT_WORKBENCH_MAIN_SLOT = 'agent.workbench.main'
 export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
@@ -70,7 +75,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         }
 
         const runtimeXpert = resolveRuntimeXpert(xpert as IXpert, options?.isDraft === true)
-        const agentContext = this.resolveAgentContext(runtimeXpert)
+        const agentContext = await this.resolveAgentContext(runtimeXpert)
 
         return {
             workspaceId: runtimeXpert.workspaceId ?? null,
@@ -180,11 +185,11 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         )
     }
 
-    private resolveAgentContext(xpert: IXpert): {
+    private async resolveAgentContext(xpert: IXpert): Promise<{
         agentKey: string | null
         capabilities: XpertViewHostCapabilities
         hostState: XpertViewHostState
-    } {
+    }> {
         const features = new Set<string>(this.getEnabledXpertFeatures(xpert.features))
         const middlewareProviders = new Set<string>()
         const middlewareNodeKeys = new Set<string>()
@@ -201,6 +206,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             .filter((agent) => Boolean(agent.key))
             .sort((left, right) => left.key.localeCompare(right.key))
         const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
+        const externalAssistants = agentKey ? await this.resolveExternalAssistants(xpert, agentKey) : []
 
         if (graph && agentKey) {
             for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
@@ -238,6 +244,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 agent: {
                     key: agentKey,
                     availableAgents,
+                    ...(externalAssistants.length ? { externalAssistants } : {}),
                     middlewareProviders: Array.from(middlewareProviders).sort(),
                     middlewareNodeKeys: Array.from(middlewareNodeKeys).sort(),
                     connections: knowledgebaseIds.map((id) => ({
@@ -247,6 +254,23 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }
             }
         }
+    }
+
+    /** Resolve required direct bindings and strip internal identifiers before projecting host state. */
+    private async resolveExternalAssistants(xpert: IXpert, agentKey: string) {
+        const targetIds = directExternalAssistantIds(xpert, agentKey)
+        const candidates = await Promise.all(
+            targetIds.map(async (id) => {
+                try {
+                    return await this.xpertService.findOneByIdWithinTenant(id, { relations: ['agent'] })
+                } catch {
+                    return null
+                }
+            })
+        )
+        return candidates
+            .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
+            .map((candidate) => safeExternalAssistantBinding(describeExternalAssistantBinding(xpert, candidate)))
     }
 
     private getEnabledXpertFeatures(features?: TXpertFeatures | null): string[] {

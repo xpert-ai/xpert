@@ -28,6 +28,10 @@ import {
     AIModelProviderNotFoundException,
     IAIModelProviderStrategy,
     AgentMiddlewareAssistantTaskFile,
+    AgentMiddlewareExternalAssistantBinding,
+    AgentMiddlewareListExternalAssistantBindingsInput,
+    AgentMiddlewareListCorrelatedExecutionsInput,
+    AgentMiddlewareCorrelatedExecution,
     AgentMiddlewareAssistantTaskCancelResult,
     AgentMiddlewareAssistantTaskInput,
     AgentMiddlewareAssistantTaskResult,
@@ -129,6 +133,7 @@ import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { applicationMetrics } from '../../metrics'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { FindAgentExecutionsQuery } from '../../xpert-agent-execution/queries/find.query'
 import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
 import { ConnectorService } from '../../connector/connector.service'
@@ -143,6 +148,14 @@ import { ModuleRef } from '@nestjs/core'
 import { wrapAgentExecution } from './execution'
 import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
+import {
+    describeExternalAssistantBinding,
+    directExternalAssistantIds,
+    matchesExternalAssistantExpectation,
+    safeExternalAssistantBinding,
+    type ResolvedExternalAssistantBinding
+} from '../../xpert/external-assistant-binding'
+import { In } from 'typeorm'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -660,6 +673,94 @@ export class AgentMiddlewareRuntimeService {
         }
     }
 
+    /** Re-resolve the published graph so required-edge changes take effect without persisted instance IDs. */
+    async listExternalAssistantBindings(
+        input: AgentMiddlewareListExternalAssistantBindingsInput
+    ): Promise<AgentMiddlewareExternalAssistantBinding[]> {
+        return (await this.resolveExternalAssistantBindings(input.requesterXpertId, input.requesterAgentKey)).map(
+            safeExternalAssistantBinding
+        )
+    }
+
+    /** Limit reconciliation to requester-owned runs from currently bound external Assistants. */
+    async listCorrelatedAssistantExecutions(
+        input: AgentMiddlewareListCorrelatedExecutionsInput
+    ): Promise<AgentMiddlewareCorrelatedExecution[]> {
+        const bindings = (
+            await this.resolveExternalAssistantBindings(input.requesterXpertId, input.requesterAgentKey)
+        ).filter((binding) => binding.status === 'available')
+        if (!bindings.length) return []
+        const bindingByXpertId = new Map(bindings.map((binding) => [binding.xpertId, binding]))
+        const result = await this.queryBus.execute<FindAgentExecutionsQuery, { items: IXpertAgentExecution[] }>(
+            new FindAgentExecutionsQuery({
+                where: { xpertId: In([...bindingByXpertId.keys()]) } as never,
+                order: { createdAt: 'DESC' },
+                take: Math.min(Math.max(input.limit ?? 100, 1), 200)
+            })
+        )
+        return (result.items ?? []).flatMap((execution) => {
+            const metadata = execution.metadata
+            const inputRecord =
+                execution.inputs && typeof execution.inputs === 'object' && !Array.isArray(execution.inputs)
+                    ? execution.inputs
+                    : undefined
+            const correlation =
+                metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+                    ? (readJsonRecordOrString(metadata, 'correlation') ??
+                      (inputRecord ? readJsonRecordOrString(inputRecord, 'executionCorrelation') : undefined))
+                    : inputRecord
+                      ? readJsonRecordOrString(inputRecord, 'executionCorrelation')
+                      : undefined
+            if (metadata?.['requesterXpertId'] !== input.requesterXpertId || !correlation) return []
+            const namespace = readRecordString(correlation, 'namespace')
+            const operationId = readRecordString(correlation, 'operationId')
+            const subjectId = readRecordString(correlation, 'subjectId')
+            if (
+                namespace !== input.namespace ||
+                subjectId !== input.subjectId ||
+                !operationId ||
+                !execution.id ||
+                !execution.xpertId
+            )
+                return []
+            const binding = bindingByXpertId.get(execution.xpertId)
+            if (!binding) return []
+            const correlationAttributes = readJsonRecordOrString(correlation, 'attributes')
+            const flowExecution = inputRecord ? readJsonRecordOrString(inputRecord, 'flowExecution') : undefined
+            const envelopeMatchesCorrelation =
+                flowExecution &&
+                readRecordString(flowExecution, 'operationId') === operationId &&
+                readRecordString(flowExecution, 'caseId') === subjectId
+            // Chat collaborator calls already persist their structured inputs on
+            // the child execution. Treat the governed flowExecution envelope as
+            // the canonical correlation attributes when the caller did not
+            // redundantly copy those fields into executionCorrelation.attributes.
+            const attributes = correlationAttributes ?? (envelopeMatchesCorrelation ? flowExecution : undefined)
+            return [
+                {
+                    operationId,
+                    subjectId,
+                    ...(attributes ? { attributes } : {}),
+                    status: mapExecutionStatusToTaskStatus(execution.status),
+                    executionId: execution.id,
+                    ...(execution.parentId ? { parentExecutionId: execution.parentId } : {}),
+                    ...(execution.threadId ? { threadId: execution.threadId } : {}),
+                    executorXpertId: execution.xpertId,
+                    ...(execution.agentKey || binding.primaryAgentKey
+                        ? { executorAgentKey: execution.agentKey ?? binding.primaryAgentKey }
+                        : {}),
+                    ...(binding.templateSource?.templateKey
+                        ? { executorAssistantTemplateKey: binding.templateSource.templateKey }
+                        : {}),
+                    ...(binding.title ? { executorAssistantTitle: binding.title } : {}),
+                    ...(binding.publishedVersion ? { executorPublishedVersion: binding.publishedVersion } : {}),
+                    ...(dateString(execution.createdAt) ? { startedAt: dateString(execution.createdAt) } : {}),
+                    ...(dateString(execution.updatedAt) ? { updatedAt: dateString(execution.updatedAt) } : {})
+                }
+            ]
+        })
+    }
+
     async cancelAssistantTask(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskCancelResult> {
@@ -679,21 +780,31 @@ export class AgentMiddlewareRuntimeService {
         }
     }
 
+    /** Starts a task on the current Assistant or one deterministically resolved external Assistant. */
     async startAssistantTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
-        const xpertId = normalizeOptionalString(input.xpertId)
+        const requesterXpertId = normalizeOptionalString(input.xpertId)
         const prompt = normalizeOptionalString(input.prompt)
-        if (!xpertId) {
+        if (!requesterXpertId) {
             throw new Error('xpertId is required to start an assistant task')
         }
         if (!prompt) {
             throw new Error('prompt is required to start an assistant task')
         }
 
+        if (input.target && input.target.requesterXpertId !== requesterXpertId) {
+            throw new Error('External Assistant requester must match xpertId')
+        }
+        // Reject invalid or ambiguous bindings before creating conversation or execution rows.
+        const externalBinding = input.target ? await this.resolveExternalAssistantTarget(input.target) : undefined
+        const xpertId = externalBinding?.xpertId ?? requesterXpertId
+        const agentKey = externalBinding?.primaryAgentKey ?? normalizeOptionalString(input.agentKey)
+        const executionAssistant = externalBinding ?? (await this.resolveAssistantExecutionDescriptor(xpertId))
+
         // Resolve portable plugin skill references before creating any task rows.
         // This keeps invalid or cross-Agent selections from leaving partial runs.
         const assistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
             xpertId,
-            normalizeOptionalString(input.agentKey),
+            agentKey,
             input.selectedSkillRefs
         )
 
@@ -721,11 +832,13 @@ export class AgentMiddlewareRuntimeService {
             new XpertAgentExecutionUpsertCommand({
                 id: executionId,
                 xpertId,
-                agentKey: normalizeOptionalString(input.agentKey),
+                agentKey,
                 status: XpertAgentExecutionStatusEnum.RUNNING,
                 threadId: conversation.threadId,
                 metadata: {
-                    from: 'job'
+                    from: 'job',
+                    requesterXpertId,
+                    ...(input.correlation ? { correlation: input.correlation } : {})
                 }
             })
         )
@@ -748,7 +861,7 @@ export class AgentMiddlewareRuntimeService {
         const stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
             new XpertChatCommand(request, {
                 xpertId,
-                agentKey: normalizeOptionalString(input.agentKey),
+                agentKey,
                 from: 'job',
                 ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
                 projectId: normalizeOptionalString(input.projectId) ?? undefined,
@@ -776,8 +889,93 @@ export class AgentMiddlewareRuntimeService {
             taskId,
             conversationId: conversation.id,
             threadId: conversation.threadId,
-            executionId: execution.id
+            executionId: execution.id,
+            executorXpertId: xpertId,
+            ...(agentKey ? { executorAgentKey: agentKey } : {}),
+            ...(executionAssistant?.templateSource?.templateKey
+                ? { executorAssistantTemplateKey: executionAssistant.templateSource.templateKey }
+                : {}),
+            ...(executionAssistant?.title ? { executorAssistantTitle: executionAssistant.title } : {}),
+            ...(executionAssistant?.publishedVersion
+                ? { executorPublishedVersion: executionAssistant.publishedVersion }
+                : {})
         }
+    }
+
+    /** Resolves optional display metadata for the actual execution Assistant. */
+    private async resolveAssistantExecutionDescriptor(xpertId: string) {
+        try {
+            const xpert = await this.queryBus.execute<FindXpertQuery, IXpert>(
+                new FindXpertQuery({ id: xpertId }, { relations: ['agent'] })
+            )
+            return describeExternalAssistantBinding(xpert, xpert)
+        } catch {
+            return undefined
+        }
+    }
+
+    /** Require exactly one same-organization, published Assistant matching template and Agent identity. */
+    private async resolveExternalAssistantTarget(
+        target: NonNullable<AgentMiddlewareAssistantTaskInput['target']>
+    ): Promise<ResolvedExternalAssistantBinding> {
+        const bindings = await this.resolveExternalAssistantBindings(target.requesterXpertId, target.requesterAgentKey)
+        const matching = bindings.filter((binding) => matchesExternalAssistantExpectation(binding, target.expectation))
+        if (matching.length > 1) {
+            throw new Error('assistant_binding_ambiguous')
+        }
+        const binding = matching[0]
+        if (!binding) {
+            const unpublished = bindings.some(
+                (candidate) =>
+                    candidate.status === 'unpublished' &&
+                    candidate.templateSource?.templateKey === target.expectation.templateKey &&
+                    candidate.primaryAgentKey === target.expectation.agentKey
+            )
+            const nearMatch = bindings.some(
+                (candidate) =>
+                    candidate.templateSource?.templateKey === target.expectation.templateKey ||
+                    candidate.primaryAgentKey === target.expectation.agentKey
+            )
+            throw new Error(
+                unpublished
+                    ? 'assistant_unpublished'
+                    : nearMatch
+                      ? 'assistant_binding_incompatible'
+                      : 'assistant_binding_missing'
+            )
+        }
+        if (binding.status === 'unpublished') throw new Error('assistant_unpublished')
+        if (binding.status !== 'available') throw new Error('assistant_binding_incompatible')
+        return binding
+    }
+
+    /** The requester primary Agent is the trust anchor; nested and optional Xpert edges are excluded. */
+    private async resolveExternalAssistantBindings(
+        requesterXpertIdValue: string,
+        requesterAgentKeyValue: string
+    ): Promise<ResolvedExternalAssistantBinding[]> {
+        const requesterXpertId = normalizeOptionalString(requesterXpertIdValue)
+        const requesterAgentKey = normalizeOptionalString(requesterAgentKeyValue)
+        if (!requesterXpertId || !requesterAgentKey) return []
+        const requester = await this.queryBus.execute<FindXpertQuery, IXpert>(
+            new FindXpertQuery({ id: requesterXpertId }, { relations: ['agent'] })
+        )
+        if (requester.agent?.key !== requesterAgentKey) return []
+        const targetIds = directExternalAssistantIds(requester, requesterAgentKey)
+        const candidates = await Promise.all(
+            targetIds.map(async (id) => {
+                try {
+                    return await this.queryBus.execute<FindXpertQuery, IXpert>(
+                        new FindXpertQuery({ id }, { relations: ['agent'] })
+                    )
+                } catch {
+                    return null
+                }
+            })
+        )
+        return candidates
+            .filter((candidate): candidate is IXpert => Boolean(candidate))
+            .map((candidate) => describeExternalAssistantBinding(requester, candidate))
     }
 
     /**
@@ -931,6 +1129,8 @@ export class AgentMiddlewareRuntimeService {
                 AssistantTaskRuntimeCapability,
                 {
                     startTask: (input) => this.startAssistantTask(input),
+                    listExternalAssistantBindings: (input) => this.listExternalAssistantBindings(input),
+                    listCorrelatedExecutions: (input) => this.listCorrelatedAssistantExecutions(input),
                     getTaskStatus: (input) => this.getAssistantTaskStatus(input),
                     cancelTask: (input) => this.cancelAssistantTask(input)
                 }
@@ -1113,6 +1313,40 @@ export class AgentMiddlewareRuntimeService {
             return null
         }
     }
+}
+
+function readRecordString(value: object, key: string) {
+    const candidate = Reflect.get(value, key)
+    return typeof candidate === 'string' ? candidate.trim() : ''
+}
+
+function readJsonRecord(value: object, key: string): Record<string, any> | undefined {
+    const candidate = Reflect.get(value, key)
+    return candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+        ? (candidate as Record<string, any>)
+        : undefined
+}
+
+function readJsonRecordOrString(value: object, key: string): Record<string, any> | undefined {
+    const candidate = Reflect.get(value, key)
+    const record = readJsonRecord(value, key)
+    if (record) return record
+    if (typeof candidate !== 'string' || !candidate.trim()) return undefined
+    try {
+        const parsed = JSON.parse(candidate)
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, any>)
+            : undefined
+    } catch {
+        return undefined
+    }
+}
+
+function dateString(value: unknown) {
+    if (value instanceof Date) return value.toISOString()
+    if (typeof value !== 'string' || !value.trim()) return ''
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString()
 }
 
 function normalizeOptionalString(value: unknown) {

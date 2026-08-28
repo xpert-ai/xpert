@@ -1,4 +1,4 @@
-import type { JSONValue } from '@xpert-ai/contracts'
+import type { JSONValue, TAvatar } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../../core/runtime-capability'
 
 export type AgentMiddlewareAssistantTaskStatus =
@@ -34,9 +34,93 @@ export type AgentMiddlewareAssistantTaskSkillRef = {
   componentKey: string
 }
 
+/**
+ * Portable role identity used to resolve an organization-owned Assistant.
+ * Instance UUIDs stay out of plugin contracts so the same workflow is deployable across organizations.
+ */
+export type AgentMiddlewareExternalAssistantExpectation = {
+  pluginName: string
+  templateKey: string
+  agentKey: string
+}
+
+/** Resolve the executor from the requester's required, direct external-Xpert connections. */
+export type AgentMiddlewareAssistantTaskTarget = {
+  kind: 'external_assistant'
+  requesterXpertId: string
+  requesterAgentKey: string
+  expectation: AgentMiddlewareExternalAssistantExpectation
+}
+
+/** Stable plugin-owned identity for reconciling platform executions with a domain operation. */
+export type AgentMiddlewareExecutionCorrelation = {
+  namespace: string
+  operationId: string
+  subjectId: string
+  attributes?: Record<string, JSONValue>
+}
+
+/** Availability of a resolved external Assistant binding. */
+export type AgentMiddlewareExternalAssistantBindingStatus =
+  | 'available'
+  | 'incompatible'
+  | 'unpublished'
+  | 'cross_organization'
+
+/** Safe external Assistant metadata that may cross plugin and View Host boundaries. */
+export type AgentMiddlewareExternalAssistantBinding = {
+  title: string
+  name: string
+  avatar?: TAvatar
+  templateSource: {
+    templateId: string
+    templateKey: string
+    pluginName?: string
+    source?: string
+  } | null
+  primaryAgentKey?: string
+  publishedVersion?: string
+  status: AgentMiddlewareExternalAssistantBindingStatus
+}
+
+/** Identifies the requester whose required direct bindings should be listed. */
+export type AgentMiddlewareListExternalAssistantBindingsInput = {
+  requesterXpertId: string
+  requesterAgentKey: string
+}
+
+/** Selects correlated executions for one requester-owned domain subject. */
+export type AgentMiddlewareListCorrelatedExecutionsInput = {
+  requesterXpertId: string
+  requesterAgentKey: string
+  namespace: string
+  subjectId: string
+  limit?: number
+}
+
+/** Safe execution summary returned to a plugin for domain reconciliation. */
+export type AgentMiddlewareCorrelatedExecution = {
+  operationId: string
+  subjectId: string
+  attributes?: Record<string, JSONValue>
+  status: AgentMiddlewareAssistantTaskStatus
+  executionId: string
+  parentExecutionId?: string
+  threadId?: string
+  executorXpertId: string
+  executorAgentKey?: string
+  executorAssistantTemplateKey?: string
+  executorAssistantTitle?: string
+  executorPublishedVersion?: string
+  startedAt?: string
+  updatedAt?: string
+}
+
 export type AgentMiddlewareAssistantTaskInput = {
   xpertId: string
   agentKey?: string
+  /** Resolve an organization-owned external Assistant from the requester's published graph. */
+  target?: AgentMiddlewareAssistantTaskTarget
   conversationId?: string | null
   executionId?: string | null
   projectId?: string | null
@@ -49,6 +133,7 @@ export type AgentMiddlewareAssistantTaskInput = {
   /** Additional bounded human-input fields exposed to runtime-state fixed filters. */
   humanInput?: Record<string, JSONValue>
   context?: Record<string, unknown>
+  correlation?: AgentMiddlewareExecutionCorrelation
 }
 
 export type AgentMiddlewareAssistantTaskResult = {
@@ -58,6 +143,11 @@ export type AgentMiddlewareAssistantTaskResult = {
   conversationId?: string
   threadId?: string
   errorMessage?: string
+  executorXpertId?: string
+  executorAgentKey?: string
+  executorAssistantTemplateKey?: string
+  executorAssistantTitle?: string
+  executorPublishedVersion?: string
 }
 
 export type AgentMiddlewareAssistantTaskStatusInput = {
@@ -75,6 +165,14 @@ export type AgentMiddlewareAssistantTaskCancelResult = {
 
 export interface AgentMiddlewareAssistantTaskApi {
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>
+  /** Return only safe binding descriptors; internal Assistant instance IDs are intentionally omitted. */
+  listExternalAssistantBindings?(
+    input: AgentMiddlewareListExternalAssistantBindingsInput
+  ): Promise<AgentMiddlewareExternalAssistantBinding[]>
+  /** Read executions owned by the requester and its currently bound external Assistants. */
+  listCorrelatedExecutions?(
+    input: AgentMiddlewareListCorrelatedExecutionsInput
+  ): Promise<AgentMiddlewareCorrelatedExecution[]>
   getTaskStatus?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskResult | null>
   cancelTask?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskCancelResult>
 }

@@ -125,6 +125,84 @@ describe('AgentViewHostDefinition', () => {
         expect((resolved?.context.hostState as any).agent.availableAgents[0]).not.toHaveProperty('id')
     })
 
+    it('projects only safe direct external Assistant binding metadata into host state', async () => {
+        const requester = {
+            id: 'orchestrator-1',
+            type: XpertTypeEnum.Agent,
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: 'orchestrator',
+            title: 'BOM 全流程协同助手',
+            active: true,
+            agent: { key: 'Agent_LifecycleOrchestrator' },
+            graph: {
+                nodes: [
+                    {
+                        key: 'Agent_LifecycleOrchestrator',
+                        type: 'agent',
+                        entity: { key: 'Agent_LifecycleOrchestrator' }
+                    },
+                    { key: 'bom-assistant-1', type: 'xpert', entity: { key: 'bom-assistant-1' } }
+                ],
+                connections: [
+                    {
+                        key: 'orchestrator/bom',
+                        type: 'xpert',
+                        from: 'Agent_LifecycleOrchestrator',
+                        to: 'bom-assistant-1',
+                        required: true
+                    }
+                ]
+            }
+        }
+        const executor = {
+            id: 'bom-assistant-1',
+            type: XpertTypeEnum.Agent,
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: 'bom-engineer',
+            title: 'BOM 工程助手（组织实例）',
+            avatar: { emoji: '🧱', background: '#eef2ff' },
+            active: true,
+            version: '10',
+            agent: { key: 'Agent_BomEngineer' },
+            graph: { nodes: [], connections: [] },
+            options: {
+                templateSource: {
+                    templateId: '@xpert-ai/plugin-bom-lifecycle:bom-lifecycle-bom-engineer',
+                    templateKey: 'bom-lifecycle-bom-engineer',
+                    pluginName: '@xpert-ai/plugin-bom-lifecycle'
+                }
+            }
+        }
+        const xpertService = {
+            findOneByIdWithinTenant: jest.fn(async (id: string) => (id === requester.id ? requester : executor))
+        }
+        const definition = new AgentViewHostDefinition(
+            xpertService as any,
+            {} as any,
+            { get: jest.fn() } as any,
+            {} as any
+        )
+
+        const resolved = await definition.resolve(requester.id)
+        const externalAssistants = (resolved?.context.hostState as any).agent.externalAssistants
+
+        expect(externalAssistants).toEqual([
+            expect.objectContaining({
+                title: 'BOM 工程助手（组织实例）',
+                avatar: { emoji: '🧱', background: '#eef2ff' },
+                primaryAgentKey: 'Agent_BomEngineer',
+                publishedVersion: '10',
+                status: 'available',
+                templateSource: expect.objectContaining({ templateKey: 'bom-lifecycle-bom-engineer' })
+            })
+        ])
+        expect(JSON.stringify(externalAssistants)).not.toContain('bom-assistant-1')
+        expect(JSON.stringify(externalAssistants)).not.toContain('org-1')
+        expect(JSON.stringify(externalAssistants)).not.toContain('tenant-1')
+    })
+
     it('derives view capabilities from the draft graph only when draft resolution is requested', async () => {
         const xpertService = {
             findOneByIdWithinTenant: jest.fn().mockResolvedValue({

@@ -142,10 +142,16 @@ export class XpertCollaborator implements IXpertSubAgent {
                     threadId: configurable.thread_id,
                     checkpointNs: configurable.checkpoint_ns,
                     xpert: { id: xpert.id } as IXpert,
+                    agentKey: agent.key,
                     inputs: call?.args,
                     parentId: executionId,
                     status: XpertAgentExecutionStatusEnum.RUNNING,
-                    predecessor: configurable.agentKey
+                    predecessor: configurable.agentKey,
+                    // Correlation enables domain reconciliation of the child run; it does not grant access.
+                    metadata: {
+                        ...(configurable.xpertId ? { requesterXpertId: configurable.xpertId } : {}),
+                        ...(executionCorrelation(call?.args) ? { correlation: executionCorrelation(call?.args) } : {})
+                    }
                 }
 
                 return await wrapAgentExecution(
@@ -234,5 +240,51 @@ export class XpertCollaborator implements IXpertSubAgent {
             failNode,
             graph: stateGraph.withConfig({ tags: [xpert.id] }) // Add xpert.id as tag for streaming event control
         })
+    }
+}
+
+/** Accept object or JSON-string inputs only when they contain a complete correlation tuple. */
+function executionCorrelation(args: unknown) {
+    if (!args || typeof args !== 'object' || Array.isArray(args)) return undefined
+    const value = 'executionCorrelation' in args ? parseJsonRecord(args.executionCorrelation) : undefined
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+    const namespace = 'namespace' in value && typeof value.namespace === 'string' ? value.namespace.trim() : ''
+    const operationId = 'operationId' in value && typeof value.operationId === 'string' ? value.operationId.trim() : ''
+    const subjectId = 'subjectId' in value && typeof value.subjectId === 'string' ? value.subjectId.trim() : ''
+    const explicitAttributes =
+        'attributes' in value &&
+        value.attributes &&
+        typeof value.attributes === 'object' &&
+        !Array.isArray(value.attributes)
+            ? value.attributes
+            : undefined
+    const envelope = 'flowExecution' in args ? parseJsonRecord(args.flowExecution) : undefined
+    const envelopeOperationId =
+        envelope && 'operationId' in envelope && typeof envelope.operationId === 'string'
+            ? envelope.operationId.trim()
+            : ''
+    const envelopeCaseId =
+        envelope && 'caseId' in envelope && typeof envelope.caseId === 'string' ? envelope.caseId.trim() : ''
+    const attributes =
+        explicitAttributes ??
+        (envelopeOperationId === operationId && envelopeCaseId === subjectId ? envelope : undefined)
+    return namespace && operationId && subjectId
+        ? { ...value, namespace, operationId, subjectId, ...(attributes ? { attributes } : {}) }
+        : undefined
+}
+
+/** Parses a JSON object supplied by a collaborator tool boundary. */
+function parseJsonRecord(value: unknown): Record<string, unknown> | undefined {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, unknown>
+    }
+    if (typeof value !== 'string' || !value.trim()) return undefined
+    try {
+        const parsed = JSON.parse(value)
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : undefined
+    } catch {
+        return undefined
     }
 }
