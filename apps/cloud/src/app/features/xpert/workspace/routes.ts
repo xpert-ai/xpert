@@ -15,7 +15,6 @@ import { XpertWorkspaceSkillsComponent } from './skills/skills.component'
 import { XpertWorkspacePromptWorkflowsComponent } from './prompt-workflows/workflows.component'
 import { ClawXpertConnectorsComponent, XpertConnectorsComponent } from './connectors/connectors.component'
 import { XpertWorkspaceFilesComponent } from './files/files.component'
-import { XpertWorkspaceSettingsPageComponent } from './settings/settings-page.component'
 
 function redirectToSelectedWorkspace(route: ActivatedRouteSnapshot) {
   const router = inject(Router)
@@ -111,7 +110,8 @@ export default [
       },
       {
         path: 'settings',
-        component: XpertWorkspaceSettingsPageComponent
+        redirectTo: '/chat/clawxpert',
+        pathMatch: 'full'
       },
       {
         path: 'prompt-workflows',
