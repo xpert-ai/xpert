@@ -262,7 +262,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                   </button>
 
                   <button type="button" z-menu-item (click)="openXpertOrchestration()">
-                    {{ 'XP.Chat.ClawXpert.OpenOrchestration' | translate: { Default: '编排 ClawXpert' } }}
+                    {{ 'XP.Chat.ClawXpert.OpenOrchestration' | translate: { Default: 'Open ClawXpert orchestration' } }}
                   </button>
 
                   <z-divider zSpacing="sm"></z-divider>
