@@ -31,6 +31,7 @@ import { NgxPermissionsService } from 'ngx-permissions'
 import { catchError, map, of } from 'rxjs'
 import { ScheduleFormComponent } from '../../schedule'
 import { buildJsonSchemaDefaults, hasJsonSchemaRequiredErrors } from '../../workflow/trigger-config/trigger-config.util'
+import { isScheduleComplete } from './task-dialog.utils'
 
 @Component({
   selector: 'xpert-task-new-blank',
@@ -120,6 +121,7 @@ export class XpertTaskDialogComponent {
     () =>
       !this.prompt() ||
       !this.xpertId() ||
+      !isScheduleComplete(this.options()) ||
       hasJsonSchemaRequiredErrors(this.runtimeStateSchema(), this.runtimeStateValue()) ||
       this.loading() ||
       this.isTrialTaskLimitPending() ||
@@ -164,6 +166,10 @@ export class XpertTaskDialogComponent {
 
     if (this.isTrialTaskLimitReached()) {
       this.#toastr.error('Trial users can schedule a maximum of 10 tasks')
+      return
+    }
+
+    if (this.isSubmitDisabled()) {
       return
     }
 
