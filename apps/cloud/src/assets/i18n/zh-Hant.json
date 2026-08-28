@@ -5202,6 +5202,8 @@
       "Archive": "歸檔",
       "Time": "時間",
       "NameOfTask": "任務名稱",
+      "TaskNameOptional": "任務名稱（選填）",
+      "TaskNamePlaceholder": "例如：每日新聞摘要",
       "DayinMonth": "每月運行的日期",
       "WillRunClosestDay": "將在最近一天運行",
       "EnterPromptHere": "在這裏輸入提示詞",

@@ -178,7 +178,7 @@ export class XpertTaskDialogComponent {
     this.taskAPI
       .upsert({
         ...(currentTask.id ? { id: currentTask.id } : {}),
-        name: this.name(),
+        name: this.name()?.trim() || undefined,
         timeZone: currentTask.timeZone,
         prompt: this.prompt(),
         options: {
