@@ -613,6 +613,41 @@
                         </span>
                         <input z-input type="number" min="1" formControlName="inviteExpiryPeriod" />
                       </label>
+
+                      <div class="toggle-group">
+                        <div class="info-title">
+                          {{ 'XP.Organization.Navigation' | translate: { Default: 'Navigation' } }}
+                        </div>
+                        <div class="toggle-group-panel">
+                          <div class="toggle-setting">
+                            <div class="min-w-0">
+                              <div class="text-base font-semibold text-text-primary">
+                                {{
+                                  'XP.Organization.SidebarExpandedByDefault'
+                                    | translate: { Default: 'Open primary sidebar by default' }
+                                }}
+                              </div>
+                              <div class="mt-1 text-sm text-text-tertiary">
+                                {{
+                                  'XP.Organization.SidebarExpandedByDefaultHelp'
+                                    | translate
+                                      : {
+                                          Default: 'Expand the primary sidebar when members enter this organization.'
+                                        }
+                                }}
+                              </div>
+                            </div>
+                            <z-switch formControlName="sidebarExpandedByDefault" class="shrink-0" zSize="sm">
+                              <span class="sr-only">
+                                {{
+                                  'XP.Organization.SidebarExpandedByDefault'
+                                    | translate: { Default: 'Open primary sidebar by default' }
+                                }}
+                              </span>
+                            </z-switch>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div class="grid gap-7">
