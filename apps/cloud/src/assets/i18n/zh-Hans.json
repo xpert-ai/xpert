@@ -7424,6 +7424,7 @@
       "WorkspaceApiKeyDescription": "在这里创建的密钥属于当前工作区，可访问该工作区内已发布的专家。",
       "Connectors": "连接器",
       "ConnectorsDescription": "连接工作空间所需的外部服务，授权和凭据由 xpert 平台统一管理。",
+      "SearchConnectors": "搜索连接器",
       "ConnectorCatalogTitle": "连接器目录",
       "ConnectorCatalogDescription": "选择授权方式并配置连接，连接状态会从 xpert 平台实时同步。",
       "ConnectorConnectedAccount": "已连接账号：",

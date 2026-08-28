@@ -5699,6 +5699,7 @@
       "WorkspaceApiKeys": "工作區 API 密鑰",
       "WorkspaceApiKeyDescription": "在這裡創建的密鑰屬於當前工作區，可訪問該工作區內已發布的專家。",
       "Connectors": "連接器",
+      "SearchConnectors": "搜尋連接器",
       "ConnectorIntegration": "應用整合",
       "NoConnectorIntegration": "暫無可用應用整合",
       "NoConnectorsAvailable": "暫無可用工作區連接器。",

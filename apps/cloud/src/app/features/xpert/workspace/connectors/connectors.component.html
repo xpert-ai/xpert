@@ -8,12 +8,16 @@
       </div>
       <div class="min-w-0">
         <h1 class="text-2xl font-semibold tracking-normal text-text-primary">
-          {{ 'XP.Xpert.Connectors' | translate: { Default: '连接器' } }}
+          {{ 'XP.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
         </h1>
         <p class="mt-1 max-w-3xl text-sm text-text-secondary">
           {{
             'XP.Xpert.ConnectorsDescription'
-              | translate: { Default: '连接工作空间所需的外部服务，授权和凭据由 xpert 平台统一管理。' }
+              | translate
+                : {
+                    Default:
+                      'Connect external services to the workspace with authorization and credentials managed by xpert.'
+                  }
           }}
         </p>
       </div>
@@ -24,18 +28,22 @@
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="space-y-1">
         <h2 class="text-base font-medium text-text-primary">
-          {{ 'XP.Xpert.ConnectorCatalogTitle' | translate: { Default: '连接器目录' } }}
+          {{ 'XP.Xpert.ConnectorCatalogTitle' | translate: { Default: 'Connector catalog' } }}
         </h2>
         <p class="text-sm text-text-secondary">
           {{
             'XP.Xpert.ConnectorCatalogDescription'
-              | translate: { Default: '选择授权方式并配置连接，连接状态会从 xpert 平台实时同步。' }
+              | translate
+                : {
+                    Default:
+                      'Choose an authentication method and configure a connection. Status stays synchronized with xpert.'
+                  }
           }}
         </p>
       </div>
       <button z-button zType="outline" zSize="sm" type="button" (click)="refresh()">
         <z-icon [zType]="refreshIcon"></z-icon>
-        {{ 'XP.ACTIONS.Refresh' | translate: { Default: '刷新' } }}
+        {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
       </button>
     </div>
 
@@ -58,7 +66,9 @@
       <div
         class="rounded-xl border border-dashed border-divider-regular px-4 py-14 text-center text-sm text-text-secondary"
       >
-        {{ 'XP.Xpert.NoConnectorsAvailable' | translate: { Default: '当前 xpert 平台没有可用的连接器定义。' } }}
+        {{
+          'XP.Xpert.NoConnectorsAvailable' | translate: { Default: 'No connectors are currently available from xpert.' }
+        }}
       </div>
     } @else {
       <div class="grid gap-4 xl:grid-cols-2">
@@ -101,7 +111,7 @@
                   @if (authMethods.length > 1) {
                     <z-form-field>
                       <z-form-label>
-                        {{ 'XP.Xpert.ConnectorAuthenticationMethod' | translate: { Default: '授权方式' } }}
+                        {{ 'XP.Xpert.ConnectorAuthenticationMethod' | translate: { Default: 'Authentication method' } }}
                       </z-form-label>
                       <z-select
                         class="w-full"
@@ -143,7 +153,10 @@
                             fieldControl(definition, field)?.hasError('required')
                           ) {
                             <z-form-message>
-                              {{ 'XP.Xpert.ConnectorCredentialRequired' | translate: { Default: '此字段为必填项。' } }}
+                              {{
+                                'XP.Xpert.ConnectorCredentialRequired'
+                                  | translate: { Default: 'This field is required.' }
+                              }}
                             </z-form-message>
                           }
                         </z-form-field>
@@ -168,7 +181,8 @@
                 <div class="text-xs text-text-secondary">
                   {{
                     'XP.Xpert.ConnectorsReadonly'
-                      | translate: { Default: '只有工作区管理员可以连接或断开工作区连接器。' }
+                      | translate
+                        : { Default: 'Only workspace managers can connect or disconnect workspace connectors.' }
                   }}
                 </div>
               }
@@ -176,7 +190,7 @@
               @if (connector?.profile) {
                 <div class="rounded-lg border border-divider-regular bg-background-default-subtle px-3 py-2.5 text-sm">
                   <span class="text-text-secondary">
-                    {{ 'XP.Xpert.ConnectorConnectedAccount' | translate: { Default: '已连接账号：' } }}
+                    {{ 'XP.Xpert.ConnectorConnectedAccount' | translate: { Default: 'Connected account:' } }}
                   </span>
                   <span class="font-medium text-text-primary">{{ profileLabel(connector) }}</span>
                 </div>
@@ -202,7 +216,7 @@
                     } @else {
                       <z-icon [zType]="disconnectActionIcon"></z-icon>
                     }
-                    {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: '断开连接' } }}
+                    {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect' } }}
                   </button>
                 } @else {
                   <button
@@ -219,7 +233,7 @@
                     } @else {
                       <z-icon [zType]="connectorIcon"></z-icon>
                     }
-                    {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: '连接' } }}
+                    {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: 'Connect' } }}
                   </button>
                 }
               </div>
