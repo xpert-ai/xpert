@@ -6895,6 +6895,8 @@
       "Unarchive": "取消归档",
       "Time": "时间",
       "NameOfTask": "任务名称",
+      "TaskNameOptional": "任务名称（选填）",
+      "TaskNamePlaceholder": "例如：每日新闻摘要",
       "DayinMonth": "每月运行的日期",
       "WillRunClosestDay": "将在最近一天运行",
       "EnterPromptHere": "在这里输入提示词",

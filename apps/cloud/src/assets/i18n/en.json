@@ -3878,6 +3878,8 @@
       "Unarchive": "Unarchive",
       "Records": "records",
       "NameOfTask": "Name of task",
+      "TaskNameOptional": "Task name (optional)",
+      "TaskNamePlaceholder": "e.g. Daily news summary",
       "SelectExpert": "Select Expert",
       "EditXpert": "Edit Xpert",
       "ScheduleSendTarget": "Send target",
