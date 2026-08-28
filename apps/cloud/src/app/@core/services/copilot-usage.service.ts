@@ -12,6 +12,9 @@ import {
   ICopilotUserUsageSummary,
   IModelUsageLedger,
   IPagination,
+  ModelUsageAccountSummary,
+  ModelUsageBreakdownDimension,
+  ModelUsageBreakdownSummary,
   ModelUsageLedgerQuery,
   ModelUsageLedgerTotals,
   OrderTypeEnum,
@@ -56,6 +59,22 @@ export class CopilotUsageService {
 
   getModelUsageLedger(params: ModelUsageLedgerQuery & { take?: number; skip?: number }) {
     return this.httpClient.get<IPagination<IModelUsageLedger>>(API_COPILOT_USAGE + '/ledger', {
+      params: this.toModelUsageHttpParams(params)
+    })
+  }
+
+  getModelUsageAccounts(params: ModelUsageLedgerQuery & { take?: number; skip?: number }) {
+    return this.httpClient.get<IPagination<ModelUsageAccountSummary>>(API_COPILOT_USAGE + '/ledger/accounts', {
+      params: this.toModelUsageHttpParams(params)
+    })
+  }
+
+  getModelUsageBreakdown(
+    dimension: ModelUsageBreakdownDimension,
+    params: ModelUsageLedgerQuery & { take?: number; skip?: number }
+  ) {
+    const path = dimension === 'model' ? '/ledger/models' : '/ledger/providers'
+    return this.httpClient.get<IPagination<ModelUsageBreakdownSummary>>(API_COPILOT_USAGE + path, {
       params: this.toModelUsageHttpParams(params)
     })
   }
@@ -166,6 +185,7 @@ export class CopilotUsageService {
     append('provider', params?.provider)
     append('model', params?.model)
     append('userId', params?.userId)
+    append('userIdentity', params?.userIdentity)
     append('organizationId', params?.organizationId)
     append('unit', params?.unit)
     append('modality', params?.modality)

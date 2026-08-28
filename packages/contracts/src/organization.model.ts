@@ -59,6 +59,7 @@ export interface IOrganization extends IBasePerTenantEntityModel {
 	employees?: IEmployee[];
 	invitesAllowed?: boolean;
 	inviteExpiryPeriod?: number;
+	sidebarExpandedByDefault?: boolean;
 	tags: ITag[];
 	futureDateAllowed?: boolean;
 	allowManualTime?: boolean;
@@ -132,6 +133,7 @@ export interface IOrganizationCreateInput extends IContact {
 	bonusPercentage?: number;
 	invitesAllowed?: boolean;
 	inviteExpiryPeriod?: number;
+	sidebarExpandedByDefault?: boolean;
 	tags?: ITag[];
 	tenant: ITenant;
 	contact?: IContact;
@@ -163,6 +165,7 @@ export enum OrganizationSelectInput {
 	createdAt = 'createdAt',
 	updatedAt = 'updatedAt',
 	isActive = 'isActive',
+	sidebarExpandedByDefault = 'sidebarExpandedByDefault',
 	tags = 'tags'
 }
 

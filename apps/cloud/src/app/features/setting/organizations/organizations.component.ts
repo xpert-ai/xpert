@@ -136,6 +136,7 @@ export class OrganizationsComponent {
     defaultValueDateType: ['TODAY', [Validators.required]],
     invitesAllowed: [true],
     inviteExpiryPeriod: [7, [Validators.min(1)]],
+    sidebarExpandedByDefault: [false],
     isDefault: [false],
     isActive: [true]
   })
@@ -514,6 +515,7 @@ export class OrganizationsComponent {
             defaultValueDateType: 'TODAY',
             invitesAllowed: true,
             inviteExpiryPeriod: 7,
+            sidebarExpandedByDefault: false,
             isDefault: false,
             isActive: true
           },
@@ -581,6 +583,7 @@ export class OrganizationsComponent {
         defaultValueDateType: organization.defaultValueDateType ?? 'TODAY',
         invitesAllowed: organization.invitesAllowed ?? true,
         inviteExpiryPeriod: organization.inviteExpiryPeriod ?? 7,
+        sidebarExpandedByDefault: organization.sidebarExpandedByDefault ?? false,
         isDefault: organization.isDefault ?? false,
         isActive: organization.isActive ?? true
       },

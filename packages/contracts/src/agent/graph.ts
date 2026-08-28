@@ -245,7 +245,7 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 
   variables.push({
     name: `messages`,
-    type: XpertParameterTypeEnum.ARRAY,
+    type: XpertParameterTypeEnum.ARRAY_MESSAGE,
     description: {
       zh_Hans: `消息列表`,
       en_US: `Message List`

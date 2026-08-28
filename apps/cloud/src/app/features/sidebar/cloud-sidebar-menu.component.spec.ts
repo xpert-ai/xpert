@@ -207,7 +207,7 @@ describe('buildCloudSidebarMenuGroups', () => {
         link: '/xpert/w/workspace%2F1/clawxpert-knowledges',
         data: { workspaceSection: 'knowledges' }
       },
-      { title: '工作区设置', link: '/xpert/w/workspace%2F1/settings', data: { workspaceSection: 'settings' } }
+      { title: '工作区设置', link: '/chat/clawxpert', data: { workspaceSection: 'settings' } }
     ])
   })
 
@@ -246,7 +246,8 @@ describe('cloud sidebar menu helpers', () => {
     expect(buildWorkspaceModuleMenuLink('knowledges', 'workspace/1')).toBe(
       '/xpert/w/workspace%2F1/clawxpert-knowledges'
     )
-    expect(buildWorkspaceModuleMenuLink('settings', 'workspace/1')).toBe('/xpert/w/workspace%2F1/settings')
+    expect(buildWorkspaceModuleMenuLink('settings', 'workspace/1')).toBe('/chat/clawxpert')
+    expect(buildWorkspaceModuleMenuLink('settings')).toBe('/chat/clawxpert')
     expect(getWorkspaceModuleSection(menu({ data: { workspaceSection: 'skills' }, link: '/chat/clawxpert/c' }))).toBe(
       'skills'
     )

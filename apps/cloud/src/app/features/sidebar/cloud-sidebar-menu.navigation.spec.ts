@@ -41,7 +41,7 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     ['connectors', '/xpert/w/workspace-1/clawxpert-connectors'],
     ['files', '/xpert/w/workspace-1/files'],
     ['knowledges', '/xpert/w/workspace-1/clawxpert-knowledges'],
-    ['settings', '/xpert/w/workspace-1/settings']
+    ['settings', '/chat/clawxpert']
   ] as const)('navigates the %s entry directly to its original workspace page', async (section, expectedUrl) => {
     const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
     const component = fixture.componentInstance

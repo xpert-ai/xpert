@@ -196,6 +196,10 @@ export function isNewClawXpertTaskMenuItem(item: CloudMenuItem) {
 }
 
 export function buildWorkspaceModuleMenuLink(section: CloudWorkspaceModuleSection, workspaceId?: string | null) {
+  if (section === 'settings') {
+    return '/chat/clawxpert'
+  }
+
   const normalizedWorkspaceId = workspaceId?.trim()
   return normalizedWorkspaceId
     ? `/xpert/w/${encodeURIComponent(normalizedWorkspaceId)}/${workspaceModuleRouteSegment(section)}`
@@ -243,7 +247,7 @@ function createWorkspaceChild(
     title,
     icon,
     link: buildWorkspaceModuleMenuLink(section, workspaceId),
-    pathMatch: 'prefix',
+    pathMatch: section === 'settings' ? 'full' : 'prefix',
     data: {
       translationKey,
       workspaceSection: section

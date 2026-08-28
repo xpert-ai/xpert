@@ -117,6 +117,9 @@ export class XpertWorkspaceHomeComponent {
   readonly isStandaloneWorkspaceRoute = computed(() =>
     /\/(?:clawxpert-connectors|clawxpert-skills|files|clawxpert-knowledges|settings)(?:\/|$)/.test(this.currentUrl())
   )
+  readonly isMarketplaceWorkspaceRoute = computed(() =>
+    /\/xpert\/w\/[^/]+\/clawxpert-(?:connectors|skills)(?:\/|$)/.test(this.currentUrl())
+  )
 
   readonly loading = signal(true)
   readonly loadingDefaultWorkspace = signal(true)
@@ -185,6 +188,7 @@ export class XpertWorkspaceHomeComponent {
 
   readonly searchControl = new FormControl()
   readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), startWith('')))
+  readonly connectorSearchQuery = signal('')
 
   // Search for workspaces
   readonly searchWorkspace = model<string>('')

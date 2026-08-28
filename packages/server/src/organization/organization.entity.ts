@@ -258,6 +258,11 @@ export class Organization extends TenantBaseEntity implements IOrganization {
 	@Column({ nullable: true })
 	inviteExpiryPeriod?: number;
 
+	@ApiProperty({ type: () => Boolean, default: false })
+	@IsBoolean()
+	@Column({ type: 'boolean', default: false })
+	sidebarExpandedByDefault?: boolean;
+
 	@ApiProperty({ type: () => Date })
 	@Column({ nullable: true })
 	@IsOptional()

@@ -200,11 +200,46 @@ export type ModelUsageLedgerQuery = {
   provider?: string
   model?: string
   userId?: string
+  userIdentity?: 'unidentified'
   organizationId?: string
   unit?: ModelUsageMetric['unit']
   modality?: ModelUsageLedgerModality
   currency?: string
   pricingStatus?: ModelUsagePricingStatus
+}
+
+export type ModelUsageAccountSummary = {
+  userId: string | null
+  userName: string | null
+  lastUsedAt: Date
+  usages: Array<{
+    modality: ModelUsageLedgerModality
+    unit: ModelUsageMetric['unit']
+    quantity: number
+  }>
+  pricedAmounts: {
+    llm: number
+    video: number
+    total: number
+  }
+}
+
+export type ModelUsageBreakdownDimension = 'model' | 'provider'
+
+export type ModelUsageBreakdownSummary = {
+  key: string
+  provider: string
+  model: string | null
+  models: string[]
+  usages: Array<{
+    modality: ModelUsageLedgerModality
+    unit: ModelUsageMetric['unit']
+    quantity: number
+  }>
+  calls: number
+  lastUsedAt: Date
+  pricingStatus: ModelUsagePricingStatus
+  settlementAmount: number
 }
 
 export type ModelUsageLedgerTotals = {
