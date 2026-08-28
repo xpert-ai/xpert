@@ -561,6 +561,7 @@ export enum XpertParameterTypeEnum {
   ARRAY = 'array[object]',
   ARRAY_FILE = 'array[file]',
   ARRAY_DOCUMENT = 'array[document]',
+  ARRAY_MESSAGE = 'array[message]',
 
   BOOLEAN = 'boolean',
   SECRET = 'secret'
