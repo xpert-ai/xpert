@@ -3,6 +3,9 @@ import type {
     IModelUsageDetails,
     IModelUsageLedger,
     IPagination,
+    ModelUsageAccountSummary,
+    ModelUsageBreakdownDimension,
+    ModelUsageBreakdownSummary,
     ModelUsageLedgerQuery,
     ModelUsageLedgerTotals,
     ModelUsageLedgerModality,
@@ -10,6 +13,7 @@ import type {
     ModelUsageMetric,
     ModelUsageModality,
     ModelUsageOperation,
+    ModelUsagePricingStatus,
     ModelUsagePricingSnapshot,
     ModelUsageReport,
     ModelUsageReportResult
@@ -34,6 +38,7 @@ import type {
 import { modelUsageMetricKey, normalizeModelUsageMetrics } from './model-usage.utils'
 
 const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
+const UNKNOWN_USAGE_ACCOUNT_KEY = '__unknown_account__'
 const LEGACY_USAGE_SOURCES = [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
 const LEGACY_USAGE_PREDICATE = `
     ledger.source IN (:...legacyUsageSources)
@@ -318,6 +323,228 @@ export class ModelUsageLedgerService {
         return { items: await this.attachUserNames(items), total }
     }
 
+    async findAccountPage(
+        query: ModelUsageLedgerQuery,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<ModelUsageAccountSummary>> {
+        const accountKeySql = modelUsageAccountKeySql()
+        const recordedAtSql = 'COALESCE(ledger.recordedAt, ledger.createdAt)'
+        const take = normalizeTake(options?.take)
+        const skip = Math.max(0, Number(options?.skip) || 0)
+        const [accountRows, countRow] = await Promise.all([
+            this.baseQuery(query)
+                .select(accountKeySql, 'accountKey')
+                .addSelect(`MAX(${recordedAtSql})`, 'lastUsedAt')
+                .groupBy(accountKeySql)
+                .orderBy(`MAX(${recordedAtSql})`, 'DESC')
+                .addOrderBy(accountKeySql, 'ASC')
+                .take(take)
+                .skip(skip)
+                .getRawMany<{ accountKey: string; lastUsedAt: Date | string }>(),
+            this.baseQuery(query)
+                .select(`COUNT(DISTINCT ${accountKeySql})`, 'total')
+                .getRawOne<{ total: string | number }>()
+        ])
+        const total = Number(countRow?.total) || 0
+        if (!accountRows.length) return { items: [], total }
+
+        const modalitySql = "COALESCE(ledger.modality, 'text')"
+        const unitSql = "COALESCE(ledger.unit, 'token')"
+        const quantitySql = `CASE WHEN ${unitSql} = 'token' THEN COALESCE(ledger.totalTokens, ledger.tokenUsed, ledger.quantity, 0) ELSE COALESCE(ledger.quantity, 0) END`
+        const pricedSettlementSql = `CASE WHEN COALESCE(ledger.pricingStatus, 'unpriced') = 'priced' THEN COALESCE(ledger.settlementAmount, 0) ELSE 0 END`
+        const accountKeys = accountRows.map(({ accountKey }) => accountKey)
+        const summaryRows = await this.baseQuery(query)
+            .andWhere(`${accountKeySql} IN (:...accountKeys)`, { accountKeys })
+            .select(accountKeySql, 'accountKey')
+            .addSelect(modalitySql, 'modality')
+            .addSelect(unitSql, 'unit')
+            .addSelect(`COALESCE(SUM(${quantitySql}), 0)`, 'quantity')
+            .addSelect(
+                `COALESCE(SUM(CASE WHEN ${modalitySql} = 'text' THEN ${pricedSettlementSql} ELSE 0 END), 0)`,
+                'llmAmount'
+            )
+            .addSelect(
+                `COALESCE(SUM(CASE WHEN ${modalitySql} = 'video' THEN ${pricedSettlementSql} ELSE 0 END), 0)`,
+                'videoAmount'
+            )
+            .addSelect(`COALESCE(SUM(${pricedSettlementSql}), 0)`, 'totalAmount')
+            .groupBy(accountKeySql)
+            .addGroupBy(modalitySql)
+            .addGroupBy(unitSql)
+            .getRawMany<{
+                accountKey: string
+                modality: ModelUsageLedgerModality
+                unit: ModelUsageMetric['unit']
+                quantity: string | number
+                llmAmount: string | number
+                videoAmount: string | number
+                totalAmount: string | number
+            }>()
+
+        const userIds = accountKeys.filter((accountKey) => accountKey !== UNKNOWN_USAGE_ACCOUNT_KEY)
+        const users = userIds.length
+            ? await this.userRepository.find({
+                  where: {
+                      tenantId: RequestContext.currentTenantId(),
+                      id: In(userIds)
+                  },
+                  select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      email: true,
+                      username: true
+                  }
+              })
+            : []
+        const userNames = new Map(users.map((user) => [user.id, displayUserName(user)]))
+        const summaries = new Map<string, ModelUsageAccountSummary>()
+        for (const row of accountRows) {
+            const userId = row.accountKey === UNKNOWN_USAGE_ACCOUNT_KEY ? null : row.accountKey
+            summaries.set(row.accountKey, {
+                userId,
+                userName: userId ? (userNames.get(userId) ?? null) : null,
+                lastUsedAt: new Date(row.lastUsedAt),
+                usages: [],
+                pricedAmounts: { llm: 0, video: 0, total: 0 }
+            })
+        }
+        for (const row of summaryRows) {
+            const summary = summaries.get(row.accountKey)
+            if (!summary) continue
+            summary.usages.push({
+                modality: row.modality,
+                unit: row.unit,
+                quantity: Number(row.quantity) || 0
+            })
+            summary.pricedAmounts.llm += Number(row.llmAmount) || 0
+            summary.pricedAmounts.video += Number(row.videoAmount) || 0
+            summary.pricedAmounts.total += Number(row.totalAmount) || 0
+        }
+
+        return {
+            items: accountRows
+                .map(({ accountKey }) => summaries.get(accountKey))
+                .filter((summary): summary is ModelUsageAccountSummary => summary !== undefined),
+            total
+        }
+    }
+
+    async findBreakdownPage(
+        query: ModelUsageLedgerQuery,
+        dimension: ModelUsageBreakdownDimension,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<ModelUsageBreakdownSummary>> {
+        const breakdownKeySql = modelUsageBreakdownKeySql(dimension)
+        const requestKeySql = modelUsageRequestKeySql()
+        const recordedAtSql = 'COALESCE(ledger.recordedAt, ledger.createdAt)'
+        const take = normalizeTake(options?.take)
+        const skip = Math.max(0, Number(options?.skip) || 0)
+        const [pageRows, countRow] = await Promise.all([
+            this.baseQuery(query)
+                .select(breakdownKeySql, 'breakdownKey')
+                .addSelect(`MAX(${recordedAtSql})`, 'lastUsedAt')
+                .groupBy(breakdownKeySql)
+                .orderBy(`MAX(${recordedAtSql})`, 'DESC')
+                .addOrderBy(breakdownKeySql, 'ASC')
+                .take(take)
+                .skip(skip)
+                .getRawMany<{ breakdownKey: string; lastUsedAt: Date | string }>(),
+            this.baseQuery(query)
+                .select(`COUNT(DISTINCT ${breakdownKeySql})`, 'total')
+                .getRawOne<{ total: string | number }>()
+        ])
+        const total = Number(countRow?.total) || 0
+        if (!pageRows.length) return { items: [], total }
+
+        const breakdownKeys = pageRows.map(({ breakdownKey }) => breakdownKey)
+        const modalitySql = "COALESCE(ledger.modality, 'text')"
+        const unitSql = "COALESCE(ledger.unit, 'token')"
+        const quantitySql = `CASE WHEN ${unitSql} = 'token' THEN COALESCE(ledger.totalTokens, ledger.tokenUsed, ledger.quantity, 0) ELSE COALESCE(ledger.quantity, 0) END`
+        const pricedSettlementSql = `CASE WHEN COALESCE(ledger.pricingStatus, 'unpriced') = 'priced' THEN COALESCE(ledger.settlementAmount, 0) ELSE 0 END`
+        const overviewRows = await this.baseQuery(query)
+            .andWhere(`${breakdownKeySql} IN (:...breakdownKeys)`, { breakdownKeys })
+            .select(breakdownKeySql, 'breakdownKey')
+            .addSelect('MAX(ledger.provider)', 'provider')
+            .addSelect('MAX(ledger.model)', 'model')
+            .addSelect(`MAX(${recordedAtSql})`, 'lastUsedAt')
+            .addSelect(`COUNT(DISTINCT ${requestKeySql})`, 'calls')
+            .addSelect(`COALESCE(SUM(${pricedSettlementSql}), 0)`, 'settlementAmount')
+            .addSelect(
+                "MAX(CASE WHEN COALESCE(ledger.pricingStatus, 'unpriced') = 'priced' THEN 2 WHEN COALESCE(ledger.pricingStatus, 'unpriced') = 'free' THEN 1 ELSE 0 END)",
+                'pricingRank'
+            )
+            .groupBy(breakdownKeySql)
+            .getRawMany<{
+                breakdownKey: string
+                provider: string
+                model: string | null
+                lastUsedAt: Date | string
+                calls: string | number
+                settlementAmount: string | number
+                pricingRank: string | number
+            }>()
+        const metricRows = await this.baseQuery(query)
+            .andWhere(`${breakdownKeySql} IN (:...breakdownKeys)`, { breakdownKeys })
+            .select(breakdownKeySql, 'breakdownKey')
+            .addSelect(modalitySql, 'modality')
+            .addSelect(unitSql, 'unit')
+            .addSelect(`COALESCE(SUM(${quantitySql}), 0)`, 'quantity')
+            .groupBy(breakdownKeySql)
+            .addGroupBy(modalitySql)
+            .addGroupBy(unitSql)
+            .getRawMany<{
+                breakdownKey: string
+                modality: ModelUsageLedgerModality
+                unit: ModelUsageMetric['unit']
+                quantity: string | number
+            }>()
+        const modelRows =
+            dimension === 'provider'
+                ? await this.baseQuery(query)
+                      .andWhere(`${breakdownKeySql} IN (:...breakdownKeys)`, { breakdownKeys })
+                      .andWhere("NULLIF(ledger.model, '') IS NOT NULL")
+                      .select(breakdownKeySql, 'breakdownKey')
+                      .addSelect('ledger.model', 'model')
+                      .groupBy(breakdownKeySql)
+                      .addGroupBy('ledger.model')
+                      .getRawMany<{ breakdownKey: string; model: string }>()
+                : []
+
+        const summaries = new Map<string, ModelUsageBreakdownSummary>()
+        for (const row of overviewRows) {
+            summaries.set(row.breakdownKey, {
+                key: row.breakdownKey,
+                provider: row.provider,
+                model: dimension === 'model' ? (row.model ?? null) : null,
+                models: [],
+                usages: [],
+                calls: Number(row.calls) || 0,
+                lastUsedAt: new Date(row.lastUsedAt),
+                pricingStatus: pricingStatusFromRank(row.pricingRank),
+                settlementAmount: Number(row.settlementAmount) || 0
+            })
+        }
+        for (const row of metricRows) {
+            summaries.get(row.breakdownKey)?.usages.push({
+                modality: row.modality,
+                unit: row.unit,
+                quantity: Number(row.quantity) || 0
+            })
+        }
+        for (const row of modelRows) {
+            const summary = summaries.get(row.breakdownKey)
+            if (summary && !summary.models.includes(row.model)) summary.models.push(row.model)
+        }
+
+        return {
+            items: pageRows
+                .map(({ breakdownKey }) => summaries.get(breakdownKey))
+                .filter((summary): summary is ModelUsageBreakdownSummary => summary !== undefined),
+            total
+        }
+    }
+
     async totals(query: ModelUsageLedgerQuery): Promise<ModelUsageLedgerTotals[]> {
         const unitSql = "COALESCE(ledger.unit, 'token')"
         const modalitySql = "COALESCE(ledger.modality, 'text')"
@@ -424,8 +651,12 @@ export class ModelUsageLedgerService {
         if (provider) qb.andWhere('ledger.provider = :provider', { provider })
         const model = normalizeText(query.model)
         if (model) qb.andWhere('ledger.model = :model', { model })
-        const userId = normalizeText(query.userId)
-        if (userId) qb.andWhere('ledger.userId = :userId', { userId })
+        if (query.userIdentity === 'unidentified') {
+            qb.andWhere('ledger.userId IS NULL')
+        } else {
+            const userId = normalizeText(query.userId)
+            if (userId) qb.andWhere('ledger.userId = :userId', { userId })
+        }
         if (query.unit === 'token') {
             qb.andWhere(`(ledger.unit = :unit OR (${LEGACY_USAGE_PREDICATE}))`, {
                 unit: query.unit,
@@ -463,6 +694,27 @@ export class ModelUsageLedgerService {
 
 function modelUsageRequestKeySql() {
     return "CONCAT(COALESCE(ledger.providerScopeId, ''), ':', COALESCE(NULLIF(ledger.requestId, ''), CONCAT('legacy:', ledger.id)))"
+}
+
+function modelUsageAccountKeySql() {
+    return `COALESCE(CAST(ledger.userId AS text), '${UNKNOWN_USAGE_ACCOUNT_KEY}')`
+}
+
+function modelUsageBreakdownKeySql(dimension: ModelUsageBreakdownDimension) {
+    const providerKey = modelUsageBreakdownKeyPartSql('ledger.provider')
+    if (dimension === 'provider') return providerKey
+    return `CONCAT(${providerKey}, ':', ${modelUsageBreakdownKeyPartSql('ledger.model')})`
+}
+
+function modelUsageBreakdownKeyPartSql(column: 'ledger.provider' | 'ledger.model') {
+    return `CASE WHEN NULLIF(${column}, '') IS NULL THEN '-1:' ELSE CONCAT(LENGTH(${column}), ':', ${column}) END`
+}
+
+function pricingStatusFromRank(value: string | number): ModelUsagePricingStatus {
+    const rank = Number(value) || 0
+    if (rank >= 2) return 'priced'
+    if (rank === 1) return 'free'
+    return 'unpriced'
 }
 
 function toLedgerEntry(

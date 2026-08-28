@@ -538,6 +538,275 @@ describe('ModelUsageLedgerService', () => {
             currencies: ['CNY', 'RMB']
         })
     })
+
+    it('paginates account summaries independently from invocation pages', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const accountPageQueryBuilder = createReadQueryBuilder()
+        accountPageQueryBuilder.getRawMany.mockResolvedValue([
+            { accountKey: 'user-1', lastUsedAt: '2026-08-17T11:00:00.000Z' },
+            { accountKey: '__unknown_account__', lastUsedAt: '2026-08-17T10:00:00.000Z' }
+        ])
+        const countQueryBuilder = createReadQueryBuilder()
+        countQueryBuilder.getRawOne.mockResolvedValue({ total: '2' })
+        const summariesQueryBuilder = createReadQueryBuilder()
+        summariesQueryBuilder.getRawMany.mockResolvedValue([
+            {
+                accountKey: 'user-1',
+                modality: 'text',
+                unit: 'token',
+                quantity: '120',
+                llmAmount: '0.4',
+                videoAmount: '0',
+                totalAmount: '0.4'
+            },
+            {
+                accountKey: 'user-1',
+                modality: 'video',
+                unit: 'second',
+                quantity: '8',
+                llmAmount: '0',
+                videoAmount: '0.6',
+                totalAmount: '0.6'
+            },
+            {
+                accountKey: '__unknown_account__',
+                modality: 'text',
+                unit: 'token',
+                quantity: '25',
+                llmAmount: '0',
+                videoAmount: '0',
+                totalAmount: '0'
+            }
+        ])
+        const repository = {
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(accountPageQueryBuilder)
+                .mockReturnValueOnce(countQueryBuilder)
+                .mockReturnValueOnce(summariesQueryBuilder)
+        }
+        const userRepository = {
+            find: jest.fn().mockResolvedValue([{ id: 'user-1', firstName: 'Yu', lastName: 'Rongku' }])
+        }
+        const service = new ModelUsageLedgerService(
+            repository as never,
+            { recordUsage: jest.fn() } as never,
+            userRepository as never
+        )
+
+        await expect(service.findAccountPage({}, { take: 20, skip: 0 })).resolves.toEqual({
+            items: [
+                {
+                    userId: 'user-1',
+                    userName: 'Yu Rongku',
+                    lastUsedAt: new Date('2026-08-17T11:00:00.000Z'),
+                    usages: [
+                        { modality: 'text', unit: 'token', quantity: 120 },
+                        { modality: 'video', unit: 'second', quantity: 8 }
+                    ],
+                    pricedAmounts: { llm: 0.4, video: 0.6, total: 1 }
+                },
+                {
+                    userId: null,
+                    userName: null,
+                    lastUsedAt: new Date('2026-08-17T10:00:00.000Z'),
+                    usages: [{ modality: 'text', unit: 'token', quantity: 25 }],
+                    pricedAmounts: { llm: 0, video: 0, total: 0 }
+                }
+            ],
+            total: 2
+        })
+        expect(accountPageQueryBuilder.take).toHaveBeenCalledWith(20)
+        expect(accountPageQueryBuilder.skip).toHaveBeenCalledWith(0)
+        expect(accountPageQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+            "COALESCE(CAST(ledger.userId AS text), '__unknown_account__')",
+            'ASC'
+        )
+        expect(accountPageQueryBuilder.select).toHaveBeenCalledWith(
+            "COALESCE(CAST(ledger.userId AS text), '__unknown_account__')",
+            'accountKey'
+        )
+        expect(summariesQueryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('IN (:...accountKeys)'), {
+            accountKeys: ['user-1', '__unknown_account__']
+        })
+        expect(userRepository.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    username: true
+                }
+            })
+        )
+    })
+
+    it('filters unidentified usage without comparing the UUID user id to an empty string', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const accountPageQueryBuilder = createReadQueryBuilder()
+        accountPageQueryBuilder.getRawMany.mockResolvedValue([])
+        const countQueryBuilder = createReadQueryBuilder()
+        countQueryBuilder.getRawOne.mockResolvedValue({ total: '0' })
+        const repository = {
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(accountPageQueryBuilder)
+                .mockReturnValueOnce(countQueryBuilder)
+        }
+        const service = new ModelUsageLedgerService(
+            repository as never,
+            { recordUsage: jest.fn() } as never,
+            { find: jest.fn() } as never
+        )
+
+        await expect(service.findAccountPage({ userIdentity: 'unidentified' }, { take: 20, skip: 0 })).resolves.toEqual(
+            { items: [], total: 0 }
+        )
+        expect(accountPageQueryBuilder.andWhere).toHaveBeenCalledWith('ledger.userId IS NULL')
+        expect(countQueryBuilder.andWhere).toHaveBeenCalledWith('ledger.userId IS NULL')
+    })
+
+    it('paginates model breakdowns as complete aggregate rows', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const pageQueryBuilder = createReadQueryBuilder()
+        pageQueryBuilder.getRawMany.mockResolvedValue([
+            { breakdownKey: 'openai:gpt-5', lastUsedAt: '2026-08-17T11:00:00.000Z' }
+        ])
+        const countQueryBuilder = createReadQueryBuilder()
+        countQueryBuilder.getRawOne.mockResolvedValue({ total: '1' })
+        const overviewQueryBuilder = createReadQueryBuilder()
+        overviewQueryBuilder.getRawMany.mockResolvedValue([
+            {
+                breakdownKey: 'openai:gpt-5',
+                provider: 'openai',
+                model: 'gpt-5',
+                lastUsedAt: '2026-08-17T11:00:00.000Z',
+                calls: '12',
+                settlementAmount: '0.75',
+                pricingRank: '2'
+            }
+        ])
+        const metricsQueryBuilder = createReadQueryBuilder()
+        metricsQueryBuilder.getRawMany.mockResolvedValue([
+            {
+                breakdownKey: 'openai:gpt-5',
+                modality: 'text',
+                unit: 'token',
+                quantity: '2400'
+            }
+        ])
+        const repository = {
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(pageQueryBuilder)
+                .mockReturnValueOnce(countQueryBuilder)
+                .mockReturnValueOnce(overviewQueryBuilder)
+                .mockReturnValueOnce(metricsQueryBuilder)
+        }
+        const service = new ModelUsageLedgerService(
+            repository as never,
+            { recordUsage: jest.fn() } as never,
+            { find: jest.fn() } as never
+        )
+
+        await expect(service.findBreakdownPage({}, 'model', { take: 10, skip: 0 })).resolves.toEqual({
+            items: [
+                {
+                    key: 'openai:gpt-5',
+                    provider: 'openai',
+                    model: 'gpt-5',
+                    models: [],
+                    usages: [{ modality: 'text', unit: 'token', quantity: 2400 }],
+                    calls: 12,
+                    lastUsedAt: new Date('2026-08-17T11:00:00.000Z'),
+                    pricingStatus: 'priced',
+                    settlementAmount: 0.75
+                }
+            ],
+            total: 1
+        })
+        expect(pageQueryBuilder.take).toHaveBeenCalledWith(10)
+        expect(pageQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+            expect.stringContaining('LENGTH(ledger.provider)'),
+            'ASC'
+        )
+        expect(overviewQueryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('IN (:...breakdownKeys)'), {
+            breakdownKeys: ['openai:gpt-5']
+        })
+    })
+
+    it('paginates provider breakdowns with their distinct model list', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const pageQueryBuilder = createReadQueryBuilder()
+        pageQueryBuilder.getRawMany.mockResolvedValue([
+            { breakdownKey: 'openai', lastUsedAt: '2026-08-17T11:00:00.000Z' }
+        ])
+        const countQueryBuilder = createReadQueryBuilder()
+        countQueryBuilder.getRawOne.mockResolvedValue({ total: '1' })
+        const overviewQueryBuilder = createReadQueryBuilder()
+        overviewQueryBuilder.getRawMany.mockResolvedValue([
+            {
+                breakdownKey: 'openai',
+                provider: 'openai',
+                model: 'gpt-5',
+                lastUsedAt: '2026-08-17T11:00:00.000Z',
+                calls: '12',
+                settlementAmount: '0.75',
+                pricingRank: '2'
+            }
+        ])
+        const metricsQueryBuilder = createReadQueryBuilder()
+        metricsQueryBuilder.getRawMany.mockResolvedValue([
+            {
+                breakdownKey: 'openai',
+                modality: 'text',
+                unit: 'token',
+                quantity: '2400'
+            }
+        ])
+        const modelsQueryBuilder = createReadQueryBuilder()
+        modelsQueryBuilder.getRawMany.mockResolvedValue([
+            { breakdownKey: 'openai', model: 'gpt-5' },
+            { breakdownKey: 'openai', model: 'gpt-4o' }
+        ])
+        const repository = {
+            createQueryBuilder: jest
+                .fn()
+                .mockReturnValueOnce(pageQueryBuilder)
+                .mockReturnValueOnce(countQueryBuilder)
+                .mockReturnValueOnce(overviewQueryBuilder)
+                .mockReturnValueOnce(metricsQueryBuilder)
+                .mockReturnValueOnce(modelsQueryBuilder)
+        }
+        const service = new ModelUsageLedgerService(
+            repository as never,
+            { recordUsage: jest.fn() } as never,
+            { find: jest.fn() } as never
+        )
+
+        await expect(service.findBreakdownPage({}, 'provider', { take: 10, skip: 0 })).resolves.toEqual({
+            items: [
+                {
+                    key: 'openai',
+                    provider: 'openai',
+                    model: null,
+                    models: ['gpt-5', 'gpt-4o'],
+                    usages: [{ modality: 'text', unit: 'token', quantity: 2400 }],
+                    calls: 12,
+                    lastUsedAt: new Date('2026-08-17T11:00:00.000Z'),
+                    pricingStatus: 'priced',
+                    settlementAmount: 0.75
+                }
+            ],
+            total: 1
+        })
+        expect(modelsQueryBuilder.andWhere).toHaveBeenCalledWith("NULLIF(ledger.model, '') IS NOT NULL")
+    })
 })
 
 function createReadQueryBuilder() {
@@ -547,7 +816,9 @@ function createReadQueryBuilder() {
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
+        addGroupBy: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         getRawMany: jest.fn(),
