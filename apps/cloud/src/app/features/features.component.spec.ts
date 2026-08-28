@@ -78,6 +78,7 @@ type FeatureTestOptions = {
   hasClawXpertFeature?: boolean
   hasCreatePermission?: boolean
   hasXpertFeature?: boolean
+  sidebarExpandedByDefault?: boolean
   xpertCount?: number
 }
 
@@ -90,7 +91,7 @@ function mountEntryOnboardingTargets() {
   `
 }
 
-function createUser(autoShownAt?: string | null): IUser {
+function createUser(autoShownAt?: string | null, sidebarExpandedByDefault?: boolean): IUser {
   return {
     id: 'user-1',
     tenantId: 'tenant-1',
@@ -117,7 +118,8 @@ function createUser(autoShownAt?: string | null): IUser {
         organization: {
           id: 'org-1',
           isActive: true,
-          name: 'Org 1'
+          name: 'Org 1',
+          sidebarExpandedByDefault
         },
         preferences: autoShownAt
           ? {
@@ -134,8 +136,12 @@ function createUser(autoShownAt?: string | null): IUser {
 }
 
 async function setup(options: FeatureTestOptions = {}) {
-  const userSubject = new BehaviorSubject<IUser>(createUser(options.autoShownAt))
+  const userSubject = new BehaviorSubject<IUser>(createUser(options.autoShownAt, options.sidebarExpandedByDefault))
   const routerEvents$ = new Subject()
+  const selectedOrganizationSubject = new BehaviorSubject({
+    id: 'org-1',
+    sidebarExpandedByDefault: options.sidebarExpandedByDefault
+  })
   const activeScope = signal({
     level: RequestScopeLevel.ORGANIZATION,
     organizationId: 'org-1'
@@ -173,9 +179,7 @@ async function setup(options: FeatureTestOptions = {}) {
         enabled: true
       }
     ]),
-    selectedOrganization$: of({
-      id: 'org-1'
-    }),
+    selectedOrganization$: selectedOrganizationSubject.asObservable(),
     featureTenant$: of([]),
     featureOrganizations$: of([]),
     featureContextHydrated$: of(true),
@@ -318,10 +322,42 @@ async function setup(options: FeatureTestOptions = {}) {
     component,
     store,
     router,
+    selectedOrganizationSubject,
     usersOrganizationsService,
     xpertService
   }
 }
+
+describe('FeaturesComponent sidebar organization default', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+    TestBed.resetTestingModule()
+  })
+
+  it('expands the sidebar when the active organization enables the default', async () => {
+    const { component } = await setup({ sidebarExpandedByDefault: true })
+    component.sidebarCollapsed.set(true)
+
+    await component.ngOnInit()
+
+    expect(component.sidebarCollapsed()).toBe(false)
+  })
+
+  it('does not overwrite a manual choice until the organization changes', async () => {
+    const { component, selectedOrganizationSubject } = await setup({ sidebarExpandedByDefault: true })
+    component.sidebarCollapsed.set(true)
+    await component.ngOnInit()
+
+    component.sidebarCollapsed.set(true)
+    selectedOrganizationSubject.next({ id: 'org-1', sidebarExpandedByDefault: true })
+
+    expect(component.sidebarCollapsed()).toBe(true)
+
+    selectedOrganizationSubject.next({ id: 'org-2', sidebarExpandedByDefault: true })
+
+    expect(component.sidebarCollapsed()).toBe(false)
+  })
+})
 
 describe('FeaturesComponent sidebar width', () => {
   afterEach(() => {

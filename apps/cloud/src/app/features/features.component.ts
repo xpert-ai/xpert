@@ -212,6 +212,7 @@ export class FeaturesComponent implements OnInit {
   #sidebarResizePointerId: number | null = null
   #sidebarResizeHandle: HTMLElement | null = null
   #sidebarResizeAbortController: AbortController | null = null
+  #sidebarDefaultScopeKey: string | null = null
 
   constructor() {
     this.#router.events
@@ -262,6 +263,7 @@ export class FeaturesComponent implements OnInit {
       )
       .subscribe(([, , org, scope]) => {
         this.organization = org
+        this.applySidebarDefault(org, scope.level)
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
         void this.maybeOpenEntryOnboardingGuide()
@@ -447,6 +449,18 @@ export class FeaturesComponent implements OnInit {
 
   onCollapsedChange(collapsed: boolean) {
     this.sidebarCollapsed.set(collapsed)
+  }
+
+  private applySidebarDefault(organization: IOrganization | null | undefined, scopeLevel: RequestScopeLevel) {
+    const organizationId = scopeLevel === RequestScopeLevel.ORGANIZATION ? organization?.id : null
+    const scopeKey = organizationId ? `organization:${organizationId}` : `scope:${scopeLevel}`
+
+    if (this.#sidebarDefaultScopeKey === scopeKey) {
+      return
+    }
+
+    this.#sidebarDefaultScopeKey = scopeKey
+    this.sidebarCollapsed.set(!organizationId || organization?.sidebarExpandedByDefault !== true)
   }
 
   startSidebarResize(event: PointerEvent) {
