@@ -117,6 +117,7 @@ async function setup(options?: {
   pollResponse?: ConnectorOAuthStatusResponse
 }) {
   const workspace = signal<{ id: string } | null>(options?.workspaceId ? { id: options.workspaceId } : null)
+  const connectorSearchQuery = signal('')
   const pollResponse = options?.pollResponse ?? {
     connector: pendingConnector,
     authorizationUrl: 'https://accounts.example.com/oauth/continue',
@@ -141,7 +142,8 @@ async function setup(options?: {
       {
         provide: XpertWorkspaceHomeComponent,
         useValue: {
-          workspace
+          workspace,
+          connectorSearchQuery
         }
       },
       {
@@ -260,7 +262,7 @@ describe('XpertConnectorsComponent', () => {
     fixture.destroy()
   })
 
-  it('renders active connectors with description, profile text, and disconnect label', async () => {
+  it('opens active connector details with profile text and disconnect action', async () => {
     const { component, fixture, workspace } = await setup({
       connectors: [activeConnector]
     })
@@ -268,17 +270,161 @@ describe('XpertConnectorsComponent', () => {
     workspace.set({ id: 'workspace-1' })
     component.definitions.set([connectorDefinition])
     component.connectors.set([activeConnector])
+    component.openConnectorDialog(connectorDefinition)
     fixture.detectChanges()
 
     const host = fixture.nativeElement as HTMLElement
     expect(host.textContent).toContain('Connect an external workspace service')
     expect(host.textContent).toContain('Example User')
     expect(host.textContent).toContain('XP.Xpert.ConnectorDisconnect')
+    expect(host.querySelector('[data-connector-dialog]')).not.toBeNull()
 
     const button = host.querySelector('button[data-connector-action="disconnect"]')
     expect(button?.textContent).toContain('XP.Xpert.ConnectorDisconnect')
     expect(button?.querySelector('lucide-angular')).not.toBeNull()
-    expect(host.querySelector('.rounded-xl')).not.toBeNull()
+
+    fixture.destroy()
+  })
+
+  it('filters connector cards by provider and translated metadata', async () => {
+    const secondDefinition: ConnectorStrategyDefinition = {
+      ...connectorDefinition,
+      provider: 'calendar',
+      label: 'Calendar',
+      description: 'Schedule meetings'
+    }
+    const { component, fixture } = await setup({
+      definitions: [connectorDefinition, secondDefinition],
+      connectors: []
+    })
+
+    component.definitions.set([connectorDefinition, secondDefinition])
+    component.searchQuery.set('schedule')
+    fixture.detectChanges()
+
+    const host = fixture.nativeElement as HTMLElement
+    expect(host.querySelector('[data-connector-provider="example"]')).toBeNull()
+    expect(host.querySelector('[data-connector-provider="calendar"]')).not.toBeNull()
+
+    fixture.destroy()
+  })
+
+  it('starts an OAuth connector directly from the card quick-connect action', async () => {
+    const { component, fixture } = await setup({
+      workspaceId: 'workspace-1',
+      definitions: [connectorDefinition],
+      connectors: []
+    })
+    const connectSpy = jest.spyOn(component, 'connect').mockResolvedValue()
+
+    await fixture.whenStable()
+    component.definitions.set([connectorDefinition])
+    component.connectors.set([])
+    fixture.detectChanges()
+
+    const button = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      'button[data-connector-action="quick-connect"]'
+    )
+    if (!button) {
+      throw new Error('Expected quick-connect action to be rendered')
+    }
+
+    button.click()
+    await fixture.whenStable()
+
+    expect(connectSpy).toHaveBeenCalledWith(connectorDefinition)
+    expect(component.selectedDefinition()).toBeNull()
+
+    fixture.destroy()
+  })
+
+  it('opens credential configuration from quick connect when required fields are present', async () => {
+    const { component, fixture } = await setup({
+      workspaceId: 'workspace-1',
+      definitions: [githubDefinition],
+      connectors: []
+    })
+    const connectSpy = jest.spyOn(component, 'connect').mockResolvedValue()
+
+    await fixture.whenStable()
+    component.definitions.set([githubDefinition])
+    component.connectors.set([])
+    fixture.detectChanges()
+
+    const button = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      'button[data-connector-action="quick-connect"]'
+    )
+    if (!button) {
+      throw new Error('Expected quick-connect action to be rendered')
+    }
+
+    button.click()
+    fixture.detectChanges()
+
+    expect(connectSpy).not.toHaveBeenCalled()
+    expect(component.selectedDefinition()?.provider).toBe('github')
+    expect(fixture.nativeElement.querySelector('[data-connector-dialog]')).not.toBeNull()
+
+    fixture.destroy()
+  })
+
+  it('replaces quick connect with a direct disconnect action for active connectors', async () => {
+    const { component, fixture } = await setup({
+      workspaceId: 'workspace-1',
+      definitions: [connectorDefinition],
+      connectors: [activeConnector]
+    })
+    const disconnectSpy = jest.spyOn(component, 'disconnect').mockResolvedValue()
+
+    await fixture.whenStable()
+    component.definitions.set([connectorDefinition])
+    component.connectors.set([activeConnector])
+    fixture.detectChanges()
+
+    const host = fixture.nativeElement as HTMLElement
+    const button = host.querySelector<HTMLButtonElement>('button[data-connector-action="quick-disconnect"]')
+    if (!button) {
+      throw new Error('Expected quick-disconnect action to be rendered')
+    }
+
+    expect(host.querySelector('button[data-connector-action="quick-connect"]')).toBeNull()
+    expect(button.textContent?.trim()).toBe('')
+    expect(button.getAttribute('aria-label')).toBe('XP.Xpert.ConnectorDisconnect')
+    expect(button.querySelector('lucide-angular')).not.toBeNull()
+
+    button.click()
+    await fixture.whenStable()
+
+    expect(disconnectSpy).toHaveBeenCalledWith(activeConnector)
+
+    fixture.destroy()
+  })
+
+  it('shows pending authorization as a top-right card action', async () => {
+    const { component, fixture } = await setup({
+      definitions: [connectorDefinition],
+      connectors: [pendingConnector]
+    })
+    const continueSpy = jest.spyOn(component, 'openPendingAuthorizationUrl').mockImplementation()
+
+    component.definitions.set([connectorDefinition])
+    component.connectors.set([pendingConnector])
+    component.pendingAuthorizationUrls.set({
+      [pendingConnector.id]: 'https://accounts.example.com/oauth/continue'
+    })
+    fixture.detectChanges()
+
+    const host = fixture.nativeElement as HTMLElement
+    const button = host.querySelector<HTMLButtonElement>('button[data-connector-action="continue-authorization"]')
+    if (!button) {
+      throw new Error('Expected continue-authorization action to be rendered')
+    }
+
+    expect(host.querySelector('button[data-connector-action="quick-connect"]')).toBeNull()
+    expect(button.textContent).toContain('XP.Xpert.ConnectorOpenAuthorization')
+
+    button.click()
+    expect(continueSpy).toHaveBeenCalledWith(pendingConnector)
 
     fixture.destroy()
   })
@@ -377,6 +523,7 @@ describe('XpertConnectorsComponent', () => {
 
     component.definitions.set([githubDefinition])
     component.connectors.set([])
+    component.openConnectorDialog(githubDefinition)
     fixture.detectChanges()
 
     const host = fixture.nativeElement as HTMLElement
@@ -398,6 +545,7 @@ describe('XpertConnectorsComponent', () => {
 
     component.definitions.set([githubDefinition])
     component.connectors.set([])
+    component.openConnectorDialog(githubDefinition)
     fixture.detectChanges()
 
     const form = component.formFor(githubDefinition)
@@ -448,6 +596,8 @@ describe('XpertConnectorsComponent', () => {
     })
 
     await fixture.whenStable()
+    fixture.detectChanges()
+    component.openConnectorDialog(githubDefinition)
     fixture.detectChanges()
     component.selectAuthMethod(githubDefinition, 'pat')
     fixture.detectChanges()
