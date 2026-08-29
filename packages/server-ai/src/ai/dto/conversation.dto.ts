@@ -87,6 +87,12 @@ export class ChatMessageDTO {
     conversationId?: string
 
     @Expose()
+    parentId?: string
+
+    @Expose()
+    createdInThreadId?: string
+
+    @Expose()
     role?: IChatMessage['role']
 
     @Expose()

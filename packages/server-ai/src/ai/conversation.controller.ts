@@ -35,14 +35,18 @@ import {
     TThreadGoalPatchRequest,
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
-import { ChatConversationGoalService, ChatConversationService } from '../chat-conversation'
+import {
+    ChatConversationGoalService,
+    ChatConversationService,
+    ChatConversationThreadService
+} from '../chat-conversation'
 import { ChatTaskSummaryService } from '../chat-conversation/task-summary.service'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ChatMessageFeedbackService } from '../chat-message-feedback/feedback.service'
 import { ChatConversationUpsertCommand } from '../chat-conversation/commands'
 import { ChatMessageUpsertCommand } from '../chat-message/commands'
 import { ThreadDeleteCommand } from './commands'
-import { ChatMessageDTO, ChatMessageFeedbackDTO, ConversationDTO } from './dto'
+import { ChatMessageDTO, ChatMessageFeedbackDTO, ConversationDTO, ThreadDTO } from './dto'
 import { ChatConversation, ChatMessage, ChatMessageFeedback } from '../core/entities/internal'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
@@ -92,7 +96,8 @@ export class ConversationsController {
         private readonly feedbackService: ChatMessageFeedbackService,
         private readonly commandBus: CommandBus,
         private readonly xpertService: XpertService,
-        @Optional() private readonly projectService?: XpertProjectService
+        @Optional() private readonly projectService?: XpertProjectService,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
     ) {}
 
     @Post()
@@ -251,6 +256,15 @@ export class ConversationsController {
         return this.goalService.clearGoalFromUser(conversation.id)
     }
 
+    @Get(':conversation_id/threads')
+    async listConversationThreads(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        if (!this.conversationThreadService) return []
+        await this.conversationThreadService.ensurePrimary(conversation)
+        const threads = await this.conversationThreadService.listByConversation(conversation.id)
+        return threads.map((thread) => new ThreadDTO(conversation, {}, thread))
+    }
+
     @Get(':conversation_id/task-summary')
     async getTaskSummary(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
         const conversation = await this.ensurePublicConversationAccess(conversationId)
@@ -297,17 +311,39 @@ export class ConversationsController {
     ) {
         const conversation = await this.conversationService.findOneInOrganizationOrTenant(conversationId)
         assertPublicXpertSessionConversationAccess(conversation)
+        const { threadId: requestedThreadIdValue, ...rawMessageWhere } = body.where ?? {}
         const where = {
-            ...transformWhere(body.where ?? {}),
+            ...transformWhere(rawMessageWhere),
             conversationId
         }
-        const result = await this.messageService.findAllInOrganizationOrTenant({
-            where,
-            relations: ['attachments', 'fileAssets'],
-            order: body.order ?? { createdAt: 'ASC' },
-            take: body.limit,
-            skip: body.offset
-        })
+        const requestedThreadId =
+            this.normalizeString(requestedThreadIdValue) ||
+            (this.conversationThreadService ? conversation.threadId : undefined)
+        const conversationThreadService = this.conversationThreadService
+        if (requestedThreadId && !conversationThreadService) {
+            throw new BadRequestException('Conversation thread branching is unavailable')
+        }
+        if (requestedThreadId) {
+            const thread = await conversationThreadService.requireByThreadId(requestedThreadId)
+            if (thread.conversationId !== conversationId) {
+                throw new BadRequestException('Thread does not belong to the requested conversation')
+            }
+        }
+        const result = requestedThreadId
+            ? await conversationThreadService.findVisibleMessages(requestedThreadId, {
+                  where,
+                  relations: ['attachments', 'fileAssets'],
+                  order: body.order ?? { createdAt: 'ASC' },
+                  take: body.limit,
+                  skip: body.offset
+              })
+            : await this.messageService.findAllInOrganizationOrTenant({
+                  where,
+                  relations: ['attachments', 'fileAssets'],
+                  order: body.order ?? { createdAt: 'ASC' },
+                  take: body.limit,
+                  skip: body.offset
+              })
         return {
             ...result,
             items: result.items.map((item) => new ChatMessageDTO(item))

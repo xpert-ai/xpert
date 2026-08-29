@@ -2,8 +2,13 @@ import { DOCUMENT } from '@angular/common'
 import { computed, effect, inject, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
-import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/chatkit-angular'
-import type { ChatKitMessageNavigationOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
+import {
+  ChatKitControl,
+  ChatKitEventHandlers,
+  createChatKit,
+  type CreateChatKitOptions
+} from '@xpert-ai/chatkit-angular'
+import type { ChatKitClientSecretResult, ChatKitMcpAppsOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
 import { catchError, firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -23,64 +28,26 @@ import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantChatKitEventHandlers = ChatKitEventHandlers
-type AssistantMcpAppsOptions = {
-  sandboxProxyUrl?: string
-  allowedDomains?: string[]
-}
-type AssistantChatKitOptions = ChatKitOptions & {
-  messageNavigation?: ChatKitMessageNavigationOptions
-  mcpApps?: AssistantMcpAppsOptions
-} & AssistantChatKitEventHandlers
-type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
-type AssistantHostedClientSecret =
-  | string
-  | {
-      secret: string
-      organizationId?: string
-      xpertId?: string
-      assistantId?: string
-    }
-type AssistantChatKitWorkbenchOptions = {
-  enabled?: boolean
-  onClientCommand?: (request: {
-    commandKey: string
-    payload?: unknown
-    hostType: 'agent'
-    hostId: string
-    viewKey: string
-  }) => unknown | Promise<unknown>
-}
-type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api' | 'workbench'> &
-  AssistantChatKitEventHandlers & {
-    api: {
-      apiUrl: string
-      xpertId?: string
-      /** Pins every hosted ChatKit conversation and run to one Chat Project. */
-      projectId?: string
-      getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
-    }
-    workbench?: AssistantChatKitWorkbenchOptions
-  }
+type AssistantTheme = NonNullable<ChatKitOptions['theme']>
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
   requestContext?: Signal<Record<string, unknown> | null>
-  displayMode?: AssistantHostedChatKitOptions['displayMode']
-  history?: AssistantHostedChatKitOptions['history']
+  displayMode?: CreateChatKitOptions['displayMode']
+  history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
-  layout?: AssistantHostedChatKitOptions['layout']
-  pet?: AssistantHostedChatKitOptions['pet']
+  layout?: CreateChatKitOptions['layout']
+  pet?: CreateChatKitOptions['pet']
   titleKey: string
   titleDefault: string
-  onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
-  onEffect?: NonNullable<AssistantChatKitEventHandlers['onEffect']>
-  onLog?: NonNullable<AssistantChatKitEventHandlers['onLog']>
-  onResponseStart?: NonNullable<AssistantChatKitEventHandlers['onResponseStart']>
-  onResponseEnd?: NonNullable<AssistantChatKitEventHandlers['onResponseEnd']>
-  onThreadChange?: NonNullable<AssistantChatKitEventHandlers['onThreadChange']>
-  onThreadLoadStart?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadStart']>
-  onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
+  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
+  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 type AssistantBindingRuntimeInput = {
@@ -93,27 +60,27 @@ type AssistantHostedRuntimeInput = {
   /** Reactive Project scope; changing it recreates the hosted ChatKit binding. */
   projectId?: Signal<string | null>
   frameUrl: Signal<string | null>
-  getClientSecret?: AssistantHostedChatKitOptions['api']['getClientSecret']
+  getClientSecret?: (currentClientSecret: string | null) => Promise<ChatKitClientSecretResult>
   requestContext?: Signal<Record<string, unknown> | null>
-  displayMode?: AssistantHostedChatKitOptions['displayMode']
-  history?: AssistantHostedChatKitOptions['history']
+  displayMode?: CreateChatKitOptions['displayMode']
+  history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
-  layout?: AssistantHostedChatKitOptions['layout']
-  pet?: AssistantHostedChatKitOptions['pet']
-  taskSummary?: AssistantHostedChatKitOptions['taskSummary']
-  workbench?: AssistantHostedChatKitOptions['workbench']
-  startScreen?: Signal<AssistantHostedChatKitOptions['startScreen'] | null>
+  layout?: CreateChatKitOptions['layout']
+  pet?: CreateChatKitOptions['pet']
+  taskSummary?: CreateChatKitOptions['taskSummary']
+  workbench?: CreateChatKitOptions['workbench']
+  startScreen?: Signal<CreateChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
   titleKey: string
   titleDefault: string
-  onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
-  onEffect?: NonNullable<AssistantChatKitEventHandlers['onEffect']>
-  onLog?: NonNullable<AssistantChatKitEventHandlers['onLog']>
-  onResponseStart?: NonNullable<AssistantChatKitEventHandlers['onResponseStart']>
-  onResponseEnd?: NonNullable<AssistantChatKitEventHandlers['onResponseEnd']>
-  onThreadChange?: NonNullable<AssistantChatKitEventHandlers['onThreadChange']>
-  onThreadLoadStart?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadStart']>
-  onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
+  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
+  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
@@ -407,15 +374,15 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       onError: (event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
       }
-    } satisfies AssistantHostedChatKitOptions
+    } satisfies CreateChatKitOptions
 
     if (!currentControl || currentRuntimeKey !== key) {
-      control.set(createChatKit(options as AssistantChatKitOptions))
+      control.set(createChatKit(options))
       activeRuntimeKey.set(key)
       return
     }
 
-    currentControl.setOptions(options as AssistantChatKitOptions)
+    currentControl.setOptions(options)
   })
 
   return control
@@ -437,7 +404,7 @@ export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
 export function resolveAssistantMcpAppsOptions(
   sandboxProxyUrl?: string | null,
   allowedDomains?: string | null
-): AssistantMcpAppsOptions | null {
+): ChatKitMcpAppsOptions | null {
   const normalizedUrl = sandboxProxyUrl?.trim()
   if (!normalizedUrl || normalizedUrl.startsWith('DOCKER_')) {
     return null
@@ -557,7 +524,7 @@ function buildAssistantApiUrl(baseUrl?: string | null) {
   return `${resolveAbsoluteApiBaseUrl(baseUrl)}/api/ai`
 }
 
-function buildAssistantClientSecret(secret: string, organizationId?: string | null): AssistantHostedClientSecret {
+function buildAssistantClientSecret(secret: string, organizationId?: string | null): ChatKitClientSecretResult {
   if (!organizationId) {
     return secret
   }

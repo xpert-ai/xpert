@@ -15,6 +15,7 @@ import {
     IThreadGoal,
     STATE_VARIABLE_HUMAN,
     TAgentMiddlewareMeta,
+    ThreadGoalModelStatus,
     ThreadGoalStatus,
     createThreadGoalUpdatedEvent,
     isRunnableThreadGoalStatus
@@ -538,7 +539,34 @@ export function buildConversationGoalAgentMiddleware(
 ): AgentMiddleware {
     const config = interopParse(configSchema, options)
     const conversationId = context.conversationId?.trim()
+    const threadId = context.threadId?.trim()
     const middlewareName = presentation.middlewareName
+    const requireConversationId = () => {
+        if (!conversationId) throw new Error('Conversation id is required for goal middleware')
+        return conversationId
+    }
+    const getGoal = () => {
+        const id = requireConversationId()
+        return threadId ? goalService.getByConversationId(id, threadId) : goalService.getByConversationId(id)
+    }
+    const addGoalUsage = (delta: { totalTokens?: number; elapsedSeconds?: number }) => {
+        const id = requireConversationId()
+        return threadId ? goalService.addUsage(id, delta, threadId) : goalService.addUsage(id, delta)
+    }
+    const updateGoalStatus = (status: ThreadGoalModelStatus) => {
+        const id = requireConversationId()
+        return threadId
+            ? goalService.updateGoalFromModel(id, status, threadId)
+            : goalService.updateGoalFromModel(id, status)
+    }
+    const markGoalBudgetLimited = () => {
+        const id = requireConversationId()
+        return threadId ? goalService.markBudgetLimited(id, threadId) : goalService.markBudgetLimited(id)
+    }
+    const incrementGoalContinuation = () => {
+        const id = requireConversationId()
+        return threadId ? goalService.incrementContinuation(id, threadId) : goalService.incrementContinuation(id)
+    }
 
     return {
         name: middlewareName,
@@ -549,7 +577,7 @@ export function buildConversationGoalAgentMiddleware(
                     if (!conversationId) {
                         return null
                     }
-                    return goalService.getByConversationId(conversationId)
+                    return getGoal()
                 },
                 {
                     name: 'get_goal',
@@ -563,7 +591,7 @@ export function buildConversationGoalAgentMiddleware(
                 if (!conversationId) {
                     return undefined
                 }
-                const goal = await goalService.getByConversationId(conversationId)
+                const goal = await getGoal()
                 if (!goal) {
                     return {
                         threadGoalContinuationCount: 0,
@@ -592,7 +620,7 @@ export function buildConversationGoalAgentMiddleware(
                 return handler(request)
             }
 
-            const goal = await goalService.getByConversationId(conversationId)
+            const goal = await getGoal()
             if (!goal || !isRunnableThreadGoalStatus(goal.status)) {
                 return handler(request)
             }
@@ -610,7 +638,7 @@ export function buildConversationGoalAgentMiddleware(
                     return undefined
                 }
 
-                const goal = await goalService.getByConversationId(conversationId)
+                const goal = await getGoal()
                 if (!goal || !isRunnableThreadGoalStatus(goal.status)) {
                     return goal
                         ? {
@@ -634,7 +662,7 @@ export function buildConversationGoalAgentMiddleware(
                 const elapsedSeconds = turnStartedAt ? Math.max(0, Math.ceil((Date.now() - turnStartedAt) / 1000)) : 0
                 const usageGoal =
                     tokenUsage || elapsedSeconds
-                        ? await goalService.addUsage(conversationId, {
+                        ? await addGoalUsage({
                               totalTokens: tokenUsage?.totalTokens,
                               elapsedSeconds
                           })
@@ -657,7 +685,7 @@ export function buildConversationGoalAgentMiddleware(
                                 jumpTo: 'model'
                             }
                         }
-                        const blockedGoal = await goalService.updateGoalFromModel(conversationId, 'blocked')
+                        const blockedGoal = await updateGoalStatus('blocked')
                         await dispatchGoalUpdated(blockedGoal)
                         return {
                             threadGoalStatus: 'blocked'
@@ -665,7 +693,7 @@ export function buildConversationGoalAgentMiddleware(
                     }
 
                     if (verification.outcome === 'passed') {
-                        const completeGoal = await goalService.updateGoalFromModel(conversationId, 'complete')
+                        const completeGoal = await updateGoalStatus('complete')
                         await dispatchGoalUpdated(completeGoal)
                         return {
                             threadGoalStatus: 'complete'
@@ -673,7 +701,7 @@ export function buildConversationGoalAgentMiddleware(
                     }
 
                     if (verification.outcome === 'blocked' || !verification.nextAction) {
-                        const blockedGoal = await goalService.updateGoalFromModel(conversationId, 'blocked')
+                        const blockedGoal = await updateGoalStatus('blocked')
                         await dispatchGoalUpdated(blockedGoal)
                         return {
                             threadGoalStatus: 'blocked'
@@ -682,7 +710,7 @@ export function buildConversationGoalAgentMiddleware(
 
                     const continuationCount = readFiniteNumber(state, 'threadGoalContinuationCount') ?? 0
                     if (continuationCount >= config.maxIterations) {
-                        const budgetGoal = await goalService.markBudgetLimited(conversationId)
+                        const budgetGoal = await markGoalBudgetLimited()
                         await dispatchGoalUpdated(budgetGoal)
                         return {
                             threadGoalContinuationCount: continuationCount,
@@ -690,7 +718,7 @@ export function buildConversationGoalAgentMiddleware(
                         }
                     }
 
-                    await goalService.incrementContinuation(conversationId)
+                    await incrementGoalContinuation()
                     return {
                         messages: [createActMessage(verification.nextAction)],
                         threadGoalContinuationCount: continuationCount + 1,

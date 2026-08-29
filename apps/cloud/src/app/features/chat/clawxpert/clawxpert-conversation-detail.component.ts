@@ -787,6 +787,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     taskSummary: {
       enabled: true
     },
+    workbench: {
+      sideChat: {
+        enabled: true
+      }
+    },
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {

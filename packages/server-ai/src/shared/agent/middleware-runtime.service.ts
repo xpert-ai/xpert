@@ -1202,6 +1202,7 @@ export class AgentMiddlewareRuntimeService {
             xpert_id: normalizeOptionalString(scope.xpertId),
             xpert_name: normalizeOptionalString(scope.xpertName),
             conversation_id: normalizeOptionalString(scope.conversationId),
+            thread_id: normalizeOptionalString(scope.threadId),
             agent_key: normalizeOptionalString(scope.agentKey),
             execution_id: normalizeOptionalString(scope.executionId)
         })

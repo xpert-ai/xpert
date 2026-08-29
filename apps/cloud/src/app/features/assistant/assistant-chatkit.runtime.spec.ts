@@ -148,7 +148,10 @@ describe('assistant chatkit runtime helpers', () => {
       maxWidth: '960px'
     }
     const workbench = {
-      enabled: true
+      enabled: true,
+      sideChat: {
+        enabled: true
+      }
     }
     const projectId = signal('project-1')
 

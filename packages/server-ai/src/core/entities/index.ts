@@ -1,5 +1,6 @@
 import {
     ChatConversation,
+    ChatConversationThread,
     ChatConversationGoal,
     ChatMessage,
     ChatMessageFeedback,
@@ -81,6 +82,7 @@ import {
 
 export const ALL_AI_ENTITIES = [
     ChatConversation,
+    ChatConversationThread,
     ChatConversationGoal,
     ChatMessage,
     ChatMessageFeedback,

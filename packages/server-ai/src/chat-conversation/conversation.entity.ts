@@ -16,6 +16,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { ChatMessage, Xpert, XpertProject, XpertTask } from '../core/entities/internal'
+import type { ChatConversationThread } from './conversation-thread.entity'
 
 @Entity('chat_conversation')
 @Index(['tenantId', 'organizationId', 'id'])
@@ -99,6 +100,13 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
         cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
     })
     messages?: IChatMessage[] | null
+
+    @ApiPropertyOptional({ type: () => Object, isArray: true })
+    @IsOptional()
+    @OneToMany('ChatConversationThread', 'conversation', {
+        cascade: ['insert', 'update']
+    })
+    threads?: ChatConversationThread[]
 
     /*
     |--------------------------------------------------------------------------

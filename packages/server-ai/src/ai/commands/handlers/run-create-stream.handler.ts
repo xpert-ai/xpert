@@ -9,8 +9,10 @@ import { BadRequestException, Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
+import { Observable } from 'rxjs'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
+import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
@@ -336,7 +338,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly environmentService: EnvironmentService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertPrincipalService?: XpertPrincipalService,
-        @Optional() private readonly projectService?: XpertProjectService
+        @Optional() private readonly projectService?: XpertProjectService,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
     ) {}
 
     private async resolveRequestEnvironment(
@@ -359,8 +362,13 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const threadId = command.threadId
         const runCreate = command.runCreate
 
-        // Find thread (conversation) and assistant (xpert)
-        let conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+        // Resolve the runtime thread independently from its owning conversation.
+        const conversationThread = this.conversationThreadService
+            ? await this.conversationThreadService.requireByThreadId(threadId)
+            : null
+        let conversation =
+            conversationThread?.conversation ??
+            (await this.queryBus.execute(new GetChatConversationQuery({ threadId })))
         assertPublicXpertSessionConversationAccess(conversation)
         const xpert = await resolveAssistantForRequest(
             runCreate.assistant_id,
@@ -368,7 +376,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             this.xpertPrincipalService
         )
         applyAssistantScope(xpert)
-        const chatRequest = validateRunCreateInput(runCreate.input, conversation)
+        const chatRequest = validateRunCreateInput(runCreate.input, {
+            ...conversation,
+            status: conversationThread?.status ?? conversation.status
+        })
         const runtimeContext = getRunCreateContext(runCreate.context)
         if (chatRequest.action === 'send' && !chatRequest.projectId) {
             chatRequest.projectId = getContextProjectId(runtimeContext)
@@ -405,51 +416,67 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
         }
 
-        let execution =
-            chatRequest.action === 'follow_up' && chatRequest.target?.executionId
-                ? await this.queryBus.execute(new XpertAgentExecutionOneQuery(chatRequest.target.executionId))
-                : null
+        const ownsRunClaim = chatRequest.action !== 'follow_up'
+        if (ownsRunClaim && this.conversationThreadService) {
+            await this.conversationThreadService.claimForRun(threadId)
+        }
 
-        if (!execution) {
-            execution = await this.commandBus.execute(
-                new XpertAgentExecutionUpsertCommand(
-                    omitBy(
-                        {
-                            id:
-                                chatRequest.action === 'resume'
-                                    ? chatRequest.target.executionId
-                                    : chatRequest.action === 'follow_up'
-                                      ? chatRequest.target?.executionId
-                                      : undefined,
-                            threadId: conversation.threadId,
-                            status: XpertAgentExecutionStatusEnum.RUNNING
-                        },
-                        isNil
+        let execution
+        let stream: Observable<MessageEvent>
+        try {
+            execution =
+                chatRequest.action === 'follow_up' && chatRequest.target?.executionId
+                    ? await this.queryBus.execute(new XpertAgentExecutionOneQuery(chatRequest.target.executionId))
+                    : null
+
+            if (!execution) {
+                execution = await this.commandBus.execute(
+                    new XpertAgentExecutionUpsertCommand(
+                        omitBy(
+                            {
+                                id:
+                                    chatRequest.action === 'resume'
+                                        ? chatRequest.target.executionId
+                                        : chatRequest.action === 'follow_up'
+                                          ? chatRequest.target?.executionId
+                                          : undefined,
+                                threadId,
+                                status: XpertAgentExecutionStatusEnum.RUNNING
+                            },
+                            isNil
+                        )
                     )
                 )
-            )
-        }
+            }
 
-        if (!execution?.id) {
-            throw new BadRequestException('Execution ID could not be resolved')
-        }
+            if (!execution?.id) {
+                throw new BadRequestException('Execution ID could not be resolved')
+            }
 
-        const stream = await this.commandBus.execute(
-            new XpertChatCommand(chatRequest, {
-                xpertId: xpert.id,
-                ...chatSource,
-                execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
-                ...(runtimeContext ? { context: runtimeContext } : {}),
-                environment,
-                sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
-                projectId: conversation.projectId,
-                streamPersistence: {
-                    transport: 'redis-stream',
+            stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
+                new XpertChatCommand(chatRequest, {
+                    xpertId: xpert.id,
                     threadId,
-                    runId: execution.id
-                }
-            })
-        )
+                    isDerivedThread: conversation.threadId !== threadId,
+                    ...chatSource,
+                    execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
+                    ...(runtimeContext ? { context: runtimeContext } : {}),
+                    environment,
+                    sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
+                    projectId: conversation.projectId,
+                    streamPersistence: {
+                        transport: 'redis-stream',
+                        threadId,
+                        runId: execution.id
+                    }
+                })
+            )
+        } catch (error) {
+            if (ownsRunClaim && this.conversationThreadService) {
+                await this.conversationThreadService.updateRuntimeState(threadId, 'idle')
+            }
+            throw error
+        }
         const normalizedStream = stream.pipe(map((message) => normalizeRunStreamMessage(message)))
 
         if (chatRequest.action === 'follow_up') {

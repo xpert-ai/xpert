@@ -39,29 +39,40 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         super(repository)
     }
 
-    async getByConversationId(conversationId: string): Promise<ChatConversationGoal | null> {
+    async getByConversationId(conversationId: string, threadId?: string): Promise<ChatConversationGoal | null> {
         const normalizedConversationId = this.normalizeId(conversationId, 'conversationId')
+        const conversation =
+            typeof threadId === 'string' && threadId.trim()
+                ? null
+                : await this.conversationService.findOneInOrganizationOrTenant(normalizedConversationId)
+        const resolvedThreadId = threadId?.trim() || conversation?.threadId?.trim()
         const result = await this.findAllInOrganizationOrTenant({
             where: {
-                conversationId: normalizedConversationId
+                conversationId: normalizedConversationId,
+                ...(resolvedThreadId ? { threadId: resolvedThreadId } : {})
             },
             take: 1
         })
         return result.items[0] ?? null
     }
 
-    async setGoalFromUser(conversationId: string, request: TThreadGoalSetRequest): Promise<ChatConversationGoal> {
+    async setGoalFromUser(
+        conversationId: string,
+        request: TThreadGoalSetRequest,
+        threadId?: string
+    ): Promise<ChatConversationGoal> {
         const conversation = await this.conversationService.findOneInOrganizationOrTenant(
             this.normalizeId(conversationId, 'conversationId')
         )
+        const resolvedThreadId = threadId?.trim() || conversation.threadId
         const objective = this.normalizeObjective(request.objective)
         const goalSpec = this.buildGoalSpec(objective)
-        const existing = await this.getByConversationId(conversation.id)
+        const existing = await this.getByConversationId(conversation.id, resolvedThreadId)
         const now = new Date()
         const entity: DeepPartial<ChatConversationGoal> = {
             ...(existing ? { id: existing.id } : {}),
             conversationId: conversation.id,
-            threadId: conversation.threadId,
+            threadId: resolvedThreadId,
             objective,
             goalSpec,
             status: 'active',
@@ -76,8 +87,12 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         return this.save(entity)
     }
 
-    async patchGoalFromUser(conversationId: string, request: TThreadGoalPatchRequest): Promise<ChatConversationGoal> {
-        const goal = await this.requireGoal(conversationId)
+    async patchGoalFromUser(
+        conversationId: string,
+        request: TThreadGoalPatchRequest,
+        threadId?: string
+    ): Promise<ChatConversationGoal> {
+        const goal = await this.requireGoal(conversationId, threadId)
         const now = new Date()
         const status = request.status ? this.normalizeUserStatus(request.status) : goal.status
         const objective = request.objective === undefined ? goal.objective : this.normalizeObjective(request.objective)
@@ -115,8 +130,8 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         }
     }
 
-    async clearGoalFromUser(conversationId: string): Promise<ChatConversationGoal | null> {
-        const goal = await this.getByConversationId(conversationId)
+    async clearGoalFromUser(conversationId: string, threadId?: string): Promise<ChatConversationGoal | null> {
+        const goal = await this.getByConversationId(conversationId, threadId)
         if (!goal?.id) {
             return null
         }
@@ -125,9 +140,13 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         return goal
     }
 
-    async updateGoalFromModel(conversationId: string, status: ThreadGoalModelStatus): Promise<IThreadGoal> {
+    async updateGoalFromModel(
+        conversationId: string,
+        status: ThreadGoalModelStatus,
+        threadId?: string
+    ): Promise<IThreadGoal> {
         const normalizedStatus = this.normalizeModelStatus(status)
-        const goal = await this.requireGoal(conversationId)
+        const goal = await this.requireGoal(conversationId, threadId)
         const now = new Date()
         const completedAt = normalizedStatus === 'complete' ? now : (goal.completedAt ?? null)
         const blockedAt = normalizedStatus === 'blocked' ? now : (goal.blockedAt ?? null)
@@ -148,8 +167,12 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         }
     }
 
-    async addUsage(conversationId: string, delta: GoalUsageDelta): Promise<ChatConversationGoal | null> {
-        const goal = await this.getByConversationId(conversationId)
+    async addUsage(
+        conversationId: string,
+        delta: GoalUsageDelta,
+        threadId?: string
+    ): Promise<ChatConversationGoal | null> {
+        const goal = await this.getByConversationId(conversationId, threadId)
         if (!goal) {
             return null
         }
@@ -175,8 +198,8 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         }
     }
 
-    async incrementContinuation(conversationId: string): Promise<ChatConversationGoal | null> {
-        const goal = await this.getByConversationId(conversationId)
+    async incrementContinuation(conversationId: string, threadId?: string): Promise<ChatConversationGoal | null> {
+        const goal = await this.getByConversationId(conversationId, threadId)
         if (!goal) {
             return null
         }
@@ -193,8 +216,8 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         }
     }
 
-    async markBudgetLimited(conversationId: string): Promise<ChatConversationGoal | null> {
-        const goal = await this.getByConversationId(conversationId)
+    async markBudgetLimited(conversationId: string, threadId?: string): Promise<ChatConversationGoal | null> {
+        const goal = await this.getByConversationId(conversationId, threadId)
         if (!goal) {
             return null
         }
@@ -213,8 +236,8 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         }
     }
 
-    private async requireGoal(conversationId: string): Promise<ChatConversationGoal> {
-        const goal = await this.getByConversationId(conversationId)
+    private async requireGoal(conversationId: string, threadId?: string): Promise<ChatConversationGoal> {
+        const goal = await this.getByConversationId(conversationId, threadId)
         if (!goal) {
             throw new NotFoundException(`Goal for conversation "${conversationId}" not found`)
         }
