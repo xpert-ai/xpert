@@ -1,4 +1,4 @@
-@layer ng-icon, theme, base, components, utilities;
+@layer ng-icon, theme, base, vendor, components, utilities;
 
 @import 'tailwindcss';
 @plugin "tailwindcss-animate";

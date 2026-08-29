@@ -85,7 +85,12 @@
           "apps/cloud/src/styles.scss",
           "node_modules/prosemirror-view/style/prosemirror.css",
           "node_modules/@eigenpal/docx-editor-core/dist/prosemirror/editor.css",
-          "node_modules/@ctrl/ngx-emoji-mart/picker.css"
+          "node_modules/@ctrl/ngx-emoji-mart/picker.css",
+          {
+            "input": "node_modules/@univerjs/preset-sheets-core/lib/index.css",
+            "bundleName": "univer",
+            "inject": false
+          }
         ],
         "stylePreprocessorOptions": {
           "includePaths": ["node_modules/", "."]
