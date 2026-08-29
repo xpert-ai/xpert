@@ -16,6 +16,8 @@ import { getToolCallId, withToolMessage } from './tool-message.utils'
 import { assertSandboxFeatureEnabled } from './xpert-feature-gate'
 
 const SANDBOX_FILE_MIDDLEWARE_NAME = 'SandboxFile'
+const WORKSPACE_RELATIVE_PATH_REQUIREMENT =
+    'Use a workspace-relative path under the sandbox working directory (for example, outline.yaml). Never pass /workspace/... or a host absolute path.'
 
 const indentationSchema = z
     .object({
@@ -37,7 +39,7 @@ const indentationSchema = z
     .optional()
 
 const readToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file'),
+    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     offset: z.number().optional().describe('The 1-indexed line number to start reading from (defaults to 1)'),
     limit: z.number().optional().describe('Maximum number of lines to return (defaults to 2000)'),
     mode: z
@@ -56,7 +58,7 @@ const globToolSchema = z.object({
         .string()
         .optional()
         .describe(
-            'Subdirectory to search in (relative to workspace root). Defaults to "." (current directory) if not specified. Always provide this parameter for best results.'
+            `${WORKSPACE_RELATIVE_PATH_REQUIREMENT} Defaults to the current directory if not specified. Always provide this parameter for best results.`
         )
 })
 
@@ -66,20 +68,20 @@ const grepToolSchema = z.object({
         .string()
         .optional()
         .describe(
-            'Subdirectory to search in (relative to workspace root). Defaults to "." (current directory) if not specified. Always provide this parameter for best results.'
+            `${WORKSPACE_RELATIVE_PATH_REQUIREMENT} Defaults to the current directory if not specified. Always provide this parameter for best results.`
         ),
     include: z.string().optional().describe('File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")')
 })
 
 const editToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to edit'),
+    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     old_string: z.string().describe('Exact text to replace (must match file content)'),
     new_string: z.string().describe('Replacement text'),
     replace_all: z.boolean().optional().describe('Replace all occurrences (default false)')
 })
 
 const multiEditToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to edit'),
+    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     edits: z
         .array(
             z.object({
@@ -96,7 +98,7 @@ const multiEditToolSchema = z.object({
 })
 
 const writeToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to create'),
+    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     content: z
         .any()
         .describe(
@@ -105,7 +107,7 @@ const writeToolSchema = z.object({
 })
 
 const appendToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe('Absolute path to the file to append to'),
+    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     content: z
         .any()
         .describe(
@@ -114,7 +116,7 @@ const appendToolSchema = z.object({
 })
 
 const listDirToolSchema = z.object({
-    dir_path: z.string().min(1, 'Directory path is required.').describe('Absolute path to the directory'),
+    dir_path: z.string().min(1, 'Directory path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     offset: z.number().optional().describe('1-indexed entry number to start from (defaults to 1)'),
     limit: z.number().optional().describe('Maximum number of entries to return (defaults to 25)'),
     depth: z.number().optional().describe('Maximum depth to traverse (defaults to 2)')
@@ -140,6 +142,10 @@ function resolveSandboxPath(config: any, fileOrDirPath?: string): string {
     if (!fileOrDirPath) {
         return workingDirectory
     }
+    // Agent contract: callers must provide workspace-relative paths. The
+    // middleware intentionally does not translate portable or host-absolute
+    // paths; keeping this boundary explicit prevents provider-specific path
+    // assumptions from leaking into the SandboxFile API.
     return isAbsolute(fileOrDirPath) ? fileOrDirPath : resolve(workingDirectory, fileOrDirPath)
 }
 
