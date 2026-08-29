@@ -41,15 +41,10 @@ type AssistantHostedClientSecret =
       xpertId?: string
       assistantId?: string
     }
-type AssistantChatKitWorkbenchOptions = {
-  enabled?: boolean
-  onClientCommand?: (request: {
-    commandKey: string
-    payload?: unknown
-    hostType: 'agent'
-    hostId: string
-    viewKey: string
-  }) => unknown | Promise<unknown>
+type AssistantChatKitWorkbenchOptions = NonNullable<AssistantChatKitOptions['workbench']> & {
+  sideChat?: {
+    enabled?: boolean
+  }
 }
 type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api' | 'workbench'> &
   AssistantChatKitEventHandlers & {

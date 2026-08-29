@@ -340,6 +340,11 @@ type MockChatKitRuntimeInput = {
   taskSummary?: {
     enabled?: boolean
   }
+  workbench?: {
+    sideChat?: {
+      enabled?: boolean
+    }
+  }
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
@@ -631,6 +636,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
+    expect(getRuntimeInput().workbench).toEqual({
+      sideChat: {
+        enabled: true
+      }
+    })
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
