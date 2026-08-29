@@ -5,7 +5,7 @@
     [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PreviewPanes' | translate"
   >
     <button type="button" [class.active]="mobilePane() === 'source'" (click)="setMobilePane('source')">
-      <i class="ri-file-pdf-2-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Source' | translate }}
+      <i [class]="sourceFileIcon()"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Source' | translate }}
     </button>
     <button type="button" [class.active]="mobilePane() === 'result'" (click)="setMobilePane('result')">
       <i class="ri-file-list-3-line"></i> {{ 'XP.Knowledgebase.AnalysisPreview.Result' | translate }}
@@ -18,7 +18,7 @@
   >
     <div class="pane-toolbar">
       <div class="flex min-w-0 items-center gap-2">
-        <i class="ri-file-pdf-2-line text-text-tertiary"></i>
+        <i [class]="sourceFileIcon()"></i>
         <span class="truncate text-sm font-medium text-text-primary">{{ fileName() }}</span>
       </div>
       <div class="flex items-center gap-1">
@@ -31,15 +31,19 @@
         >
           <i class="ri-arrow-left-s-line"></i>
         </button>
-        <label class="page-field">
+        <div class="page-field">
           <input
             #pageInput
             [ngModel]="page()"
             (keydown.enter)="goToPage(pageInput.value)"
+            (blur)="goToPage(pageInput.value)"
+            inputmode="numeric"
+            autocomplete="off"
             [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PageNumber' | translate"
           />
-          <span>/ {{ preview().pageCount }}</span>
-        </label>
+          <span class="page-field-separator" aria-hidden="true">/</span>
+          <span class="page-field-total">{{ preview().pageCount }}</span>
+        </div>
         <button
           type="button"
           class="toolbar-button"
@@ -94,94 +98,114 @@
     </div>
 
     <div #viewerHost class="pdf-viewer" (scroll)="onPaneScroll('source', $event)">
-      @if (pdfLoading() && !pdfError()) {
-        <div class="viewer-state"><xp-spin /></div>
-      }
-      @if (pdfError()) {
-        <div class="viewer-state text-text-destructive">
-          <i class="ri-error-warning-line text-xl"></i>
-          <span>{{ pdfError() }}</span>
-        </div>
-      } @else if (!isPdf()) {
-        <div class="viewer-state text-text-tertiary">
-          {{ 'XP.Knowledgebase.AnalysisPreview.PdfOnly' | translate }}
-        </div>
-      } @else {
-        <div class="pdf-document-flow">
-          @for (pageNumber of preview().pages; track pageNumber) {
-            @let pageSize = canvasSizeFor(pageNumber);
-            <section
-              class="pdf-page-slot"
-              [class.current-page]="page() === pageNumber"
-              [attr.data-analysis-page]="pageNumber"
-              [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PdfPageAria' | translate: { page: pageNumber }"
-            >
-              <span class="page-number-badge">
-                {{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}
-              </span>
-              <div class="pdf-page" [style.width.px]="pageSize.width" [style.height.px]="pageSize.height">
-                @if (isPageInRenderWindow(pageNumber) && pageDataFor(pageNumber); as analysisPage) {
-                  <canvas [attr.data-pdf-page]="pageNumber"></canvas>
-                  @if (isOverlayCompatible(pageNumber)) {
-                    <svg
-                      class="layout-overlay"
-                      [attr.viewBox]="'0 0 ' + analysisPage.width + ' ' + analysisPage.height"
-                      preserveAspectRatio="none"
-                      [attr.aria-label]="
-                        'XP.Knowledgebase.AnalysisPreview.OcrLayoutBounds' | translate: { page: pageNumber }
-                      "
-                    >
-                      @for (block of visibleBlocksForPage(pageNumber); track block.id) {
-                        @if (block.polygon?.length) {
-                          <polygon
-                            tabindex="0"
-                            role="button"
-                            [attr.points]="polygonPoints(block)"
-                            [attr.data-type]="block.type"
-                            [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
-                            [attr.aria-label]="blockAriaLabel(block)"
-                            (click)="selectBlock(block, pageNumber)"
-                            (keydown.enter)="selectBlock(block, pageNumber)"
-                          />
-                        } @else if (block.bounds; as bounds) {
-                          <rect
-                            tabindex="0"
-                            role="button"
-                            [attr.x]="bounds.x"
-                            [attr.y]="bounds.y"
-                            [attr.width]="bounds.width"
-                            [attr.height]="bounds.height"
-                            [attr.data-type]="block.type"
-                            [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
-                            [attr.aria-label]="blockAriaLabel(block)"
-                            (click)="selectBlock(block, pageNumber)"
-                            (keydown.enter)="selectBlock(block, pageNumber)"
-                          />
+      @if (isPdf()) {
+        @if (pdfLoading() && !pdfError()) {
+          <div class="viewer-state"><xp-spin /></div>
+        }
+        @if (pdfError()) {
+          <div class="viewer-state text-text-destructive">
+            <i class="ri-error-warning-line text-xl"></i>
+            <span>{{ pdfError() }}</span>
+          </div>
+        } @else {
+          <div class="pdf-document-flow">
+            @for (pageNumber of preview().pages; track pageNumber) {
+              @let pageSize = canvasSizeFor(pageNumber);
+              <section
+                class="pdf-page-slot"
+                [class.current-page]="page() === pageNumber"
+                [attr.data-analysis-page]="pageNumber"
+                [attr.aria-label]="'XP.Knowledgebase.AnalysisPreview.PdfPageAria' | translate: { page: pageNumber }"
+              >
+                <span class="page-number-badge">
+                  {{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}
+                </span>
+                <div class="pdf-page" [style.width.px]="pageSize.width" [style.height.px]="pageSize.height">
+                  @if (isPageInRenderWindow(pageNumber) && pageDataFor(pageNumber); as analysisPage) {
+                    <canvas [attr.data-pdf-page]="pageNumber"></canvas>
+                    @if (isOverlayCompatible(pageNumber)) {
+                      <svg
+                        class="layout-overlay"
+                        [attr.viewBox]="'0 0 ' + analysisPage.width + ' ' + analysisPage.height"
+                        preserveAspectRatio="none"
+                        [attr.aria-label]="
+                          'XP.Knowledgebase.AnalysisPreview.OcrLayoutBounds' | translate: { page: pageNumber }
+                        "
+                      >
+                        @for (block of visibleBlocksForPage(pageNumber); track block.id) {
+                          @if (block.polygon?.length) {
+                            <polygon
+                              tabindex="0"
+                              role="button"
+                              [attr.points]="polygonPoints(block)"
+                              [attr.data-type]="block.type"
+                              [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
+                              [attr.aria-label]="blockAriaLabel(block)"
+                              (click)="selectBlock(block, pageNumber)"
+                              (keydown.enter)="selectBlock(block, pageNumber)"
+                            />
+                          } @else if (block.bounds; as bounds) {
+                            <rect
+                              tabindex="0"
+                              role="button"
+                              [attr.x]="bounds.x"
+                              [attr.y]="bounds.y"
+                              [attr.width]="bounds.width"
+                              [attr.height]="bounds.height"
+                              [attr.data-type]="block.type"
+                              [class.active]="selectedBlockId() === block.id && selectedBlockPage() === pageNumber"
+                              [attr.aria-label]="blockAriaLabel(block)"
+                              (click)="selectBlock(block, pageNumber)"
+                              (keydown.enter)="selectBlock(block, pageNumber)"
+                            />
+                          }
                         }
-                      }
-                    </svg>
+                      </svg>
+                    } @else {
+                      <div class="overlay-warning">
+                        {{ 'XP.Knowledgebase.AnalysisPreview.OverlayMismatch' | translate }}
+                      </div>
+                    }
                   } @else {
-                    <div class="overlay-warning">
-                      {{ 'XP.Knowledgebase.AnalysisPreview.OverlayMismatch' | translate }}
+                    <div class="page-placeholder">
+                      @if (isPageLoading(pageNumber) || isPageRendering(pageNumber)) {
+                        <xp-spin />
+                      } @else if (pageErrorFor(pageNumber) || pdfPageErrorFor(pageNumber); as error) {
+                        <i class="ri-error-warning-line"></i>
+                        <span>{{ error }}</span>
+                      } @else {
+                        <span>
+                          {{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}
+                        </span>
+                      }
                     </div>
                   }
-                } @else {
-                  <div class="page-placeholder">
-                    @if (isPageLoading(pageNumber) || isPageRendering(pageNumber)) {
-                      <xp-spin />
-                    } @else if (pageErrorFor(pageNumber) || pdfPageErrorFor(pageNumber); as error) {
-                      <i class="ri-error-warning-line"></i>
-                      <span>{{ error }}</span>
-                    } @else {
-                      <span>
-                        {{ 'XP.Knowledgebase.AnalysisPreview.PageLabel' | translate: { page: pageNumber } }}
-                      </span>
-                    }
-                  </div>
-                }
-              </div>
-            </section>
-          }
+                </div>
+              </section>
+            }
+          </div>
+        }
+      } @else if (isDocx()) {
+        @if (docxLoading()) {
+          <div class="viewer-state"><xp-spin /></div>
+        } @else if (docxError()) {
+          <div class="viewer-state text-text-destructive">
+            <i class="ri-error-warning-line text-xl"></i>
+            <span>{{ docxError() }}</span>
+          </div>
+        } @else if (docxBlob(); as documentBlob) {
+          <xp-file-docx-preview
+            class="docx-document-flow"
+            [documentBlob]="documentBlob"
+            [fileName]="fileName()"
+            [loadingLabel]="'XP.Knowledgebase.AnalysisPreview.DocxRendering' | translate"
+            [errorLabel]="'XP.Knowledgebase.AnalysisPreview.DocxRenderFailed' | translate"
+            (rendered)="onDocxRendered()"
+          />
+        }
+      } @else {
+        <div class="viewer-state text-text-tertiary">
+          {{ 'XP.Knowledgebase.AnalysisPreview.SourcePreviewUnsupported' | translate }}
         </div>
       }
     </div>

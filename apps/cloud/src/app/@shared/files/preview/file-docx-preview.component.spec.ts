@@ -21,6 +21,8 @@ describe('FileDocxPreviewComponent', () => {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     })
     const fixture = TestBed.createComponent(FileDocxPreviewComponent)
+    const rendered = jest.fn()
+    fixture.componentInstance.rendered.subscribe(rendered)
     fixture.componentRef.setInput('documentBlob', documentBlob)
     fixture.componentRef.setInput('fileName', 'proposal.docx')
     fixture.detectChanges()
@@ -32,10 +34,13 @@ describe('FileDocxPreviewComponent', () => {
       expect.any(HTMLElement),
       undefined,
       expect.objectContaining({
+        breakPages: true,
         className: 'docx',
+        ignoreLastRenderedPageBreak: false,
         inWrapper: true,
         useBase64URL: true
       })
     )
+    expect(rendered).toHaveBeenCalledTimes(1)
   })
 })
