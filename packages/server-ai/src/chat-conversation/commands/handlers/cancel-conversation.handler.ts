@@ -4,8 +4,9 @@ import { ChatConversationService } from '../../conversation.service'
 import { ExecutionCancelService } from '../../../shared/'
 import { IChatMessage, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { XpertAgentExecutionService } from '../../../xpert-agent-execution/agent-execution.service'
-import { Logger } from '@nestjs/common'
+import { Logger, Optional } from '@nestjs/common'
 import { StopHandoffMessageCommand } from '../../../handoff/commands'
+import { ChatConversationThreadService } from '../../conversation-thread.service'
 
 /**
  * Handler to cancel
@@ -25,14 +26,26 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         private readonly service: ChatConversationService,
         private readonly executionService: XpertAgentExecutionService,
         private readonly executionCancelService: ExecutionCancelService,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
     ) {}
 
     public async execute(command: CancelConversationCommand) {
         const { conversationId, threadId, executionId } = command.input
+        let runtimeThread =
+            threadId && this.conversationThreadService
+                ? await this.conversationThreadService.requireByThreadId(threadId)
+                : null
         const conversation = conversationId
             ? await this.service.findOne(conversationId, { relations: ['messages'] })
-            : await this.service.findOneByOptions({ where: { threadId }, relations: ['messages'] })
+            : (runtimeThread?.conversation ??
+              (threadId ? await this.service.findOneByOptions({ where: { threadId }, relations: ['messages'] }) : null))
+        if (conversation && !runtimeThread && this.conversationThreadService) {
+            runtimeThread = await this.conversationThreadService.ensurePrimary(conversation)
+        }
+        if (conversation && runtimeThread) {
+            await this.conversationThreadService?.hydrateConversationMessages(conversation, runtimeThread.threadId)
+        }
 
         if (!conversation && !executionId) {
             return { canceledExecutionIds: [] }
@@ -67,7 +80,7 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         const messagesToUpdate = aiMessages.filter((message) => executionIds.includes(message.executionId))
 
         messagesToUpdate.forEach((message) => {
-            message.status = 'aborted' as any
+            message.status = 'aborted'
             message.error = 'Canceled by user'
         })
 
@@ -97,9 +110,18 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         }
 
         if (conversation) {
-            conversation.status = 'interrupted' as any
-            conversation.error = 'Canceled by user'
-            await this.service.repository.save(conversation)
+            if (!runtimeThread || runtimeThread.threadId === conversation.threadId) {
+                conversation.status = 'interrupted'
+                conversation.error = 'Canceled by user'
+                await this.service.repository.save(conversation)
+            }
+            if (runtimeThread) {
+                await this.conversationThreadService?.updateRuntimeState(
+                    runtimeThread.threadId,
+                    'interrupted',
+                    'Canceled by user'
+                )
+            }
         }
 
         // Stream finalization can race cancellation and attempt to persist a

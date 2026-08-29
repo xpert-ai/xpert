@@ -127,6 +127,7 @@ export type AgentMiddlewareRuntimeScope = {
   xpertId?: string | null
   xpertName?: string | null
   conversationId?: string | null
+  threadId?: string | null
   agentKey?: string | null
   executionId?: string | null
   usageCallback?: (usage: TLLMUsage) => void | Promise<void>

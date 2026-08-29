@@ -13,6 +13,7 @@ export interface IAgentMiddlewareContext {
   workspaceId?: string
   projectId?: string
   conversationId?: string
+  threadId?: string
   xpertId?: string
   xpertFeatures?: TXpertFeatures | null
   agentKey?: string
