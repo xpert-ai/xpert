@@ -254,6 +254,7 @@ import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
+import type { CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
@@ -334,17 +335,9 @@ type MockChatKitEvent = {
 
 type MockChatKitRuntimeInput = {
   initialThread?: () => string | null
-  layout?: {
-    maxWidth?: number | string
-  }
-  taskSummary?: {
-    enabled?: boolean
-  }
-  workbench?: {
-    sideChat?: {
-      enabled?: boolean
-    }
-  }
+  layout?: CreateChatKitOptions['layout']
+  taskSummary?: CreateChatKitOptions['taskSummary']
+  workbench?: CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
