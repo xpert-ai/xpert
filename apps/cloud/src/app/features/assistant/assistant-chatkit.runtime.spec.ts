@@ -3,7 +3,7 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
-import { createChatKit } from '@xpert-ai/chatkit-angular'
+import { createChatKit, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import { of } from 'rxjs'
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
@@ -153,6 +153,14 @@ describe('assistant chatkit runtime helpers', () => {
         enabled: true
       }
     }
+    const displayMode = signal<CreateChatKitOptions['displayMode']>('pet')
+    const rightHeaderAction = jest.fn()
+    const header = signal<CreateChatKitOptions['header']>({
+      rightAction: {
+        icon: 'sidebar-right',
+        onClick: rightHeaderAction
+      }
+    })
     const projectId = signal('project-1')
 
     TestBed.configureTestingModule({
@@ -200,7 +208,8 @@ describe('assistant chatkit runtime helpers', () => {
         projectId,
         frameUrl: signal('/chatkit'),
         requestContext,
-        displayMode: 'pet',
+        displayMode,
+        header,
         layout,
         pet,
         workbench,
@@ -213,6 +222,12 @@ describe('assistant chatkit runtime helpers', () => {
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
+        header: expect.objectContaining({
+          rightAction: {
+            icon: 'sidebar-right',
+            onClick: rightHeaderAction
+          }
+        }),
         layout,
         pet,
         workbench,
@@ -232,6 +247,30 @@ describe('assistant chatkit runtime helpers', () => {
         }
       })
     )
+
+    setOptions.mockClear()
+    displayMode.set('chat')
+    header.set(undefined)
+    flushAngularEffects()
+
+    expect(setOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        displayMode: 'chat',
+        header: {
+          title: {
+            text: 'Assistant'
+          }
+        }
+      })
+    )
+
+    displayMode.set('pet')
+    header.set({
+      rightAction: {
+        icon: 'sidebar-right',
+        onClick: rightHeaderAction
+      }
+    })
 
     requestContext.set({
       env: {

@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common'
-import { computed, effect, inject, signal, Signal, untracked } from '@angular/core'
+import { computed, effect, inject, isSignal, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import {
@@ -29,11 +29,12 @@ export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
 type AssistantTheme = NonNullable<ChatKitOptions['theme']>
+type ReactiveChatKitOption<T> = T | Signal<T>
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
   requestContext?: Signal<Record<string, unknown> | null>
-  displayMode?: CreateChatKitOptions['displayMode']
+  displayMode?: ReactiveChatKitOption<CreateChatKitOptions['displayMode']>
   history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
   layout?: CreateChatKitOptions['layout']
@@ -62,7 +63,8 @@ type AssistantHostedRuntimeInput = {
   frameUrl: Signal<string | null>
   getClientSecret?: (currentClientSecret: string | null) => Promise<ChatKitClientSecretResult>
   requestContext?: Signal<Record<string, unknown> | null>
-  displayMode?: CreateChatKitOptions['displayMode']
+  displayMode?: ReactiveChatKitOption<CreateChatKitOptions['displayMode']>
+  header?: ReactiveChatKitOption<CreateChatKitOptions['header']>
   history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
   layout?: CreateChatKitOptions['layout']
@@ -288,6 +290,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const projectId = input.projectId?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
+    const displayMode = readReactiveChatKitOption(input.displayMode)
+    const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())
     const currentRuntimeKey = untracked(() => activeRuntimeKey())
     const mcpApps = resolveAssistantMcpAppsOptions(
@@ -314,7 +318,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       },
       locale: currentLocale,
       theme: currentTheme,
-      displayMode: input.displayMode,
+      displayMode,
       layout: input.layout,
       pet: input.pet,
       taskSummary: input.taskSummary,
@@ -346,7 +350,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       },
       initialThread,
       header: {
+        ...header,
         title: {
+          ...header?.title,
           text: title
         }
       },
@@ -386,6 +392,10 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   })
 
   return control
+}
+
+function readReactiveChatKitOption<T>(option: ReactiveChatKitOption<T> | undefined): T | undefined {
+  return isSignal(option) ? option() : option
 }
 
 function toIsoDate(value: string | Date) {

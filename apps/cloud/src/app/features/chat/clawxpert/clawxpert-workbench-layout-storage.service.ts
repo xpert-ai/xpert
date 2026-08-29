@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common'
 import { inject, Injectable } from '@angular/core'
 
-export type ClawXpertWorkbenchLayoutState = 'minimized' | 'normal' | 'maximized'
+export type ClawXpertWorkbenchLayoutState = 'minimized' | 'normal' | 'maximized' | 'overlay'
 
 const STORAGE_KEY_PREFIX = 'xpert.clawxpert.workbench.layout.v2:'
 
@@ -56,5 +56,5 @@ export class ClawXpertWorkbenchLayoutStorage {
 }
 
 function normalizeWorkbenchLayoutState(value: string | null): ClawXpertWorkbenchLayoutState | null {
-  return value === 'minimized' || value === 'normal' || value === 'maximized' ? value : null
+  return value === 'minimized' || value === 'normal' || value === 'maximized' || value === 'overlay' ? value : null
 }

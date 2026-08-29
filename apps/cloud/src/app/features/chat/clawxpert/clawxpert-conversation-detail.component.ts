@@ -3,7 +3,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
+import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 import { ASSISTANT_CITATION_OPEN_EVENT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type {
@@ -84,9 +84,16 @@ import { ClawXpertFixedViewStackComponent, type ClawXpertFixedViewTab } from './
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
+const CHATKIT_DISPLAY_MODE_ATTRIBUTE = 'data-display-mode'
+const CHATKIT_OPEN_ATTRIBUTE = 'data-chat-open'
+const CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE = 'data-chatkit-overlay-drag-bar'
+const CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE = 'data-chatkit-overlay-resize-handle'
+const CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE = 'data-chatkit-overlay-controls-style'
 const CLAWXPERT_CHATKIT_MIN_WIDTH_PX = 384
 const CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX = 460
 const CLAWXPERT_CHATKIT_MAX_WIDTH_PX = 960
+const CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX = 8
+const CLAWXPERT_OVERLAY_MIN_TOP_PX = 16
 const CLAWXPERT_CHATKIT_MAX_WIDTH = `${CLAWXPERT_CHATKIT_MAX_WIDTH_PX}px`
 const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
   'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
@@ -367,46 +374,50 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
               >
                 <i class="ri-calendar-line text-lg"></i>
               </button>
-              <button
-                z-button
-                type="button"
-                zType="ghost"
-                zSize="icon"
-                data-toggle-workspace-maximized
-                [class]="workspaceMaximizeButtonClasses()"
-                [title]="
-                  workbenchMaximized()
-                    ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
-                    : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
-                "
-                [zTooltip]="
-                  workbenchMaximized()
-                    ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
-                    : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
-                "
-                zPosition="bottom"
-                (click)="toggleWorkspaceMaximized()"
-              >
-                <i
-                  [class]="workbenchMaximized() ? 'ri-fullscreen-exit-line text-lg' : 'ri-fullscreen-line text-lg'"
-                ></i>
-              </button>
-              @if (!isChatMinimizedToPet()) {
+              @if (!overlayDialog() && !isChatMinimizedToPet()) {
                 <button
                   z-button
                   type="button"
                   zType="ghost"
                   zSize="icon"
-                  data-toggle-detail-panel
-                  class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-                  [title]="'XP.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
-                  [zTooltip]="'XP.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                  data-toggle-workspace-maximized
+                  [class]="workspaceMaximizeButtonClasses()"
+                  [title]="
+                    workbenchMaximized()
+                      ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
+                      : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
+                  "
+                  [zTooltip]="
+                    workbenchMaximized()
+                      ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
+                      : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
+                  "
                   zPosition="bottom"
-                  (click)="toggleDetailPanel()"
+                  (click)="toggleWorkspaceMaximized()"
                 >
-                  <i class="ri-side-bar-line text-lg"></i>
+                  <i
+                    [class]="workbenchMaximized() ? 'ri-fullscreen-exit-line text-lg' : 'ri-fullscreen-line text-lg'"
+                  ></i>
                 </button>
               }
+              <button
+                z-button
+                type="button"
+                zType="ghost"
+                zSize="icon"
+                data-toggle-detail-panel
+                data-chatkit-layout-mode-toggle
+                [attr.data-chatkit-layout-mode]="chatkitLayoutMode()"
+                class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+                [class.bg-hover-bg]="chatkitLayoutMode() === 'pet'"
+                [class.text-text-primary]="chatkitLayoutMode() === 'pet'"
+                [title]="chatkitLayoutActionLabel()"
+                [zTooltip]="chatkitLayoutActionLabel()"
+                zPosition="bottom"
+                (click)="toggleChatkitLayoutMode()"
+              >
+                <i [class]="chatkitLayoutModeIconClasses()"></i>
+              </button>
             </div>
           </div>
 
@@ -754,9 +765,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #fixedViewsHostId: string | null = null
   #markReadRequestVersion = 0
   #chatkitResizeCleanup: (() => void) | null = null
+  #overlayDialogControlsCleanup: (() => void) | null = null
   #activeWorkbenchLayoutPreferenceKey: string | null = null
   #initializedWorkbenchLayoutPreferenceKey: string | null = null
   #pendingWorkbenchLayoutRestore: { preferenceKey: string; state: ClawXpertWorkbenchLayoutState } | null = null
+  #pendingInitialOverlayOpen = false
   #lastNonFixedTabId: string | null = null
   #activeChatkitControl: ChatKitControl | null = null
   #lastSyncedRoutedThreadId: string | null = null
@@ -765,6 +778,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
+  readonly overlayDialog = signal(false)
+  readonly chatkitPinnedToRight = signal(false)
+  readonly chatkitDisplayMode = computed<CreateChatKitOptions['displayMode']>(() =>
+    this.overlayDialog() ? 'pet' : 'chat'
+  )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
@@ -781,6 +799,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
     initialThread: this.facade.threadId,
+    displayMode: this.chatkitDisplayMode,
     layout: {
       maxWidth: CLAWXPERT_CHATKIT_MAX_WIDTH
     },
@@ -900,11 +919,52 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly detailPanelVisible = signal(false)
   readonly workspaceMaximized = signal(false)
+  readonly chatkitLayoutMode = computed<'pet' | 'overlay' | 'pinned' | 'chat'>(() =>
+    this.isChatMinimizedToPet()
+      ? 'pet'
+      : this.overlayDialog()
+        ? 'overlay'
+        : this.chatkitPinnedToRight()
+          ? 'pinned'
+          : 'chat'
+  )
+  readonly chatkitLayoutModeIconClasses = computed(() => {
+    switch (this.chatkitLayoutMode()) {
+      case 'pet':
+        return 'ri-restart-line text-lg'
+      case 'overlay':
+      case 'chat':
+        return 'ri-layout-right-line text-lg'
+      case 'pinned':
+        return 'ri-picture-in-picture-2-line text-lg'
+    }
+  })
+  readonly chatkitLayoutActionLabel = computed(() => {
+    switch (this.chatkitLayoutMode()) {
+      case 'pet':
+        return this.#translate.instant('XP.Chat.ClawXpert.RestoreChatkit', { Default: 'Restore ChatKit' })
+      case 'overlay':
+      case 'chat':
+        return this.#translate.instant('XP.Chat.ClawXpert.PinOverlayDialog', {
+          Default: 'Pin ChatKit to the right'
+        })
+      case 'pinned':
+        return this.#translate.instant('XP.Chat.ClawXpert.SwitchToOverlayDialog', {
+          Default: 'Switch ChatKit to overlay'
+        })
+    }
+  })
   readonly #workbenchLayoutAssistantId = computed(
     () => this.facade.assistantId()?.trim() || this.facade.xpertId()?.trim() || null
   )
   readonly #workbenchLayoutState = computed<ClawXpertWorkbenchLayoutState>(() =>
-    !this.detailPanelVisible() ? 'minimized' : this.workspaceMaximized() ? 'maximized' : 'normal'
+    this.overlayDialog()
+      ? 'overlay'
+      : !this.detailPanelVisible()
+        ? 'minimized'
+        : this.workspaceMaximized()
+          ? 'maximized'
+          : 'normal'
   )
   readonly chatkitWidthPx = signal(CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX)
   readonly isResizingChatkit = signal(false)
@@ -925,12 +985,22 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly showDetailPanel = computed(
     () => this.detailPanelVisible() && (this.workspaceTabs().length === 0 || !!this.activePanel())
   )
-  readonly chatkitHiddenFromWorkspace = computed(() => this.showDetailPanel() && this.workbenchMaximized())
+  readonly chatkitHiddenFromWorkspace = computed(
+    () => !this.overlayDialog() && this.showDetailPanel() && this.workbenchMaximized()
+  )
   readonly showChatkitResizeHandle = computed(
-    () => this.showDetailPanel() && !this.isChatMinimizedToPet() && !this.chatkitHiddenFromWorkspace()
+    () =>
+      !this.overlayDialog() &&
+      this.showDetailPanel() &&
+      !this.isChatMinimizedToPet() &&
+      !this.chatkitHiddenFromWorkspace()
   )
   readonly workspaceLayoutClasses = computed(() => {
     const transitionClasses = this.isResizingChatkit() ? 'transition-none' : WORKSPACE_LAYOUT_TRANSITION_CLASSES
+
+    if (this.overlayDialog()) {
+      return `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
+    }
 
     if (this.isChatMinimizedToPet()) {
       return this.showDetailPanel()
@@ -957,6 +1027,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       : `pointer-events-none flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} -translate-y-3 opacity-0 lg:-translate-x-3 lg:translate-y-0`
   )
   readonly chatShellClasses = computed(() => {
+    if (this.overlayDialog()) {
+      return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
+    }
+
     if (this.chatkitHiddenFromWorkspace()) {
       if (this.isChatMinimizedToPet()) {
         return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
@@ -1024,6 +1098,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.#activeWorkbenchLayoutPreferenceKey = preferenceKey
         this.#initializedWorkbenchLayoutPreferenceKey = null
         this.#pendingWorkbenchLayoutRestore = null
+        this.#pendingInitialOverlayOpen = false
       }
 
       if (!assistantId || !preferenceKey || viewState !== 'ready') {
@@ -1167,8 +1242,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     effect((onCleanup) => {
       const chatkitHost = this.chatkitHost()?.nativeElement
       const viewState = this.facade.viewState()
+      const overlayDialog = this.overlayDialog()
 
       if (viewState !== 'ready' || !chatkitHost) {
+        this.removeOverlayDialogControls()
         this.isChatMinimizedToPet.set(false)
         return
       }
@@ -1179,6 +1256,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.isChatMinimizedToPet.set(minimizedToPet)
         if (minimizedToPet) {
           this.openDetailPanel()
+        }
+        if (overlayDialog) {
+          this.ensureOverlayDialogControls(chatkitElement)
+          this.openInitialOverlayDialog(chatkitElement)
+        } else {
+          this.removeOverlayDialogControls()
         }
       }
 
@@ -1191,11 +1274,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const observer = new MutationObserver(syncMinimizedToPetState)
       observer.observe(chatkitElement, {
         attributes: true,
-        attributeFilter: [CHAT_MINIMIZED_TO_PET_ATTRIBUTE]
+        attributeFilter: [CHAT_MINIMIZED_TO_PET_ATTRIBUTE, CHATKIT_DISPLAY_MODE_ATTRIBUTE, CHATKIT_OPEN_ATTRIBUTE]
       })
 
       onCleanup(() => {
         observer.disconnect()
+        this.removeOverlayDialogControls()
         this.isChatMinimizedToPet.set(false)
       })
     })
@@ -1316,7 +1400,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.stopChatkitResize()
+    this.removeOverlayDialogControls()
     this.#responseActive.set(false)
+    this.#pendingInitialOverlayOpen = false
     this.isChatMinimizedToPet.set(false)
     this.facade.setActiveConversation(null)
   }
@@ -1382,22 +1468,84 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.openDetailPanel()
   }
 
+  toggleChatkitLayoutMode() {
+    switch (this.chatkitLayoutMode()) {
+      case 'pet':
+        this.restoreChatkitFromPet()
+        return
+      case 'overlay':
+        this.pinOverlayChatkit()
+        return
+      case 'pinned':
+        this.restoreOverlayChatkit()
+        return
+      case 'chat':
+        this.openDetailPanel()
+    }
+  }
+
   openDetailPanel() {
     const tabs = this.workspaceTabs()
     if (tabs.length > 0 && !tabs.some((tab) => tab.id === this.activeTabId())) {
       this.activeTabId.set(tabs[0].id)
     }
+    if (!this.overlayDialog()) {
+      this.chatkitPinnedToRight.set(true)
+    }
     this.detailPanelVisible.set(true)
   }
 
   closeDetailPanel() {
+    if (this.overlayDialog()) {
+      return
+    }
     this.workspaceMaximized.set(false)
+    this.chatkitPinnedToRight.set(false)
     this.detailPanelVisible.set(false)
   }
 
   private applyWorkbenchLayoutState(state: ClawXpertWorkbenchLayoutState) {
+    this.#pendingInitialOverlayOpen = state === 'overlay'
+    this.overlayDialog.set(state === 'overlay')
+    this.chatkitPinnedToRight.set(state === 'normal')
     this.detailPanelVisible.set(state !== 'minimized')
     this.workspaceMaximized.set(state === 'maximized')
+
+    if (state === 'overlay') {
+      const chatkitHost = this.chatkitHost()?.nativeElement
+      if (chatkitHost) {
+        this.openInitialOverlayDialog(resolveEmbeddedChatkitElement(chatkitHost))
+      }
+    }
+  }
+
+  pinOverlayChatkit() {
+    if (!this.overlayDialog()) {
+      return
+    }
+
+    this.#pendingInitialOverlayOpen = false
+    this.chatkitPinnedToRight.set(true)
+    this.overlayDialog.set(false)
+    this.detailPanelVisible.set(true)
+    this.workspaceMaximized.set(false)
+  }
+
+  restoreOverlayChatkit() {
+    if (!this.chatkitPinnedToRight()) {
+      return
+    }
+
+    this.#pendingInitialOverlayOpen = true
+    this.chatkitPinnedToRight.set(false)
+    this.overlayDialog.set(true)
+    this.detailPanelVisible.set(true)
+    this.workspaceMaximized.set(false)
+
+    const chatkitHost = this.chatkitHost()?.nativeElement
+    if (chatkitHost) {
+      this.openInitialOverlayDialog(resolveEmbeddedChatkitElement(chatkitHost))
+    }
   }
 
   toggleWorkspaceMaximized() {
@@ -1423,6 +1571,42 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
     const petElement = chatkitElement.shadowRoot?.querySelector<HTMLElement>('[data-chatkit-host-pet]')
     petElement?.click()
+  }
+
+  private openInitialOverlayDialog(chatkitElement: HTMLElement) {
+    if (!this.#pendingInitialOverlayOpen || chatkitElement.dataset.displayMode !== 'pet') {
+      return
+    }
+    if (chatkitElement.dataset.chatOpen === 'true') {
+      this.#pendingInitialOverlayOpen = false
+      return
+    }
+
+    const petElement = chatkitElement.shadowRoot?.querySelector<HTMLElement>('[data-chatkit-host-pet]')
+    if (petElement) {
+      this.#pendingInitialOverlayOpen = false
+      petElement.click()
+    }
+  }
+
+  private ensureOverlayDialogControls(chatkitElement: HTMLElement) {
+    if (this.#overlayDialogControlsCleanup || chatkitElement.dataset.displayMode !== 'pet') {
+      return
+    }
+
+    this.#overlayDialogControlsCleanup = installChatkitOverlayDialogControls(chatkitElement, {
+      moveLabel: this.#translate.instant('XP.Chat.ClawXpert.MoveOverlayDialog', {
+        Default: 'Move ChatKit dialog'
+      }),
+      resizeLabel: this.#translate.instant('XP.Chat.ClawXpert.ResizeOverlayDialog', {
+        Default: 'Resize ChatKit dialog'
+      })
+    })
+  }
+
+  private removeOverlayDialogControls() {
+    this.#overlayDialogControlsCleanup?.()
+    this.#overlayDialogControlsCleanup = null
   }
 
   startChatkitResize(event: PointerEvent) {
@@ -2307,6 +2491,9 @@ function toConfiguredWorkbenchLayoutState(
   if (layout === null || layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
     return 'normal'
   }
+  if (layout === XpertWorkbenchInitialLayoutEnum.OverlayDialog) {
+    return 'overlay'
+  }
   if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
     return 'minimized'
   }
@@ -2614,6 +2801,373 @@ function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQ
 
 function resolveEmbeddedChatkitElement(host: HTMLElement) {
   return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
+}
+
+function installChatkitOverlayDialogControls(
+  chatkitElement: HTMLElement,
+  options: { moveLabel: string; resizeLabel: string }
+) {
+  const shadowRoot = chatkitElement.shadowRoot
+  const wrapper = shadowRoot?.querySelector<HTMLElement>('.ck-wrapper')
+  const launcherCloseButton = wrapper?.querySelector<HTMLElement>('.ck-launcher-close') ?? null
+  const ownerDocument = chatkitElement.ownerDocument
+  const ownerWindow = ownerDocument.defaultView
+
+  if (!shadowRoot || !wrapper || !ownerWindow || !ownerDocument.body) {
+    return null
+  }
+
+  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]`)?.remove()
+  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]`)?.remove()
+  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE}]`)?.remove()
+
+  const previousCloseButtonDisplay = launcherCloseButton?.style.getPropertyValue('display') ?? ''
+  const previousCloseButtonDisplayPriority = launcherCloseButton?.style.getPropertyPriority('display') ?? ''
+  const previousCloseButtonAriaHidden = launcherCloseButton?.getAttribute('aria-hidden') ?? null
+  const previousCloseButtonTabIndex = launcherCloseButton?.getAttribute('tabindex') ?? null
+  launcherCloseButton?.style.setProperty('display', 'none', 'important')
+  launcherCloseButton?.setAttribute('aria-hidden', 'true')
+  launcherCloseButton?.setAttribute('tabindex', '-1')
+
+  const controlsStyle = ownerDocument.createElement('style')
+  controlsStyle.setAttribute(CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE, '')
+  controlsStyle.textContent = `
+    .ck-launcher-close {
+      display: none !important;
+    }
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}] {
+      position: absolute;
+      top: 1px;
+      right: 1px;
+      left: 1px;
+      z-index: 3;
+      height: 18px;
+      border: 0;
+      border-radius: 17px 17px 0 0;
+      background: transparent;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--sys-border-strong) 72%, transparent) 0%,
+        color-mix(in oklab, var(--sys-surface-elevated) 36%, transparent) 52%,
+        transparent 100%
+      );
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:hover::after,
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:focus-visible::after,
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}][data-dragging='true']::after {
+      opacity: 1;
+    }
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:focus-visible {
+      outline: none;
+    }
+    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}][data-dragging='true'] {
+      cursor: grabbing;
+    }
+    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}] {
+      position: absolute;
+      top: 8px;
+      bottom: 8px;
+      left: -7px;
+      z-index: 3;
+      width: 14px;
+      border-radius: 999px;
+      cursor: ew-resize;
+      touch-action: none;
+      user-select: none;
+    }
+    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      bottom: auto;
+      left: 5px;
+      width: 3px;
+      height: 44px;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--sys-text-secondary) 58%, transparent);
+      opacity: 0;
+      transform: translateY(-50%);
+      transition: opacity 120ms ease;
+    }
+    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:hover::after,
+    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:focus-visible::after,
+    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}][data-resizing='true']::after {
+      opacity: 1;
+    }
+    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--sys-primary) 70%, transparent);
+      outline-offset: -2px;
+    }
+  `
+
+  const dragBar = ownerDocument.createElement('div')
+  dragBar.setAttribute(CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE, '')
+  dragBar.setAttribute('aria-label', options.moveLabel)
+  dragBar.title = options.moveLabel
+  dragBar.tabIndex = 0
+
+  const resizeHandle = ownerDocument.createElement('div')
+  resizeHandle.setAttribute(CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE, '')
+  resizeHandle.setAttribute('role', 'separator')
+  resizeHandle.setAttribute('aria-orientation', 'vertical')
+  resizeHandle.setAttribute('aria-label', options.resizeLabel)
+  resizeHandle.setAttribute('aria-valuemin', `${CLAWXPERT_CHATKIT_MIN_WIDTH_PX}`)
+  resizeHandle.setAttribute('aria-valuemax', `${CLAWXPERT_CHATKIT_MAX_WIDTH_PX}`)
+  resizeHandle.title = options.resizeLabel
+  resizeHandle.tabIndex = 0
+
+  shadowRoot.appendChild(controlsStyle)
+  wrapper.append(dragBar, resizeHandle)
+
+  let activeInteractionCleanup: (() => void) | null = null
+
+  const stopActiveInteraction = () => {
+    activeInteractionCleanup?.()
+    activeInteractionCleanup = null
+  }
+
+  const startPointerInteraction = (
+    event: PointerEvent,
+    cursor: string,
+    onMove: (moveEvent: PointerEvent) => void,
+    activeAttribute: 'data-dragging' | 'data-resizing',
+    target: HTMLElement
+  ) => {
+    if (event.button !== 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    stopActiveInteraction()
+
+    const previousCursor = ownerDocument.body.style.cursor
+    const previousUserSelect = ownerDocument.body.style.userSelect
+    const pointerId = event.pointerId
+
+    if (typeof pointerId === 'number' && typeof target.setPointerCapture === 'function') {
+      try {
+        target.setPointerCapture(pointerId)
+      } catch {
+        // Pointer capture is optional; window listeners keep the interaction active over the iframe.
+      }
+    }
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (typeof pointerId === 'number' && moveEvent.pointerId !== pointerId) {
+        return
+      }
+      moveEvent.preventDefault()
+      onMove(moveEvent)
+    }
+
+    const finishInteraction = () => {
+      cleanupInteraction()
+    }
+
+    const cleanupInteraction = () => {
+      ownerWindow.removeEventListener('pointermove', handlePointerMove)
+      ownerWindow.removeEventListener('pointerup', finishInteraction)
+      ownerWindow.removeEventListener('pointercancel', finishInteraction)
+      ownerDocument.body.style.cursor = previousCursor
+      ownerDocument.body.style.userSelect = previousUserSelect
+      target.removeAttribute(activeAttribute)
+      if (activeInteractionCleanup === cleanupInteraction) {
+        activeInteractionCleanup = null
+      }
+    }
+
+    ownerDocument.body.style.cursor = cursor
+    ownerDocument.body.style.userSelect = 'none'
+    target.setAttribute(activeAttribute, 'true')
+    ownerWindow.addEventListener('pointermove', handlePointerMove)
+    ownerWindow.addEventListener('pointerup', finishInteraction, { once: true })
+    ownerWindow.addEventListener('pointercancel', finishInteraction, { once: true })
+    activeInteractionCleanup = cleanupInteraction
+  }
+
+  const moveOverlayDialog = (left: number, top: number, width: number, height: number) => {
+    const maxLeft = Math.max(
+      CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX,
+      ownerWindow.innerWidth - width - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
+    )
+    const maxTop = Math.max(
+      CLAWXPERT_OVERLAY_MIN_TOP_PX,
+      ownerWindow.innerHeight - height - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
+    )
+
+    wrapper.style.left = `${Math.round(clampNumber(left, CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX, maxLeft))}px`
+    wrapper.style.top = `${Math.round(clampNumber(top, CLAWXPERT_OVERLAY_MIN_TOP_PX, maxTop))}px`
+    wrapper.style.right = 'auto'
+    wrapper.style.bottom = 'auto'
+  }
+
+  const resizeOverlayDialog = (right: number, desiredWidth: number) => {
+    const rightEdge = clampNumber(
+      right,
+      CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX,
+      Math.max(CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX, ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX)
+    )
+    const maxWidth = Math.max(
+      0,
+      Math.min(
+        CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
+        ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX * 2,
+        rightEdge - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
+      )
+    )
+    const minWidth = Math.min(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, maxWidth)
+    const width = Math.round(clampNumber(desiredWidth, minWidth, maxWidth))
+
+    wrapper.style.left = `${Math.round(rightEdge - width)}px`
+    wrapper.style.right = 'auto'
+    wrapper.style.width = `${width}px`
+    resizeHandle.setAttribute('aria-valuenow', `${width}`)
+  }
+
+  const handleDragPointerDown = (event: PointerEvent) => {
+    const rect = wrapper.getBoundingClientRect()
+    const startX = event.clientX
+    const startY = event.clientY
+
+    startPointerInteraction(
+      event,
+      'grabbing',
+      (moveEvent) => {
+        moveOverlayDialog(
+          rect.left + moveEvent.clientX - startX,
+          rect.top + moveEvent.clientY - startY,
+          rect.width,
+          rect.height
+        )
+      },
+      'data-dragging',
+      dragBar
+    )
+  }
+
+  const handleResizePointerDown = (event: PointerEvent) => {
+    const rect = wrapper.getBoundingClientRect()
+    const startX = event.clientX
+
+    startPointerInteraction(
+      event,
+      'ew-resize',
+      (moveEvent) => {
+        resizeOverlayDialog(rect.right, rect.width + startX - moveEvent.clientX)
+      },
+      'data-resizing',
+      resizeHandle
+    )
+  }
+
+  const handleDragKeydown = (event: KeyboardEvent) => {
+    const direction =
+      event.key === 'ArrowLeft'
+        ? { x: -1, y: 0 }
+        : event.key === 'ArrowRight'
+          ? { x: 1, y: 0 }
+          : event.key === 'ArrowUp'
+            ? { x: 0, y: -1 }
+            : event.key === 'ArrowDown'
+              ? { x: 0, y: 1 }
+              : null
+    if (!direction) {
+      return
+    }
+
+    event.preventDefault()
+    const rect = wrapper.getBoundingClientRect()
+    const step = event.shiftKey ? 64 : 24
+    moveOverlayDialog(rect.left + direction.x * step, rect.top + direction.y * step, rect.width, rect.height)
+  }
+
+  const handleResizeKeydown = (event: KeyboardEvent) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return
+    }
+
+    event.preventDefault()
+    const rect = wrapper.getBoundingClientRect()
+    resizeOverlayDialog(rect.right, rect.width + (event.key === 'ArrowLeft' ? 32 : -32))
+  }
+
+  const constrainOverlayDialogToViewport = () => {
+    if (!wrapper.style.left && !wrapper.style.top && !wrapper.style.width) {
+      return
+    }
+
+    const rect = wrapper.getBoundingClientRect()
+    const rightEdge = Math.min(rect.right, ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX)
+    resizeOverlayDialog(rightEdge, rect.width)
+    moveOverlayDialog(
+      Number.parseFloat(wrapper.style.left),
+      rect.top,
+      Number.parseFloat(wrapper.style.width),
+      rect.height
+    )
+  }
+
+  dragBar.addEventListener('pointerdown', handleDragPointerDown)
+  dragBar.addEventListener('keydown', handleDragKeydown)
+  resizeHandle.addEventListener('pointerdown', handleResizePointerDown)
+  resizeHandle.addEventListener('keydown', handleResizeKeydown)
+  ownerWindow.addEventListener('resize', constrainOverlayDialogToViewport)
+
+  const initialWidth = Math.round(wrapper.getBoundingClientRect().width)
+  if (initialWidth > 0) {
+    resizeHandle.setAttribute('aria-valuenow', `${initialWidth}`)
+  }
+
+  return () => {
+    stopActiveInteraction()
+    dragBar.removeEventListener('pointerdown', handleDragPointerDown)
+    dragBar.removeEventListener('keydown', handleDragKeydown)
+    resizeHandle.removeEventListener('pointerdown', handleResizePointerDown)
+    resizeHandle.removeEventListener('keydown', handleResizeKeydown)
+    ownerWindow.removeEventListener('resize', constrainOverlayDialogToViewport)
+    dragBar.remove()
+    resizeHandle.remove()
+    controlsStyle.remove()
+    if (launcherCloseButton) {
+      if (previousCloseButtonDisplay) {
+        launcherCloseButton.style.setProperty('display', previousCloseButtonDisplay, previousCloseButtonDisplayPriority)
+      } else {
+        launcherCloseButton.style.removeProperty('display')
+      }
+      restoreOptionalAttribute(launcherCloseButton, 'aria-hidden', previousCloseButtonAriaHidden)
+      restoreOptionalAttribute(launcherCloseButton, 'tabindex', previousCloseButtonTabIndex)
+    }
+    wrapper.style.removeProperty('left')
+    wrapper.style.removeProperty('top')
+    wrapper.style.removeProperty('right')
+    wrapper.style.removeProperty('bottom')
+    wrapper.style.removeProperty('width')
+  }
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function restoreOptionalAttribute(element: HTMLElement, name: string, value: string | null) {
+  if (value === null) {
+    element.removeAttribute(name)
+  } else {
+    element.setAttribute(name, value)
+  }
 }
 
 function toSkillTrialRuntimeCapabilities(intent: ClawXpertSkillTrialIntent): RuntimeCapabilitiesSelection {

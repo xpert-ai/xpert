@@ -289,6 +289,7 @@ export interface IXpertPrincipalReference {
 
 export enum XpertWorkbenchInitialLayoutEnum {
   TwoColumns = 'two-columns',
+  OverlayDialog = 'overlay-dialog',
   ChatkitMaximized = 'chatkit-maximized',
   WorkbenchMaximized = 'workbench-maximized'
 }

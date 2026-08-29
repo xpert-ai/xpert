@@ -334,6 +334,8 @@ type MockChatKitEvent = {
 }
 
 type MockChatKitRuntimeInput = {
+  displayMode?: () => CreateChatKitOptions['displayMode']
+  header?: () => CreateChatKitOptions['header']
   initialThread?: () => string | null
   layout?: CreateChatKitOptions['layout']
   taskSummary?: CreateChatKitOptions['taskSummary']
@@ -641,14 +643,22 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.workspaceTabs().some((tab) => tab.kind === 'files')).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
-    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
+    const layoutModeButton = fixture.nativeElement.querySelector(
+      '[data-chatkit-layout-mode-toggle]'
+    ) as HTMLButtonElement
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    layoutModeButton.click()
     await settle(fixture)
 
-    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
-    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-0')
-    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    layoutModeButton.click()
     await settle(fixture)
 
+    expect(fixture.componentInstance.overlayDialog()).toBe(false)
+    expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(true)
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
@@ -1834,6 +1844,155 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBeNull()
   })
 
+  it('opens the configured overlay dialog, restores it from the pet, and pins it into the right column', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.OverlayDialog)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('review')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) {
+      throw new Error('Expected xpert-chatkit to render')
+    }
+
+    const shadowRoot = chatkit.shadowRoot ?? chatkit.attachShadow({ mode: 'open' })
+    const wrapper = document.createElement('div')
+    wrapper.className = 'ck-wrapper'
+    jest.spyOn(wrapper, 'getBoundingClientRect').mockImplementation(() => {
+      const width = Number.parseFloat(wrapper.style.width) || 420
+      const height = 480
+      const left = Number.parseFloat(wrapper.style.left) || 100
+      const top = Number.parseFloat(wrapper.style.top) || 100
+      return {
+        x: left,
+        y: top,
+        top,
+        right: left + width,
+        bottom: top + height,
+        left,
+        width,
+        height,
+        toJSON: () => undefined
+      } as DOMRect
+    })
+    const launcherCloseButton = document.createElement('button')
+    launcherCloseButton.className = 'ck-launcher-close'
+    launcherCloseButton.setAttribute('aria-label', 'Close chat')
+    wrapper.appendChild(launcherCloseButton)
+    const petButton = document.createElement('button')
+    const activatePet = jest.fn(() => {
+      delete chatkit.dataset.chatMinimizedToPet
+      chatkit.dataset.chatOpen = 'true'
+    })
+    petButton.setAttribute('data-chatkit-host-pet', '')
+    petButton.addEventListener('click', activatePet)
+    shadowRoot.append(wrapper, petButton)
+    chatkit.dataset.displayMode = 'pet'
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+    expect(runtimeInput.displayMode?.()).toBe('pet')
+    expect(runtimeInput.header?.()).toBeUndefined()
+    expect(activatePet).toHaveBeenCalledTimes(1)
+    expect(chatkit.dataset.chatOpen).toBe('true')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).toBeNull()
+
+    const dragBar = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-drag-bar]')
+    const resizeHandle = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-resize-handle]')
+    const controlsStyle = shadowRoot.querySelector<HTMLStyleElement>('[data-chatkit-overlay-controls-style]')
+    const layoutModeButton = fixture.nativeElement.querySelector(
+      '[data-chatkit-layout-mode-toggle]'
+    ) as HTMLButtonElement
+    expect(dragBar).not.toBeNull()
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.PinOverlayDialog')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-layout-right-line')
+    expect(resizeHandle).not.toBeNull()
+    expect(resizeHandle?.getAttribute('role')).toBe('separator')
+    expect(controlsStyle?.textContent).toContain('top: 1px')
+    expect(controlsStyle?.textContent).toContain('background: transparent')
+    expect(controlsStyle?.textContent).toContain('linear-gradient')
+    expect(controlsStyle?.textContent).not.toContain('top: -16px')
+    expect(controlsStyle?.textContent).toContain('right: 1px')
+    expect(launcherCloseButton.style.getPropertyValue('display')).toBe('none')
+    expect(launcherCloseButton.style.getPropertyPriority('display')).toBe('important')
+    expect(launcherCloseButton.getAttribute('aria-hidden')).toBe('true')
+
+    dragBar?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 200, clientY: 120 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 250, clientY: 180 }))
+    window.dispatchEvent(new MouseEvent('pointerup'))
+
+    expect(wrapper.style.left).toBe('150px')
+    expect(wrapper.style.top).toBe('160px')
+    expect(wrapper.style.right).toBe('auto')
+    expect(wrapper.style.bottom).toBe('auto')
+
+    resizeHandle?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 150, clientY: 300 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 90, clientY: 300 }))
+    window.dispatchEvent(new MouseEvent('pointerup'))
+
+    expect(wrapper.style.width).toBe('480px')
+    expect(wrapper.style.left).toBe('90px')
+    expect(resizeHandle?.getAttribute('aria-valuenow')).toBe('480')
+    expect(document.body.style.cursor).toBe('')
+
+    chatkit.dataset.chatMinimizedToPet = 'true'
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pet')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-restart-line')
+    layoutModeButton.click()
+    await settle(fixture)
+
+    expect(activatePet).toHaveBeenCalledTimes(2)
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+
+    layoutModeButton.click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.overlayDialog()).toBe(false)
+    expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(true)
+    expect(runtimeInput.displayMode?.()).toBe('chat')
+    expect(runtimeInput.header?.()).toBeUndefined()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).toBeNull()
+    expect(shadowRoot.querySelector('[data-chatkit-overlay-resize-handle]')).toBeNull()
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.SwitchToOverlayDialog')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-picture-in-picture-2-line')
+    expect(wrapper.style.left).toBe('')
+    expect(wrapper.style.top).toBe('')
+    expect(wrapper.style.right).toBe('')
+    expect(wrapper.style.bottom).toBe('')
+    expect(wrapper.style.width).toBe('')
+    expect(launcherCloseButton.style.getPropertyValue('display')).toBe('')
+    expect(launcherCloseButton.getAttribute('aria-hidden')).toBeNull()
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
+    )
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
+
+    layoutModeButton.click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+    expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(false)
+    expect(runtimeInput.displayMode?.()).toBe('pet')
+    expect(runtimeInput.header?.()).toBeUndefined()
+    expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).not.toBeNull()
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(launcherCloseButton.style.getPropertyValue('display')).toBe('none')
+    expect(launcherCloseButton.getAttribute('aria-hidden')).toBe('true')
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('overlay')
+  })
+
   it('opens the configured extension view as the initial Workbench tab', async () => {
     facade.defaultViewKey.set('metrics')
     viewExtensionApi.getSlotViews.mockReturnValue(
@@ -2002,21 +2161,23 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workbenchMaximized()).toBe(true)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
-    expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).toBeNull()
+    const petLayoutModeButton = fixture.nativeElement.querySelector(
+      '[data-chatkit-layout-mode-toggle]'
+    ) as HTMLButtonElement | null
+    expect(petLayoutModeButton).not.toBeNull()
+    expect(petLayoutModeButton?.dataset.chatkitLayoutMode).toBe('pet')
+    expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-restart-line')
     const petMaximizeButton = fixture.nativeElement.querySelector(
       '[data-toggle-workspace-maximized]'
     ) as HTMLElement | null
-    const petMaximizeButtonIcon = petMaximizeButton?.querySelector('i') as HTMLElement | null
-    expect(petMaximizeButton).not.toBeNull()
-    expect(petMaximizeButton?.className).toContain('bg-hover-bg')
-    expect(petMaximizeButtonIcon?.className).toContain('ri-fullscreen-exit-line')
+    expect(petMaximizeButton).toBeNull()
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
-    petMaximizeButton?.click()
+    petLayoutModeButton?.click()
     await settle(fixture)
 
     expect(activatePet).toHaveBeenCalledTimes(1)

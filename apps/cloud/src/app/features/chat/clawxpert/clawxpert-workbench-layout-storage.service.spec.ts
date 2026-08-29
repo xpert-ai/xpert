@@ -26,10 +26,12 @@ describe('ClawXpertWorkbenchLayoutStorage', () => {
     expect(storage.save('user-1', 'assistant-1', 'maximized')).toBe(true)
     expect(storage.save('user-1', 'assistant-2', 'minimized')).toBe(true)
     expect(storage.save('user-2', 'assistant-1', 'normal')).toBe(true)
+    expect(storage.save('user-2', 'assistant-2', 'overlay')).toBe(true)
 
     expect(storage.load('user-1', 'assistant-1')).toBe('maximized')
     expect(storage.load('user-1', 'assistant-2')).toBe('minimized')
     expect(storage.load('user-2', 'assistant-1')).toBe('normal')
+    expect(storage.load('user-2', 'assistant-2')).toBe('overlay')
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('maximized')
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-2'))).toBe('minimized')
   })
