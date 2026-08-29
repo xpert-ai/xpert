@@ -27,6 +27,7 @@ import {
     HttpCode,
     HttpStatus,
     Logger,
+    Optional,
     Param,
     Patch,
     Post,
@@ -58,6 +59,7 @@ import { CancelConversationCommand } from '../chat-conversation'
 import { GetChatConversationQuery } from '../chat-conversation'
 import { CopilotUserUsageQuery } from '../copilot-user/queries'
 import { formatInUTC0 } from '../shared/utils'
+import { ChatConversationThreadService } from '../chat-conversation'
 import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
@@ -97,7 +99,8 @@ export class ThreadsController {
         private readonly aiService: AiService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
-        private readonly redisSseStreamService: RedisSseStreamService
+        private readonly redisSseStreamService: RedisSseStreamService,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
     ) {}
 
     // Threads: A thread contains the accumulated outputs of a group of runs.
@@ -165,8 +168,12 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/copy')
-    async copyThread(@Param('thread_id') thread_id: string) {
-        throw new UnimplementedException()
+    async copyThread(@Param('thread_id') thread_id: string, @Body() body: { metadata?: Record<string, unknown> } = {}) {
+        await this.ensurePublicThreadAccess(thread_id)
+        if (!this.conversationThreadService) throw new UnimplementedException()
+        const thread = await this.conversationThreadService.copyThread(thread_id, body)
+        const { ThreadDTO } = await import('./dto/thread.dto')
+        return new ThreadDTO(thread.conversation, {}, thread)
     }
 
     // Runs: A run is an invocation of a graph / assistant on a thread. It updates the state of the thread.
@@ -397,6 +404,11 @@ export class ThreadsController {
             return
         }
 
+        if (this.conversationThreadService) {
+            const thread = await this.conversationThreadService.requireByThreadId(threadId)
+            assertPublicXpertSessionConversationAccess(thread.conversation)
+            return
+        }
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         assertPublicXpertSessionConversationAccess(conversation)
     }

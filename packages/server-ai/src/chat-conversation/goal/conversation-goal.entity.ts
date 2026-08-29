@@ -11,7 +11,7 @@ const bigintNumberTransformer = {
 }
 
 @Entity('chat_conversation_goal')
-@Index(['conversationId'], { unique: true })
+@Index(['conversationId', 'threadId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'conversationId'])
 export class ChatConversationGoal extends TenantOrganizationBaseEntity implements IThreadGoal {
     @ApiProperty({ type: () => ChatConversation })

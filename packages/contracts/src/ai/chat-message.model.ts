@@ -88,6 +88,7 @@ export interface IChatMessage
    * for historical messages that stored raw StorageFile handles.
    */
   attachments?: IStorageFile[]
+
   /**
    * Parsed file assets used by the file understanding pipeline and agent tools.
    */
@@ -120,6 +121,12 @@ export interface IChatMessage
    */
   conversation?: IChatConversation
   conversationId?: string | null
+
+  /**
+   * Runtime thread that originally created this message. A message may still
+   * be visible from descendant threads through the message ancestor path.
+   */
+  createdInThreadId?: string | null
 
   executionId?: string
   execution?: IXpertAgentExecution
