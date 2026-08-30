@@ -465,7 +465,9 @@ describe('ClawXpertConversationDetailComponent', () => {
   }
   let workbenchViewUrlState: {
     viewKey: ReturnType<typeof signal<string | null>>
+    viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
     setViewKey: jest.Mock
+    setViewState: jest.Mock
   }
   let hostEvents: ViewHostEventBus
 
@@ -478,10 +480,18 @@ describe('ClawXpertConversationDetailComponent', () => {
       clear: jest.fn()
     }
     const viewKey = signal<string | null>(null)
+    const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
       viewKey,
+      viewQuery,
       setViewKey: jest.fn((nextViewKey: string | null) => {
         viewKey.set(nextViewKey)
+        if (!nextViewKey) viewQuery.set(null)
+        return Promise.resolve(true)
+      }),
+      setViewState: jest.fn((nextViewKey: string | null, nextViewQuery: XpertViewQuery | null) => {
+        viewKey.set(nextViewKey)
+        viewQuery.set(nextViewKey ? nextViewQuery : null)
         return Promise.resolve(true)
       })
     }
@@ -1055,6 +1065,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
     workbenchViewUrlState.setViewKey.mockClear()
+    workbenchViewUrlState.setViewState.mockClear()
 
     const metricsTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'metrics')
     expect(metricsTab).toBeDefined()
@@ -1066,7 +1077,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(workbenchViewUrlState.viewKey()).toBe('metrics')
-    expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith('metrics', { replaceUrl: false })
+    expect(workbenchViewUrlState.setViewState).toHaveBeenLastCalledWith('metrics', null, { replaceUrl: false })
 
     const filesTab = fixture.componentInstance.addWorkspaceTab('files')
     await settle(fixture)
@@ -1075,8 +1086,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith(null, { replaceUrl: false })
 
     workbenchViewUrlState.viewKey.set('review')
+    workbenchViewUrlState.viewQuery.set({ selectionId: 'project-2', parameters: { section: 'history' } })
     await settle(fixture)
-    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('review')
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'review',
+        query: { selectionId: 'project-2', parameters: { section: 'history' } }
+      })
+    )
+
+    workbenchViewUrlState.viewQuery.set(null)
+    await settle(fixture)
+    expect(fixture.componentInstance.activeFixedViewTab()?.query).toBeNull()
 
     workbenchViewUrlState.viewKey.set('metrics')
     await settle(fixture)
@@ -1152,6 +1173,33 @@ describe('ClawXpertConversationDetailComponent', () => {
       selectionId: 'record-1',
       parameters: { section: 'features' }
     })
+    expect(workbenchViewUrlState.setViewState).toHaveBeenLastCalledWith(
+      'bom_document_intake_provider__bom_document_intake__review',
+      { selectionId: 'record-1', parameters: { section: 'features' } },
+      { replaceUrl: false }
+    )
+  })
+
+  it('restores the active fixed view query from the URL', async () => {
+    workbenchViewUrlState.viewKey.set('bid.studio')
+    workbenchViewUrlState.viewQuery.set({
+      selectionId: 'bid-project-1',
+      parameters: { view: 'workflow', projectId: 'bid-project-1', mode: 'score', section: 'outline' }
+    })
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('bid.studio')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'bid.studio',
+        query: {
+          selectionId: 'bid-project-1',
+          parameters: { view: 'workflow', projectId: 'bid-project-1', mode: 'score', section: 'outline' }
+        }
+      })
+    )
   })
 
   it('opens a provider-composed knowledge workbench view at the cited document chunk', async () => {

@@ -1209,9 +1209,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (requestedViewKey) {
         const requestedTab = findFixedViewTab(fixedTabs, requestedViewKey)
         if (requestedTab) {
+          const requestedQuery = this.#workbenchViewUrlState.viewQuery()
+          if (!equalViewQuery(requestedTab.query, requestedQuery)) {
+            this.workspaceTabs.update((tabs) =>
+              tabs.map((tab) =>
+                tab.id === requestedTab.id && tab.kind === 'fixed-view' ? { ...tab, query: requestedQuery } : tab
+              )
+            )
+          }
           this.activateWorkspaceTab(requestedTab.id, 'none')
           if (requestedTab.viewKey !== requestedViewKey) {
-            void this.#workbenchViewUrlState.setViewKey(requestedTab.viewKey, { replaceUrl: true })
+            void this.#workbenchViewUrlState.setViewState(requestedTab.viewKey, requestedQuery, { replaceUrl: true })
           }
           return
         }
@@ -1691,7 +1699,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.activeTabId.set(tab.id)
     if (tab.kind === 'fixed-view') {
       if (urlMode !== 'none') {
-        void this.#workbenchViewUrlState.setViewKey(tab.viewKey, { replaceUrl: urlMode === 'replace' })
+        void this.#workbenchViewUrlState.setViewState(tab.viewKey, tab.query, { replaceUrl: urlMode === 'replace' })
       }
     } else {
       this.#lastNonFixedTabId = tab.id
@@ -2212,13 +2220,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {
+    const requestedQuery = findResolvedViewByKey([fixedView], this.#workbenchViewUrlState.viewKey())
+      ? this.#workbenchViewUrlState.viewQuery()
+      : null
     return {
       id: `fixed-view-${fixedView.viewKey}`,
       kind: 'fixed-view',
       viewKey: fixedView.viewKey,
       title: fixedView.title,
       icon: fixedView.icon,
-      query: null
+      query: requestedQuery
     }
   }
 
@@ -3212,6 +3223,10 @@ function setWritableSignalValue<T>(signalValue: Signal<T>, value: T) {
 
 function normalizeConversationThreadId(threadId: string | null | undefined) {
   return typeof threadId === 'string' && threadId.trim() ? threadId.trim() : null
+}
+
+function equalViewQuery(left: XpertViewQuery | null, right: XpertViewQuery | null) {
+  return JSON.stringify(left) === JSON.stringify(right)
 }
 
 function formatFileElementSource(reference: TChatFileElementReference) {
