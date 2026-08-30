@@ -110,6 +110,37 @@ describe('WorkspaceFileAccessService', () => {
         expect(() =>
             service.assertRequestOrigin(authorization.session, { headers: { origin: 'https://attacker.example' } })
         ).toThrow()
+        expect(
+            service.assertRequestOrigin(authorization.session, {
+                headers: { referer: 'http://localhost:3000/api/xpert-view/entry' }
+            })
+        ).toBe('http://localhost:3000')
+        expect(
+            service.assertRequestOrigin(
+                authorization.session,
+                {
+                    headers: {
+                        'sec-fetch-site': 'same-site',
+                        'sec-fetch-mode': 'no-cors',
+                        'sec-fetch-dest': 'image'
+                    }
+                },
+                'preview'
+            )
+        ).toBeNull()
+        expect(() =>
+            service.assertRequestOrigin(
+                authorization.session,
+                {
+                    headers: {
+                        'sec-fetch-site': 'cross-site',
+                        'sec-fetch-mode': 'no-cors',
+                        'sec-fetch-dest': 'image'
+                    }
+                },
+                'preview'
+            )
+        ).toThrow()
         expect(service.assertRequestOrigin(authorization.session, { headers: {} }, 'download')).toBeNull()
         expect(() => service.assertRequestOrigin(authorization.session, { headers: {} }, 'preview')).toThrow()
         expect(cache.set).toHaveBeenCalledTimes(2)

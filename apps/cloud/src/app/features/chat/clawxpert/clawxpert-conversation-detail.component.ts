@@ -769,6 +769,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #activeWorkbenchLayoutPreferenceKey: string | null = null
   #initializedWorkbenchLayoutPreferenceKey: string | null = null
   #pendingWorkbenchLayoutRestore: { preferenceKey: string; state: ClawXpertWorkbenchLayoutState } | null = null
+  #pendingChatkitPetRestore: { preferenceKey: string; minimized: boolean } | null = null
   #pendingInitialOverlayOpen = false
   #lastNonFixedTabId: string | null = null
   #activeChatkitControl: ChatKitControl | null = null
@@ -1098,6 +1099,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.#activeWorkbenchLayoutPreferenceKey = preferenceKey
         this.#initializedWorkbenchLayoutPreferenceKey = null
         this.#pendingWorkbenchLayoutRestore = null
+        this.#pendingChatkitPetRestore =
+          preferenceKey && userId
+            ? {
+                preferenceKey,
+                minimized: this.#workbenchLayoutStorage.loadChatkitPet(userId, assistantId ?? '') ?? false
+              }
+            : null
         this.#pendingInitialOverlayOpen = false
       }
 
@@ -1209,9 +1217,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (requestedViewKey) {
         const requestedTab = findFixedViewTab(fixedTabs, requestedViewKey)
         if (requestedTab) {
+          const requestedQuery = this.#workbenchViewUrlState.viewQuery()
+          if (!equalViewQuery(requestedTab.query, requestedQuery)) {
+            this.workspaceTabs.update((tabs) =>
+              tabs.map((tab) =>
+                tab.id === requestedTab.id && tab.kind === 'fixed-view' ? { ...tab, query: requestedQuery } : tab
+              )
+            )
+          }
           this.activateWorkspaceTab(requestedTab.id, 'none')
           if (requestedTab.viewKey !== requestedViewKey) {
-            void this.#workbenchViewUrlState.setViewKey(requestedTab.viewKey, { replaceUrl: true })
+            void this.#workbenchViewUrlState.setViewState(requestedTab.viewKey, requestedQuery, { replaceUrl: true })
           }
           return
         }
@@ -1251,9 +1267,46 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
+      let petRestoreTimer: ReturnType<typeof setTimeout> | null = null
+      let petRestoreAttempts = 0
       const syncMinimizedToPetState = () => {
-        const minimizedToPet = chatkitElement.dataset.chatMinimizedToPet === 'true'
+        let minimizedToPet = isChatkitVisuallyMinimizedToPet(chatkitElement)
+        const userId = this.facade.userId()?.trim() || null
+        const assistantId = this.#workbenchLayoutAssistantId()
+        const preferenceKey = assistantId ? JSON.stringify([userId, assistantId]) : null
+        const pendingRestore = this.#pendingChatkitPetRestore
+        const chatkitStateReady =
+          chatkitElement.dataset.displayMode != null ||
+          chatkitElement.dataset.chatOpen != null ||
+          chatkitElement.dataset.chatMinimizedToPet != null
+        if (pendingRestore?.preferenceKey === preferenceKey && chatkitStateReady) {
+          if (pendingRestore.minimized) {
+            this.#pendingInitialOverlayOpen = false
+            if (chatkitElement.dataset.chatOpen === 'true') {
+              const closeElement = chatkitElement.shadowRoot?.querySelector<HTMLElement>('.ck-launcher-close')
+              if (closeElement) {
+                this.#pendingChatkitPetRestore = null
+                closeElement.click()
+                return
+              }
+              if (petRestoreAttempts < 100) {
+                petRestoreAttempts += 1
+                petRestoreTimer ??= setTimeout(() => {
+                  petRestoreTimer = null
+                  syncMinimizedToPetState()
+                }, 50)
+                return
+              }
+              this.#pendingChatkitPetRestore = null
+            }
+            minimizedToPet = true
+          }
+          this.#pendingChatkitPetRestore = null
+        }
         this.isChatMinimizedToPet.set(minimizedToPet)
+        if (userId && assistantId) {
+          this.#workbenchLayoutStorage.saveChatkitPet(userId, assistantId, minimizedToPet)
+        }
         if (minimizedToPet) {
           this.openDetailPanel()
         }
@@ -1278,6 +1331,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
 
       onCleanup(() => {
+        if (petRestoreTimer) clearTimeout(petRestoreTimer)
         observer.disconnect()
         this.removeOverlayDialogControls()
         this.isChatMinimizedToPet.set(false)
@@ -1691,7 +1745,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.activeTabId.set(tab.id)
     if (tab.kind === 'fixed-view') {
       if (urlMode !== 'none') {
-        void this.#workbenchViewUrlState.setViewKey(tab.viewKey, { replaceUrl: urlMode === 'replace' })
+        void this.#workbenchViewUrlState.setViewState(tab.viewKey, tab.query, { replaceUrl: urlMode === 'replace' })
       }
     } else {
       this.#lastNonFixedTabId = tab.id
@@ -2212,13 +2266,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {
+    const requestedQuery = findResolvedViewByKey([fixedView], this.#workbenchViewUrlState.viewKey())
+      ? this.#workbenchViewUrlState.viewQuery()
+      : null
     return {
       id: `fixed-view-${fixedView.viewKey}`,
       kind: 'fixed-view',
       viewKey: fixedView.viewKey,
       title: fixedView.title,
       icon: fixedView.icon,
-      query: null
+      query: requestedQuery
     }
   }
 
@@ -2803,6 +2860,13 @@ function resolveEmbeddedChatkitElement(host: HTMLElement) {
   return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
 }
 
+function isChatkitVisuallyMinimizedToPet(chatkitElement: HTMLElement) {
+  return (
+    chatkitElement.dataset.chatMinimizedToPet === 'true' ||
+    (chatkitElement.dataset.displayMode === 'pet' && chatkitElement.dataset.chatOpen !== 'true')
+  )
+}
+
 function installChatkitOverlayDialogControls(
   chatkitElement: HTMLElement,
   options: { moveLabel: string; resizeLabel: string }
@@ -3212,6 +3276,10 @@ function setWritableSignalValue<T>(signalValue: Signal<T>, value: T) {
 
 function normalizeConversationThreadId(threadId: string | null | undefined) {
   return typeof threadId === 'string' && threadId.trim() ? threadId.trim() : null
+}
+
+function equalViewQuery(left: XpertViewQuery | null, right: XpertViewQuery | null) {
+  return JSON.stringify(left) === JSON.stringify(right)
 }
 
 function formatFileElementSource(reference: TChatFileElementReference) {

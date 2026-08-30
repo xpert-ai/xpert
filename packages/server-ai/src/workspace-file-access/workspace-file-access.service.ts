@@ -263,8 +263,17 @@ export class WorkspaceFileAccessService {
         purpose?: XpertViewFileAccessPurpose
     ): string | null {
         const origin = readRequestOrigin(request)
-        if (origin === session.origin) {
+        if (origin === session.origin || origin === workspaceFileContentOrigin()) {
             return origin
+        }
+
+        // Sandboxed Remote Views can have an opaque document origin. Chromium
+        // consequently omits both Origin and Referer from an <img> request, but
+        // still sends trustworthy Fetch Metadata. The request is already bound
+        // to an HttpOnly session cookie and an opaque, short-lived grant; only
+        // admit the exact same-site image subresource shape for previews.
+        if (!origin && purpose === 'preview' && isSameSiteImageRequest(request.headers)) {
+            return null
         }
 
         // A sandboxed Remote View has an opaque origin. When it follows the
@@ -457,6 +466,18 @@ function buildContentUrl(sessionId: string, grantId: string, fileName: string) {
 
 function ensureTrailingSlash(value: string) {
     return value.endsWith('/') ? value : `${value}/`
+}
+
+function workspaceFileContentOrigin() {
+    return new URL(ensureTrailingSlash(environment.baseUrl)).origin
+}
+
+function isSameSiteImageRequest(headers: Request['headers']) {
+    return (
+        headers['sec-fetch-site'] === 'same-site' &&
+        headers['sec-fetch-mode'] === 'no-cors' &&
+        headers['sec-fetch-dest'] === 'image'
+    )
 }
 
 function hasExpired(expiresAt: string) {
