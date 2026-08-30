@@ -17,6 +17,17 @@ describe('XpertModelAccessValidator', () => {
                     modelType: AiModelTypeEnum.LLM,
                     model: 'llm-main'
                 },
+                options: {
+                    modelSelection: {
+                        allowedModels: [
+                            {
+                                copilotId: 'selectable-copilot',
+                                modelType: AiModelTypeEnum.LLM,
+                                model: 'selectable-main'
+                            }
+                        ]
+                    }
+                },
                 memory: {
                     copilotModel: {
                         copilotId: 'embedding-copilot',
@@ -101,6 +112,7 @@ describe('XpertModelAccessValidator', () => {
             })
         ).toEqual([
             expect.objectContaining({ copilotId: 'llm-copilot', copilotModelId: 'llm-main' }),
+            expect.objectContaining({ copilotId: 'selectable-copilot', copilotModelId: 'selectable-main' }),
             expect.objectContaining({
                 copilotId: 'embedding-copilot',
                 copilotModelId: 'embedding-main',
@@ -210,6 +222,46 @@ describe('XpertModelAccessValidator', () => {
                             copilotModel: {
                                 copilotId: 'copilot-1',
                                 model: 'model-1'
+                            }
+                        },
+                        nodes: [],
+                        connections: []
+                    } as never,
+                    {
+                        tenantId: 'tenant-1',
+                        xpertId: 'xpert-1',
+                        creatorId: 'creator-user'
+                    }
+                )
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(modelAccessService.canUseCatalogModel).not.toHaveBeenCalled()
+    })
+
+    it('rejects an invalid non-LLM selectable Assistant model before access checks', async () => {
+        const modelAccessService = {
+            canUseCatalogModel: jest.fn().mockResolvedValue(true)
+        }
+        const validator = new XpertModelAccessValidator(
+            modelAccessService as never,
+            { getMiddlewareStrategies: jest.fn().mockReturnValue([]) } as never
+        )
+
+        await expect(
+            validator.handle(
+                new XpertDraftValidateEvent(
+                    {
+                        team: {
+                            options: {
+                                modelSelection: {
+                                    allowedModels: [
+                                        {
+                                            copilotId: 'embedding-copilot',
+                                            modelType: AiModelTypeEnum.TEXT_EMBEDDING,
+                                            model: 'embedding-main'
+                                        }
+                                    ]
+                                }
                             }
                         },
                         nodes: [],

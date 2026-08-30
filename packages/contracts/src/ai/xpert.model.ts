@@ -335,6 +335,11 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Runtime-selectable Primary Agent models. The configured Primary model is added automatically. */
+  modelSelection?: {
+    /** Additional LLM models users may select. */
+    allowedModels: TCopilotModel[]
+  }
   /** Declares how an Assistant resolves the workspace used by files and Agent runs. */
   workspaceScope?: {
     /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
@@ -751,6 +756,14 @@ export type TChatOptions = {
    * Per-request runtime context forwarded to agent middleware/tools.
    */
   context?: Record<string, unknown>
+  /** Resolved runtime override for the Assistant Primary Agent only. */
+  primaryCopilotModel?: TCopilotModel
+  /** Opaque Assistant model option id recorded for audit and retry. */
+  primaryModelId?: string
+  /** Published Primary Agent key to which the override is restricted. */
+  primaryAgentKey?: string
+  /** How the effective Primary Agent model was selected. */
+  primaryModelSource?: import('./assistant-model.model').TAssistantPrimaryModelSelectionSource
 }
 
 export type TChatRuntimePrincipal = {
