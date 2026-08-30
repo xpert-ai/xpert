@@ -20,7 +20,8 @@ import {
   readResponseMessage,
   requireAuthentication,
   resolvePluginEndpoint,
-  resolvePluginInput
+  resolvePluginInput,
+  summarizePluginResponse
 } from './local-plugin-cli.mjs'
 
 const BOOLEAN_FLAGS = ['dryRun', 'forceInstall', 'help', 'noKeychain', 'skipBuild', 'skipTest']
@@ -46,6 +47,7 @@ Validation options:
   --test-cwd <path>          Working directory for --test-command
   --skip-build               Skip generation; package verify:dist still runs when declared
   --skip-test                Skip the test step
+  --manifest-file <path>     Write a secret-free deployment manifest after verification
 
 API and scope options:
   --api-url <url>            API origin, default: ${DEFAULT_API_URL}
@@ -75,6 +77,7 @@ Environment fallbacks:
   XPERT_ORG_ID, XPERT_TENANT_ID, XPERT_SCOPE
   XPERT_PLUGIN_BUILD_COMMAND, XPERT_PLUGIN_BUILD_CWD
   XPERT_PLUGIN_TEST_COMMAND, XPERT_PLUGIN_TEST_CWD
+  XPERT_PLUGIN_DEPLOY_MANIFEST
   XPERT_KEYCHAIN_SERVICE, XPERT_KEYCHAIN_ACCOUNT
   XPERT_USERNAME_KEYCHAIN_SERVICE, XPERT_PASSWORD_KEYCHAIN_SERVICE
 
@@ -137,13 +140,13 @@ function createCommandPlan({ customCommand, customCwd, packageJson, scriptName, 
 function runCommandPlan(label, plan, dryRun) {
   if (!plan) {
     console.log(`[plugin:deploy:local] No ${label} command detected; skipping.`)
-    return
+    return 'not_detected'
   }
 
   console.log(`[plugin:deploy:local] ${label} cwd:`, plan.cwd)
   console.log(`[plugin:deploy:local] ${label} command:`, plan.display)
   if (dryRun) {
-    return
+    return 'planned'
   }
 
   const result = spawnSync(plan.command, plan.args ?? [], {
@@ -154,6 +157,48 @@ function runCommandPlan(label, plan, dryRun) {
   if (result.status !== 0) {
     throw new LocalPluginCliError(`${label} failed with exit code ${result.status ?? 'unknown'}.`)
   }
+  return 'passed'
+}
+
+/** Reads the plugin's declared installation level from its package metadata. */
+function readDeclaredPluginLevel(packageJson) {
+  const level = packageJson?.xpert?.plugin?.level
+  return level === 'system' || level === 'tenant' || level === 'organization' ? level : null
+}
+
+/** Maps a declared plugin level to the only supported local installation scope. */
+function expectedScopeForLevel(level) {
+  return level === 'organization' ? 'organization' : level === 'system' || level === 'tenant' ? 'tenant' : null
+}
+
+/** Rejects a scope mismatch before build, test, or deployment can mutate state. */
+function assertDeclaredScope(packageJson, headers) {
+  const declaredLevel = readDeclaredPluginLevel(packageJson)
+  const expectedScope = expectedScopeForLevel(declaredLevel)
+  const actualScope = headers['x-scope-level']
+  if (expectedScope && actualScope !== expectedScope) {
+    throw new LocalPluginCliError(
+      `Plugin declares xpert.plugin.level=${declaredLevel} and must use ${expectedScope} scope; received ${actualScope}.`
+    )
+  }
+  return { declaredLevel, expectedScope, actualScope }
+}
+
+/** Returns the first verified descriptor without assuming a response pagination shape. */
+function firstVerifiedDescriptor(body) {
+  if (Array.isArray(body)) {
+    return body[0] ?? null
+  }
+  return body && typeof body === 'object' && Array.isArray(body.items) ? (body.items[0] ?? null) : null
+}
+
+/** Writes a deterministic, secret-free receipt that later Assistant provisioning and tests can consume. */
+function writeDeploymentManifest(file, manifest) {
+  if (!file) return
+  const outputPath = path.resolve(file)
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true })
+  fs.writeFileSync(outputPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  console.log('[plugin:deploy:local] Deployment manifest:', outputPath)
 }
 
 function canFallBackToInstall(response) {
@@ -215,6 +260,9 @@ async function main() {
 
   const { packageJson, pluginName, workspacePath } = resolvePluginInput(args)
   const config = parsePluginConfig(args)
+  const requestedScope =
+    args.scope || process.env.XPERT_SCOPE || (args.orgId || process.env.XPERT_ORG_ID ? 'organization' : 'tenant')
+  const scope = assertDeclaredScope(packageJson, { 'x-scope-level': requestedScope })
   const authentication = await requireAuthentication(args, { dryRun: args.dryRun })
   if (!authentication) {
     console.log('[plugin:deploy:local] Dry run: no token found; a real deployment would stop and request secure setup.')
@@ -222,6 +270,12 @@ async function main() {
     console.log(`[plugin:deploy:local] Authentication source: ${authentication.source}`)
   }
   const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token', authentication?.tenantId)
+  assertDeclaredScope(packageJson, headers)
+
+  console.log('[plugin:deploy:local] Preflight plugin level:', scope.declaredLevel ?? 'undeclared')
+  console.log('[plugin:deploy:local] Preflight install scope:', scope.actualScope)
+  console.log('[plugin:deploy:local] Preflight organization:', headers['organization-id'] ?? null)
+  console.log('[plugin:deploy:local] Preflight tenant:', headers['tenant-id'] ?? null)
 
   const buildPlan = args.skipBuild
     ? null
@@ -250,16 +304,20 @@ async function main() {
     workspacePath
   })
 
+  let buildStatus
+  let testStatus
   if (args.skipBuild) {
     console.log('[plugin:deploy:local] Build skipped by request.')
+    buildStatus = 'skipped'
   } else {
-    runCommandPlan('build', buildPlan, args.dryRun)
+    buildStatus = runCommandPlan('build', buildPlan, args.dryRun)
   }
-  runCommandPlan('deploy output verification', distVerificationPlan, args.dryRun)
+  const distStatus = runCommandPlan('deploy output verification', distVerificationPlan, args.dryRun)
   if (args.skipTest) {
     console.log('[plugin:deploy:local] Test skipped by request.')
+    testStatus = 'skipped'
   } else {
-    runCommandPlan('test', testPlan, args.dryRun)
+    testStatus = runCommandPlan('test', testPlan, args.dryRun)
   }
 
   const pluginEndpoint = resolvePluginEndpoint(args)
@@ -278,6 +336,32 @@ async function main() {
   if (!isVerifiedPluginList(verifyResponse.body)) {
     throw new LocalPluginCliError(`Plugin verification returned no descriptor for ${pluginName}.`)
   }
+
+  const descriptor = firstVerifiedDescriptor(verifyResponse.body)
+  const manifestFile = args.manifestFile || process.env.XPERT_PLUGIN_DEPLOY_MANIFEST
+  writeDeploymentManifest(manifestFile, {
+    schemaVersion: 'xpert-local-plugin-deployment@1',
+    generatedAt: new Date().toISOString(),
+    plugin: {
+      name: pluginName,
+      version: packageJson.version ?? null,
+      workspacePath,
+      declaredLevel: scope.declaredLevel,
+      installScope: scope.actualScope,
+      tenantId: headers['tenant-id'] ?? null,
+      organizationId: headers['organization-id'] ?? null
+    },
+    validation: {
+      build: buildStatus,
+      test: testStatus,
+      deployOutput: distStatus
+    },
+    deployment: {
+      action: deployment.action,
+      restartRequired: deployment.result?.restartRequired === true,
+      descriptor: summarizePluginResponse(descriptor)
+    }
+  })
 
   if (deployment.result?.restartRequired === true) {
     console.log(
