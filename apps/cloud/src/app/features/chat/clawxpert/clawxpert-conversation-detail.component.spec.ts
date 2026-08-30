@@ -280,7 +280,10 @@ import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-fi
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertSkillTrialIntentService } from './clawxpert-skill-trial-intent.service'
-import { getClawXpertWorkbenchLayoutStorageKey } from './clawxpert-workbench-layout-storage.service'
+import {
+  getClawXpertChatkitPetStorageKey,
+  getClawXpertWorkbenchLayoutStorageKey
+} from './clawxpert-workbench-layout-storage.service'
 import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 
@@ -309,6 +312,7 @@ function clearWorkbenchLayoutTestStorage() {
   WORKBENCH_LAYOUT_TEST_USER_IDS.forEach((userId) => {
     WORKBENCH_LAYOUT_TEST_ASSISTANT_IDS.forEach((assistantId) => {
       localStorage.removeItem(getClawXpertWorkbenchLayoutStorageKey(userId, assistantId))
+      localStorage.removeItem(getClawXpertChatkitPetStorageKey(userId, assistantId))
     })
   })
 }
@@ -1657,6 +1661,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(localStorage.getItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'))).toBe('true')
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
 
     facade.onChatThreadChange.mockClear()
@@ -2230,6 +2235,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(activatePet).toHaveBeenCalledTimes(1)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(localStorage.getItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'))).toBe('false')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workbenchMaximized()).toBe(false)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
@@ -2239,6 +2245,34 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.chatSurfaceClasses()).toContain('border-l')
+  })
+
+  it('restores the saved ChatKit pet state when reopening the same assistant', async () => {
+    localStorage.setItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'), 'true')
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    fixture.detectChanges()
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) throw new Error('Expected xpert-chatkit to render')
+    const shadowRoot = chatkit.shadowRoot ?? chatkit.attachShadow({ mode: 'open' })
+    chatkit.dataset.displayMode = 'pet'
+    chatkit.dataset.chatOpen = 'true'
+    const closeButton = document.createElement('button')
+    closeButton.className = 'ck-launcher-close'
+    closeButton.addEventListener('click', () => {
+      delete chatkit.dataset.chatOpen
+    })
+    shadowRoot.appendChild(closeButton)
+
+    await fixture.whenStable()
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(chatkit.dataset.chatOpen).toBeUndefined()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(localStorage.getItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'))).toBe('true')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {

@@ -769,6 +769,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #activeWorkbenchLayoutPreferenceKey: string | null = null
   #initializedWorkbenchLayoutPreferenceKey: string | null = null
   #pendingWorkbenchLayoutRestore: { preferenceKey: string; state: ClawXpertWorkbenchLayoutState } | null = null
+  #pendingChatkitPetRestore: { preferenceKey: string; minimized: boolean } | null = null
   #pendingInitialOverlayOpen = false
   #lastNonFixedTabId: string | null = null
   #activeChatkitControl: ChatKitControl | null = null
@@ -1098,6 +1099,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.#activeWorkbenchLayoutPreferenceKey = preferenceKey
         this.#initializedWorkbenchLayoutPreferenceKey = null
         this.#pendingWorkbenchLayoutRestore = null
+        this.#pendingChatkitPetRestore =
+          preferenceKey && userId
+            ? {
+                preferenceKey,
+                minimized: this.#workbenchLayoutStorage.loadChatkitPet(userId, assistantId ?? '') ?? false
+              }
+            : null
         this.#pendingInitialOverlayOpen = false
       }
 
@@ -1259,9 +1267,46 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
+      let petRestoreTimer: ReturnType<typeof setTimeout> | null = null
+      let petRestoreAttempts = 0
       const syncMinimizedToPetState = () => {
-        const minimizedToPet = chatkitElement.dataset.chatMinimizedToPet === 'true'
+        let minimizedToPet = isChatkitVisuallyMinimizedToPet(chatkitElement)
+        const userId = this.facade.userId()?.trim() || null
+        const assistantId = this.#workbenchLayoutAssistantId()
+        const preferenceKey = assistantId ? JSON.stringify([userId, assistantId]) : null
+        const pendingRestore = this.#pendingChatkitPetRestore
+        const chatkitStateReady =
+          chatkitElement.dataset.displayMode != null ||
+          chatkitElement.dataset.chatOpen != null ||
+          chatkitElement.dataset.chatMinimizedToPet != null
+        if (pendingRestore?.preferenceKey === preferenceKey && chatkitStateReady) {
+          if (pendingRestore.minimized) {
+            this.#pendingInitialOverlayOpen = false
+            if (chatkitElement.dataset.chatOpen === 'true') {
+              const closeElement = chatkitElement.shadowRoot?.querySelector<HTMLElement>('.ck-launcher-close')
+              if (closeElement) {
+                this.#pendingChatkitPetRestore = null
+                closeElement.click()
+                return
+              }
+              if (petRestoreAttempts < 100) {
+                petRestoreAttempts += 1
+                petRestoreTimer ??= setTimeout(() => {
+                  petRestoreTimer = null
+                  syncMinimizedToPetState()
+                }, 50)
+                return
+              }
+              this.#pendingChatkitPetRestore = null
+            }
+            minimizedToPet = true
+          }
+          this.#pendingChatkitPetRestore = null
+        }
         this.isChatMinimizedToPet.set(minimizedToPet)
+        if (userId && assistantId) {
+          this.#workbenchLayoutStorage.saveChatkitPet(userId, assistantId, minimizedToPet)
+        }
         if (minimizedToPet) {
           this.openDetailPanel()
         }
@@ -1286,6 +1331,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
 
       onCleanup(() => {
+        if (petRestoreTimer) clearTimeout(petRestoreTimer)
         observer.disconnect()
         this.removeOverlayDialogControls()
         this.isChatMinimizedToPet.set(false)
@@ -2812,6 +2858,13 @@ function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQ
 
 function resolveEmbeddedChatkitElement(host: HTMLElement) {
   return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
+}
+
+function isChatkitVisuallyMinimizedToPet(chatkitElement: HTMLElement) {
+  return (
+    chatkitElement.dataset.chatMinimizedToPet === 'true' ||
+    (chatkitElement.dataset.displayMode === 'pet' && chatkitElement.dataset.chatOpen !== 'true')
+  )
 }
 
 function installChatkitOverlayDialogControls(

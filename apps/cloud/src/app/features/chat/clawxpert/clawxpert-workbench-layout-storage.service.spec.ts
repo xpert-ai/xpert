@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import {
   ClawXpertWorkbenchLayoutStorage,
+  getClawXpertChatkitPetStorageKey,
   getClawXpertWorkbenchLayoutStorageKey
 } from './clawxpert-workbench-layout-storage.service'
 
@@ -46,6 +47,15 @@ describe('ClawXpertWorkbenchLayoutStorage', () => {
     expect(storage.save('user-1', '  ', 'normal')).toBe(false)
   })
 
+  it('stores ChatKit pet state independently for each user and assistant', () => {
+    expect(storage.saveChatkitPet('user-1', 'assistant-1', true)).toBe(true)
+    expect(storage.saveChatkitPet('user-1', 'assistant-2', false)).toBe(true)
+
+    expect(storage.loadChatkitPet('user-1', 'assistant-1')).toBe(true)
+    expect(storage.loadChatkitPet('user-1', 'assistant-2')).toBe(false)
+    expect(storage.loadChatkitPet('user-2', 'assistant-1')).toBeNull()
+  })
+
   it('does not reuse legacy assistant-only layout preferences', () => {
     localStorage.setItem(LEGACY_ASSISTANT_ONE_KEY, 'maximized')
 
@@ -58,6 +68,7 @@ function clearTestStorage() {
   USER_IDS.forEach((userId) => {
     ASSISTANT_IDS.forEach((assistantId) => {
       localStorage.removeItem(getClawXpertWorkbenchLayoutStorageKey(userId, assistantId))
+      localStorage.removeItem(getClawXpertChatkitPetStorageKey(userId, assistantId))
     })
   })
 }
